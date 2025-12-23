@@ -1,0 +1,524 @@
+import { useState, useEffect } from 'react'
+import { leagueApi, auctionApi, superadminApi } from '../services/api'
+import { Button } from '../components/ui/Button'
+import { Navigation } from '../components/Navigation'
+
+interface LeagueDetailProps {
+  leagueId: string
+  onNavigate: (page: string, params?: Record<string, string>) => void
+}
+
+interface League {
+  id: string
+  name: string
+  description?: string
+  minParticipants: number
+  maxParticipants: number
+  initialBudget: number
+  status: string
+  goalkeeperSlots: number
+  defenderSlots: number
+  midfielderSlots: number
+  forwardSlots: number
+  members: Array<{
+    id: string
+    role: string
+    status: string
+    currentBudget: number
+    teamName?: string
+    user: { id: string; username: string; profilePhoto?: string }
+  }>
+}
+
+interface Session {
+  id: string
+  type: string
+  status: string
+  currentPhase: string
+  createdAt: string
+}
+
+const POSITION_COLORS: Record<string, { bg: string; text: string }> = {
+  P: { bg: 'bg-gradient-to-r from-amber-500 to-amber-600', text: 'text-amber-400' },
+  D: { bg: 'bg-gradient-to-r from-blue-500 to-blue-600', text: 'text-blue-400' },
+  C: { bg: 'bg-gradient-to-r from-emerald-500 to-emerald-600', text: 'text-emerald-400' },
+  A: { bg: 'bg-gradient-to-r from-red-500 to-red-600', text: 'text-red-400' },
+}
+
+export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
+  const [league, setLeague] = useState<League | null>(null)
+  const [sessions, setSessions] = useState<Session[]>([])
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [userMembership, setUserMembership] = useState<{ id: string; currentBudget: number } | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [isLeaving, setIsLeaving] = useState(false)
+  const [showAuctionConfirm, setShowAuctionConfirm] = useState(false)
+  const [isCreatingSession, setIsCreatingSession] = useState(false)
+  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    async function checkSuperAdmin() {
+      const response = await superadminApi.getStatus()
+      if (response.success && response.data) {
+        const data = response.data as { isSuperAdmin: boolean }
+        setIsSuperAdmin(data.isSuperAdmin)
+        if (data.isSuperAdmin) {
+          // Redirect superadmins away - they shouldn't access league details
+          onNavigate('dashboard')
+          return
+        }
+      } else {
+        setIsSuperAdmin(false)
+      }
+      // Only load league data if not superadmin
+      loadLeague()
+      loadSessions()
+    }
+    checkSuperAdmin()
+  }, [leagueId, onNavigate])
+
+  async function loadLeague() {
+    const result = await leagueApi.getById(leagueId)
+    if (result.success && result.data) {
+      const data = result.data as { league: League; isAdmin: boolean; userMembership: { id: string; currentBudget: number } }
+      setLeague(data.league)
+      setIsAdmin(data.isAdmin)
+      setUserMembership(data.userMembership)
+    }
+    setIsLoading(false)
+  }
+
+  async function loadSessions() {
+    const result = await auctionApi.getSessions(leagueId)
+    if (result.success && result.data) {
+      setSessions(result.data as Session[])
+    }
+  }
+
+  function handleOpenAuctionClick() {
+    setShowAuctionConfirm(true)
+  }
+
+  async function handleConfirmCreateSession() {
+    setError('')
+    setIsCreatingSession(true)
+    const result = await auctionApi.createSession(leagueId)
+    if (result.success) {
+      setShowAuctionConfirm(false)
+      loadSessions()
+    } else {
+      setError(result.message || 'Errore nella creazione della sessione')
+    }
+    setIsCreatingSession(false)
+  }
+
+  async function handleCloseSession(sessionId: string) {
+    const result = await auctionApi.closeSession(sessionId)
+    if (result.success) {
+      loadSessions()
+    }
+  }
+
+  async function handleLeaveLeague() {
+    if (!confirm('Sei sicuro di voler abbandonare questa lega?')) return
+
+    setIsLeaving(true)
+    const result = await leagueApi.leave(leagueId)
+    if (result.success) {
+      onNavigate('dashboard')
+    } else {
+      setError(result.message || 'Errore nell\'abbandono della lega')
+    }
+    setIsLeaving(false)
+  }
+
+  function getActiveSession() {
+    return sessions.find(s => s.status === 'ACTIVE')
+  }
+
+  // Show loading while checking superadmin status
+  if (isSuperAdmin === null) {
+    return (
+      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin"></div>
+      </div>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg text-gray-400">Caricamento lega...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!league) {
+    return (
+      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-5xl mb-4">😕</div>
+          <p className="text-xl text-danger-400">Lega non trovata</p>
+          <Button variant="outline" className="mt-4" onClick={() => onNavigate('dashboard')}>
+            Torna alla Dashboard
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  const activeSession = getActiveSession()
+  const activeMembers = league.members.filter(m => m.status === 'ACTIVE')
+
+  return (
+    <div className="min-h-screen bg-dark-300">
+      <Navigation currentPage="leagueDetail" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
+
+      {/* League Header */}
+      <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex justify-between items-end">
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-glow">
+                <span className="text-3xl">🏟️</span>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white">{league.name}</h1>
+                <p className="text-gray-400 mt-1">
+                  {league.status === 'DRAFT' ? '📋 In preparazione' : league.status === 'ACTIVE' ? '🔥 Primo Mercato' : league.status}
+                </p>
+              </div>
+            </div>
+            <div className="text-right bg-surface-200 rounded-xl px-6 py-4 border border-surface-50/20">
+              <p className="text-sm text-gray-400 uppercase tracking-wide">Il tuo Budget</p>
+              <p className="text-4xl font-bold text-accent-400">{userMembership?.currentBudget || 0}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        {error && (
+          <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-xl mb-6 text-base">
+            {error}
+          </div>
+        )}
+
+        {/* Active Auction Banner */}
+        {activeSession && (
+          <div className="bg-gradient-to-r from-secondary-600/30 to-secondary-500/20 border-2 border-secondary-500/50 rounded-2xl p-6 mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full bg-secondary-500/30 flex items-center justify-center animate-pulse">
+                <span className="text-3xl">🔨</span>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-secondary-400">Sessione d'Asta Attiva</h2>
+                <p className="text-gray-300">L'asta è in corso, entra subito!</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                size="lg"
+                variant="secondary"
+                onClick={() => onNavigate('auction', { sessionId: activeSession.id, leagueId })}
+              >
+                Entra nell'Asta
+              </Button>
+              {isAdmin && (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => handleCloseSession(activeSession.id)}
+                >
+                  Chiudi Sessione
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* League Info */}
+          <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
+            <div className="p-5 border-b border-surface-50/20 flex items-center gap-3">
+              <span className="text-xl">📊</span>
+              <h3 className="text-xl font-bold text-white">Info Lega</h3>
+            </div>
+            <div className="p-5">
+              {league.description && (
+                <p className="text-gray-300 mb-5 text-base">{league.description}</p>
+              )}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-surface-50/10">
+                  <span className="text-gray-400">Fase</span>
+                  <span className={`font-semibold ${
+                    league.status === 'ACTIVE' ? 'text-secondary-400' :
+                    league.status === 'DRAFT' ? 'text-primary-400' : 'text-gray-400'
+                  }`}>
+                    {league.status === 'DRAFT' ? 'Creazione Lega' : league.status === 'ACTIVE' ? 'Primo Mercato' : league.status}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-surface-50/10">
+                  <span className="text-gray-400">Partecipanti</span>
+                  <span className="font-semibold text-white">{activeMembers.length}/{league.maxParticipants}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-surface-50/10">
+                  <span className="text-gray-400">Budget iniziale</span>
+                  <span className="font-semibold text-accent-400">{league.initialBudget}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-gray-400">Codice invito</span>
+                  <span className="font-mono text-primary-400 bg-surface-300 px-3 py-1 rounded">{league.id.slice(0, 8)}</span>
+                </div>
+              </div>
+
+              {/* Roster Slots */}
+              <div className="mt-6 pt-5 border-t border-surface-50/20">
+                <p className="text-sm text-gray-400 mb-4 uppercase tracking-wide">Slot Rosa</p>
+                <div className="grid grid-cols-4 gap-3">
+                  {[
+                    { pos: 'P', slots: league.goalkeeperSlots, label: 'POR' },
+                    { pos: 'D', slots: league.defenderSlots, label: 'DIF' },
+                    { pos: 'C', slots: league.midfielderSlots, label: 'CEN' },
+                    { pos: 'A', slots: league.forwardSlots, label: 'ATT' },
+                  ].map(({ pos, slots, label }) => (
+                    <div key={pos} className="text-center bg-surface-300 rounded-lg p-3">
+                      <div className={`w-10 h-10 mx-auto rounded-full ${POSITION_COLORS[pos]?.bg ?? 'bg-gray-500'} flex items-center justify-center text-white font-bold mb-2`}>
+                        {pos}
+                      </div>
+                      <p className={`text-xs ${POSITION_COLORS[pos]?.text ?? 'text-gray-400'} font-medium`}>{label}</p>
+                      <p className="text-lg font-bold text-white">{slots}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Leave League Button */}
+              {!isAdmin && league.status === 'DRAFT' && (
+                <div className="mt-6 pt-5 border-t border-surface-50/20">
+                  <Button
+                    variant="outline"
+                    className="w-full border-danger-500/50 text-danger-400 hover:bg-danger-500/10"
+                    onClick={handleLeaveLeague}
+                    disabled={isLeaving}
+                  >
+                    {isLeaving ? 'Abbandono...' : 'Abbandona Lega'}
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    Puoi abbandonare solo prima che la lega sia avviata
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Participants */}
+          <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
+            <div className="p-5 border-b border-surface-50/20 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-xl">👔</span>
+                <h3 className="text-xl font-bold text-white">Presidenti</h3>
+              </div>
+              <span className="bg-surface-300 px-3 py-1 rounded-full text-sm text-gray-400">{activeMembers.length}</span>
+            </div>
+            <div className="divide-y divide-surface-50/10 max-h-96 overflow-y-auto">
+              {activeMembers.map((member) => (
+                <div key={member.id} className="flex items-center justify-between p-4 hover:bg-surface-300/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    {member.user.profilePhoto ? (
+                      <img
+                        src={member.user.profilePhoto}
+                        alt={member.user.username}
+                        className="w-10 h-10 rounded-full object-cover border-2 border-surface-50/30"
+                      />
+                    ) : (
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+                        member.role === 'ADMIN' ? 'bg-gradient-to-br from-accent-500 to-accent-700' : 'bg-gradient-to-br from-primary-500 to-primary-700'
+                      }`}>
+                        {member.user.username[0]?.toUpperCase() || '?'}
+                      </div>
+                    )}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-white text-base">
+                          {member.teamName || member.user.username}
+                        </span>
+                        {member.role === 'ADMIN' && (
+                          <span className="text-xs bg-accent-500/20 text-accent-400 px-2 py-0.5 rounded border border-accent-500/40">
+                            Presidente
+                          </span>
+                        )}
+                      </div>
+                      {member.teamName && (
+                        <p className="text-xs text-gray-400">{member.user.username}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-lg font-bold text-accent-400">{member.currentBudget}</span>
+                    <span className="text-xs text-gray-500 ml-1">crediti</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Auction Sessions */}
+          <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
+            <div className="p-5 border-b border-surface-50/20 flex items-center gap-3">
+              <span className="text-xl">🔨</span>
+              <h3 className="text-xl font-bold text-white">Sessioni d'Asta</h3>
+            </div>
+            <div className="p-5">
+              {isAdmin && !activeSession && league.status === 'ACTIVE' && (
+                <Button size="lg" onClick={handleOpenAuctionClick} className="w-full mb-5">
+                  Apri Sessione d'Asta
+                </Button>
+              )}
+
+              {league.status === 'DRAFT' && (
+                <div className="mb-5 p-4 bg-primary-500/10 border border-primary-500/30 rounded-xl text-center">
+                  <p className="text-primary-400 font-semibold text-base">Fase: Creazione Lega</p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    {isAdmin
+                      ? 'Passa al Primo Mercato dal Pannello Admin per avviare le aste'
+                      : 'In attesa che l\'admin passi al Primo Mercato'}
+                  </p>
+                </div>
+              )}
+
+              {sessions.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-4xl mb-3 opacity-50">📭</div>
+                  <p className="text-gray-500">Nessuna sessione d'asta</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {sessions.map(session => (
+                    <div key={session.id} className={`flex justify-between items-center p-4 rounded-lg ${
+                      session.status === 'ACTIVE' ? 'bg-secondary-500/10 border border-secondary-500/30' : 'bg-surface-300'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{session.status === 'ACTIVE' ? '🔥' : '📋'}</span>
+                        <span className="font-medium text-white">
+                          {session.type === 'PRIMO_MERCATO' ? 'Primo Mercato' : 'Mercato'}
+                        </span>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        session.status === 'ACTIVE' ? 'bg-secondary-500/20 text-secondary-400' :
+                        session.status === 'COMPLETED' ? 'bg-gray-500/20 text-gray-400' : 'bg-surface-50/20 text-gray-500'
+                      }`}>
+                        {session.status === 'ACTIVE' ? 'Attiva' : session.status === 'COMPLETED' ? 'Completata' : session.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-8">
+          <h3 className="text-lg font-bold text-gray-400 mb-4 uppercase tracking-wide">Azioni Rapide</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <Button size="lg" onClick={() => onNavigate('manager-dashboard', { leagueId })} className="flex flex-col items-center gap-2 py-6">
+              <span className="text-2xl">📈</span>
+              <span>Dashboard</span>
+            </Button>
+            {isAdmin && (
+              <Button size="lg" variant="accent" onClick={() => onNavigate('admin-panel', { leagueId })} className="flex flex-col items-center gap-2 py-6">
+                <span className="text-2xl">⚙️</span>
+                <span>Admin Panel</span>
+              </Button>
+            )}
+            <Button size="lg" variant="outline" onClick={() => onNavigate('roster', { leagueId })} className="flex flex-col items-center gap-2 py-6">
+              <span className="text-2xl">📋</span>
+              <span>La Mia Rosa</span>
+            </Button>
+            <Button size="lg" variant="outline" onClick={() => onNavigate('rosters', { leagueId })} className="flex flex-col items-center gap-2 py-6">
+              <span className="text-2xl">👥</span>
+              <span>Tutte le Rose</span>
+            </Button>
+            <Button size="lg" variant="outline" onClick={() => onNavigate('contracts', { leagueId })} className="flex flex-col items-center gap-2 py-6">
+              <span className="text-2xl">📝</span>
+              <span>Contratti</span>
+            </Button>
+            <Button size="lg" variant="outline" onClick={() => onNavigate('trades', { leagueId })} className="flex flex-col items-center gap-2 py-6">
+              <span className="text-2xl">🔄</span>
+              <span>Scambi</span>
+            </Button>
+            <Button size="lg" variant="outline" onClick={() => onNavigate('rubata', { leagueId })} className="flex flex-col items-center gap-2 py-6">
+              <span className="text-2xl">🎯</span>
+              <span>Rubata</span>
+            </Button>
+            <Button size="lg" variant="outline" onClick={() => onNavigate('svincolati', { leagueId })} className="flex flex-col items-center gap-2 py-6">
+              <span className="text-2xl">🆓</span>
+              <span>Svincolati</span>
+            </Button>
+            <Button size="lg" variant="outline" onClick={() => onNavigate('movements', { leagueId })} className="flex flex-col items-center gap-2 py-6">
+              <span className="text-2xl">📜</span>
+              <span>Storico</span>
+            </Button>
+          </div>
+        </div>
+      </main>
+
+      {/* Modal conferma apertura asta */}
+      {showAuctionConfirm && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-200 rounded-2xl p-8 max-w-md w-full border border-surface-50/20 shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-secondary-500 to-secondary-700 flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <span className="text-4xl">🏁</span>
+              </div>
+              <h3 className="text-2xl font-bold text-white">Avvia Sessione d'Asta</h3>
+              <p className="text-secondary-400 font-medium mt-1">Fase: Primo Mercato</p>
+            </div>
+
+            <div className="bg-surface-300 rounded-xl p-5 mb-6">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-gray-400">Manager partecipanti</span>
+                <span className="text-3xl font-bold text-secondary-400">{activeMembers.length}</span>
+              </div>
+              <div className="text-center pt-3 border-t border-surface-50/20">
+                <p className="text-sm text-gray-400">
+                  L'asta partirà con {activeMembers.length} manager
+                </p>
+              </div>
+            </div>
+
+            <p className="text-base text-gray-300 mb-6 text-center">
+              Sei sicuro di voler avviare la sessione d'asta?
+            </p>
+
+            <div className="flex gap-4">
+              <Button
+                variant="outline"
+                size="lg"
+                className="flex-1"
+                onClick={() => setShowAuctionConfirm(false)}
+                disabled={isCreatingSession}
+              >
+                Annulla
+              </Button>
+              <Button
+                size="lg"
+                variant="secondary"
+                className="flex-1"
+                onClick={handleConfirmCreateSession}
+                disabled={isCreatingSession}
+              >
+                {isCreatingSession ? 'Creazione...' : 'Avvia Asta'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

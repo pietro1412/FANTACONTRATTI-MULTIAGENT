@@ -1,0 +1,228 @@
+import { Router } from 'express'
+import type { Request, Response } from 'express'
+import { createLeagueSchema, updateLeagueSchema } from '../../utils/validation'
+import {
+  createLeague,
+  getLeaguesByUser,
+  getLeagueById,
+  getLeagueByInviteCode,
+  requestJoinLeague,
+  getLeagueMembers,
+  updateMemberStatus,
+  updateLeague,
+  startLeague,
+  leaveLeague,
+} from '../../services/league.service'
+import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth'
+
+const router = Router()
+
+// POST /api/leagues - Create league (requires auth)
+router.post('/', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const validation = createLeagueSchema.safeParse(req.body)
+
+    if (!validation.success) {
+      res.status(400).json({
+        success: false,
+        message: 'Dati non validi',
+        errors: validation.error.issues,
+      })
+      return
+    }
+
+    const result = await createLeague(req.user!.userId, validation.data)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.status(201).json(result)
+  } catch (error) {
+    console.error('Create league error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues - Get user's leagues (requires auth)
+router.get('/', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const result = await getLeaguesByUser(req.user!.userId)
+    res.json(result)
+  } catch (error) {
+    console.error('Get leagues error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/join/:code - Get league by invite code (optional auth)
+router.get('/join/:code', optionalAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const code = req.params.code as string
+    const result = await getLeagueByInviteCode(code)
+
+    if (!result.success) {
+      res.status(404).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get league by invite error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:id - Get league detail (requires auth)
+router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const result = await getLeagueById(id, req.user!.userId)
+
+    if (!result.success) {
+      res.status(404).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get league error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// PUT /api/leagues/:id - Update league (admin only)
+router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const validation = updateLeagueSchema.safeParse(req.body)
+
+    if (!validation.success) {
+      res.status(400).json({
+        success: false,
+        message: 'Dati non validi',
+        errors: validation.error.issues,
+      })
+      return
+    }
+
+    const result = await updateLeague(id, req.user!.userId, validation.data)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Update league error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/leagues/:id/join - Request to join league
+router.post('/:id/join', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const { teamName } = req.body as { teamName?: string }
+    const result = await requestJoinLeague(id, req.user!.userId, teamName)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.status(201).json(result)
+  } catch (error) {
+    console.error('Join league error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:id/members - Get league members
+router.get('/:id/members', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const result = await getLeagueMembers(id, req.user!.userId)
+
+    if (!result.success) {
+      res.status(404).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get members error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// PUT /api/leagues/:id/members/:memberId - Accept/Reject/Kick member
+router.put('/:id/members/:memberId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const memberId = req.params.memberId as string
+    const { action } = req.body as { action?: string }
+
+    if (!action || !['accept', 'reject', 'kick'].includes(action)) {
+      res.status(400).json({ success: false, message: 'Azione non valida' })
+      return
+    }
+
+    const result = await updateMemberStatus(
+      id,
+      memberId,
+      req.user!.userId,
+      action as 'accept' | 'reject' | 'kick'
+    )
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Update member error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/leagues/:id/start - Avvia la lega (Admin)
+router.post('/:id/start', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const result = await startLeague(id, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Start league error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/leagues/:id/leave - Lascia la lega
+router.post('/:id/leave', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const result = await leaveLeague(id, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Leave league error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+export default router

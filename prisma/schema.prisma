@@ -1,0 +1,610 @@
+// schema.prisma - Schema completo Fantacontratti MVP
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== UTENTI ====================
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  username      String   @unique
+  passwordHash  String
+  emailVerified Boolean  @default(false)
+  isSuperAdmin  Boolean  @default(false)  // Superadmin piattaforma (gestisce quotazioni)
+  profilePhoto  String?  // URL della foto profilo (base64 o path)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relazioni
+  leagueMemberships LeagueMember[]
+  sentOffers        TradeOffer[]     @relation("OfferSender")
+  receivedOffers    TradeOffer[]     @relation("OfferReceiver")
+  auctionBids       AuctionBid[]
+  auditLogs         AuditLog[]
+  sentInvites       LeagueInvite[]
+  quotazioniUploads QuotazioniUpload[]
+}
+
+// ==================== UPLOAD QUOTAZIONI ====================
+model QuotazioniUpload {
+  id            String   @id @default(cuid())
+
+  uploadedById  String
+  uploadedBy    User     @relation(fields: [uploadedById], references: [id])
+
+  fileName      String
+  sheetName     String
+
+  // Risultati import
+  playersCreated   Int
+  playersUpdated   Int
+  playersNotInList Int
+  totalProcessed   Int
+  errors           Json?    // Array of error strings
+
+  createdAt     DateTime @default(now())
+}
+
+// ==================== LEGHE ====================
+model League {
+  id               String   @id @default(cuid())
+  name             String
+  description      String?
+
+  // Vincoli partecipanti
+  minParticipants  Int      @default(6)
+  maxParticipants  Int      @default(20)
+  requireEvenNumber Boolean @default(true)
+
+  initialBudget    Int      @default(500)
+
+  // Slot rosa
+  goalkeeperSlots  Int      @default(3)
+  defenderSlots    Int      @default(8)
+  midfielderSlots  Int      @default(8)
+  forwardSlots     Int      @default(6)
+
+  // Stato
+  status           LeagueStatus @default(DRAFT)
+  currentSeason    Int          @default(1)
+
+  // Codice invito
+  inviteCode       String   @unique @default(cuid())
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relazioni
+  members          LeagueMember[]
+  marketSessions   MarketSession[]
+  auctions         Auction[]
+  auditLogs        AuditLog[]
+  invites          LeagueInvite[]
+  playerMovements  PlayerMovement[]
+  prophecies       Prophecy[]
+}
+
+enum LeagueStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+// ==================== MEMBRI LEGA ====================
+model LeagueMember {
+  id          String   @id @default(cuid())
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  leagueId    String
+  league      League   @relation(fields: [leagueId], references: [id])
+
+  role        MemberRole @default(MANAGER)
+  teamName    String?
+  status      MemberStatus @default(PENDING)
+
+  // Come è entrato nella lega
+  joinType    JoinType @default(REQUEST)
+
+  // Budget
+  currentBudget Int    @default(0)
+
+  // Ordine Rubata (impostato da admin)
+  rubataOrder   Int?
+
+  // Ordine turno primo mercato (impostato da admin)
+  firstMarketOrder Int?
+
+  joinedAt    DateTime @default(now())
+
+  // Relazioni
+  roster      PlayerRoster[]
+  contracts   PlayerContract[]
+  wonAuctions Auction[]        @relation("AuctionWinner")
+  bids        AuctionBid[]
+  movementsFrom PlayerMovement[] @relation("MovementFrom")
+  movementsTo   PlayerMovement[] @relation("MovementTo")
+  prophecies    Prophecy[]
+  auctionAcknowledgments AuctionAcknowledgment[]
+
+  @@unique([userId, leagueId])
+}
+
+enum JoinType {
+  CREATOR   // Creatore della lega (auto-admin)
+  INVITE    // Invitato via email (auto-entra)
+  REQUEST   // Richiesta spontanea (admin approva)
+}
+
+enum MemberRole {
+  ADMIN
+  MANAGER
+}
+
+enum MemberStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  LEFT
+}
+
+// ==================== GIOCATORI SERIE A ====================
+model SerieAPlayer {
+  id           String   @id @default(cuid())
+  externalId   String?  @unique     // ID dal file quotazioni (es. "123")
+  name         String
+  team         String
+  position     Position
+  quotation    Int      @default(1)
+  age          Int?
+  isActive     Boolean  @default(true)
+
+  // Status nella lista quotazioni
+  listStatus   PlayerListStatus @default(IN_LIST)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relazioni
+  rosters      PlayerRoster[]
+  auctions     Auction[]
+  movements    PlayerMovement[]
+  prophecies   Prophecy[]
+  pendingNominations MarketSession[] @relation("PendingNomination")
+}
+
+enum PlayerListStatus {
+  IN_LIST       // Presente nella lista quotazioni corrente
+  NOT_IN_LIST   // Non più in lista (serie B, estero, etc.)
+}
+
+enum Position {
+  P  // Portiere
+  D  // Difensore
+  C  // Centrocampista
+  A  // Attaccante
+}
+
+// ==================== ROSA MANAGER ====================
+model PlayerRoster {
+  id              String   @id @default(cuid())
+
+  leagueMemberId  String
+  leagueMember    LeagueMember @relation(fields: [leagueMemberId], references: [id])
+
+  playerId        String
+  player          SerieAPlayer @relation(fields: [playerId], references: [id])
+
+  acquisitionPrice Int
+  acquisitionType  AcquisitionType
+
+  status          RosterStatus @default(ACTIVE)
+  acquiredAt      DateTime     @default(now())
+  releasedAt      DateTime?
+
+  // Relazioni
+  contract        PlayerContract?
+
+  @@unique([leagueMemberId, playerId, status])
+}
+
+enum AcquisitionType {
+  FIRST_MARKET
+  RUBATA
+  SVINCOLATI
+  TRADE
+}
+
+enum RosterStatus {
+  ACTIVE
+  RELEASED
+  TRADED
+}
+
+// ==================== CONTRATTI ====================
+model PlayerContract {
+  id              String   @id @default(cuid())
+
+  rosterId        String   @unique
+  roster          PlayerRoster @relation(fields: [rosterId], references: [id])
+
+  leagueMemberId  String
+  leagueMember    LeagueMember @relation(fields: [leagueMemberId], references: [id])
+
+  // Parametri contratto
+  salary          Int      // Ingaggio
+  duration        Int      // Durata (1-4 semestri)
+  initialSalary   Int      // Per validazione rinnovi
+  initialDuration Int      // Per validazione rinnovi
+
+  // Calcolato
+  rescissionClause Int     // salary * multiplier
+
+  signedAt        DateTime @default(now())
+  expiresAt       DateTime?
+
+  // Storico rinnovi
+  renewalHistory  Json?    // [{salary, duration, renewedAt}]
+}
+
+// ==================== SESSIONI MERCATO ====================
+model MarketSession {
+  id          String   @id @default(cuid())
+
+  leagueId    String
+  league      League   @relation(fields: [leagueId], references: [id])
+
+  type        MarketType
+  season      Int
+  semester    Int      // 1 = estivo, 2 = invernale
+
+  status      SessionStatus @default(SCHEDULED)
+  currentPhase MarketPhase?
+
+  // ===== PRIMO MERCATO ASSOLUTO =====
+  // Ruolo attualmente in asta (P, D, C, A)
+  currentRole       Position?
+  // Ordine turni per primo mercato (JSON array di leagueMemberId)
+  turnOrder         Json?
+  // Indice del turno corrente
+  currentTurnIndex  Int?
+  // Timer asta in secondi (configurabile da admin)
+  auctionTimerSeconds Int @default(30)
+
+  // ===== RUBATA =====
+  // Ordine rubata per questa sessione (JSON array di leagueMemberId)
+  rubataOrder  Json?
+
+  // ===== READY CHECK =====
+  // Manager pronti per la prossima asta (JSON array di leagueMemberId)
+  // Resettato quando un'asta viene nominata
+  readyMembers Json?
+  // Giocatore nominato in attesa di ready check (null se nessuna nomination pending)
+  pendingNominationPlayerId String?
+  pendingNominationPlayer   SerieAPlayer? @relation("PendingNomination", fields: [pendingNominationPlayerId], references: [id])
+  // Chi ha nominato il giocatore pending
+  pendingNominatorId        String?
+
+  startsAt    DateTime?
+  endsAt      DateTime?
+
+  createdAt   DateTime @default(now())
+
+  // Relazioni
+  auctions    Auction[]
+  trades      TradeOffer[]
+  movements   PlayerMovement[]
+}
+
+enum MarketType {
+  PRIMO_MERCATO
+  MERCATO_RICORRENTE
+}
+
+enum SessionStatus {
+  SCHEDULED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum MarketPhase {
+  ASTA_LIBERA         // Solo per PRIMO_MERCATO
+  SCAMBI_OFFERTE_1
+  CONTRATTI
+  RUBATA
+  SVINCOLATI
+  SCAMBI_OFFERTE_2
+}
+
+// ==================== ASTE ====================
+model Auction {
+  id              String   @id @default(cuid())
+
+  leagueId        String
+  league          League   @relation(fields: [leagueId], references: [id])
+
+  marketSessionId String?
+  marketSession   MarketSession? @relation(fields: [marketSessionId], references: [id])
+
+  playerId        String
+  player          SerieAPlayer @relation(fields: [playerId], references: [id])
+
+  type            AuctionType
+  basePrice       Int         @default(1)  // Sempre 1 per default
+  currentPrice    Int
+
+  winnerId        String?
+  winner          LeagueMember? @relation("AuctionWinner", fields: [winnerId], references: [id])
+
+  // Per rubata: chi sta cedendo
+  sellerId        String?
+
+  // Chi ha nominato il giocatore (per primo mercato)
+  nominatorId     String?
+
+  status          AuctionStatus @default(PENDING)
+
+  // Timer con reset
+  timerExpiresAt  DateTime?     // Quando scade il timer attuale
+  timerSeconds    Int?          // Durata timer in secondi
+
+  startsAt        DateTime?
+  endsAt          DateTime?
+
+  createdAt       DateTime @default(now())
+
+  // Relazioni
+  bids            AuctionBid[]
+  acknowledgments AuctionAcknowledgment[]
+}
+
+enum AuctionType {
+  FREE_BID        // Asta libera (PRIMO MERCATO e SVINCOLATI)
+  RUBATA          // Asta rubata (forzata)
+}
+
+enum AuctionStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  NO_BIDS
+}
+
+model AuctionBid {
+  id          String   @id @default(cuid())
+
+  auctionId   String
+  auction     Auction  @relation(fields: [auctionId], references: [id])
+
+  bidderId    String
+  bidder      LeagueMember @relation(fields: [bidderId], references: [id])
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  amount      Int
+  isWinning   Boolean  @default(false)
+
+  // Admin può annullare un'offerta
+  isCancelled Boolean  @default(false)
+  cancelledAt DateTime?
+  cancelledBy String?   // userId dell'admin che ha annullato
+
+  placedAt    DateTime @default(now())
+}
+
+// Conferma visualizzazione risultato asta
+model AuctionAcknowledgment {
+  id          String   @id @default(cuid())
+
+  auctionId   String
+  auction     Auction  @relation(fields: [auctionId], references: [id])
+
+  memberId    String
+  member      LeagueMember @relation(fields: [memberId], references: [id])
+
+  // Profezia opzionale inserita dal manager
+  prophecy    String?
+
+  acknowledgedAt DateTime @default(now())
+
+  @@unique([auctionId, memberId])
+}
+
+// ==================== SCAMBI ====================
+model TradeOffer {
+  id              String   @id @default(cuid())
+
+  marketSessionId String
+  marketSession   MarketSession @relation(fields: [marketSessionId], references: [id])
+
+  senderId        String
+  sender          User     @relation("OfferSender", fields: [senderId], references: [id])
+
+  receiverId      String
+  receiver        User     @relation("OfferReceiver", fields: [receiverId], references: [id])
+
+  // Offerta
+  offeredPlayers  Json     // [playerId, ...]
+  offeredBudget   Int      @default(0)
+
+  // Richiesta
+  requestedPlayers Json    // [playerId, ...]
+  requestedBudget  Int     @default(0)
+
+  status          TradeStatus @default(PENDING)
+
+  // Per vincolo anti-ritroso
+  involvedPlayers Json     // tutti i playerId coinvolti
+
+  message         String?
+
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime?  // Scadenza dell'offerta
+  respondedAt     DateTime?
+
+  // Controproposta
+  parentOfferId   String?
+  parentOffer     TradeOffer?  @relation("CounterOffers", fields: [parentOfferId], references: [id])
+  counterOffers   TradeOffer[] @relation("CounterOffers")
+}
+
+enum TradeStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COUNTERED
+  CANCELLED
+  EXPIRED
+}
+
+// ==================== AUDIT LOG ====================
+model AuditLog {
+  id          String   @id @default(cuid())
+
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+
+  leagueId    String?
+  league      League?  @relation(fields: [leagueId], references: [id])
+
+  action      String
+  entityType  String?
+  entityId    String?
+  oldValues   Json?
+  newValues   Json?
+
+  ipAddress   String?
+  userAgent   String?
+
+  createdAt   DateTime @default(now())
+}
+
+// ==================== INVITI LEGA ====================
+model LeagueInvite {
+  id          String   @id @default(cuid())
+
+  leagueId    String
+  league      League   @relation(fields: [leagueId], references: [id])
+
+  email       String
+  token       String   @unique
+
+  invitedBy   String
+  inviter     User     @relation(fields: [invitedBy], references: [id])
+
+  status      InviteStatus @default(PENDING)
+
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+
+  createdAt   DateTime @default(now())
+
+  @@unique([leagueId, email])
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+// ==================== STORICO MOVIMENTI ====================
+model PlayerMovement {
+  id              String   @id @default(cuid())
+
+  leagueId        String
+  league          League   @relation(fields: [leagueId], references: [id])
+
+  playerId        String
+  player          SerieAPlayer @relation(fields: [playerId], references: [id])
+
+  // Tipo movimento
+  movementType    MovementType
+
+  // Da chi / A chi
+  fromMemberId    String?
+  fromMember      LeagueMember? @relation("MovementFrom", fields: [fromMemberId], references: [id])
+
+  toMemberId      String?
+  toMember        LeagueMember? @relation("MovementTo", fields: [toMemberId], references: [id])
+
+  // Dettagli movimento
+  price           Int?
+
+  // Contratto precedente (snapshot)
+  oldSalary       Int?
+  oldDuration     Int?
+  oldClause       Int?
+
+  // Nuovo contratto (snapshot)
+  newSalary       Int?
+  newDuration     Int?
+  newClause       Int?
+
+  // Riferimento all'asta/scambio se applicabile
+  auctionId       String?
+  tradeId         String?
+
+  // Sessione mercato
+  marketSessionId String?
+  marketSession   MarketSession? @relation(fields: [marketSessionId], references: [id])
+
+  createdAt       DateTime @default(now())
+
+  // Relazioni
+  prophecies      Prophecy[]
+}
+
+enum MovementType {
+  FIRST_MARKET    // Primo mercato assoluto
+  TRADE           // Scambio
+  RUBATA          // Rubata
+  SVINCOLATI      // Acquisto svincolato
+  RELEASE         // Svincolo (contratto scaduto o volontario)
+  CONTRACT_RENEW  // Rinnovo contratto
+}
+
+// ==================== PROFEZIE ====================
+model Prophecy {
+  id              String   @id @default(cuid())
+
+  leagueId        String
+  league          League   @relation(fields: [leagueId], references: [id])
+
+  playerId        String
+  player          SerieAPlayer @relation(fields: [playerId], references: [id])
+
+  // Chi ha fatto la profezia
+  authorId        String
+  author          LeagueMember @relation(fields: [authorId], references: [id])
+
+  // Movimento associato
+  movementId      String
+  movement        PlayerMovement @relation(fields: [movementId], references: [id])
+
+  // Tipo: acquirente o cedente
+  authorRole      ProphecyRole
+
+  // Contenuto profezia
+  content         String
+
+  createdAt       DateTime @default(now())
+
+  @@unique([movementId, authorId])
+}
+
+enum ProphecyRole {
+  BUYER   // Chi acquista
+  SELLER  // Chi cede
+}
