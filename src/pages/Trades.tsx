@@ -186,7 +186,7 @@ function PlayerCard({ player, compact = false }: { player: Player, compact?: boo
 
 export function Trades({ leagueId, onNavigate }: TradesProps) {
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'received' | 'sent' | 'create' | 'history'>('received')
+  const [activeTab, setActiveTab] = useState<'received' | 'sent' | 'create' | 'history'>('create')
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
 
   // Data
@@ -294,11 +294,19 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
     }
 
     // Load all other players from all rosters
+    // Handle both formats: { data: [...] } (auctions.ts) and { data: { members: [...] } } (leagues.ts)
     if (allRostersRes.success && allRostersRes.data) {
-      const rostersData = allRostersRes.data as Array<{
-        memberId: string
-        username: string
-        players: Array<{
+      let rostersData: Array<{
+        id?: string
+        memberId?: string
+        username?: string
+        user?: { username: string }
+        roster?: Array<{
+          id: string
+          player: { id: string; name: string; position: string; team: string }
+          contract?: { salary: number; duration: number; rescissionClause?: number } | null
+        }>
+        players?: Array<{
           id: string
           rosterId: string
           name: string
@@ -306,15 +314,37 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
           team: string
           contract?: { salary: number; duration: number; rescissionClause?: number } | null
         }>
-      }>
+      }> = []
+
+      // Check which format we received
+      if (Array.isArray(allRostersRes.data)) {
+        // Format from auctions.ts: data is array directly
+        rostersData = allRostersRes.data
+      } else if ((allRostersRes.data as { members?: unknown }).members) {
+        // Format from leagues.ts: data.members is the array
+        rostersData = (allRostersRes.data as { members: typeof rostersData }).members
+      }
 
       const otherPlayers: RosterEntry[] = []
       for (const memberRoster of rostersData) {
-        if (memberRoster.memberId === currentMemberId) continue
+        const memberId = memberRoster.memberId || memberRoster.id || ''
+        const username = memberRoster.username || memberRoster.user?.username || ''
 
-        for (const p of memberRoster.players) {
+        if (memberId === currentMemberId) continue
+
+        // Handle both player formats
+        const players = memberRoster.players || memberRoster.roster?.map(r => ({
+          id: r.player.id,
+          rosterId: r.id,
+          name: r.player.name,
+          position: r.player.position,
+          team: r.player.team,
+          contract: r.contract,
+        })) || []
+
+        for (const p of players) {
           otherPlayers.push({
-            id: p.rosterId,
+            id: p.rosterId || p.id,
             player: {
               id: p.id,
               name: p.name,
@@ -323,8 +353,8 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
               contract: p.contract,
             },
             acquisitionPrice: 0,
-            memberId: memberRoster.memberId,
-            memberUsername: memberRoster.username,
+            memberId: memberId,
+            memberUsername: username,
           })
         }
       }
@@ -507,6 +537,13 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
         {/* Tabs */}
         <div className="flex gap-2 mb-6 flex-wrap">
           <Button
+            variant={activeTab === 'create' ? 'primary' : 'outline'}
+            onClick={() => setActiveTab('create')}
+            disabled={!isInTradePhase}
+          >
+            + Nuova Offerta
+          </Button>
+          <Button
             variant={activeTab === 'received' ? 'primary' : 'outline'}
             onClick={() => setActiveTab('received')}
           >
@@ -517,13 +554,6 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
             onClick={() => setActiveTab('sent')}
           >
             Inviate ({sentOffers.length})
-          </Button>
-          <Button
-            variant={activeTab === 'create' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('create')}
-            disabled={!isInTradePhase}
-          >
-            Nuova Offerta
           </Button>
           <Button
             variant={activeTab === 'history' ? 'primary' : 'outline'}

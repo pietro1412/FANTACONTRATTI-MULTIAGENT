@@ -46,6 +46,7 @@ interface LeagueData {
   id: string
   name: string
   members: Member[]
+  inContrattiPhase?: boolean
 }
 
 const POSITION_COLORS: Record<string, string> = {
@@ -70,11 +71,11 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
 
   const loadLeague = useCallback(async () => {
     setIsLoading(true)
-    const response = await leagueApi.getById(leagueId)
+    const response = await leagueApi.getAllRosters(leagueId)
     if (response.success && response.data) {
-      const data = response.data as LeagueData & { userMembership?: { role: string } }
+      const data = response.data as LeagueData & { isAdmin?: boolean }
       setLeague(data)
-      setIsLeagueAdmin(data.userMembership?.role === 'ADMIN')
+      setIsLeagueAdmin(data.isAdmin || false)
     }
     setIsLoading(false)
   }, [leagueId])
@@ -131,6 +132,14 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
           <h1 className="text-2xl font-bold text-white">Tutte le Rose</h1>
           <p className="text-gray-400">{league.name}</p>
         </div>
+
+        {league.inContrattiPhase && (
+          <div className="mb-6 p-4 bg-warning-500/10 border border-warning-500/30 rounded-xl">
+            <p className="text-warning-400">
+              <strong>Fase CONTRATTI attiva:</strong> I dettagli dei contratti degli altri manager sono nascosti fino alla fine della fase.
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Members List */}
@@ -223,7 +232,7 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
                                   <p className="font-mono text-accent-400">{entry.acquisitionPrice}</p>
                                   {entry.contract && (
                                     <p className="text-xs text-gray-500">
-                                      {entry.contract.duration}A - {entry.contract.salary}/anno
+                                      {entry.contract.duration}sem - {entry.contract.salary}M/sem
                                     </p>
                                   )}
                                 </div>

@@ -208,38 +208,74 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           </div>
         )}
 
-        {/* Active Auction Banner */}
-        {activeSession && (
-          <div className="bg-gradient-to-r from-secondary-600/30 to-secondary-500/20 border-2 border-secondary-500/50 rounded-2xl p-6 mb-8 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-secondary-500/30 flex items-center justify-center animate-pulse">
-                <span className="text-3xl">🔨</span>
+        {/* Active Session Banner */}
+        {activeSession && (() => {
+          const phaseConfig: Record<string, { icon: string; title: string; description: string; buttonText: string; color: string }> = {
+            ASTA_LIBERA: { icon: '🔨', title: 'Asta in Corso', description: "L'asta è in corso, entra subito!", buttonText: "Entra nell'Asta", color: 'secondary' },
+            SCAMBI_OFFERTE_1: { icon: '🔄', title: 'Finestra Scambi', description: 'Proponi e accetta scambi con altri manager', buttonText: 'Vai agli Scambi', color: 'primary' },
+            CONTRATTI: { icon: '📝', title: 'Gestione Contratti', description: 'Gestisci i contratti dei tuoi giocatori', buttonText: 'Gestisci Contratti', color: 'accent' },
+            RUBATA: { icon: '🎯', title: 'Fase Rubata', description: 'Prova a rubare giocatori dagli altri manager', buttonText: 'Vai alla Rubata', color: 'warning' },
+            SVINCOLATI: { icon: '📋', title: 'Mercato Svincolati', description: 'Acquista giocatori svincolati', buttonText: 'Vai agli Svincolati', color: 'success' },
+            SCAMBI_OFFERTE_2: { icon: '🔄', title: 'Finestra Scambi', description: 'Ultima finestra per proporre scambi', buttonText: 'Vai agli Scambi', color: 'primary' },
+          }
+          const phase = activeSession.currentPhase || 'ASTA_LIBERA'
+          const defaultConfig = { icon: '🔨', title: 'Sessione Attiva', description: 'Sessione di mercato in corso', buttonText: 'Entra', color: 'secondary' }
+          const config = phaseConfig[phase] ?? defaultConfig
+          const colorClasses: Record<string, { bg: string; border: string; text: string; iconBg: string }> = {
+            secondary: { bg: 'from-secondary-600/30 to-secondary-500/20', border: 'border-secondary-500/50', text: 'text-secondary-400', iconBg: 'bg-secondary-500/30' },
+            primary: { bg: 'from-primary-600/30 to-primary-500/20', border: 'border-primary-500/50', text: 'text-primary-400', iconBg: 'bg-primary-500/30' },
+            accent: { bg: 'from-accent-600/30 to-accent-500/20', border: 'border-accent-500/50', text: 'text-accent-400', iconBg: 'bg-accent-500/30' },
+            warning: { bg: 'from-warning-600/30 to-warning-500/20', border: 'border-warning-500/50', text: 'text-warning-400', iconBg: 'bg-warning-500/30' },
+            success: { bg: 'from-green-600/30 to-green-500/20', border: 'border-green-500/50', text: 'text-green-400', iconBg: 'bg-green-500/30' },
+          }
+          const defaultColors = { bg: 'from-secondary-600/30 to-secondary-500/20', border: 'border-secondary-500/50', text: 'text-secondary-400', iconBg: 'bg-secondary-500/30' }
+          const colors = colorClasses[config.color] || defaultColors
+
+          // Determine navigation target based on phase
+          const getNavTarget = () => {
+            switch (phase) {
+              case 'ASTA_LIBERA': return () => onNavigate('auction', { sessionId: activeSession.id, leagueId })
+              case 'SCAMBI_OFFERTE_1':
+              case 'SCAMBI_OFFERTE_2': return () => onNavigate('trades', { leagueId })
+              case 'SVINCOLATI': return () => onNavigate('svincolati', { leagueId })
+              case 'RUBATA': return () => onNavigate('rubata', { leagueId })
+              case 'CONTRATTI': return () => onNavigate('contracts', { leagueId })
+              default: return () => onNavigate('auction', { sessionId: activeSession.id, leagueId })
+            }
+          }
+
+          return (
+            <div className={`bg-gradient-to-r ${colors.bg} border-2 ${colors.border} rounded-2xl p-6 mb-8 flex items-center justify-between`}>
+              <div className="flex items-center gap-4">
+                <div className={`w-14 h-14 rounded-full ${colors.iconBg} flex items-center justify-center animate-pulse`}>
+                  <span className="text-3xl">{config.icon}</span>
+                </div>
+                <div>
+                  <h2 className={`text-xl font-bold ${colors.text}`}>{config.title}</h2>
+                  <p className="text-gray-300">{config.description}</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-secondary-400">Sessione d'Asta Attiva</h2>
-                <p className="text-gray-300">L'asta è in corso, entra subito!</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                size="lg"
-                variant="secondary"
-                onClick={() => onNavigate('auction', { sessionId: activeSession.id, leagueId })}
-              >
-                Entra nell'Asta
-              </Button>
-              {isAdmin && (
+              <div className="flex gap-3">
                 <Button
                   size="lg"
-                  variant="outline"
-                  onClick={() => handleCloseSession(activeSession.id)}
+                  variant={config.color === 'secondary' ? 'secondary' : 'primary'}
+                  onClick={getNavTarget()}
                 >
-                  Chiudi Sessione
+                  {config.buttonText}
                 </Button>
-              )}
+                {isAdmin && (
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={() => handleCloseSession(activeSession.id)}
+                  >
+                    Chiudi Sessione
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* League Info */}
@@ -431,7 +467,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
               <span>Dashboard</span>
             </Button>
             {isAdmin && (
-              <Button size="lg" variant="accent" onClick={() => onNavigate('admin-panel', { leagueId })} className="flex flex-col items-center gap-2 py-6">
+              <Button size="lg" variant="accent" onClick={() => onNavigate('adminPanel', { leagueId })} className="flex flex-col items-center gap-2 py-6">
                 <span className="text-2xl">⚙️</span>
                 <span>Admin Panel</span>
               </Button>
@@ -440,7 +476,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
               <span className="text-2xl">📋</span>
               <span>La Mia Rosa</span>
             </Button>
-            <Button size="lg" variant="outline" onClick={() => onNavigate('rosters', { leagueId })} className="flex flex-col items-center gap-2 py-6">
+            <Button size="lg" variant="outline" onClick={() => onNavigate('allRosters', { leagueId })} className="flex flex-col items-center gap-2 py-6">
               <span className="text-2xl">👥</span>
               <span>Tutte le Rose</span>
             </Button>

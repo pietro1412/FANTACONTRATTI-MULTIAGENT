@@ -12,6 +12,7 @@ import {
   updateLeague,
   startLeague,
   leaveLeague,
+  getAllRosters,
 } from '../../services/league.service'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth'
 
@@ -154,6 +155,24 @@ router.get('/:id/members', authMiddleware, async (req: Request, res: Response) =
     res.json(result)
   } catch (error) {
     console.error('Get members error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:id/rosters - Get all rosters for the league
+router.get('/:id/rosters', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const result = await getAllRosters(id, req.user!.userId)
+
+    if (!result.success) {
+      res.status(403).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get rosters error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

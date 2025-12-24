@@ -133,6 +133,7 @@ model LeagueMember {
   movementsTo   PlayerMovement[] @relation("MovementTo")
   prophecies    Prophecy[]
   auctionAcknowledgments AuctionAcknowledgment[]
+  contractConsolidations ContractConsolidation[]
 
   @@unique([userId, leagueId])
 }
@@ -301,6 +302,23 @@ model MarketSession {
   auctions    Auction[]
   trades      TradeOffer[]
   movements   PlayerMovement[]
+  consolidations ContractConsolidation[]
+}
+
+// ==================== CONSOLIDAMENTO CONTRATTI ====================
+// Traccia quali manager hanno consolidato i propri contratti durante la fase CONTRATTI
+model ContractConsolidation {
+  id          String   @id @default(cuid())
+
+  sessionId   String
+  session     MarketSession @relation(fields: [sessionId], references: [id])
+
+  memberId    String
+  member      LeagueMember @relation(fields: [memberId], references: [id])
+
+  consolidatedAt DateTime @default(now())
+
+  @@unique([sessionId, memberId])
 }
 
 enum MarketType {

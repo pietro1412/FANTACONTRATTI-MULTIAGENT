@@ -8,6 +8,9 @@ import {
   releasePlayer,
   previewRenewal,
   previewContract,
+  getConsolidationStatus,
+  consolidateContracts,
+  getAllConsolidationStatus,
 } from '../../services/contract.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -171,6 +174,62 @@ router.post('/contracts/:contractId/release', authMiddleware, async (req: Reques
     res.json(result)
   } catch (error) {
     console.error('Release player error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== CONTRACT CONSOLIDATION ====================
+
+// GET /api/leagues/:leagueId/contracts/consolidation - Get consolidation status for current manager
+router.get('/leagues/:leagueId/contracts/consolidation', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await getConsolidationStatus(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get consolidation status error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/leagues/:leagueId/contracts/consolidate - Consolidate contracts
+router.post('/leagues/:leagueId/contracts/consolidate', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await consolidateContracts(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Consolidate contracts error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:leagueId/contracts/consolidation-all - Get all managers' consolidation status (admin only)
+router.get('/leagues/:leagueId/contracts/consolidation-all', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await getAllConsolidationStatus(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Solo gli admin possono vedere lo stato di consolidamento' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get all consolidation status error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

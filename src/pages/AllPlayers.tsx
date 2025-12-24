@@ -82,24 +82,28 @@ export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
   const loadData = useCallback(async () => {
     setIsLoading(true)
 
-    // Load league data to get roster info
-    const leagueResponse = await leagueApi.getById(leagueId)
+    // Load league data with rosters
+    const leagueResponse = await leagueApi.getAllRosters(leagueId)
     if (leagueResponse.success && leagueResponse.data) {
-      const leagueData = leagueResponse.data as LeagueData
+      const leagueData = leagueResponse.data as LeagueData & { isAdmin?: boolean }
       setLeagueName(leagueData.name)
-      setIsLeagueAdmin(leagueData.userMembership?.role === 'ADMIN')
+      setIsLeagueAdmin(leagueData.isAdmin || false)
 
       // Build roster map
       const newRosterMap = new Map<string, RosterInfo>()
-      for (const member of leagueData.members) {
-        for (const rosterEntry of member.roster) {
-          newRosterMap.set(rosterEntry.playerId, {
-            memberId: member.id,
-            memberUsername: member.user.username,
-            teamName: member.teamName,
-            acquisitionPrice: rosterEntry.acquisitionPrice,
-            contract: rosterEntry.contract,
-          })
+      if (leagueData.members && Array.isArray(leagueData.members)) {
+        for (const member of leagueData.members) {
+          if (member.roster && Array.isArray(member.roster)) {
+            for (const rosterEntry of member.roster) {
+              newRosterMap.set(rosterEntry.playerId, {
+                memberId: member.id,
+                memberUsername: member.user.username,
+                teamName: member.teamName,
+                acquisitionPrice: rosterEntry.acquisitionPrice,
+                contract: rosterEntry.contract,
+              })
+            }
+          }
         }
       }
       setRosterMap(newRosterMap)

@@ -1,5 +1,5 @@
 import { PrismaClient, AuctionStatus, AuctionType, MemberRole, MemberStatus, AcquisitionType, RosterStatus, Prisma } from '@prisma/client'
-import { calculateRescissionClause } from './contract.service'
+import { calculateRescissionClause, canAdvanceFromContratti } from './contract.service'
 import { recordMovement } from './movement.service'
 
 const prisma = new PrismaClient()
@@ -280,6 +280,14 @@ export async function setMarketPhase(
     return { success: false, message: `Fase non valida. Fasi disponibili: ${validPhases.join(', ')}` }
   }
 
+  // Check consolidation when leaving CONTRATTI phase
+  if (session.currentPhase === 'CONTRATTI' && phase !== 'CONTRATTI') {
+    const consolidationCheck = await canAdvanceFromContratti(sessionId)
+    if (!consolidationCheck.canAdvance) {
+      return { success: false, message: consolidationCheck.reason || 'Non tutti i manager hanno consolidato i contratti' }
+    }
+  }
+
   // Update session phase
   const updatedSession = await prisma.marketSession.update({
     where: { id: sessionId },
@@ -324,8 +332,8 @@ export async function updateSessionTimer(
   }
 
   // Validate timer range
-  if (timerSeconds < 10 || timerSeconds > 120) {
-    return { success: false, message: 'Il timer deve essere tra 10 e 120 secondi' }
+  if (timerSeconds < 5 || timerSeconds > 120) {
+    return { success: false, message: 'Il timer deve essere tra 5 e 120 secondi' }
   }
 
   // Update session timer

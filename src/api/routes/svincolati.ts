@@ -9,6 +9,7 @@ import {
   getCurrentFreeAgentAuction,
   getFreeAgentsHistory,
 } from '../../services/svincolati.service'
+import { simulateBotBidding, getBotMembers } from '../../services/bot.service'
 import { authMiddleware } from '../middleware/auth'
 
 const router = Router()
@@ -164,6 +165,44 @@ router.put('/svincolati/:auctionId/close', authMiddleware, async (req: Request, 
     res.json(result)
   } catch (error) {
     console.error('Close free agent auction error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== BOT SIMULATION ====================
+
+// POST /api/svincolati/:auctionId/bot-bid - Trigger bot bidding simulation
+router.post('/svincolati/:auctionId/bot-bid', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const auctionId = req.params.auctionId as string
+    const result = await simulateBotBidding(auctionId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Bot bidding simulation error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:leagueId/bots - Get bot members info
+router.get('/leagues/:leagueId/bots', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await getBotMembers(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get bot members error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

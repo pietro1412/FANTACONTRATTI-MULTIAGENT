@@ -13,16 +13,13 @@ interface NavigationProps {
 }
 
 // League menu items configuration
+// Note: Contratti, Scambi, Rubata are phase-specific and accessible from Tutte le Rose or Dashboard when active
 const LEAGUE_MENU_ITEMS = [
   { key: 'leagueDetail', label: 'Dashboard', adminOnly: false },
   { key: 'adminPanel', label: 'Admin', adminOnly: true },
   { key: 'roster', label: 'La Mia Rosa', adminOnly: false },
   { key: 'allRosters', label: 'Tutte le Rose', adminOnly: false },
-  { key: 'contracts', label: 'Contratti', adminOnly: false },
-  { key: 'trades', label: 'Scambi', adminOnly: false },
-  { key: 'rubata', label: 'Rubata', adminOnly: false },
   { key: 'svincolati', label: 'Svincolati', adminOnly: false },
-  { key: 'allPlayers', label: 'Tutti i Giocatori', adminOnly: false },
   { key: 'movements', label: 'Storico', adminOnly: false },
 ]
 

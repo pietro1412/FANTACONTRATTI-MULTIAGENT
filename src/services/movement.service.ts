@@ -66,6 +66,7 @@ export async function getLeagueMovements(
     offset?: number
     movementType?: MovementType
     playerId?: string
+    semester?: number
   }
 ): Promise<ServiceResult> {
   // Verify membership
@@ -81,11 +82,8 @@ export async function getLeagueMovements(
     return { success: false, message: 'Non sei membro di questa lega' }
   }
 
-  const whereConditions: {
-    leagueId: string
-    movementType?: MovementType
-    playerId?: string
-  } = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const whereConditions: any = {
     leagueId,
   }
 
@@ -95,6 +93,12 @@ export async function getLeagueMovements(
 
   if (options?.playerId) {
     whereConditions.playerId = options.playerId
+  }
+
+  if (options?.semester) {
+    whereConditions.marketSession = {
+      semester: options.semester,
+    }
   }
 
   const movements = await prisma.playerMovement.findMany({

@@ -16,19 +16,21 @@ const router = Router()
 router.get('/leagues/:leagueId/movements', authMiddleware, async (req: Request, res: Response) => {
   try {
     const leagueId = req.params.leagueId as string
-    const { limit, offset, movementType, playerId } = req.query
+    const { limit, offset, movementType, playerId, semester } = req.query
 
     const options: {
       limit?: number
       offset?: number
       movementType?: MovementType
       playerId?: string
+      semester?: number
     } = {}
 
     if (limit) options.limit = parseInt(limit as string)
     if (offset) options.offset = parseInt(offset as string)
     if (movementType) options.movementType = movementType as MovementType
     if (playerId) options.playerId = playerId as string
+    if (semester) options.semester = parseInt(semester as string)
 
     const result = await getLeagueMovements(leagueId, req.user!.userId, options)
 

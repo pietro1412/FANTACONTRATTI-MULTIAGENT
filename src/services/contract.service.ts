@@ -681,3 +681,289 @@ export async function previewContract(
     },
   }
 }
+
+// ==================== CONTRACT CONSOLIDATION ====================
+
+// Get consolidation status for the current manager
+export async function getConsolidationStatus(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Get active session in CONTRATTI phase
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'CONTRATTI',
+    },
+  })
+
+  if (!activeSession) {
+    return {
+      success: true,
+      data: {
+        inContrattiPhase: false,
+        isConsolidated: false,
+        consolidatedAt: null,
+      },
+    }
+  }
+
+  // Check if manager has consolidated
+  const consolidation = await prisma.contractConsolidation.findUnique({
+    where: {
+      sessionId_memberId: {
+        sessionId: activeSession.id,
+        memberId: member.id,
+      },
+    },
+  })
+
+  return {
+    success: true,
+    data: {
+      inContrattiPhase: true,
+      sessionId: activeSession.id,
+      isConsolidated: !!consolidation,
+      consolidatedAt: consolidation?.consolidatedAt || null,
+    },
+  }
+}
+
+// Consolidate contracts for the current manager
+export async function consolidateContracts(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Get active session in CONTRATTI phase
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'CONTRATTI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Non siamo in fase CONTRATTI' }
+  }
+
+  // Check if all players have contracts
+  const roster = await prisma.playerRoster.findMany({
+    where: {
+      leagueMemberId: member.id,
+      status: RosterStatus.ACTIVE,
+    },
+    include: {
+      contract: true,
+      player: true,
+    },
+  })
+
+  const playersWithoutContract = roster.filter(r => !r.contract)
+  if (playersWithoutContract.length > 0) {
+    const names = playersWithoutContract.map(r => r.player.name).join(', ')
+    return {
+      success: false,
+      message: `Non puoi consolidare: ${playersWithoutContract.length} giocatori senza contratto (${names})`,
+    }
+  }
+
+  // Check if already consolidated
+  const existingConsolidation = await prisma.contractConsolidation.findUnique({
+    where: {
+      sessionId_memberId: {
+        sessionId: activeSession.id,
+        memberId: member.id,
+      },
+    },
+  })
+
+  if (existingConsolidation) {
+    return { success: false, message: 'Hai già consolidato i tuoi contratti' }
+  }
+
+  // Create consolidation record
+  const consolidation = await prisma.contractConsolidation.create({
+    data: {
+      sessionId: activeSession.id,
+      memberId: member.id,
+    },
+  })
+
+  return {
+    success: true,
+    message: 'Contratti consolidati con successo',
+    data: {
+      consolidatedAt: consolidation.consolidatedAt,
+    },
+  }
+}
+
+// Get all managers' consolidation status (for admin)
+export async function getAllConsolidationStatus(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  // Verify user is admin
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  if (member.role !== 'ADMIN') {
+    return { success: false, message: 'Solo gli admin possono vedere lo stato di consolidamento' }
+  }
+
+  // Get active session in CONTRATTI phase
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'CONTRATTI',
+    },
+  })
+
+  if (!activeSession) {
+    return {
+      success: true,
+      data: {
+        inContrattiPhase: false,
+        managers: [],
+        allConsolidated: false,
+      },
+    }
+  }
+
+  // Get all active members (excluding admins who might not have players)
+  const allMembers = await prisma.leagueMember.findMany({
+    where: {
+      leagueId,
+      status: MemberStatus.ACTIVE,
+    },
+    include: {
+      user: { select: { id: true, username: true } },
+      roster: { where: { status: RosterStatus.ACTIVE } },
+    },
+  })
+
+  // Only consider managers with players
+  const managersWithPlayers = allMembers.filter(m => m.roster.length > 0)
+
+  // Get consolidations for this session
+  const consolidations = await prisma.contractConsolidation.findMany({
+    where: {
+      sessionId: activeSession.id,
+    },
+  })
+
+  const consolidationMap = new Map(consolidations.map(c => [c.memberId, c.consolidatedAt]))
+
+  const managers = managersWithPlayers.map(m => ({
+    memberId: m.id,
+    userId: m.user.id,
+    username: m.user.username,
+    role: m.role,
+    playerCount: m.roster.length,
+    isConsolidated: consolidationMap.has(m.id),
+    consolidatedAt: consolidationMap.get(m.id) || null,
+  }))
+
+  const allConsolidated = managers.every(m => m.isConsolidated)
+
+  return {
+    success: true,
+    data: {
+      inContrattiPhase: true,
+      sessionId: activeSession.id,
+      managers,
+      consolidatedCount: managers.filter(m => m.isConsolidated).length,
+      totalCount: managers.length,
+      allConsolidated,
+    },
+  }
+}
+
+// Check if all managers have consolidated (for phase advancement validation)
+export async function canAdvanceFromContratti(
+  sessionId: string
+): Promise<{ canAdvance: boolean; reason?: string }> {
+  const session = await prisma.marketSession.findUnique({
+    where: { id: sessionId },
+  })
+
+  if (!session) {
+    return { canAdvance: false, reason: 'Sessione non trovata' }
+  }
+
+  if (session.currentPhase !== 'CONTRATTI') {
+    // Not in CONTRATTI phase, no consolidation check needed
+    return { canAdvance: true }
+  }
+
+  // Get all active members with players
+  const allMembers = await prisma.leagueMember.findMany({
+    where: {
+      leagueId: session.leagueId,
+      status: MemberStatus.ACTIVE,
+    },
+    include: {
+      roster: { where: { status: RosterStatus.ACTIVE } },
+      user: { select: { username: true } },
+    },
+  })
+
+  const managersWithPlayers = allMembers.filter(m => m.roster.length > 0)
+
+  // Get consolidations for this session
+  const consolidations = await prisma.contractConsolidation.findMany({
+    where: {
+      sessionId: session.id,
+    },
+  })
+
+  const consolidatedMemberIds = new Set(consolidations.map(c => c.memberId))
+
+  const notConsolidated = managersWithPlayers.filter(m => !consolidatedMemberIds.has(m.id))
+
+  if (notConsolidated.length > 0) {
+    const names = notConsolidated.map(m => m.user.username).join(', ')
+    return {
+      canAdvance: false,
+      reason: `Manager non hanno consolidato: ${names}`,
+    }
+  }
+
+  return { canAdvance: true }
+}

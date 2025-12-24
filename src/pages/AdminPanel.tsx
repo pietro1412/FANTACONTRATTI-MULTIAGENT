@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { leagueApi, auctionApi, adminApi, inviteApi } from '../services/api'
+import { leagueApi, auctionApi, adminApi, inviteApi, contractApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Navigation } from '../components/Navigation'
@@ -51,6 +51,23 @@ interface Invite {
   expiresAt: string
 }
 
+interface ConsolidationManager {
+  memberId: string
+  username: string
+  playerCount: number
+  isConsolidated: boolean
+  consolidatedAt: string | null
+}
+
+interface ConsolidationStatus {
+  inContrattiPhase: boolean
+  sessionId?: string
+  managers: ConsolidationManager[]
+  consolidatedCount: number
+  totalCount: number
+  allConsolidated: boolean
+}
+
 const MARKET_PHASES = [
   { value: 'ASTA_LIBERA', label: 'Asta Libera', onlyFirst: true },
   { value: 'SCAMBI_OFFERTE_1', label: 'Scambi/Offerte (1)', onlyFirst: false },
@@ -81,6 +98,7 @@ export function AdminPanel({ leagueId, onNavigate }: AdminPanelProps) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [consolidationStatus, setConsolidationStatus] = useState<ConsolidationStatus | null>(null)
 
   useEffect(() => {
     loadData()
@@ -89,11 +107,12 @@ export function AdminPanel({ leagueId, onNavigate }: AdminPanelProps) {
   async function loadData() {
     setIsLoading(true)
 
-    const [leagueRes, membersRes, sessionsRes, invitesRes] = await Promise.all([
+    const [leagueRes, membersRes, sessionsRes, invitesRes, consolidationRes] = await Promise.all([
       leagueApi.getById(leagueId),
       leagueApi.getMembers(leagueId),
       auctionApi.getSessions(leagueId),
       inviteApi.getPending(leagueId),
+      contractApi.getAllConsolidationStatus(leagueId),
     ])
 
     if (leagueRes.success && leagueRes.data) {
@@ -113,6 +132,10 @@ export function AdminPanel({ leagueId, onNavigate }: AdminPanelProps) {
 
     if (invitesRes.success && invitesRes.data) {
       setInvites(invitesRes.data as Invite[])
+    }
+
+    if (consolidationRes.success && consolidationRes.data) {
+      setConsolidationStatus(consolidationRes.data as ConsolidationStatus)
     }
 
     setIsLoading(false)
@@ -500,20 +523,68 @@ export function AdminPanel({ leagueId, onNavigate }: AdminPanelProps) {
                       </span>
                     </div>
 
+                    {/* Consolidation Status for CONTRATTI phase */}
+                    {activeSession.currentPhase === 'CONTRATTI' && consolidationStatus?.inContrattiPhase && (
+                      <div className="mb-5 p-4 bg-surface-300 rounded-xl border border-surface-50/20">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-white font-semibold">Stato Consolidamento Contratti</h4>
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                            consolidationStatus.allConsolidated
+                              ? 'bg-secondary-500/20 text-secondary-400 border border-secondary-500/40'
+                              : 'bg-warning-500/20 text-warning-400 border border-warning-500/40'
+                          }`}>
+                            {consolidationStatus.consolidatedCount}/{consolidationStatus.totalCount} completati
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {consolidationStatus.managers.map(m => (
+                            <div key={m.memberId} className="flex items-center justify-between p-2 bg-surface-200 rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${m.isConsolidated ? 'bg-secondary-400' : 'bg-warning-400'}`}></span>
+                                <span className="text-white">{m.username}</span>
+                                <span className="text-gray-500 text-xs">({m.playerCount} giocatori)</span>
+                              </div>
+                              {m.isConsolidated ? (
+                                <span className="text-secondary-400 text-xs">
+                                  Consolidato {m.consolidatedAt ? new Date(m.consolidatedAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : ''}
+                                </span>
+                              ) : (
+                                <span className="text-warning-400 text-xs">In attesa</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        {!consolidationStatus.allConsolidated && (
+                          <p className="text-warning-400 text-sm mt-3">
+                            Non puoi passare alla fase successiva finché tutti i manager non hanno consolidato.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     <div className="mb-5">
                       <p className="text-sm text-gray-400 mb-3 uppercase tracking-wide">Cambia fase</p>
                       <div className="flex flex-wrap gap-2">
-                        {MARKET_PHASES.filter(p => activeSession.type === 'PRIMO_MERCATO' || !p.onlyFirst).map(phase => (
-                          <Button
-                            key={phase.value}
-                            size="sm"
-                            variant={activeSession.currentPhase === phase.value ? 'primary' : 'outline'}
-                            onClick={() => handleSetPhase(activeSession.id, phase.value)}
-                            disabled={isSubmitting}
-                          >
-                            {phase.label}
-                          </Button>
-                        ))}
+                        {MARKET_PHASES.filter(p => activeSession.type === 'PRIMO_MERCATO' || !p.onlyFirst).map(phase => {
+                          // Disable phase change from CONTRATTI if not all consolidated
+                          const isDisabled = isSubmitting || (
+                            activeSession.currentPhase === 'CONTRATTI' &&
+                            phase.value !== 'CONTRATTI' &&
+                            !consolidationStatus?.allConsolidated
+                          )
+                          return (
+                            <Button
+                              key={phase.value}
+                              size="sm"
+                              variant={activeSession.currentPhase === phase.value ? 'primary' : 'outline'}
+                              onClick={() => handleSetPhase(activeSession.id, phase.value)}
+                              disabled={isDisabled}
+                              className={isDisabled && phase.value !== activeSession.currentPhase ? 'opacity-50' : ''}
+                            >
+                              {phase.label}
+                            </Button>
+                          )
+                        })}
                       </div>
                     </div>
 

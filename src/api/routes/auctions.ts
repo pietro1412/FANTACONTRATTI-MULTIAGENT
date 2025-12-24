@@ -29,6 +29,7 @@ import {
   forceAcknowledgeAll,
   forceAllReady,
 } from '../../services/auction.service'
+import { simulateFirstMarketBotBidding, completeBotTurn } from '../../services/bot.service'
 import { authMiddleware } from '../middleware/auth'
 
 const router = Router()
@@ -605,6 +606,42 @@ router.post('/auctions/sessions/:sessionId/force-all-ready', authMiddleware, asy
     res.json(result)
   } catch (error) {
     console.error('Force all ready error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/auctions/:auctionId/bot-bid - Trigger bot bidding for first market (TEST)
+router.post('/auctions/:auctionId/bot-bid', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const auctionId = req.params.auctionId as string
+    const result = await simulateFirstMarketBotBidding(auctionId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Bot bidding simulation error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/auctions/sessions/:sessionId/bot-turn - Complete a bot turn (nominate, ready, bid) (TEST)
+router.post('/auctions/sessions/:sessionId/bot-turn', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const sessionId = req.params.sessionId as string
+    const result = await completeBotTurn(sessionId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Bot turn simulation error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

@@ -141,6 +141,8 @@ export const leagueApi = {
 
   getMembers: (id: string) => request(`/api/leagues/${id}/members`),
 
+  getAllRosters: (id: string) => request(`/api/leagues/${id}/rosters`),
+
   updateMember: (leagueId: string, memberId: string, action: 'accept' | 'reject' | 'kick') =>
     request(`/api/leagues/${leagueId}/members/${memberId}`, {
       method: 'PUT',
@@ -300,6 +302,12 @@ export const auctionApi = {
 
   forceAllReady: (sessionId: string) =>
     request(`/api/auctions/sessions/${sessionId}/force-all-ready`, { method: 'POST' }),
+
+  triggerBotBid: (auctionId: string) =>
+    request(`/api/auctions/${auctionId}/bot-bid`, { method: 'POST' }),
+
+  triggerBotTurn: (sessionId: string) =>
+    request(`/api/auctions/sessions/${sessionId}/bot-turn`, { method: 'POST' }),
 }
 
 // Contract API
@@ -341,6 +349,18 @@ export const contractApi = {
   // Release player (svincola)
   release: (contractId: string) =>
     request(`/api/contracts/${contractId}/release`, { method: 'POST' }),
+
+  // Get consolidation status for current manager
+  getConsolidationStatus: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/contracts/consolidation`),
+
+  // Consolidate contracts
+  consolidate: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/contracts/consolidate`, { method: 'POST' }),
+
+  // Get all managers' consolidation status (admin only)
+  getAllConsolidationStatus: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/contracts/consolidation-all`),
 }
 
 // Trade API
@@ -493,6 +513,14 @@ export const svincolatiApi = {
   // Close free agent auction (Admin)
   closeAuction: (auctionId: string) =>
     request(`/api/svincolati/${auctionId}/close`, { method: 'PUT' }),
+
+  // Trigger bot bidding simulation
+  triggerBotBid: (auctionId: string) =>
+    request(`/api/svincolati/${auctionId}/bot-bid`, { method: 'POST' }),
+
+  // Get bot members info
+  getBots: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/bots`),
 }
 
 // Admin API
@@ -528,12 +556,14 @@ export const movementApi = {
     offset?: number
     movementType?: string
     playerId?: string
+    semester?: number
   }) => {
     const params = new URLSearchParams()
     if (options?.limit) params.append('limit', options.limit.toString())
     if (options?.offset) params.append('offset', options.offset.toString())
     if (options?.movementType) params.append('movementType', options.movementType)
     if (options?.playerId) params.append('playerId', options.playerId)
+    if (options?.semester) params.append('semester', options.semester.toString())
     const query = params.toString()
     return request(`/api/leagues/${leagueId}/movements${query ? `?${query}` : ''}`)
   },

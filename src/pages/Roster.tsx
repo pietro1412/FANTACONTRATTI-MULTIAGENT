@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { auctionApi } from '../services/api'
+import { auctionApi, leagueApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
+import { getTeamLogo } from '../utils/teamLogos'
 
 interface RosterProps {
   leagueId: string
@@ -23,6 +24,7 @@ interface RosterEntry {
   contract?: {
     salary: number
     duration: number
+    rescissionClause?: number
   }
 }
 
@@ -59,25 +61,107 @@ interface RosterData {
   }
 }
 
-const POSITION_CONFIG = {
-  P: { name: 'Portieri', gradient: 'from-amber-500 to-amber-600', text: 'text-amber-400', border: 'border-amber-500/30' },
-  D: { name: 'Difensori', gradient: 'from-blue-500 to-blue-600', text: 'text-blue-400', border: 'border-blue-500/30' },
-  C: { name: 'Centrocampisti', gradient: 'from-emerald-500 to-emerald-600', text: 'text-emerald-400', border: 'border-emerald-500/30' },
-  A: { name: 'Attaccanti', gradient: 'from-red-500 to-red-600', text: 'text-red-400', border: 'border-red-500/30' },
+// Stile per ruolo
+function getRoleStyle(position: string) {
+  switch (position) {
+    case 'P': return { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/40', label: 'POR' }
+    case 'D': return { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/40', label: 'DIF' }
+    case 'C': return { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/40', label: 'CEN' }
+    case 'A': return { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/40', label: 'ATT' }
+    default: return { bg: 'bg-gray-500/20', text: 'text-gray-400', border: 'border-gray-500/40', label: position }
+  }
+}
+
+// Componente logo squadra
+function TeamLogo({ team, size = 'md' }: { team: string, size?: 'sm' | 'md' | 'lg' }) {
+  const sizeClass = size === 'sm' ? 'w-6 h-6' : size === 'lg' ? 'w-12 h-12' : 'w-8 h-8'
+  return (
+    <img
+      src={getTeamLogo(team)}
+      alt={team}
+      className={`${sizeClass} object-contain`}
+      onError={(e) => {
+        (e.target as HTMLImageElement).style.display = 'none'
+      }}
+    />
+  )
+}
+
+// Componente card giocatore
+function PlayerCard({ entry }: { entry: RosterEntry }) {
+  const roleStyle = getRoleStyle(entry.player.position)
+
+  return (
+    <div className="flex items-center gap-3 p-3 bg-surface-200 rounded-lg border border-surface-50/20 hover:border-surface-50/40 transition-colors">
+      {/* Team Logo */}
+      <div className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-lg p-1 flex-shrink-0">
+        <TeamLogo team={entry.player.team} size="md" />
+      </div>
+
+      {/* Role Badge */}
+      <div className={`w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-lg ${roleStyle.bg} ${roleStyle.border} border`}>
+        <span className={`text-sm font-bold ${roleStyle.text}`}>{roleStyle.label}</span>
+      </div>
+
+      {/* Player Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-white font-medium truncate">{entry.player.name}</p>
+        <p className="text-gray-500 text-xs">{entry.player.team}</p>
+      </div>
+
+      {/* Contract & Price Info */}
+      <div className="text-right flex-shrink-0">
+        {entry.contract ? (
+          <div className="space-y-0.5">
+            <div className="flex items-center justify-end gap-2">
+              <span className="text-accent-400 font-semibold text-sm">{entry.contract.salary}M</span>
+              <span className="text-gray-600">|</span>
+              <span className="text-gray-400 text-xs">{entry.contract.duration} sem</span>
+            </div>
+            {entry.contract.rescissionClause && (
+              <div className="flex items-center justify-end gap-1">
+                <span className="text-[10px] text-gray-500 uppercase">Rubata:</span>
+                <span className="text-warning-400 font-medium text-xs">{entry.contract.rescissionClause}M</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <p className="text-accent-400 font-semibold">{entry.acquisitionPrice}M</p>
+            <p className="text-gray-600 text-xs italic">No contratto</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export function Roster({ leagueId, onNavigate }: RosterProps) {
   const [rosterData, setRosterData] = useState<RosterData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
+
+  // Filtri
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterRole, setFilterRole] = useState('')
+  const [filterTeam, setFilterTeam] = useState('')
 
   useEffect(() => {
-    loadRoster()
+    loadData()
   }, [leagueId])
 
-  async function loadRoster() {
-    const result = await auctionApi.getRoster(leagueId)
-    if (result.success && result.data) {
-      setRosterData(result.data as RosterData)
+  async function loadData() {
+    const [rosterResult, leagueResult] = await Promise.all([
+      auctionApi.getRoster(leagueId),
+      leagueApi.getById(leagueId)
+    ])
+
+    if (rosterResult.success && rosterResult.data) {
+      setRosterData(rosterResult.data as RosterData)
+    }
+    if (leagueResult.success && leagueResult.data) {
+      const data = leagueResult.data as { isAdmin: boolean }
+      setIsLeagueAdmin(data.isAdmin)
     }
     setIsLoading(false)
   }
@@ -104,12 +188,47 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
     )
   }
 
-  const { member, roster, totals, slots } = rosterData
-  const totalSlots = slots.P + slots.D + slots.C + slots.A
+  const { member, roster, totals } = rosterData
+
+  // Combina tutti i giocatori in una lista unica
+  const allPlayers = [...roster.P, ...roster.D, ...roster.C, ...roster.A]
+
+  // Estrai squadre uniche per il filtro
+  const uniqueTeams = [...new Set(allPlayers.map(e => e.player.team))].sort()
+
+  // Applica filtri
+  const filteredPlayers = allPlayers.filter(entry => {
+    // Filtro per ruolo
+    if (filterRole && entry.player.position !== filterRole) return false
+
+    // Filtro per squadra
+    if (filterTeam && entry.player.team !== filterTeam) return false
+
+    // Filtro per nome
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      if (!entry.player.name.toLowerCase().includes(query)) return false
+    }
+
+    return true
+  })
+
+  // Ordina per ruolo (P, D, C, A) poi per nome
+  const sortedPlayers = filteredPlayers.sort((a, b) => {
+    const roleOrder = { P: 0, D: 1, C: 2, A: 3 }
+    const roleA = roleOrder[a.player.position as keyof typeof roleOrder] ?? 4
+    const roleB = roleOrder[b.player.position as keyof typeof roleOrder] ?? 4
+    if (roleA !== roleB) return roleA - roleB
+    return a.player.name.localeCompare(b.player.name)
+  })
+
+  // Calcola statistiche
+  const totalSalary = allPlayers.reduce((sum, e) => sum + (e.contract?.salary || 0), 0)
+  const totalValue = allPlayers.reduce((sum, e) => sum + e.acquisitionPrice, 0)
 
   return (
     <div className="min-h-screen bg-dark-300">
-      <Navigation currentPage="roster" leagueId={leagueId} onNavigate={onNavigate} />
+      <Navigation currentPage="roster" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
       {/* Page Header */}
       <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
@@ -124,103 +243,136 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
                 <p className="text-gray-400 mt-1">{member.user.username}</p>
               </div>
             </div>
-            <div className="text-right bg-surface-200 rounded-xl px-6 py-4 border border-surface-50/20">
-              <p className="text-sm text-gray-400 uppercase tracking-wide">Budget Disponibile</p>
-              <p className="text-4xl font-bold text-accent-400">{member.currentBudget}</p>
+
+            {/* Stats Cards */}
+            <div className="flex gap-4">
+              <div className="text-center bg-surface-200 rounded-xl px-5 py-3 border border-surface-50/20">
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Budget</p>
+                <p className="text-2xl font-bold text-accent-400">{member.currentBudget}</p>
+              </div>
+              <div className="text-center bg-surface-200 rounded-xl px-5 py-3 border border-surface-50/20">
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Valore Rosa</p>
+                <p className="text-2xl font-bold text-primary-400">{totalValue}</p>
+              </div>
+              <div className="text-center bg-surface-200 rounded-xl px-5 py-3 border border-surface-50/20">
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Ingaggi Tot.</p>
+                <p className="text-2xl font-bold text-warning-400">{totalSalary}</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Summary Stats */}
-        <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-6 mb-8">
-          <div className="grid grid-cols-5 gap-4">
-            {(['P', 'D', 'C', 'A'] as const).map(pos => {
-              const config = POSITION_CONFIG[pos]
-              const isFull = totals[pos] >= slots[pos]
-              return (
-                <div key={pos} className={`text-center p-4 rounded-xl bg-surface-300 border ${config.border}`}>
-                  <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${config.gradient} flex items-center justify-center mx-auto mb-3 text-white font-bold text-xl`}>
-                    {pos}
-                  </div>
-                  <div className={`text-2xl font-bold ${isFull ? 'text-secondary-400' : config.text}`}>
-                    {totals[pos]}/{slots[pos]}
-                  </div>
-                  <div className="text-sm text-gray-400">{config.name}</div>
-                </div>
-              )
-            })}
-            <div className="text-center p-4 rounded-xl bg-gradient-to-br from-primary-500/20 to-primary-600/20 border border-primary-500/30">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center mx-auto mb-3 text-white">
-                <span className="text-xl">⚽</span>
-              </div>
-              <div className="text-2xl font-bold text-primary-400">
-                {totals.total}/{totalSlots}
-              </div>
-              <div className="text-sm text-gray-400">Totale</div>
-            </div>
+        {/* Summary Stats - Contatori compatti */}
+        <div className="flex items-center gap-6 mb-6">
+          <div className="flex items-center gap-2">
+            <span className="text-amber-400 font-bold">POR</span>
+            <span className="text-white">{totals.P}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-blue-400 font-bold">DIF</span>
+            <span className="text-white">{totals.D}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-emerald-400 font-bold">CEN</span>
+            <span className="text-white">{totals.C}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-red-400 font-bold">ATT</span>
+            <span className="text-white">{totals.A}</span>
+          </div>
+          <div className="flex items-center gap-2 pl-4 border-l border-surface-50/30">
+            <span className="text-gray-400">Totale:</span>
+            <span className="text-white font-bold">{allPlayers.length}</span>
           </div>
         </div>
 
-        {/* Roster by Position */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {(['P', 'D', 'C', 'A'] as const).map(pos => {
-            const config = POSITION_CONFIG[pos]
-            const players = roster[pos]
+        {/* Filters */}
+        <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4 mb-6">
+          <div className="grid grid-cols-4 gap-4">
+            {/* Search by name */}
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Cerca per nome</label>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Nome giocatore..."
+                className="w-full px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
+              />
+            </div>
 
-            return (
-              <div key={pos} className={`bg-surface-200 rounded-xl border ${config.border} overflow-hidden`}>
-                {/* Card Header */}
-                <div className={`p-5 border-b border-surface-50/20 bg-gradient-to-r ${config.gradient}/10`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${config.gradient} flex items-center justify-center text-white font-bold`}>
-                        {pos}
-                      </div>
-                      <h3 className={`text-xl font-bold ${config.text}`}>{config.name}</h3>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                      totals[pos] >= slots[pos]
-                        ? 'bg-secondary-500/20 text-secondary-400'
-                        : 'bg-surface-300 text-gray-400'
-                    }`}>
-                      {totals[pos]}/{slots[pos]}
-                    </span>
-                  </div>
-                </div>
+            {/* Filter by role */}
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Ruolo</label>
+              <select
+                value={filterRole}
+                onChange={e => setFilterRole(e.target.value)}
+                className="w-full px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
+              >
+                <option value="">Tutti i ruoli</option>
+                <option value="P">Portieri</option>
+                <option value="D">Difensori</option>
+                <option value="C">Centrocampisti</option>
+                <option value="A">Attaccanti</option>
+              </select>
+            </div>
 
-                {/* Card Content */}
-                <div className="p-5">
-                  {players.length === 0 ? (
-                    <div className="text-center py-8">
-                      <div className="text-3xl mb-2 opacity-50">📭</div>
-                      <p className="text-gray-500">Nessun giocatore</p>
-                    </div>
-                  ) : (
-                    <ul className="space-y-3">
-                      {players.map(entry => (
-                        <li key={entry.id} className="bg-surface-300 rounded-lg p-4 flex justify-between items-center hover:bg-surface-50/20 transition-colors">
-                          <div>
-                            <p className="font-semibold text-white text-lg">{entry.player.name}</p>
-                            <p className="text-sm text-gray-400">{entry.player.team}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xl font-bold text-accent-400">{entry.acquisitionPrice}</p>
-                            {entry.contract && (
-                              <p className="text-xs text-gray-500">
-                                {entry.contract.duration} semestri
-                              </p>
-                            )}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+            {/* Filter by team */}
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Squadra</label>
+              <select
+                value={filterTeam}
+                onChange={e => setFilterTeam(e.target.value)}
+                className="w-full px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
+              >
+                <option value="">Tutte le squadre</option>
+                {uniqueTeams.map(team => (
+                  <option key={team} value={team}>{team}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Reset filters */}
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery('')
+                  setFilterRole('')
+                  setFilterTeam('')
+                }}
+                className="w-full"
+              >
+                Resetta Filtri
+              </Button>
+            </div>
+          </div>
+
+          {/* Results count */}
+          <div className="mt-3 text-sm text-gray-400">
+            {filteredPlayers.length === allPlayers.length
+              ? `${allPlayers.length} giocatori in rosa`
+              : `${filteredPlayers.length} di ${allPlayers.length} giocatori`
+            }
+          </div>
+        </div>
+
+        {/* Player List */}
+        <div className="space-y-2">
+          {sortedPlayers.length === 0 ? (
+            <div className="text-center py-12 bg-surface-200 rounded-xl border border-surface-50/20">
+              <div className="text-4xl mb-3 opacity-50">🔍</div>
+              <p className="text-gray-500">Nessun giocatore trovato</p>
+              <p className="text-gray-600 text-sm mt-1">Prova a modificare i filtri</p>
+            </div>
+          ) : (
+            sortedPlayers.map(entry => (
+              <PlayerCard key={entry.id} entry={entry} />
+            ))
+          )}
         </div>
 
         <div className="mt-8 flex gap-4">

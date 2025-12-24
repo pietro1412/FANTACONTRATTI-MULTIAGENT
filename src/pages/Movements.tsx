@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { movementApi } from '../services/api'
+import { movementApi, leagueApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
 
@@ -78,6 +78,8 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [filterType, setFilterType] = useState<string>('')
+  const [filterSemester, setFilterSemester] = useState<string>('')
+  const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
 
   // Prophecy form
   const [prophecyContent, setProphecyContent] = useState('')
@@ -86,20 +88,35 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
   const [isSubmittingProphecy, setIsSubmittingProphecy] = useState(false)
 
   useEffect(() => {
+    loadLeagueInfo()
+  }, [leagueId])
+
+  useEffect(() => {
     loadMovements()
-  }, [leagueId, filterType])
+  }, [leagueId, filterType, filterSemester])
+
+  async function loadLeagueInfo() {
+    const result = await leagueApi.getById(leagueId)
+    if (result.success && result.data) {
+      const data = result.data as { isAdmin: boolean }
+      setIsLeagueAdmin(data.isAdmin)
+    }
+  }
 
   async function loadMovements() {
     setIsLoading(true)
     setError('')
 
-    const options: { movementType?: string } = {}
+    const options: { movementType?: string; semester?: number } = {}
     if (filterType) options.movementType = filterType
+    if (filterSemester) options.semester = parseInt(filterSemester)
 
     const result = await movementApi.getLeagueMovements(leagueId, options)
 
     if (result.success && result.data) {
       const movementList = result.data as Movement[]
+      // Sort by date descending (most recent first)
+      movementList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       setMovements(movementList)
 
       // Check prophecy eligibility for each movement
@@ -159,7 +176,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
 
   return (
     <div className="min-h-screen bg-dark-300">
-      <Navigation currentPage="movements" leagueId={leagueId} onNavigate={onNavigate} />
+      <Navigation currentPage="movements" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
       {/* Page Header */}
       <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
@@ -185,22 +202,36 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
 
         {/* Filters */}
         <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-5 mb-8">
-          <div className="flex items-center gap-4">
-            <label className="font-semibold text-white">Filtra per tipo:</label>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="bg-surface-300 border border-surface-50/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-            >
-              <option value="">Tutti i movimenti</option>
-              <option value="FIRST_MARKET">Primo Mercato</option>
-              <option value="TRADE">Scambi</option>
-              <option value="RUBATA">Rubate</option>
-              <option value="SVINCOLATI">Svincolati</option>
-              <option value="RELEASE">Svincoli</option>
-              <option value="CONTRACT_RENEW">Rinnovi</option>
-            </select>
-            <span className="text-gray-400 text-sm">{movements.length} movimenti trovati</span>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="font-semibold text-white">Tipo:</label>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="bg-surface-300 border border-surface-50/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+              >
+                <option value="">Tutti</option>
+                <option value="FIRST_MARKET">Primo Mercato</option>
+                <option value="TRADE">Scambi</option>
+                <option value="RUBATA">Rubate</option>
+                <option value="SVINCOLATI">Svincolati</option>
+                <option value="RELEASE">Svincoli</option>
+                <option value="CONTRACT_RENEW">Rinnovi</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="font-semibold text-white">Semestre:</label>
+              <select
+                value={filterSemester}
+                onChange={(e) => setFilterSemester(e.target.value)}
+                className="bg-surface-300 border border-surface-50/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+              >
+                <option value="">Tutti</option>
+                <option value="1">1° Semestre</option>
+                <option value="2">2° Semestre</option>
+              </select>
+            </div>
+            <span className="text-gray-400 text-sm ml-auto">{movements.length} movimenti trovati</span>
           </div>
         </div>
 

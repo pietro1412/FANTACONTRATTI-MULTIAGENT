@@ -525,3 +525,107 @@ export async function updateLeague(
     data: league,
   }
 }
+
+export async function getAllRosters(leagueId: string, userId: string): Promise<ServiceResult> {
+  // Verify user is member of league
+  const membership = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!membership) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  // Check if we're in CONTRATTI phase - hide other managers' contracts if so
+  const activeContrattiSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'CONTRATTI',
+    },
+  })
+  const hideOthersContracts = !!activeContrattiSession
+
+  const league = await prisma.league.findUnique({
+    where: { id: leagueId },
+    select: {
+      id: true,
+      name: true,
+      members: {
+        where: { status: MemberStatus.ACTIVE },
+        select: {
+          id: true,
+          userId: true,
+          role: true,
+          teamName: true,
+          currentBudget: true,
+          user: {
+            select: {
+              username: true,
+            },
+          },
+          roster: {
+            select: {
+              id: true,
+              playerId: true,
+              acquisitionPrice: true,
+              acquisitionType: true,
+              player: {
+                select: {
+                  id: true,
+                  name: true,
+                  team: true,
+                  position: true,
+                  quotation: true,
+                },
+              },
+              contract: {
+                select: {
+                  id: true,
+                  salary: true,
+                  duration: true,
+                  rescissionClause: true,
+                  signedAt: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+
+  if (!league) {
+    return { success: false, message: 'Lega non trovata' }
+  }
+
+  // If in CONTRATTI phase, hide contract details for other managers
+  const processedMembers = league.members.map(member => {
+    if (hideOthersContracts && member.userId !== userId) {
+      // Hide contract info for other managers during CONTRATTI phase
+      return {
+        ...member,
+        roster: member.roster.map(r => ({
+          ...r,
+          contract: null, // Hide contract details
+        })),
+      }
+    }
+    return member
+  })
+
+  return {
+    success: true,
+    data: {
+      id: league.id,
+      name: league.name,
+      members: processedMembers,
+      isAdmin: membership.role === MemberRole.ADMIN,
+      inContrattiPhase: hideOthersContracts,
+    },
+  }
+}

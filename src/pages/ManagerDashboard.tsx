@@ -72,6 +72,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
   const [slots, setSlots] = useState({ P: 0, D: 0, C: 0, A: 0 })
   const [budgetMovements, setBudgetMovements] = useState<BudgetMovement[]>([])
   const [activeTab, setActiveTab] = useState<'overview' | 'roster' | 'contracts' | 'budget'>('overview')
+  const [isAfterFirstMarket, setIsAfterFirstMarket] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -80,14 +81,24 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
   async function loadData() {
     setIsLoading(true)
 
-    // Check league admin status
-    const leagueRes = await leagueApi.getById(leagueId)
+    // Check league admin status and market sessions
+    const [leagueRes, sessionsRes, rosterRes] = await Promise.all([
+      leagueApi.getById(leagueId),
+      auctionApi.getSessions(leagueId),
+      auctionApi.getRoster(leagueId)
+    ])
+
     if (leagueRes.success && leagueRes.data) {
       const data = leagueRes.data as { userMembership?: { role: string } }
       setIsLeagueAdmin(data.userMembership?.role === 'ADMIN')
     }
 
-    const rosterRes = await auctionApi.getRoster(leagueId)
+    if (sessionsRes.success && sessionsRes.data) {
+      const sessions = sessionsRes.data as Array<{ type: string; status: string }>
+      const firstMarket = sessions.find(s => s.type === 'PRIMO_MERCATO')
+      const recurringMarket = sessions.find(s => s.type === 'MERCATO_RICORRENTE')
+      setIsAfterFirstMarket(firstMarket?.status === 'COMPLETED' || !!recurringMarket)
+    }
 
     if (rosterRes.success && rosterRes.data) {
       const data = rosterRes.data as {
@@ -250,8 +261,8 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                       <div key={pos} className={`p-4 rounded-lg ${config.bgClass}`}>
                         <div className="flex justify-between items-center mb-2">
                           <span className={`font-bold ${config.textClass}`}>{config.name}</span>
-                          <span className={`text-sm ${isFull ? 'text-green-600' : 'text-gray-500'}`}>
-                            {totals[pos]}/{slots[pos]}
+                          <span className={`text-sm ${isFull && !isAfterFirstMarket ? 'text-green-600' : 'text-gray-500'}`}>
+                            {isAfterFirstMarket ? totals[pos] : `${totals[pos]}/${slots[pos]}`}
                           </span>
                         </div>
                         <div className="space-y-1">
@@ -317,7 +328,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                 <Card key={pos}>
                   <CardHeader className={config.bgClass}>
                     <CardTitle className={config.textClass}>
-                      {config.name} ({totals[pos]}/{slots[pos]})
+                      {config.name} ({isAfterFirstMarket ? totals[pos] : `${totals[pos]}/${slots[pos]}`})
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">

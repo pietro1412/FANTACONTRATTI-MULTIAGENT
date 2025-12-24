@@ -3,6 +3,7 @@ import { auctionApi, playerApi, firstMarketApi, adminApi } from '../services/api
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Navigation } from '../components/Navigation'
+import { getTeamLogo } from '../utils/teamLogos'
 import {
   DndContext,
   closestCenter,
@@ -465,6 +466,52 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     }
   }
 
+  async function handleBotBid() {
+    if (!auction) return
+    const result = await auctionApi.triggerBotBid(auction.id)
+    if (result.success) {
+      const data = result.data as { hasBotBid: boolean; winningBot: string | null; newCurrentPrice: number }
+      if (data.hasBotBid) {
+        setSuccessMessage(`${data.winningBot} ha offerto ${data.newCurrentPrice}!`)
+      } else {
+        setSuccessMessage('Nessun bot ha fatto offerte')
+      }
+      loadCurrentAuction()
+    } else {
+      setError(result.message || 'Errore')
+    }
+  }
+
+  async function handleBotTurn() {
+    setError('')
+    const result = await auctionApi.triggerBotTurn(sessionId)
+    if (result.success) {
+      const data = result.data as {
+        player?: { name: string }
+        auctionStarted?: boolean
+        hasBotBid?: boolean
+        winningBot?: string | null
+        newCurrentPrice?: number
+      }
+      if (data.player) {
+        setSuccessMessage(`Bot ha nominato ${data.player.name}`)
+      } else if (data.auctionStarted) {
+        setSuccessMessage('Asta avviata!')
+      } else if (data.hasBotBid) {
+        setSuccessMessage(`${data.winningBot} ha offerto ${data.newCurrentPrice}!`)
+      } else {
+        setSuccessMessage(result.message || 'Turno bot completato')
+      }
+      loadCurrentAuction()
+      loadFirstMarketStatus()
+      loadReadyStatus()
+      loadMyRosterSlots()
+      loadManagersStatus()
+    } else {
+      setError(result.message || 'Errore')
+    }
+  }
+
   async function handleForceAcknowledgeAll() {
     const result = await auctionApi.forceAcknowledgeAll(sessionId)
     if (result.success) {
@@ -717,9 +764,19 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                           <span className={`text-sm font-bold ${slot.filled >= slot.total ? 'text-secondary-400' : 'text-gray-500'}`}>{slot.filled}/{slot.total}</span>
                         </div>
                         {slot.players.map(p => (
-                          <div key={p.id} className="ml-9 py-1 flex justify-between text-sm">
-                            <span className="text-gray-300 truncate">{p.playerName}</span>
-                            <span className="text-accent-400 font-mono">{p.acquisitionPrice}</span>
+                          <div key={p.id} className="ml-9 py-1.5 flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <img
+                                src={getTeamLogo(p.playerTeam)}
+                                alt={p.playerTeam}
+                                className="w-5 h-5 object-contain flex-shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <span className="text-gray-200 font-medium truncate block">{p.playerName}</span>
+                                <span className="text-gray-500 text-xs truncate block">{p.playerTeam}</span>
+                              </div>
+                            </div>
+                            <span className="text-accent-400 font-mono font-bold ml-2">{p.acquisitionPrice}</span>
                           </div>
                         ))}
                         {Array.from({ length: slot.total - slot.filled }).map((_, i) => (
@@ -746,8 +803,14 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   </div>
                   <div className="pt-2 border-t border-surface-50/20 space-y-2">
                     <p className="text-xs text-accent-500 font-bold uppercase">Test Mode</p>
+                    <Button size="sm" variant="outline" onClick={handleBotTurn} className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10">
+                      🤖 Bot Turno
+                    </Button>
                     <Button size="sm" variant="outline" onClick={handleForceAllReady} className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10">Forza Tutti Pronti</Button>
                     <Button size="sm" variant="outline" onClick={handleForceAcknowledgeAll} className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10">Forza Conferme</Button>
+                    {auction && (
+                      <Button size="sm" variant="outline" onClick={handleBotBid} className="w-full text-xs border-primary-500/50 text-primary-400 hover:bg-primary-500/10">Bot Offerta</Button>
+                    )}
                     <Button size="sm" variant="danger" onClick={handleResetFirstMarket} className="w-full text-xs">Reset Asta</Button>
                   </div>
                 </div>
@@ -766,6 +829,11 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   {readyStatus.player && (
                     <div className="inline-flex items-center gap-3 bg-surface-300 rounded-lg p-4 mb-4">
                       <span className={`w-12 h-12 rounded-full bg-gradient-to-br ${POSITION_COLORS[readyStatus.player.position]} flex items-center justify-center text-white font-bold text-lg`}>{readyStatus.player.position}</span>
+                      <img
+                        src={getTeamLogo(readyStatus.player.team)}
+                        alt={readyStatus.player.team}
+                        className="w-10 h-10 object-contain"
+                      />
                       <div className="text-left">
                         <p className="font-bold text-xl text-white">{readyStatus.player.name}</p>
                         <p className="text-gray-400">{readyStatus.player.team}</p>
@@ -816,8 +884,15 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                     {/* Player */}
                     <div className="text-center mb-6 p-6 bg-surface-300 rounded-xl">
                       <span className={`inline-block px-4 py-1 rounded-full text-sm font-bold border mb-3 ${POSITION_BG[auction.player.position]}`}>{POSITION_NAMES[auction.player.position]}</span>
-                      <h2 className="text-4xl font-bold text-white mb-1">{auction.player.name}</h2>
-                      <p className="text-xl text-gray-400">{auction.player.team}</p>
+                      <h2 className="text-4xl font-bold text-white mb-2">{auction.player.name}</h2>
+                      <div className="flex items-center justify-center gap-2">
+                        <img
+                          src={getTeamLogo(auction.player.team)}
+                          alt={auction.player.team}
+                          className="w-8 h-8 object-contain"
+                        />
+                        <p className="text-xl text-gray-400">{auction.player.team}</p>
+                      </div>
                     </div>
 
                     {/* Current Price */}
@@ -876,11 +951,16 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                             <p className="text-gray-500 text-center py-4">Nessun giocatore</p>
                           ) : players.slice(0, 50).map(player => (
                             <button key={player.id} onClick={() => handleNominatePlayer(player.id)} className="w-full flex items-center p-3 rounded-lg bg-surface-300 hover:bg-primary-500/10 border border-transparent hover:border-primary-500/30 transition-all text-left">
-                              <div className="flex items-center gap-3">
-                                <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-xs font-bold text-white`}>{player.position}</span>
-                                <div>
-                                  <p className="font-medium text-white">{player.name}</p>
-                                  <p className="text-xs text-gray-400">{player.team}</p>
+                              <div className="flex items-center gap-3 flex-1">
+                                <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>{player.position}</span>
+                                <img
+                                  src={getTeamLogo(player.team)}
+                                  alt={player.team}
+                                  className="w-7 h-7 object-contain flex-shrink-0"
+                                />
+                                <div className="min-w-0">
+                                  <p className="font-medium text-white truncate">{player.name}</p>
+                                  <p className="text-xs text-gray-400 truncate">{player.team}</p>
                                 </div>
                               </div>
                             </button>
@@ -986,9 +1066,19 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                     </div>
                     <div className="ml-8 space-y-1">
                       {posPlayers.map(p => (
-                        <div key={p.id} className="flex justify-between text-sm py-1">
-                          <span className="text-gray-300">{p.playerName}</span>
-                          <span className="text-accent-400 font-mono">{p.acquisitionPrice}</span>
+                        <div key={p.id} className="flex items-center justify-between text-sm py-1.5">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <img
+                              src={getTeamLogo(p.playerTeam)}
+                              alt={p.playerTeam}
+                              className="w-5 h-5 object-contain flex-shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <span className="text-gray-200 font-medium truncate block">{p.playerName}</span>
+                              <span className="text-gray-500 text-xs truncate block">{p.playerTeam}</span>
+                            </div>
+                          </div>
+                          <span className="text-accent-400 font-mono font-bold ml-2">{p.acquisitionPrice}</span>
                         </div>
                       ))}
                       {posPlayers.length === 0 && <p className="text-gray-600 italic text-sm">Nessuno</p>}
@@ -1013,7 +1103,12 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 <h2 className="text-2xl font-bold text-white">{pendingAck.winner ? 'Transazione Completata' : 'Asta Conclusa'}</h2>
               </div>
               <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-                <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[pendingAck.player.position]} flex items-center justify-center text-white font-bold`}>{pendingAck.player.position}</span>
+                <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[pendingAck.player.position]} flex items-center justify-center text-white font-bold flex-shrink-0`}>{pendingAck.player.position}</span>
+                <img
+                  src={getTeamLogo(pendingAck.player.team)}
+                  alt={pendingAck.player.team}
+                  className="w-8 h-8 object-contain flex-shrink-0"
+                />
                 <div>
                   <p className="font-bold text-white">{pendingAck.player.name}</p>
                   <p className="text-sm text-gray-400">{pendingAck.player.team}</p>
