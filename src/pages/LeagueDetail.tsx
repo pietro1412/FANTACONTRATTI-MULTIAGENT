@@ -361,7 +361,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
               </div>
               <span className="bg-surface-300 px-3 py-1 rounded-full text-sm text-gray-400">{activeMembers.length}</span>
             </div>
-            <div className="divide-y divide-surface-50/10 max-h-96 overflow-y-auto">
+            <div className="divide-y divide-surface-50/10">
               {activeMembers.map((member) => (
                 <div key={member.id} className="flex items-center justify-between p-4 hover:bg-surface-300/50 transition-colors">
                   <div className="flex items-center gap-3">
@@ -385,7 +385,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
                         </span>
                         {member.role === 'ADMIN' && (
                           <span className="text-xs bg-accent-500/20 text-accent-400 px-2 py-0.5 rounded border border-accent-500/40">
-                            Presidente
+                            Admin
                           </span>
                         )}
                       </div>

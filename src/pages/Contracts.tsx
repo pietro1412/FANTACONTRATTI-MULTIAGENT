@@ -296,11 +296,11 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
     const result = await contractApi.release(selectedContract.id)
     if (result.success) {
-      setSuccess(result.message || 'Giocatore svincolato!')
+      setSuccess(result.message || 'Giocatore tagliato!')
       handleBackToList()
       loadContracts()
     } else {
-      setError(result.message || 'Errore nello svincolo')
+      setError(result.message || 'Errore nel taglio')
     }
   }
 
@@ -583,7 +583,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                               </div>
                               <div className="flex items-center justify-end gap-1">
                                 <span className="text-[10px] text-gray-500 uppercase">Rubata:</span>
-                                <span className="text-warning-400 font-medium text-xs">{contract.rescissionClause}M</span>
+                                <span className="text-warning-400 font-medium text-xs">{contract.rescissionClause + contract.salary}M</span>
                               </div>
                             </div>
                           </button>
@@ -744,7 +744,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                         </Button>
                       )}
                       <Button variant="danger" onClick={() => setIsReleasing(true)} className="flex-1">
-                        Svincola
+                        Taglia
                       </Button>
                     </div>
                   )}
@@ -839,7 +839,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                   {/* Release Confirmation */}
                   {isReleasing && (
                     <div className="space-y-4 pt-4 border-t border-surface-50/20">
-                      <h4 className="font-medium text-danger-400">Svincola Giocatore</h4>
+                      <h4 className="font-medium text-danger-400">Taglia Giocatore</h4>
                       <div className="bg-danger-500/20 border border-danger-500/30 p-3 rounded-lg">
                         <p className="text-danger-300">
                           Clausola da pagare: <strong>{selectedContract.rescissionClause}M</strong>
@@ -856,7 +856,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                           disabled={selectedContract.rescissionClause > memberBudget}
                           className="flex-1"
                         >
-                          Conferma Svincolo
+                          Conferma Taglio
                         </Button>
                       </div>
                     </div>

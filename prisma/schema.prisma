@@ -88,6 +88,7 @@ model League {
   invites          LeagueInvite[]
   playerMovements  PlayerMovement[]
   prophecies       Prophecy[]
+  prizes           Prize[]
 }
 
 enum LeagueStatus {
@@ -134,6 +135,11 @@ model LeagueMember {
   prophecies    Prophecy[]
   auctionAcknowledgments AuctionAcknowledgment[]
   contractConsolidations ContractConsolidation[]
+  prizesReceived Prize[]
+  prizesGiven    Prize[] @relation("PrizeAdmin")
+  appeals        AuctionAppeal[]
+  appealsResolved AuctionAppeal[] @relation("AppealResolver")
+  chatMessages   ChatMessage[]
 
   @@unique([userId, leagueId])
 }
@@ -303,6 +309,7 @@ model MarketSession {
   trades      TradeOffer[]
   movements   PlayerMovement[]
   consolidations ContractConsolidation[]
+  chatMessages ChatMessage[]
 }
 
 // ==================== CONSOLIDAMENTO CONTRATTI ====================
@@ -319,6 +326,26 @@ model ContractConsolidation {
   consolidatedAt DateTime @default(now())
 
   @@unique([sessionId, memberId])
+}
+
+// ==================== PREMI ====================
+// Traccia i premi assegnati dall'admin ai manager
+model Prize {
+  id          String   @id @default(cuid())
+
+  leagueId    String
+  league      League   @relation(fields: [leagueId], references: [id])
+
+  memberId    String
+  member      LeagueMember @relation(fields: [memberId], references: [id])
+
+  adminId     String
+  admin       LeagueMember @relation("PrizeAdmin", fields: [adminId], references: [id])
+
+  amount      Int
+  reason      String?
+
+  createdAt   DateTime @default(now())
 }
 
 enum MarketType {
@@ -382,6 +409,7 @@ model Auction {
   // Relazioni
   bids            AuctionBid[]
   acknowledgments AuctionAcknowledgment[]
+  appeals         AuctionAppeal[]
 }
 
 enum AuctionType {
@@ -436,6 +464,40 @@ model AuctionAcknowledgment {
   acknowledgedAt DateTime @default(now())
 
   @@unique([auctionId, memberId])
+}
+
+// Ricorsi su aste concluse
+model AuctionAppeal {
+  id          String   @id @default(cuid())
+
+  auctionId   String
+  auction     Auction  @relation(fields: [auctionId], references: [id])
+
+  // Chi ha fatto il ricorso
+  memberId    String
+  member      LeagueMember @relation(fields: [memberId], references: [id])
+
+  // Motivazione del ricorso
+  content     String
+
+  // Stato del ricorso
+  status      AppealStatus @default(PENDING)
+
+  // Admin che ha risolto il ricorso
+  resolvedById String?
+  resolvedBy   LeagueMember? @relation("AppealResolver", fields: [resolvedById], references: [id])
+
+  // Note admin sulla risoluzione
+  resolutionNote String?
+
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
+}
+
+enum AppealStatus {
+  PENDING    // In attesa di revisione
+  ACCEPTED   // Accettato - asta riaperta
+  REJECTED   // Respinto - esito confermato
 }
 
 // ==================== SCAMBI ====================
@@ -625,4 +687,22 @@ model Prophecy {
 enum ProphecyRole {
   BUYER   // Chi acquista
   SELLER  // Chi cede
+}
+
+// ==================== CHAT ASTA ====================
+model ChatMessage {
+  id              String   @id @default(cuid())
+
+  marketSessionId String
+  marketSession   MarketSession @relation(fields: [marketSessionId], references: [id])
+
+  memberId        String
+  member          LeagueMember @relation(fields: [memberId], references: [id])
+
+  content         String
+
+  // Per messaggi di sistema (es. "Asta iniziata", "Giocatore nominato")
+  isSystem        Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
 }

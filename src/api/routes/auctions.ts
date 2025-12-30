@@ -28,6 +28,11 @@ import {
   getManagersStatus,
   forceAcknowledgeAll,
   forceAllReady,
+  registerHeartbeat,
+  submitAppeal,
+  getAppeals,
+  resolveAppeal,
+  simulateAppeal,
 } from '../../services/auction.service'
 import { simulateFirstMarketBotBidding, completeBotTurn } from '../../services/bot.service'
 import { authMiddleware } from '../middleware/auth'
@@ -572,6 +577,28 @@ router.get('/auctions/sessions/:sessionId/managers-status', authMiddleware, asyn
   }
 })
 
+// ==================== HEARTBEAT / CONNECTION STATUS ====================
+
+// POST /api/auctions/sessions/:sessionId/heartbeat - Register heartbeat for connection tracking
+router.post('/auctions/sessions/:sessionId/heartbeat', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const sessionId = req.params.sessionId as string
+    const { memberId } = req.body as { memberId?: string }
+
+    if (!memberId) {
+      res.status(400).json({ success: false, message: 'memberId richiesto' })
+      return
+    }
+
+    registerHeartbeat(sessionId, memberId)
+
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Heartbeat error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
 // ==================== TEST UTILITIES (ADMIN ONLY) ====================
 
 // POST /api/auctions/sessions/:sessionId/force-acknowledge-all - Force all managers to acknowledge (TEST)
@@ -642,6 +669,97 @@ router.post('/auctions/sessions/:sessionId/bot-turn', authMiddleware, async (req
     res.json(result)
   } catch (error) {
     console.error('Bot turn simulation error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== APPEALS / RICORSI ====================
+
+// POST /api/auctions/:auctionId/appeal - Submit an appeal for an auction
+router.post('/auctions/:auctionId/appeal', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const auctionId = req.params.auctionId as string
+    const { content } = req.body as { content?: string }
+
+    if (!content || content.trim().length === 0) {
+      res.status(400).json({ success: false, message: 'Contenuto del ricorso richiesto' })
+      return
+    }
+
+    const result = await submitAppeal(auctionId, req.user!.userId, content)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.status(201).json(result)
+  } catch (error) {
+    console.error('Submit appeal error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:leagueId/appeals - Get appeals for a league (Admin)
+router.get('/leagues/:leagueId/appeals', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const status = req.query.status as 'PENDING' | 'ACCEPTED' | 'REJECTED' | undefined
+
+    const result = await getAppeals(leagueId, req.user!.userId, status)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get appeals error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// PUT /api/appeals/:appealId/resolve - Resolve an appeal (Admin)
+router.put('/appeals/:appealId/resolve', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const appealId = req.params.appealId as string
+    const { decision, resolutionNote } = req.body as { decision?: 'ACCEPTED' | 'REJECTED'; resolutionNote?: string }
+
+    if (!decision || !['ACCEPTED', 'REJECTED'].includes(decision)) {
+      res.status(400).json({ success: false, message: 'Decisione richiesta (ACCEPTED o REJECTED)' })
+      return
+    }
+
+    const result = await resolveAppeal(appealId, req.user!.userId, decision, resolutionNote)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Resolve appeal error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/leagues/:leagueId/appeals/simulate - Simulate a random appeal (TEST)
+router.post('/leagues/:leagueId/appeals/simulate', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const { auctionId } = req.body as { auctionId?: string }
+    const result = await simulateAppeal(leagueId, req.user!.userId, auctionId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.status(201).json(result)
+  } catch (error) {
+    console.error('Simulate appeal error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

@@ -6,6 +6,9 @@ import {
   getLeagueStatistics,
   migrateProphecies,
   resetFirstMarket,
+  assignPrize,
+  getMembersForPrizes,
+  getPrizeHistory,
 } from '../../services/admin.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -117,6 +120,73 @@ router.post('/leagues/:leagueId/admin/migrate-prophecies', authMiddleware, async
     res.json(result)
   } catch (error) {
     console.error('Migrate prophecies error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== PRIZES ====================
+
+// GET /api/leagues/:leagueId/admin/prizes - Get prize history
+router.get('/leagues/:leagueId/admin/prizes', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await getPrizeHistory(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get prize history error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:leagueId/admin/prizes/members - Get all members for prize assignment
+router.get('/leagues/:leagueId/admin/prizes/members', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await getMembersForPrizes(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get members for prizes error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/leagues/:leagueId/admin/prizes - Assign a prize to a member
+router.post('/leagues/:leagueId/admin/prizes', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const { memberId, amount, reason } = req.body as {
+      memberId: string
+      amount: number
+      reason?: string
+    }
+
+    if (!memberId || !amount) {
+      res.status(400).json({ success: false, message: 'memberId e amount sono obbligatori' })
+      return
+    }
+
+    const result = await assignPrize(leagueId, req.user!.userId, memberId, amount, reason)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Assign prize error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

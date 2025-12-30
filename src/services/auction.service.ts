@@ -10,6 +10,42 @@ export interface ServiceResult {
   data?: unknown
 }
 
+// ==================== HEARTBEAT / CONNECTION STATUS ====================
+
+// In-memory storage for heartbeats (sessionId -> memberId -> timestamp)
+const heartbeats = new Map<string, Map<string, number>>()
+
+// Heartbeat timeout in milliseconds (10 seconds)
+const HEARTBEAT_TIMEOUT = 10000
+
+export function registerHeartbeat(sessionId: string, memberId: string): void {
+  if (!heartbeats.has(sessionId)) {
+    heartbeats.set(sessionId, new Map())
+  }
+  heartbeats.get(sessionId)!.set(memberId, Date.now())
+}
+
+export function getConnectionStatus(sessionId: string): Map<string, boolean> {
+  const sessionHeartbeats = heartbeats.get(sessionId) || new Map()
+  const now = Date.now()
+  const status = new Map<string, boolean>()
+
+  sessionHeartbeats.forEach((timestamp, memberId) => {
+    status.set(memberId, now - timestamp < HEARTBEAT_TIMEOUT)
+  })
+
+  return status
+}
+
+export function isAllConnected(sessionId: string, memberIds: string[]): boolean {
+  const status = getConnectionStatus(sessionId)
+  return memberIds.every(id => status.get(id) === true)
+}
+
+export function clearSessionHeartbeats(sessionId: string): void {
+  heartbeats.delete(sessionId)
+}
+
 // ==================== CONTRACT DURATION MANAGEMENT ====================
 
 /**
@@ -387,6 +423,45 @@ export async function closeAuctionSession(
     },
   })
 
+  // For PRIMO_MERCATO: create automatic contracts for all acquired players
+  let contractsCreated = 0
+  if (session.type === 'PRIMO_MERCATO') {
+    // Get all roster entries without contracts in this league
+    const rostersWithoutContracts = await prisma.playerRoster.findMany({
+      where: {
+        leagueMember: {
+          leagueId: session.leagueId,
+          status: MemberStatus.ACTIVE,
+        },
+        status: RosterStatus.ACTIVE,
+        contract: null,
+      },
+      include: {
+        leagueMember: true,
+      },
+    })
+
+    // Create contracts: 10% of acquisition price, 2 semesters
+    for (const roster of rostersWithoutContracts) {
+      const salary = Math.max(1, Math.round(roster.acquisitionPrice * 0.1))
+      const duration = 2
+      const rescissionClause = calculateRescissionClause(salary, duration)
+
+      await prisma.playerContract.create({
+        data: {
+          rosterId: roster.id,
+          leagueMemberId: roster.leagueMemberId,
+          salary,
+          duration,
+          initialSalary: salary,
+          initialDuration: duration,
+          rescissionClause,
+        },
+      })
+      contractsCreated++
+    }
+  }
+
   // Close session
   await prisma.marketSession.update({
     where: { id: sessionId },
@@ -398,7 +473,9 @@ export async function closeAuctionSession(
 
   return {
     success: true,
-    message: 'Sessione chiusa',
+    message: session.type === 'PRIMO_MERCATO'
+      ? `Sessione chiusa. Creati ${contractsCreated} contratti automatici (10% prezzo acquisto, 2 semestri)`
+      : 'Sessione chiusa',
   }
 }
 
@@ -2864,6 +2941,9 @@ export async function getManagersStatus(
     }
   }
 
+  // Get connection status for all managers
+  const connectionStatus = getConnectionStatus(sessionId)
+
   const managersData = members.map(m => {
     const rosterByPosition = {
       P: m.roster.filter(r => r.player.position === 'P'),
@@ -2887,6 +2967,7 @@ export async function getManagersStatus(
         A: { filled: rosterByPosition.A.length, total: slotLimits.A },
       },
       isCurrentTurn: m.id === currentTurnMemberId,
+      isConnected: connectionStatus.get(m.id) ?? false,
       roster: m.roster.map(r => ({
         id: r.id,
         playerId: r.playerId,
@@ -2901,6 +2982,10 @@ export async function getManagersStatus(
   // Find current turn manager data
   const currentTurnManager = managersData.find(m => m.isCurrentTurn) || null
 
+  // Check if all managers are connected
+  const memberIds = members.map(m => m.id)
+  const allConnected = isAllConnected(sessionId, memberIds)
+
   return {
     success: true,
     data: {
@@ -2909,6 +2994,430 @@ export async function getManagersStatus(
       currentRole,
       slotLimits,
       myId: me.id,
+      allConnected,
     },
+  }
+}
+
+// ==================== APPEALS / RICORSI ====================
+
+/**
+ * Submit an appeal for an auction
+ */
+export async function submitAppeal(
+  auctionId: string,
+  userId: string,
+  content: string
+): Promise<ServiceResult> {
+  const auction = await prisma.auction.findUnique({
+    where: { id: auctionId },
+    include: { league: true },
+  })
+
+  if (!auction) {
+    return { success: false, message: 'Asta non trovata' }
+  }
+
+  // Verify membership
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: auction.leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Check auction is completed
+  if (auction.status !== 'COMPLETED') {
+    return { success: false, message: 'Puoi fare ricorso solo su aste completate' }
+  }
+
+  // Check if user already submitted an appeal for this auction
+  const existingAppeal = await prisma.auctionAppeal.findFirst({
+    where: {
+      auctionId,
+      memberId: member.id,
+    },
+  })
+
+  if (existingAppeal) {
+    return { success: false, message: 'Hai già fatto ricorso per questa asta' }
+  }
+
+  // Create the appeal
+  const appeal = await prisma.auctionAppeal.create({
+    data: {
+      auctionId,
+      memberId: member.id,
+      content,
+    },
+  })
+
+  return {
+    success: true,
+    message: 'Ricorso inviato',
+    data: { appeal },
+  }
+}
+
+/**
+ * Get pending appeals for a league (Admin only)
+ */
+export async function getAppeals(
+  leagueId: string,
+  userId: string,
+  status?: 'PENDING' | 'ACCEPTED' | 'REJECTED'
+): Promise<ServiceResult> {
+  // Verify admin
+  const admin = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+      role: MemberRole.ADMIN,
+    },
+  })
+
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const appeals = await prisma.auctionAppeal.findMany({
+    where: {
+      auction: { leagueId },
+      ...(status ? { status } : {}),
+    },
+    include: {
+      auction: {
+        include: {
+          player: true,
+          winner: {
+            include: { user: { select: { username: true } } },
+          },
+          bids: {
+            orderBy: { amount: 'desc' },
+            take: 5,
+            include: {
+              bidder: {
+                include: { user: { select: { username: true } } },
+              },
+            },
+          },
+        },
+      },
+      member: {
+        include: { user: { select: { username: true } } },
+      },
+      resolvedBy: {
+        include: { user: { select: { username: true } } },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  return {
+    success: true,
+    data: { appeals },
+  }
+}
+
+/**
+ * Resolve an appeal (Admin only)
+ * - ACCEPTED: re-opens the auction
+ * - REJECTED: confirms the result
+ */
+export async function resolveAppeal(
+  appealId: string,
+  userId: string,
+  decision: 'ACCEPTED' | 'REJECTED',
+  resolutionNote?: string
+): Promise<ServiceResult> {
+  const appeal = await prisma.auctionAppeal.findUnique({
+    where: { id: appealId },
+    include: {
+      auction: {
+        include: {
+          league: true,
+          player: true,
+          winner: true,
+          marketSession: true,
+        },
+      },
+    },
+  })
+
+  if (!appeal) {
+    return { success: false, message: 'Ricorso non trovato' }
+  }
+
+  // Verify admin
+  const admin = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: appeal.auction.leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+      role: MemberRole.ADMIN,
+    },
+  })
+
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (appeal.status !== 'PENDING') {
+    return { success: false, message: 'Ricorso già risolto' }
+  }
+
+  if (decision === 'ACCEPTED') {
+    // Re-open the auction
+    // 1. Remove the player from winner's roster
+    if (appeal.auction.winnerId) {
+      await prisma.playerRoster.updateMany({
+        where: {
+          leagueMemberId: appeal.auction.winnerId,
+          playerId: appeal.auction.playerId,
+          status: 'ACTIVE',
+        },
+        data: {
+          status: 'RELEASED',
+          releasedAt: new Date(),
+        },
+      })
+
+      // 2. Delete any contract for this roster
+      const roster = await prisma.playerRoster.findFirst({
+        where: {
+          leagueMemberId: appeal.auction.winnerId,
+          playerId: appeal.auction.playerId,
+          status: 'RELEASED',
+          releasedAt: { not: null },
+        },
+        orderBy: { releasedAt: 'desc' },
+      })
+
+      if (roster) {
+        await prisma.playerContract.deleteMany({
+          where: { rosterId: roster.id },
+        })
+      }
+
+      // 3. Restore winner's budget
+      await prisma.leagueMember.update({
+        where: { id: appeal.auction.winnerId },
+        data: {
+          currentBudget: { increment: appeal.auction.currentPrice },
+        },
+      })
+    }
+
+    // 4. Delete related movement
+    await prisma.playerMovement.deleteMany({
+      where: { auctionId: appeal.auction.id },
+    })
+
+    // 5. Delete acknowledgments
+    await prisma.auctionAcknowledgment.deleteMany({
+      where: { auctionId: appeal.auction.id },
+    })
+
+    // 6. Reset auction to ACTIVE state
+    await prisma.auction.update({
+      where: { id: appeal.auctionId },
+      data: {
+        status: 'ACTIVE',
+        winnerId: null,
+        currentPrice: appeal.auction.basePrice,
+        timerExpiresAt: new Date(Date.now() + (appeal.auction.timerSeconds || 30) * 1000),
+        endsAt: null,
+      },
+    })
+
+    // 7. Delete all bids (fresh start)
+    await prisma.auctionBid.deleteMany({
+      where: { auctionId: appeal.auctionId },
+    })
+
+    // 8. Mark appeal as accepted
+    await prisma.auctionAppeal.update({
+      where: { id: appealId },
+      data: {
+        status: 'ACCEPTED',
+        resolvedById: admin.id,
+        resolutionNote,
+        resolvedAt: new Date(),
+      },
+    })
+
+    // Also reject all other pending appeals for this auction
+    await prisma.auctionAppeal.updateMany({
+      where: {
+        auctionId: appeal.auctionId,
+        id: { not: appealId },
+        status: 'PENDING',
+      },
+      data: {
+        status: 'REJECTED',
+        resolvedById: admin.id,
+        resolutionNote: 'Asta riaperta per altro ricorso accettato',
+        resolvedAt: new Date(),
+      },
+    })
+
+    return {
+      success: true,
+      message: 'Ricorso accettato. L\'asta è stata riaperta.',
+    }
+  } else {
+    // REJECTED - just mark as rejected
+    await prisma.auctionAppeal.update({
+      where: { id: appealId },
+      data: {
+        status: 'REJECTED',
+        resolvedById: admin.id,
+        resolutionNote,
+        resolvedAt: new Date(),
+      },
+    })
+
+    return {
+      success: true,
+      message: 'Ricorso respinto. L\'esito dell\'asta è confermato.',
+    }
+  }
+}
+
+/**
+ * TEST ONLY: Simulate a random manager submitting an appeal on a completed auction
+ */
+export async function simulateAppeal(
+  leagueId: string,
+  userId: string,
+  auctionId?: string
+): Promise<ServiceResult> {
+  // Verify admin
+  const admin = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+      role: MemberRole.ADMIN,
+    },
+  })
+
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  // Find the target auction
+  let targetAuction
+  if (auctionId) {
+    // Use the specific auction provided
+    targetAuction = await prisma.auction.findFirst({
+      where: {
+        id: auctionId,
+        leagueId,
+        appeals: {
+          none: {
+            status: 'PENDING',
+          },
+        },
+      },
+      include: {
+        player: true,
+        winner: {
+          include: { user: { select: { username: true } } },
+        },
+      },
+    })
+  } else {
+    // Find a completed auction without pending appeals
+    targetAuction = await prisma.auction.findFirst({
+      where: {
+        leagueId,
+        status: AuctionStatus.COMPLETED,
+        appeals: {
+          none: {
+            status: 'PENDING',
+          },
+        },
+      },
+      include: {
+        player: true,
+        winner: {
+          include: { user: { select: { username: true } } },
+        },
+      },
+      orderBy: { endsAt: 'desc' },
+    })
+  }
+
+  if (!targetAuction) {
+    return { success: false, message: 'Nessuna asta disponibile per il test' }
+  }
+
+  // Alias for backward compatibility with rest of function
+  const completedAuction = targetAuction
+
+  // Get a random non-admin member (preferably not the winner)
+  const members = await prisma.leagueMember.findMany({
+    where: {
+      leagueId,
+      status: MemberStatus.ACTIVE,
+      role: MemberRole.MANAGER,
+      id: { not: completedAuction.winnerId || undefined },
+    },
+    include: { user: { select: { username: true } } },
+  })
+
+  if (members.length === 0) {
+    // If no managers available, use any non-admin member
+    const anyMember = await prisma.leagueMember.findFirst({
+      where: {
+        leagueId,
+        status: MemberStatus.ACTIVE,
+        id: { not: admin.id },
+      },
+      include: { user: { select: { username: true } } },
+    })
+    if (!anyMember) {
+      return { success: false, message: 'Nessun manager disponibile per il test' }
+    }
+    members.push(anyMember)
+  }
+
+  // Pick a random member
+  const randomMember = members[Math.floor(Math.random() * members.length)]
+
+  if (!randomMember) {
+    return { success: false, message: 'Nessun manager disponibile per il test' }
+  }
+
+  // Random appeal reasons
+  const reasons = [
+    'Non avevo connessione durante l\'asta e non ho potuto fare offerte.',
+    'Il mio browser si è bloccato proprio quando stavo per fare un\'offerta.',
+    'C\'è stato un errore tecnico, il mio rilancio non è andato a buon fine.',
+    'Problemi di rete, la pagina non si aggiornava.',
+    'Il timer non era sincronizzato correttamente sul mio dispositivo.',
+  ]
+  const randomReason = reasons[Math.floor(Math.random() * reasons.length)] || reasons[0]
+
+  // Create the appeal
+  const appeal = await prisma.auctionAppeal.create({
+    data: {
+      auctionId: completedAuction.id,
+      memberId: randomMember.id,
+      content: randomReason,
+    },
+  })
+
+  return {
+    success: true,
+    message: `Ricorso simulato creato da ${randomMember.user.username} per ${completedAuction.player.name}`,
+    data: { appeal },
   }
 }

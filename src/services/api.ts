@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3003'
 
 interface ApiResponse<T = unknown> {
   success: boolean
@@ -296,6 +296,13 @@ export const auctionApi = {
   getManagersStatus: (sessionId: string) =>
     request(`/api/auctions/sessions/${sessionId}/managers-status`),
 
+  // Heartbeat / Connection tracking
+  sendHeartbeat: (sessionId: string, memberId: string) =>
+    request(`/api/auctions/sessions/${sessionId}/heartbeat`, {
+      method: 'POST',
+      body: JSON.stringify({ memberId }),
+    }),
+
   // Test utilities (admin only)
   forceAcknowledgeAll: (sessionId: string) =>
     request(`/api/auctions/sessions/${sessionId}/force-acknowledge-all`, { method: 'POST' }),
@@ -308,6 +315,33 @@ export const auctionApi = {
 
   triggerBotTurn: (sessionId: string) =>
     request(`/api/auctions/sessions/${sessionId}/bot-turn`, { method: 'POST' }),
+
+  // Appeals / Ricorsi
+  submitAppeal: (auctionId: string, content: string) =>
+    request(`/api/auctions/${auctionId}/appeal`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    }),
+
+  getAppeals: (leagueId: string, status?: 'PENDING' | 'ACCEPTED' | 'REJECTED') => {
+    const params = new URLSearchParams()
+    if (status) params.append('status', status)
+    const query = params.toString()
+    return request(`/api/leagues/${leagueId}/appeals${query ? `?${query}` : ''}`)
+  },
+
+  resolveAppeal: (appealId: string, decision: 'ACCEPTED' | 'REJECTED', resolutionNote?: string) =>
+    request(`/api/appeals/${appealId}/resolve`, {
+      method: 'PUT',
+      body: JSON.stringify({ decision, resolutionNote }),
+    }),
+
+  // Test utilities
+  simulateAppeal: (leagueId: string, auctionId?: string) =>
+    request(`/api/leagues/${leagueId}/appeals/simulate`, {
+      method: 'POST',
+      body: JSON.stringify({ auctionId }),
+    }),
 }
 
 // Contract API
@@ -546,6 +580,21 @@ export const adminApi = {
   // Reset first market (Admin)
   resetFirstMarket: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/admin/reset-first-market`, { method: 'POST' }),
+
+  // Get members for prize assignment (Admin)
+  getMembersForPrizes: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/admin/prizes/members`),
+
+  // Get prize history (Admin)
+  getPrizeHistory: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/admin/prizes`),
+
+  // Assign prize to a member (Admin)
+  assignPrize: (leagueId: string, memberId: string, amount: number, reason?: string) =>
+    request(`/api/leagues/${leagueId}/admin/prizes`, {
+      method: 'POST',
+      body: JSON.stringify({ memberId, amount, reason }),
+    }),
 }
 
 // Movement API (Storico Movimenti)
@@ -740,4 +789,26 @@ export const superadminApi = {
       method: 'POST',
       body: JSON.stringify({ targetUserId, isSuperAdmin }),
     }),
+}
+
+// Chat API
+export const chatApi = {
+  // Get messages (optionally since a timestamp)
+  getMessages: (sessionId: string, since?: string) => {
+    const params = new URLSearchParams()
+    if (since) params.append('since', since)
+    const query = params.toString()
+    return request(`/api/sessions/${sessionId}/chat${query ? `?${query}` : ''}`)
+  },
+
+  // Send a message
+  sendMessage: (sessionId: string, content: string) =>
+    request(`/api/sessions/${sessionId}/chat`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    }),
+
+  // Simulate random bot message (Admin only)
+  simulateMessage: (sessionId: string) =>
+    request(`/api/sessions/${sessionId}/chat/simulate`, { method: 'POST' }),
 }

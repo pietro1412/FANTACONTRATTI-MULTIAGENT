@@ -483,3 +483,177 @@ export async function migrateProphecies(
     },
   }
 }
+
+// ==================== ASSIGN PRIZE (INCREMENT BUDGET) ====================
+
+export async function assignPrize(
+  leagueId: string,
+  adminUserId: string,
+  memberId: string,
+  amount: number,
+  reason?: string
+): Promise<ServiceResult> {
+  // Verify admin
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  // Validate amount
+  if (!Number.isInteger(amount) || amount <= 0) {
+    return { success: false, message: 'L\'importo deve essere un numero intero positivo' }
+  }
+
+  // Get target member
+  const targetMember = await prisma.leagueMember.findFirst({
+    where: {
+      id: memberId,
+      leagueId,
+      status: MemberStatus.ACTIVE,
+    },
+    include: {
+      user: { select: { username: true } },
+    },
+  })
+
+  if (!targetMember) {
+    return { success: false, message: 'Manager non trovato' }
+  }
+
+  // Update budget and create prize record
+  const [updatedMember, prize] = await prisma.$transaction([
+    prisma.leagueMember.update({
+      where: { id: memberId },
+      data: {
+        currentBudget: { increment: amount },
+      },
+    }),
+    prisma.prize.create({
+      data: {
+        leagueId,
+        memberId,
+        adminId: adminMember.id,
+        amount,
+        reason: reason || null,
+      },
+    }),
+  ])
+
+  return {
+    success: true,
+    message: `Premio di ${amount}M assegnato a ${targetMember.teamName}${reason ? ` (${reason})` : ''}`,
+    data: {
+      memberId,
+      teamName: targetMember.teamName,
+      username: targetMember.user.username,
+      amount,
+      reason,
+      newBudget: updatedMember.currentBudget,
+      prizeId: prize.id,
+    },
+  }
+}
+
+// ==================== GET PRIZE HISTORY ====================
+
+export async function getPrizeHistory(
+  leagueId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  // Verify admin
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  // Get all prizes for this league
+  const prizes = await prisma.prize.findMany({
+    where: { leagueId },
+    include: {
+      member: {
+        include: {
+          user: { select: { username: true } },
+        },
+      },
+      admin: {
+        include: {
+          user: { select: { username: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  return {
+    success: true,
+    data: prizes.map(p => ({
+      id: p.id,
+      memberId: p.memberId,
+      teamName: p.member.teamName,
+      username: p.member.user.username,
+      adminUsername: p.admin.user.username,
+      amount: p.amount,
+      reason: p.reason,
+      createdAt: p.createdAt,
+    })),
+  }
+}
+
+// ==================== GET ALL MEMBERS FOR PRIZES ====================
+
+export async function getMembersForPrizes(
+  leagueId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  // Verify admin
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  // Get all active members
+  const members = await prisma.leagueMember.findMany({
+    where: {
+      leagueId,
+      status: MemberStatus.ACTIVE,
+    },
+    include: {
+      user: { select: { username: true } },
+    },
+    orderBy: { teamName: 'asc' },
+  })
+
+  return {
+    success: true,
+    data: members.map(m => ({
+      id: m.id,
+      teamName: m.teamName,
+      username: m.user.username,
+      currentBudget: m.currentBudget,
+    })),
+  }
+}

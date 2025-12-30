@@ -53,7 +53,7 @@ const MOVEMENT_TYPE_LABELS: Record<string, string> = {
   TRADE: 'Scambio',
   RUBATA: 'Rubata',
   SVINCOLATI: 'Svincolati',
-  RELEASE: 'Svincolo',
+  RELEASE: 'Taglio',
   CONTRACT_RENEW: 'Rinnovo',
 }
 
@@ -215,7 +215,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                 <option value="TRADE">Scambi</option>
                 <option value="RUBATA">Rubate</option>
                 <option value="SVINCOLATI">Svincolati</option>
-                <option value="RELEASE">Svincoli</option>
+                <option value="RELEASE">Tagli</option>
                 <option value="CONTRACT_RENEW">Rinnovi</option>
               </select>
             </div>

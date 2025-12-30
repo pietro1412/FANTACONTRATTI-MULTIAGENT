@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { superadminApi } from '../services/api'
+import { superadminApi, playerApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Card } from '../components/ui/Card'
@@ -139,12 +139,6 @@ const POSITION_NAMES: Record<string, string> = {
   A: 'Attaccanti',
 }
 
-const SERIE_A_TEAMS = [
-  'Atalanta', 'Bologna', 'Cagliari', 'Como', 'Cremonese', 'Empoli',
-  'Fiorentina', 'Genoa', 'Inter', 'Juventus', 'Lazio', 'Lecce',
-  'Milan', 'Monza', 'Napoli', 'Parma', 'Pisa', 'Roma',
-  'Sassuolo', 'Torino', 'Udinese', 'Venezia', 'Verona'
-]
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'In preparazione',
@@ -181,6 +175,8 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
     page: 1,
   })
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false)
+  const [availableTeams, setAvailableTeams] = useState<Array<{ name: string; playerCount: number }>>([])
+  const [teamsLoading, setTeamsLoading] = useState(false)
 
   // Leagues state
   const [leagues, setLeagues] = useState<League[]>([])
@@ -224,7 +220,10 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
   useEffect(() => {
     if (isSuperAdmin) {
       if (activeTab === 'upload') loadUploadHistory()
-      if (activeTab === 'players') loadPlayers()
+      if (activeTab === 'players') {
+        loadPlayers()
+        loadTeams()
+      }
       if (activeTab === 'leagues') loadLeagues()
       if (activeTab === 'users') loadUsers()
     }
@@ -272,6 +271,15 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
       setPlayersData(result.data as PlayersListData)
     }
     setPlayersLoading(false)
+  }
+
+  async function loadTeams() {
+    setTeamsLoading(true)
+    const result = await playerApi.getTeams()
+    if (result.success && result.data) {
+      setAvailableTeams(result.data as Array<{ name: string; playerCount: number }>)
+    }
+    setTeamsLoading(false)
   }
 
   async function loadLeagues() {
@@ -719,17 +727,18 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                       >
                         Tutte le squadre
                       </button>
-                      {SERIE_A_TEAMS.map(team => (
+                      {availableTeams.map(teamData => (
                         <button
-                          key={team}
+                          key={teamData.name}
                           type="button"
-                          onClick={() => { setFilters({ ...filters, team, page: 1 }); setTeamDropdownOpen(false) }}
-                          className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-300 flex items-center gap-2 ${filters.team === team ? 'bg-primary-500/20 text-primary-400' : 'text-white'}`}
+                          onClick={() => { setFilters({ ...filters, team: teamData.name, page: 1 }); setTeamDropdownOpen(false) }}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-300 flex items-center gap-2 ${filters.team === teamData.name ? 'bg-primary-500/20 text-primary-400' : 'text-white'}`}
                         >
                           <div className="w-6 h-6 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
-                            <img src={getTeamLogo(team)} alt={team} className="w-5 h-5 object-contain" />
+                            <img src={getTeamLogo(teamData.name)} alt={teamData.name} className="w-5 h-5 object-contain" />
                           </div>
-                          <span>{team}</span>
+                          <span>{teamData.name}</span>
+                          <span className="text-xs text-gray-500 ml-auto">({teamData.playerCount})</span>
                         </button>
                       ))}
                     </div>

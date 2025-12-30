@@ -15,15 +15,21 @@ import adminRoutes from './routes/admin'
 import inviteRoutes from './routes/invites'
 import movementRoutes from './routes/movements'
 import superadminRoutes from './routes/superadmin'
+import chatRoutes from './routes/chat'
 
 const app = express()
-const PORT = process.env.API_PORT || 3001
+const PORT = process.env.API_PORT || 3003
 
-// Middleware
-app.use(cors({
+// CORS configuration
+const corsOptions = {
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
-}))
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}
+
+// Middleware - cors handles OPTIONS preflight automatically
+app.use(cors(corsOptions))
 app.use(express.json())
 app.use(cookieParser())
 
@@ -46,6 +52,7 @@ app.use('/api', adminRoutes) // Admin routes include /leagues/:id/admin/*
 app.use('/api', inviteRoutes) // Invite routes include /leagues/:id/invites and /invites/*
 app.use('/api', movementRoutes) // Movement routes include /leagues/:id/movements and /movements/*
 app.use('/api', superadminRoutes) // Superadmin routes include /superadmin/*
+app.use('/api', chatRoutes) // Chat routes include /sessions/:id/chat
 
 // 404 handler
 app.use((_req, res) => {

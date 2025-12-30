@@ -3,6 +3,7 @@ import { auctionApi, playerApi, firstMarketApi, adminApi } from '../services/api
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Navigation } from '../components/Navigation'
+import { Chat } from '../components/Chat'
 import { getTeamLogo } from '../utils/teamLogos'
 import {
   DndContext,
@@ -144,6 +145,7 @@ interface ManagerData {
   currentBudget: number
   slotsFilled: number
   totalSlots: number
+  isConnected?: boolean
   slotsByPosition: {
     P: { filled: number; total: number }
     D: { filled: number; total: number }
@@ -160,6 +162,7 @@ interface ManagersStatusData {
   currentRole: string
   slotLimits: { P: number; D: number; C: number; A: number }
   myId: string
+  allConnected?: boolean
 }
 
 interface FirstMarketStatus {
@@ -263,6 +266,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   const [bidAmount, setBidAmount] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPosition, setSelectedPosition] = useState<string>('')
+  const [selectedTeam, setSelectedTeam] = useState<string>('')
+  const [availableTeams, setAvailableTeams] = useState<Array<{ name: string; playerCount: number }>>([])
+  const [teamDropdownOpen, setTeamDropdownOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
@@ -280,6 +286,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   const [pendingAck, setPendingAck] = useState<PendingAcknowledgment | null>(null)
   const [prophecyContent, setProphecyContent] = useState('')
   const [ackSubmitting, setAckSubmitting] = useState(false)
+  const [isAppealMode, setIsAppealMode] = useState(false)
+  const [appealContent, setAppealContent] = useState('')
 
   const [myRosterSlots, setMyRosterSlots] = useState<MyRosterSlots | null>(null)
   const [managersStatus, setManagersStatus] = useState<ManagersStatusData | null>(null)
@@ -295,21 +303,17 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  // Timer countdown
+  // Close team dropdown when clicking outside
   useEffect(() => {
-    if (!auction?.timerExpiresAt) {
-      setTimeLeft(null)
-      return
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as HTMLElement
+      if (teamDropdownOpen && !target.closest('[data-team-dropdown]')) {
+        setTeamDropdownOpen(false)
+      }
     }
-    const updateTimer = () => {
-      const expiresAt = new Date(auction.timerExpiresAt!).getTime()
-      const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000))
-      setTimeLeft(remaining)
-    }
-    updateTimer()
-    const interval = setInterval(updateTimer, 1000)
-    return () => clearInterval(interval)
-  }, [auction?.timerExpiresAt])
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [teamDropdownOpen])
 
   const loadCurrentAuction = useCallback(async () => {
     const result = await auctionApi.getCurrentAuction(sessionId)
@@ -367,12 +371,51 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   }, [sessionId])
 
   const loadPlayers = useCallback(async () => {
-    const filters: { available: boolean; leagueId: string; position?: string; search?: string } = { available: true, leagueId }
+    const filters: { available: boolean; leagueId: string; position?: string; search?: string; team?: string } = { available: true, leagueId }
     if (selectedPosition) filters.position = selectedPosition
     if (searchQuery) filters.search = searchQuery
+    if (selectedTeam) filters.team = selectedTeam
     const result = await playerApi.getAll(filters)
-    if (result.success && result.data) setPlayers(result.data as Player[])
-  }, [leagueId, selectedPosition, searchQuery])
+    if (result.success && result.data) {
+      // Ordina alfabeticamente per nome
+      const sortedPlayers = (result.data as Player[]).sort((a, b) => a.name.localeCompare(b.name))
+      setPlayers(sortedPlayers)
+    }
+  }, [leagueId, selectedPosition, searchQuery, selectedTeam])
+
+  const loadTeams = useCallback(async () => {
+    const result = await playerApi.getTeams()
+    if (result.success && result.data) {
+      setAvailableTeams(result.data as Array<{ name: string; playerCount: number }>)
+    }
+  }, [])
+
+  // Timer countdown - when hits 0, immediately refresh data
+  useEffect(() => {
+    if (!auction?.timerExpiresAt) {
+      setTimeLeft(null)
+      return
+    }
+    let hasTriggeredZero = false
+    const updateTimer = () => {
+      const expiresAt = new Date(auction.timerExpiresAt!).getTime()
+      const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000))
+      setTimeLeft(remaining)
+
+      // When timer hits 0, immediately refresh to show acknowledgment modal
+      if (remaining === 0 && !hasTriggeredZero) {
+        hasTriggeredZero = true
+        // Force immediate data refresh
+        setTimeout(() => {
+          loadCurrentAuction()
+          loadPendingAcknowledgment()
+        }, 500) // Small delay to allow backend to process
+      }
+    }
+    updateTimer()
+    const interval = setInterval(updateTimer, 1000)
+    return () => clearInterval(interval)
+  }, [auction?.timerExpiresAt, loadCurrentAuction, loadPendingAcknowledgment])
 
   useEffect(() => {
     loadCurrentAuction()
@@ -381,6 +424,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     loadReadyStatus()
     loadMyRosterSlots()
     loadManagersStatus()
+    loadTeams()
     const interval = setInterval(() => {
       loadCurrentAuction()
       loadFirstMarketStatus()
@@ -390,7 +434,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       loadManagersStatus()
     }, 2000)
     return () => clearInterval(interval)
-  }, [loadCurrentAuction, loadFirstMarketStatus, loadPendingAcknowledgment, loadReadyStatus, loadMyRosterSlots, loadManagersStatus])
+  }, [loadCurrentAuction, loadFirstMarketStatus, loadPendingAcknowledgment, loadReadyStatus, loadMyRosterSlots, loadManagersStatus, loadTeams])
 
   useEffect(() => {
     // Wait until sessionInfo is loaded to know the session type
@@ -403,7 +447,28 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       // PRIMO_MERCATO: only load when we have the position filter from currentRole
       loadPlayers()
     }
-  }, [selectedPosition, searchQuery, loadPlayers, sessionInfo])
+  }, [selectedPosition, searchQuery, selectedTeam, loadPlayers, sessionInfo])
+
+  // Send heartbeat every 3 seconds to track connection status
+  useEffect(() => {
+    if (!managersStatus?.myId) return
+
+    const sendHeartbeat = async () => {
+      try {
+        await auctionApi.sendHeartbeat(sessionId, managersStatus.myId)
+      } catch (err) {
+        console.error('Heartbeat error:', err)
+      }
+    }
+
+    // Send immediately on mount
+    sendHeartbeat()
+
+    // Then send every 3 seconds
+    const interval = setInterval(sendHeartbeat, 3000)
+
+    return () => clearInterval(interval)
+  }, [sessionId, managersStatus?.myId])
 
   // Drag end handler
   function handleDragEnd(event: DragEndEvent) {
@@ -522,6 +587,15 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     }
   }
 
+  async function handleSimulateAppeal() {
+    const result = await auctionApi.simulateAppeal(leagueId, pendingAck?.id)
+    if (result.success) {
+      setSuccessMessage('Ricorso simulato! Vai nel pannello Admin per gestirlo.')
+    } else {
+      setError(result.message || 'Errore nella simulazione')
+    }
+  }
+
   async function handleResetFirstMarket() {
     if (!confirm('Sei sicuro di voler resettare il Primo Mercato? Tutti i dati verranno cancellati!')) return
     const result = await adminApi.resetFirstMarket(leagueId)
@@ -567,19 +641,39 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     }
   }
 
-  async function handleUpdateTimer() {
-    const result = await auctionApi.updateSessionTimer(sessionId, timerSetting)
-    if (result.success) setSuccessMessage(`Timer: ${timerSetting}s`)
+  async function handleUpdateTimer(seconds?: number) {
+    const value = seconds ?? timerSetting
+    const result = await auctionApi.updateSessionTimer(sessionId, value)
+    if (result.success) {
+      setTimerSetting(value)
+      setSuccessMessage(`Timer: ${value}s`)
+    }
     else setError(result.message || 'Errore')
   }
 
-  async function handleAcknowledge(withProphecy: boolean) {
+  async function handleAcknowledge(withProphecy: boolean, isAppeal: boolean = false) {
     if (!pendingAck) return
     setAckSubmitting(true)
-    const result = await auctionApi.acknowledgeAuction(pendingAck.id, withProphecy ? prophecyContent.trim() : undefined)
+
+    if (isAppeal && appealContent.trim()) {
+      // Invia ricorso tramite endpoint dedicato
+      const appealResult = await auctionApi.submitAppeal(pendingAck.id, appealContent.trim())
+      if (!appealResult.success) {
+        setError(appealResult.message || 'Errore nell\'invio del ricorso')
+        setAckSubmitting(false)
+        return
+      }
+      setSuccessMessage('Ricorso inviato! L\'admin della lega valuterà la tua richiesta.')
+    }
+
+    // Conferma comunque la visione dell'asta (anche con ricorso)
+    const prophecy = withProphecy ? prophecyContent.trim() : undefined
+    const result = await auctionApi.acknowledgeAuction(pendingAck.id, prophecy)
     setAckSubmitting(false)
     if (result.success) {
       setProphecyContent('')
+      setAppealContent('')
+      setIsAppealMode(false)
       loadPendingAcknowledgment()
       loadPlayers()
       loadMyRosterSlots()
@@ -728,9 +822,14 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   </span>
                 ))}
               </div>
-              <div className="text-sm">
-                <span className="text-gray-400">Slot: </span>
-                <span className="font-bold text-white">{marketProgress.filledSlots}/{marketProgress.totalSlots}</span>
+              <div className="text-sm flex items-center gap-4">
+                <div>
+                  <span className="text-gray-400">{POSITION_NAMES[marketProgress.currentRole]}: </span>
+                  <span className="font-bold text-white">{marketProgress.filledSlots}/{marketProgress.totalSlots}</span>
+                </div>
+                <div className="text-gray-500">
+                  (slot/manager: {marketProgress.slotLimits[marketProgress.currentRole as keyof typeof marketProgress.slotLimits]})
+                </div>
               </div>
             </div>
           </div>
@@ -741,9 +840,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
         {error && <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg mb-4">{error}</div>}
         {successMessage && <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-3 rounded-lg mb-4">{successMessage}</div>}
 
-        <div className="grid lg:grid-cols-4 gap-6">
+        <div className="grid lg:grid-cols-12 gap-4">
           {/* LEFT: My Roster */}
-          <div className="lg:col-span-1 space-y-4">
+          <div className="lg:col-span-3 space-y-4">
             <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
               <div className="p-3 border-b border-surface-50/20 flex items-center gap-2">
                 <span className="text-lg">📋</span>
@@ -766,11 +865,13 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                         {slot.players.map(p => (
                           <div key={p.id} className="ml-9 py-1.5 flex items-center justify-between text-sm">
                             <div className="flex items-center gap-2 min-w-0 flex-1">
-                              <img
-                                src={getTeamLogo(p.playerTeam)}
-                                alt={p.playerTeam}
-                                className="w-5 h-5 object-contain flex-shrink-0"
-                              />
+                              <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
+                                <img
+                                  src={getTeamLogo(p.playerTeam)}
+                                  alt={p.playerTeam}
+                                  className="w-4 h-4 object-contain"
+                                />
+                              </div>
                               <div className="min-w-0">
                                 <span className="text-gray-200 font-medium truncate block">{p.playerName}</span>
                                 <span className="text-gray-500 text-xs truncate block">{p.playerTeam}</span>
@@ -796,10 +897,23 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   <h3 className="font-bold text-white text-sm">Controlli Admin</h3>
                 </div>
                 <div className="p-3 space-y-3">
-                  <div className="flex gap-2 items-center">
-                    <Input type="number" value={timerSetting} onChange={e => setTimerSetting(parseInt(e.target.value) || 30)} className="w-20 text-center bg-surface-300 border-surface-50/30 text-white" />
-                    <span className="text-gray-400 text-sm">sec</span>
-                    <Button size="sm" variant="outline" onClick={handleUpdateTimer} className="text-xs">Set</Button>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-2">Timer Asta</p>
+                    <div className="flex flex-wrap gap-1">
+                      {[5, 10, 15, 20, 25, 30, 45, 60].map(sec => (
+                        <button
+                          key={sec}
+                          onClick={() => handleUpdateTimer(sec)}
+                          className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                            timerSetting === sec
+                              ? 'bg-primary-500 text-white'
+                              : 'bg-surface-300 text-gray-400 hover:bg-surface-50/20 hover:text-white'
+                          }`}
+                        >
+                          {sec}s
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div className="pt-2 border-t border-surface-50/20 space-y-2">
                     <p className="text-xs text-accent-500 font-bold uppercase">Test Mode</p>
@@ -819,7 +933,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           </div>
 
           {/* CENTER: Auction */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-5 space-y-4">
             {/* Ready Check */}
             {readyStatus?.hasPendingNomination && !auction && (
               <div className="bg-surface-200 rounded-xl border-2 border-accent-500/50 overflow-hidden animate-pulse-slow">
@@ -829,11 +943,13 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   {readyStatus.player && (
                     <div className="inline-flex items-center gap-3 bg-surface-300 rounded-lg p-4 mb-4">
                       <span className={`w-12 h-12 rounded-full bg-gradient-to-br ${POSITION_COLORS[readyStatus.player.position]} flex items-center justify-center text-white font-bold text-lg`}>{readyStatus.player.position}</span>
-                      <img
-                        src={getTeamLogo(readyStatus.player.team)}
-                        alt={readyStatus.player.team}
-                        className="w-10 h-10 object-contain"
-                      />
+                      <div className="w-10 h-10 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
+                        <img
+                          src={getTeamLogo(readyStatus.player.team)}
+                          alt={readyStatus.player.team}
+                          className="w-8 h-8 object-contain"
+                        />
+                      </div>
                       <div className="text-left">
                         <p className="font-bold text-xl text-white">{readyStatus.player.name}</p>
                         <p className="text-gray-400">{readyStatus.player.team}</p>
@@ -886,11 +1002,13 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       <span className={`inline-block px-4 py-1 rounded-full text-sm font-bold border mb-3 ${POSITION_BG[auction.player.position]}`}>{POSITION_NAMES[auction.player.position]}</span>
                       <h2 className="text-4xl font-bold text-white mb-2">{auction.player.name}</h2>
                       <div className="flex items-center justify-center gap-2">
-                        <img
-                          src={getTeamLogo(auction.player.team)}
-                          alt={auction.player.team}
-                          className="w-8 h-8 object-contain"
-                        />
+                        <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5">
+                          <img
+                            src={getTeamLogo(auction.player.team)}
+                            alt={auction.player.team}
+                            className="w-7 h-7 object-contain"
+                          />
+                        </div>
                         <p className="text-xl text-gray-400">{auction.player.team}</p>
                       </div>
                     </div>
@@ -941,6 +1059,55 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                           <p className="text-sm text-gray-400">Seleziona un giocatore</p>
                         </div>
                         <Input placeholder="Cerca giocatore..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="mb-3 bg-surface-300 border-surface-50/30 text-white placeholder-gray-500" />
+                        {/* Team Filter Dropdown */}
+                        <div className="relative mb-3" data-team-dropdown>
+                          <button
+                            type="button"
+                            onClick={() => setTeamDropdownOpen(!teamDropdownOpen)}
+                            className="w-full bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-2">
+                              {selectedTeam ? (
+                                <>
+                                  <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center p-0.5">
+                                    <img src={getTeamLogo(selectedTeam)} alt={selectedTeam} className="w-4 h-4 object-contain" />
+                                  </div>
+                                  <span>{selectedTeam}</span>
+                                </>
+                              ) : (
+                                <span className="text-gray-400">Tutte le squadre</span>
+                              )}
+                            </div>
+                            <svg className={`w-4 h-4 transition-transform ${teamDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          {teamDropdownOpen && (
+                            <div className="absolute top-full left-0 right-0 mt-1 bg-surface-200 border border-surface-50/30 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto">
+                              <button
+                                type="button"
+                                onClick={() => { setSelectedTeam(''); setTeamDropdownOpen(false) }}
+                                className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-300 ${!selectedTeam ? 'bg-primary-500/20 text-primary-400' : 'text-white'}`}
+                              >
+                                Tutte le squadre
+                              </button>
+                              {availableTeams.map(team => (
+                                <button
+                                  key={team.name}
+                                  type="button"
+                                  onClick={() => { setSelectedTeam(team.name); setTeamDropdownOpen(false) }}
+                                  className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-300 flex items-center gap-2 ${selectedTeam === team.name ? 'bg-primary-500/20 text-primary-400' : 'text-white'}`}
+                                >
+                                  <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
+                                    <img src={getTeamLogo(team.name)} alt={team.name} className="w-4 h-4 object-contain" />
+                                  </div>
+                                  <span>{team.name}</span>
+                                  <span className="text-xs text-gray-500 ml-auto">({team.playerCount})</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                         {isPrimoMercato && marketProgress && (
                           <div className={`text-center py-2 px-3 rounded-lg mb-3 border ${POSITION_BG[marketProgress.currentRole]}`}>
                             <span className="font-medium">Solo {marketProgress.currentRoleName}</span>
@@ -953,11 +1120,13 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                             <button key={player.id} onClick={() => handleNominatePlayer(player.id)} className="w-full flex items-center p-3 rounded-lg bg-surface-300 hover:bg-primary-500/10 border border-transparent hover:border-primary-500/30 transition-all text-left">
                               <div className="flex items-center gap-3 flex-1">
                                 <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>{player.position}</span>
-                                <img
-                                  src={getTeamLogo(player.team)}
-                                  alt={player.team}
-                                  className="w-7 h-7 object-contain flex-shrink-0"
-                                />
+                                <div className="w-7 h-7 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
+                                  <img
+                                    src={getTeamLogo(player.team)}
+                                    alt={player.team}
+                                    className="w-6 h-6 object-contain"
+                                  />
+                                </div>
                                 <div className="min-w-0">
                                   <p className="font-medium text-white truncate">{player.name}</p>
                                   <p className="text-xs text-gray-400 truncate">{player.team}</p>
@@ -980,50 +1149,85 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             </div>
           </div>
 
-          {/* RIGHT: Managers */}
-          <div className="lg:col-span-1 space-y-4">
-            {/* Turn Order */}
-            {firstMarketStatus?.turnOrder && (
-              <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
-                <div className="p-3 border-b border-surface-50/20">
-                  <h3 className="font-bold text-white text-sm">Ordine Turni</h3>
-                </div>
-                <div className="divide-y divide-surface-50/10">
-                  {firstMarketStatus.turnOrder.map((memberId, index) => {
-                    const member = firstMarketStatus.memberStatus.find(m => m.memberId === memberId)
-                    if (!member) return null
-                    const isCurrent = currentTurnManager?.memberId === memberId
-                    return (
-                      <div key={memberId} className={`flex items-center gap-2 px-3 py-2 ${isCurrent ? 'bg-accent-500/20 border-l-2 border-accent-500' : ''}`}>
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isCurrent ? 'bg-accent-500 text-dark-900' : 'bg-surface-300 text-gray-400'}`}>{index + 1}</span>
-                        <span className={`text-sm ${isCurrent ? 'font-bold text-accent-400' : 'text-gray-300'}`}>{member.username}</span>
-                        {isCurrent && <span className="text-xs text-accent-500 ml-auto">←</span>}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+          {/* RIGHT: Chat + Managers */}
+          <div className="lg:col-span-4 space-y-4">
+            {/* Chat */}
+            <Chat
+              sessionId={sessionId}
+              currentMemberId={managersStatus?.myId}
+              isAdmin={isAdmin}
+            />
 
-            {/* Managers List */}
-            <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
+            {/* Managers List with Turn Order */}
+            <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden max-h-[40vh] overflow-y-auto">
               <div className="p-3 border-b border-surface-50/20">
-                <h3 className="font-bold text-white text-sm">Manager</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-white text-sm">Manager</h3>
+                  {managersStatus?.allConnected === false && (
+                    <span className="text-xs text-red-400 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                      Disconnessioni
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="divide-y divide-surface-50/10">
                 {!managersStatus && <p className="text-gray-500 text-center py-4 text-sm">Caricamento...</p>}
-                {managersStatus?.managers?.map(m => (
-                  <button key={m.id} onClick={() => setSelectedManager(m)} className={`w-full flex items-center justify-between px-4 py-3 hover:bg-surface-300 transition-colors text-left ${m.isCurrentTurn ? 'bg-primary-500/10' : ''} ${m.id === managersStatus.myId ? 'border-l-2 border-primary-500' : ''}`}>
-                    <div>
-                      <span className={`font-medium ${m.id === managersStatus.myId ? 'text-primary-400' : 'text-gray-200'}`}>{m.username}</span>
-                      {m.isCurrentTurn && <span className="text-xs text-primary-400 ml-1">(turno)</span>}
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-accent-400">{m.currentBudget}</p>
-                      <p className="text-xs text-gray-500">{m.slotsFilled}/{m.totalSlots}</p>
-                    </div>
-                  </button>
-                ))}
+                {managersStatus?.managers && (() => {
+                  // Ordina i manager per ordine turno se disponibile
+                  const sortedManagers = [...managersStatus.managers].sort((a, b) => {
+                    if (!firstMarketStatus?.turnOrder) return 0
+                    const aIndex = firstMarketStatus.turnOrder.indexOf(a.id)
+                    const bIndex = firstMarketStatus.turnOrder.indexOf(b.id)
+                    return aIndex - bIndex
+                  })
+                  return sortedManagers.map(m => {
+                    const turnIndex = firstMarketStatus?.turnOrder?.indexOf(m.id) ?? -1
+                    const isCurrent = m.isCurrentTurn
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => setSelectedManager(m)}
+                        className={`w-full flex items-center gap-3 px-3 py-3 hover:bg-surface-300 transition-colors text-left ${isCurrent ? 'bg-accent-500/20 border-l-2 border-accent-500' : ''} ${m.id === managersStatus.myId ? 'border-l-2 border-primary-500' : ''}`}
+                      >
+                        {/* Turn Order Number */}
+                        <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                          isCurrent
+                            ? 'bg-accent-500 text-dark-900'
+                            : 'bg-surface-300 text-gray-400'
+                        }`}>
+                          {turnIndex >= 0 ? turnIndex + 1 : '-'}
+                        </span>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            {/* Connection status indicator */}
+                            <span
+                              className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                m.isConnected === true
+                                  ? 'bg-green-500'
+                                  : m.isConnected === false
+                                    ? 'bg-red-500 animate-pulse'
+                                    : 'bg-gray-500'
+                              }`}
+                              title={m.isConnected === true ? 'Connesso' : m.isConnected === false ? 'Disconnesso' : 'Stato sconosciuto'}
+                            />
+                            <span className={`font-medium truncate ${m.id === managersStatus.myId ? 'text-primary-400' : isCurrent ? 'text-accent-400' : 'text-gray-200'}`}>
+                              {m.username}
+                            </span>
+                            {isCurrent && <span className="text-xs text-accent-500">← turno</span>}
+                          </div>
+                          {m.teamName && <p className="text-xs text-gray-500 truncate">{m.teamName}</p>}
+                        </div>
+
+                        <div className="text-right flex-shrink-0">
+                          <p className="font-bold text-accent-400">{m.currentBudget}</p>
+                          <p className="text-xs text-gray-500">{m.slotsFilled}/{m.totalSlots}</p>
+                        </div>
+                      </button>
+                    )
+                  })
+                })()}
               </div>
             </div>
           </div>
@@ -1068,11 +1272,13 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       {posPlayers.map(p => (
                         <div key={p.id} className="flex items-center justify-between text-sm py-1.5">
                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <img
-                              src={getTeamLogo(p.playerTeam)}
-                              alt={p.playerTeam}
-                              className="w-5 h-5 object-contain flex-shrink-0"
-                            />
+                            <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
+                              <img
+                                src={getTeamLogo(p.playerTeam)}
+                                alt={p.playerTeam}
+                                className="w-4 h-4 object-contain"
+                              />
+                            </div>
                             <div className="min-w-0">
                               <span className="text-gray-200 font-medium truncate block">{p.playerName}</span>
                               <span className="text-gray-500 text-xs truncate block">{p.playerTeam}</span>
@@ -1104,11 +1310,13 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
               </div>
               <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
                 <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[pendingAck.player.position]} flex items-center justify-center text-white font-bold flex-shrink-0`}>{pendingAck.player.position}</span>
-                <img
-                  src={getTeamLogo(pendingAck.player.team)}
-                  alt={pendingAck.player.team}
-                  className="w-8 h-8 object-contain flex-shrink-0"
-                />
+                <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
+                  <img
+                    src={getTeamLogo(pendingAck.player.team)}
+                    alt={pendingAck.player.team}
+                    className="w-7 h-7 object-contain"
+                  />
+                </div>
                 <div>
                   <p className="font-bold text-white">{pendingAck.player.name}</p>
                   <p className="text-sm text-gray-400">{pendingAck.player.team}</p>
@@ -1132,11 +1340,74 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   <div className="h-2 rounded-full bg-secondary-500 transition-all" style={{ width: `${(pendingAck.totalAcknowledged / pendingAck.totalMembers) * 100}%` }}></div>
                 </div>
               </div>
-              <textarea value={prophecyContent} onChange={e => setProphecyContent(e.target.value)} className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-3 text-white placeholder-gray-500 mb-4" rows={2} placeholder="Profezia (opzionale)..." maxLength={500} />
+
+              {/* Profezia opzionale */}
+              <textarea
+                value={prophecyContent}
+                onChange={e => setProphecyContent(e.target.value)}
+                className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-3 text-white placeholder-gray-500 mb-4"
+                rows={2}
+                placeholder="Profezia (opzionale)..."
+                maxLength={500}
+              />
+
+              {/* Ricorso (espandibile) */}
+              {isAppealMode && (
+                <div className="mb-4">
+                  <p className="text-xs text-danger-400 mb-2">
+                    Indica il motivo per cui contesti questa conclusione d'asta (es. problemi di connessione)
+                  </p>
+                  <textarea
+                    value={appealContent}
+                    onChange={e => setAppealContent(e.target.value)}
+                    className="w-full bg-surface-300 border border-danger-500/50 rounded-lg p-3 text-white placeholder-gray-500"
+                    rows={3}
+                    placeholder="Descrivi il motivo del ricorso..."
+                    maxLength={500}
+                  />
+                </div>
+              )}
+
+              {/* Bottoni Azione */}
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => handleAcknowledge(false)} disabled={ackSubmitting} className="flex-1 border-surface-50/30 text-gray-300">{ackSubmitting ? 'Invio...' : 'Conferma'}</Button>
-                {prophecyContent.trim() && <Button onClick={() => handleAcknowledge(true)} disabled={ackSubmitting} className="flex-1 btn-primary">{ackSubmitting ? 'Invio...' : 'Con Profezia'}</Button>}
+                <Button
+                  onClick={() => handleAcknowledge(!!prophecyContent.trim())}
+                  disabled={ackSubmitting}
+                  className="flex-1 bg-secondary-500 hover:bg-secondary-600 text-white font-bold py-3"
+                >
+                  {ackSubmitting ? 'Invio...' : 'Conferma'}
+                </Button>
+                {!isAppealMode ? (
+                  <Button
+                    onClick={() => setIsAppealMode(true)}
+                    disabled={ackSubmitting}
+                    variant="outline"
+                    className="flex-1 border-danger-500 text-danger-400 hover:bg-danger-500/10 py-3"
+                  >
+                    Ricorso
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => handleAcknowledge(false, true)}
+                    disabled={ackSubmitting || !appealContent.trim()}
+                    className="flex-1 bg-danger-500 hover:bg-danger-600 text-white py-3"
+                  >
+                    {ackSubmitting ? 'Invio...' : 'Invia Ricorso'}
+                  </Button>
+                )}
               </div>
+
+              {/* Admin: Simula ricorso */}
+              {isAdmin && (
+                <Button
+                  onClick={handleSimulateAppeal}
+                  size="sm"
+                  variant="outline"
+                  className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
+                >
+                  [TEST] Simula ricorso di un manager
+                </Button>
+              )}
             </div>
           </div>
         </div>
