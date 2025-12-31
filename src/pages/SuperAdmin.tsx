@@ -176,7 +176,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
   })
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false)
   const [availableTeams, setAvailableTeams] = useState<Array<{ name: string; playerCount: number }>>([])
-  const [teamsLoading, setTeamsLoading] = useState(false)
+  const [_teamsLoading, setTeamsLoading] = useState(false)
 
   // Leagues state
   const [leagues, setLeagues] = useState<League[]>([])

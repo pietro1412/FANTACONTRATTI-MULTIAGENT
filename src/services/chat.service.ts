@@ -185,6 +185,10 @@ export async function sendRandomBotMessage(sessionId: string, userId: string) {
   const randomMember = otherMembers[Math.floor(Math.random() * otherMembers.length)]
   const randomMessage = RANDOM_MESSAGES[Math.floor(Math.random() * RANDOM_MESSAGES.length)]
 
+  if (!randomMember || !randomMessage) {
+    return { success: false, message: 'Nessun membro disponibile per la simulazione' }
+  }
+
   // Crea il messaggio simulato
   const message = await prisma.chatMessage.create({
     data: {
@@ -213,9 +217,9 @@ export async function sendRandomBotMessage(sessionId: string, userId: string) {
         isSystem: message.isSystem,
         createdAt: message.createdAt.toISOString(),
         member: {
-          id: message.member.id,
-          username: message.member.user.username,
-          teamName: message.member.teamName
+          id: message.member!.id,
+          username: message.member!.user.username,
+          teamName: message.member!.teamName
         }
       }
     }

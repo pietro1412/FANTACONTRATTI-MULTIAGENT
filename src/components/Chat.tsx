@@ -41,7 +41,7 @@ export function Chat({ sessionId, currentMemberId, isAdmin }: ChatProps) {
           const existingIds = new Set(prev.map(m => m.id))
           const newMsgs = data.messages.filter(m => !existingIds.has(m.id))
           if (newMsgs.length > 0) {
-            lastMessageTime.current = newMsgs[newMsgs.length - 1].createdAt
+            lastMessageTime.current = newMsgs[newMsgs.length - 1]!.createdAt
             if (isCollapsed) {
               setUnreadCount(c => c + newMsgs.length)
             }
