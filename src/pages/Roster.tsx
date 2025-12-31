@@ -72,18 +72,159 @@ function getRoleStyle(position: string) {
   }
 }
 
-// Componente logo squadra
+// Componente logo squadra con sfondo bianco
 function TeamLogo({ team, size = 'md' }: { team: string, size?: 'sm' | 'md' | 'lg' }) {
   const sizeClass = size === 'sm' ? 'w-6 h-6' : size === 'lg' ? 'w-12 h-12' : 'w-8 h-8'
+  const containerClass = size === 'sm' ? 'w-7 h-7' : size === 'lg' ? 'w-14 h-14' : 'w-10 h-10'
   return (
-    <img
-      src={getTeamLogo(team)}
-      alt={team}
-      className={`${sizeClass} object-contain`}
-      onError={(e) => {
-        (e.target as HTMLImageElement).style.display = 'none'
-      }}
-    />
+    <div className={`${containerClass} flex items-center justify-center bg-white rounded-lg p-1`}>
+      <img
+        src={getTeamLogo(team)}
+        alt={team}
+        className={`${sizeClass} object-contain`}
+        onError={(e) => {
+          (e.target as HTMLImageElement).style.display = 'none'
+        }}
+      />
+    </div>
+  )
+}
+
+// Colori durata contratto
+function getDurationStyle(duration: number) {
+  switch (duration) {
+    case 1: return { bg: 'bg-red-500/20', border: 'border-red-500/40', text: 'text-red-400', label: 'text-red-300' }
+    case 2: return { bg: 'bg-yellow-500/20', border: 'border-yellow-500/40', text: 'text-yellow-400', label: 'text-yellow-300' }
+    case 3: return { bg: 'bg-green-500/20', border: 'border-green-500/40', text: 'text-green-400', label: 'text-green-300' }
+    case 4: return { bg: 'bg-blue-500/20', border: 'border-blue-500/40', text: 'text-blue-400', label: 'text-blue-300' }
+    default: return { bg: 'bg-gray-500/20', border: 'border-gray-500/40', text: 'text-gray-400', label: 'text-gray-300' }
+  }
+}
+
+// Contatore squadre (cliccabile)
+function TeamCounters({ players, onTeamClick }: { players: RosterEntry[], onTeamClick: (team: string) => void }) {
+  const teamCounts: Record<string, number> = {}
+  for (const entry of players) {
+    teamCounts[entry.player.team] = (teamCounts[entry.player.team] || 0) + 1
+  }
+
+  const sortedTeams = Object.entries(teamCounts)
+    .filter(([, count]) => count > 0) // Solo squadre con giocatori
+    .sort((a, b) => b[1] - a[1]) // Ordinamento decrescente per numero
+
+  if (sortedTeams.length === 0) return null
+
+  return (
+    <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4 mb-6">
+      <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Giocatori per Squadra</h3>
+      <div className="flex flex-wrap gap-2">
+        {sortedTeams.map(([team, count]) => (
+          <button
+            key={team}
+            onClick={() => onTeamClick(team)}
+            className="flex items-center gap-1.5 bg-surface-300 rounded-lg px-2 py-1 hover:bg-surface-50/20 hover:scale-105 transition-all cursor-pointer"
+          >
+            <div className="w-5 h-5 bg-white rounded flex items-center justify-center p-0.5">
+              <img src={getTeamLogo(team)} alt={team} className="w-4 h-4 object-contain" />
+            </div>
+            <span className="text-xs text-gray-400">{team}</span>
+            <span className="text-xs font-bold text-white">{count}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Modale giocatori per squadra
+function TeamPlayersModal({
+  team,
+  players,
+  onClose
+}: {
+  team: string
+  players: RosterEntry[]
+  onClose: () => void
+}) {
+  const teamPlayers = players.filter(p => p.player.team === team)
+    .sort((a, b) => {
+      const roleOrder = { P: 0, D: 1, C: 2, A: 3 }
+      const roleA = roleOrder[a.player.position as keyof typeof roleOrder] ?? 4
+      const roleB = roleOrder[b.player.position as keyof typeof roleOrder] ?? 4
+      if (roleA !== roleB) return roleA - roleB
+      return a.player.name.localeCompare(b.player.name)
+    })
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div
+        className="bg-surface-200 rounded-xl border border-surface-50/30 max-w-2xl w-full max-h-[80vh] overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-surface-50/20">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-white rounded-lg p-1 flex items-center justify-center">
+              <img src={getTeamLogo(team)} alt={team} className="w-10 h-10 object-contain" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">{team}</h2>
+              <p className="text-sm text-gray-400">{teamPlayers.length} giocatori</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-300 hover:bg-surface-50/30 text-gray-400 hover:text-white transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Players List */}
+        <div className="p-4 overflow-y-auto max-h-[60vh] space-y-2">
+          {teamPlayers.map(entry => {
+            const roleStyle = getRoleStyle(entry.player.position)
+            const durStyle = entry.contract ? getDurationStyle(entry.contract.duration) : null
+
+            return (
+              <div key={entry.id} className="flex items-center gap-3 p-3 bg-surface-300 rounded-lg">
+                {/* Role Badge */}
+                <div className={`w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-lg ${roleStyle.bg} ${roleStyle.border} border`}>
+                  <span className={`text-sm font-bold ${roleStyle.text}`}>{roleStyle.label}</span>
+                </div>
+
+                {/* Player Name */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-medium truncate">{entry.player.name}</p>
+                </div>
+
+                {/* Contract Info */}
+                {entry.contract && durStyle ? (
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="bg-accent-500/20 border border-accent-500/40 rounded-lg px-2 py-1 text-center">
+                      <p className="text-[9px] text-accent-300 uppercase">Ing.</p>
+                      <p className="text-accent-400 font-bold">{entry.contract.salary}M</p>
+                    </div>
+                    <div className={`${durStyle.bg} border ${durStyle.border} rounded-lg px-2 py-1 text-center`}>
+                      <p className={`text-[9px] ${durStyle.label} uppercase`}>Dur.</p>
+                      <p className={`${durStyle.text} font-bold`}>{entry.contract.duration}s</p>
+                    </div>
+                    {entry.contract.rescissionClause && (
+                      <div className="bg-warning-500/20 border border-warning-500/40 rounded-lg px-2 py-1 text-center">
+                        <p className="text-[9px] text-warning-300 uppercase">Rub.</p>
+                        <p className="text-warning-400 font-bold">{entry.contract.rescissionClause}M</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-gray-500 text-sm">No contratto</span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -93,8 +234,8 @@ function PlayerCard({ entry }: { entry: RosterEntry }) {
 
   return (
     <div className="flex items-center gap-3 p-3 bg-surface-200 rounded-lg border border-surface-50/20 hover:border-surface-50/40 transition-colors">
-      {/* Team Logo */}
-      <div className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-lg p-1 flex-shrink-0">
+      {/* Team Logo con sfondo bianco */}
+      <div className="flex-shrink-0">
         <TeamLogo team={entry.player.team} size="md" />
       </div>
 
@@ -109,26 +250,38 @@ function PlayerCard({ entry }: { entry: RosterEntry }) {
         <p className="text-gray-500 text-xs">{entry.player.team}</p>
       </div>
 
-      {/* Contract & Price Info */}
-      <div className="text-right flex-shrink-0">
+      {/* Contract & Price Info - PROMINENT */}
+      <div className="flex items-center gap-2 flex-shrink-0">
         {entry.contract ? (
-          <div className="space-y-0.5">
-            <div className="flex items-center justify-end gap-2">
-              <span className="text-accent-400 font-semibold text-sm">{entry.contract.salary}M</span>
-              <span className="text-gray-600">|</span>
-              <span className="text-gray-400 text-xs">{entry.contract.duration} sem</span>
+          <>
+            {/* Ingaggio */}
+            <div className="bg-accent-500/20 border border-accent-500/40 rounded-lg px-3 py-1.5 text-center min-w-[65px]">
+              <p className="text-[10px] text-accent-300 uppercase font-medium">Ingaggio</p>
+              <p className="text-accent-400 font-bold text-lg">{entry.contract.salary}M</p>
             </div>
+            {/* Durata - colorata in base ai semestri */}
+            {(() => {
+              const durStyle = getDurationStyle(entry.contract.duration)
+              return (
+                <div className={`${durStyle.bg} border ${durStyle.border} rounded-lg px-3 py-1.5 text-center min-w-[65px]`}>
+                  <p className={`text-[10px] ${durStyle.label} uppercase font-medium`}>Durata</p>
+                  <p className={`${durStyle.text} font-bold text-lg`}>{entry.contract.duration} sem</p>
+                </div>
+              )
+            })()}
+            {/* Clausola Rubata */}
             {entry.contract.rescissionClause && (
-              <div className="flex items-center justify-end gap-1">
-                <span className="text-[10px] text-gray-500 uppercase">Rubata:</span>
-                <span className="text-warning-400 font-medium text-xs">{entry.contract.rescissionClause}M</span>
+              <div className="bg-warning-500/20 border border-warning-500/40 rounded-lg px-3 py-1.5 text-center min-w-[65px]">
+                <p className="text-[10px] text-warning-300 uppercase font-medium">Rubata</p>
+                <p className="text-warning-400 font-bold text-lg">{entry.contract.rescissionClause}M</p>
               </div>
             )}
-          </div>
+          </>
         ) : (
-          <div>
-            <p className="text-accent-400 font-semibold">{entry.acquisitionPrice}M</p>
-            <p className="text-gray-600 text-xs italic">No contratto</p>
+          <div className="bg-danger-500/20 border border-danger-500/40 rounded-lg px-3 py-1.5 text-center">
+            <p className="text-[10px] text-danger-300 uppercase">Costo</p>
+            <p className="text-danger-400 font-bold">{entry.acquisitionPrice}M</p>
+            <p className="text-danger-500 text-[9px]">No contratto!</p>
           </div>
         )}
       </div>
@@ -145,6 +298,9 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRole, setFilterRole] = useState('')
   const [filterTeam, setFilterTeam] = useState('')
+
+  // Modale giocatori per squadra
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null)
 
   useEffect(() => {
     loadData()
@@ -264,6 +420,9 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
       </div>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
+        {/* Contatori per squadra */}
+        <TeamCounters players={allPlayers} onTeamClick={setSelectedTeam} />
+
         {/* Summary Stats - Contatori compatti */}
         <div className="flex items-center gap-6 mb-6">
           <div className="flex items-center gap-2">
@@ -384,6 +543,15 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
           </Button>
         </div>
       </main>
+
+      {/* Modale giocatori per squadra */}
+      {selectedTeam && (
+        <TeamPlayersModal
+          team={selectedTeam}
+          players={allPlayers}
+          onClose={() => setSelectedTeam(null)}
+        />
+      )}
     </div>
   )
 }

@@ -8,10 +8,13 @@ const prisma = new PrismaClient()
 
 async function fillRosters() {
   try {
-    // Find the league
-    const league = await prisma.league.findFirst({
-      where: { name: 'Lega Fantacontratti 2025' }
+    // Find the first active league with an active market session
+    const session = await prisma.marketSession.findFirst({
+      where: { status: 'ACTIVE', type: 'PRIMO_MERCATO' },
+      include: { league: true }
     })
+
+    const league = session?.league
 
     if (!league) {
       console.error('League not found!')
@@ -67,12 +70,12 @@ async function fillRosters() {
       console.log(`Available ${pos}: ${players.length} players`)
     }
 
-    // Target slots for each position (leave 1 attacker short)
+    // Target slots for each position (COMPLETE ALL)
     const targetSlots: Record<Position, number> = {
       P: league.goalkeeperSlots,
       D: league.defenderSlots,
       C: league.midfielderSlots,
-      A: league.forwardSlots - 1 // Leave 1 attacker slot empty
+      A: league.forwardSlots // Complete all slots
     }
 
     console.log(`\nTarget slots: P=${targetSlots.P}, D=${targetSlots.D}, C=${targetSlots.C}, A=${targetSlots.A}`)
@@ -164,27 +167,24 @@ async function fillRosters() {
       console.log(`${member.user.username}: P=${counts.P}/${league.goalkeeperSlots}, D=${counts.D}/${league.defenderSlots}, C=${counts.C}/${league.midfielderSlots}, A=${counts.A}/${league.forwardSlots} | Budget: ${member.currentBudget}`)
     }
 
-    // Update the market session to be on Attackers
-    const session = await prisma.marketSession.findFirst({
-      where: { leagueId: league.id, status: 'ACTIVE' }
-    })
-
+    // Close the market session (all rosters complete)
     if (session) {
       await prisma.marketSession.update({
         where: { id: session.id },
         data: {
-          currentRole: 'A',
-          currentTurnIndex: 0,
+          status: 'COMPLETED',
+          currentPhase: 'CONTRATTI', // Next phase after ASTA_LIBERA
+          endsAt: new Date(),
           pendingNominationPlayerId: null,
           pendingNominatorId: null,
           readyMembers: []
         }
       })
-      console.log('\n✅ Market session updated to Attackers (A) phase, turn index reset to 0')
+      console.log('\n✅ Market session COMPLETED - Passing to CONTRATTI phase')
     }
 
-    console.log('\n✅ Rosters filled! Each manager is missing 1 attacker.')
-    console.log('Go to the auction room and test the final attacker auctions!')
+    console.log('\n✅ ALL ROSTERS COMPLETE!')
+    console.log('The first market is finished. Managers can now set their contracts.')
 
   } catch (error) {
     console.error('Error:', error)

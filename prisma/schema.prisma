@@ -406,6 +406,11 @@ model Auction {
 
   createdAt       DateTime @default(now())
 
+  // Per gestione ricorsi - chi ha preso visione della decisione
+  appealDecisionAcks  Json?     // Array di memberId che hanno confermato la decisione
+  // Per ripresa asta dopo ricorso ACCEPTED - chi è pronto
+  resumeReadyMembers  Json?     // Array di memberId pronti a riprendere
+
   // Relazioni
   bids            AuctionBid[]
   acknowledgments AuctionAcknowledgment[]
@@ -423,6 +428,9 @@ enum AuctionStatus {
   COMPLETED
   CANCELLED
   NO_BIDS
+  APPEAL_REVIEW           // Asta conclusa ma con ricorso PENDING da gestire
+  AWAITING_APPEAL_ACK     // Ricorso risolto, in attesa che tutti prendano visione
+  AWAITING_RESUME         // Ricorso ACCEPTED, in attesa ready check per riprendere
 }
 
 model AuctionBid {

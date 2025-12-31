@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { auctionApi, playerApi, firstMarketApi, adminApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -107,6 +107,29 @@ interface ReadyStatus {
   readyCount: number
   userIsReady: boolean
   userIsNominator: boolean
+}
+
+interface AppealStatus {
+  auctionId: string
+  auctionStatus: string
+  hasActiveAppeal: boolean
+  appeal: {
+    id: string
+    status: string
+    reason: string
+    adminNotes: string | null
+    submittedBy: { username: string }
+  } | null
+  player: Player | null
+  winner: { username: string } | null
+  finalPrice: number | null
+  appealDecisionAcks: string[]
+  resumeReadyMembers: string[]
+  allMembers: { id: string; username: string }[]
+  userHasAcked: boolean
+  userIsReady: boolean
+  allAcked: boolean
+  allReady: boolean
 }
 
 interface RosterSlot {
@@ -284,6 +307,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   const [markingReady, setMarkingReady] = useState(false)
 
   const [pendingAck, setPendingAck] = useState<PendingAcknowledgment | null>(null)
+  const pendingAckLockedRef = useRef<string | null>(null) // Holds auctionId when locally created
   const [prophecyContent, setProphecyContent] = useState('')
   const [ackSubmitting, setAckSubmitting] = useState(false)
   const [isAppealMode, setIsAppealMode] = useState(false)
@@ -292,6 +316,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   const [myRosterSlots, setMyRosterSlots] = useState<MyRosterSlots | null>(null)
   const [managersStatus, setManagersStatus] = useState<ManagersStatusData | null>(null)
   const [selectedManager, setSelectedManager] = useState<ManagerData | null>(null)
+
+  const [appealStatus, setAppealStatus] = useState<AppealStatus | null>(null)
 
   const isAdmin = membership?.role === 'ADMIN'
   const isPrimoMercato = sessionInfo?.type === 'PRIMO_MERCATO'
@@ -315,10 +341,17 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     return () => document.removeEventListener('click', handleClickOutside)
   }, [teamDropdownOpen])
 
-  const loadCurrentAuction = useCallback(async () => {
+  const loadCurrentAuction = useCallback(async (): Promise<boolean> => {
     const result = await auctionApi.getCurrentAuction(sessionId)
+    let auctionJustCompleted = false
     if (result.success && result.data) {
-      const data = result.data as { auction: Auction | null; userMembership: Membership; session: SessionInfo; marketProgress: MarketProgress | null }
+      const data = result.data as {
+        auction: Auction | null;
+        userMembership: Membership;
+        session: SessionInfo;
+        marketProgress: MarketProgress | null;
+        justCompleted?: { playerId: string; playerName: string; winnerId: string; winnerName: string; amount: number } | null
+      }
       if (data.auction) {
         const newMinBid = data.auction.currentPrice + 1
         setBidAmount(prev => (parseInt(prev) || 0) <= data.auction!.currentPrice ? String(newMinBid) : prev)
@@ -333,8 +366,13 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       if (data.session?.type === 'PRIMO_MERCATO' && data.marketProgress?.currentRole) {
         setSelectedPosition(data.marketProgress.currentRole)
       }
+      // If auction just completed, signal to immediately load pending acknowledgment
+      if (data.justCompleted) {
+        auctionJustCompleted = true
+      }
     }
     setIsLoading(false)
+    return auctionJustCompleted
   }, [sessionId])
 
   const loadFirstMarketStatus = useCallback(async () => {
@@ -351,7 +389,20 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   const loadPendingAcknowledgment = useCallback(async () => {
     const result = await auctionApi.getPendingAcknowledgment(sessionId)
     if (result.success && result.data) {
-      setPendingAck((result.data as { pendingAuction: PendingAcknowledgment | null }).pendingAuction)
+      const serverPendingAck = (result.data as { pendingAuction: PendingAcknowledgment | null }).pendingAuction
+
+      // If we have a locked local pendingAck, only update if server has same auction or valid data
+      if (pendingAckLockedRef.current) {
+        if (serverPendingAck && serverPendingAck.id === pendingAckLockedRef.current) {
+          // Server confirmed our local auction - unlock and update with full data
+          pendingAckLockedRef.current = null
+          setPendingAck(serverPendingAck)
+        }
+        // If server returns null or different auction, keep our locked state (don't update)
+      } else {
+        // No lock - update normally
+        setPendingAck(serverPendingAck)
+      }
     }
   }, [sessionId])
 
@@ -369,6 +420,20 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     const result = await auctionApi.getManagersStatus(sessionId)
     if (result.success && result.data) setManagersStatus(result.data as ManagersStatusData)
   }, [sessionId])
+
+  const loadAppealStatus = useCallback(async () => {
+    // Carica lo stato del ricorso se c'è un'asta pendente o con appeal attivo
+    if (pendingAck?.id) {
+      const result = await auctionApi.getAppealStatus(pendingAck.id)
+      if (result.success && result.data) {
+        setAppealStatus(result.data as AppealStatus)
+      } else {
+        setAppealStatus(null)
+      }
+    } else {
+      setAppealStatus(null)
+    }
+  }, [pendingAck?.id])
 
   const loadPlayers = useCallback(async () => {
     const filters: { available: boolean; leagueId: string; position?: string; search?: string; team?: string } = { available: true, leagueId }
@@ -402,14 +467,37 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000))
       setTimeLeft(remaining)
 
-      // When timer hits 0, immediately refresh to show acknowledgment modal
+      // When timer hits 0, IMMEDIATELY show the acknowledgment modal with current data
       if (remaining === 0 && !hasTriggeredZero) {
         hasTriggeredZero = true
-        // Force immediate data refresh
-        setTimeout(() => {
-          loadCurrentAuction()
-          loadPendingAcknowledgment()
-        }, 500) // Small delay to allow backend to process
+
+        // Create immediate pendingAck from current auction data - NO API WAIT!
+        const currentAuction = auction // capture current state
+        if (currentAuction) {
+          const winningBid = currentAuction.bids[0]
+          const immediatePendingAck: PendingAcknowledgment = {
+            id: currentAuction.id,
+            player: currentAuction.player,
+            winner: winningBid ? {
+              id: winningBid.bidder.user.username, // temporary, will be updated
+              username: winningBid.bidder.user.username,
+            } : null,
+            finalPrice: currentAuction.currentPrice,
+            status: winningBid ? 'COMPLETED' : 'NO_BIDS',
+            userAcknowledged: false,
+            acknowledgedMembers: [],
+            pendingMembers: [],
+            totalMembers: managersStatus?.managers.length || 1,
+            totalAcknowledged: 0,
+          }
+          // Lock this auction so polling doesn't overwrite it
+          pendingAckLockedRef.current = currentAuction.id
+          setPendingAck(immediatePendingAck)
+          setAuction(null) // Clear auction immediately
+        }
+
+        // Sync with backend in background (just to close the auction server-side)
+        loadCurrentAuction()
       }
     }
     updateTimer()
@@ -435,6 +523,13 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     }, 2000)
     return () => clearInterval(interval)
   }, [loadCurrentAuction, loadFirstMarketStatus, loadPendingAcknowledgment, loadReadyStatus, loadMyRosterSlots, loadManagersStatus, loadTeams])
+
+  // Carica stato ricorso quando cambia pendingAck
+  useEffect(() => {
+    loadAppealStatus()
+    const interval = setInterval(loadAppealStatus, 2000)
+    return () => clearInterval(interval)
+  }, [loadAppealStatus])
 
   useEffect(() => {
     // Wait until sessionInfo is loaded to know the session type
@@ -596,11 +691,77 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     }
   }
 
+  async function handleAcknowledgeAppealDecision() {
+    if (!appealStatus?.auctionId) return
+    setAckSubmitting(true)
+    const result = await auctionApi.acknowledgeAppealDecision(appealStatus.auctionId)
+    setAckSubmitting(false)
+    if (result.success) {
+      loadAppealStatus()
+      loadPendingAcknowledgment()
+    } else {
+      setError(result.message || 'Errore nella conferma')
+    }
+  }
+
+  async function handleReadyToResume() {
+    if (!appealStatus?.auctionId) return
+    setMarkingReady(true)
+    const result = await auctionApi.markReadyToResume(appealStatus.auctionId)
+    setMarkingReady(false)
+    if (result.success) {
+      loadAppealStatus()
+      loadCurrentAuction()
+    } else {
+      setError(result.message || 'Errore')
+    }
+  }
+
+  async function handleForceAllAppealAcks() {
+    if (!appealStatus?.auctionId) return
+    const result = await auctionApi.forceAllAppealAcks(appealStatus.auctionId)
+    if (result.success) {
+      setSuccessMessage('Conferme forzate!')
+      loadAppealStatus()
+    } else {
+      setError(result.message || 'Errore')
+    }
+  }
+
+  async function handleForceAllReadyResume() {
+    if (!appealStatus?.auctionId) return
+    const result = await auctionApi.forceAllReadyResume(appealStatus.auctionId)
+    if (result.success) {
+      setSuccessMessage('Pronti forzati!')
+      loadAppealStatus()
+      loadCurrentAuction()
+    } else {
+      setError(result.message || 'Errore')
+    }
+  }
+
   async function handleResetFirstMarket() {
     if (!confirm('Sei sicuro di voler resettare il Primo Mercato? Tutti i dati verranno cancellati!')) return
     const result = await adminApi.resetFirstMarket(leagueId)
     if (result.success) {
       setSuccessMessage('Primo Mercato resettato!')
+      loadCurrentAuction()
+      loadFirstMarketStatus()
+      loadMyRosterSlots()
+      loadManagersStatus()
+      loadPlayers()
+    } else {
+      setError(result.message || 'Errore')
+    }
+  }
+
+  async function handleCompleteAllSlots() {
+    if (!sessionId) return
+    if (!confirm('Sei sicuro di voler completare l\'asta riempiendo tutti gli slot di tutti i manager?')) return
+    const result = await auctionApi.completeAllSlots(sessionId)
+    if (result.success) {
+      const data = result.data as { totalPlayersAdded: number; totalContractsCreated: number; memberResults: string[] }
+      setSuccessMessage(`Asta completata! ${data.totalPlayersAdded} giocatori, ${data.totalContractsCreated} contratti.`)
       loadCurrentAuction()
       loadFirstMarketStatus()
       loadMyRosterSlots()
@@ -925,6 +1086,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                     {auction && (
                       <Button size="sm" variant="outline" onClick={handleBotBid} className="w-full text-xs border-primary-500/50 text-primary-400 hover:bg-primary-500/10">Bot Offerta</Button>
                     )}
+                    <Button size="sm" variant="outline" onClick={handleCompleteAllSlots} className="w-full text-xs border-secondary-500/50 text-secondary-400 hover:bg-secondary-500/10">
+                      ✅ Completa Tutti Slot
+                    </Button>
                     <Button size="sm" variant="danger" onClick={handleResetFirstMarket} className="w-full text-xs">Reset Asta</Button>
                   </div>
                 </div>
@@ -1049,7 +1213,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       </div>
                     )}
                   </div>
-                ) : !readyStatus?.hasPendingNomination && (
+                ) : !readyStatus?.hasPendingNomination && !pendingAck && (
                   <div>
                     {isMyTurn ? (
                       <div>
@@ -1143,6 +1307,15 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                         {currentTurnManager && <p className="text-sm text-gray-500 mt-1">Turno di <strong className="text-primary-400">{currentTurnManager.username}</strong></p>}
                       </div>
                     )}
+                  </div>
+                )}
+                {/* Waiting for confirmation state - show when auction just ended */}
+                {!auction && pendingAck && !readyStatus?.hasPendingNomination && (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary-500/20 flex items-center justify-center">
+                      <span className="text-3xl">⏳</span>
+                    </div>
+                    <p className="text-gray-400">Conferma transazione in corso...</p>
                   </div>
                 )}
               </div>
@@ -1297,8 +1470,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
         </div>
       )}
 
-      {/* Acknowledgment Modal */}
-      {pendingAck && !pendingAck.userAcknowledged && (
+      {/* Acknowledgment Modal - Non mostrare se c'è un ricorso attivo */}
+      {pendingAck && !pendingAck.userAcknowledged && appealStatus?.auctionStatus !== 'APPEAL_REVIEW' && appealStatus?.auctionStatus !== 'AWAITING_APPEAL_ACK' && appealStatus?.auctionStatus !== 'AWAITING_RESUME' && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20">
             <div className="p-6">
@@ -1399,22 +1572,40 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
 
               {/* Admin: Simula ricorso */}
               {isAdmin && (
-                <Button
-                  onClick={handleSimulateAppeal}
-                  size="sm"
-                  variant="outline"
-                  className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
-                >
-                  [TEST] Simula ricorso di un manager
-                </Button>
+                <>
+                  {error && (
+                    <div className="mt-3 p-2 bg-danger-500/20 border border-danger-500/50 rounded text-danger-400 text-xs">
+                      {error}
+                      {error.includes('PENDING') && (
+                        <Button
+                          onClick={() => onNavigate('admin', { leagueId, tab: 'appeals' })}
+                          size="sm"
+                          className="w-full mt-2 bg-danger-500 hover:bg-danger-600 text-white text-xs"
+                        >
+                          Gestisci Ricorsi
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  <Button
+                    onClick={handleSimulateAppeal}
+                    size="sm"
+                    variant="outline"
+                    className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
+                  >
+                    [TEST] Simula ricorso di un manager
+                  </Button>
+                </>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Waiting Modal */}
-      {pendingAck && pendingAck.userAcknowledged && (
+      {/* Waiting Modal - Solo per stati normali (COMPLETED, NO_BIDS), non per stati di ricorso */}
+      {pendingAck && pendingAck.userAcknowledged &&
+       !['APPEAL_REVIEW', 'AWAITING_APPEAL_ACK', 'AWAITING_RESUME'].includes(pendingAck.status) &&
+       !['APPEAL_REVIEW', 'AWAITING_APPEAL_ACK', 'AWAITING_RESUME'].includes(appealStatus?.auctionStatus || '') && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-surface-200 rounded-xl max-w-sm w-full p-6 text-center border border-surface-50/20">
             <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
@@ -1422,6 +1613,262 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             <p className="text-sm text-gray-400 mb-3">{pendingAck.totalAcknowledged}/{pendingAck.totalMembers} confermati</p>
             <p className="text-xs text-gray-500 mb-4">Mancano: {pendingAck.pendingMembers.map(m => m.username).join(', ')}</p>
             {isAdmin && <Button size="sm" variant="outline" onClick={handleForceAcknowledgeAll} className="border-accent-500/50 text-accent-400">[TEST] Forza Conferme</Button>}
+          </div>
+        </div>
+      )}
+
+      {/* APPEAL_REVIEW Modal - Asta bloccata in attesa decisione admin */}
+      {(appealStatus?.auctionStatus === 'APPEAL_REVIEW' || pendingAck?.status === 'APPEAL_REVIEW') && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-danger-500/50">
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 rounded-full bg-danger-500/20 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">⚠️</span>
+                </div>
+                <h2 className="text-2xl font-bold text-white">Ricorso in Corso</h2>
+                <p className="text-gray-400 mt-1">L'asta è sospesa in attesa della decisione dell'admin</p>
+              </div>
+
+              {/* Player info */}
+              {(appealStatus?.player || pendingAck?.player) && (
+                <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
+                  <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}>
+                    {(appealStatus?.player || pendingAck?.player)?.position}
+                  </span>
+                  <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
+                    <img
+                      src={getTeamLogo((appealStatus?.player || pendingAck?.player)?.team || '')}
+                      alt={(appealStatus?.player || pendingAck?.player)?.team}
+                      className="w-7 h-7 object-contain"
+                    />
+                  </div>
+                  <div>
+                    <p className="font-bold text-white">{(appealStatus?.player || pendingAck?.player)?.name}</p>
+                    <p className="text-sm text-gray-400">{(appealStatus?.player || pendingAck?.player)?.team}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Appeal details */}
+              {appealStatus?.appeal && (
+                <div className="bg-danger-500/10 border border-danger-500/30 rounded-lg p-4 mb-4">
+                  <p className="text-xs text-danger-400 uppercase font-bold mb-2">Motivo del ricorso</p>
+                  <p className="text-gray-300">{appealStatus.appeal.reason}</p>
+                  <p className="text-sm text-gray-500 mt-2">Presentato da: <span className="text-white">{appealStatus.appeal.submittedBy?.username}</span></p>
+                </div>
+              )}
+
+              {/* Transaction info */}
+              {(appealStatus?.winner || pendingAck?.winner) && (
+                <div className="bg-primary-500/10 rounded-lg p-4 mb-4 text-center border border-primary-500/30">
+                  <p className="text-sm text-primary-400">Transazione contestata</p>
+                  <p className="text-lg font-bold text-white">{(appealStatus?.winner || pendingAck?.winner)?.username}</p>
+                  <p className="text-2xl font-bold text-accent-400 mt-1">{appealStatus?.finalPrice || pendingAck?.finalPrice}</p>
+                </div>
+              )}
+
+              <div className="text-center py-4">
+                <div className="w-10 h-10 border-4 border-danger-500/30 border-t-danger-500 rounded-full animate-spin mx-auto mb-3"></div>
+                <p className="text-gray-400">In attesa della decisione dell'admin...</p>
+              </div>
+
+              {/* Admin button */}
+              {isAdmin && (
+                <Button
+                  onClick={() => onNavigate('admin', { leagueId, tab: 'appeals' })}
+                  className="w-full bg-danger-500 hover:bg-danger-600 text-white font-bold py-3"
+                >
+                  Gestisci Ricorso
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AWAITING_APPEAL_ACK Modal - Tutti devono confermare di aver visto la decisione */}
+      {(appealStatus?.auctionStatus === 'AWAITING_APPEAL_ACK' || pendingAck?.status === 'AWAITING_APPEAL_ACK') && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20">
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${appealStatus?.appeal?.status === 'ACCEPTED' ? 'bg-warning-500/20' : 'bg-secondary-500/20'}`}>
+                  <span className="text-3xl">{appealStatus?.appeal?.status === 'ACCEPTED' ? '🔄' : '✅'}</span>
+                </div>
+                <h2 className="text-2xl font-bold text-white">
+                  Ricorso {appealStatus?.appeal?.status === 'ACCEPTED' ? 'Accolto' : 'Respinto'}
+                </h2>
+                <p className="text-gray-400 mt-1">
+                  {appealStatus?.appeal?.status === 'ACCEPTED'
+                    ? 'La transazione è stata annullata, l\'asta riprenderà'
+                    : 'La transazione è confermata'}
+                </p>
+              </div>
+
+              {/* Player info */}
+              {(appealStatus?.player || pendingAck?.player) && (
+                <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
+                  <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}>
+                    {(appealStatus?.player || pendingAck?.player)?.position}
+                  </span>
+                  <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
+                    <img
+                      src={getTeamLogo((appealStatus?.player || pendingAck?.player)?.team || '')}
+                      alt={(appealStatus?.player || pendingAck?.player)?.team}
+                      className="w-7 h-7 object-contain"
+                    />
+                  </div>
+                  <div>
+                    <p className="font-bold text-white">{(appealStatus?.player || pendingAck?.player)?.name}</p>
+                    <p className="text-sm text-gray-400">{(appealStatus?.player || pendingAck?.player)?.team}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Admin notes */}
+              {appealStatus?.appeal?.adminNotes && (
+                <div className="bg-surface-300 border border-surface-50/30 rounded-lg p-4 mb-4">
+                  <p className="text-xs text-gray-400 uppercase font-bold mb-2">Note dell'admin</p>
+                  <p className="text-gray-300">{appealStatus.appeal.adminNotes}</p>
+                </div>
+              )}
+
+              {/* Ack progress */}
+              <div className="mb-4">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-gray-400">Conferme presa visione</span>
+                  <span className="text-white">{appealStatus?.appealDecisionAcks?.length || 0}/{appealStatus?.allMembers?.length || pendingAck?.totalMembers || 0}</span>
+                </div>
+                <div className="w-full bg-surface-400 rounded-full h-2">
+                  <div
+                    className="h-2 rounded-full bg-secondary-500 transition-all"
+                    style={{ width: `${((appealStatus?.appealDecisionAcks?.length || 0) / (appealStatus?.allMembers?.length || pendingAck?.totalMembers || 1)) * 100}%` }}
+                  ></div>
+                </div>
+                {appealStatus?.allMembers && appealStatus.allMembers.filter(m => !appealStatus.appealDecisionAcks?.includes(m.id)).length > 0 && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Mancano: {appealStatus.allMembers.filter(m => !appealStatus.appealDecisionAcks?.includes(m.id)).map(m => m.username).join(', ')}
+                  </p>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              {!appealStatus?.userHasAcked ? (
+                <Button
+                  onClick={handleAcknowledgeAppealDecision}
+                  disabled={ackSubmitting}
+                  className="w-full bg-secondary-500 hover:bg-secondary-600 text-white font-bold py-3"
+                >
+                  {ackSubmitting ? 'Invio...' : 'Ho preso visione'}
+                </Button>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-secondary-400 font-medium mb-2">✓ Hai confermato - In attesa degli altri</p>
+                </div>
+              )}
+
+              {/* Admin test button - sempre visibile per admin */}
+              {isAdmin && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleForceAllAppealAcks}
+                  className="w-full mt-3 border-accent-500/50 text-accent-400"
+                >
+                  [TEST] Forza Tutte Conferme Ricorso
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AWAITING_RESUME Modal - Ready check prima di riprendere l'asta */}
+      {(appealStatus?.auctionStatus === 'AWAITING_RESUME' || pendingAck?.status === 'AWAITING_RESUME') && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border-2 border-accent-500/50 animate-pulse-slow">
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 rounded-full bg-accent-500/20 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">🔔</span>
+                </div>
+                <h2 className="text-2xl font-bold text-white">Pronto a Riprendere?</h2>
+                <p className="text-gray-400 mt-1">L'asta sta per riprendere, conferma la tua presenza</p>
+              </div>
+
+              {/* Player info */}
+              {(appealStatus?.player || pendingAck?.player) && (
+                <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
+                  <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}>
+                    {(appealStatus?.player || pendingAck?.player)?.position}
+                  </span>
+                  <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
+                    <img
+                      src={getTeamLogo((appealStatus?.player || pendingAck?.player)?.team || '')}
+                      alt={(appealStatus?.player || pendingAck?.player)?.team}
+                      className="w-7 h-7 object-contain"
+                    />
+                  </div>
+                  <div>
+                    <p className="font-bold text-white">{(appealStatus?.player || pendingAck?.player)?.name}</p>
+                    <p className="text-sm text-gray-400">{(appealStatus?.player || pendingAck?.player)?.team}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-warning-500/10 border border-warning-500/30 rounded-lg p-4 mb-4 text-center">
+                <p className="text-warning-400 font-medium">
+                  Il ricorso è stato accolto. L'asta riprenderà dall'ultima offerta valida.
+                </p>
+              </div>
+
+              {/* Ready progress */}
+              <div className="mb-4">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-gray-400">Manager pronti</span>
+                  <span className="text-white">{appealStatus?.resumeReadyMembers?.length || 0}/{appealStatus?.allMembers?.length || pendingAck?.totalMembers || 0}</span>
+                </div>
+                <div className="w-full bg-surface-400 rounded-full h-2">
+                  <div
+                    className="h-2 rounded-full bg-accent-500 transition-all"
+                    style={{ width: `${((appealStatus?.resumeReadyMembers?.length || 0) / (appealStatus?.allMembers?.length || pendingAck?.totalMembers || 1)) * 100}%` }}
+                  ></div>
+                </div>
+                {appealStatus?.allMembers && appealStatus.allMembers.filter(m => !appealStatus.resumeReadyMembers?.includes(m.id)).length > 0 && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Mancano: {appealStatus.allMembers.filter(m => !appealStatus.resumeReadyMembers?.includes(m.id)).map(m => m.username).join(', ')}
+                  </p>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              {!appealStatus?.userIsReady ? (
+                <Button
+                  onClick={handleReadyToResume}
+                  disabled={markingReady}
+                  className="w-full btn-accent py-3 text-lg font-bold"
+                >
+                  {markingReady ? 'Attendi...' : 'SONO PRONTO'}
+                </Button>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-secondary-400 font-medium mb-2">✓ Pronto - In attesa degli altri</p>
+                </div>
+              )}
+
+              {/* Admin test button - sempre visibile per admin */}
+              {isAdmin && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleForceAllReadyResume}
+                  className="w-full mt-3 border-accent-500/50 text-accent-400"
+                >
+                  [TEST] Forza Tutti Pronti
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       )}

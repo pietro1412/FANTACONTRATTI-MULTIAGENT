@@ -142,7 +142,11 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'svincolati': navigate(`/leagues/${lid}/svincolati`); break
       case 'allPlayers': navigate(`/leagues/${lid}/players`); break
       case 'manager-dashboard': navigate(`/leagues/${lid}/manager`); break
-      case 'adminPanel': navigate(`/leagues/${lid}/admin`); break
+      case 'admin':
+      case 'adminPanel':
+        if (params?.tab) navigate(`/leagues/${lid}/admin?tab=${params.tab}`)
+        else navigate(`/leagues/${lid}/admin`)
+        break
       case 'movements': navigate(`/leagues/${lid}/movements`); break
       case 'superadmin':
         if (params?.tab) navigate(`/superadmin?tab=${params.tab}`)
@@ -246,10 +250,12 @@ function ManagerDashboardWrapper() {
 function AdminPanelWrapper() {
   const navigate = useNavigate()
   const { leagueId } = useParams<{ leagueId: string }>()
+  const [searchParams] = useSearchParams()
+  const initialTab = searchParams.get('tab') || undefined
   const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
-  return <AdminPanel leagueId={leagueId} onNavigate={onNavigate} />
+  return <AdminPanel leagueId={leagueId} initialTab={initialTab} onNavigate={onNavigate} />
 }
 
 function MovementsWrapper() {

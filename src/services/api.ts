@@ -316,6 +316,9 @@ export const auctionApi = {
   triggerBotTurn: (sessionId: string) =>
     request(`/api/auctions/sessions/${sessionId}/bot-turn`, { method: 'POST' }),
 
+  completeAllSlots: (sessionId: string) =>
+    request(`/api/auctions/sessions/${sessionId}/complete-all-slots`, { method: 'POST' }),
+
   // Appeals / Ricorsi
   submitAppeal: (auctionId: string, content: string) =>
     request(`/api/auctions/${auctionId}/appeal`, {
@@ -341,6 +344,30 @@ export const auctionApi = {
     request(`/api/leagues/${leagueId}/appeals/simulate`, {
       method: 'POST',
       body: JSON.stringify({ auctionId }),
+    }),
+
+  // Appeal decision flow
+  getAppealStatus: (auctionId: string) =>
+    request(`/api/auctions/${auctionId}/appeal-status`),
+
+  acknowledgeAppealDecision: (auctionId: string) =>
+    request(`/api/auctions/${auctionId}/acknowledge-appeal-decision`, {
+      method: 'POST',
+    }),
+
+  markReadyToResume: (auctionId: string) =>
+    request(`/api/auctions/${auctionId}/ready-to-resume`, {
+      method: 'POST',
+    }),
+
+  forceAllAppealAcks: (auctionId: string) =>
+    request(`/api/auctions/${auctionId}/force-all-appeal-acks`, {
+      method: 'POST',
+    }),
+
+  forceAllReadyResume: (auctionId: string) =>
+    request(`/api/auctions/${auctionId}/force-all-ready-resume`, {
+      method: 'POST',
     }),
 }
 

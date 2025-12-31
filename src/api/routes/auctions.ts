@@ -33,6 +33,12 @@ import {
   getAppeals,
   resolveAppeal,
   simulateAppeal,
+  acknowledgeAppealDecision,
+  markReadyToResume,
+  forceAllReadyToResume,
+  forceAllAppealDecisionAcks,
+  getAppealStatus,
+  completeAllRosterSlots,
 } from '../../services/auction.service'
 import { simulateFirstMarketBotBidding, completeBotTurn } from '../../services/bot.service'
 import { authMiddleware } from '../middleware/auth'
@@ -673,6 +679,24 @@ router.post('/auctions/sessions/:sessionId/bot-turn', authMiddleware, async (req
   }
 })
 
+// POST /api/auctions/sessions/:sessionId/complete-all-slots - Complete auction filling all roster slots (TEST)
+router.post('/auctions/sessions/:sessionId/complete-all-slots', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const sessionId = req.params.sessionId as string
+    const result = await completeAllRosterSlots(sessionId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Complete all slots error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
 // ==================== APPEALS / RICORSI ====================
 
 // POST /api/auctions/:auctionId/appeal - Submit an appeal for an auction
@@ -741,6 +765,96 @@ router.put('/appeals/:appealId/resolve', authMiddleware, async (req: Request, re
     res.json(result)
   } catch (error) {
     console.error('Resolve appeal error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/auctions/:auctionId/appeal-status - Get appeal status for an auction
+router.get('/auctions/:auctionId/appeal-status', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const auctionId = req.params.auctionId as string
+    const result = await getAppealStatus(auctionId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get appeal status error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/auctions/:auctionId/acknowledge-appeal-decision - Acknowledge appeal decision
+router.post('/auctions/:auctionId/acknowledge-appeal-decision', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const auctionId = req.params.auctionId as string
+    const result = await acknowledgeAppealDecision(auctionId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Acknowledge appeal decision error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/auctions/:auctionId/ready-to-resume - Mark ready to resume after appeal accepted
+router.post('/auctions/:auctionId/ready-to-resume', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const auctionId = req.params.auctionId as string
+    const result = await markReadyToResume(auctionId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Mark ready to resume error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/auctions/:auctionId/force-all-appeal-acks - Force all appeal decision acknowledgments (TEST/ADMIN)
+router.post('/auctions/:auctionId/force-all-appeal-acks', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const auctionId = req.params.auctionId as string
+    const result = await forceAllAppealDecisionAcks(auctionId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Force all appeal acks error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/auctions/:auctionId/force-all-ready-resume - Force all ready to resume (TEST/ADMIN)
+router.post('/auctions/:auctionId/force-all-ready-resume', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const auctionId = req.params.auctionId as string
+    const result = await forceAllReadyToResume(auctionId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Force all ready to resume error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

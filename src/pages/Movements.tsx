@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { movementApi, leagueApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
+import { getTeamLogo } from '../utils/teamLogos'
 
 interface MovementsProps {
   leagueId: string
@@ -46,6 +47,9 @@ interface Movement {
   newContract: ContractInfo | null
   prophecies: Prophecy[]
   createdAt: string
+  // Aggiunti per stagione/semestre
+  season?: number
+  semester?: number
 }
 
 const MOVEMENT_TYPE_LABELS: Record<string, string> = {
@@ -57,20 +61,36 @@ const MOVEMENT_TYPE_LABELS: Record<string, string> = {
   CONTRACT_RENEW: 'Rinnovo',
 }
 
-const MOVEMENT_TYPE_STYLES: Record<string, { bg: string; text: string; border: string }> = {
-  FIRST_MARKET: { bg: 'bg-primary-500/20', text: 'text-primary-400', border: 'border-primary-500/30' },
-  TRADE: { bg: 'bg-secondary-500/20', text: 'text-secondary-400', border: 'border-secondary-500/30' },
-  RUBATA: { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/30' },
-  SVINCOLATI: { bg: 'bg-accent-500/20', text: 'text-accent-400', border: 'border-accent-500/30' },
-  RELEASE: { bg: 'bg-gray-500/20', text: 'text-gray-400', border: 'border-gray-500/30' },
-  CONTRACT_RENEW: { bg: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-500/30' },
+const MOVEMENT_TYPE_SHORT: Record<string, string> = {
+  FIRST_MARKET: 'PM',
+  TRADE: 'SC',
+  RUBATA: 'RB',
+  SVINCOLATI: 'SV',
+  RELEASE: 'TG',
+  CONTRACT_RENEW: 'RN',
 }
 
-const POSITION_STYLES: Record<string, { gradient: string; text: string }> = {
-  P: { gradient: 'from-amber-500 to-amber-600', text: 'text-amber-400' },
-  D: { gradient: 'from-blue-500 to-blue-600', text: 'text-blue-400' },
-  C: { gradient: 'from-emerald-500 to-emerald-600', text: 'text-emerald-400' },
-  A: { gradient: 'from-red-500 to-red-600', text: 'text-red-400' },
+const MOVEMENT_TYPE_COLORS: Record<string, string> = {
+  FIRST_MARKET: 'bg-primary-500/20 text-primary-400',
+  TRADE: 'bg-secondary-500/20 text-secondary-400',
+  RUBATA: 'bg-red-500/20 text-red-400',
+  SVINCOLATI: 'bg-accent-500/20 text-accent-400',
+  RELEASE: 'bg-gray-500/20 text-gray-400',
+  CONTRACT_RENEW: 'bg-purple-500/20 text-purple-400',
+}
+
+const POSITION_COLORS: Record<string, string> = {
+  P: 'text-amber-400',
+  D: 'text-blue-400',
+  C: 'text-emerald-400',
+  A: 'text-red-400',
+}
+
+// Formatta stagione (es. 25/26)
+function formatSeason(season?: number): string {
+  if (!season) return '25/26' // Default stagione corrente
+  const nextYear = (season % 100) + 1
+  return `${season % 100}/${nextYear.toString().padStart(2, '0')}`
 }
 
 export function Movements({ leagueId, onNavigate }: MovementsProps) {
@@ -81,9 +101,9 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
   const [filterSemester, setFilterSemester] = useState<string>('')
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
 
-  // Prophecy form
+  // Prophecy
+  const [expandedMovement, setExpandedMovement] = useState<string | null>(null)
   const [prophecyContent, setProphecyContent] = useState('')
-  const [prophecyMovementId, setProphecyMovementId] = useState<string | null>(null)
   const [canMakeProphecy, setCanMakeProphecy] = useState<Record<string, { can: boolean; role?: string }>>({})
   const [isSubmittingProphecy, setIsSubmittingProphecy] = useState(false)
 
@@ -115,11 +135,10 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
 
     if (result.success && result.data) {
       const movementList = result.data as Movement[]
-      // Sort by date descending (most recent first)
       movementList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       setMovements(movementList)
 
-      // Check prophecy eligibility for each movement
+      // Check prophecy eligibility
       const eligibility: Record<string, { can: boolean; role?: string }> = {}
       for (const movement of movementList) {
         const canRes = await movementApi.canMakeProphecy(movement.id)
@@ -144,7 +163,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
 
     if (result.success) {
       setProphecyContent('')
-      setProphecyMovementId(null)
+      setExpandedMovement(null)
       loadMovements()
     } else {
       setError(result.message || 'Errore nell\'aggiunta della profezia')
@@ -157,7 +176,12 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
     return new Date(dateString).toLocaleDateString('it-IT', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric',
+      year: '2-digit',
+    })
+  }
+
+  function formatTime(dateString: string): string {
+    return new Date(dateString).toLocaleTimeString('it-IT', {
       hour: '2-digit',
       minute: '2-digit',
     })
@@ -167,8 +191,8 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
     return (
       <div className="min-h-screen bg-dark-300 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-lg text-gray-400">Caricamento storico...</p>
+          <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Caricamento storico...</p>
         </div>
       </div>
     )
@@ -178,39 +202,28 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
     <div className="min-h-screen bg-dark-300">
       <Navigation currentPage="movements" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
-      {/* Page Header */}
-      <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-glow">
-              <span className="text-3xl">📜</span>
+      {/* Header compatto */}
+      <div className="bg-surface-200 border-b border-surface-50/20">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
+                <span className="text-xl">📜</span>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-white">Storico Movimenti</h1>
+                <p className="text-xs text-gray-500">Stagione {formatSeason(2025)}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white">Storico Movimenti</h1>
-              <p className="text-gray-400 mt-1">Tutte le transazioni e le profezie</p>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {error && (
-          <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-xl mb-6">
-            {error}
-          </div>
-        )}
-
-        {/* Filters */}
-        <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-5 mb-8">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label className="font-semibold text-white">Tipo:</label>
+            {/* Filtri inline */}
+            <div className="flex items-center gap-3">
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="bg-surface-300 border border-surface-50/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                className="bg-surface-300 border border-surface-50/30 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none"
               >
-                <option value="">Tutti</option>
+                <option value="">Tutti i tipi</option>
                 <option value="FIRST_MARKET">Primo Mercato</option>
                 <option value="TRADE">Scambi</option>
                 <option value="RUBATA">Rubate</option>
@@ -218,188 +231,206 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                 <option value="RELEASE">Tagli</option>
                 <option value="CONTRACT_RENEW">Rinnovi</option>
               </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="font-semibold text-white">Semestre:</label>
               <select
                 value={filterSemester}
                 onChange={(e) => setFilterSemester(e.target.value)}
-                className="bg-surface-300 border border-surface-50/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                className="bg-surface-300 border border-surface-50/30 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none"
               >
-                <option value="">Tutti</option>
+                <option value="">Tutti i semestri</option>
                 <option value="1">1° Semestre</option>
                 <option value="2">2° Semestre</option>
               </select>
+              <span className="text-xs text-gray-500">{movements.length} mov.</span>
             </div>
-            <span className="text-gray-400 text-sm ml-auto">{movements.length} movimenti trovati</span>
           </div>
         </div>
+      </div>
 
-        {/* Movements List */}
+      <main className="max-w-7xl mx-auto px-6 py-4">
+        {error && (
+          <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg mb-4 text-sm">
+            {error}
+          </div>
+        )}
+
         {movements.length === 0 ? (
-          <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-16 text-center">
-            <div className="text-5xl mb-4 opacity-50">📭</div>
-            <p className="text-xl text-gray-400">Nessun movimento registrato</p>
+          <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-12 text-center">
+            <div className="text-4xl mb-3 opacity-50">📭</div>
+            <p className="text-gray-400">Nessun movimento registrato</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {movements.map((movement) => {
-              const posStyle = POSITION_STYLES[movement.player.position] || { gradient: 'from-gray-500 to-gray-600', text: 'text-gray-400' }
-              const typeStyle = MOVEMENT_TYPE_STYLES[movement.type] ?? { bg: 'bg-gray-500/20', text: 'text-gray-400', border: 'border-gray-500/30' }
+          <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
+            {/* Table Header */}
+            <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-surface-300 border-b border-surface-50/20 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              <div className="col-span-1">Tipo</div>
+              <div className="col-span-1">Stag.</div>
+              <div className="col-span-1">Sem.</div>
+              <div className="col-span-3">Giocatore</div>
+              <div className="col-span-2">Da → A</div>
+              <div className="col-span-1 text-right">Prezzo</div>
+              <div className="col-span-2">Contratto</div>
+              <div className="col-span-1 text-right">Data</div>
+            </div>
 
-              return (
-                <div key={movement.id} className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden hover:border-primary-500/30 transition-all">
-                  {/* Movement Header */}
-                  <div className="p-5 flex justify-between items-start">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${posStyle.gradient} flex items-center justify-center text-white font-bold text-xl shadow-lg`}>
-                        {movement.player.position}
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-white">{movement.player.name}</h3>
-                        <p className="text-gray-400">{movement.player.team}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className={`px-3 py-1 rounded-full text-sm font-bold ${typeStyle.bg} ${typeStyle.text} border ${typeStyle.border}`}>
-                        {MOVEMENT_TYPE_LABELS[movement.type] || movement.type}
-                      </span>
-                      <p className="text-sm text-gray-500 mt-2">{formatDate(movement.createdAt)}</p>
-                    </div>
-                  </div>
+            {/* Table Rows */}
+            <div className="divide-y divide-surface-50/10">
+              {movements.map((movement) => {
+                const typeColor = MOVEMENT_TYPE_COLORS[movement.type] || 'bg-gray-500/20 text-gray-400'
+                const posColor = POSITION_COLORS[movement.player.position] || 'text-gray-400'
+                const hasProphecies = movement.prophecies.length > 0
+                const canAdd = canMakeProphecy[movement.id]?.can
+                const isExpanded = expandedMovement === movement.id
 
-                  {/* Movement Details */}
-                  <div className="px-5 pb-5">
-                    <div className="bg-surface-300 rounded-lg p-4 mb-4">
-                      <div className="flex items-center gap-3 text-base">
-                        {movement.from ? (
-                          <span className="font-semibold text-white">{movement.from.username}</span>
+                return (
+                  <div key={movement.id}>
+                    {/* Main Row */}
+                    <div
+                      className={`grid grid-cols-12 gap-2 px-4 py-2.5 items-center text-sm hover:bg-surface-300/30 transition-colors cursor-pointer ${isExpanded ? 'bg-surface-300/50' : ''}`}
+                      onClick={() => setExpandedMovement(isExpanded ? null : movement.id)}
+                    >
+                      {/* Tipo */}
+                      <div className="col-span-1">
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${typeColor}`}>
+                          {MOVEMENT_TYPE_SHORT[movement.type] || movement.type.slice(0, 2)}
+                        </span>
+                      </div>
+
+                      {/* Stagione */}
+                      <div className="col-span-1 text-xs text-gray-500">
+                        {formatSeason(movement.season || 2025)}
+                      </div>
+
+                      {/* Semestre */}
+                      <div className="col-span-1 text-xs text-gray-500">
+                        {movement.semester || 1}°
+                      </div>
+
+                      {/* Giocatore */}
+                      <div className="col-span-3 flex items-center gap-2">
+                        <div className="w-6 h-6 bg-white rounded flex items-center justify-center p-0.5 flex-shrink-0">
+                          <img
+                            src={getTeamLogo(movement.player.team)}
+                            alt=""
+                            className="w-5 h-5 object-contain"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                          />
+                        </div>
+                        <span className={`font-bold text-xs ${posColor}`}>{movement.player.position}</span>
+                        <span className="text-white font-medium truncate">{movement.player.name}</span>
+                      </div>
+
+                      {/* Da → A */}
+                      <div className="col-span-2 text-xs">
+                        <span className="text-gray-500">{movement.from?.username || '—'}</span>
+                        <span className="text-gray-600 mx-1">→</span>
+                        <span className="text-white">{movement.to?.username || '—'}</span>
+                      </div>
+
+                      {/* Prezzo */}
+                      <div className="col-span-1 text-right">
+                        {movement.price ? (
+                          <span className="text-accent-400 font-semibold">{movement.price}</span>
                         ) : (
-                          <span className="text-gray-500 italic">Svincolato</span>
+                          <span className="text-gray-600">—</span>
                         )}
-                        <span className="text-2xl text-gray-500">→</span>
-                        {movement.to ? (
-                          <span className="font-semibold text-white">{movement.to.username}</span>
-                        ) : (
-                          <span className="text-gray-500 italic">Svincolato</span>
-                        )}
-                        {movement.price && (
-                          <span className="ml-auto text-xl font-bold text-accent-400">
-                            {movement.price} crediti
+                      </div>
+
+                      {/* Contratto */}
+                      <div className="col-span-2 text-xs">
+                        {movement.newContract ? (
+                          <span className="text-gray-300">
+                            {movement.newContract.salary}M × {movement.newContract.duration}sem
                           </span>
+                        ) : (
+                          <span className="text-gray-600">—</span>
                         )}
+                      </div>
+
+                      {/* Data */}
+                      <div className="col-span-1 text-right text-xs text-gray-500">
+                        <div>{formatDate(movement.createdAt)}</div>
+                        <div className="text-gray-600">{formatTime(movement.createdAt)}</div>
                       </div>
                     </div>
 
-                    {/* Contract info */}
-                    {(movement.oldContract || movement.newContract) && (
-                      <div className="flex gap-4 mb-4">
-                        {movement.oldContract && (
-                          <div className="bg-surface-300 rounded-lg p-3 flex-1">
-                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Contratto Precedente</p>
-                            <p className="text-sm text-gray-300">
-                              {movement.oldContract.salary}/sem x {movement.oldContract.duration} semestri
-                            </p>
-                          </div>
-                        )}
-                        {movement.newContract && (
-                          <div className="bg-surface-300 rounded-lg p-3 flex-1 border border-secondary-500/30">
-                            <p className="text-xs text-secondary-400 uppercase tracking-wide mb-1">Nuovo Contratto</p>
-                            <p className="text-sm text-white">
-                              {movement.newContract.salary}/sem x {movement.newContract.duration} semestri
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Prophecies */}
-                    {movement.prophecies.length > 0 && (
-                      <div className="border-t border-surface-50/20 pt-4 mt-4">
-                        <h4 className="text-sm font-bold text-accent-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                          <span>✨</span> Profezie
-                        </h4>
-                        <div className="space-y-3">
-                          {movement.prophecies.map((prophecy) => (
-                            <div key={prophecy.id} className="bg-gradient-to-r from-accent-500/10 to-accent-500/5 border border-accent-500/20 rounded-lg p-4">
-                              <div className="flex justify-between items-start mb-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-white">{prophecy.author.username}</span>
-                                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                                    prophecy.authorRole === 'BUYER'
-                                      ? 'bg-secondary-500/20 text-secondary-400'
-                                      : 'bg-red-500/20 text-red-400'
-                                  }`}>
-                                    {prophecy.authorRole === 'BUYER' ? 'Acquirente' : 'Venditore'}
-                                  </span>
-                                </div>
-                                <span className="text-xs text-gray-500">{formatDate(prophecy.createdAt)}</span>
-                              </div>
-                              <p className="text-gray-200 italic text-lg">"{prophecy.content}"</p>
+                    {/* Expanded Section - Prophecies */}
+                    {isExpanded && (
+                      <div className="px-4 py-3 bg-surface-300/30 border-t border-surface-50/10">
+                        <div className="flex items-start gap-4">
+                          {/* Details */}
+                          <div className="flex-1">
+                            <div className="text-xs text-gray-400 mb-2">
+                              <span className="font-semibold">{MOVEMENT_TYPE_LABELS[movement.type]}</span>
+                              {' • '}
+                              {movement.player.team}
                             </div>
-                          ))}
+
+                            {/* Prophecies */}
+                            {hasProphecies && (
+                              <div className="space-y-2 mb-3">
+                                <p className="text-xs font-semibold text-accent-400 uppercase">Profezie</p>
+                                {movement.prophecies.map((p) => (
+                                  <div key={p.id} className="bg-accent-500/10 border border-accent-500/20 rounded-lg p-2">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-xs font-semibold text-white">{p.author.username}</span>
+                                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${p.authorRole === 'BUYER' ? 'bg-secondary-500/20 text-secondary-400' : 'bg-red-500/20 text-red-400'}`}>
+                                        {p.authorRole === 'BUYER' ? 'Acq.' : 'Ven.'}
+                                      </span>
+                                    </div>
+                                    <p className="text-gray-300 text-sm italic">"{p.content}"</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Add Prophecy */}
+                            {canAdd && (
+                              <div className="mt-2">
+                                <textarea
+                                  value={prophecyContent}
+                                  onChange={(e) => setProphecyContent(e.target.value)}
+                                  placeholder="Scrivi una profezia..."
+                                  className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-500/50"
+                                  rows={2}
+                                  maxLength={500}
+                                />
+                                <div className="flex justify-between items-center mt-2">
+                                  <span className="text-xs text-gray-500">
+                                    {canMakeProphecy[movement.id]?.role === 'BUYER' ? 'Acquirente' : 'Venditore'} • {prophecyContent.length}/500
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant="accent"
+                                    onClick={() => handleAddProphecy(movement.id)}
+                                    disabled={!prophecyContent.trim() || isSubmittingProphecy}
+                                  >
+                                    {isSubmittingProphecy ? '...' : 'Pubblica'}
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )}
-
-                    {/* Add prophecy form */}
-                    {canMakeProphecy[movement.id]?.can && (
-                      <div className="border-t border-surface-50/20 pt-4 mt-4">
-                        {prophecyMovementId === movement.id ? (
-                          <div className="space-y-3">
-                            <textarea
-                              value={prophecyContent}
-                              onChange={(e) => setProphecyContent(e.target.value)}
-                              placeholder="Scrivi la tua profezia su questo giocatore..."
-                              className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500/50"
-                              rows={3}
-                              maxLength={500}
-                            />
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-500">
-                                {prophecyContent.length}/500 caratteri
-                              </span>
-                              <div className="flex gap-3">
-                                <Button
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setProphecyMovementId(null)
-                                    setProphecyContent('')
-                                  }}
-                                >
-                                  Annulla
-                                </Button>
-                                <Button
-                                  variant="accent"
-                                  onClick={() => handleAddProphecy(movement.id)}
-                                  disabled={!prophecyContent.trim() || isSubmittingProphecy}
-                                >
-                                  {isSubmittingProphecy ? 'Invio...' : 'Pubblica Profezia'}
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            onClick={() => setProphecyMovementId(movement.id)}
-                            className="border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
-                          >
-                            <span className="mr-2">✨</span>
-                            Aggiungi Profezia
-                            <span className="ml-2 text-xs opacity-75">
-                              ({canMakeProphecy[movement.id]?.role === 'BUYER' ? 'Acquirente' : 'Venditore'})
-                            </span>
-                          </Button>
-                        )}
-                      </div>
-                    )}
                   </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
         )}
+
+        {/* Legend */}
+        <div className="mt-4 flex flex-wrap gap-3 text-xs">
+          {Object.entries(MOVEMENT_TYPE_LABELS).map(([key, label]) => (
+            <div key={key} className="flex items-center gap-1.5">
+              <span className={`px-1.5 py-0.5 rounded font-bold ${MOVEMENT_TYPE_COLORS[key]}`}>
+                {MOVEMENT_TYPE_SHORT[key]}
+              </span>
+              <span className="text-gray-500">{label}</span>
+            </div>
+          ))}
+        </div>
       </main>
     </div>
   )

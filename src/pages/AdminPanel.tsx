@@ -6,6 +6,7 @@ import { Navigation } from '../components/Navigation'
 
 interface AdminPanelProps {
   leagueId: string
+  initialTab?: string
   onNavigate: (page: string, params?: Record<string, string>) => void
 }
 
@@ -106,7 +107,7 @@ const TABS = [
   { id: 'export', label: 'Export', icon: '📤' },
 ] as const
 
-export function AdminPanel({ leagueId, onNavigate }: AdminPanelProps) {
+export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [league, setLeague] = useState<League | null>(null)
   const [members, setMembers] = useState<Member[]>([])
@@ -114,7 +115,9 @@ export function AdminPanel({ leagueId, onNavigate }: AdminPanelProps) {
   const [invites, setInvites] = useState<Invite[]>([])
   const [isAdmin, setIsAdmin] = useState(false)
 
-  const [activeTab, setActiveTab] = useState<typeof TABS[number]['id']>('overview')
+  const [activeTab, setActiveTab] = useState<typeof TABS[number]['id']>(
+    (initialTab as typeof TABS[number]['id']) || 'overview'
+  )
   const [newInviteEmail, setNewInviteEmail] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')

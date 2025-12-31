@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Navigation } from '../components/Navigation'
 import { leagueApi } from '../services/api'
+import { getTeamLogo } from '../utils/teamLogos'
 
 interface AllRostersProps {
   leagueId: string
@@ -49,18 +50,212 @@ interface LeagueData {
   inContrattiPhase?: boolean
 }
 
-const POSITION_COLORS: Record<string, string> = {
-  P: 'from-yellow-500 to-yellow-600',
-  D: 'from-green-500 to-green-600',
-  C: 'from-blue-500 to-blue-600',
-  A: 'from-red-500 to-red-600',
+// Stile per ruolo
+function getRoleStyle(position: string) {
+  switch (position) {
+    case 'P': return { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/40', label: 'POR' }
+    case 'D': return { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/40', label: 'DIF' }
+    case 'C': return { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/40', label: 'CEN' }
+    case 'A': return { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/40', label: 'ATT' }
+    default: return { bg: 'bg-gray-500/20', text: 'text-gray-400', border: 'border-gray-500/40', label: position }
+  }
 }
 
-const POSITION_NAMES: Record<string, string> = {
-  P: 'Portiere',
-  D: 'Difensore',
-  C: 'Centrocampista',
-  A: 'Attaccante',
+// Colori durata contratto
+function getDurationStyle(duration: number) {
+  switch (duration) {
+    case 1: return { bg: 'bg-red-500/20', border: 'border-red-500/40', text: 'text-red-400', label: 'text-red-300' }
+    case 2: return { bg: 'bg-yellow-500/20', border: 'border-yellow-500/40', text: 'text-yellow-400', label: 'text-yellow-300' }
+    case 3: return { bg: 'bg-green-500/20', border: 'border-green-500/40', text: 'text-green-400', label: 'text-green-300' }
+    case 4: return { bg: 'bg-blue-500/20', border: 'border-blue-500/40', text: 'text-blue-400', label: 'text-blue-300' }
+    default: return { bg: 'bg-gray-500/20', border: 'border-gray-500/40', text: 'text-gray-400', label: 'text-gray-300' }
+  }
+}
+
+// Componente card giocatore (stesso stile di Roster.tsx)
+function PlayerCard({ entry }: { entry: RosterEntry }) {
+  const roleStyle = getRoleStyle(entry.player.position)
+  const durStyle = entry.contract ? getDurationStyle(entry.contract.duration) : null
+
+  return (
+    <div className="flex items-center gap-3 p-3 bg-surface-200 rounded-lg border border-surface-50/20 hover:border-surface-50/40 transition-colors">
+      {/* Team Logo con sfondo bianco */}
+      <div className="w-10 h-10 flex items-center justify-center bg-white rounded-lg p-1 flex-shrink-0">
+        <img
+          src={getTeamLogo(entry.player.team)}
+          alt={entry.player.team}
+          className="w-8 h-8 object-contain"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+        />
+      </div>
+
+      {/* Role Badge */}
+      <div className={`w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-lg ${roleStyle.bg} ${roleStyle.border} border`}>
+        <span className={`text-sm font-bold ${roleStyle.text}`}>{roleStyle.label}</span>
+      </div>
+
+      {/* Player Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-white font-medium truncate">{entry.player.name}</p>
+        <p className="text-gray-500 text-xs">{entry.player.team}</p>
+      </div>
+
+      {/* Contract & Price Info - PROMINENT */}
+      <div className="flex items-center gap-3 flex-shrink-0">
+        {entry.contract && durStyle ? (
+          <>
+            {/* Ingaggio */}
+            <div className="bg-accent-500/20 border border-accent-500/40 rounded-lg px-3 py-1.5 text-center min-w-[60px]">
+              <p className="text-[10px] text-accent-300 uppercase font-medium">Ingaggio</p>
+              <p className="text-accent-400 font-bold text-lg">{entry.contract.salary}M</p>
+            </div>
+            {/* Durata - con colori */}
+            <div className={`${durStyle.bg} border ${durStyle.border} rounded-lg px-3 py-1.5 text-center min-w-[60px]`}>
+              <p className={`text-[10px] ${durStyle.label} uppercase font-medium`}>Durata</p>
+              <p className={`${durStyle.text} font-bold text-lg`}>{entry.contract.duration} sem</p>
+            </div>
+            {/* Clausola Rubata */}
+            {entry.contract.rescissionClause && (
+              <div className="bg-warning-500/20 border border-warning-500/40 rounded-lg px-3 py-1.5 text-center min-w-[70px]">
+                <p className="text-[10px] text-warning-300 uppercase font-medium">Rubata</p>
+                <p className="text-warning-400 font-bold text-lg">{entry.contract.rescissionClause}M</p>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="bg-danger-500/20 border border-danger-500/40 rounded-lg px-3 py-1.5 text-center">
+            <p className="text-[10px] text-danger-300 uppercase">Costo</p>
+            <p className="text-danger-400 font-bold">{entry.acquisitionPrice}M</p>
+            <p className="text-danger-500 text-[9px]">No contratto!</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Contatore squadre (cliccabile)
+function TeamCounters({ roster, onTeamClick }: { roster: RosterEntry[], onTeamClick: (team: string) => void }) {
+  const teamCounts: Record<string, number> = {}
+  for (const entry of roster) {
+    teamCounts[entry.player.team] = (teamCounts[entry.player.team] || 0) + 1
+  }
+
+  const sortedTeams = Object.entries(teamCounts)
+    .filter(([, count]) => count > 0) // Solo squadre con giocatori
+    .sort((a, b) => b[1] - a[1]) // Ordine decrescente per numero
+
+  if (sortedTeams.length === 0) return null
+
+  return (
+    <div className="flex flex-wrap gap-2 mb-4">
+      {sortedTeams.map(([team, count]) => (
+        <button
+          key={team}
+          onClick={() => onTeamClick(team)}
+          className="flex items-center gap-1.5 bg-surface-300 rounded-lg px-2 py-1 hover:bg-surface-50/20 hover:scale-105 transition-all cursor-pointer"
+        >
+          <div className="w-5 h-5 bg-white rounded flex items-center justify-center p-0.5">
+            <img src={getTeamLogo(team)} alt={team} className="w-4 h-4 object-contain" />
+          </div>
+          <span className="text-xs text-gray-400">{team}</span>
+          <span className="text-xs font-bold text-white">{count}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// Modale giocatori per squadra
+function TeamPlayersModal({
+  team,
+  players,
+  onClose
+}: {
+  team: string
+  players: RosterEntry[]
+  onClose: () => void
+}) {
+  const teamPlayers = players.filter(p => p.player.team === team)
+    .sort((a, b) => {
+      const roleOrder = { P: 0, D: 1, C: 2, A: 3 }
+      const roleA = roleOrder[a.player.position as keyof typeof roleOrder] ?? 4
+      const roleB = roleOrder[b.player.position as keyof typeof roleOrder] ?? 4
+      if (roleA !== roleB) return roleA - roleB
+      return a.player.name.localeCompare(b.player.name)
+    })
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div
+        className="bg-surface-200 rounded-xl border border-surface-50/30 max-w-2xl w-full max-h-[80vh] overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-surface-50/20">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-white rounded-lg p-1 flex items-center justify-center">
+              <img src={getTeamLogo(team)} alt={team} className="w-10 h-10 object-contain" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">{team}</h2>
+              <p className="text-sm text-gray-400">{teamPlayers.length} giocatori</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-300 hover:bg-surface-50/30 text-gray-400 hover:text-white transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Players List */}
+        <div className="p-4 overflow-y-auto max-h-[60vh] space-y-2">
+          {teamPlayers.map(entry => {
+            const roleStyle = getRoleStyle(entry.player.position)
+            const durStyle = entry.contract ? getDurationStyle(entry.contract.duration) : null
+
+            return (
+              <div key={entry.id} className="flex items-center gap-3 p-3 bg-surface-300 rounded-lg">
+                {/* Role Badge */}
+                <div className={`w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-lg ${roleStyle.bg} ${roleStyle.border} border`}>
+                  <span className={`text-sm font-bold ${roleStyle.text}`}>{roleStyle.label}</span>
+                </div>
+
+                {/* Player Name */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-medium truncate">{entry.player.name}</p>
+                </div>
+
+                {/* Contract Info */}
+                {entry.contract && durStyle ? (
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="bg-accent-500/20 border border-accent-500/40 rounded-lg px-2 py-1 text-center">
+                      <p className="text-[9px] text-accent-300 uppercase">Ing.</p>
+                      <p className="text-accent-400 font-bold">{entry.contract.salary}M</p>
+                    </div>
+                    <div className={`${durStyle.bg} border ${durStyle.border} rounded-lg px-2 py-1 text-center`}>
+                      <p className={`text-[9px] ${durStyle.label} uppercase`}>Dur.</p>
+                      <p className={`${durStyle.text} font-bold`}>{entry.contract.duration}s</p>
+                    </div>
+                    {entry.contract.rescissionClause && (
+                      <div className="bg-warning-500/20 border border-warning-500/40 rounded-lg px-2 py-1 text-center">
+                        <p className="text-[9px] text-warning-300 uppercase">Rub.</p>
+                        <p className="text-warning-400 font-bold">{entry.contract.rescissionClause}M</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-gray-500 text-sm">No contratto</span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
@@ -68,6 +263,7 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null)
 
   const loadLeague = useCallback(async () => {
     setIsLoading(true)
@@ -92,11 +288,28 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
         byPosition[pos].push(entry)
       }
     }
+    // Ordina per nome
+    for (const pos of ['P', 'D', 'C', 'A'] as const) {
+      byPosition[pos].sort((a, b) => a.player.name.localeCompare(b.player.name))
+    }
     return byPosition
   }
 
   const getTotalValue = (roster: RosterEntry[]) => {
     return roster.reduce((sum, r) => sum + r.acquisitionPrice, 0)
+  }
+
+  const getTotalSalary = (roster: RosterEntry[]) => {
+    return roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
+  }
+
+  const getPositionCounts = (roster: RosterEntry[]) => {
+    return {
+      P: roster.filter(r => r.player.position === 'P').length,
+      D: roster.filter(r => r.player.position === 'D').length,
+      C: roster.filter(r => r.player.position === 'C').length,
+      A: roster.filter(r => r.player.position === 'A').length,
+    }
   }
 
   if (isLoading) {
@@ -124,15 +337,25 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
   const activeMembers = league.members.filter(m => m.roster.length > 0 || m.currentBudget > 0)
 
   return (
-    <div className="min-h-screen bg-dark-100">
+    <div className="min-h-screen bg-dark-300">
       <Navigation currentPage="allRosters" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white">Tutte le Rose</h1>
-          <p className="text-gray-400">{league.name}</p>
+      {/* Page Header */}
+      <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex items-center gap-5">
+            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-secondary-500 to-secondary-700 flex items-center justify-center shadow-glow">
+              <span className="text-3xl">👥</span>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-white">Tutte le Rose</h1>
+              <p className="text-gray-400 mt-1">{league.name}</p>
+            </div>
+          </div>
         </div>
+      </div>
 
+      <main className="max-w-7xl mx-auto px-6 py-8">
         {league.inContrattiPhase && (
           <div className="mb-6 p-4 bg-warning-500/10 border border-warning-500/30 rounded-xl">
             <p className="text-warning-400">
@@ -149,28 +372,38 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
                 <h2 className="font-bold text-white">Manager ({activeMembers.length})</h2>
               </div>
               <div className="divide-y divide-surface-50/10">
-                {activeMembers.map(member => (
-                  <button
-                    key={member.id}
-                    onClick={() => setSelectedMember(member)}
-                    className={`w-full p-4 text-left transition-colors hover:bg-surface-300/50 ${
-                      selectedMember?.id === member.id ? 'bg-primary-500/20 border-l-4 border-primary-500' : ''
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium text-white">{member.user.username}</p>
-                        {member.teamName && (
-                          <p className="text-sm text-gray-400">{member.teamName}</p>
-                        )}
+                {activeMembers.map(member => {
+                  const counts = getPositionCounts(member.roster)
+                  return (
+                    <button
+                      key={member.id}
+                      onClick={() => setSelectedMember(member)}
+                      className={`w-full p-4 text-left transition-colors hover:bg-surface-300/50 ${
+                        selectedMember?.id === member.id ? 'bg-primary-500/20 border-l-4 border-primary-500' : ''
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium text-white">{member.user.username}</p>
+                          {member.teamName && (
+                            <p className="text-sm text-gray-400">{member.teamName}</p>
+                          )}
+                          {/* Mini contatori ruolo */}
+                          <div className="flex gap-2 mt-1 text-xs">
+                            <span className="text-amber-400">P:{counts.P}</span>
+                            <span className="text-blue-400">D:{counts.D}</span>
+                            <span className="text-emerald-400">C:{counts.C}</span>
+                            <span className="text-red-400">A:{counts.A}</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-mono text-accent-400">{member.roster.length}</p>
+                          <p className="text-xs text-gray-500">Budget: {member.currentBudget}</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-mono text-accent-400">{member.roster.length} giocatori</p>
-                        <p className="text-xs text-gray-500">Budget: {member.currentBudget}</p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -179,17 +412,28 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
           <div className="lg:col-span-2">
             {selectedMember ? (
               <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
+                {/* Header con stats */}
                 <div className="p-4 border-b border-surface-50/20">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-start">
                     <div>
                       <h2 className="font-bold text-white text-lg">{selectedMember.user.username}</h2>
                       {selectedMember.teamName && (
                         <p className="text-gray-400">{selectedMember.teamName}</p>
                       )}
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-400">Valore Rosa</p>
-                      <p className="text-xl font-bold text-accent-400">{getTotalValue(selectedMember.roster)}</p>
+                    <div className="flex gap-4">
+                      <div className="text-center bg-surface-300 rounded-lg px-3 py-2">
+                        <p className="text-xs text-gray-500">Budget</p>
+                        <p className="text-lg font-bold text-accent-400">{selectedMember.currentBudget}</p>
+                      </div>
+                      <div className="text-center bg-surface-300 rounded-lg px-3 py-2">
+                        <p className="text-xs text-gray-500">Valore</p>
+                        <p className="text-lg font-bold text-primary-400">{getTotalValue(selectedMember.roster)}</p>
+                      </div>
+                      <div className="text-center bg-surface-300 rounded-lg px-3 py-2">
+                        <p className="text-xs text-gray-500">Ingaggi</p>
+                        <p className="text-lg font-bold text-warning-400">{getTotalSalary(selectedMember.roster)}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -199,49 +443,54 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
                     Nessun giocatore in rosa
                   </div>
                 ) : (
-                  <div className="p-4 space-y-6">
-                    {(['P', 'D', 'C', 'A'] as const).map(position => {
-                      const positionRoster = getRosterByPosition(selectedMember.roster)[position]
-                      if (positionRoster.length === 0) return null
+                  <div className="p-4">
+                    {/* Contatori squadre */}
+                    <TeamCounters roster={selectedMember.roster} onTeamClick={setSelectedTeam} />
 
-                      return (
-                        <div key={position}>
-                          <div className="flex items-center gap-2 mb-3">
-                            <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[position]} flex items-center justify-center text-sm font-bold text-white`}>
-                              {position}
-                            </div>
-                            <h3 className="font-medium text-white">{POSITION_NAMES[position]}i ({positionRoster.length})</h3>
+                    {/* Contatori ruolo */}
+                    <div className="flex items-center gap-6 mb-4">
+                      {(['P', 'D', 'C', 'A'] as const).map(pos => {
+                        const style = getRoleStyle(pos)
+                        const count = selectedMember.roster.filter(r => r.player.position === pos).length
+                        return (
+                          <div key={pos} className="flex items-center gap-2">
+                            <span className={`font-bold ${style.text}`}>{style.label}</span>
+                            <span className="text-white">{count}</span>
                           </div>
+                        )
+                      })}
+                      <div className="flex items-center gap-2 pl-4 border-l border-surface-50/30">
+                        <span className="text-gray-400">Totale:</span>
+                        <span className="text-white font-bold">{selectedMember.roster.length}</span>
+                      </div>
+                    </div>
 
-                          <div className="grid gap-2">
-                            {positionRoster.map(entry => (
-                              <div
-                                key={entry.id}
-                                className="flex items-center justify-between p-3 bg-surface-300 rounded-lg"
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[entry.player.position]} flex items-center justify-center text-sm font-bold text-white`}>
-                                    {entry.player.position}
-                                  </div>
-                                  <div>
-                                    <p className="font-medium text-white">{entry.player.name}</p>
-                                    <p className="text-xs text-gray-400">{entry.player.team}</p>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="font-mono text-accent-400">{entry.acquisitionPrice}</p>
-                                  {entry.contract && (
-                                    <p className="text-xs text-gray-500">
-                                      {entry.contract.duration}sem - {entry.contract.salary}M/sem
-                                    </p>
-                                  )}
-                                </div>
+                    {/* Lista giocatori per ruolo */}
+                    <div className="space-y-6">
+                      {(['P', 'D', 'C', 'A'] as const).map(position => {
+                        const positionRoster = getRosterByPosition(selectedMember.roster)[position]
+                        if (positionRoster.length === 0) return null
+
+                        const style = getRoleStyle(position)
+
+                        return (
+                          <div key={position}>
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className={`w-8 h-8 rounded-lg ${style.bg} ${style.border} border flex items-center justify-center`}>
+                                <span className={`text-sm font-bold ${style.text}`}>{style.label}</span>
                               </div>
-                            ))}
+                              <h3 className="font-medium text-white">({positionRoster.length})</h3>
+                            </div>
+
+                            <div className="space-y-2">
+                              {positionRoster.map(entry => (
+                                <PlayerCard key={entry.id} entry={entry} />
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )
-                    })}
+                        )
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -253,7 +502,16 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
             )}
           </div>
         </div>
-      </div>
+      </main>
+
+      {/* Modale giocatori per squadra */}
+      {selectedTeam && selectedMember && (
+        <TeamPlayersModal
+          team={selectedTeam}
+          players={selectedMember.roster}
+          onClose={() => setSelectedTeam(null)}
+        />
+      )}
     </div>
   )
 }
