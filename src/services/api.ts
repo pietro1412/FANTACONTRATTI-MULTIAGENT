@@ -1,4 +1,5 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3003'
+// In production (Vercel), API is at same origin. In dev, use localhost:3003
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3003')
 
 interface ApiResponse<T = unknown> {
   success: boolean
