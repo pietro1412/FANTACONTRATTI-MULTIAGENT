@@ -132,9 +132,14 @@ export async function importQuotazioni(
       return { success: false, message: 'Nessun giocatore trovato nel file' }
     }
 
-    // Track external IDs and player IDs processed in the new list
-    const newListExternalIds = new Set<string>()
-    const processedPlayerIds = new Set<string>()
+    // Parse all rows first
+    const parsedPlayers: Array<{
+      externalId: string
+      name: string
+      team: string
+      position: Position
+      quotation: number
+    }> = []
     const stats = {
       created: 0,
       updated: 0,
@@ -142,7 +147,6 @@ export async function importQuotazioni(
       errors: [] as string[],
     }
 
-    // Process each row
     for (const row of rows) {
       const externalId = String(getField<string | number>(row, 'Id', 'id', 'ID', 'Cod', 'cod') || '').trim()
       const name = getField<string>(row, 'Nome', 'nome', 'Name', 'name')?.trim()
@@ -150,9 +154,8 @@ export async function importQuotazioni(
       const positionStr = getField<string>(row, 'R', 'r', 'Ruolo', 'ruolo', 'Role', 'role')
       const quotation = getField<number>(row, 'Qt.A', 'Qt.I', 'Quotazione', 'quotazione', 'Quot') || 1
 
-      // Validate required fields
       if (!name) {
-        stats.errors.push(`Riga senza nome: ${JSON.stringify(row)}`)
+        stats.errors.push(`Riga senza nome`)
         continue
       }
 
@@ -162,91 +165,133 @@ export async function importQuotazioni(
         continue
       }
 
-      // Track this ID
-      if (externalId) {
-        newListExternalIds.add(externalId)
+      parsedPlayers.push({
+        externalId,
+        name,
+        team: team || 'Sconosciuta',
+        position,
+        quotation,
+      })
+    }
+
+    // Load all existing players in ONE query
+    const existingPlayers = await prisma.serieAPlayer.findMany({
+      select: { id: true, externalId: true, name: true, position: true }
+    })
+
+    // Create lookup maps for fast matching
+    const byExternalId = new Map<string, { id: string; externalId: string | null; name: string; position: Position }>()
+    const byNamePosition = new Map<string, { id: string; externalId: string | null; name: string; position: Position }>()
+
+    for (const p of existingPlayers) {
+      if (p.externalId) {
+        byExternalId.set(p.externalId, p)
+      }
+      byNamePosition.set(`${p.name.toLowerCase()}|${p.position}`, p)
+    }
+
+    // Separate into create vs update
+    const toCreate: Array<{
+      externalId?: string
+      name: string
+      team: string
+      position: Position
+      quotation: number
+      listStatus: 'IN_LIST'
+    }> = []
+    const toUpdate: Array<{
+      id: string
+      data: {
+        name: string
+        team: string
+        position: Position
+        quotation: number
+        listStatus: 'IN_LIST'
+        externalId?: string
+      }
+    }> = []
+    const processedIds = new Set<string>()
+
+    for (const player of parsedPlayers) {
+      // Try to find existing player
+      let existing = player.externalId ? byExternalId.get(player.externalId) : undefined
+      if (!existing) {
+        existing = byNamePosition.get(`${player.name.toLowerCase()}|${player.position}`)
       }
 
-      // Find or create player
-      let player = null
-      if (externalId) {
-        player = await prisma.serieAPlayer.findUnique({
-          where: { externalId },
-        })
-      }
-
-      // If not found by externalId, try by name + position
-      if (!player) {
-        player = await prisma.serieAPlayer.findFirst({
-          where: {
-            name: { equals: name, mode: 'insensitive' },
-            position,
-          },
-        })
-      }
-
-      if (player) {
-        // Update existing player
-        await prisma.serieAPlayer.update({
-          where: { id: player.id },
+      if (existing) {
+        toUpdate.push({
+          id: existing.id,
           data: {
-            name,
-            team: team || player.team,
-            position,
-            quotation,
+            name: player.name,
+            team: player.team,
+            position: player.position,
+            quotation: player.quotation,
             listStatus: 'IN_LIST',
-            externalId: externalId || player.externalId,
-          },
+            externalId: player.externalId || undefined,
+          }
         })
-        processedPlayerIds.add(player.id)
-        stats.updated++
+        processedIds.add(existing.id)
       } else {
-        // Create new player
-        const newPlayer = await prisma.serieAPlayer.create({
-          data: {
-            externalId: externalId || undefined,
-            name,
-            team: team || 'Sconosciuta',
-            position,
-            quotation,
-            listStatus: 'IN_LIST',
-          },
+        toCreate.push({
+          externalId: player.externalId || undefined,
+          name: player.name,
+          team: player.team,
+          position: player.position,
+          quotation: player.quotation,
+          listStatus: 'IN_LIST',
         })
-        processedPlayerIds.add(newPlayer.id)
-        stats.created++
       }
     }
 
-    // Mark players not in the new list as NOT_IN_LIST
-    // All IN_LIST players that were NOT processed in this import get marked as NOT_IN_LIST
-    const playersToMarkNotInList = await prisma.serieAPlayer.findMany({
-      where: {
-        listStatus: 'IN_LIST',
-        id: { notIn: Array.from(processedPlayerIds) },
-      },
-    })
+    // Execute all operations in a transaction
+    await prisma.$transaction(async (tx) => {
+      // Batch create new players
+      if (toCreate.length > 0) {
+        await tx.serieAPlayer.createMany({
+          data: toCreate,
+          skipDuplicates: true,
+        })
+        stats.created = toCreate.length
+      }
 
-    for (const player of playersToMarkNotInList) {
-      await prisma.serieAPlayer.update({
-        where: { id: player.id },
+      // Batch update existing players (in chunks to avoid timeout)
+      const CHUNK_SIZE = 50
+      for (let i = 0; i < toUpdate.length; i += CHUNK_SIZE) {
+        const chunk = toUpdate.slice(i, i + CHUNK_SIZE)
+        await Promise.all(
+          chunk.map(u => tx.serieAPlayer.update({
+            where: { id: u.id },
+            data: u.data
+          }))
+        )
+      }
+      stats.updated = toUpdate.length
+
+      // Mark players not in new list as NOT_IN_LIST (single batch operation)
+      const notInListResult = await tx.serieAPlayer.updateMany({
+        where: {
+          listStatus: 'IN_LIST',
+          id: { notIn: Array.from(processedIds) },
+        },
         data: { listStatus: 'NOT_IN_LIST' },
       })
-      stats.notInList++
-    }
+      stats.notInList = notInListResult.count
 
-    // Save upload record
-    await prisma.quotazioniUpload.create({
-      data: {
-        uploadedById: userId,
-        fileName,
-        sheetName,
-        playersCreated: stats.created,
-        playersUpdated: stats.updated,
-        playersNotInList: stats.notInList,
-        totalProcessed: rows.length,
-        errors: stats.errors.length > 0 ? stats.errors.slice(0, 10) : undefined,
-      },
-    })
+      // Save upload record
+      await tx.quotazioniUpload.create({
+        data: {
+          uploadedById: userId,
+          fileName,
+          sheetName,
+          playersCreated: stats.created,
+          playersUpdated: stats.updated,
+          playersNotInList: stats.notInList,
+          totalProcessed: rows.length,
+          errors: stats.errors.length > 0 ? stats.errors.slice(0, 10) : undefined,
+        },
+      })
+    }, { timeout: 25000 }) // 25 second timeout for transaction
 
     return {
       success: true,
