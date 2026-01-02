@@ -176,14 +176,20 @@ export async function importQuotazioni(
 
     // Load all existing players in ONE query
     const existingPlayers = await prisma.serieAPlayer.findMany({
-      select: { id: true, externalId: true, name: true, position: true }
+      select: { id: true, externalId: true, name: true, position: true, listStatus: true }
     })
+
+    // Track IDs of players that were IN_LIST before this import (for NOT_IN_LIST marking)
+    const previouslyInListIds = new Set<string>()
 
     // Create lookup maps for fast matching
     const byExternalId = new Map<string, { id: string; externalId: string | null; name: string; position: Position }>()
     const byNamePosition = new Map<string, { id: string; externalId: string | null; name: string; position: Position }>()
 
     for (const p of existingPlayers) {
+      if (p.listStatus === 'IN_LIST') {
+        previouslyInListIds.add(p.id)
+      }
       if (p.externalId) {
         byExternalId.set(p.externalId, p)
       }
@@ -268,15 +274,18 @@ export async function importQuotazioni(
       }
       stats.updated = toUpdate.length
 
-      // Mark players not in new list as NOT_IN_LIST (single batch operation)
-      const notInListResult = await tx.serieAPlayer.updateMany({
-        where: {
-          listStatus: 'IN_LIST',
-          id: { notIn: Array.from(processedIds) },
-        },
-        data: { listStatus: 'NOT_IN_LIST' },
-      })
-      stats.notInList = notInListResult.count
+      // Mark players not in new list as NOT_IN_LIST
+      // Only affect players that were IN_LIST BEFORE this import and weren't updated
+      const idsToMarkNotInList = Array.from(previouslyInListIds).filter(id => !processedIds.has(id))
+      if (idsToMarkNotInList.length > 0) {
+        const notInListResult = await tx.serieAPlayer.updateMany({
+          where: {
+            id: { in: idsToMarkNotInList },
+          },
+          data: { listStatus: 'NOT_IN_LIST' },
+        })
+        stats.notInList = notInListResult.count
+      }
 
       // Save upload record
       await tx.quotazioniUpload.create({
