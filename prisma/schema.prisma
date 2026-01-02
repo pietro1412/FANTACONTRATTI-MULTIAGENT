@@ -299,6 +299,8 @@ model MarketSession {
   pendingNominationPlayer   SerieAPlayer? @relation("PendingNomination", fields: [pendingNominationPlayerId], references: [id])
   // Chi ha nominato il giocatore pending
   pendingNominatorId        String?
+  // Se il nominatore ha confermato la sua scelta (gli altri vedono "SONO PRONTO" solo dopo)
+  nominatorConfirmed        Boolean @default(false)
 
   startsAt    DateTime?
   endsAt      DateTime?

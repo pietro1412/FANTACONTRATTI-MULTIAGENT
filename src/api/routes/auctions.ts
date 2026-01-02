@@ -21,6 +21,8 @@ import {
   acknowledgeAuction,
   getPendingAcknowledgment,
   setPendingNomination,
+  confirmNomination,
+  cancelNomination,
   markReady,
   getReadyStatus,
   cancelPendingNomination,
@@ -487,6 +489,42 @@ router.post('/auctions/sessions/:sessionId/nominate-pending', authMiddleware, as
     res.status(201).json(result)
   } catch (error) {
     console.error('Set pending nomination error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/auctions/sessions/:sessionId/confirm-nomination - Confirm nomination (nominator only)
+router.post('/auctions/sessions/:sessionId/confirm-nomination', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const sessionId = req.params.sessionId as string
+    const result = await confirmNomination(sessionId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.status(201).json(result)
+  } catch (error) {
+    console.error('Confirm nomination error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// DELETE /api/auctions/sessions/:sessionId/nomination - Cancel nomination (nominator or admin)
+router.delete('/auctions/sessions/:sessionId/nomination', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const sessionId = req.params.sessionId as string
+    const result = await cancelNomination(sessionId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Cancel nomination error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

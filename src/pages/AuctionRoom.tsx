@@ -98,6 +98,7 @@ interface PendingAcknowledgment {
 
 interface ReadyStatus {
   hasPendingNomination: boolean
+  nominatorConfirmed: boolean
   player: Player | null
   nominatorId: string | null
   nominatorUsername: string
@@ -594,11 +595,37 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     setSuccessMessage('')
     const result = await auctionApi.setPendingNomination(sessionId, playerId)
     if (result.success) {
-      setSuccessMessage('Giocatore nominato!')
+      setSuccessMessage('Giocatore selezionato! Conferma o cambia.')
       loadReadyStatus()
       loadPlayers()
     } else {
       setError(result.message || 'Errore nella nomina')
+    }
+  }
+
+  async function handleConfirmNomination() {
+    setError('')
+    setMarkingReady(true)
+    const result = await auctionApi.confirmNomination(sessionId)
+    setMarkingReady(false)
+    if (result.success) {
+      setSuccessMessage('Scelta confermata!')
+      loadReadyStatus()
+      loadCurrentAuction()
+    } else {
+      setError(result.message || 'Errore')
+    }
+  }
+
+  async function handleCancelNomination() {
+    setError('')
+    const result = await auctionApi.cancelNomination(sessionId)
+    if (result.success) {
+      setSuccessMessage('Nomination annullata, scegli un altro giocatore.')
+      loadReadyStatus()
+      loadPlayers()
+    } else {
+      setError(result.message || 'Errore')
     }
   }
 
@@ -1102,8 +1129,12 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             {readyStatus?.hasPendingNomination && !auction && (
               <div className="bg-surface-200 rounded-xl border-2 border-accent-500/50 overflow-hidden animate-pulse-slow">
                 <div className="p-6 text-center">
-                  <div className="text-4xl mb-4">⏳</div>
-                  <h2 className="text-xl font-bold text-white mb-2">{readyStatus.nominatorUsername} ha chiamato</h2>
+                  <div className="text-4xl mb-4">{readyStatus.userIsNominator && !readyStatus.nominatorConfirmed ? '🎯' : '⏳'}</div>
+                  <h2 className="text-xl font-bold text-white mb-2">
+                    {readyStatus.userIsNominator && !readyStatus.nominatorConfirmed
+                      ? 'Conferma la tua scelta'
+                      : `${readyStatus.nominatorUsername} ha chiamato`}
+                  </h2>
                   {readyStatus.player && (
                     <div className="inline-flex items-center gap-3 bg-surface-300 rounded-lg p-4 mb-4">
                       <span className={`w-12 h-12 rounded-full bg-gradient-to-br ${POSITION_COLORS[readyStatus.player.position]} flex items-center justify-center text-white font-bold text-lg`}>{readyStatus.player.position}</span>
@@ -1120,24 +1151,69 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       </div>
                     </div>
                   )}
-                  <div className="mb-4">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-400">Manager pronti</span>
-                      <span className="font-bold text-white">{readyStatus.readyCount}/{readyStatus.totalMembers}</span>
-                    </div>
-                    <div className="w-full bg-surface-400 rounded-full h-2">
-                      <div className="h-2 rounded-full bg-accent-500 transition-all" style={{ width: `${(readyStatus.readyCount / readyStatus.totalMembers) * 100}%` }}></div>
-                    </div>
-                  </div>
-                  {!readyStatus.userIsReady ? (
-                    <Button onClick={handleMarkReady} disabled={markingReady} className="btn-accent px-12 py-3 text-lg font-bold">
-                      {markingReady ? 'Attendi...' : 'SONO PRONTO'}
-                    </Button>
-                  ) : (
+
+                  {/* Nominator: Confirm/Cancel buttons (before confirmation) */}
+                  {readyStatus.userIsNominator && !readyStatus.nominatorConfirmed && (
                     <div className="space-y-3">
-                      <p className="text-secondary-400 font-medium">✓ Pronto - In attesa degli altri</p>
+                      <div className="flex gap-3 justify-center">
+                        <Button onClick={handleConfirmNomination} disabled={markingReady} className="btn-accent px-8 py-3 text-lg font-bold">
+                          {markingReady ? 'Attendi...' : '✓ CONFERMA'}
+                        </Button>
+                        <Button onClick={handleCancelNomination} variant="outline" className="border-gray-500 text-gray-300 px-6 py-3">
+                          Cambia
+                        </Button>
+                      </div>
+                      <p className="text-sm text-gray-500">Dopo la conferma, gli altri manager potranno dichiararsi pronti</p>
+                    </div>
+                  )}
+
+                  {/* Nominator: After confirmation */}
+                  {readyStatus.userIsNominator && readyStatus.nominatorConfirmed && (
+                    <div className="space-y-3">
+                      <div className="mb-4">
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-gray-400">Manager pronti</span>
+                          <span className="font-bold text-white">{readyStatus.readyCount}/{readyStatus.totalMembers}</span>
+                        </div>
+                        <div className="w-full bg-surface-400 rounded-full h-2">
+                          <div className="h-2 rounded-full bg-accent-500 transition-all" style={{ width: `${(readyStatus.readyCount / readyStatus.totalMembers) * 100}%` }}></div>
+                        </div>
+                      </div>
+                      <p className="text-secondary-400 font-medium">✓ Confermato - In attesa degli altri</p>
                       {isAdmin && <Button size="sm" variant="outline" onClick={handleForceAllReady} className="border-accent-500/50 text-accent-400">[TEST] Forza Tutti Pronti</Button>}
                     </div>
+                  )}
+
+                  {/* Non-nominator: Waiting for confirmation */}
+                  {!readyStatus.userIsNominator && !readyStatus.nominatorConfirmed && (
+                    <div className="space-y-3">
+                      <p className="text-amber-400 font-medium">⏳ Attendi che {readyStatus.nominatorUsername} confermi la scelta...</p>
+                    </div>
+                  )}
+
+                  {/* Non-nominator: After confirmation, show SONO PRONTO or waiting */}
+                  {!readyStatus.userIsNominator && readyStatus.nominatorConfirmed && (
+                    <>
+                      <div className="mb-4">
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-gray-400">Manager pronti</span>
+                          <span className="font-bold text-white">{readyStatus.readyCount}/{readyStatus.totalMembers}</span>
+                        </div>
+                        <div className="w-full bg-surface-400 rounded-full h-2">
+                          <div className="h-2 rounded-full bg-accent-500 transition-all" style={{ width: `${(readyStatus.readyCount / readyStatus.totalMembers) * 100}%` }}></div>
+                        </div>
+                      </div>
+                      {!readyStatus.userIsReady ? (
+                        <Button onClick={handleMarkReady} disabled={markingReady} className="btn-accent px-12 py-3 text-lg font-bold">
+                          {markingReady ? 'Attendi...' : 'SONO PRONTO'}
+                        </Button>
+                      ) : (
+                        <div className="space-y-3">
+                          <p className="text-secondary-400 font-medium">✓ Pronto - In attesa degli altri</p>
+                          {isAdmin && <Button size="sm" variant="outline" onClick={handleForceAllReady} className="border-accent-500/50 text-accent-400">[TEST] Forza Tutti Pronti</Button>}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

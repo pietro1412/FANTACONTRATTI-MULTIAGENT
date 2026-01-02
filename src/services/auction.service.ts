@@ -2456,20 +2456,160 @@ export async function setPendingNomination(
   }
 
   // Store pending nomination
-  // The nominator is automatically ready
+  // The nominator must CONFIRM before others can declare ready
   await prisma.marketSession.update({
     where: { id: sessionId },
     data: {
       pendingNominationPlayerId: playerId,
       pendingNominatorId: member.id,
-      readyMembers: [member.id], // Nominator is automatically ready
+      nominatorConfirmed: false, // Nominator must confirm first
+      readyMembers: [], // Reset ready members
     },
   })
 
   return {
     success: true,
-    message: `Hai nominato ${player.name}. In attesa che tutti siano pronti.`,
+    message: `Hai selezionato ${player.name}. Conferma o cambia scelta.`,
     data: { player },
+  }
+}
+
+/**
+ * Confirm the nomination (nominator confirms their choice)
+ */
+export async function confirmNomination(
+  sessionId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const session = await prisma.marketSession.findUnique({
+    where: { id: sessionId },
+    include: {
+      league: true,
+      pendingNominationPlayer: true,
+    },
+  })
+
+  if (!session) {
+    return { success: false, message: 'Sessione non trovata' }
+  }
+
+  if (!session.pendingNominationPlayerId) {
+    return { success: false, message: 'Nessuna nomination in attesa' }
+  }
+
+  // Get member
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: session.leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Only the nominator can confirm
+  if (session.pendingNominatorId !== member.id) {
+    return { success: false, message: 'Solo chi ha nominato può confermare' }
+  }
+
+  // Already confirmed?
+  if (session.nominatorConfirmed) {
+    return { success: false, message: 'Già confermato' }
+  }
+
+  // Confirm and add nominator to ready members
+  await prisma.marketSession.update({
+    where: { id: sessionId },
+    data: {
+      nominatorConfirmed: true,
+      readyMembers: [member.id], // Nominator is now ready
+    },
+  })
+
+  // Check if we're the only member (auto-start)
+  const totalMembers = await prisma.leagueMember.count({
+    where: {
+      leagueId: session.leagueId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (totalMembers === 1) {
+    // Solo member, start auction immediately
+    return await startPendingAuction(sessionId)
+  }
+
+  return {
+    success: true,
+    message: `Scelta confermata! In attesa che gli altri siano pronti.`,
+    data: { player: session.pendingNominationPlayer },
+  }
+}
+
+/**
+ * Cancel the pending nomination (nominator can change their choice)
+ */
+export async function cancelNomination(
+  sessionId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const session = await prisma.marketSession.findUnique({
+    where: { id: sessionId },
+    include: { league: true },
+  })
+
+  if (!session) {
+    return { success: false, message: 'Sessione non trovata' }
+  }
+
+  if (!session.pendingNominationPlayerId) {
+    return { success: false, message: 'Nessuna nomination in attesa' }
+  }
+
+  // Get member
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: session.leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Only the nominator can cancel (before confirmation)
+  // Or admin can cancel anytime
+  const isAdmin = member.role === 'ADMIN'
+  const isNominator = session.pendingNominatorId === member.id
+
+  if (!isNominator && !isAdmin) {
+    return { success: false, message: 'Solo chi ha nominato può annullare' }
+  }
+
+  // If already confirmed and nominator (not admin), cannot cancel
+  if (session.nominatorConfirmed && isNominator && !isAdmin) {
+    return { success: false, message: 'Scelta già confermata, non puoi annullare' }
+  }
+
+  // Clear the nomination
+  await prisma.marketSession.update({
+    where: { id: sessionId },
+    data: {
+      pendingNominationPlayerId: null,
+      pendingNominatorId: null,
+      nominatorConfirmed: false,
+      readyMembers: [],
+    },
+  })
+
+  return {
+    success: true,
+    message: 'Nomination annullata',
   }
 }
 
@@ -2507,6 +2647,12 @@ export async function markReady(
 
   if (!member) {
     return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Non-nominators can only mark ready after nominator confirms
+  const isNominator = session.pendingNominatorId === member.id
+  if (!isNominator && !session.nominatorConfirmed) {
+    return { success: false, message: 'Attendi che il nominatore confermi la scelta' }
   }
 
   // Get current ready members
@@ -2670,6 +2816,7 @@ export async function getReadyStatus(
       success: true,
       data: {
         hasPendingNomination: false,
+        nominatorConfirmed: false,
         player: null,
         nominatorId: null,
         readyMembers: [],
@@ -2698,6 +2845,7 @@ export async function getReadyStatus(
     success: true,
     data: {
       hasPendingNomination: true,
+      nominatorConfirmed: session.nominatorConfirmed,
       player: session.pendingNominationPlayer,
       nominatorId: session.pendingNominatorId,
       nominatorUsername: nominator?.user.username || 'Unknown',

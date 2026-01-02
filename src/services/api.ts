@@ -277,6 +277,16 @@ export const auctionApi = {
       body: JSON.stringify({ playerId }),
     }),
 
+  confirmNomination: (sessionId: string) =>
+    request(`/api/auctions/sessions/${sessionId}/confirm-nomination`, {
+      method: 'POST',
+    }),
+
+  cancelNomination: (sessionId: string) =>
+    request(`/api/auctions/sessions/${sessionId}/nomination`, {
+      method: 'DELETE',
+    }),
+
   markReady: (sessionId: string) =>
     request(`/api/auctions/sessions/${sessionId}/ready`, {
       method: 'POST',
