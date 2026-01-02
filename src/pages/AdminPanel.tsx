@@ -181,6 +181,16 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       setSuccess(res.message || 'Ricorso gestito')
       setResolutionNote('')
       setSelectedAppealId(null)
+
+      // Se il ricorso è accettato, naviga alla stanza d'asta
+      if (decision === 'ACCEPTED' && res.data) {
+        const data = res.data as { sessionId: string; auctionId: string }
+        if (data.sessionId) {
+          onNavigate('auction-room', { sessionId: data.sessionId })
+          return
+        }
+      }
+
       loadAppeals()
     } else {
       setError(res.message || 'Errore')

@@ -3452,6 +3452,10 @@ export async function resolveAppeal(
     return {
       success: true,
       message: 'Ricorso accettato. Tutti i manager devono confermare la decisione.',
+      data: {
+        sessionId: appeal.auction.marketSessionId,
+        auctionId: appeal.auctionId,
+      },
     }
   } else {
     // REJECTED - conferma l'esito, ma tutti devono prendere visione
