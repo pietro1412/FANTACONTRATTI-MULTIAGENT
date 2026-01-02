@@ -42,7 +42,7 @@ import {
   getAppealStatus,
   completeAllRosterSlots,
 } from '../../services/auction.service'
-import { simulateFirstMarketBotBidding, completeBotTurn } from '../../services/bot.service'
+import { simulateFirstMarketBotBidding, completeBotTurn, botNominate, botConfirmNomination } from '../../services/bot.service'
 import { authMiddleware } from '../middleware/auth'
 
 const router = Router()
@@ -713,6 +713,42 @@ router.post('/auctions/sessions/:sessionId/bot-turn', authMiddleware, async (req
     res.json(result)
   } catch (error) {
     console.error('Bot turn simulation error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/auctions/sessions/:sessionId/bot-nominate - Simulate bot nominating a player (TEST)
+router.post('/auctions/sessions/:sessionId/bot-nominate', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const sessionId = req.params.sessionId as string
+    const result = await botNominate(sessionId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Bot nominate simulation error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/auctions/sessions/:sessionId/bot-confirm-nomination - Simulate bot confirming nomination (TEST)
+router.post('/auctions/sessions/:sessionId/bot-confirm-nomination', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const sessionId = req.params.sessionId as string
+    const result = await botConfirmNomination(sessionId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Bot confirm nomination simulation error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

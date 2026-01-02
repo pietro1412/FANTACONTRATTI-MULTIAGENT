@@ -327,6 +327,12 @@ export const auctionApi = {
   triggerBotTurn: (sessionId: string) =>
     request(`/api/auctions/sessions/${sessionId}/bot-turn`, { method: 'POST' }),
 
+  botNominate: (sessionId: string) =>
+    request(`/api/auctions/sessions/${sessionId}/bot-nominate`, { method: 'POST' }),
+
+  botConfirmNomination: (sessionId: string) =>
+    request(`/api/auctions/sessions/${sessionId}/bot-confirm-nomination`, { method: 'POST' }),
+
   completeAllSlots: (sessionId: string) =>
     request(`/api/auctions/sessions/${sessionId}/complete-all-slots`, { method: 'POST' }),
 

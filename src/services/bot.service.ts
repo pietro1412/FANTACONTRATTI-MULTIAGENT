@@ -121,14 +121,14 @@ export async function botNominate(
     return { success: false, message: 'Errore nella selezione del giocatore' }
   }
 
-  // Create the pending nomination (bot auto-confirms)
+  // Create the pending nomination (nominator must confirm separately)
   await prisma.marketSession.update({
     where: { id: sessionId },
     data: {
       pendingNominationPlayerId: selectedPlayer.id,
       pendingNominatorId: currentNominator.id,
-      nominatorConfirmed: true, // Bot auto-confirms
-      readyMembers: [currentNominator.id], // Nominator is automatically ready
+      nominatorConfirmed: false, // Nominator must confirm separately
+      readyMembers: [], // Reset ready members
     },
   })
 
@@ -138,6 +138,58 @@ export async function botNominate(
     data: {
       player: selectedPlayer,
       nominatorId: currentNominator.id,
+    },
+  }
+}
+
+/**
+ * Confirm the pending nomination (simulates nominator confirming their choice)
+ * This adds the nominator to readyMembers and allows others to mark ready
+ */
+export async function botConfirmNomination(
+  sessionId: string
+): Promise<ServiceResult> {
+  const session = await prisma.marketSession.findUnique({
+    where: { id: sessionId },
+    include: {
+      pendingNominationPlayer: true,
+    },
+  })
+
+  if (!session) {
+    return { success: false, message: 'Sessione non trovata' }
+  }
+
+  if (!session.pendingNominationPlayerId) {
+    return { success: false, message: 'Nessuna nomination in attesa da confermare' }
+  }
+
+  if (session.nominatorConfirmed) {
+    return { success: false, message: 'La nomination è già stata confermata' }
+  }
+
+  const nominatorId = session.pendingNominatorId
+  if (!nominatorId) {
+    return { success: false, message: 'Nominatore non trovato' }
+  }
+
+  // Confirm the nomination and add nominator to ready members
+  const readyMembers = [nominatorId]
+
+  await prisma.marketSession.update({
+    where: { id: sessionId },
+    data: {
+      nominatorConfirmed: true,
+      readyMembers,
+    },
+  })
+
+  return {
+    success: true,
+    message: `Nomination confermata per ${session.pendingNominationPlayer?.name}`,
+    data: {
+      player: session.pendingNominationPlayer,
+      nominatorId,
     },
   }
 }

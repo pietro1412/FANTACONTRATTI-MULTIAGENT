@@ -699,6 +699,38 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     }
   }
 
+  async function handleBotNominate() {
+    setError('')
+    const result = await auctionApi.botNominate(sessionId)
+    if (result.success) {
+      const data = result.data as { player?: { name: string } }
+      setSuccessMessage(`Bot ha scelto ${data.player?.name}`)
+      loadCurrentAuction()
+      loadFirstMarketStatus()
+      loadReadyStatus()
+      loadMyRosterSlots()
+      loadManagersStatus()
+    } else {
+      setError(result.message || 'Errore')
+    }
+  }
+
+  async function handleBotConfirmNomination() {
+    setError('')
+    const result = await auctionApi.botConfirmNomination(sessionId)
+    if (result.success) {
+      const data = result.data as { player?: { name: string } }
+      setSuccessMessage(`Scelta confermata: ${data.player?.name}`)
+      loadCurrentAuction()
+      loadFirstMarketStatus()
+      loadReadyStatus()
+      loadMyRosterSlots()
+      loadManagersStatus()
+    } else {
+      setError(result.message || 'Errore')
+    }
+  }
+
   async function handleForceAcknowledgeAll() {
     const result = await auctionApi.forceAcknowledgeAll(sessionId)
     if (result.success) {
@@ -1105,14 +1137,19 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   </div>
                   <div className="pt-2 border-t border-surface-50/20 space-y-2">
                     <p className="text-xs text-accent-500 font-bold uppercase">Test Mode</p>
-                    <Button size="sm" variant="outline" onClick={handleBotTurn} className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10">
-                      🤖 Bot Turno
+                    <Button size="sm" variant="outline" onClick={handleBotNominate} className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10">
+                      🎯 Simula Scelta Giocatore
                     </Button>
+                    <Button size="sm" variant="outline" onClick={handleBotConfirmNomination} className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10">
+                      ✅ Simula Conferma Scelta
+                    </Button>
+                    {auction && (
+                      <Button size="sm" variant="outline" onClick={handleBotBid} className="w-full text-xs border-primary-500/50 text-primary-400 hover:bg-primary-500/10">
+                        💰 Simula Offerta Bot
+                      </Button>
+                    )}
                     <Button size="sm" variant="outline" onClick={handleForceAllReady} className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10">Forza Tutti Pronti</Button>
                     <Button size="sm" variant="outline" onClick={handleForceAcknowledgeAll} className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10">Forza Conferme</Button>
-                    {auction && (
-                      <Button size="sm" variant="outline" onClick={handleBotBid} className="w-full text-xs border-primary-500/50 text-primary-400 hover:bg-primary-500/10">Bot Offerta</Button>
-                    )}
                     <Button size="sm" variant="outline" onClick={handleCompleteAllSlots} className="w-full text-xs border-secondary-500/50 text-secondary-400 hover:bg-secondary-500/10">
                       ✅ Completa Tutti Slot
                     </Button>
