@@ -282,6 +282,15 @@ export async function resetFirstMarket(
     return { success: false, message: 'Nessuna sessione PRIMO MERCATO trovata' }
   }
 
+  // Delete all auction appeals for this session's auctions
+  await prisma.auctionAppeal.deleteMany({
+    where: {
+      auction: {
+        marketSessionId: session.id,
+      },
+    },
+  })
+
   // Delete all auction acknowledgments for this session's auctions
   await prisma.auctionAcknowledgment.deleteMany({
     where: {
@@ -352,6 +361,7 @@ export async function resetFirstMarket(
       currentRole: 'P',
       pendingNominationPlayerId: null,
       pendingNominatorId: null,
+      nominatorConfirmed: false,
       readyMembers: Prisma.JsonNull,
       status: 'ACTIVE',
     },
