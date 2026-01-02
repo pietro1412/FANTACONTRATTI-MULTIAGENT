@@ -2827,6 +2827,26 @@ export async function getReadyStatus(
     }
   }
 
+  const userIsNominator = session.pendingNominatorId === member.id
+
+  // If nomination exists but NOT confirmed and user is NOT the nominator,
+  // hide the nomination from them (they shouldn't see it yet)
+  if (!session.nominatorConfirmed && !userIsNominator) {
+    return {
+      success: true,
+      data: {
+        hasPendingNomination: false,
+        nominatorConfirmed: false,
+        player: null,
+        nominatorId: null,
+        readyMembers: [],
+        totalMembers: 0,
+        userIsReady: false,
+        userIsNominator: false,
+      },
+    }
+  }
+
   // Get all members
   const allMembers = await prisma.leagueMember.findMany({
     where: {
@@ -2864,7 +2884,7 @@ export async function getReadyStatus(
       totalMembers: allMembers.length,
       readyCount: readyMemberIds.length,
       userIsReady: readyMemberIds.includes(member.id),
-      userIsNominator: session.pendingNominatorId === member.id,
+      userIsNominator,
     },
   }
 }
