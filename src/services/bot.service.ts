@@ -121,12 +121,13 @@ export async function botNominate(
     return { success: false, message: 'Errore nella selezione del giocatore' }
   }
 
-  // Create the pending nomination
+  // Create the pending nomination (bot auto-confirms)
   await prisma.marketSession.update({
     where: { id: sessionId },
     data: {
       pendingNominationPlayerId: selectedPlayer.id,
       pendingNominatorId: currentNominator.id,
+      nominatorConfirmed: true, // Bot auto-confirms
       readyMembers: [currentNominator.id], // Nominator is automatically ready
     },
   })
