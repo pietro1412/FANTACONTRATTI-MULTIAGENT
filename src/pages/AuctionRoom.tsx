@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { auctionApi, playerApi, firstMarketApi, adminApi } from '../services/api'
+import { usePusherAuction } from '../services/pusher.client'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Navigation } from '../components/Navigation'
@@ -320,6 +321,40 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
 
   const [appealStatus, setAppealStatus] = useState<AppealStatus | null>(null)
 
+  // Pusher real-time updates
+  const { connectionStatus, isConnected } = usePusherAuction(sessionId, {
+    onBidPlaced: (data) => {
+      console.log('[Pusher] Bid placed:', data)
+      loadCurrentAuction()
+    },
+    onNominationPending: (data) => {
+      console.log('[Pusher] Nomination pending:', data)
+      loadReadyStatus()
+      loadFirstMarketStatus()
+    },
+    onNominationConfirmed: (data) => {
+      console.log('[Pusher] Nomination confirmed:', data)
+      loadReadyStatus()
+    },
+    onMemberReady: (data) => {
+      console.log('[Pusher] Member ready:', data)
+      loadReadyStatus()
+    },
+    onAuctionStarted: (data) => {
+      console.log('[Pusher] Auction started:', data)
+      loadCurrentAuction()
+      loadReadyStatus()
+    },
+    onAuctionClosed: (data) => {
+      console.log('[Pusher] Auction closed:', data)
+      loadCurrentAuction()
+      loadPendingAcknowledgment()
+      loadFirstMarketStatus()
+      loadMyRosterSlots()
+      loadManagersStatus()
+    },
+  })
+
   const isAdmin = membership?.role === 'ADMIN'
   const isPrimoMercato = sessionInfo?.type === 'PRIMO_MERCATO'
   const hasTurnOrder = firstMarketStatus?.turnOrder && firstMarketStatus.turnOrder.length > 0
@@ -514,6 +549,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     loadMyRosterSlots()
     loadManagersStatus()
     loadTeams()
+    // Polling at 10s as fallback - real-time updates come from Pusher
     const interval = setInterval(() => {
       loadCurrentAuction()
       loadFirstMarketStatus()
@@ -521,14 +557,15 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       loadReadyStatus()
       loadMyRosterSlots()
       loadManagersStatus()
-    }, 2000)
+    }, 10000)
     return () => clearInterval(interval)
   }, [loadCurrentAuction, loadFirstMarketStatus, loadPendingAcknowledgment, loadReadyStatus, loadMyRosterSlots, loadManagersStatus, loadTeams])
 
   // Carica stato ricorso quando cambia pendingAck
   useEffect(() => {
     loadAppealStatus()
-    const interval = setInterval(loadAppealStatus, 2000)
+    // Polling at 10s as fallback - real-time updates come from Pusher
+    const interval = setInterval(loadAppealStatus, 10000)
     return () => clearInterval(interval)
   }, [loadAppealStatus])
 
@@ -664,36 +701,6 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
         setSuccessMessage('Nessun bot ha fatto offerte')
       }
       loadCurrentAuction()
-    } else {
-      setError(result.message || 'Errore')
-    }
-  }
-
-  async function handleBotTurn() {
-    setError('')
-    const result = await auctionApi.triggerBotTurn(sessionId)
-    if (result.success) {
-      const data = result.data as {
-        player?: { name: string }
-        auctionStarted?: boolean
-        hasBotBid?: boolean
-        winningBot?: string | null
-        newCurrentPrice?: number
-      }
-      if (data.player) {
-        setSuccessMessage(`Bot ha nominato ${data.player.name}`)
-      } else if (data.auctionStarted) {
-        setSuccessMessage('Asta avviata!')
-      } else if (data.hasBotBid) {
-        setSuccessMessage(`${data.winningBot} ha offerto ${data.newCurrentPrice}!`)
-      } else {
-        setSuccessMessage(result.message || 'Turno bot completato')
-      }
-      loadCurrentAuction()
-      loadFirstMarketStatus()
-      loadReadyStatus()
-      loadMyRosterSlots()
-      loadManagersStatus()
     } else {
       setError(result.message || 'Errore')
     }
@@ -1004,7 +1011,13 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">Sala Asta</h1>
-                <p className="text-gray-400 text-sm">Primo Mercato</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-gray-400 text-sm">Primo Mercato</p>
+                  {/* Pusher connection status */}
+                  <div className={`text-xs ${isConnected ? 'text-green-400' : 'text-yellow-400'}`}>
+                    {isConnected ? '🟢 Real-time' : '🟡 ' + connectionStatus}
+                  </div>
+                </div>
               </div>
             </div>
             <div className="text-right bg-surface-200 rounded-xl px-5 py-3 border border-surface-50/20">

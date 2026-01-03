@@ -1,6 +1,14 @@
 import { PrismaClient, AuctionStatus, AuctionType, MemberRole, MemberStatus, AcquisitionType, RosterStatus, Position, SessionStatus, Prisma } from '@prisma/client'
 import { calculateRescissionClause, canAdvanceFromContratti } from './contract.service'
 import { recordMovement } from './movement.service'
+import {
+  triggerBidPlaced,
+  triggerNominationPending,
+  triggerNominationConfirmed,
+  triggerMemberReady,
+  triggerAuctionStarted,
+  triggerAuctionClosed,
+} from './pusher.service'
 
 const prisma = new PrismaClient()
 
@@ -1042,6 +1050,19 @@ export async function placeBid(
     },
   })
 
+  // Trigger Pusher event for bid placed (fire and forget)
+  if (auction.marketSessionId) {
+    triggerBidPlaced(auction.marketSessionId, {
+      auctionId: auction.id,
+      memberId: member.id,
+      memberName: bid.bidder.user.username,
+      amount: amount,
+      playerId: auction.playerId,
+      playerName: auction.player.name,
+      timestamp: new Date().toISOString(),
+    })
+  }
+
   return {
     success: true,
     message: `Offerta di ${amount} registrata`,
@@ -1065,7 +1086,13 @@ export async function closeAuction(
       bids: {
         where: { isWinning: true },
         include: {
-          bidder: true,
+          bidder: {
+            include: {
+              user: {
+                select: { username: true },
+              },
+            },
+          },
         },
       },
     },
@@ -1104,6 +1131,20 @@ export async function closeAuction(
         endsAt: new Date(),
       },
     })
+
+    // Trigger Pusher event for auction closed (fire and forget)
+    if (auction.marketSessionId) {
+      triggerAuctionClosed(auction.marketSessionId, {
+        auctionId: auction.id,
+        playerId: auction.playerId,
+        playerName: auction.player.name,
+        winnerId: null,
+        winnerName: null,
+        finalPrice: null,
+        wasUnsold: true,
+        timestamp: new Date().toISOString(),
+      })
+    }
 
     return {
       success: true,
@@ -1160,6 +1201,20 @@ export async function closeAuction(
     auctionId,
     marketSessionId: session?.id,
   })
+
+  // Trigger Pusher event for auction closed (fire and forget)
+  if (auction.marketSessionId) {
+    triggerAuctionClosed(auction.marketSessionId, {
+      auctionId: auction.id,
+      playerId: auction.playerId,
+      playerName: auction.player.name,
+      winnerId: winner.id,
+      winnerName: winner.user.username,
+      finalPrice: auction.currentPrice,
+      wasUnsold: false,
+      timestamp: new Date().toISOString(),
+    })
+  }
 
   return {
     success: true,
@@ -2343,7 +2398,7 @@ export async function setPendingNomination(
     return { success: false, message: 'C\'è già una nomination in attesa' }
   }
 
-  // Get member
+  // Get member (include user for Pusher events)
   const member = await prisma.leagueMember.findFirst({
     where: {
       leagueId: session.leagueId,
@@ -2351,6 +2406,9 @@ export async function setPendingNomination(
       status: MemberStatus.ACTIVE,
     },
     include: {
+      user: {
+        select: { username: true },
+      },
       roster: {
         where: { status: 'ACTIVE' },
         include: { player: true },
@@ -2467,6 +2525,18 @@ export async function setPendingNomination(
     },
   })
 
+  // Trigger Pusher event for nomination pending (fire and forget)
+  triggerNominationPending(sessionId, {
+    auctionId: '', // no auction yet
+    nominatorId: member.id,
+    nominatorName: member.user.username,
+    playerId: player.id,
+    playerName: player.name,
+    playerRole: player.position,
+    startingPrice: 1,
+    timestamp: new Date().toISOString(),
+  })
+
   return {
     success: true,
     message: `Hai selezionato ${player.name}. Conferma o cambia scelta.`,
@@ -2497,12 +2567,17 @@ export async function confirmNomination(
     return { success: false, message: 'Nessuna nomination in attesa' }
   }
 
-  // Get member
+  // Get member (include user for Pusher events)
   const member = await prisma.leagueMember.findFirst({
     where: {
       leagueId: session.leagueId,
       userId,
       status: MemberStatus.ACTIVE,
+    },
+    include: {
+      user: {
+        select: { username: true },
+      },
     },
   })
 
@@ -2527,6 +2602,19 @@ export async function confirmNomination(
       nominatorConfirmed: true,
       readyMembers: [member.id], // Nominator is now ready
     },
+  })
+
+  // Trigger Pusher event for nomination confirmed (fire and forget)
+  triggerNominationConfirmed(sessionId, {
+    auctionId: '',
+    playerId: session.pendingNominationPlayer!.id,
+    playerName: session.pendingNominationPlayer!.name,
+    playerRole: session.pendingNominationPlayer!.position,
+    startingPrice: 1,
+    nominatorId: session.pendingNominatorId!,
+    nominatorName: member.user.username,
+    timerDuration: session.auctionTimerSeconds,
+    timestamp: new Date().toISOString(),
   })
 
   // Check if we're the only member (auto-start)
@@ -2636,12 +2724,17 @@ export async function markReady(
     return { success: false, message: 'Nessuna nomination in attesa' }
   }
 
-  // Get member
+  // Get member (include user for Pusher events)
   const member = await prisma.leagueMember.findFirst({
     where: {
       leagueId: session.leagueId,
       userId,
       status: MemberStatus.ACTIVE,
+    },
+    include: {
+      user: {
+        select: { username: true },
+      },
     },
   })
 
@@ -2664,24 +2757,34 @@ export async function markReady(
   }
 
   // Add to ready list
-  readyMembers.push(member.id)
+  const newReadyMembers = [...readyMembers, member.id]
 
   await prisma.marketSession.update({
     where: { id: sessionId },
     data: {
-      readyMembers,
+      readyMembers: newReadyMembers,
     },
   })
 
-  // Check if all members are ready
-  const totalMembers = await prisma.leagueMember.count({
+  // Get all members count for Pusher event
+  const allMembers = await prisma.leagueMember.findMany({
     where: {
       leagueId: session.leagueId,
       status: MemberStatus.ACTIVE,
     },
   })
 
-  if (readyMembers.length >= totalMembers) {
+  // Trigger Pusher event for member ready (fire and forget)
+  triggerMemberReady(sessionId, {
+    memberId: member.id,
+    memberName: member.user.username,
+    isReady: true,
+    readyCount: newReadyMembers.length,
+    totalMembers: allMembers.length,
+    timestamp: new Date().toISOString(),
+  })
+
+  if (newReadyMembers.length >= allMembers.length) {
     // All ready! Start the auction
     return await startPendingAuction(sessionId)
   }
@@ -2690,8 +2793,8 @@ export async function markReady(
     success: true,
     message: 'Sei pronto!',
     data: {
-      readyCount: readyMembers.length,
-      totalMembers,
+      readyCount: newReadyMembers.length,
+      totalMembers: allMembers.length,
       allReady: false,
     },
   }
@@ -2764,6 +2867,15 @@ async function startPendingAuction(sessionId: string): Promise<ServiceResult> {
       pendingNominatorId: null,
       readyMembers: Prisma.JsonNull,
     },
+  })
+
+  // Trigger Pusher event for auction started (fire and forget)
+  triggerAuctionStarted(sessionId, {
+    sessionId,
+    auctionType: session.type,
+    nominatorId: nominator!.id,
+    nominatorName: nominator!.user.username,
+    timestamp: new Date().toISOString(),
   })
 
   return {
