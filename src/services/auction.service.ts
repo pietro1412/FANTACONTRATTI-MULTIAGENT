@@ -937,6 +937,10 @@ export async function placeBid(
   userId: string,
   amount: number
 ): Promise<ServiceResult> {
+  const startTime = Date.now()
+  console.log(`[PLACEBID-TIMING] === Start placeBid ===`)
+
+  const t1 = Date.now()
   const auction = await prisma.auction.findUnique({
     where: { id: auctionId },
     include: {
@@ -944,6 +948,7 @@ export async function placeBid(
       league: true,
     },
   })
+  console.log(`[PLACEBID-TIMING] Query auction: ${Date.now() - t1}ms`)
 
   if (!auction) {
     return { success: false, message: 'Asta non trovata' }
@@ -954,6 +959,7 @@ export async function placeBid(
   }
 
   // Get member
+  const t2 = Date.now()
   const member = await prisma.leagueMember.findFirst({
     where: {
       leagueId: auction.leagueId,
@@ -961,6 +967,7 @@ export async function placeBid(
       status: MemberStatus.ACTIVE,
     },
   })
+  console.log(`[PLACEBID-TIMING] Query member: ${Date.now() - t2}ms`)
 
   if (!member) {
     return { success: false, message: 'Non sei membro di questa lega' }
@@ -1051,6 +1058,7 @@ export async function placeBid(
   })
 
   // Trigger Pusher event for bid placed (fire and forget)
+  const tPusher = Date.now()
   if (auction.marketSessionId) {
     triggerBidPlaced(auction.marketSessionId, {
       auctionId: auction.id,
@@ -1062,6 +1070,8 @@ export async function placeBid(
       timestamp: new Date().toISOString(),
     })
   }
+  console.log(`[PLACEBID-TIMING] Pusher trigger (fire&forget): ${Date.now() - tPusher}ms`)
+  console.log(`[PLACEBID-TIMING] === TOTAL: ${Date.now() - startTime}ms ===`)
 
   return {
     success: true,
