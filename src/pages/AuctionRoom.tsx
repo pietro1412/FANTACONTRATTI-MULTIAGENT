@@ -321,24 +321,65 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
 
   const [appealStatus, setAppealStatus] = useState<AppealStatus | null>(null)
 
-  // Pusher real-time updates
+  // Pusher real-time updates - update state directly from Pusher data (no HTTP calls)
   const { connectionStatus, isConnected } = usePusherAuction(sessionId, {
     onBidPlaced: (data) => {
       console.log('[Pusher] Bid placed:', data)
-      loadCurrentAuction()
+      // Update auction state directly with Pusher data - INSTANT!
+      setAuction(prev => {
+        if (!prev || prev.id !== data.auctionId) return prev
+
+        // Create new bid object from Pusher data
+        const newBid: Bid = {
+          id: `pusher-${Date.now()}`,
+          amount: data.amount,
+          placedAt: data.timestamp,
+          bidder: {
+            user: { username: data.memberName }
+          }
+        }
+
+        return {
+          ...prev,
+          currentPrice: data.amount,
+          bids: [newBid, ...prev.bids]
+        }
+      })
+      // Update managers status for budget display
+      loadManagersStatus()
     },
     onNominationPending: (data) => {
       console.log('[Pusher] Nomination pending:', data)
-      loadReadyStatus()
+      // Update ready status directly
+      setReadyStatus(prev => prev ? {
+        ...prev,
+        hasPendingNomination: true,
+        player: {
+          id: data.playerId,
+          name: data.playerName,
+          team: '',
+          position: data.playerRole,
+          quotation: data.startingPrice
+        },
+        nominatorId: data.nominatorId,
+        nominatorUsername: data.nominatorName
+      } : null)
       loadFirstMarketStatus()
     },
     onNominationConfirmed: (data) => {
       console.log('[Pusher] Nomination confirmed:', data)
+      // Nomination confirmed - load current auction to get full auction data
+      loadCurrentAuction()
       loadReadyStatus()
     },
     onMemberReady: (data) => {
       console.log('[Pusher] Member ready:', data)
-      loadReadyStatus()
+      // Update ready count directly
+      setReadyStatus(prev => prev ? {
+        ...prev,
+        readyCount: data.readyCount,
+        totalMembers: data.totalMembers
+      } : null)
     },
     onAuctionStarted: (data) => {
       console.log('[Pusher] Auction started:', data)
@@ -347,7 +388,16 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     },
     onAuctionClosed: (data) => {
       console.log('[Pusher] Auction closed:', data)
-      loadCurrentAuction()
+      // Update auction state to show winner immediately
+      setAuction(prev => {
+        if (!prev || prev.id !== data.auctionId) return prev
+        return {
+          ...prev,
+          status: 'CLOSED',
+          winner: data.winnerId ? { user: { username: data.winnerName || '' } } : undefined,
+          currentPrice: data.finalPrice || prev.currentPrice
+        }
+      })
       loadPendingAcknowledgment()
       loadFirstMarketStatus()
       loadMyRosterSlots()
@@ -823,7 +873,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
 
   async function handleCompleteAllSlots() {
     if (!sessionId) return
-    if (!confirm('Sei sicuro di voler completare l\'asta riempiendo tutti gli slot di tutti i manager?')) return
+    if (!confirm('Sei sicuro di voler completare l\'asta riempiendo tutti gli slot di tutti i Direttori Generali?')) return
     const result = await auctionApi.completeAllSlots(sessionId)
     if (result.success) {
       const data = result.data as { totalPlayersAdded: number; totalContractsCreated: number; memberResults: string[] }
@@ -915,9 +965,34 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
 
   function getTimerClass() {
     if (timeLeft === null) return 'text-gray-500'
-    if (timeLeft <= 5) return 'timer-danger'
-    if (timeLeft <= 10) return 'timer-warning'
-    return 'timer-safe'
+    if (timeLeft <= 5) return 'timer-value timer-value-danger'
+    if (timeLeft <= 10) return 'timer-value timer-value-warning'
+    return 'timer-value text-secondary-400'
+  }
+
+  function getTimerContainerClass() {
+    if (timeLeft === null) return 'timer-container'
+    if (timeLeft <= 5) return 'timer-container timer-container-danger'
+    if (timeLeft <= 10) return 'timer-container timer-container-warning'
+    return 'timer-container'
+  }
+
+  // Check if current user is winning the auction
+  const currentUsername = managersStatus?.managers.find(m => m.id === managersStatus?.myId)?.username
+  const isUserWinning = auction?.bids?.[0]?.bidder?.user?.username === currentUsername
+
+  // Check if timer is expired
+  const isTimerExpired = timeLeft !== null && timeLeft <= 0
+
+  // Calculate budget percentage for progress bars
+  const getBudgetPercentage = (current: number, initial: number = 500) => {
+    return Math.min(100, Math.max(0, (current / initial) * 100))
+  }
+
+  const getBudgetBarClass = (percentage: number) => {
+    if (percentage <= 20) return 'budget-progress-bar budget-progress-bar-critical'
+    if (percentage <= 40) return 'budget-progress-bar budget-progress-bar-low'
+    return 'budget-progress-bar'
   }
 
   if (isLoading) {
@@ -941,7 +1016,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
               <span>←</span> Torna alla lega
             </button>
             <h1 className="text-3xl font-bold text-white">Ordine di Chiamata</h1>
-            <p className="text-gray-400 mt-1">Trascina i manager per definire l'ordine dei turni</p>
+            <p className="text-gray-400 mt-1">Trascina i Direttori Generali per definire l'ordine dei turni</p>
           </div>
         </header>
 
@@ -955,7 +1030,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 <span className="text-xl">👔</span>
               </div>
               <div>
-                <h2 className="font-bold text-white">Manager in Sala</h2>
+                <h2 className="font-bold text-white">Direttori Generali in Sala</h2>
                 <p className="text-sm text-gray-400">{turnOrderDraft.length} partecipanti</p>
               </div>
             </div>
@@ -1061,7 +1136,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   <span className="font-bold text-white">{marketProgress.filledSlots}/{marketProgress.totalSlots}</span>
                 </div>
                 <div className="text-gray-500">
-                  (slot/manager: {marketProgress.slotLimits[marketProgress.currentRole as keyof typeof marketProgress.slotLimits]})
+                  (slot/DG: {marketProgress.slotLimits[marketProgress.currentRole as keyof typeof marketProgress.slotLimits]})
                 </div>
               </div>
             </div>
@@ -1069,13 +1144,25 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
         )}
       </div>
 
-      <main className="max-w-full mx-auto px-4 py-6">
-        {error && <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg mb-4">{error}</div>}
-        {successMessage && <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-3 rounded-lg mb-4">{successMessage}</div>}
+      <main className={`max-w-full mx-auto px-4 py-4 lg:py-6 ${auction ? 'auction-room-mobile' : ''}`}>
+        {/* Error/Success Messages - Fixed on mobile */}
+        <div className="space-y-2 mb-4">
+          {error && (
+            <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+          {successMessage && (
+            <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-3 rounded-lg text-sm">
+              {successMessage}
+            </div>
+          )}
+        </div>
 
-        <div className="grid lg:grid-cols-12 gap-4">
-          {/* LEFT: My Roster */}
-          <div className="lg:col-span-3 space-y-4">
+        {/* Mobile-first grid layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* LEFT: My Roster - Hidden on mobile during active auction, collapsible */}
+          <div className={`lg:col-span-3 space-y-4 ${auction ? 'hidden lg:block' : ''}`}>
             <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
               <div className="p-3 border-b border-surface-50/20 flex items-center gap-2">
                 <span className="text-lg">📋</span>
@@ -1173,8 +1260,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             )}
           </div>
 
-          {/* CENTER: Auction */}
-          <div className="lg:col-span-5 space-y-4">
+          {/* CENTER: Auction - Full width on mobile, primary focus */}
+          <div className="lg:col-span-5 space-y-4 order-first lg:order-none">
             {/* Ready Check */}
             {readyStatus?.hasPendingNomination && !auction && (
               <div className="bg-surface-200 rounded-xl border-2 border-accent-500/50 overflow-hidden animate-pulse-slow">
@@ -1213,7 +1300,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                           Cambia
                         </Button>
                       </div>
-                      <p className="text-sm text-gray-500">Dopo la conferma, gli altri manager potranno dichiararsi pronti</p>
+                      <p className="text-sm text-gray-500">Dopo la conferma, gli altri Direttori Generali potranno dichiararsi pronti</p>
                     </div>
                   )}
 
@@ -1222,7 +1309,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                     <div className="space-y-3">
                       <div className="mb-4">
                         <div className="flex justify-between text-sm mb-2">
-                          <span className="text-gray-400">Manager pronti</span>
+                          <span className="text-gray-400">DG pronti</span>
                           <span className="font-bold text-white">{readyStatus.readyCount}/{readyStatus.totalMembers}</span>
                         </div>
                         <div className="w-full bg-surface-400 rounded-full h-2">
@@ -1246,7 +1333,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                     <>
                       <div className="mb-4">
                         <div className="flex justify-between text-sm mb-2">
-                          <span className="text-gray-400">Manager pronti</span>
+                          <span className="text-gray-400">DG pronti</span>
                           <span className="font-bold text-white">{readyStatus.readyCount}/{readyStatus.totalMembers}</span>
                         </div>
                         <div className="w-full bg-surface-400 rounded-full h-2">
@@ -1270,69 +1357,166 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             )}
 
             {/* Auction Card */}
-            <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
-              <div className="p-4 border-b border-surface-50/20 flex items-center gap-2">
-                <span className="text-lg">{auction ? '🔨' : '📭'}</span>
-                <h3 className="font-bold text-white">{auction ? 'Asta in Corso' : 'Nessuna Asta'}</h3>
+            <div className={`bg-surface-200 rounded-xl border overflow-hidden ${auction ? 'auction-card-active' : 'border-surface-50/20'}`}>
+              <div className="p-4 border-b border-surface-50/20 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{auction ? '🔨' : '📭'}</span>
+                  <h3 className="font-bold text-white">{auction ? 'Asta in Corso' : 'Nessuna Asta'}</h3>
+                </div>
+                {auction && isUserWinning && (
+                  <div className="winning-indicator">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Stai vincendo!
+                  </div>
+                )}
               </div>
 
-              <div className="p-6">
+              <div className="p-4 lg:p-6">
                 {auction ? (
-                  <div>
-                    {/* Timer */}
+                  <div className="space-y-4">
+                    {/* Enhanced Timer Section */}
                     {auction.timerExpiresAt && (
-                      <div className="text-center mb-6">
-                        <div className={`text-7xl font-mono font-bold ${getTimerClass()}`}>{timeLeft ?? '--'}</div>
-                        <p className="text-gray-500 text-sm">secondi</p>
+                      <div className={`${getTimerContainerClass()} relative`}>
+                        {timeLeft !== null && timeLeft <= 5 && (
+                          <div className="sound-indicator">
+                            <span className="sr-only">Timer warning</span>
+                          </div>
+                        )}
+                        <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">Tempo rimanente</p>
+                        <div className={getTimerClass()}>{timeLeft ?? '--'}</div>
+                        <p className="text-gray-500 text-sm mt-1">secondi</p>
+                        {timeLeft !== null && timeLeft <= 10 && timeLeft > 0 && (
+                          <p className="text-xs text-amber-400 mt-2 animate-pulse">Affrettati!</p>
+                        )}
                       </div>
                     )}
 
-                    {/* Player */}
-                    <div className="text-center mb-6 p-6 bg-surface-300 rounded-xl">
-                      <span className={`inline-block px-4 py-1 rounded-full text-sm font-bold border mb-3 ${POSITION_BG[auction.player.position]}`}>{POSITION_NAMES[auction.player.position]}</span>
-                      <h2 className="text-4xl font-bold text-white mb-2">{auction.player.name}</h2>
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5">
+                    {/* Enhanced Player Display */}
+                    <div className="text-center p-5 bg-gradient-to-br from-surface-300 to-surface-200 rounded-xl border border-surface-50/20">
+                      <div className="flex items-center justify-center gap-4 mb-3">
+                        <span className={`px-4 py-1.5 rounded-full text-sm font-bold border ${POSITION_BG[auction.player.position]}`}>
+                          {POSITION_NAMES[auction.player.position]}
+                        </span>
+                        <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1 shadow-lg">
                           <img
                             src={getTeamLogo(auction.player.team)}
                             alt={auction.player.team}
-                            className="w-7 h-7 object-contain"
+                            className="w-10 h-10 object-contain"
                           />
                         </div>
-                        <p className="text-xl text-gray-400">{auction.player.team}</p>
                       </div>
+                      <h2 className="text-3xl lg:text-4xl font-bold text-white mb-1">{auction.player.name}</h2>
+                      <p className="text-lg text-gray-400">{auction.player.team}</p>
+                      {auction.player.quotation && (
+                        <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-surface-400/50 rounded-full">
+                          <span className="text-xs text-gray-400">Quotazione:</span>
+                          <span className="text-sm font-bold text-accent-400">{auction.player.quotation}</span>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Current Price */}
-                    <div className="bg-primary-500/10 border border-primary-500/30 rounded-xl p-6 text-center mb-6">
-                      <p className="text-sm text-primary-400 mb-1">Offerta Attuale</p>
-                      <p className="text-6xl font-bold text-white text-glow">{auction.currentPrice}</p>
-                      {auction.bids.length > 0 && auction.bids[0] && <p className="text-primary-400 mt-2">di {auction.bids[0].bidder.user.username}</p>}
+                    {/* Enhanced Current Price */}
+                    <div className="current-price-container rounded-xl p-5 text-center">
+                      <p className="text-sm text-primary-400 mb-2 uppercase tracking-wider">Offerta Attuale</p>
+                      <p className="text-5xl lg:text-6xl font-bold text-white text-glow mb-2">{auction.currentPrice}</p>
+                      {auction.bids.length > 0 && auction.bids[0] && (
+                        <p className={`text-lg ${auction.bids[0].bidder.user.username === currentUsername ? 'text-secondary-400 font-bold' : 'text-primary-400'}`}>
+                          di {auction.bids[0].bidder.user.username}
+                          {auction.bids[0].bidder.user.username === currentUsername && ' (TU)'}
+                        </p>
+                      )}
+                      {auction.bids.length === 0 && (
+                        <p className="text-gray-500">Base d'asta: {auction.basePrice}</p>
+                      )}
                     </div>
 
-                    {/* Bid Controls */}
-                    <div className="space-y-4">
-                      <div className="flex gap-2">
-                        <Input type="number" value={bidAmount} onChange={e => setBidAmount(e.target.value)} className="text-xl text-center bg-surface-300 border-surface-50/30 text-white" />
-                        <Button onClick={handlePlaceBid} disabled={!membership || membership.currentBudget < (parseInt(bidAmount) || 0)} className="btn-primary px-8">Offri</Button>
-                      </div>
-                      <div className="flex gap-2 justify-center">
+                    {/* Enhanced Bid Controls */}
+                    <div className="space-y-3 bg-surface-300/50 rounded-xl p-4">
+                      {/* Quick Bid Buttons */}
+                      <div className="grid grid-cols-5 gap-2">
                         {[1, 5, 10, 25, 50].map(n => (
-                          <Button key={n} size="sm" variant="outline" onClick={() => setBidAmount(String(auction.currentPrice + n))} className="border-surface-50/30 text-gray-300 hover:border-primary-500/50">+{n}</Button>
+                          <Button
+                            key={n}
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setBidAmount(String(auction.currentPrice + n))}
+                            disabled={isTimerExpired || (membership?.currentBudget || 0) < auction.currentPrice + n}
+                            className={`border-surface-50/30 text-gray-300 hover:border-primary-500/50 hover:bg-primary-500/10 font-mono ${
+                              (membership?.currentBudget || 0) < auction.currentPrice + n ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                          >
+                            +{n}
+                          </Button>
                         ))}
                       </div>
-                      {isAdmin && <Button variant="secondary" onClick={handleCloseAuction} className="w-full mt-4">Chiudi Asta</Button>}
+
+                      {/* Main Bid Input */}
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          value={bidAmount}
+                          onChange={e => setBidAmount(e.target.value)}
+                          disabled={isTimerExpired}
+                          className="text-xl text-center bg-surface-300 border-surface-50/30 text-white font-mono"
+                          placeholder="Importo..."
+                        />
+                        <Button
+                          onClick={handlePlaceBid}
+                          disabled={isTimerExpired || !membership || membership.currentBudget < (parseInt(bidAmount) || 0)}
+                          className={`btn-primary px-6 lg:px-8 font-bold ${isTimerExpired ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          {isTimerExpired ? 'Scaduto' : 'Offri'}
+                        </Button>
+                      </div>
+
+                      {/* Budget reminder */}
+                      <div className="flex items-center justify-between text-xs text-gray-400">
+                        <span>Il tuo budget:</span>
+                        <span className="font-bold text-accent-400">{membership?.currentBudget || 0}</span>
+                      </div>
+
+                      {isAdmin && (
+                        <Button variant="secondary" onClick={handleCloseAuction} className="w-full mt-2">
+                          Chiudi Asta Manualmente
+                        </Button>
+                      )}
                     </div>
 
-                    {/* Bids History */}
+                    {/* Enhanced Bid History */}
                     {auction.bids.length > 0 && (
-                      <div className="mt-6 pt-6 border-t border-surface-50/20">
-                        <h4 className="text-sm text-gray-400 mb-3">Storico</h4>
-                        <div className="space-y-1">
+                      <div className="border-t border-surface-50/20 pt-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm text-gray-400 font-medium">Storico Offerte</h4>
+                          <span className="text-xs text-gray-500">{auction.bids.length} offerte</span>
+                        </div>
+                        <div className="bid-history space-y-1.5">
                           {auction.bids.map((bid, i) => (
-                            <div key={bid.id} className={`flex justify-between py-2 px-3 rounded ${i === 0 ? 'bg-primary-500/20' : 'bg-surface-300'}`}>
-                              <span className="text-gray-300">{bid.bidder.user.username}</span>
-                              <span className="font-mono font-bold text-white">{bid.amount}</span>
+                            <div
+                              key={bid.id}
+                              className={`flex items-center justify-between py-2 px-3 rounded-lg transition-all ${
+                                i === 0
+                                  ? 'bg-gradient-to-r from-primary-500/20 to-primary-500/10 border border-primary-500/30'
+                                  : 'bg-surface-300/50 hover:bg-surface-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                {i === 0 && (
+                                  <span className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center">
+                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                  </span>
+                                )}
+                                <span className={`${i === 0 ? 'text-white font-medium' : 'text-gray-300'} ${bid.bidder.user.username === currentUsername ? 'text-secondary-400' : ''}`}>
+                                  {bid.bidder.user.username}
+                                  {bid.bidder.user.username === currentUsername && ' (tu)'}
+                                </span>
+                              </div>
+                              <span className={`font-mono font-bold ${i === 0 ? 'text-primary-400 text-lg' : 'text-white'}`}>
+                                {bid.amount}
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -1448,32 +1632,50 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             </div>
           </div>
 
-          {/* RIGHT: Chat + Managers */}
-          <div className="lg:col-span-4 space-y-4">
-            {/* Chat */}
-            <Chat
-              sessionId={sessionId}
-              currentMemberId={managersStatus?.myId}
-              isAdmin={isAdmin}
-            />
+          {/* RIGHT: Chat + DGs - Collapsible on mobile */}
+          <div className={`lg:col-span-4 space-y-4 ${auction ? 'hidden lg:block' : ''}`}>
+            {/* Chat - Hidden on mobile during auction */}
+            <div className="hidden lg:block">
+              <Chat
+                sessionId={sessionId}
+                currentMemberId={managersStatus?.myId}
+                isAdmin={isAdmin}
+              />
+            </div>
 
-            {/* Managers List with Turn Order */}
-            <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden max-h-[40vh] overflow-y-auto">
-              <div className="p-3 border-b border-surface-50/20">
+            {/* DG List with Turn Order - Enhanced */}
+            <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
+              <div className="p-3 border-b border-surface-50/20 sticky top-0 bg-surface-200 z-10">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-white text-sm">Manager</h3>
-                  {managersStatus?.allConnected === false && (
-                    <span className="text-xs text-red-400 flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                      Disconnessioni
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">👔</span>
+                    <h3 className="font-bold text-white text-sm">Direttori Generali</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {managersStatus?.allConnected === false && (
+                      <span className="text-xs text-red-400 flex items-center gap-1 px-2 py-0.5 bg-red-500/10 rounded-full">
+                        <span className="connection-dot connection-dot-offline"></span>
+                        Offline
+                      </span>
+                    )}
+                    {managersStatus?.allConnected === true && (
+                      <span className="text-xs text-green-400 flex items-center gap-1 px-2 py-0.5 bg-green-500/10 rounded-full">
+                        <span className="connection-dot connection-dot-online"></span>
+                        Tutti online
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="divide-y divide-surface-50/10">
-                {!managersStatus && <p className="text-gray-500 text-center py-4 text-sm">Caricamento...</p>}
+              <div className="divide-y divide-surface-50/10 max-h-[35vh] overflow-y-auto">
+                {!managersStatus && (
+                  <div className="p-4 text-center">
+                    <div className="w-8 h-8 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-2"></div>
+                    <p className="text-gray-500 text-sm">Caricamento...</p>
+                  </div>
+                )}
                 {managersStatus?.managers && (() => {
-                  // Ordina i manager per ordine turno se disponibile
+                  // Sort DGs by turn order if available
                   const sortedManagers = [...managersStatus.managers].sort((a, b) => {
                     if (!firstMarketStatus?.turnOrder) return 0
                     const aIndex = firstMarketStatus.turnOrder.indexOf(a.id)
@@ -1483,45 +1685,101 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   return sortedManagers.map(m => {
                     const turnIndex = firstMarketStatus?.turnOrder?.indexOf(m.id) ?? -1
                     const isCurrent = m.isCurrentTurn
+                    const isMe = m.id === managersStatus.myId
+                    const budgetPercent = getBudgetPercentage(m.currentBudget)
+
                     return (
                       <button
                         key={m.id}
                         onClick={() => setSelectedManager(m)}
-                        className={`w-full flex items-center gap-3 px-3 py-3 hover:bg-surface-300 transition-colors text-left ${isCurrent ? 'bg-accent-500/20 border-l-2 border-accent-500' : ''} ${m.id === managersStatus.myId ? 'border-l-2 border-primary-500' : ''}`}
+                        className={`manager-item w-full px-3 py-3 hover:bg-surface-300/50 text-left ${
+                          isCurrent ? 'manager-item-current' : ''
+                        } ${isMe && !isCurrent ? 'border-l-2 border-primary-500 bg-primary-500/5' : ''}`}
                       >
-                        {/* Turn Order Number */}
-                        <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                          isCurrent
-                            ? 'bg-accent-500 text-dark-900'
-                            : 'bg-surface-300 text-gray-400'
-                        }`}>
-                          {turnIndex >= 0 ? turnIndex + 1 : '-'}
-                        </span>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            {/* Connection status indicator */}
+                        <div className="flex items-center gap-3">
+                          {/* Turn Order Badge */}
+                          <div className={`relative flex-shrink-0`}>
+                            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                              isCurrent
+                                ? 'bg-gradient-to-br from-accent-500 to-accent-600 text-dark-900 shadow-lg'
+                                : 'bg-surface-300 text-gray-400'
+                            }`}>
+                              {turnIndex >= 0 ? turnIndex + 1 : '-'}
+                            </span>
+                            {/* Connection dot overlay */}
                             <span
-                              className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-surface-200 ${
                                 m.isConnected === true
-                                  ? 'bg-green-500'
+                                  ? 'connection-dot-online'
                                   : m.isConnected === false
-                                    ? 'bg-red-500 animate-pulse'
+                                    ? 'connection-dot-offline'
                                     : 'bg-gray-500'
                               }`}
                               title={m.isConnected === true ? 'Connesso' : m.isConnected === false ? 'Disconnesso' : 'Stato sconosciuto'}
                             />
-                            <span className={`font-medium truncate ${m.id === managersStatus.myId ? 'text-primary-400' : isCurrent ? 'text-accent-400' : 'text-gray-200'}`}>
-                              {m.username}
-                            </span>
-                            {isCurrent && <span className="text-xs text-accent-500">← turno</span>}
                           </div>
-                          {m.teamName && <p className="text-xs text-gray-500 truncate">{m.teamName}</p>}
+
+                          {/* User Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className={`font-medium truncate ${
+                                isMe ? 'text-primary-400' : isCurrent ? 'text-accent-400 font-bold' : 'text-gray-200'
+                              }`}>
+                                {m.username}
+                                {isMe && <span className="text-xs text-primary-300 ml-1">(tu)</span>}
+                              </span>
+                              {isCurrent && (
+                                <span className="px-1.5 py-0.5 text-xs bg-accent-500/20 text-accent-400 rounded font-medium animate-pulse">
+                                  TURNO
+                                </span>
+                              )}
+                            </div>
+                            {m.teamName && <p className="text-xs text-gray-500 truncate">{m.teamName}</p>}
+
+                            {/* Budget Progress Bar */}
+                            <div className="mt-1.5">
+                              <div className="budget-progress">
+                                <div
+                                  className={getBudgetBarClass(budgetPercent)}
+                                  style={{ width: `${budgetPercent}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Budget & Slots */}
+                          <div className="text-right flex-shrink-0">
+                            <p className={`font-bold font-mono ${
+                              budgetPercent <= 20 ? 'text-red-400' :
+                              budgetPercent <= 40 ? 'text-amber-400' : 'text-accent-400'
+                            }`}>
+                              {m.currentBudget}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              <span className="font-medium">{m.slotsFilled}</span>/{m.totalSlots} slot
+                            </p>
+                          </div>
                         </div>
 
-                        <div className="text-right flex-shrink-0">
-                          <p className="font-bold text-accent-400">{m.currentBudget}</p>
-                          <p className="text-xs text-gray-500">{m.slotsFilled}/{m.totalSlots}</p>
+                        {/* Position slots preview (compact) */}
+                        <div className="flex items-center gap-1 mt-2 ml-11">
+                          {(['P', 'D', 'C', 'A'] as const).map(pos => {
+                            const posSlot = m.slotsByPosition[pos]
+                            const isFilled = posSlot.filled >= posSlot.total
+                            return (
+                              <span
+                                key={pos}
+                                className={`text-xs px-1.5 py-0.5 rounded ${
+                                  isFilled
+                                    ? `bg-gradient-to-br ${POSITION_COLORS[pos]} text-white`
+                                    : 'bg-surface-400/50 text-gray-500'
+                                }`}
+                                title={`${POSITION_NAMES[pos]}: ${posSlot.filled}/${posSlot.total}`}
+                              >
+                                {pos}:{posSlot.filled}
+                              </span>
+                            )
+                          })}
                         </div>
                       </button>
                     )
@@ -1532,6 +1790,87 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           </div>
         </div>
       </main>
+
+      {/* Mobile Sticky Bid Controls - Only visible during active auction on mobile */}
+      {auction && (
+        <div className="bid-controls-sticky lg:hidden">
+          <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-3 shadow-lg">
+            {/* Timer + Current Price Row */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                {auction.timerExpiresAt && (
+                  <div className={`px-3 py-1 rounded-lg ${
+                    timeLeft !== null && timeLeft <= 5 ? 'bg-red-500/20 border border-red-500/50' :
+                    timeLeft !== null && timeLeft <= 10 ? 'bg-amber-500/20 border border-amber-500/50' :
+                    'bg-surface-300'
+                  }`}>
+                    <span className={`font-mono font-bold text-xl ${
+                      timeLeft !== null && timeLeft <= 5 ? 'text-red-400' :
+                      timeLeft !== null && timeLeft <= 10 ? 'text-amber-400' :
+                      'text-secondary-400'
+                    }`}>
+                      {timeLeft ?? '--'}s
+                    </span>
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs text-gray-400">{auction.player.name}</p>
+                  <p className="text-lg font-bold text-white">{auction.currentPrice}</p>
+                </div>
+              </div>
+              {isUserWinning && (
+                <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">
+                  Vincendo
+                </span>
+              )}
+            </div>
+
+            {/* Quick Bid Buttons */}
+            <div className="grid grid-cols-5 gap-1.5 mb-2">
+              {[1, 5, 10, 25, 50].map(n => (
+                <button
+                  key={n}
+                  onClick={() => {
+                    setBidAmount(String(auction.currentPrice + n))
+                    handlePlaceBid()
+                  }}
+                  disabled={isTimerExpired || (membership?.currentBudget || 0) < auction.currentPrice + n}
+                  className={`py-2 rounded-lg text-sm font-bold transition-all ${
+                    isTimerExpired || (membership?.currentBudget || 0) < auction.currentPrice + n
+                      ? 'bg-surface-400/50 text-gray-600 cursor-not-allowed'
+                      : 'bg-primary-500/20 text-primary-400 border border-primary-500/30 active:scale-95'
+                  }`}
+                >
+                  +{n}
+                </button>
+              ))}
+            </div>
+
+            {/* Custom Bid Input */}
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={bidAmount}
+                onChange={e => setBidAmount(e.target.value)}
+                disabled={isTimerExpired}
+                className="flex-1 bg-surface-300 border border-surface-50/30 rounded-lg px-3 py-2 text-white text-center font-mono"
+                placeholder="Importo..."
+              />
+              <button
+                onClick={handlePlaceBid}
+                disabled={isTimerExpired || !membership || membership.currentBudget < (parseInt(bidAmount) || 0)}
+                className={`px-6 py-2 rounded-lg font-bold transition-all ${
+                  isTimerExpired || !membership || membership.currentBudget < (parseInt(bidAmount) || 0)
+                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    : 'btn-primary active:scale-95'
+                }`}
+              >
+                {isTimerExpired ? 'Scaduto' : 'Offri'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Manager Detail Modal */}
       {selectedManager && (
@@ -1719,7 +2058,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                     variant="outline"
                     className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
                   >
-                    [TEST] Simula ricorso di un manager
+                    [TEST] Simula ricorso di un DG
                   </Button>
                 </>
               )}
@@ -1952,7 +2291,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
               {/* Ready progress */}
               <div className="mb-4">
                 <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-400">Manager pronti</span>
+                  <span className="text-gray-400">DG pronti</span>
                   <span className="text-white">{appealStatus?.resumeReadyMembers?.length || 0}/{appealStatus?.allMembers?.length || pendingAck?.totalMembers || 0}</span>
                 </div>
                 <div className="w-full bg-surface-400 rounded-full h-2">
