@@ -46,6 +46,8 @@ export interface MemberReadyData {
   isReady: boolean
   readyCount: number
   totalMembers: number
+  readyMembers: Array<{ id: string; username: string }>
+  pendingMembers: Array<{ id: string; username: string }>
   timestamp: string
 }
 

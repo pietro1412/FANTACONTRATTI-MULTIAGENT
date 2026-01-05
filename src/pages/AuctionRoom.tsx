@@ -374,10 +374,11 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     },
     onMemberReady: (data) => {
       console.log('[Pusher] Member ready:', data)
-      // Update ready count directly
+      // Update ready status directly with full lists from Pusher
       setReadyStatus(prev => prev ? {
         ...prev,
-        readyCount: data.readyCount,
+        readyMembers: data.readyMembers || prev.readyMembers,
+        pendingMembers: data.pendingMembers || prev.pendingMembers,
         totalMembers: data.totalMembers
       } : null)
     },
@@ -1316,6 +1317,31 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                           <div className="h-2 rounded-full bg-accent-500 transition-all" style={{ width: `${(readyStatus.readyCount / readyStatus.totalMembers) * 100}%` }}></div>
                         </div>
                       </div>
+                      {/* Lista DG pronti/non pronti */}
+                      <div className="bg-surface-300/50 rounded-lg p-3 text-left">
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <p className="text-secondary-400 font-semibold mb-1">✓ Pronti</p>
+                            {readyStatus.readyMembers.length > 0 ? (
+                              readyStatus.readyMembers.map(m => (
+                                <p key={m.id} className="text-gray-300">{m.username}</p>
+                              ))
+                            ) : (
+                              <p className="text-gray-500 italic">Nessuno</p>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-amber-400 font-semibold mb-1">⏳ In attesa</p>
+                            {readyStatus.pendingMembers.length > 0 ? (
+                              readyStatus.pendingMembers.map(m => (
+                                <p key={m.id} className="text-gray-400">{m.username}</p>
+                              ))
+                            ) : (
+                              <p className="text-gray-500 italic">Nessuno</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                       <p className="text-secondary-400 font-medium">✓ Confermato - In attesa degli altri</p>
                       {isAdmin && <Button size="sm" variant="outline" onClick={handleForceAllReady} className="border-accent-500/50 text-accent-400">[TEST] Forza Tutti Pronti</Button>}
                     </div>
@@ -1338,6 +1364,31 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                         </div>
                         <div className="w-full bg-surface-400 rounded-full h-2">
                           <div className="h-2 rounded-full bg-accent-500 transition-all" style={{ width: `${(readyStatus.readyCount / readyStatus.totalMembers) * 100}%` }}></div>
+                        </div>
+                      </div>
+                      {/* Lista DG pronti/non pronti */}
+                      <div className="bg-surface-300/50 rounded-lg p-3 text-left mb-4">
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <p className="text-secondary-400 font-semibold mb-1">✓ Pronti</p>
+                            {readyStatus.readyMembers.length > 0 ? (
+                              readyStatus.readyMembers.map(m => (
+                                <p key={m.id} className="text-gray-300">{m.username}</p>
+                              ))
+                            ) : (
+                              <p className="text-gray-500 italic">Nessuno</p>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-amber-400 font-semibold mb-1">⏳ In attesa</p>
+                            {readyStatus.pendingMembers.length > 0 ? (
+                              readyStatus.pendingMembers.map(m => (
+                                <p key={m.id} className="text-gray-400">{m.username}</p>
+                              ))
+                            ) : (
+                              <p className="text-gray-500 italic">Nessuno</p>
+                            )}
+                          </div>
                         </div>
                       </div>
                       {!readyStatus.userIsReady ? (

@@ -2776,13 +2776,24 @@ export async function markReady(
     },
   })
 
-  // Get all members count for Pusher event
+  // Get all members with usernames for Pusher event
   const allMembers = await prisma.leagueMember.findMany({
     where: {
       leagueId: session.leagueId,
       status: MemberStatus.ACTIVE,
     },
+    include: {
+      user: { select: { username: true } },
+    },
   })
+
+  // Build ready and pending lists for the Pusher event
+  const readyMembersList = allMembers
+    .filter(m => newReadyMembers.includes(m.id))
+    .map(m => ({ id: m.id, username: m.user.username }))
+  const pendingMembersList = allMembers
+    .filter(m => !newReadyMembers.includes(m.id))
+    .map(m => ({ id: m.id, username: m.user.username }))
 
   // Trigger Pusher event for member ready (fire and forget)
   triggerMemberReady(sessionId, {
@@ -2791,6 +2802,8 @@ export async function markReady(
     isReady: true,
     readyCount: newReadyMembers.length,
     totalMembers: allMembers.length,
+    readyMembers: readyMembersList,
+    pendingMembers: pendingMembersList,
     timestamp: new Date().toISOString(),
   })
 
