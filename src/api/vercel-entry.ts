@@ -56,8 +56,46 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
-// Diagnostic endpoint for debugging latency issues
+// Diagnostic endpoints for debugging latency issues
 const diagPrisma = new PrismaClient()
+
+// Simple ping endpoint for latency testing
+app.get('/api/debug/ping', async (_req, res) => {
+  const start = Date.now()
+  const results: Record<string, unknown> = {
+    requestReceived: new Date().toISOString(),
+  }
+
+  // Test 1: Just API response (no DB)
+  const apiOnly = Date.now() - start
+  results.apiOnlyMs = apiOnly
+
+  // Test 2: Simple DB query
+  const dbStart = Date.now()
+  try {
+    await diagPrisma.$queryRaw`SELECT 1`
+    results.dbQueryMs = Date.now() - dbStart
+    results.dbStatus = 'ok'
+  } catch (err) {
+    results.dbQueryMs = Date.now() - dbStart
+    results.dbStatus = `error: ${err instanceof Error ? err.message : 'unknown'}`
+  }
+
+  // Test 3: DB query with actual data
+  const dbDataStart = Date.now()
+  try {
+    const count = await diagPrisma.user.count()
+    results.dbDataQueryMs = Date.now() - dbDataStart
+    results.userCount = count
+  } catch (err) {
+    results.dbDataQueryMs = Date.now() - dbDataStart
+  }
+
+  results.totalMs = Date.now() - start
+  results.responseTime = new Date().toISOString()
+
+  res.json(results)
+})
 app.get('/api/debug/timing', async (_req, res) => {
   const results: Record<string, unknown> = {
     timestamp: new Date().toISOString(),

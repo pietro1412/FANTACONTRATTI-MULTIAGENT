@@ -18,6 +18,7 @@ import { ManagerDashboard } from './pages/ManagerDashboard'
 import { AdminPanel } from './pages/AdminPanel'
 import { Movements } from './pages/Movements'
 import { SuperAdmin } from './pages/SuperAdmin'
+import LatencyTest from './pages/LatencyTest'
 import { useCallback } from 'react'
 
 // Loading component
@@ -289,6 +290,7 @@ function AppRoutes() {
       {/* Public routes */}
       <Route path="/login" element={<PublicRoute><LoginWrapper /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><RegisterWrapper /></PublicRoute>} />
+      <Route path="/test-latency" element={<LatencyTest />} />
 
       {/* Protected routes */}
       <Route path="/dashboard" element={<ProtectedRoute><DashboardWrapper /></ProtectedRoute>} />
