@@ -102,9 +102,19 @@ export const pusher: PusherInstance | null = isPusherConfigured
   ? new Pusher(pusherConfig)
   : null
 
+// Log Pusher configuration status on startup
+console.log('[Pusher] === CONFIGURATION STATUS ===')
+console.log(`[Pusher] appId: ${pusherConfig.appId || 'MISSING'}`)
+console.log(`[Pusher] key: ${pusherConfig.key ? pusherConfig.key.slice(0, 8) + '...' : 'MISSING'}`)
+console.log(`[Pusher] secret: ${pusherConfig.secret ? pusherConfig.secret.slice(0, 4) + '...' : 'MISSING'}`)
+console.log(`[Pusher] cluster: ${pusherConfig.cluster || 'MISSING'}`)
+console.log(`[Pusher] configured: ${isPusherConfigured ? 'YES ✓' : 'NO ✗'}`)
+console.log(`[Pusher] instance created: ${pusher ? 'YES ✓' : 'NO ✗'}`)
+console.log('[Pusher] ================================')
+
 if (!isPusherConfigured) {
-  console.warn(
-    '[Pusher] Not configured. Missing environment variables:',
+  console.error(
+    '[Pusher] NOT CONFIGURED! Missing:',
     !pusherConfig.appId && 'PUSHER_APP_ID',
     !pusherConfig.key && 'VITE_PUSHER_KEY',
     !pusherConfig.secret && 'PUSHER_SECRET',
