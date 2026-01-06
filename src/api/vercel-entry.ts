@@ -1,6 +1,8 @@
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
+import { PrismaClient } from '@prisma/client'
+import { pusher } from '../services/pusher.service'
 
 import authRoutes from './routes/auth'
 import userRoutes from './routes/users'
@@ -52,6 +54,65 @@ app.use(cookieParser())
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
+})
+
+// Diagnostic endpoint for debugging latency issues
+const diagPrisma = new PrismaClient()
+app.get('/api/debug/timing', async (_req, res) => {
+  const results: Record<string, unknown> = {
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'unknown',
+    vercel: true,
+  }
+
+  // 1. Check Pusher configuration
+  const pusherConfig = {
+    appId: process.env.PUSHER_APP_ID ? `✓ set (${process.env.PUSHER_APP_ID})` : '✗ missing',
+    key: process.env.VITE_PUSHER_KEY ? '✓ set' : '✗ missing',
+    secret: process.env.PUSHER_SECRET ? '✓ set' : '✗ missing',
+    cluster: process.env.VITE_PUSHER_CLUSTER || '✗ missing',
+    instanceCreated: pusher ? '✓ yes' : '✗ no',
+  }
+  results.pusherConfig = pusherConfig
+
+  // 2. Test database connection
+  const dbStart = Date.now()
+  try {
+    await diagPrisma.$queryRaw`SELECT 1`
+    results.dbLatency = `${Date.now() - dbStart}ms`
+    results.dbStatus = '✓ connected'
+  } catch (err) {
+    results.dbLatency = `${Date.now() - dbStart}ms`
+    results.dbStatus = `✗ error: ${err instanceof Error ? err.message : 'unknown'}`
+  }
+
+  // 3. Test Pusher trigger (to a test channel)
+  if (pusher) {
+    const pusherStart = Date.now()
+    try {
+      await pusher.trigger('debug-channel', 'test-event', {
+        test: true,
+        timestamp: new Date().toISOString()
+      })
+      results.pusherLatency = `${Date.now() - pusherStart}ms`
+      results.pusherStatus = '✓ working'
+    } catch (err) {
+      results.pusherLatency = `${Date.now() - pusherStart}ms`
+      results.pusherStatus = `✗ error: ${err instanceof Error ? err.message : 'unknown'}`
+    }
+  } else {
+    results.pusherLatency = 'N/A'
+    results.pusherStatus = '✗ not initialized'
+  }
+
+  // 4. Environment info
+  results.env = {
+    FRONTEND_URL: process.env.FRONTEND_URL || 'not set',
+    VERCEL_URL: process.env.VERCEL_URL || 'not set',
+    DATABASE_URL: process.env.DATABASE_URL ? '✓ set' : '✗ missing',
+  }
+
+  res.json(results)
 })
 
 // Routes
