@@ -59,6 +59,122 @@ app.get('/api/health', (_req, res) => {
 // Diagnostic endpoints for debugging latency issues
 const diagPrisma = new PrismaClient()
 
+// Simulate auction bid queries (read-only, no actual bid)
+app.get('/api/debug/auction-sim', async (_req, res) => {
+  const start = Date.now()
+  const timing: Record<string, number> = {}
+
+  try {
+    // 1. Find any active auction (like placeBid does)
+    let t = Date.now()
+    const auction = await diagPrisma.auction.findFirst({
+      where: { status: 'ACTIVE' },
+      include: {
+        player: true,
+        league: true,
+      },
+    })
+    timing['1_findAuction'] = Date.now() - t
+
+    if (!auction) {
+      // If no active auction, find any auction for testing
+      t = Date.now()
+      const anyAuction = await diagPrisma.auction.findFirst({
+        include: { player: true, league: true },
+      })
+      timing['1_findAnyAuction'] = Date.now() - t
+
+      res.json({
+        success: true,
+        noActiveAuction: true,
+        hasAnyAuction: !!anyAuction,
+        timing,
+        totalMs: Date.now() - start,
+      })
+      return
+    }
+
+    // 2. Find member (like placeBid does)
+    t = Date.now()
+    const member = await diagPrisma.leagueMember.findFirst({
+      where: {
+        leagueId: auction.leagueId,
+        status: 'ACTIVE',
+      },
+    })
+    timing['2_findMember'] = Date.now() - t
+
+    // 3. Count roster by position (like placeBid does)
+    t = Date.now()
+    const rosterCount = await diagPrisma.playerRoster.count({
+      where: {
+        leagueMemberId: member?.id || '',
+        status: 'ACTIVE',
+        player: {
+          position: auction.player.position,
+        },
+      },
+    })
+    timing['3_countRoster'] = Date.now() - t
+
+    // 4. Find existing bids (like placeBid updateMany check)
+    t = Date.now()
+    const bidsCount = await diagPrisma.auctionBid.count({
+      where: {
+        auctionId: auction.id,
+        isWinning: true,
+      },
+    })
+    timing['4_countWinningBids'] = Date.now() - t
+
+    // 5. Find session (like placeBid does)
+    t = Date.now()
+    const session = await diagPrisma.marketSession.findFirst({
+      where: {
+        auctions: { some: { id: auction.id } },
+      },
+    })
+    timing['5_findSession'] = Date.now() - t
+
+    // 6. Test Pusher trigger (to debug channel, not real auction)
+    t = Date.now()
+    let pusherStatus = 'skipped'
+    if (pusher) {
+      try {
+        await pusher.trigger('debug-channel', 'test-bid', {
+          test: true,
+          timestamp: new Date().toISOString(),
+        })
+        pusherStatus = 'ok'
+      } catch (err) {
+        pusherStatus = `error: ${err instanceof Error ? err.message : 'unknown'}`
+      }
+    }
+    timing['6_pusherTrigger'] = Date.now() - t
+
+    res.json({
+      success: true,
+      auctionId: auction.id,
+      playerId: auction.playerId,
+      playerName: auction.player.name,
+      memberId: member?.id,
+      rosterCount,
+      bidsCount,
+      sessionId: session?.id,
+      pusherStatus,
+      timing,
+      totalMs: Date.now() - start,
+    })
+  } catch (err) {
+    res.json({
+      success: false,
+      error: err instanceof Error ? err.message : 'unknown',
+      timing,
+      totalMs: Date.now() - start,
+    })
+  }
+})
+
 // Simple ping endpoint for latency testing
 app.get('/api/debug/ping', async (_req, res) => {
   const start = Date.now()
