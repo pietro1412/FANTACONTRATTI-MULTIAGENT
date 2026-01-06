@@ -1,36 +1,199 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { superadminApi } from '../services/api'
 import { Button } from './ui/Button'
 import { Notifications } from './Notifications'
+import { pusherClient } from '../services/pusher.client'
 
 interface NavigationProps {
   currentPage: string
   leagueId?: string
+  leagueName?: string
+  teamName?: string
   isLeagueAdmin?: boolean
   activeTab?: string
+  isInAuction?: boolean
   onNavigate: (page: string, params?: Record<string, string>) => void
+}
+
+// SVG Icons for menu items
+const MenuIcons = {
+  dashboard: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+    </svg>
+  ),
+  admin: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  ),
+  roster: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+  ),
+  allRosters: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+  ),
+  svincolati: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+    </svg>
+  ),
+  history: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  back: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    </svg>
+  ),
+  leagues: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+    </svg>
+  ),
+  profile: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  upload: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+    </svg>
+  ),
+  players: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+  ),
+  users: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+  ),
+  home: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+    </svg>
+  ),
+  chevronRight: (
+    <svg className="w-3 h-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  ),
 }
 
 // League menu items configuration
 // Note: Contratti, Scambi, Rubata are phase-specific and accessible from Tutte le Rose or Dashboard when active
 const LEAGUE_MENU_ITEMS = [
-  { key: 'leagueDetail', label: 'Dashboard', adminOnly: false },
-  { key: 'adminPanel', label: 'Admin', adminOnly: true },
-  { key: 'roster', label: 'La Mia Rosa', adminOnly: false },
-  { key: 'allRosters', label: 'Tutte le Rose', adminOnly: false },
-  { key: 'svincolati', label: 'Svincolati', adminOnly: false },
-  { key: 'movements', label: 'Storico', adminOnly: false },
+  { key: 'leagueDetail', label: 'Dashboard', adminOnly: false, icon: 'dashboard' },
+  { key: 'adminPanel', label: 'Admin', adminOnly: true, icon: 'admin' },
+  { key: 'roster', label: 'La Mia Rosa', adminOnly: false, icon: 'roster' },
+  { key: 'allRosters', label: 'Tutte le Rose', adminOnly: false, icon: 'allRosters' },
+  { key: 'svincolati', label: 'Svincolati', adminOnly: false, icon: 'svincolati' },
+  { key: 'movements', label: 'Storico', adminOnly: false, icon: 'history' },
 ]
 
-export function Navigation({ currentPage, leagueId, isLeagueAdmin, activeTab, onNavigate }: NavigationProps) {
+// Get page display name for breadcrumbs
+function getPageDisplayName(page: string): string {
+  const pageNames: Record<string, string> = {
+    leagueDetail: 'Dashboard',
+    adminPanel: 'Admin',
+    roster: 'La Mia Rosa',
+    allRosters: 'Tutte le Rose',
+    svincolati: 'Svincolati',
+    movements: 'Storico',
+    auction: 'Asta',
+    contracts: 'Contratti',
+    trades: 'Scambi',
+    rubata: 'Rubata',
+  }
+  return pageNames[page] || page
+}
+
+export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeagueAdmin, activeTab, isInAuction, onNavigate }: NavigationProps) {
   const { user, logout } = useAuth()
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
+  const [pusherConnected, setPusherConnected] = useState(false)
+  const profileDropdownRef = useRef<HTMLDivElement>(null)
+  const mobileMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     loadSuperAdminStatus()
   }, [])
+
+  // Monitor Pusher connection status
+  useEffect(() => {
+    const handleStateChange = (states: { current: string; previous: string }) => {
+      setPusherConnected(states.current === 'connected')
+    }
+
+    // Set initial state
+    setPusherConnected(pusherClient.connection.state === 'connected')
+
+    pusherClient.connection.bind('state_change', handleStateChange)
+    return () => {
+      pusherClient.connection.unbind('state_change', handleStateChange)
+    }
+  }, [])
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (mobileMenuOpen && mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+        // Check if click was on the toggle button
+        const target = event.target as HTMLElement
+        if (!target.closest('[data-testid="mobile-menu-toggle"]')) {
+          setMobileMenuOpen(false)
+        }
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [mobileMenuOpen])
+
+  // Close mobile menu on escape key
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setMobileMenuOpen(false)
+        setProfileDropdownOpen(false)
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [])
+
+  // Handle keyboard navigation for profile dropdown
+  const handleProfileKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      setProfileDropdownOpen(!profileDropdownOpen)
+    } else if (event.key === 'Escape') {
+      setProfileDropdownOpen(false)
+    }
+  }, [profileDropdownOpen])
 
   async function loadSuperAdminStatus() {
     const response = await superadminApi.getStatus()
@@ -50,27 +213,86 @@ export function Navigation({ currentPage, leagueId, isLeagueAdmin, activeTab, on
   const visibleMenuItems = LEAGUE_MENU_ITEMS.filter(item => !item.adminOnly || isLeagueAdmin)
 
   return (
-    <header className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20 sticky top-0 z-40">
-      <div className="max-w-full mx-auto px-4 py-2">
+    <header className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20 sticky top-0 z-40 shadow-lg shadow-black/20 backdrop-blur-sm">
+      <div className="max-w-full mx-auto px-4 py-2.5">
         <div className="flex justify-between items-center">
-          {/* Logo */}
+          {/* Logo with enhanced styling */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => onNavigate('dashboard')}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              className="flex items-center gap-3 group transition-all duration-300 hover:scale-[1.02]"
+              data-testid="logo-button"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-glow">
-                <span className="text-lg">⚽</span>
+              <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-primary-400 via-primary-500 to-primary-700 flex items-center justify-center shadow-glow transition-all duration-300 group-hover:shadow-[0_0_25px_rgba(49,151,149,0.5)]">
+                <span className="text-xl transform group-hover:scale-110 transition-transform duration-300">⚽</span>
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-white/10 to-transparent" />
+                {/* Pusher connection indicator */}
+                {pusherConnected && (
+                  <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-secondary-500 rounded-full border-2 border-surface-200 shadow-sm" title="Connesso in tempo reale" />
+                )}
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-sm font-bold text-white leading-tight">Fantacontratti</h1>
+                <h1 className="text-base font-bold text-white leading-tight tracking-tight group-hover:text-primary-300 transition-colors duration-300">
+                  Fantacontratti
+                </h1>
+                <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">
+                  Dynasty DG
+                </p>
               </div>
             </button>
+
+            {/* Real-time status indicators */}
+            <div className="hidden sm:flex items-center gap-2">
+              {/* Admin Badge - shown when user is league admin */}
+              {leagueId && isLeagueAdmin && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-accent-500/20 to-accent-600/10 border border-accent-500/30 rounded-lg shadow-sm" data-testid="admin-badge">
+                  <svg className="w-3.5 h-3.5 text-accent-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 1l2.928 6.856L20 8.485l-5 4.428 1.325 7.087L10 16.5 3.675 20l1.325-7.087-5-4.428 7.072-.629L10 1z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-[10px] font-semibold text-accent-400 uppercase tracking-wider">Admin</span>
+                </div>
+              )}
+
+              {/* Live badge - shown when in auction room */}
+              {isInAuction && pusherConnected && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-danger-500/20 to-danger-600/10 border border-danger-500/30 rounded-lg shadow-sm animate-pulse" data-testid="live-badge">
+                  <div className="w-2 h-2 bg-danger-500 rounded-full" />
+                  <span className="text-[10px] font-semibold text-danger-400 uppercase tracking-wider">Live</span>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Breadcrumbs - shown when in league context */}
+          {leagueId && leagueName && (
+            <nav className="hidden md:flex items-center gap-1.5 text-xs" aria-label="Breadcrumb" data-testid="breadcrumbs">
+              <button
+                onClick={() => onNavigate('dashboard')}
+                className="flex items-center gap-1 text-gray-400 hover:text-primary-300 transition-colors duration-200"
+              >
+                {MenuIcons.home}
+                <span>Home</span>
+              </button>
+              {MenuIcons.chevronRight}
+              <button
+                onClick={() => onNavigate('leagueDetail', { leagueId })}
+                className="text-gray-400 hover:text-primary-300 transition-colors duration-200 max-w-[120px] truncate"
+                title={leagueName}
+              >
+                {leagueName}
+              </button>
+              {currentPage !== 'leagueDetail' && (
+                <>
+                  {MenuIcons.chevronRight}
+                  <span className="text-primary-300 font-medium">{getPageDisplayName(currentPage)}</span>
+                </>
+              )}
+            </nav>
+          )}
 
           {/* Desktop Navigation - League Menu */}
           {leagueId && (
-            <nav className="hidden lg:flex items-center gap-0.5 bg-surface-300/50 rounded-lg p-0.5 overflow-x-auto">
+            <nav className="hidden lg:flex items-center gap-1 bg-surface-300/60 rounded-xl p-1 shadow-inner shadow-black/20 backdrop-blur-sm" data-testid="desktop-nav-league">
               {visibleMenuItems.map(item => (
                 <NavButton
                   key={item.key}
@@ -78,6 +300,8 @@ export function Navigation({ currentPage, leagueId, isLeagueAdmin, activeTab, on
                   active={isActive(item.key)}
                   onClick={() => onNavigate(item.key, { leagueId })}
                   highlight={item.key === 'adminPanel'}
+                  isAdmin={item.adminOnly}
+                  iconKey={item.icon}
                 />
               ))}
             </nav>
@@ -85,7 +309,7 @@ export function Navigation({ currentPage, leagueId, isLeagueAdmin, activeTab, on
 
           {/* Desktop Navigation - No League */}
           {!leagueId && (
-            <nav className={`hidden md:flex items-center bg-surface-300/50 rounded-lg ${isSuperAdmin ? 'gap-2 p-2' : 'gap-1 p-1'}`}>
+            <nav className={`hidden md:flex items-center bg-surface-300/60 rounded-xl shadow-inner shadow-black/20 backdrop-blur-sm ${isSuperAdmin ? 'gap-1 p-1' : 'gap-1 p-1'}`} data-testid="desktop-nav-main">
               {isSuperAdmin ? (
                 <>
                   <NavButton
@@ -94,6 +318,7 @@ export function Navigation({ currentPage, leagueId, isLeagueAdmin, activeTab, on
                     onClick={() => onNavigate('superadmin', { tab: 'upload' })}
                     accent
                     large
+                    iconKey="upload"
                   />
                   <NavButton
                     label="Giocatori"
@@ -101,6 +326,7 @@ export function Navigation({ currentPage, leagueId, isLeagueAdmin, activeTab, on
                     onClick={() => onNavigate('superadmin', { tab: 'players' })}
                     accent
                     large
+                    iconKey="players"
                   />
                   <NavButton
                     label="Leghe"
@@ -108,6 +334,7 @@ export function Navigation({ currentPage, leagueId, isLeagueAdmin, activeTab, on
                     onClick={() => onNavigate('superadmin', { tab: 'leagues' })}
                     accent
                     large
+                    iconKey="leagues"
                   />
                   <NavButton
                     label="Utenti"
@@ -115,6 +342,7 @@ export function Navigation({ currentPage, leagueId, isLeagueAdmin, activeTab, on
                     onClick={() => onNavigate('superadmin', { tab: 'users' })}
                     accent
                     large
+                    iconKey="users"
                   />
                 </>
               ) : (
@@ -122,50 +350,164 @@ export function Navigation({ currentPage, leagueId, isLeagueAdmin, activeTab, on
                   label="Le Mie Leghe"
                   active={isActive('dashboard')}
                   onClick={() => onNavigate('dashboard')}
+                  iconKey="leagues"
                 />
               )}
             </nav>
           )}
 
           {/* User info & actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* DEBUG: Latency Test Link - bypasses React Router */}
+            <a
+              href="/test-latency"
+              className="px-2 py-1 text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded hover:bg-amber-500/30 transition-colors"
+            >
+              Test Latency
+            </a>
+
             {leagueId && (
               <>
-                {/* Notifications */}
+                {/* Notifications with enhanced badge */}
                 <Notifications leagueId={leagueId} onNavigate={onNavigate} />
                 <button
                   onClick={() => onNavigate('dashboard')}
-                  className="hidden sm:flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-white bg-surface-300/50 hover:bg-surface-300 rounded-lg transition-all duration-200 hover:shadow-md group"
+                  data-testid="back-to-leagues"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4 transform group-hover:-translate-x-0.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Leghe
                 </button>
               </>
             )}
-            <button
-              onClick={() => onNavigate('profile')}
-              className="hidden sm:flex items-center gap-2 hover:bg-surface-300 rounded-lg px-3 py-2 transition-colors"
-            >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white text-sm font-bold">
-                {user?.username?.[0]?.toUpperCase() || '?'}
+
+            {/* User Profile Dropdown */}
+            <div className="relative hidden sm:block" ref={profileDropdownRef}>
+              <button
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                onKeyDown={handleProfileKeyDown}
+                className="flex items-center gap-2.5 hover:bg-surface-300/80 rounded-xl px-3 py-2 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-primary-400/50 focus:ring-offset-2 focus:ring-offset-surface-200"
+                data-testid="profile-button"
+                aria-expanded={profileDropdownOpen}
+                aria-haspopup="true"
+              >
+                {/* Enhanced Avatar */}
+                <div className="relative">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-400 via-primary-500 to-primary-700 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-primary-500/30 ring-2 ring-primary-400/30 group-hover:ring-primary-400/50 transition-all duration-200">
+                    {user?.username?.[0]?.toUpperCase() || '?'}
+                  </div>
+                  {/* Online indicator */}
+                  <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-surface-200 shadow-sm transition-colors duration-300 ${pusherConnected ? 'bg-secondary-500' : 'bg-gray-500'}`} title={pusherConnected ? 'Connesso' : 'Disconnesso'} />
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">
+                    {teamName ? 'DG' : 'Profilo'}
+                  </p>
+                  <p className="text-sm font-semibold text-white group-hover:text-primary-300 transition-colors duration-200 max-w-[100px] truncate">
+                    {teamName || user?.username}
+                  </p>
+                </div>
+                <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Profile Dropdown Menu */}
+              <div
+                className={`absolute right-0 mt-2 w-64 bg-surface-200 border border-surface-50/30 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-50 transition-all duration-200 origin-top-right ${
+                  profileDropdownOpen
+                    ? 'opacity-100 scale-100 translate-y-0'
+                    : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+                }`}
+                data-testid="profile-dropdown"
+                role="menu"
+                aria-orientation="vertical"
+              >
+                {/* User info header */}
+                <div className="px-4 py-3 bg-gradient-to-r from-surface-300/80 to-surface-300/40 border-b border-surface-50/20">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-400 via-primary-500 to-primary-700 flex items-center justify-center text-white font-bold shadow-lg">
+                      {user?.username?.[0]?.toUpperCase() || '?'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{user?.username}</p>
+                      <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+                    </div>
+                  </div>
+                  {/* Team info if in league */}
+                  {teamName && leagueName && (
+                    <div className="mt-2 pt-2 border-t border-surface-50/20">
+                      <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Direttore Generale</p>
+                      <p className="text-sm font-medium text-primary-300 truncate">{teamName}</p>
+                      <p className="text-xs text-gray-500 truncate">{leagueName}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Connection status */}
+                <div className="px-4 py-2 border-b border-surface-50/10">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${pusherConnected ? 'bg-secondary-500' : 'bg-gray-500'}`} />
+                    <span className="text-xs text-gray-400">
+                      {pusherConnected ? 'Connessione attiva' : 'Connessione non attiva'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Menu items */}
+                <div className="py-1">
+                  <button
+                    onClick={() => { onNavigate('profile'); setProfileDropdownOpen(false) }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-surface-300/60 transition-colors duration-150 focus:outline-none focus:bg-surface-300/60"
+                    data-testid="profile-link"
+                    role="menuitem"
+                  >
+                    {MenuIcons.profile}
+                    Il Mio Profilo
+                  </button>
+                  <button
+                    onClick={() => { onNavigate('dashboard'); setProfileDropdownOpen(false) }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-surface-300/60 transition-colors duration-150 focus:outline-none focus:bg-surface-300/60"
+                    role="menuitem"
+                  >
+                    {MenuIcons.leagues}
+                    Le Mie Leghe
+                  </button>
+                </div>
+
+                {/* Logout */}
+                <div className="border-t border-surface-50/20 py-1">
+                  <button
+                    onClick={() => { handleLogout(); setProfileDropdownOpen(false) }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-danger-400 hover:text-danger-300 hover:bg-danger-500/10 transition-colors duration-150 focus:outline-none focus:bg-danger-500/10"
+                    data-testid="logout-button-dropdown"
+                    role="menuitem"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Esci
+                  </button>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-400">Profilo</p>
-                <p className="text-sm font-semibold text-white">{user?.username}</p>
-              </div>
-            </button>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
+            </div>
+
+            {/* Logout button for smaller screens */}
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="hidden sm:flex lg:hidden" data-testid="logout-button">
               Esci
             </Button>
 
             {/* Mobile menu button */}
             <button
-              className="lg:hidden text-gray-400 hover:text-white p-2"
+              className="lg:hidden text-gray-400 hover:text-white p-2 hover:bg-surface-300/50 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400/50"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              data-testid="mobile-menu-toggle"
+              aria-expanded={mobileMenuOpen}
+              aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className={`w-6 h-6 transition-transform duration-300 ${mobileMenuOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 {mobileMenuOpen ? (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 ) : (
@@ -175,96 +517,260 @@ export function Navigation({ currentPage, leagueId, isLeagueAdmin, activeTab, on
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <nav className="lg:hidden mt-3 pt-3 border-t border-surface-50/20 space-y-1">
-            {leagueId ? (
-              <>
-                <MobileNavButton
-                  label="Torna alle Leghe"
-                  active={false}
-                  onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false) }}
-                  icon="back"
-                />
-                <div className="border-t border-surface-50/10 my-2" />
-                {visibleMenuItems.map(item => (
+      {/* Mobile Navigation - Full Screen Overlay */}
+      <div
+        className={`lg:hidden fixed inset-0 z-50 transition-all duration-300 ${
+          mobileMenuOpen ? 'visible' : 'invisible'
+        }`}
+        data-testid="mobile-menu"
+      >
+        {/* Backdrop */}
+        <div
+          className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+            mobileMenuOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+          onClick={() => setMobileMenuOpen(false)}
+        />
+
+        {/* Slide-in Panel */}
+        <div
+          ref={mobileMenuRef}
+          className={`absolute top-0 right-0 h-full w-full max-w-sm bg-gradient-to-b from-surface-200 via-dark-200 to-surface-300 shadow-2xl transform transition-transform duration-300 ease-out ${
+            mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          {/* Mobile Menu Header */}
+          <div className="flex items-center justify-between px-4 py-3 bg-surface-300/50 border-b border-surface-50/20">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-400 via-primary-500 to-primary-700 flex items-center justify-center shadow-glow">
+                <span className="text-xl">⚽</span>
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-white">Fantacontratti</h2>
+                <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Dynasty DG</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-2 text-gray-400 hover:text-white hover:bg-surface-300/50 rounded-lg transition-colors duration-200"
+              aria-label="Chiudi menu"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Scrollable Content */}
+          <div className="h-[calc(100%-60px)] overflow-y-auto">
+            <nav className="p-4 space-y-2">
+              {/* Mobile User Profile */}
+              <div className="flex items-center gap-3 px-4 py-4 mb-3 bg-surface-300/40 rounded-xl border border-surface-50/10">
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-400 via-primary-500 to-primary-700 flex items-center justify-center text-white text-lg font-bold shadow-lg">
+                    {user?.username?.[0]?.toUpperCase() || '?'}
+                  </div>
+                  <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-surface-300 ${pusherConnected ? 'bg-secondary-500' : 'bg-gray-500'}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{user?.username}</p>
+                  <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+                  {teamName && (
+                    <p className="text-xs text-primary-300 mt-0.5 truncate">DG: {teamName}</p>
+                  )}
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  {isLeagueAdmin && leagueId && (
+                    <div className="px-2 py-0.5 bg-accent-500/20 rounded-full">
+                      <span className="text-[10px] font-semibold text-accent-400 uppercase">Admin</span>
+                    </div>
+                  )}
+                  {isInAuction && pusherConnected && (
+                    <div className="flex items-center gap-1 px-2 py-0.5 bg-danger-500/20 rounded-full">
+                      <div className="w-1.5 h-1.5 bg-danger-500 rounded-full animate-pulse" />
+                      <span className="text-[10px] font-semibold text-danger-400 uppercase">Live</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* League Context Banner */}
+              {leagueId && leagueName && (
+                <div className="px-4 py-3 mb-3 bg-primary-500/10 border border-primary-500/20 rounded-xl">
+                  <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Lega corrente</p>
+                  <p className="text-sm font-semibold text-primary-300 truncate">{leagueName}</p>
+                </div>
+              )}
+
+              {leagueId ? (
+                <>
                   <MobileNavButton
-                    key={item.key}
-                    label={item.label}
-                    active={isActive(item.key)}
-                    onClick={() => { onNavigate(item.key, { leagueId }); setMobileMenuOpen(false) }}
-                    highlight={item.key === 'adminPanel'}
+                    label="Torna alle Leghe"
+                    active={false}
+                    onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false) }}
+                    icon="back"
+                    iconElement={MenuIcons.back}
                   />
-                ))}
-              </>
-            ) : (
-              <>
-                {isSuperAdmin ? (
-                  <>
+                  <div className="border-t border-surface-50/10 my-3" />
+                  <p className="px-4 text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-2">Menu Lega</p>
+                  {visibleMenuItems.map(item => (
                     <MobileNavButton
-                      label="Quotazioni"
-                      active={activeTab === 'upload' || (!activeTab && isActive('superadmin'))}
-                      onClick={() => { onNavigate('superadmin', { tab: 'upload' }); setMobileMenuOpen(false) }}
-                      accent
+                      key={item.key}
+                      label={item.label}
+                      active={isActive(item.key)}
+                      onClick={() => { onNavigate(item.key, { leagueId }); setMobileMenuOpen(false) }}
+                      highlight={item.key === 'adminPanel'}
+                      isAdmin={item.adminOnly}
+                      iconElement={MenuIcons[item.icon as keyof typeof MenuIcons]}
                     />
-                    <MobileNavButton
-                      label="Giocatori"
-                      active={activeTab === 'players'}
-                      onClick={() => { onNavigate('superadmin', { tab: 'players' }); setMobileMenuOpen(false) }}
-                      accent
-                    />
-                    <MobileNavButton
-                      label="Leghe"
-                      active={activeTab === 'leagues'}
-                      onClick={() => { onNavigate('superadmin', { tab: 'leagues' }); setMobileMenuOpen(false) }}
-                      accent
-                    />
-                    <MobileNavButton
-                      label="Utenti"
-                      active={activeTab === 'users'}
-                      onClick={() => { onNavigate('superadmin', { tab: 'users' }); setMobileMenuOpen(false) }}
-                      accent
-                    />
-                    <div className="border-t border-surface-50/10 my-2" />
-                    <MobileNavButton
-                      label="Il Mio Profilo"
-                      active={isActive('profile')}
-                      onClick={() => { onNavigate('profile'); setMobileMenuOpen(false) }}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <MobileNavButton
-                      label="Le Mie Leghe"
-                      active={isActive('dashboard')}
-                      onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false) }}
-                    />
-                    <MobileNavButton
-                      label="Il Mio Profilo"
-                      active={isActive('profile')}
-                      onClick={() => { onNavigate('profile'); setMobileMenuOpen(false) }}
-                    />
-                  </>
-                )}
-              </>
-            )}
-          </nav>
-        )}
+                  ))}
+                </>
+              ) : (
+                <>
+                  {isSuperAdmin ? (
+                    <>
+                      <p className="px-4 text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-2">Super Admin</p>
+                      <MobileNavButton
+                        label="Quotazioni"
+                        active={activeTab === 'upload' || (!activeTab && isActive('superadmin'))}
+                        onClick={() => { onNavigate('superadmin', { tab: 'upload' }); setMobileMenuOpen(false) }}
+                        accent
+                        iconElement={MenuIcons.upload}
+                      />
+                      <MobileNavButton
+                        label="Giocatori"
+                        active={activeTab === 'players'}
+                        onClick={() => { onNavigate('superadmin', { tab: 'players' }); setMobileMenuOpen(false) }}
+                        accent
+                        iconElement={MenuIcons.players}
+                      />
+                      <MobileNavButton
+                        label="Leghe"
+                        active={activeTab === 'leagues'}
+                        onClick={() => { onNavigate('superadmin', { tab: 'leagues' }); setMobileMenuOpen(false) }}
+                        accent
+                        iconElement={MenuIcons.leagues}
+                      />
+                      <MobileNavButton
+                        label="Utenti"
+                        active={activeTab === 'users'}
+                        onClick={() => { onNavigate('superadmin', { tab: 'users' }); setMobileMenuOpen(false) }}
+                        accent
+                        iconElement={MenuIcons.users}
+                      />
+                      <div className="border-t border-surface-50/10 my-3" />
+                      <MobileNavButton
+                        label="Il Mio Profilo"
+                        active={isActive('profile')}
+                        onClick={() => { onNavigate('profile'); setMobileMenuOpen(false) }}
+                        iconElement={MenuIcons.profile}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <MobileNavButton
+                        label="Le Mie Leghe"
+                        active={isActive('dashboard')}
+                        onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false) }}
+                        iconElement={MenuIcons.leagues}
+                      />
+                      <MobileNavButton
+                        label="Il Mio Profilo"
+                        active={isActive('profile')}
+                        onClick={() => { onNavigate('profile'); setMobileMenuOpen(false) }}
+                        iconElement={MenuIcons.profile}
+                      />
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* Mobile Logout */}
+              <div className="border-t border-surface-50/10 my-3 pt-3">
+                <button
+                  onClick={() => { handleLogout(); setMobileMenuOpen(false) }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-danger-400 hover:text-danger-300 hover:bg-danger-500/10 rounded-xl transition-colors duration-200"
+                  data-testid="mobile-logout"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Esci
+                </button>
+              </div>
+
+              {/* Connection Status Footer */}
+              <div className="px-4 py-3 mt-4 bg-surface-300/30 rounded-xl">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${pusherConnected ? 'bg-secondary-500' : 'bg-gray-500'}`} />
+                  <span className="text-xs text-gray-400">
+                    {pusherConnected ? 'Connessione in tempo reale attiva' : 'Connessione non attiva'}
+                  </span>
+                </div>
+              </div>
+            </nav>
+          </div>
+        </div>
       </div>
     </header>
   )
 }
 
-function NavButton({ label, active, onClick, accent, highlight, large }: { label: string; active: boolean; onClick: () => void; accent?: boolean; highlight?: boolean; large?: boolean }) {
-  const baseClasses = large
-    ? 'px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap'
-    : 'px-2 py-1 text-xs rounded transition-colors whitespace-nowrap'
+interface NavButtonProps {
+  label: string
+  active: boolean
+  onClick: () => void
+  accent?: boolean
+  highlight?: boolean
+  large?: boolean
+  isAdmin?: boolean
+  iconKey?: string
+}
 
-  if (highlight) {
+function NavButton({ label, active, onClick, accent, highlight, large, isAdmin, iconKey }: NavButtonProps) {
+  const baseClasses = large
+    ? 'relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 whitespace-nowrap group focus:outline-none focus:ring-2 focus:ring-primary-400/50'
+    : 'relative px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-300 whitespace-nowrap group focus:outline-none focus:ring-2 focus:ring-primary-400/50'
+
+  // Get icon for the nav button
+  const getIcon = () => {
+    if (isAdmin) {
+      return (
+        <svg className="w-3.5 h-3.5 transition-transform duration-200 group-hover:scale-110" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M10 1l2.928 6.856L20 8.485l-5 4.428 1.325 7.087L10 16.5 3.675 20l1.325-7.087-5-4.428 7.072-.629L10 1z" clipRule="evenodd" />
+        </svg>
+      )
+    }
+    if (iconKey && MenuIcons[iconKey as keyof typeof MenuIcons]) {
+      return <span className="transition-transform duration-200 group-hover:scale-110">{MenuIcons[iconKey as keyof typeof MenuIcons]}</span>
+    }
+    return null
+  }
+
+  const icon = getIcon()
+
+  // Admin/highlight items get gold accent
+  if (highlight || isAdmin) {
     return (
-      <button onClick={onClick} className={`${baseClasses} ${active ? 'bg-accent-500/30 text-accent-400 font-medium' : 'text-accent-400 hover:bg-accent-500/20'}`}>
-        {label}
+      <button
+        onClick={onClick}
+        className={`${baseClasses} ${
+          active
+            ? 'bg-gradient-to-r from-accent-500/30 to-accent-600/20 text-accent-300 shadow-md shadow-accent-500/20 scale-[1.02]'
+            : 'text-accent-400 hover:bg-accent-500/15 hover:text-accent-300 hover:scale-[1.02]'
+        }`}
+        data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
+      >
+        {/* Active indicator - left bar instead of underline for better visibility */}
+        {active && (
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-3/4 bg-accent-400 rounded-full" />
+        )}
+        <span className="flex items-center gap-1.5">
+          {icon}
+          {label}
+        </span>
       </button>
     )
   }
@@ -275,39 +781,90 @@ function NavButton({ label, active, onClick, accent, highlight, large }: { label
       className={`${baseClasses} ${
         active
           ? accent
-            ? 'bg-accent-500/30 text-accent-400 font-medium'
-            : 'bg-primary-500/30 text-primary-400 font-medium'
+            ? 'bg-gradient-to-r from-accent-500/30 to-accent-600/20 text-accent-300 shadow-md shadow-accent-500/20 scale-[1.02]'
+            : 'bg-gradient-to-r from-primary-500/30 to-primary-600/20 text-primary-300 shadow-md shadow-primary-500/20 scale-[1.02]'
           : accent
-            ? 'text-accent-400 hover:bg-accent-500/20'
-            : 'text-gray-300 hover:text-white hover:bg-surface-300'
+            ? 'text-accent-400 hover:bg-accent-500/15 hover:text-accent-300 hover:scale-[1.02]'
+            : 'text-gray-300 hover:text-white hover:bg-surface-300/80 hover:scale-[1.02]'
       }`}
+      data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
     >
-      {label}
+      {/* Active indicator - left bar for better visibility */}
+      {active && (
+        <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-3/4 rounded-full ${accent ? 'bg-accent-400' : 'bg-primary-400'}`} />
+      )}
+      <span className="flex items-center gap-1.5">
+        {icon}
+        {label}
+      </span>
     </button>
   )
 }
 
-function MobileNavButton({ label, active, onClick, accent, highlight, icon }: { label: string; active: boolean; onClick: () => void; accent?: boolean; highlight?: boolean; icon?: 'back' }) {
-  const baseClasses = 'w-full text-left px-4 py-2 rounded-lg transition-colors flex items-center gap-2'
+interface MobileNavButtonProps {
+  label: string
+  active: boolean
+  onClick: () => void
+  accent?: boolean
+  highlight?: boolean
+  icon?: 'back'
+  isAdmin?: boolean
+  iconElement?: React.ReactNode
+}
+
+function MobileNavButton({ label, active, onClick, accent, highlight, icon, isAdmin, iconElement }: MobileNavButtonProps) {
+  const baseClasses = 'w-full text-left px-4 py-3 rounded-xl transition-all duration-300 flex items-center gap-3 focus:outline-none focus:ring-2 focus:ring-primary-400/50'
 
   const getClasses = () => {
-    if (highlight) {
-      return active ? 'bg-accent-500/20 text-accent-400 font-medium' : 'text-accent-400 hover:bg-accent-500/10'
+    if (highlight || isAdmin) {
+      return active
+        ? 'bg-gradient-to-r from-accent-500/25 to-accent-600/15 text-accent-300 shadow-md shadow-accent-500/10 border-l-3 border-accent-400 scale-[1.01]'
+        : 'text-accent-400 hover:bg-accent-500/15 hover:text-accent-300 hover:translate-x-1'
     }
     if (active) {
-      return accent ? 'bg-accent-500/20 text-accent-400 font-medium' : 'bg-primary-500/20 text-primary-400 font-medium'
+      return accent
+        ? 'bg-gradient-to-r from-accent-500/25 to-accent-600/15 text-accent-300 shadow-md shadow-accent-500/10 border-l-3 border-accent-400 scale-[1.01]'
+        : 'bg-gradient-to-r from-primary-500/25 to-primary-600/15 text-primary-300 shadow-md shadow-primary-500/10 border-l-3 border-primary-400 scale-[1.01]'
     }
-    return accent ? 'text-accent-400 hover:bg-accent-500/10' : 'text-gray-300 hover:bg-surface-300'
+    return accent
+      ? 'text-accent-400 hover:bg-accent-500/10 hover:translate-x-1'
+      : 'text-gray-300 hover:bg-surface-300/60 hover:text-white hover:translate-x-1'
+  }
+
+  // Determine which icon to show
+  const renderIcon = () => {
+    if (icon === 'back' && iconElement) {
+      return <span className="w-5 h-5 flex items-center justify-center">{iconElement}</span>
+    }
+    if (icon === 'back') {
+      return (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+      )
+    }
+    if ((highlight || isAdmin) && !iconElement) {
+      return (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M10 1l2.928 6.856L20 8.485l-5 4.428 1.325 7.087L10 16.5 3.675 20l1.325-7.087-5-4.428 7.072-.629L10 1z" clipRule="evenodd" />
+        </svg>
+      )
+    }
+    if (iconElement) {
+      return <span className="w-5 h-5 flex items-center justify-center">{iconElement}</span>
+    }
+    return null
   }
 
   return (
-    <button onClick={onClick} className={`${baseClasses} ${getClasses()}`}>
-      {icon === 'back' && (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
+    <button onClick={onClick} className={`${baseClasses} ${getClasses()}`} data-testid={`mobile-nav-${label.toLowerCase().replace(/\s+/g, '-')}`}>
+      {renderIcon()}
+      <span className="flex-1 font-medium">{label}</span>
+      {active && (
+        <div className="flex items-center gap-1">
+          <div className={`w-2 h-2 rounded-full ${highlight || isAdmin || accent ? 'bg-accent-400' : 'bg-primary-400'} animate-pulse`} />
+        </div>
       )}
-      {label}
     </button>
   )
 }
