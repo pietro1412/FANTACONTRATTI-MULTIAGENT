@@ -175,6 +175,84 @@ app.get('/api/debug/auction-sim', async (_req, res) => {
   }
 })
 
+// DEBUG: Reset auction session for a league
+app.post('/api/debug/reset-auction/:leagueId', async (req, res) => {
+  const { leagueId } = req.params
+  const start = Date.now()
+
+  try {
+    // 1. Find the market session
+    const session = await diagPrisma.marketSession.findFirst({
+      where: { leagueId },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (!session) {
+      res.json({ success: false, error: 'No session found for this league' })
+      return
+    }
+
+    // 2. Delete all bids for auctions in this session
+    await diagPrisma.auctionBid.deleteMany({
+      where: {
+        auction: { marketSessionId: session.id }
+      }
+    })
+
+    // 3. Delete all auctions in this session
+    await diagPrisma.auction.deleteMany({
+      where: { marketSessionId: session.id }
+    })
+
+    // 4. Delete all roster entries created in this session
+    await diagPrisma.playerRoster.deleteMany({
+      where: {
+        leagueMember: { leagueId },
+        // Only delete if no contract (first market players)
+        contract: null
+      }
+    })
+
+    // 5. Reset session state
+    await diagPrisma.marketSession.update({
+      where: { id: session.id },
+      data: {
+        status: 'ACTIVE',
+        currentTurnIndex: 0,
+        readyMembers: [],
+        nominatorConfirmed: false,
+        pendingNominatorId: null,
+        pendingNominationPlayerId: null,
+      }
+    })
+
+    // 6. Reset member budgets to initial
+    const league = await diagPrisma.league.findUnique({
+      where: { id: leagueId }
+    })
+
+    if (league) {
+      await diagPrisma.leagueMember.updateMany({
+        where: { leagueId, status: 'ACTIVE' },
+        data: { currentBudget: league.initialBudget }
+      })
+    }
+
+    res.json({
+      success: true,
+      message: 'Auction reset successfully',
+      sessionId: session.id,
+      totalMs: Date.now() - start
+    })
+  } catch (err) {
+    res.json({
+      success: false,
+      error: err instanceof Error ? err.message : 'Unknown error',
+      totalMs: Date.now() - start
+    })
+  }
+})
+
 // Simple ping endpoint for latency testing
 app.get('/api/debug/ping', async (_req, res) => {
   const start = Date.now()
