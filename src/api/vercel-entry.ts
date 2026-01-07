@@ -199,6 +199,13 @@ app.post('/api/debug/reset-auction/:leagueId', async (req, res) => {
       }
     })
 
+    // 2b. Delete all appeals for auctions in this session
+    await diagPrisma.auctionAppeal.deleteMany({
+      where: {
+        auction: { marketSessionId: session.id }
+      }
+    })
+
     // 3. Delete all bids for auctions in this session
     await diagPrisma.auctionBid.deleteMany({
       where: {
