@@ -216,8 +216,26 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
     <header className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20 sticky top-0 z-40 shadow-lg shadow-black/20 backdrop-blur-sm">
       <div className="max-w-full mx-auto px-4 py-2.5">
         <div className="flex justify-between items-center">
-          {/* Logo with enhanced styling */}
-          <div className="flex items-center gap-3">
+          {/* Left side: Mobile menu button + Logo */}
+          <div className="flex items-center gap-2">
+            {/* Mobile menu button - a sinistra */}
+            <button
+              className="lg:hidden text-gray-400 hover:text-white p-2 hover:bg-surface-300/50 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400/50"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              data-testid="mobile-menu-toggle"
+              aria-expanded={mobileMenuOpen}
+              aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
+            >
+              <svg className={`w-6 h-6 transition-transform duration-300 ${mobileMenuOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                {mobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+
+            {/* Logo */}
             <button
               onClick={() => onNavigate('dashboard')}
               className="flex items-center gap-3 group transition-all duration-300 hover:scale-[1.02]"
@@ -498,23 +516,6 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             <Button variant="ghost" size="sm" onClick={handleLogout} className="hidden sm:flex lg:hidden" data-testid="logout-button">
               Esci
             </Button>
-
-            {/* Mobile menu button */}
-            <button
-              className="lg:hidden text-gray-400 hover:text-white p-2 hover:bg-surface-300/50 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400/50"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              data-testid="mobile-menu-toggle"
-              aria-expanded={mobileMenuOpen}
-              aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
-            >
-              <svg className={`w-6 h-6 transition-transform duration-300 ${mobileMenuOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                {mobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
           </div>
         </div>
       </div>
@@ -537,7 +538,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
         {/* Slide-in Panel - apre da sinistra */}
         <div
           ref={mobileMenuRef}
-          className={`absolute top-0 left-0 h-full w-full max-w-sm bg-gradient-to-b from-surface-200 via-dark-200 to-surface-300 shadow-2xl transform transition-transform duration-300 ease-out flex flex-col ${
+          className={`absolute top-0 left-0 h-full w-full max-w-sm z-10 bg-surface-200 shadow-2xl transform transition-transform duration-300 ease-out flex flex-col ${
             mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
