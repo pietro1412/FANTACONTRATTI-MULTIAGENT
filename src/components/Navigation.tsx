@@ -213,6 +213,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
   const visibleMenuItems = LEAGUE_MENU_ITEMS.filter(item => !item.adminOnly || isLeagueAdmin)
 
   return (
+    <>
     <header className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20 sticky top-0 z-40 shadow-lg shadow-black/20 backdrop-blur-sm">
       <div className="max-w-full mx-auto px-4 py-2.5">
         <div className="flex justify-between items-center">
@@ -520,33 +521,31 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
         </div>
       </div>
 
-      {/* Mobile Navigation - Full Screen Overlay */}
+    </header>
+
+    {/* Mobile Navigation - FUORI dall'header per evitare vincoli di altezza */}
+    {mobileMenuOpen && (
       <div
-        className={`lg:hidden fixed inset-0 z-50 transition-all duration-300 ${
-          mobileMenuOpen ? 'visible' : 'invisible'
-        }`}
+        className="lg:hidden fixed inset-0 z-50"
         data-testid="mobile-menu"
       >
         {/* Backdrop */}
         <div
-          className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
-            mobileMenuOpen ? 'opacity-100' : 'opacity-0'
-          }`}
+          className="absolute inset-0"
+          style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
           onClick={() => setMobileMenuOpen(false)}
         />
 
-        {/* Slide-in Panel - apre da sinistra */}
+        {/* Slide-in Panel */}
         <div
           ref={mobileMenuRef}
-          className={`absolute top-0 left-0 bottom-0 w-[85vw] max-w-sm z-10 shadow-2xl transform transition-transform duration-300 ease-out overflow-y-auto ${
-            mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
+          className="absolute top-0 left-0 bottom-0 w-[85vw] max-w-sm z-10 overflow-y-auto"
           style={{ backgroundColor: '#1a1f2c' }}
         >
           {/* Mobile Menu Header */}
           <div
-            className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-gray-600"
-            style={{ backgroundColor: '#252b3a' }}
+            className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b"
+            style={{ backgroundColor: '#252b3a', borderColor: '#374151' }}
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #38b2ac 0%, #319795 50%, #285e61 100%)' }}>
@@ -573,14 +572,14 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
           <div className="p-4 space-y-3">
             {/* Mobile User Profile */}
             <div
-              className="flex items-center gap-3 px-4 py-4 rounded-xl border border-gray-600"
-              style={{ backgroundColor: '#252b3a' }}
+              className="flex items-center gap-3 px-4 py-4 rounded-xl border"
+              style={{ backgroundColor: '#252b3a', borderColor: '#374151' }}
             >
               <div className="relative">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-lg font-bold" style={{ background: 'linear-gradient(135deg, #38b2ac 0%, #319795 50%, #285e61 100%)' }}>
                   {user?.username?.[0]?.toUpperCase() || '?'}
                 </div>
-                <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2`} style={{ borderColor: '#1a1f2c', backgroundColor: pusherConnected ? '#22c55e' : '#6b7280' }} />
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2" style={{ borderColor: '#1a1f2c', backgroundColor: pusherConnected ? '#22c55e' : '#6b7280' }} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white truncate">{user?.username}</p>
@@ -604,6 +603,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
               </div>
             )}
 
+            {/* Navigation Items */}
             {leagueId ? (
               <>
                 <MobileNavButton
@@ -714,7 +714,8 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
           </div>
         </div>
       </div>
-    </header>
+    )}
+  </>
   )
 }
 
