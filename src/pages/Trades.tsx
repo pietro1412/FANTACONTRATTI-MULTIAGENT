@@ -399,7 +399,7 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
     // Filter by selected member if already selected
     if (selectedMemberId && entry.memberId !== selectedMemberId) return false
 
-    // Filter by manager dropdown
+    // Filter by DG dropdown
     if (filterManager && entry.memberId !== filterManager) return false
 
     // Filter by role
@@ -935,7 +935,7 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
                             setFilterManager('')
                           }}
                         >
-                          Cambia Manager
+                          Cambia DG
                         </Button>
                       </div>
                     </CardContent>
@@ -980,14 +980,14 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
                               const newMemberId = e.target.value
                               setFilterManager(newMemberId)
                               if (newMemberId !== selectedMemberId) {
-                                // Cambio manager: resetta i giocatori richiesti
+                                // Cambio DG: resetta i giocatori richiesti
                                 setSelectedMemberId(newMemberId)
                                 setSelectedRequestedPlayers([])
                               }
                             }}
                             className="w-full px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
                           >
-                            <option value="">Tutti i manager</option>
+                            <option value="">Tutti i DG</option>
                             {members.map(m => (
                               <option key={m.id} value={m.id}>{m.user.username}</option>
                             ))}
@@ -999,7 +999,7 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
                       <div className="max-h-96 overflow-y-auto border border-surface-50/30 rounded-lg bg-surface-300">
                         {filteredOtherPlayers.length === 0 ? (
                           <p className="text-gray-500 text-sm p-4 text-center">
-                            {selectedMemberId ? 'Nessun giocatore trovato' : 'Cerca o seleziona un manager'}
+                            {selectedMemberId ? 'Nessun giocatore trovato' : 'Cerca o seleziona un DG'}
                           </p>
                         ) : (
                           filteredOtherPlayers.map(entry => {

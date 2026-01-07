@@ -326,3 +326,209 @@
 .border-glow-animated {
   animation: borderGlow 2s ease-in-out infinite;
 }
+
+/* Enhanced Timer Animations */
+@keyframes timerPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+@keyframes timerShake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+  20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+@keyframes timerGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(239, 68, 68, 0.6), 0 0 60px rgba(239, 68, 68, 0.3);
+  }
+}
+
+.timer-container {
+  @apply rounded-2xl p-6 text-center transition-all duration-300;
+  background: linear-gradient(135deg, var(--color-surface-300) 0%, var(--color-surface-200) 100%);
+}
+
+.timer-container-warning {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%);
+  border: 2px solid rgba(251, 191, 36, 0.4);
+  animation: timerPulse 1.5s ease-in-out infinite;
+}
+
+.timer-container-danger {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.15) 100%);
+  border: 2px solid rgba(239, 68, 68, 0.5);
+  animation: timerPulse 0.8s ease-in-out infinite, timerGlow 1s ease-in-out infinite;
+}
+
+.timer-value {
+  @apply font-mono font-bold tracking-tight;
+  font-size: 5rem;
+  line-height: 1;
+}
+
+.timer-value-warning {
+  color: #fbbf24;
+  text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+.timer-value-danger {
+  color: #ef4444;
+  text-shadow: 0 0 30px rgba(239, 68, 68, 0.7);
+  animation: timerShake 0.5s ease-in-out infinite;
+}
+
+/* Sound indicator animation */
+@keyframes soundWave {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.sound-indicator {
+  @apply absolute -top-2 -right-2;
+}
+
+.sound-indicator::before,
+.sound-indicator::after {
+  content: '';
+  @apply absolute w-4 h-4 rounded-full;
+  background: rgba(239, 68, 68, 0.5);
+  animation: soundWave 1s ease-out infinite;
+}
+
+.sound-indicator::after {
+  animation-delay: 0.5s;
+}
+
+/* Winning bid indicator */
+.winning-indicator {
+  @apply inline-flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: white;
+  box-shadow: 0 0 20px rgba(22, 163, 74, 0.4);
+  animation: timerPulse 2s ease-in-out infinite;
+}
+
+/* Auction card improvements */
+.auction-card-active {
+  @apply border-2;
+  border-color: rgba(49, 151, 149, 0.5);
+  box-shadow: 0 0 30px rgba(49, 151, 149, 0.2);
+}
+
+/* Current price highlight */
+.current-price-container {
+  @apply relative overflow-hidden;
+  background: linear-gradient(135deg, rgba(49, 151, 149, 0.15) 0%, rgba(44, 122, 123, 0.1) 100%);
+  border: 2px solid rgba(49, 151, 149, 0.4);
+}
+
+.current-price-container::before {
+  content: '';
+  @apply absolute inset-0;
+  background: linear-gradient(90deg, transparent, rgba(49, 151, 149, 0.1), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Bid history scrollable */
+.bid-history {
+  @apply overflow-y-auto;
+  max-height: 200px;
+  scrollbar-width: thin;
+}
+
+/* Manager list improvements */
+.manager-item {
+  @apply transition-all duration-200;
+}
+
+.manager-item-current {
+  @apply border-l-4;
+  border-left-color: #f59e0b;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%);
+}
+
+.budget-progress {
+  @apply h-1.5 rounded-full overflow-hidden;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.budget-progress-bar {
+  @apply h-full rounded-full transition-all duration-300;
+  background: linear-gradient(90deg, #4ade80, #16a34a);
+}
+
+.budget-progress-bar-low {
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+}
+
+.budget-progress-bar-critical {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+/* Mobile sticky bid controls */
+@media (max-width: 1023px) {
+  .bid-controls-sticky {
+    @apply fixed bottom-0 left-0 right-0 p-4 z-40;
+    background: linear-gradient(to top, var(--color-dark-300), var(--color-dark-300) 80%, transparent);
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .auction-room-mobile {
+    padding-bottom: 120px;
+  }
+}
+
+/* Pulse animation for slow/continuous pulse */
+.animate-pulse-slow {
+  animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Connection status dots */
+.connection-dot {
+  @apply w-2.5 h-2.5 rounded-full flex-shrink-0;
+}
+
+.connection-dot-online {
+  @apply bg-green-500;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+}
+
+.connection-dot-offline {
+  @apply bg-red-500 animate-pulse;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+}
+
+/* Collapsible roster */
+.roster-collapsible {
+  @apply overflow-hidden transition-all duration-300;
+}
+
+.roster-collapsible-collapsed {
+  max-height: 0;
+}
+
+.roster-collapsible-expanded {
+  max-height: 500px;
+}

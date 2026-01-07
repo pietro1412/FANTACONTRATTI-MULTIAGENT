@@ -949,7 +949,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                                         ? 'bg-accent-500/20 text-accent-400'
                                         : 'bg-surface-50/20 text-gray-400'
                                     }`}>
-                                      {member.role === 'ADMIN' ? 'Admin' : 'Manager'}
+                                      {member.role === 'ADMIN' ? 'Admin' : 'DG'}
                                     </span>
                                     <p className="text-sm font-mono text-accent-400 mt-1">{member.currentBudget}</p>
                                   </div>
@@ -1119,7 +1119,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
               ) : rosterData ? (
                 <div className="py-12 text-center text-gray-400">
                   <p className="text-5xl mb-4">📋</p>
-                  <p>Questo manager non ha ancora giocatori in rosa</p>
+                  <p>Questo Direttore Generale non ha ancora giocatori in rosa</p>
                 </div>
               ) : null}
             </div>

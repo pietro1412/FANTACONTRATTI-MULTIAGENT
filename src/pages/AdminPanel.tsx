@@ -424,7 +424,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       }>
     }>
 
-    const headers = ['Manager', 'Team', 'Budget', 'Giocatore', 'Squadra', 'Ruolo', 'Quotazione', 'Costo Acquisto', 'Tipo', 'Ingaggio', 'Durata', 'Clausola']
+    const headers = ['DG', 'Team', 'Budget', 'Giocatore', 'Squadra', 'Ruolo', 'Quotazione', 'Costo Acquisto', 'Tipo', 'Ingaggio', 'Durata', 'Clausola']
     const rows: string[][] = []
 
     data.forEach(member => {
@@ -466,7 +466,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
 
   async function handleAssignPrize() {
     if (!selectedPrizeMemberId || !prizeAmount) {
-      setError('Seleziona un manager e inserisci un importo')
+      setError('Seleziona un Direttore Generale e inserisci un importo')
       return
     }
 
@@ -648,7 +648,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                     <div className="bg-accent-500/10 border border-accent-500/30 rounded-lg p-4 mb-4">
                       <p className="text-accent-400 text-sm">
                         <strong>Attenzione:</strong> Una volta passati al Primo Mercato, non sarà più possibile
-                        aggiungere nuovi manager.
+                        aggiungere nuovi Direttori Generali.
                       </p>
                     </div>
                     {activeMembers.length >= (league?.minParticipants || 6) ? (
@@ -717,7 +717,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                         </div>
                         {!consolidationStatus.allConsolidated && (
                           <p className="text-warning-400 text-sm mt-3">
-                            Non puoi passare alla fase successiva finché tutti i manager non hanno consolidato.
+                            Non puoi passare alla fase successiva finché tutti i Direttori Generali non hanno consolidato.
                           </p>
                         )}
                       </div>
@@ -843,7 +843,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                               ? 'bg-accent-500/20 text-accent-400 border border-accent-500/40'
                               : 'bg-surface-300 text-gray-400'
                           }`}>
-                            {member.role === 'ADMIN' ? 'Presidente' : 'Manager'}
+                            {member.role === 'ADMIN' ? 'Presidente' : 'DG'}
                           </span>
                         </td>
                         <td className="px-5 py-4 text-right font-mono text-accent-400 text-lg">{member.currentBudget}</td>
@@ -982,7 +982,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
             <div className="p-5 border-b border-surface-50/20">
               <h3 className="text-xl font-bold text-white">Assegna Premi</h3>
               <p className="text-sm text-gray-400 mt-1">
-                Incrementa il budget dei manager come premio per i risultati del semestre
+                Incrementa il budget dei Direttori Generali come premio per i risultati del semestre
               </p>
             </div>
             <div className="p-5">
@@ -992,13 +992,13 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                   <h4 className="font-semibold text-white mb-4">Nuovo Premio</h4>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Manager</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Direttore Generale</label>
                       <select
                         value={selectedPrizeMemberId}
                         onChange={(e) => setSelectedPrizeMemberId(e.target.value)}
                         className="w-full bg-surface-200 border border-surface-50/30 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent-500/50"
                       >
-                        <option value="">Seleziona manager...</option>
+                        <option value="">Seleziona Direttore Generale...</option>
                         {activeMembers.map(m => (
                           <option key={m.id} value={m.id}>
                             {m.teamName} ({m.user.username}) - {m.currentBudget}M
@@ -1076,7 +1076,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                       <thead className="bg-surface-300">
                         <tr>
                           <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Data</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Manager</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">DG</th>
                           <th className="px-4 py-3 text-right text-sm font-semibold text-gray-300">Importo</th>
                           <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Motivazione</th>
                           <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Assegnato da</th>

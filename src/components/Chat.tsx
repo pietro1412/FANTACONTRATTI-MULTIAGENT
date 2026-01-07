@@ -118,7 +118,7 @@ export function Chat({ sessionId, currentMemberId, isAdmin }: ChatProps) {
             <button
               onClick={(e) => { e.stopPropagation(); handleSimulate() }}
               className="p-1.5 rounded hover:bg-surface-50/20 text-gray-400 hover:text-purple-400 transition-colors"
-              title="Simula messaggio random da altro manager"
+              title="Simula messaggio random da altro DG"
             >
               <span className="text-sm">🤖</span>
             </button>

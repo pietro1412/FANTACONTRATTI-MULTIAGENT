@@ -212,9 +212,9 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
         {activeSession && (() => {
           const phaseConfig: Record<string, { icon: string; title: string; description: string; buttonText: string; color: string }> = {
             ASTA_LIBERA: { icon: '🔨', title: 'Asta in Corso', description: "L'asta è in corso, entra subito!", buttonText: "Entra nell'Asta", color: 'secondary' },
-            SCAMBI_OFFERTE_1: { icon: '🔄', title: 'Finestra Scambi', description: 'Proponi e accetta scambi con altri manager', buttonText: 'Vai agli Scambi', color: 'primary' },
+            SCAMBI_OFFERTE_1: { icon: '🔄', title: 'Finestra Scambi', description: 'Proponi e accetta scambi con altri DG', buttonText: 'Vai agli Scambi', color: 'primary' },
             CONTRATTI: { icon: '📝', title: 'Gestione Contratti', description: 'Gestisci i contratti dei tuoi giocatori', buttonText: 'Gestisci Contratti', color: 'accent' },
-            RUBATA: { icon: '🎯', title: 'Fase Rubata', description: 'Prova a rubare giocatori dagli altri manager', buttonText: 'Vai alla Rubata', color: 'warning' },
+            RUBATA: { icon: '🎯', title: 'Fase Rubata', description: 'Prova a rubare giocatori dagli altri DG', buttonText: 'Vai alla Rubata', color: 'warning' },
             SVINCOLATI: { icon: '📋', title: 'Mercato Svincolati', description: 'Acquista giocatori svincolati', buttonText: 'Vai agli Svincolati', color: 'success' },
             SCAMBI_OFFERTE_2: { icon: '🔄', title: 'Finestra Scambi', description: 'Ultima finestra per proporre scambi', buttonText: 'Vai agli Scambi', color: 'primary' },
           }
@@ -518,12 +518,12 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
 
             <div className="bg-surface-300 rounded-xl p-5 mb-6">
               <div className="flex justify-between items-center mb-3">
-                <span className="text-gray-400">Manager partecipanti</span>
+                <span className="text-gray-400">DG partecipanti</span>
                 <span className="text-3xl font-bold text-secondary-400">{activeMembers.length}</span>
               </div>
               <div className="text-center pt-3 border-t border-surface-50/20">
                 <p className="text-sm text-gray-400">
-                  L'asta partirà con {activeMembers.length} manager
+                  L'asta partirà con {activeMembers.length} DG
                 </p>
               </div>
             </div>

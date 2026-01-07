@@ -359,7 +359,7 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
         {league.inContrattiPhase && (
           <div className="mb-6 p-4 bg-warning-500/10 border border-warning-500/30 rounded-xl">
             <p className="text-warning-400">
-              <strong>Fase CONTRATTI attiva:</strong> I dettagli dei contratti degli altri manager sono nascosti fino alla fine della fase.
+              <strong>Fase CONTRATTI attiva:</strong> I dettagli dei contratti degli altri Direttori Generali sono nascosti fino alla fine della fase.
             </p>
           </div>
         )}
@@ -369,7 +369,7 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
           <div className="lg:col-span-1">
             <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
               <div className="p-4 border-b border-surface-50/20">
-                <h2 className="font-bold text-white">Manager ({activeMembers.length})</h2>
+                <h2 className="font-bold text-white">Direttori Generali ({activeMembers.length})</h2>
               </div>
               <div className="divide-y divide-surface-50/10">
                 {activeMembers.map(member => {
@@ -497,7 +497,7 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
             ) : (
               <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-12 text-center">
                 <div className="text-6xl mb-4">👈</div>
-                <p className="text-gray-400">Seleziona un manager per vedere la sua rosa</p>
+                <p className="text-gray-400">Seleziona un Direttore Generale per vedere la sua rosa</p>
               </div>
             )}
           </div>

@@ -135,7 +135,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                         <h3 className="text-xl font-bold text-white group-hover:text-primary-400 transition-colors">
                           {league.name}
                         </h3>
-                        <p className="text-sm text-gray-400">{league.members.length} manager</p>
+                        <p className="text-sm text-gray-400">{league.members.length} DG</p>
                       </div>
                     </div>
                     <span
@@ -145,7 +145,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                           : 'bg-surface-50/20 text-gray-400 border border-surface-50/30'
                       }`}
                     >
-                      {membership.role === 'ADMIN' ? 'Presidente' : 'Manager'}
+                      {membership.role === 'ADMIN' ? '👑 Presidente' : 'DG'}
                     </span>
                   </div>
                 </div>

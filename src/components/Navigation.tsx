@@ -534,15 +534,15 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
           onClick={() => setMobileMenuOpen(false)}
         />
 
-        {/* Slide-in Panel */}
+        {/* Slide-in Panel - apre da sinistra */}
         <div
           ref={mobileMenuRef}
-          className={`absolute top-0 right-0 h-full w-full max-w-sm bg-gradient-to-b from-surface-200 via-dark-200 to-surface-300 shadow-2xl transform transition-transform duration-300 ease-out ${
-            mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          className={`absolute top-0 left-0 h-full w-full max-w-sm bg-gradient-to-b from-surface-200 via-dark-200 to-surface-300 shadow-2xl transform transition-transform duration-300 ease-out flex flex-col ${
+            mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
           {/* Mobile Menu Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-surface-300/50 border-b border-surface-50/20">
+          <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-surface-300/50 border-b border-surface-50/20">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-400 via-primary-500 to-primary-700 flex items-center justify-center shadow-glow">
                 <span className="text-xl">⚽</span>
@@ -564,7 +564,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
           </div>
 
           {/* Scrollable Content */}
-          <div className="h-[calc(100%-60px)] overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-0">
             <nav className="p-4 space-y-2">
               {/* Mobile User Profile */}
               <div className="flex items-center gap-3 px-4 py-4 mb-3 bg-surface-300/40 rounded-xl border border-surface-50/10">
