@@ -538,25 +538,29 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
         {/* Slide-in Panel - apre da sinistra */}
         <div
           ref={mobileMenuRef}
-          style={{ backgroundColor: '#1a1f2c' }}
-          className={`absolute top-0 left-0 h-full w-full max-w-sm z-10 shadow-2xl transform transition-transform duration-300 ease-out flex flex-col ${
+          className={`absolute top-0 left-0 bottom-0 w-[85vw] max-w-sm z-10 shadow-2xl transform transition-transform duration-300 ease-out overflow-y-auto ${
             mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
+          style={{ backgroundColor: '#1a1f2c' }}
         >
           {/* Mobile Menu Header */}
-          <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-700" style={{ backgroundColor: '#252b3a' }}>
+          <div
+            className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-gray-600"
+            style={{ backgroundColor: '#252b3a' }}
+          >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-400 via-primary-500 to-primary-700 flex items-center justify-center shadow-glow">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #38b2ac 0%, #319795 50%, #285e61 100%)' }}>
                 <span className="text-xl">⚽</span>
               </div>
               <div>
                 <h2 className="text-sm font-bold text-white">Fantacontratti</h2>
-                <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Dynasty DG</p>
+                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Dynasty DG</p>
               </div>
             </div>
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="p-2 text-gray-400 hover:text-white hover:bg-surface-300/50 rounded-lg transition-colors duration-200"
+              className="p-2 text-gray-400 hover:text-white rounded-lg"
+              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
               aria-label="Chiudi menu"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -565,154 +569,148 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             </button>
           </div>
 
-          {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto min-h-0" style={{ backgroundColor: '#1a1f2c' }}>
-            <nav className="p-4 space-y-2">
-              {/* Mobile User Profile */}
-              <div className="flex items-center gap-3 px-4 py-4 mb-3 bg-surface-300/40 rounded-xl border border-surface-50/10">
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-400 via-primary-500 to-primary-700 flex items-center justify-center text-white text-lg font-bold shadow-lg">
-                    {user?.username?.[0]?.toUpperCase() || '?'}
-                  </div>
-                  <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-surface-300 ${pusherConnected ? 'bg-secondary-500' : 'bg-gray-500'}`} />
+          {/* Menu Content */}
+          <div className="p-4 space-y-3">
+            {/* Mobile User Profile */}
+            <div
+              className="flex items-center gap-3 px-4 py-4 rounded-xl border border-gray-600"
+              style={{ backgroundColor: '#252b3a' }}
+            >
+              <div className="relative">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-lg font-bold" style={{ background: 'linear-gradient(135deg, #38b2ac 0%, #319795 50%, #285e61 100%)' }}>
+                  {user?.username?.[0]?.toUpperCase() || '?'}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">{user?.username}</p>
-                  <p className="text-xs text-gray-400 truncate">{user?.email}</p>
-                  {teamName && (
-                    <p className="text-xs text-primary-300 mt-0.5 truncate">DG: {teamName}</p>
-                  )}
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  {isLeagueAdmin && leagueId && (
-                    <div className="px-2 py-0.5 bg-accent-500/20 rounded-full">
-                      <span className="text-[10px] font-semibold text-accent-400 uppercase">Admin</span>
-                    </div>
-                  )}
-                  {isInAuction && pusherConnected && (
-                    <div className="flex items-center gap-1 px-2 py-0.5 bg-danger-500/20 rounded-full">
-                      <div className="w-1.5 h-1.5 bg-danger-500 rounded-full animate-pulse" />
-                      <span className="text-[10px] font-semibold text-danger-400 uppercase">Live</span>
-                    </div>
-                  )}
-                </div>
+                <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2`} style={{ borderColor: '#1a1f2c', backgroundColor: pusherConnected ? '#22c55e' : '#6b7280' }} />
               </div>
-
-              {/* League Context Banner */}
-              {leagueId && leagueName && (
-                <div className="px-4 py-3 mb-3 bg-primary-500/10 border border-primary-500/20 rounded-xl">
-                  <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Lega corrente</p>
-                  <p className="text-sm font-semibold text-primary-300 truncate">{leagueName}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{user?.username}</p>
+                <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+                {teamName && (
+                  <p className="text-xs mt-0.5 truncate" style={{ color: '#4fd1c5' }}>DG: {teamName}</p>
+                )}
+              </div>
+              {isLeagueAdmin && leagueId && (
+                <div className="px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(251, 191, 36, 0.2)' }}>
+                  <span className="text-[10px] font-semibold uppercase" style={{ color: '#fbbf24' }}>Admin</span>
                 </div>
               )}
+            </div>
 
-              {leagueId ? (
-                <>
+            {/* League Context Banner */}
+            {leagueId && leagueName && (
+              <div className="px-4 py-3 rounded-xl border" style={{ backgroundColor: 'rgba(49, 151, 149, 0.1)', borderColor: 'rgba(49, 151, 149, 0.3)' }}>
+                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Lega corrente</p>
+                <p className="text-sm font-semibold truncate" style={{ color: '#4fd1c5' }}>{leagueName}</p>
+              </div>
+            )}
+
+            {leagueId ? (
+              <>
+                <MobileNavButton
+                  label="Torna alle Leghe"
+                  active={false}
+                  onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false) }}
+                  icon="back"
+                  iconElement={MenuIcons.back}
+                />
+                <div className="border-t my-3" style={{ borderColor: '#374151' }} />
+                <p className="px-4 text-[10px] text-gray-400 font-medium uppercase tracking-wider mb-2">Menu Lega</p>
+                {visibleMenuItems.map(item => (
                   <MobileNavButton
-                    label="Torna alle Leghe"
-                    active={false}
-                    onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false) }}
-                    icon="back"
-                    iconElement={MenuIcons.back}
+                    key={item.key}
+                    label={item.label}
+                    active={isActive(item.key)}
+                    onClick={() => { onNavigate(item.key, { leagueId }); setMobileMenuOpen(false) }}
+                    highlight={item.key === 'adminPanel'}
+                    isAdmin={item.adminOnly}
+                    iconElement={MenuIcons[item.icon as keyof typeof MenuIcons]}
                   />
-                  <div className="border-t border-surface-50/10 my-3" />
-                  <p className="px-4 text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-2">Menu Lega</p>
-                  {visibleMenuItems.map(item => (
+                ))}
+              </>
+            ) : (
+              <>
+                {isSuperAdmin ? (
+                  <>
+                    <p className="px-4 text-[10px] text-gray-400 font-medium uppercase tracking-wider mb-2">Super Admin</p>
                     <MobileNavButton
-                      key={item.key}
-                      label={item.label}
-                      active={isActive(item.key)}
-                      onClick={() => { onNavigate(item.key, { leagueId }); setMobileMenuOpen(false) }}
-                      highlight={item.key === 'adminPanel'}
-                      isAdmin={item.adminOnly}
-                      iconElement={MenuIcons[item.icon as keyof typeof MenuIcons]}
+                      label="Quotazioni"
+                      active={activeTab === 'upload' || (!activeTab && isActive('superadmin'))}
+                      onClick={() => { onNavigate('superadmin', { tab: 'upload' }); setMobileMenuOpen(false) }}
+                      accent
+                      iconElement={MenuIcons.upload}
                     />
-                  ))}
-                </>
-              ) : (
-                <>
-                  {isSuperAdmin ? (
-                    <>
-                      <p className="px-4 text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-2">Super Admin</p>
-                      <MobileNavButton
-                        label="Quotazioni"
-                        active={activeTab === 'upload' || (!activeTab && isActive('superadmin'))}
-                        onClick={() => { onNavigate('superadmin', { tab: 'upload' }); setMobileMenuOpen(false) }}
-                        accent
-                        iconElement={MenuIcons.upload}
-                      />
-                      <MobileNavButton
-                        label="Giocatori"
-                        active={activeTab === 'players'}
-                        onClick={() => { onNavigate('superadmin', { tab: 'players' }); setMobileMenuOpen(false) }}
-                        accent
-                        iconElement={MenuIcons.players}
-                      />
-                      <MobileNavButton
-                        label="Leghe"
-                        active={activeTab === 'leagues'}
-                        onClick={() => { onNavigate('superadmin', { tab: 'leagues' }); setMobileMenuOpen(false) }}
-                        accent
-                        iconElement={MenuIcons.leagues}
-                      />
-                      <MobileNavButton
-                        label="Utenti"
-                        active={activeTab === 'users'}
-                        onClick={() => { onNavigate('superadmin', { tab: 'users' }); setMobileMenuOpen(false) }}
-                        accent
-                        iconElement={MenuIcons.users}
-                      />
-                      <div className="border-t border-surface-50/10 my-3" />
-                      <MobileNavButton
-                        label="Il Mio Profilo"
-                        active={isActive('profile')}
-                        onClick={() => { onNavigate('profile'); setMobileMenuOpen(false) }}
-                        iconElement={MenuIcons.profile}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <MobileNavButton
-                        label="Le Mie Leghe"
-                        active={isActive('dashboard')}
-                        onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false) }}
-                        iconElement={MenuIcons.leagues}
-                      />
-                      <MobileNavButton
-                        label="Il Mio Profilo"
-                        active={isActive('profile')}
-                        onClick={() => { onNavigate('profile'); setMobileMenuOpen(false) }}
-                        iconElement={MenuIcons.profile}
-                      />
-                    </>
-                  )}
-                </>
-              )}
+                    <MobileNavButton
+                      label="Giocatori"
+                      active={activeTab === 'players'}
+                      onClick={() => { onNavigate('superadmin', { tab: 'players' }); setMobileMenuOpen(false) }}
+                      accent
+                      iconElement={MenuIcons.players}
+                    />
+                    <MobileNavButton
+                      label="Leghe"
+                      active={activeTab === 'leagues'}
+                      onClick={() => { onNavigate('superadmin', { tab: 'leagues' }); setMobileMenuOpen(false) }}
+                      accent
+                      iconElement={MenuIcons.leagues}
+                    />
+                    <MobileNavButton
+                      label="Utenti"
+                      active={activeTab === 'users'}
+                      onClick={() => { onNavigate('superadmin', { tab: 'users' }); setMobileMenuOpen(false) }}
+                      accent
+                      iconElement={MenuIcons.users}
+                    />
+                    <div className="border-t my-3" style={{ borderColor: '#374151' }} />
+                    <MobileNavButton
+                      label="Il Mio Profilo"
+                      active={isActive('profile')}
+                      onClick={() => { onNavigate('profile'); setMobileMenuOpen(false) }}
+                      iconElement={MenuIcons.profile}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <MobileNavButton
+                      label="Le Mie Leghe"
+                      active={isActive('dashboard')}
+                      onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false) }}
+                      iconElement={MenuIcons.leagues}
+                    />
+                    <MobileNavButton
+                      label="Il Mio Profilo"
+                      active={isActive('profile')}
+                      onClick={() => { onNavigate('profile'); setMobileMenuOpen(false) }}
+                      iconElement={MenuIcons.profile}
+                    />
+                  </>
+                )}
+              </>
+            )}
 
-              {/* Mobile Logout */}
-              <div className="border-t border-surface-50/10 my-3 pt-3">
-                <button
-                  onClick={() => { handleLogout(); setMobileMenuOpen(false) }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-danger-400 hover:text-danger-300 hover:bg-danger-500/10 rounded-xl transition-colors duration-200"
-                  data-testid="mobile-logout"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  Esci
-                </button>
-              </div>
+            {/* Mobile Logout */}
+            <div className="border-t my-3 pt-3" style={{ borderColor: '#374151' }}>
+              <button
+                onClick={() => { handleLogout(); setMobileMenuOpen(false) }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl"
+                style={{ color: '#f87171' }}
+                data-testid="mobile-logout"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Esci
+              </button>
+            </div>
 
-              {/* Connection Status Footer */}
-              <div className="px-4 py-3 mt-4 bg-surface-300/30 rounded-xl">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${pusherConnected ? 'bg-secondary-500' : 'bg-gray-500'}`} />
-                  <span className="text-xs text-gray-400">
-                    {pusherConnected ? 'Connessione in tempo reale attiva' : 'Connessione non attiva'}
-                  </span>
-                </div>
+            {/* Connection Status Footer */}
+            <div className="px-4 py-3 mt-4 rounded-xl" style={{ backgroundColor: '#252b3a' }}>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: pusherConnected ? '#22c55e' : '#6b7280' }} />
+                <span className="text-xs text-gray-400">
+                  {pusherConnected ? 'Connessione in tempo reale attiva' : 'Connessione non attiva'}
+                </span>
               </div>
-            </nav>
+            </div>
           </div>
         </div>
       </div>
