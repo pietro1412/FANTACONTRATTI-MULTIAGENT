@@ -90,11 +90,11 @@ interface Appeal {
 
 const MARKET_PHASES = [
   { value: 'ASTA_LIBERA', label: 'Asta Libera', onlyFirst: true },
-  { value: 'SCAMBI_OFFERTE_1', label: 'Scambi/Offerte (1)', onlyFirst: false },
-  { value: 'CONTRATTI', label: 'Contratti', onlyFirst: false },
+  { value: 'OFFERTE_PRE_RINNOVO', label: 'Offerte Pre Rinnovo', onlyFirst: false },
+  { value: 'CONTRATTI', label: 'Rinnovo Contratti', onlyFirst: false },
   { value: 'RUBATA', label: 'Rubata', onlyFirst: false },
   { value: 'SVINCOLATI', label: 'Svincolati', onlyFirst: false },
-  { value: 'SCAMBI_OFFERTE_2', label: 'Scambi/Offerte (2)', onlyFirst: false },
+  { value: 'OFFERTE_POST_ASTA_SVINCOLATI', label: 'Offerte Post Svincolati', onlyFirst: false },
 ]
 
 const TABS = [

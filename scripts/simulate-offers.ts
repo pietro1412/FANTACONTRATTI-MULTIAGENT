@@ -27,17 +27,17 @@ async function simulateOffers() {
       return
     }
 
-    // Find current market session (MERCATO_RICORRENTE with SCAMBI phase)
+    // Find current market session (MERCATO_RICORRENTE with OFFERTE phase)
     const marketSession = await prisma.marketSession.findFirst({
       where: {
         leagueId: league.id,
         status: 'ACTIVE',
-        currentPhase: { in: ['SCAMBI_OFFERTE_1', 'SCAMBI_OFFERTE_2'] }
+        currentPhase: { in: ['OFFERTE_PRE_RINNOVO', 'OFFERTE_POST_ASTA_SVINCOLATI'] }
       }
     })
 
     if (!marketSession) {
-      console.error('No active market session with SCAMBI phase found!')
+      console.error('No active market session with OFFERTE phase found!')
       return
     }
 

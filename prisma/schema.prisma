@@ -364,12 +364,12 @@ enum SessionStatus {
 }
 
 enum MarketPhase {
-  ASTA_LIBERA         // Solo per PRIMO_MERCATO
-  SCAMBI_OFFERTE_1
-  CONTRATTI
-  RUBATA
-  SVINCOLATI
-  SCAMBI_OFFERTE_2
+  ASTA_LIBERA                    // Solo per PRIMO_MERCATO
+  OFFERTE_PRE_RINNOVO            // Prima fase MERCATO_RICORRENTE - scambi/offerte pre rinnovo
+  CONTRATTI                      // Rinnovo contratti
+  RUBATA                         // Asta forzata
+  SVINCOLATI                     // Svincolati
+  OFFERTE_POST_ASTA_SVINCOLATI   // Fase finale - scambi/offerte post svincolati
 }
 
 // ==================== ASTE ====================

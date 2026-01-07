@@ -233,7 +233,7 @@ export async function createAuctionSession(
       season: league.currentSeason,
       semester,
       status: 'ACTIVE',
-      currentPhase: isRegularMarket ? 'SCAMBI_OFFERTE_1' : 'ASTA_LIBERA',
+      currentPhase: isRegularMarket ? 'OFFERTE_PRE_RINNOVO' : 'ASTA_LIBERA',
       startsAt: new Date(),
     },
   })
@@ -319,7 +319,7 @@ export async function setMarketPhase(
   }
 
   // Validate phase
-  const validPhases = ['ASTA_LIBERA', 'SCAMBI_OFFERTE_1', 'CONTRATTI', 'RUBATA', 'SVINCOLATI', 'SCAMBI_OFFERTE_2']
+  const validPhases = ['ASTA_LIBERA', 'OFFERTE_PRE_RINNOVO', 'CONTRATTI', 'RUBATA', 'SVINCOLATI', 'OFFERTE_POST_ASTA_SVINCOLATI']
   if (!validPhases.includes(phase)) {
     return { success: false, message: `Fase non valida. Fasi disponibili: ${validPhases.join(', ')}` }
   }
@@ -336,7 +336,7 @@ export async function setMarketPhase(
   const updatedSession = await prisma.marketSession.update({
     where: { id: sessionId },
     data: {
-      currentPhase: phase as 'ASTA_LIBERA' | 'SCAMBI_OFFERTE_1' | 'CONTRATTI' | 'RUBATA' | 'SVINCOLATI' | 'SCAMBI_OFFERTE_2',
+      currentPhase: phase as 'ASTA_LIBERA' | 'OFFERTE_PRE_RINNOVO' | 'CONTRATTI' | 'RUBATA' | 'SVINCOLATI' | 'OFFERTE_POST_ASTA_SVINCOLATI',
     },
   })
 

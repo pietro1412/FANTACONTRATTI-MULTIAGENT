@@ -212,11 +212,11 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
         {activeSession && (() => {
           const phaseConfig: Record<string, { icon: string; title: string; description: string; buttonText: string; color: string }> = {
             ASTA_LIBERA: { icon: '🔨', title: 'Asta in Corso', description: "L'asta è in corso, entra subito!", buttonText: "Entra nell'Asta", color: 'secondary' },
-            SCAMBI_OFFERTE_1: { icon: '🔄', title: 'Finestra Scambi', description: 'Proponi e accetta scambi con altri DG', buttonText: 'Vai agli Scambi', color: 'primary' },
-            CONTRATTI: { icon: '📝', title: 'Gestione Contratti', description: 'Gestisci i contratti dei tuoi giocatori', buttonText: 'Gestisci Contratti', color: 'accent' },
+            OFFERTE_PRE_RINNOVO: { icon: '🔄', title: 'Offerte Pre Rinnovo', description: 'Proponi e accetta scambi con altri DG prima del rinnovo contratti', buttonText: 'Vai agli Scambi', color: 'primary' },
+            CONTRATTI: { icon: '📝', title: 'Rinnovo Contratti', description: 'Rinnova i contratti dei tuoi giocatori', buttonText: 'Gestisci Contratti', color: 'accent' },
             RUBATA: { icon: '🎯', title: 'Fase Rubata', description: 'Prova a rubare giocatori dagli altri DG', buttonText: 'Vai alla Rubata', color: 'warning' },
             SVINCOLATI: { icon: '📋', title: 'Mercato Svincolati', description: 'Acquista giocatori svincolati', buttonText: 'Vai agli Svincolati', color: 'success' },
-            SCAMBI_OFFERTE_2: { icon: '🔄', title: 'Finestra Scambi', description: 'Ultima finestra per proporre scambi', buttonText: 'Vai agli Scambi', color: 'primary' },
+            OFFERTE_POST_ASTA_SVINCOLATI: { icon: '🔄', title: 'Offerte Post Svincolati', description: 'Ultima finestra per proporre scambi', buttonText: 'Vai agli Scambi', color: 'primary' },
           }
           const phase = activeSession.currentPhase || 'ASTA_LIBERA'
           const defaultConfig = { icon: '🔨', title: 'Sessione Attiva', description: 'Sessione di mercato in corso', buttonText: 'Entra', color: 'secondary' }
@@ -235,8 +235,8 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           const getNavTarget = () => {
             switch (phase) {
               case 'ASTA_LIBERA': return () => onNavigate('auction', { sessionId: activeSession.id, leagueId })
-              case 'SCAMBI_OFFERTE_1':
-              case 'SCAMBI_OFFERTE_2': return () => onNavigate('trades', { leagueId })
+              case 'OFFERTE_PRE_RINNOVO':
+              case 'OFFERTE_POST_ASTA_SVINCOLATI': return () => onNavigate('trades', { leagueId })
               case 'SVINCOLATI': return () => onNavigate('svincolati', { leagueId })
               case 'RUBATA': return () => onNavigate('rubata', { leagueId })
               case 'CONTRATTI': return () => onNavigate('contracts', { leagueId })

@@ -367,7 +367,7 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
       setCurrentSession(active || null)
       setIsInTradePhase(
         !!active &&
-        (active.currentPhase === 'SCAMBI_OFFERTE_1' || active.currentPhase === 'SCAMBI_OFFERTE_2')
+        (active.currentPhase === 'OFFERTE_PRE_RINNOVO' || active.currentPhase === 'OFFERTE_POST_ASTA_SVINCOLATI')
       )
     }
 

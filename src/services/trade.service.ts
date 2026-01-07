@@ -17,7 +17,7 @@ async function isInTradePhase(leagueId: string): Promise<boolean> {
       leagueId,
       status: 'ACTIVE',
       currentPhase: {
-        in: ['SCAMBI_OFFERTE_1', 'SCAMBI_OFFERTE_2'],
+        in: ['OFFERTE_PRE_RINNOVO', 'OFFERTE_POST_ASTA_SVINCOLATI'],
       },
     },
   })
