@@ -7,34 +7,35 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Dark backgrounds - Football Manager style
+        // Dark backgrounds - Stadium Nights theme (deeper, more immersive)
         dark: {
-          50: '#1a1f2e',
-          100: '#171b27',
-          200: '#141722',
-          300: '#11141d',
-          400: '#0e1018',
-          500: '#0b0d13',
+          50: '#252830',   // Lighter surface
+          100: '#1a1c20',  // Card background
+          200: '#111214',  // Elevated elements
+          300: '#0a0a0b',  // Body background (main)
+          400: '#050506',
+          500: '#000000',
+          // Legacy mappings for compatibility
           600: '#08090e',
           700: '#050609',
           800: '#020304',
           900: '#000000',
         },
-        // Primary - Deep blue/teal (stadium lights)
+        // Primary - Blu Stadio (stadium night lights) - MORE CALCISTIC than teal
         primary: {
-          50: '#e6fffa',
-          100: '#b2f5ea',
-          200: '#81e6d9',
-          300: '#4fd1c5',
-          400: '#38b2ac',
-          500: '#319795',
-          600: '#2c7a7b',
-          700: '#285e61',
-          800: '#234e52',
-          900: '#1d4044',
-          950: '#134e4a',
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',   // New primary
+          600: '#2563eb',   // New primary base
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+          950: '#172554',
         },
-        // Secondary - Stadium green (pitch)
+        // Secondary - Verde Campo (THE football color)
         secondary: {
           50: '#f0fdf4',
           100: '#dcfce7',
@@ -48,7 +49,7 @@ export default {
           900: '#14532d',
           950: '#052e16',
         },
-        // Accent - Gold (trophies, prestige)
+        // Accent - Oro Trofeo (trophies, prestige, victories)
         accent: {
           50: '#fffbeb',
           100: '#fef3c7',
@@ -62,7 +63,19 @@ export default {
           900: '#78350f',
           950: '#451a03',
         },
-        // Danger - Red (cards, errors)
+        // Passion - Arancio (high intensity moments)
+        passion: {
+          400: '#fb923c',
+          500: '#ea580c',
+          600: '#c2410c',
+        },
+        // Warning - Ambra (timer 10-5 sec)
+        warning: {
+          400: '#fbbf24',
+          500: '#f59e0b',
+          600: '#d97706',
+        },
+        // Danger - Red (cards, errors, timer < 5 sec)
         danger: {
           50: '#fef2f2',
           100: '#fee2e2',
@@ -76,20 +89,33 @@ export default {
           900: '#7f1d1d',
           950: '#450a0a',
         },
-        // Surface colors for cards
+        // Info - Blu chiaro (tooltips, information)
+        info: {
+          400: '#38bdf8',
+          500: '#0ea5e9',
+          600: '#0284c7',
+        },
+        // Surface colors for cards (adjusted for Stadium Nights)
         surface: {
-          50: '#2a3142',
-          100: '#252b3a',
-          200: '#1f2533',
-          300: '#1a1f2c',
-          400: '#151925',
-          500: '#10131e',
-          600: '#0b0d17',
+          50: '#2d3139',   // Border color
+          100: '#252830',  // Hover states
+          200: '#1a1c20',  // Card background
+          300: '#111214',  // Elevated elements
+          400: '#0a0a0b',  // Body background
+          500: '#050506',
+          600: '#000000',
+        },
+        // Legacy teal colors for gradual transition (deprecated)
+        legacy: {
+          400: '#38b2ac',
+          500: '#319795',
+          600: '#2c7a7b',
         },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         display: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+        sport: ['Oswald', 'Inter', 'system-ui', 'sans-serif'], // Stadium scoreboard style
       },
       backgroundImage: {
         'pitch-gradient': 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',
@@ -98,8 +124,11 @@ export default {
         'card-gradient': 'linear-gradient(180deg, rgba(42, 49, 66, 0.8) 0%, rgba(26, 31, 44, 0.9) 100%)',
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(49, 151, 149, 0.3)',
-        'glow-gold': '0 0 20px rgba(245, 158, 11, 0.3)',
+        'glow': '0 0 20px rgba(59, 130, 246, 0.3)',           // Blu stadio glow
+        'glow-strong': '0 0 30px rgba(59, 130, 246, 0.5)',    // Stronger glow
+        'glow-gold': '0 0 20px rgba(245, 158, 11, 0.3)',      // Gold/accent glow
+        'glow-green': '0 0 20px rgba(34, 197, 94, 0.3)',      // Success/verde campo
+        'glow-danger': '0 0 20px rgba(239, 68, 68, 0.3)',     // Danger glow
         'card': '0 4px 20px rgba(0, 0, 0, 0.4)',
         'card-hover': '0 8px 30px rgba(0, 0, 0, 0.5)',
       },
@@ -116,8 +145,8 @@ export default {
       },
       keyframes: {
         glow: {
-          '0%': { boxShadow: '0 0 5px rgba(49, 151, 149, 0.5)' },
-          '100%': { boxShadow: '0 0 20px rgba(49, 151, 149, 0.8)' },
+          '0%': { boxShadow: '0 0 5px rgba(59, 130, 246, 0.5)' },
+          '100%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.8)' },
         },
         shake: {
           '0%, 100%': { transform: 'translateX(0)' },

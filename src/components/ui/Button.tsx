@@ -73,11 +73,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       `.replace(/\s+/g, ' ').trim(),
     }
 
+    // Touch-friendly sizes with minimum 44x44px touch targets (Apple/Google accessibility standard)
     const sizes = {
-      sm: 'px-4 py-2 text-sm gap-1.5',
-      md: 'px-5 py-2.5 text-base gap-2',
-      lg: 'px-6 py-3 text-lg gap-2.5',
-      xl: 'px-8 py-4 text-xl gap-3',
+      sm: 'px-4 py-2 text-sm gap-1.5 min-h-[44px] min-w-[44px]',
+      md: 'px-5 py-2.5 text-base gap-2 min-h-[48px]',
+      lg: 'px-6 py-3 text-lg gap-2.5 min-h-[52px]',
+      xl: 'px-8 py-4 text-xl gap-3 min-h-[56px]',
     }
 
     const spinnerSizes = {

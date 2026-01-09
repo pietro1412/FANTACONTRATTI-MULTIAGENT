@@ -450,13 +450,30 @@ export async function closeFreeAgentAuction(
     })
 
     // Create roster entry
-    await tx.playerRoster.create({
+    const rosterEntry = await tx.playerRoster.create({
       data: {
         leagueMemberId: winningBid.bidderId,
         playerId: auction.playerId,
         acquisitionPrice: auction.currentPrice,
         acquisitionType: 'SVINCOLATI',
         status: 'ACTIVE',
+      },
+    })
+
+    // Create contract automatically: 10% salary, 2 semesters (same as first market)
+    const salary = Math.ceil(auction.currentPrice * 0.1)
+    const duration = 2
+    const rescissionClause = Math.round(salary * duration * 2)
+
+    await tx.playerContract.create({
+      data: {
+        rosterId: rosterEntry.id,
+        leagueMemberId: winningBid.bidderId,
+        salary,
+        duration,
+        initialSalary: salary,
+        initialDuration: duration,
+        rescissionClause,
       },
     })
 
@@ -1461,13 +1478,30 @@ export async function closeSvincolatiAuction(
     })
 
     // Create roster entry
-    await tx.playerRoster.create({
+    const rosterEntry = await tx.playerRoster.create({
       data: {
         leagueMemberId: winningBid.bidderId,
         playerId: auction.playerId,
         acquisitionPrice: auction.currentPrice,
         acquisitionType: 'SVINCOLATI',
         status: 'ACTIVE',
+      },
+    })
+
+    // Create contract automatically: 10% salary, 2 semesters (same as first market)
+    const salary = Math.ceil(auction.currentPrice * 0.1)
+    const duration = 2
+    const rescissionClause = Math.round(salary * duration * 2)
+
+    await tx.playerContract.create({
+      data: {
+        rosterId: rosterEntry.id,
+        leagueMemberId: winningBid.bidderId,
+        salary,
+        duration,
+        initialSalary: salary,
+        initialDuration: duration,
+        rescissionClause,
       },
     })
 

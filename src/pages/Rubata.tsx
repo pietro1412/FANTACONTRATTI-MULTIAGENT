@@ -1830,8 +1830,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
             {/* Main Content */}
             <div className={`${isAdmin ? 'lg:col-span-4' : ''}`}>
-            {/* Timer e stato corrente */}
-            <div className="mb-6 bg-surface-200 rounded-2xl border-2 border-primary-500/50 overflow-hidden">
+            {/* Timer e stato corrente - sticky on mobile for visibility */}
+            <div className="mb-6 bg-surface-200 rounded-2xl border-2 border-primary-500/50 overflow-hidden sticky top-16 z-20 lg:relative lg:top-0">
               <div className="p-5 bg-primary-500/10">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                   {/* Current Player Info */}

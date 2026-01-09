@@ -1,26 +1,45 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* CSS Custom Properties for theme colors */
+/* CSS Custom Properties for theme colors - Stadium Nights theme */
 :root {
-  --color-dark-50: #1a1f2e;
-  --color-dark-100: #171b27;
-  --color-dark-200: #141722;
-  --color-dark-300: #11141d;
-  --color-dark-400: #0e1018;
-  --color-dark-500: #0b0d13;
-  --color-surface-50: #2a3142;
-  --color-surface-100: #252b3a;
-  --color-surface-200: #1f2533;
-  --color-surface-300: #1a1f2c;
-  --color-primary-500: #319795;
-  --color-primary-600: #2c7a7b;
-  --color-accent-500: #f59e0b;
-  --color-danger-500: #ef4444;
+  /* Dark backgrounds (deeper, more immersive) */
+  --color-dark-50: #252830;
+  --color-dark-100: #1a1c20;
+  --color-dark-200: #111214;
+  --color-dark-300: #0a0a0b;
+  --color-dark-400: #050506;
+  --color-dark-500: #000000;
+
+  /* Surface colors */
+  --color-surface-50: #2d3139;
+  --color-surface-100: #252830;
+  --color-surface-200: #1a1c20;
+  --color-surface-300: #111214;
+
+  /* Primary - Blu Stadio */
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+
+  /* Secondary - Verde Campo */
   --color-secondary-400: #4ade80;
+  --color-secondary-500: #22c55e;
+  --color-secondary-600: #16a34a;
+
+  /* Accent - Oro Trofeo */
+  --color-accent-400: #fbbf24;
+  --color-accent-500: #f59e0b;
+  --color-accent-600: #d97706;
+
+  /* Semantic colors */
+  --color-danger-500: #ef4444;
+  --color-warning-500: #f59e0b;
+  --color-info-500: #0ea5e9;
 }
 
 /* Custom base styles - Football Manager Dark Theme */
@@ -65,12 +84,12 @@
 
   .btn-primary {
     @apply text-white;
-    background: linear-gradient(to right, #319795, #2c7a7b);
-    box-shadow: 0 0 20px rgba(49, 151, 149, 0.3);
+    background: linear-gradient(to right, #3b82f6, #2563eb);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
   }
 
   .btn-primary:hover {
-    background: linear-gradient(to right, #38b2ac, #319795);
+    background: linear-gradient(to right, #60a5fa, #3b82f6);
   }
 
   .btn-secondary {
@@ -103,12 +122,12 @@
   }
 
   .btn-outline {
-    @apply border-2 text-teal-400;
-    border-color: #319795;
+    @apply border-2 text-primary-400;
+    border-color: #3b82f6;
   }
 
   .btn-outline:hover {
-    background-color: rgba(49, 151, 149, 0.1);
+    background-color: rgba(59, 130, 246, 0.1);
   }
 
   /* Cards - FM style */
@@ -130,12 +149,12 @@
     @apply rounded-xl transition-all duration-300;
     background-color: var(--color-surface-200);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(49, 151, 149, 0.3);
+    border: 1px solid rgba(59, 130, 246, 0.3);
   }
 
   .card-glow:hover {
-    border-color: rgba(49, 151, 149, 0.5);
-    box-shadow: 0 0 20px rgba(49, 151, 149, 0.3);
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
   }
 
   /* Inputs */
@@ -146,8 +165,8 @@
   }
 
   .input:focus {
-    border-color: #319795;
-    box-shadow: 0 0 0 2px rgba(49, 151, 149, 0.5);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
   }
 
   .input-dark {
@@ -157,8 +176,8 @@
   }
 
   .input-dark:focus {
-    border-color: #319795;
-    box-shadow: 0 0 0 2px rgba(49, 151, 149, 0.5);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
   }
 
   /* Position badges */
@@ -185,7 +204,7 @@
   /* Stats display */
   .stat-value {
     @apply text-3xl font-bold bg-clip-text text-transparent;
-    background-image: linear-gradient(to right, #4fd1c5, #38b2ac);
+    background-image: linear-gradient(to right, #93c5fd, #60a5fa);
   }
 
   .stat-label {
@@ -220,13 +239,13 @@
   }
 
   .manager-card:hover {
-    border-color: rgba(49, 151, 149, 0.4);
+    border-color: rgba(59, 130, 246, 0.4);
   }
 
   .manager-card-active {
     background-color: rgba(29, 64, 68, 0.3);
-    border-color: rgba(49, 151, 149, 0.5);
-    box-shadow: 0 0 20px rgba(49, 151, 149, 0.3);
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
   }
 
   /* Auction timer */
@@ -257,6 +276,34 @@
       linear-gradient(0deg, transparent 49.5%, rgba(255,255,255,0.03) 50%, transparent 50.5%);
     background-size: 60px 60px;
   }
+
+  /* Enhanced pitch overlay for key areas */
+  .pitch-overlay-visible {
+    background:
+      linear-gradient(90deg, transparent 49%, rgba(34, 197, 94, 0.05) 50%, transparent 51%),
+      linear-gradient(0deg, transparent 49%, rgba(34, 197, 94, 0.05) 50%, transparent 51%);
+    background-size: 80px 80px;
+  }
+
+  /* Stadium scoreboard number style */
+  .stat-number {
+    font-family: 'Oswald', 'Inter', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  /* Large timer display in sport style */
+  .timer-sport {
+    font-family: 'Oswald', 'Inter', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  /* Budget display style */
+  .budget-display {
+    font-family: 'Oswald', 'Inter', sans-serif;
+    font-weight: 600;
+  }
 }
 
 /* Custom utility styles */
@@ -266,7 +313,7 @@
   }
 
   .text-glow {
-    text-shadow: 0 0 10px rgba(49, 151, 149, 0.5);
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
   }
 
   .text-glow-gold {
@@ -276,7 +323,7 @@
   /* Gradient text */
   .gradient-text {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(to right, #4fd1c5, #319795);
+    background-image: linear-gradient(to right, #93c5fd, #3b82f6);
   }
 
   .gradient-text-gold {
@@ -316,10 +363,10 @@
 /* Glowing border animation */
 @keyframes borderGlow {
   0%, 100% {
-    border-color: rgba(49, 151, 149, 0.3);
+    border-color: rgba(59, 130, 246, 0.3);
   }
   50% {
-    border-color: rgba(49, 151, 149, 0.8);
+    border-color: rgba(59, 130, 246, 0.8);
   }
 }
 
@@ -428,21 +475,21 @@
 /* Auction card improvements */
 .auction-card-active {
   @apply border-2;
-  border-color: rgba(49, 151, 149, 0.5);
-  box-shadow: 0 0 30px rgba(49, 151, 149, 0.2);
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
 }
 
 /* Current price highlight */
 .current-price-container {
   @apply relative overflow-hidden;
-  background: linear-gradient(135deg, rgba(49, 151, 149, 0.15) 0%, rgba(44, 122, 123, 0.1) 100%);
-  border: 2px solid rgba(49, 151, 149, 0.4);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.1) 100%);
+  border: 2px solid rgba(59, 130, 246, 0.4);
 }
 
 .current-price-container::before {
   content: '';
   @apply absolute inset-0;
-  background: linear-gradient(90deg, transparent, rgba(49, 151, 149, 0.1), transparent);
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
   animation: shimmer 2s infinite;
 }
 

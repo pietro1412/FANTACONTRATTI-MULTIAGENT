@@ -6,6 +6,7 @@ import { Input } from '../components/ui/Input'
 import { Navigation } from '../components/Navigation'
 import { Chat } from '../components/Chat'
 import { getTeamLogo } from '../utils/teamLogos'
+import haptic from '../utils/haptics'
 import {
   DndContext,
   closestCenter,
@@ -549,10 +550,20 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       return
     }
     let hasTriggeredZero = false
+    let lastWarningAt: number | null = null
     const updateTimer = () => {
       const expiresAt = new Date(auction.timerExpiresAt!).getTime()
       const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000))
       setTimeLeft(remaining)
+
+      // Haptic feedback for timer warnings (only trigger once per threshold)
+      if (remaining <= 5 && remaining > 0 && lastWarningAt !== remaining) {
+        lastWarningAt = remaining
+        haptic.warning() // Rapid vibration for danger zone
+      } else if (remaining === 10 && lastWarningAt !== remaining) {
+        lastWarningAt = remaining
+        haptic.light() // Light vibration for warning zone
+      }
 
       // When timer hits 0, IMMEDIATELY show the acknowledgment modal with current data
       if (remaining === 0 && !hasTriggeredZero) {
@@ -895,15 +906,18 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     const amount = parseInt(bidAmount)
     if (isNaN(amount) || amount <= 0) {
       setError('Importo non valido')
+      haptic.error()
       return
     }
     const result = await auctionApi.placeBid(auction.id, amount)
     if (result.success) {
       setSuccessMessage(`Offerta di ${amount} registrata!`)
       setBidAmount(String(amount + 1))
+      haptic.bid() // Haptic feedback for successful bid
       loadCurrentAuction()
     } else {
       setError(result.message || 'Errore')
+      haptic.error()
     }
   }
 
@@ -1427,9 +1441,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
               <div className="p-4 lg:p-6">
                 {auction ? (
                   <div className="space-y-4">
-                    {/* Enhanced Timer Section */}
+                    {/* Enhanced Timer Section - sticky on mobile for visibility */}
                     {auction.timerExpiresAt && (
-                      <div className={`${getTimerContainerClass()} relative`}>
+                      <div className={`${getTimerContainerClass()} relative sticky top-16 z-30 lg:relative lg:top-0`}>
                         {timeLeft !== null && timeLeft <= 5 && (
                           <div className="sound-indicator">
                             <span className="sr-only">Timer warning</span>
@@ -1486,8 +1500,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                     {/* Enhanced Bid Controls */}
                     <div className="space-y-3 bg-surface-300/50 rounded-xl p-4">
                       {/* Quick Bid Buttons */}
-                      <div className="grid grid-cols-4 gap-2">
-                        {[2, 5, 10, 20].map(n => {
+                      <div className="grid grid-cols-5 gap-2">
+                        {[1, 5, 10, 20].map(n => {
                           const newBid = parseInt(bidAmount || '0') + n
                           return (
                             <Button
@@ -1504,6 +1518,15 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                             </Button>
                           )
                         })}
+                        <Button
+                          size="sm"
+                          variant="accent"
+                          onClick={() => setBidAmount(String(membership?.currentBudget || 0))}
+                          disabled={isTimerExpired || !membership?.currentBudget}
+                          className="font-bold"
+                        >
+                          MAX
+                        </Button>
                       </div>
 
                       {/* Main Bid Input with +/- */}
@@ -1896,15 +1919,15 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             </div>
 
             {/* Quick Bid Buttons */}
-            <div className="grid grid-cols-4 gap-1.5 mb-2">
-              {[2, 5, 10, 20].map(n => {
+            <div className="grid grid-cols-5 gap-1.5 mb-2">
+              {[1, 5, 10, 20].map(n => {
                 const newBid = parseInt(bidAmount || '0') + n
                 return (
                   <button
                     key={n}
                     onClick={() => setBidAmount(String(newBid))}
                     disabled={isTimerExpired || (membership?.currentBudget || 0) < newBid}
-                    className={`py-2 rounded-lg text-sm font-bold transition-all ${
+                    className={`py-2 rounded-lg text-sm font-bold transition-all min-h-[44px] ${
                       isTimerExpired || (membership?.currentBudget || 0) < newBid
                         ? 'bg-surface-400/50 text-gray-600 cursor-not-allowed'
                         : 'bg-primary-500/20 text-primary-400 border border-primary-500/30 active:scale-95'
@@ -1914,6 +1937,17 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   </button>
                 )
               })}
+              <button
+                onClick={() => setBidAmount(String(membership?.currentBudget || 0))}
+                disabled={isTimerExpired || !membership?.currentBudget}
+                className={`py-2 rounded-lg text-sm font-bold transition-all min-h-[44px] ${
+                  isTimerExpired || !membership?.currentBudget
+                    ? 'bg-surface-400/50 text-gray-600 cursor-not-allowed'
+                    : 'bg-accent-500 text-dark-900 active:scale-95'
+                }`}
+              >
+                MAX
+              </button>
             </div>
 
             {/* Custom Bid Input with +/- */}

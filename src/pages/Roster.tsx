@@ -9,6 +9,12 @@ interface RosterProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
 }
 
+interface Session {
+  id: string
+  status: string
+  currentPhase: string
+}
+
 interface Player {
   id: string
   name: string
@@ -293,6 +299,7 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
   const [rosterData, setRosterData] = useState<RosterData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
+  const [sessions, setSessions] = useState<Session[]>([])
 
   // Filtri
   const [searchQuery, setSearchQuery] = useState('')
@@ -307,9 +314,10 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
   }, [leagueId])
 
   async function loadData() {
-    const [rosterResult, leagueResult] = await Promise.all([
+    const [rosterResult, leagueResult, sessionsResult] = await Promise.all([
       auctionApi.getRoster(leagueId),
-      leagueApi.getById(leagueId)
+      leagueApi.getById(leagueId),
+      auctionApi.getSessions(leagueId)
     ])
 
     if (rosterResult.success && rosterResult.data) {
@@ -319,7 +327,14 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
       const data = leagueResult.data as { isAdmin: boolean }
       setIsLeagueAdmin(data.isAdmin)
     }
+    if (sessionsResult.success && sessionsResult.data) {
+      setSessions(sessionsResult.data as Session[])
+    }
     setIsLoading(false)
+  }
+
+  function getActiveSession() {
+    return sessions.find(s => s.status === 'ACTIVE')
   }
 
   if (isLoading) {
@@ -538,9 +553,11 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
           <Button size="lg" variant="outline" onClick={() => onNavigate('rosters', { leagueId })}>
             <span className="mr-2">👥</span> Vedi tutte le rose
           </Button>
-          <Button size="lg" variant="outline" onClick={() => onNavigate('contracts', { leagueId })}>
-            <span className="mr-2">📝</span> Gestisci Contratti
-          </Button>
+          {getActiveSession()?.currentPhase === 'CONTRATTI' && (
+            <Button size="lg" variant="outline" onClick={() => onNavigate('contracts', { leagueId })}>
+              <span className="mr-2">📝</span> Gestisci Contratti
+            </Button>
+          )}
         </div>
       </main>
 

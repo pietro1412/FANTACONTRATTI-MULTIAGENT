@@ -377,13 +377,15 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
 
           {/* User info & actions */}
           <div className="flex items-center gap-2">
-            {/* DEBUG: Latency Test Link - bypasses React Router */}
-            <a
-              href="/test-latency"
-              className="px-2 py-1 text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded hover:bg-amber-500/30 transition-colors"
-            >
-              Test Latency
-            </a>
+            {/* DEBUG: Latency Test Link - visible only in development */}
+            {import.meta.env.DEV && (
+              <a
+                href="/test-latency"
+                className="px-2 py-1 text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded hover:bg-amber-500/30 transition-colors"
+              >
+                Test Latency
+              </a>
+            )}
 
             {leagueId && (
               <>
@@ -531,24 +533,21 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
       >
         {/* Backdrop */}
         <div
-          className="absolute inset-0"
-          style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+          className="absolute inset-0 bg-black/60"
           onClick={() => setMobileMenuOpen(false)}
         />
 
         {/* Slide-in Panel */}
         <div
           ref={mobileMenuRef}
-          className="absolute top-0 left-0 bottom-0 w-[85vw] max-w-sm z-10 overflow-y-auto"
-          style={{ backgroundColor: '#1a1f2c' }}
+          className="absolute top-0 left-0 bottom-0 w-[85vw] max-w-sm z-10 overflow-y-auto bg-surface-300"
         >
           {/* Mobile Menu Header */}
           <div
-            className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b"
-            style={{ backgroundColor: '#252b3a', borderColor: '#374151' }}
+            className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b bg-surface-100 border-gray-600"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #38b2ac 0%, #319795 50%, #285e61 100%)' }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary-400 via-primary-500 to-primary-700">
                 <span className="text-xl">⚽</span>
               </div>
               <div>
@@ -558,8 +557,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             </div>
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="p-2 text-gray-400 hover:text-white rounded-lg"
-              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+              className="p-2 text-gray-400 hover:text-white rounded-lg bg-white/10"
               aria-label="Chiudi menu"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -572,34 +570,33 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
           <div className="p-4 space-y-3">
             {/* Mobile User Profile */}
             <div
-              className="flex items-center gap-3 px-4 py-4 rounded-xl border"
-              style={{ backgroundColor: '#252b3a', borderColor: '#374151' }}
+              className="flex items-center gap-3 px-4 py-4 rounded-xl border bg-surface-100 border-gray-600"
             >
               <div className="relative">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-lg font-bold" style={{ background: 'linear-gradient(135deg, #38b2ac 0%, #319795 50%, #285e61 100%)' }}>
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-lg font-bold bg-gradient-to-br from-primary-400 via-primary-500 to-primary-700">
                   {user?.username?.[0]?.toUpperCase() || '?'}
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2" style={{ borderColor: '#1a1f2c', backgroundColor: pusherConnected ? '#22c55e' : '#6b7280' }} />
+                <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-surface-300 ${pusherConnected ? 'bg-secondary-500' : 'bg-gray-500'}`} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white truncate">{user?.username}</p>
                 <p className="text-xs text-gray-400 truncate">{user?.email}</p>
                 {teamName && (
-                  <p className="text-xs mt-0.5 truncate" style={{ color: '#4fd1c5' }}>DG: {teamName}</p>
+                  <p className="text-xs mt-0.5 truncate text-primary-300">DG: {teamName}</p>
                 )}
               </div>
               {isLeagueAdmin && leagueId && (
-                <div className="px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(251, 191, 36, 0.2)' }}>
-                  <span className="text-[10px] font-semibold uppercase" style={{ color: '#fbbf24' }}>Admin</span>
+                <div className="px-2 py-0.5 rounded-full bg-accent-500/20">
+                  <span className="text-[10px] font-semibold uppercase text-accent-400">Admin</span>
                 </div>
               )}
             </div>
 
             {/* League Context Banner */}
             {leagueId && leagueName && (
-              <div className="px-4 py-3 rounded-xl border" style={{ backgroundColor: 'rgba(49, 151, 149, 0.1)', borderColor: 'rgba(49, 151, 149, 0.3)' }}>
+              <div className="px-4 py-3 rounded-xl border bg-primary-500/10 border-primary-500/30">
                 <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Lega corrente</p>
-                <p className="text-sm font-semibold truncate" style={{ color: '#4fd1c5' }}>{leagueName}</p>
+                <p className="text-sm font-semibold truncate text-primary-300">{leagueName}</p>
               </div>
             )}
 
@@ -613,7 +610,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                   icon="back"
                   iconElement={MenuIcons.back}
                 />
-                <div className="border-t my-3" style={{ borderColor: '#374151' }} />
+                <div className="border-t my-3 border-gray-600" />
                 <p className="px-4 text-[10px] text-gray-400 font-medium uppercase tracking-wider mb-2">Menu Lega</p>
                 {visibleMenuItems.map(item => (
                   <MobileNavButton
@@ -660,7 +657,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                       accent
                       iconElement={MenuIcons.users}
                     />
-                    <div className="border-t my-3" style={{ borderColor: '#374151' }} />
+                    <div className="border-t my-3 border-gray-600" />
                     <MobileNavButton
                       label="Il Mio Profilo"
                       active={isActive('profile')}
@@ -688,11 +685,10 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             )}
 
             {/* Mobile Logout */}
-            <div className="border-t my-3 pt-3" style={{ borderColor: '#374151' }}>
+            <div className="border-t my-3 pt-3 border-gray-600">
               <button
                 onClick={() => { handleLogout(); setMobileMenuOpen(false) }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl"
-                style={{ color: '#f87171' }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-danger-400 hover:bg-danger-500/10 transition-colors"
                 data-testid="mobile-logout"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -703,9 +699,9 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             </div>
 
             {/* Connection Status Footer */}
-            <div className="px-4 py-3 mt-4 rounded-xl" style={{ backgroundColor: '#252b3a' }}>
+            <div className="px-4 py-3 mt-4 rounded-xl bg-surface-100">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: pusherConnected ? '#22c55e' : '#6b7280' }} />
+                <div className={`w-2 h-2 rounded-full ${pusherConnected ? 'bg-secondary-500' : 'bg-gray-500'}`} />
                 <span className="text-xs text-gray-400">
                   {pusherConnected ? 'Connessione in tempo reale attiva' : 'Connessione non attiva'}
                 </span>
