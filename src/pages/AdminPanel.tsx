@@ -3,6 +3,7 @@ import { leagueApi, auctionApi, adminApi, inviteApi, contractApi, chatApi } from
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Navigation } from '../components/Navigation'
+import { MarketPhaseManager } from '../components/MarketPhaseManager'
 
 interface AdminPanelProps {
   leagueId: string
@@ -93,17 +94,18 @@ const MARKET_PHASES = [
   { value: 'OFFERTE_PRE_RINNOVO', label: 'Offerte Pre Rinnovo', onlyFirst: false },
   { value: 'CONTRATTI', label: 'Rinnovo Contratti', onlyFirst: false },
   { value: 'RUBATA', label: 'Rubata', onlyFirst: false },
-  { value: 'SVINCOLATI', label: 'Svincolati', onlyFirst: false },
+  { value: 'ASTA_SVINCOLATI', label: 'Asta Svincolati', onlyFirst: false },
   { value: 'OFFERTE_POST_ASTA_SVINCOLATI', label: 'Offerte Post Svincolati', onlyFirst: false },
 ]
 
 const TABS = [
+  { id: 'market', label: 'Mercato', icon: '🏪' },
   { id: 'overview', label: 'Panoramica', icon: '📊' },
   { id: 'members', label: 'Membri', icon: '👥' },
   { id: 'prizes', label: 'Premi', icon: '🏆' },
   { id: 'appeals', label: 'Ricorsi', icon: '⚖️' },
   { id: 'invites', label: 'Inviti', icon: '✉️' },
-  { id: 'sessions', label: 'Sessioni', icon: '📅' },
+  { id: 'sessions', label: 'Storico', icon: '📅' },
   { id: 'export', label: 'Export', icon: '📤' },
 ] as const
 
@@ -116,7 +118,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   const [isAdmin, setIsAdmin] = useState(false)
 
   const [activeTab, setActiveTab] = useState<typeof TABS[number]['id']>(
-    (initialTab as typeof TABS[number]['id']) || 'overview'
+    (initialTab as typeof TABS[number]['id']) || 'market'
   )
   const [newInviteEmail, setNewInviteEmail] = useState('')
   const [error, setError] = useState('')
@@ -145,6 +147,10 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   const [appealFilter, setAppealFilter] = useState<'PENDING' | 'ACCEPTED' | 'REJECTED' | ''>('')
   const [resolutionNote, setResolutionNote] = useState('')
   const [selectedAppealId, setSelectedAppealId] = useState<string | null>(null)
+
+  // Roster incomplete modal state
+  const [showRosterIncompleteModal, setShowRosterIncompleteModal] = useState(false)
+  const [rosterIncompleteDetails, setRosterIncompleteDetails] = useState<string>('')
 
   useEffect(() => {
     loadData()
@@ -182,10 +188,13 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       setResolutionNote('')
       setSelectedAppealId(null)
 
-      // Se il ricorso è accettato, naviga alla stanza d'asta
+      // Se il ricorso è accettato, naviga alla stanza d'asta corretta
       if (decision === 'ACCEPTED' && res.data) {
-        const data = res.data as { sessionId: string; auctionId: string }
-        if (data.sessionId) {
+        const data = res.data as { sessionId: string; auctionId: string; leagueId: string; isSvincolati: boolean }
+        if (data.isSvincolati && data.leagueId) {
+          onNavigate('svincolati', { leagueId: data.leagueId })
+          return
+        } else if (data.sessionId) {
           onNavigate('auction-room', { sessionId: data.sessionId })
           return
         }
@@ -223,6 +232,21 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       setSuccess('Messaggio chat simulato!')
     } else {
       setError(res.message || 'Errore nella simulazione chat')
+    }
+    setIsSubmitting(false)
+  }
+
+  async function handleSimulateAllConsolidation() {
+    setError('')
+    setSuccess('')
+    setIsSubmitting(true)
+
+    const res = await contractApi.simulateAllConsolidation(leagueId)
+    if (res.success) {
+      setSuccess(res.message || 'Consolidamento simulato per tutti i manager')
+      loadData() // Refresh consolidation status
+    } else {
+      setError(res.message || 'Errore nella simulazione')
     }
     setIsSubmitting(false)
   }
@@ -297,7 +321,13 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       setSuccess('Sessione chiusa')
       loadData()
     } else {
-      setError(res.message || 'Errore')
+      // Check if it's a roster incomplete error
+      if (res.message?.startsWith('Rose incomplete')) {
+        setRosterIncompleteDetails(res.message)
+        setShowRosterIncompleteModal(true)
+      } else {
+        setError(res.message || 'Errore')
+      }
     }
     setIsSubmitting(false)
   }
@@ -311,7 +341,13 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       setSuccess(`Fase impostata: ${phase}`)
       loadData()
     } else {
-      setError(res.message || 'Errore')
+      // Check if it's a roster incomplete error
+      if (res.message?.startsWith('Rose incomplete')) {
+        setRosterIncompleteDetails(res.message)
+        setShowRosterIncompleteModal(true)
+      } else {
+        setError(res.message || 'Errore')
+      }
     }
     setIsSubmitting(false)
   }
@@ -572,6 +608,32 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
           ))}
         </div>
 
+        {/* Market Tab */}
+        {activeTab === 'market' && (
+          <MarketPhaseManager
+            session={activeSession ? {
+              id: activeSession.id,
+              type: activeSession.type as 'PRIMO_MERCATO' | 'MERCATO_RICORRENTE',
+              status: activeSession.status,
+              currentPhase: activeSession.currentPhase
+            } : null}
+            consolidationStatus={consolidationStatus ? {
+              allConsolidated: consolidationStatus.allConsolidated,
+              members: consolidationStatus.managers.map(m => ({
+                memberId: m.memberId,
+                username: m.username,
+                consolidated: m.isConsolidated
+              }))
+            } : null}
+            isSubmitting={isSubmitting}
+            onSetPhase={handleSetPhase}
+            onCloseSession={handleCloseSession}
+            onCreateSession={handleCreateSession}
+            onSimulateConsolidation={handleSimulateAllConsolidation}
+            hasCompletedFirstMarket={sessions.some(s => s.type === 'PRIMO_MERCATO' && s.status === 'COMPLETED')}
+          />
+        )}
+
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
@@ -689,13 +751,15 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                       <div className="mb-5 p-4 bg-surface-300 rounded-xl border border-surface-50/20">
                         <div className="flex items-center justify-between mb-3">
                           <h4 className="text-white font-semibold">Stato Consolidamento Contratti</h4>
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            consolidationStatus.allConsolidated
-                              ? 'bg-secondary-500/20 text-secondary-400 border border-secondary-500/40'
-                              : 'bg-warning-500/20 text-warning-400 border border-warning-500/40'
-                          }`}>
-                            {consolidationStatus.consolidatedCount}/{consolidationStatus.totalCount} completati
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              consolidationStatus.allConsolidated
+                                ? 'bg-secondary-500/20 text-secondary-400 border border-secondary-500/40'
+                                : 'bg-warning-500/20 text-warning-400 border border-warning-500/40'
+                            }`}>
+                              {consolidationStatus.consolidatedCount}/{consolidationStatus.totalCount} completati
+                            </span>
+                          </div>
                         </div>
                         <div className="space-y-2">
                           {consolidationStatus.managers.map(m => (
@@ -716,9 +780,20 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                           ))}
                         </div>
                         {!consolidationStatus.allConsolidated && (
-                          <p className="text-warning-400 text-sm mt-3">
-                            Non puoi passare alla fase successiva finché tutti i Direttori Generali non hanno consolidato.
-                          </p>
+                          <div className="mt-3 flex items-center justify-between">
+                            <p className="text-warning-400 text-sm">
+                              Non puoi passare alla fase successiva finché tutti i Direttori Generali non hanno consolidato.
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-purple-500/50 text-purple-400 ml-3 shrink-0"
+                              onClick={handleSimulateAllConsolidation}
+                              disabled={isSubmitting}
+                            >
+                              {isSubmitting ? '...' : 'Simula Consolidamento'}
+                            </Button>
+                          </div>
                         )}
                       </div>
                     )}
@@ -1324,6 +1399,47 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
           </div>
         )}
       </main>
+
+      {/* Roster Incomplete Modal */}
+      {showRosterIncompleteModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-200 rounded-2xl p-6 max-w-lg w-full border border-surface-50/20 shadow-2xl max-h-[80vh] overflow-y-auto">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-warning-500/20 flex items-center justify-center mx-auto mb-4">
+                <span className="text-4xl">⚠️</span>
+              </div>
+              <h3 className="text-2xl font-bold text-white">Rose Incomplete</h3>
+              <p className="text-gray-400 mt-2">Non puoi chiudere l'asta finché tutte le rose non sono complete.</p>
+            </div>
+
+            <div className="bg-surface-300 rounded-xl p-4 mb-6">
+              <h4 className="text-sm font-semibold text-warning-400 uppercase tracking-wide mb-3">Dettaglio Mancanti</h4>
+              <div className="space-y-2">
+                {rosterIncompleteDetails
+                  .replace('Rose incomplete. ', '')
+                  .split('; ')
+                  .map((detail, idx) => {
+                    const [manager, missing] = detail.split(': mancano ')
+                    return (
+                      <div key={idx} className="flex justify-between items-start py-2 border-b border-surface-50/10 last:border-0">
+                        <span className="font-medium text-white">{manager}</span>
+                        <span className="text-sm text-gray-400 text-right">{missing}</span>
+                      </div>
+                    )
+                  })}
+              </div>
+            </div>
+
+            <Button
+              size="lg"
+              className="w-full"
+              onClick={() => setShowRosterIncompleteModal(false)}
+            >
+              Ho capito
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

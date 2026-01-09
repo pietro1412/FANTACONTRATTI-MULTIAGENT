@@ -432,13 +432,40 @@ export const contractApi = {
   getConsolidationStatus: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/contracts/consolidation`),
 
-  // Consolidate contracts
+  // Save draft renewals, new contracts, and releases (staging area)
+  saveDrafts: (
+    leagueId: string,
+    renewals: { contractId: string; salary: number; duration: number }[],
+    newContracts: { rosterId: string; salary: number; duration: number }[],
+    releases: string[] = []  // Contract IDs to mark for release
+  ) =>
+    request(`/api/leagues/${leagueId}/contracts/save-drafts`, {
+      method: 'POST',
+      body: JSON.stringify({ renewals, newContracts, releases }),
+    }),
+
+  // Consolidate all contracts at once (renewals + new contracts)
+  consolidateAll: (
+    leagueId: string,
+    renewals: { contractId: string; salary: number; duration: number }[],
+    newContracts: { rosterId: string; salary: number; duration: number }[]
+  ) =>
+    request(`/api/leagues/${leagueId}/contracts/consolidate`, {
+      method: 'POST',
+      body: JSON.stringify({ renewals, newContracts }),
+    }),
+
+  // Old consolidate (deprecated, kept for compatibility)
   consolidate: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/contracts/consolidate`, { method: 'POST' }),
 
   // Get all managers' consolidation status (admin only)
   getAllConsolidationStatus: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/contracts/consolidation-all`),
+
+  // Simulate all managers consolidated (admin test only)
+  simulateAllConsolidation: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/contracts/simulate-consolidation`, { method: 'POST' }),
 }
 
 // Trade API
@@ -540,6 +567,112 @@ export const rubataApi = {
   // Close rubata auction (Admin)
   closeAuction: (auctionId: string) =>
     request(`/api/rubata/${auctionId}/close`, { method: 'PUT' }),
+
+  // ========== BOARD-BASED RUBATA (Timer-based) ==========
+
+  // Get rubata board with current state
+  getBoard: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/board`),
+
+  // Generate rubata board (Admin)
+  generateBoard: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/board/generate`, { method: 'POST' }),
+
+  // Start rubata (Admin)
+  start: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/start`, { method: 'POST' }),
+
+  // Update timers (Admin)
+  updateTimers: (leagueId: string, offerTimerSeconds?: number, auctionTimerSeconds?: number) =>
+    request(`/api/leagues/${leagueId}/rubata/timers`, {
+      method: 'PUT',
+      body: JSON.stringify({ offerTimerSeconds, auctionTimerSeconds }),
+    }),
+
+  // Make initial offer on current player
+  makeOffer: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/offer`, { method: 'POST' }),
+
+  // Bid on active auction
+  bidOnAuction: (leagueId: string, amount: number) =>
+    request(`/api/leagues/${leagueId}/rubata/auction/bid`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    }),
+
+  // Advance to next player (Admin)
+  advance: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/advance`, { method: 'POST' }),
+
+  // Go back to previous player (Admin)
+  goBack: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/back`, { method: 'POST' }),
+
+  // Close current auction and transfer player (Admin)
+  closeCurrentAuction: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/close-auction`, { method: 'POST' }),
+
+  // Pause rubata (Admin)
+  pause: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/pause`, { method: 'POST' }),
+
+  // Resume rubata (Admin)
+  resume: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/resume`, { method: 'POST' }),
+
+  // ========== READY CHECK ==========
+
+  // Get ready status
+  getReadyStatus: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/ready-status`),
+
+  // Set member as ready
+  setReady: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/ready`, { method: 'POST' }),
+
+  // Force all ready (Admin)
+  forceAllReady: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/force-ready`, { method: 'POST' }),
+
+  // ========== TRANSACTION ACKNOWLEDGMENT ==========
+
+  // Get pending acknowledgment
+  getPendingAck: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/pending-ack`),
+
+  // Acknowledge transaction (with optional prophecy)
+  acknowledge: (leagueId: string, prophecy?: string) =>
+    request(`/api/leagues/${leagueId}/rubata/acknowledge`, {
+      method: 'POST',
+      body: JSON.stringify({ prophecy }),
+    }),
+
+  // Force all acknowledge (Admin)
+  forceAllAcknowledge: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/force-acknowledge`, { method: 'POST' }),
+
+  // ========== ADMIN SIMULATION ==========
+
+  // Simulate offer from another manager (Admin)
+  simulateOffer: (leagueId: string, targetMemberId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/simulate-offer`, {
+      method: 'POST',
+      body: JSON.stringify({ targetMemberId }),
+    }),
+
+  // Simulate bid from another manager (Admin)
+  simulateBid: (leagueId: string, targetMemberId: string, amount: number) =>
+    request(`/api/leagues/${leagueId}/rubata/simulate-bid`, {
+      method: 'POST',
+      body: JSON.stringify({ targetMemberId, amount }),
+    }),
+
+  // Complete rubata with random transactions (Admin - for testing)
+  completeWithTransactions: (leagueId: string, stealProbability?: number) =>
+    request(`/api/leagues/${leagueId}/rubata/complete-with-transactions`, {
+      method: 'POST',
+      body: JSON.stringify({ stealProbability }),
+    }),
 }
 
 // Svincolati (Free Agents) API
@@ -599,6 +732,95 @@ export const svincolatiApi = {
   // Get bot members info
   getBots: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/bots`),
+
+  // ==== NUOVE API A TURNI ====
+
+  // Get svincolati board state
+  getBoard: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/board`),
+
+  // Set turn order (Admin)
+  setTurnOrder: (leagueId: string, memberIds: string[]) =>
+    request(`/api/leagues/${leagueId}/svincolati/turn-order`, {
+      method: 'POST',
+      body: JSON.stringify({ memberIds }),
+    }),
+
+  // Nominate a free agent
+  nominate: (leagueId: string, playerId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/nominate`, {
+      method: 'POST',
+      body: JSON.stringify({ playerId }),
+    }),
+
+  // Confirm nomination
+  confirmNomination: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/confirm`, { method: 'PUT' }),
+
+  // Cancel nomination
+  cancelNomination: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/nomination`, { method: 'DELETE' }),
+
+  // Mark ready
+  markReady: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/ready`, { method: 'POST' }),
+
+  // Pass turn
+  passTurn: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/pass`, { method: 'POST' }),
+
+  // Force all ready (Admin)
+  forceAllReady: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/force-ready`, { method: 'POST' }),
+
+  // Close svincolati auction (turn-based)
+  closeTurnAuction: (auctionId: string) =>
+    request(`/api/svincolati/${auctionId}/close-turn`, { method: 'PUT' }),
+
+  // Acknowledge auction result
+  acknowledge: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/acknowledge`, { method: 'POST' }),
+
+  // Force all acks (Admin)
+  forceAllAck: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/force-ack`, { method: 'POST' }),
+
+  // Set timer (Admin)
+  setTimer: (leagueId: string, timerSeconds: number) =>
+    request(`/api/leagues/${leagueId}/svincolati/timer`, {
+      method: 'PUT',
+      body: JSON.stringify({ timerSeconds }),
+    }),
+
+  // Complete svincolati phase (Admin)
+  completePhase: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/complete`, { method: 'PUT' }),
+
+  // ==== BOT SIMULATION (ADMIN TEST) ====
+
+  // Bot nominate random player (Admin)
+  botNominate: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/bot-nominate`, { method: 'POST' }),
+
+  // Bot confirm nomination (Admin)
+  botConfirmNomination: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/bot-confirm`, { method: 'POST' }),
+
+  // Bot bid on auction (Admin)
+  botBid: (auctionId: string) =>
+    request(`/api/svincolati/${auctionId}/bot-bid-turn`, { method: 'POST' }),
+
+  // Declare finished with phase (can't bid anymore)
+  declareFinished: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/finished`, { method: 'POST' }),
+
+  // Undo declare finished (can bid again)
+  undoFinished: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/finished`, { method: 'DELETE' }),
+
+  // Force all managers as finished (Admin)
+  forceAllFinished: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/force-all-finished`, { method: 'POST' }),
 }
 
 // Admin API

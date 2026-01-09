@@ -9,6 +9,7 @@ import {
   triggerAuctionStarted,
   triggerAuctionClosed,
 } from './pusher.service'
+import { withRetry } from '../utils/db-retry'
 
 const prisma = new PrismaClient()
 
@@ -52,6 +53,90 @@ export function isAllConnected(sessionId: string, memberIds: string[]): boolean 
 
 export function clearSessionHeartbeats(sessionId: string): void {
   heartbeats.delete(sessionId)
+}
+
+// ==================== ROSTER COMPLETION CHECK ====================
+
+/**
+ * Verifica se tutti i manager hanno completato la rosa (per chiudere ASTA_LIBERA nel PRIMO_MERCATO)
+ */
+export async function canAdvanceFromAstaLibera(leagueId: string): Promise<{
+  canAdvance: boolean
+  reason?: string
+  details?: { username: string; missing: { position: string; count: number }[] }[]
+}> {
+  // Get league config
+  const league = await prisma.league.findUnique({
+    where: { id: leagueId },
+  })
+
+  if (!league) {
+    return { canAdvance: false, reason: 'Lega non trovata' }
+  }
+
+  const requiredSlots = {
+    P: league.goalkeeperSlots,
+    D: league.defenderSlots,
+    C: league.midfielderSlots,
+    A: league.forwardSlots,
+  }
+
+  // Get all active members with their rosters
+  const members = await prisma.leagueMember.findMany({
+    where: {
+      leagueId,
+      status: MemberStatus.ACTIVE,
+    },
+    include: {
+      user: { select: { username: true } },
+      roster: {
+        where: { status: RosterStatus.ACTIVE },
+        include: { player: { select: { position: true } } },
+      },
+    },
+  })
+
+  const incompleteMembers: { username: string; missing: { position: string; count: number }[] }[] = []
+
+  for (const member of members) {
+    // Count players by position
+    const positionCounts: Record<string, number> = { P: 0, D: 0, C: 0, A: 0 }
+    for (const entry of member.roster) {
+      const pos = entry.player.position
+      if (pos in positionCounts) {
+        positionCounts[pos]++
+      }
+    }
+
+    // Check for missing slots
+    const missing: { position: string; count: number }[] = []
+    for (const [pos, required] of Object.entries(requiredSlots)) {
+      const current = positionCounts[pos] || 0
+      if (current < required) {
+        const positionNames: Record<string, string> = { P: 'Portieri', D: 'Difensori', C: 'Centrocampisti', A: 'Attaccanti' }
+        missing.push({ position: positionNames[pos], count: required - current })
+      }
+    }
+
+    if (missing.length > 0) {
+      incompleteMembers.push({ username: member.user.username, missing })
+    }
+  }
+
+  if (incompleteMembers.length > 0) {
+    const summary = incompleteMembers.map(m => {
+      const missingStr = m.missing.map(p => `${p.count} ${p.position}`).join(', ')
+      return `${m.username}: mancano ${missingStr}`
+    }).join('; ')
+
+    return {
+      canAdvance: false,
+      reason: `Rose incomplete. ${summary}`,
+      details: incompleteMembers,
+    }
+  }
+
+  return { canAdvance: true }
 }
 
 // ==================== CONTRACT DURATION MANAGEMENT ====================
@@ -132,127 +217,143 @@ export async function createAuctionSession(
   adminUserId: string,
   isRegularMarket: boolean = false
 ): Promise<ServiceResult> {
-  // Verify admin
-  const admin = await prisma.leagueMember.findFirst({
-    where: {
-      leagueId,
-      userId: adminUserId,
-      role: MemberRole.ADMIN,
-      status: MemberStatus.ACTIVE,
-    },
-  })
-
-  if (!admin) {
-    return { success: false, message: 'Non autorizzato' }
-  }
-
-  // Check for existing active session
-  const existingSession = await prisma.marketSession.findFirst({
-    where: {
-      leagueId,
-      status: 'ACTIVE',
-    },
-  })
-
-  if (existingSession) {
-    return { success: false, message: 'Esiste già una sessione attiva' }
-  }
-
-  // Check if PRIMO_MERCATO already exists (can only have one ever)
-  if (!isRegularMarket) {
-    const existingPrimoMercato = await prisma.marketSession.findFirst({
+  // Usa retry per gestire cold start del database
+  return withRetry(async () => {
+    // Verify admin
+    const admin = await prisma.leagueMember.findFirst({
       where: {
         leagueId,
-        type: 'PRIMO_MERCATO',
+        userId: adminUserId,
+        role: MemberRole.ADMIN,
+        status: MemberStatus.ACTIVE,
       },
     })
 
-    if (existingPrimoMercato) {
-      return { success: false, message: 'Il Primo Mercato è già stato effettuato. Usa "Mercato Ricorrente" per le sessioni successive.' }
+    if (!admin) {
+      return { success: false, message: 'Non autorizzato' }
     }
-  }
 
-  // Get league info
-  const league = await prisma.league.findUnique({
-    where: { id: leagueId },
-  })
+    // Get league info
+    const league = await prisma.league.findUnique({
+      where: { id: leagueId },
+    })
 
-  if (!league) {
-    return { success: false, message: 'Lega non trovata' }
-  }
+    if (!league) {
+      return { success: false, message: 'Lega non trovata' }
+    }
 
-  // Check if league is started (status = ACTIVE)
-  if (league.status !== 'ACTIVE') {
-    return { success: false, message: 'La lega deve essere avviata prima di poter creare sessioni di mercato' }
-  }
+    // Check if league is started (status = ACTIVE)
+    if (league.status !== 'ACTIVE') {
+      return { success: false, message: 'La lega deve essere avviata prima di poter creare sessioni di mercato' }
+    }
 
-  // Count active members
-  const activeMembersCount = await prisma.leagueMember.count({
-    where: {
-      leagueId,
-      status: MemberStatus.ACTIVE,
-    },
-  })
+    // Count active members
+    const activeMembersCount = await prisma.leagueMember.count({
+      where: {
+        leagueId,
+        status: MemberStatus.ACTIVE,
+      },
+    })
 
-  // Check minimum participants
-  if (activeMembersCount < league.minParticipants) {
+    // Check minimum participants
+    if (activeMembersCount < league.minParticipants) {
+      return {
+        success: false,
+        message: `Servono almeno ${league.minParticipants} partecipanti. Attualmente: ${activeMembersCount}`
+      }
+    }
+
+    // Check even number if required
+    if (league.requireEvenNumber && activeMembersCount % 2 !== 0) {
+      return {
+        success: false,
+        message: `Il numero di partecipanti deve essere pari. Attualmente: ${activeMembersCount}`
+      }
+    }
+
+    // Usa transazione per prevenire race condition
+    // Il controllo per sessione esistente e la creazione avvengono atomicamente
+    const result = await prisma.$transaction(async (tx) => {
+      // Check for existing active session (dentro transazione per evitare race condition)
+      const existingSession = await tx.marketSession.findFirst({
+        where: {
+          leagueId,
+          status: 'ACTIVE',
+        },
+      })
+
+      if (existingSession) {
+        return { success: false, message: 'Esiste già una sessione attiva' }
+      }
+
+      // Check if PRIMO_MERCATO already exists (can only have one ever)
+      if (!isRegularMarket) {
+        const existingPrimoMercato = await tx.marketSession.findFirst({
+          where: {
+            leagueId,
+            type: 'PRIMO_MERCATO',
+          },
+        })
+
+        if (existingPrimoMercato) {
+          return { success: false, message: 'Il Primo Mercato è già stato effettuato. Usa "Mercato Ricorrente" per le sessioni successive.' }
+        }
+      }
+
+      // Count existing market sessions to determine semester
+      const sessionCount = await tx.marketSession.count({
+        where: { leagueId },
+      })
+
+      // Determine market type and semester
+      const marketType = isRegularMarket ? 'MERCATO_RICORRENTE' : 'PRIMO_MERCATO'
+      const semester = sessionCount + 1
+
+      // Create market session
+      const now = new Date()
+      const session = await tx.marketSession.create({
+        data: {
+          leagueId,
+          type: marketType as 'PRIMO_MERCATO' | 'MERCATO_RICORRENTE',
+          season: league.currentSeason,
+          semester,
+          status: 'ACTIVE',
+          currentPhase: isRegularMarket ? 'OFFERTE_PRE_RINNOVO' : 'ASTA_LIBERA',
+          startsAt: now,
+          phaseStartedAt: now,
+        },
+      })
+
+      return { success: true, session, marketType }
+    })
+
+    // Se la transazione ha fallito (sessione già esistente), ritorna l'errore
+    if (!result.success) {
+      return result as ServiceResult
+    }
+
+    // For regular markets, decrement all contract durations (fuori dalla transazione)
+    let decrementResult = { decremented: 0, released: [] as string[] }
+    if (isRegularMarket) {
+      decrementResult = await decrementContractDurations(leagueId)
+    }
+
+    const message = isRegularMarket
+      ? `Mercato regolare aperto. Contratti decrementati: ${decrementResult.decremented}, Giocatori svincolati: ${decrementResult.released.length}`
+      : 'Sessione PRIMO MERCATO creata'
+
     return {
-      success: false,
-      message: `Servono almeno ${league.minParticipants} partecipanti. Attualmente: ${activeMembersCount}`
+      success: true,
+      message,
+      data: {
+        session: result.session,
+        ...(isRegularMarket && {
+          contractsDecremented: decrementResult.decremented,
+          playersReleased: decrementResult.released,
+        }),
+      },
     }
-  }
-
-  // Check even number if required
-  if (league.requireEvenNumber && activeMembersCount % 2 !== 0) {
-    return {
-      success: false,
-      message: `Il numero di partecipanti deve essere pari. Attualmente: ${activeMembersCount}`
-    }
-  }
-
-  // Count existing market sessions to determine semester
-  const sessionCount = await prisma.marketSession.count({
-    where: { leagueId },
-  })
-
-  // Determine market type and semester
-  const marketType = isRegularMarket ? 'MERCATO_RICORRENTE' : 'PRIMO_MERCATO'
-  const semester = sessionCount + 1
-
-  // For regular markets, decrement all contract durations
-  let decrementResult = { decremented: 0, released: [] as string[] }
-  if (isRegularMarket) {
-    decrementResult = await decrementContractDurations(leagueId)
-  }
-
-  // Create market session
-  const session = await prisma.marketSession.create({
-    data: {
-      leagueId,
-      type: marketType as 'PRIMO_MERCATO' | 'MERCATO_RICORRENTE',
-      season: league.currentSeason,
-      semester,
-      status: 'ACTIVE',
-      currentPhase: isRegularMarket ? 'OFFERTE_PRE_RINNOVO' : 'ASTA_LIBERA',
-      startsAt: new Date(),
-    },
-  })
-
-  const message = isRegularMarket
-    ? `Mercato regolare aperto. Contratti decrementati: ${decrementResult.decremented}, Giocatori svincolati: ${decrementResult.released.length}`
-    : 'Sessione PRIMO MERCATO creata'
-
-  return {
-    success: true,
-    message,
-    data: {
-      session,
-      ...(isRegularMarket && {
-        contractsDecremented: decrementResult.decremented,
-        playersReleased: decrementResult.released,
-      }),
-    },
-  }
+  }, { maxRetries: 3, initialDelayMs: 2000 })
 }
 
 export async function getAuctionSessions(leagueId: string, userId: string): Promise<ServiceResult> {
@@ -318,10 +419,27 @@ export async function setMarketPhase(
     return { success: false, message: 'Sessione non attiva' }
   }
 
-  // Validate phase
-  const validPhases = ['ASTA_LIBERA', 'OFFERTE_PRE_RINNOVO', 'CONTRATTI', 'RUBATA', 'SVINCOLATI', 'OFFERTE_POST_ASTA_SVINCOLATI']
+  // Validate phase based on market type
+  // PRIMO_MERCATO: solo ASTA_LIBERA
+  // MERCATO_RICORRENTE: OFFERTE_PRE_RINNOVO, CONTRATTI, RUBATA, ASTA_SVINCOLATI, OFFERTE_POST_ASTA_SVINCOLATI
+  const primoMercatoPhases = ['ASTA_LIBERA']
+  const mercatoRicorrentePhases = ['OFFERTE_PRE_RINNOVO', 'CONTRATTI', 'RUBATA', 'ASTA_SVINCOLATI', 'OFFERTE_POST_ASTA_SVINCOLATI']
+
+  const validPhases = session.type === 'PRIMO_MERCATO' ? primoMercatoPhases : mercatoRicorrentePhases
+
   if (!validPhases.includes(phase)) {
-    return { success: false, message: `Fase non valida. Fasi disponibili: ${validPhases.join(', ')}` }
+    if (session.type === 'PRIMO_MERCATO') {
+      return { success: false, message: 'Il Primo Mercato ha solo la fase ASTA_LIBERA' }
+    }
+    return { success: false, message: `Fase non valida per Mercato Ricorrente. Fasi disponibili: ${mercatoRicorrentePhases.join(', ')}` }
+  }
+
+  // Check roster completion when leaving ASTA_LIBERA during PRIMO_MERCATO
+  if (session.currentPhase === 'ASTA_LIBERA' && phase !== 'ASTA_LIBERA' && session.type === 'PRIMO_MERCATO') {
+    const rosterCheck = await canAdvanceFromAstaLibera(session.leagueId)
+    if (!rosterCheck.canAdvance) {
+      return { success: false, message: rosterCheck.reason || 'Non tutti i manager hanno completato la rosa' }
+    }
   }
 
   // Check consolidation when leaving CONTRATTI phase
@@ -336,7 +454,8 @@ export async function setMarketPhase(
   const updatedSession = await prisma.marketSession.update({
     where: { id: sessionId },
     data: {
-      currentPhase: phase as 'ASTA_LIBERA' | 'OFFERTE_PRE_RINNOVO' | 'CONTRATTI' | 'RUBATA' | 'SVINCOLATI' | 'OFFERTE_POST_ASTA_SVINCOLATI',
+      currentPhase: phase as 'ASTA_LIBERA' | 'OFFERTE_PRE_RINNOVO' | 'CONTRATTI' | 'RUBATA' | 'ASTA_SVINCOLATI' | 'OFFERTE_POST_ASTA_SVINCOLATI',
+      phaseStartedAt: new Date(),
     },
   })
 
@@ -418,6 +537,14 @@ export async function closeAuctionSession(
 
   if (!admin) {
     return { success: false, message: 'Non autorizzato' }
+  }
+
+  // Check roster completion when closing ASTA_LIBERA during PRIMO_MERCATO
+  if (session.currentPhase === 'ASTA_LIBERA' && session.type === 'PRIMO_MERCATO') {
+    const rosterCheck = await canAdvanceFromAstaLibera(session.leagueId)
+    if (!rosterCheck.canAdvance) {
+      return { success: false, message: rosterCheck.reason || 'Non tutti i manager hanno completato la rosa' }
+    }
   }
 
   // Close any active auctions
@@ -3338,22 +3465,13 @@ export async function submitAppeal(
     return { success: false, message: 'Non sei membro di questa lega' }
   }
 
-  // Check auction is completed
+  // Check auction is completed (in svincolati flow, auction is COMPLETED when PENDING_ACK modal shows)
   if (auction.status !== 'COMPLETED') {
     return { success: false, message: 'Puoi fare ricorso solo su aste completate' }
   }
 
-  // Check if user already submitted an appeal for this auction
-  const existingAppeal = await prisma.auctionAppeal.findFirst({
-    where: {
-      auctionId,
-      memberId: member.id,
-    },
-  })
-
-  if (existingAppeal) {
-    return { success: false, message: 'Hai già fatto ricorso per questa asta' }
-  }
+  // Nessun limite al numero di ricorsi - può essere usato per gestire disconnessioni
+  // durante l'asta da parte di qualsiasi manager
 
   // Create the appeal
   const appeal = await prisma.auctionAppeal.create({
@@ -3489,76 +3607,84 @@ export async function resolveAppeal(
   }
 
   if (decision === 'ACCEPTED') {
-    // Annulla la transazione
-    // 1. Remove the player from winner's roster
-    if (appeal.auction.winnerId) {
-      await prisma.playerRoster.updateMany({
-        where: {
-          leagueMemberId: appeal.auction.winnerId,
-          playerId: appeal.auction.playerId,
-          status: 'ACTIVE',
-        },
-        data: {
-          status: 'RELEASED',
-          releasedAt: new Date(),
-        },
-      })
+    try {
+      // Annulla la transazione
+      // 1. Remove the player from winner's roster (only if there was a winner)
+      if (appeal.auction.winnerId) {
+        // Check if roster entry exists before trying to delete
+        const existingRoster = await prisma.playerRoster.findFirst({
+          where: {
+            leagueMemberId: appeal.auction.winnerId,
+            playerId: appeal.auction.playerId,
+            status: 'ACTIVE',
+          },
+        })
 
-      // 2. Delete any contract for this roster
-      const roster = await prisma.playerRoster.findFirst({
-        where: {
-          leagueMemberId: appeal.auction.winnerId,
-          playerId: appeal.auction.playerId,
-          status: 'RELEASED',
-          releasedAt: { not: null },
-        },
-        orderBy: { releasedAt: 'desc' },
-      })
+        if (existingRoster) {
+          // 2. Delete any contract for this roster first (foreign key constraint)
+          await prisma.playerContract.deleteMany({
+            where: { rosterId: existingRoster.id },
+          })
 
-      if (roster) {
-        await prisma.playerContract.deleteMany({
-          where: { rosterId: roster.id },
+          // Delete the roster entry (instead of updating to RELEASED to avoid unique constraint)
+          await prisma.playerRoster.delete({
+            where: { id: existingRoster.id },
+          })
+        }
+
+        // 3. Restore winner's budget
+        await prisma.leagueMember.update({
+          where: { id: appeal.auction.winnerId },
+          data: {
+            currentBudget: { increment: appeal.auction.currentPrice },
+          },
         })
       }
 
-      // 3. Restore winner's budget
-      await prisma.leagueMember.update({
-        where: { id: appeal.auction.winnerId },
+      // 4. Delete related movement
+      await prisma.playerMovement.deleteMany({
+        where: { auctionId: appeal.auction.id },
+      })
+
+      // 5. Delete acknowledgments
+      await prisma.auctionAcknowledgment.deleteMany({
+        where: { auctionId: appeal.auction.id },
+      })
+
+    // 6. Metti l'asta in AWAITING_RESUME - tutti devono confermare di essere pronti
+    // Il timer NON parte ancora - partirà quando tutti saranno pronti
+    const timerSeconds = appeal.auction.marketSession?.svincolatiTimerSeconds ??
+                         appeal.auction.marketSession?.auctionTimerSeconds ?? 30
+
+    await prisma.auction.update({
+      where: { id: appeal.auctionId },
+      data: {
+        status: AuctionStatus.AWAITING_RESUME,
+        winnerId: null,
+        // currentPrice rimane invariato - l'asta riprenderà dall'ultima offerta
+        timerExpiresAt: null, // Timer non parte ancora
+        timerSeconds,
+        endsAt: null,
+        appealDecisionAcks: [],
+        resumeReadyMembers: [], // Tutti devono confermare
+      },
+    })
+
+    // 7. Se è un'asta svincolati, aggiorna lo stato della sessione
+    if (appeal.auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI') {
+      await prisma.marketSession.update({
+        where: { id: appeal.auction.marketSessionId! },
         data: {
-          currentBudget: { increment: appeal.auction.currentPrice },
+          svincolatiState: 'AWAITING_RESUME',
+          svincolatiTimerStartedAt: null,
+          svincolatiPendingAck: null, // Pulisci il pending ack precedente
         },
       })
     }
 
-    // 4. Delete related movement
-    await prisma.playerMovement.deleteMany({
-      where: { auctionId: appeal.auction.id },
-    })
+    // 8. Le offerte NON vengono cancellate - l'asta riprende da dove era
 
-    // 5. Delete acknowledgments
-    await prisma.auctionAcknowledgment.deleteMany({
-      where: { auctionId: appeal.auction.id },
-    })
-
-    // 6. NON far partire il timer - metti in AWAITING_APPEAL_ACK
-    // Dopo che tutti hanno confermato, passerà a AWAITING_RESUME
-    // L'asta riprende dall'ultima offerta (NON si resetta il prezzo)
-    await prisma.auction.update({
-      where: { id: appeal.auctionId },
-      data: {
-        status: AuctionStatus.AWAITING_APPEAL_ACK,
-        winnerId: null,
-        // currentPrice rimane invariato - l'asta riprende dall'ultima offerta
-        timerExpiresAt: null, // Timer non parte ancora
-        endsAt: null,
-        appealDecisionAcks: [], // Reset - tutti devono confermare
-        resumeReadyMembers: [], // Reset ready members
-      },
-    })
-
-    // 7. Le offerte NON vengono cancellate - l'asta riprende da dove era
-
-    // 8. Mark appeal as accepted
+    // 9. Mark appeal as accepted
     await prisma.auctionAppeal.update({
       where: { id: appealId },
       data: {
@@ -3586,11 +3712,20 @@ export async function resolveAppeal(
 
     return {
       success: true,
-      message: 'Ricorso accettato. Tutti i manager devono confermare la decisione.',
+      message: 'Ricorso accettato. L\'asta riprende immediatamente.',
       data: {
         sessionId: appeal.auction.marketSessionId,
         auctionId: appeal.auctionId,
+        leagueId: appeal.auction.leagueId,
+        isSvincolati: appeal.auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI',
       },
+    }
+    } catch (error) {
+      console.error('[resolveAppeal] Error accepting appeal:', error)
+      return {
+        success: false,
+        message: `Errore nell'accettare il ricorso: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`,
+      }
     }
   } else {
     // REJECTED - conferma l'esito, ma tutti devono prendere visione
@@ -3631,6 +3766,7 @@ export async function acknowledgeAppealDecision(
     where: { id: auctionId },
     include: {
       appeals: { where: { status: { in: ['ACCEPTED', 'REJECTED'] } }, orderBy: { resolvedAt: 'desc' }, take: 1 },
+      marketSession: true,
     },
   })
 
@@ -3695,6 +3831,61 @@ export async function acknowledgeAppealDecision(
           appealDecisionAcks: newAcks,
         },
       })
+
+      // Se è un'asta svincolati, avanza al prossimo turno
+      if (auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI' &&
+          auction.marketSession?.svincolatiState === 'PENDING_ACK') {
+        const turnOrder = (auction.marketSession.svincolatiTurnOrder as string[] | null) || []
+        const passedMembers = (auction.marketSession.svincolatiPassedMembers as string[] | null) || []
+        const currentTurnIndex = auction.marketSession.svincolatiCurrentTurnIndex ?? 0
+        const previousNominatorId = auction.marketSession.svincolatiPendingNominatorId
+
+        // Reset passed state for nominator (they didn't pass, they called)
+        const newPassedMembers = previousNominatorId
+          ? passedMembers.filter(id => id !== previousNominatorId)
+          : passedMembers
+
+        // Find next member who hasn't passed
+        let nextIndex = (currentTurnIndex + 1) % turnOrder.length
+        let searchCount = 0
+        while (newPassedMembers.includes(turnOrder[nextIndex]) && searchCount < turnOrder.length) {
+          nextIndex = (nextIndex + 1) % turnOrder.length
+          searchCount++
+        }
+
+        // Check if all remaining members have passed
+        const activeMembers = turnOrder.filter(id => !newPassedMembers.includes(id))
+        if (activeMembers.length === 0) {
+          // All passed - complete phase
+          await prisma.marketSession.update({
+            where: { id: auction.marketSessionId! },
+            data: {
+              svincolatiState: 'COMPLETED',
+              svincolatiPendingPlayerId: null,
+              svincolatiPendingNominatorId: null,
+              svincolatiNominatorConfirmed: false,
+              svincolatiPendingAck: null,
+              svincolatiReadyMembers: [],
+            },
+          })
+        } else {
+          // Update to next turn
+          await prisma.marketSession.update({
+            where: { id: auction.marketSessionId! },
+            data: {
+              svincolatiState: 'READY_CHECK',
+              svincolatiCurrentTurnIndex: nextIndex,
+              svincolatiPendingPlayerId: null,
+              svincolatiPendingNominatorId: null,
+              svincolatiNominatorConfirmed: false,
+              svincolatiPendingAck: null,
+              svincolatiReadyMembers: [],
+              svincolatiPassedMembers: newPassedMembers,
+            },
+          })
+        }
+      }
+
       return {
         success: true,
         message: 'Tutti hanno confermato. L\'esito dell\'asta è confermato, si prosegue.',
@@ -3723,6 +3914,7 @@ export async function markReadyToResume(
 ): Promise<ServiceResult> {
   const auction = await prisma.auction.findUnique({
     where: { id: auctionId },
+    include: { marketSession: true },
   })
 
   if (!auction) {
@@ -3767,6 +3959,18 @@ export async function markReadyToResume(
         timerExpiresAt: new Date(Date.now() + (auction.timerSeconds || 30) * 1000),
       },
     })
+
+    // Se è un'asta svincolati, aggiorna anche lo stato della sessione
+    if (auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI') {
+      await prisma.marketSession.update({
+        where: { id: auction.marketSessionId! },
+        data: {
+          svincolatiState: 'AUCTION',
+          svincolatiTimerStartedAt: new Date(),
+        },
+      })
+    }
+
     return {
       success: true,
       message: 'Tutti pronti! L\'asta riprende.',
@@ -3794,6 +3998,7 @@ export async function forceAllReadyToResume(
 ): Promise<ServiceResult> {
   const auction = await prisma.auction.findUnique({
     where: { id: auctionId },
+    include: { marketSession: true },
   })
 
   if (!auction) {
@@ -3834,6 +4039,17 @@ export async function forceAllReadyToResume(
     },
   })
 
+  // Se è un'asta svincolati, aggiorna anche lo stato della sessione
+  if (auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI') {
+    await prisma.marketSession.update({
+      where: { id: auction.marketSessionId! },
+      data: {
+        svincolatiState: 'AUCTION',
+        svincolatiTimerStartedAt: new Date(),
+      },
+    })
+  }
+
   return {
     success: true,
     message: 'Tutti i manager sono stati segnati come pronti. L\'asta riprende.',
@@ -3851,6 +4067,7 @@ export async function forceAllAppealDecisionAcks(
     where: { id: auctionId },
     include: {
       appeals: { where: { status: { in: ['ACCEPTED', 'REJECTED'] } }, orderBy: { resolvedAt: 'desc' }, take: 1 },
+      marketSession: true,
     },
   })
 
@@ -3906,6 +4123,61 @@ export async function forceAllAppealDecisionAcks(
         appealDecisionAcks: allMemberIds,
       },
     })
+
+    // Se è un'asta svincolati, avanza al prossimo turno
+    if (auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI' &&
+        auction.marketSession?.svincolatiState === 'PENDING_ACK') {
+      const turnOrder = (auction.marketSession.svincolatiTurnOrder as string[] | null) || []
+      const passedMembers = (auction.marketSession.svincolatiPassedMembers as string[] | null) || []
+      const currentTurnIndex = auction.marketSession.svincolatiCurrentTurnIndex ?? 0
+      const previousNominatorId = auction.marketSession.svincolatiPendingNominatorId
+
+      // Reset passed state for nominator (they didn't pass, they called)
+      const newPassedMembers = previousNominatorId
+        ? passedMembers.filter(id => id !== previousNominatorId)
+        : passedMembers
+
+      // Find next member who hasn't passed
+      let nextIndex = (currentTurnIndex + 1) % turnOrder.length
+      let searchCount = 0
+      while (newPassedMembers.includes(turnOrder[nextIndex]) && searchCount < turnOrder.length) {
+        nextIndex = (nextIndex + 1) % turnOrder.length
+        searchCount++
+      }
+
+      // Check if all remaining members have passed
+      const activeMembers = turnOrder.filter(id => !newPassedMembers.includes(id))
+      if (activeMembers.length === 0) {
+        // All passed - complete phase
+        await prisma.marketSession.update({
+          where: { id: auction.marketSessionId! },
+          data: {
+            svincolatiState: 'COMPLETED',
+            svincolatiPendingPlayerId: null,
+            svincolatiPendingNominatorId: null,
+            svincolatiNominatorConfirmed: false,
+            svincolatiPendingAck: null,
+            svincolatiReadyMembers: [],
+          },
+        })
+      } else {
+        // Update to next turn
+        await prisma.marketSession.update({
+          where: { id: auction.marketSessionId! },
+          data: {
+            svincolatiState: 'READY_CHECK',
+            svincolatiCurrentTurnIndex: nextIndex,
+            svincolatiPendingPlayerId: null,
+            svincolatiPendingNominatorId: null,
+            svincolatiNominatorConfirmed: false,
+            svincolatiPendingAck: null,
+            svincolatiReadyMembers: [],
+            svincolatiPassedMembers: newPassedMembers,
+          },
+        })
+      }
+    }
+
     return {
       success: true,
       message: 'Tutti confermati. L\'esito è confermato, si prosegue.',
@@ -4338,18 +4610,12 @@ export async function completeAllRosterSlots(
     }
   }
 
-  // Close the session
-  await prisma.marketSession.update({
-    where: { id: sessionId },
-    data: {
-      status: SessionStatus.COMPLETED,
-      currentPhase: null,
-    },
-  })
+  // NOTE: Non chiudiamo la sessione automaticamente.
+  // L'admin deve chiuderla esplicitamente dal pannello admin.
 
   return {
     success: true,
-    message: `Asta completata! ${totalPlayersAdded} giocatori aggiunti, ${totalContractsCreated} contratti creati.`,
+    message: `Rose completate! ${totalPlayersAdded} giocatori aggiunti, ${totalContractsCreated} contratti creati. Chiudi la sessione manualmente.`,
     data: {
       totalPlayersAdded,
       totalContractsCreated,

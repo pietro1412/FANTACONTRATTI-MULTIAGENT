@@ -1486,33 +1486,52 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                     {/* Enhanced Bid Controls */}
                     <div className="space-y-3 bg-surface-300/50 rounded-xl p-4">
                       {/* Quick Bid Buttons */}
-                      <div className="grid grid-cols-5 gap-2">
-                        {[1, 5, 10, 25, 50].map(n => (
-                          <Button
-                            key={n}
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setBidAmount(String(auction.currentPrice + n))}
-                            disabled={isTimerExpired || (membership?.currentBudget || 0) < auction.currentPrice + n}
-                            className={`border-surface-50/30 text-gray-300 hover:border-primary-500/50 hover:bg-primary-500/10 font-mono ${
-                              (membership?.currentBudget || 0) < auction.currentPrice + n ? 'opacity-50 cursor-not-allowed' : ''
-                            }`}
-                          >
-                            +{n}
-                          </Button>
-                        ))}
+                      <div className="grid grid-cols-4 gap-2">
+                        {[2, 5, 10, 20].map(n => {
+                          const newBid = parseInt(bidAmount || '0') + n
+                          return (
+                            <Button
+                              key={n}
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setBidAmount(String(newBid))}
+                              disabled={isTimerExpired || (membership?.currentBudget || 0) < newBid}
+                              className={`border-surface-50/30 text-gray-300 hover:border-primary-500/50 hover:bg-primary-500/10 font-mono ${
+                                (membership?.currentBudget || 0) < newBid ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                            >
+                              +{n}
+                            </Button>
+                          )
+                        })}
                       </div>
 
-                      {/* Main Bid Input */}
+                      {/* Main Bid Input with +/- */}
                       <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setBidAmount(String(Math.max(auction.currentPrice + 1, parseInt(bidAmount || '0') - 1)))}
+                          disabled={isTimerExpired || parseInt(bidAmount || '0') <= auction.currentPrice + 1}
+                          className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          −
+                        </button>
                         <Input
                           type="number"
                           value={bidAmount}
                           onChange={e => setBidAmount(e.target.value)}
                           disabled={isTimerExpired}
-                          className="text-xl text-center bg-surface-300 border-surface-50/30 text-white font-mono"
+                          className="flex-1 text-xl text-center bg-surface-300 border-surface-50/30 text-white font-mono"
                           placeholder="Importo..."
                         />
+                        <button
+                          type="button"
+                          onClick={() => setBidAmount(String(parseInt(bidAmount || '0') + 1))}
+                          disabled={isTimerExpired || parseInt(bidAmount || '0') + 1 > (membership?.currentBudget || 0)}
+                          className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          +
+                        </button>
                         <Button
                           onClick={handlePlaceBid}
                           disabled={isTimerExpired || !membership || membership.currentBudget < (parseInt(bidAmount) || 0)}
@@ -1877,28 +1896,36 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             </div>
 
             {/* Quick Bid Buttons */}
-            <div className="grid grid-cols-5 gap-1.5 mb-2">
-              {[1, 5, 10, 25, 50].map(n => (
-                <button
-                  key={n}
-                  onClick={() => {
-                    setBidAmount(String(auction.currentPrice + n))
-                    handlePlaceBid()
-                  }}
-                  disabled={isTimerExpired || (membership?.currentBudget || 0) < auction.currentPrice + n}
-                  className={`py-2 rounded-lg text-sm font-bold transition-all ${
-                    isTimerExpired || (membership?.currentBudget || 0) < auction.currentPrice + n
-                      ? 'bg-surface-400/50 text-gray-600 cursor-not-allowed'
-                      : 'bg-primary-500/20 text-primary-400 border border-primary-500/30 active:scale-95'
-                  }`}
-                >
-                  +{n}
-                </button>
-              ))}
+            <div className="grid grid-cols-4 gap-1.5 mb-2">
+              {[2, 5, 10, 20].map(n => {
+                const newBid = parseInt(bidAmount || '0') + n
+                return (
+                  <button
+                    key={n}
+                    onClick={() => setBidAmount(String(newBid))}
+                    disabled={isTimerExpired || (membership?.currentBudget || 0) < newBid}
+                    className={`py-2 rounded-lg text-sm font-bold transition-all ${
+                      isTimerExpired || (membership?.currentBudget || 0) < newBid
+                        ? 'bg-surface-400/50 text-gray-600 cursor-not-allowed'
+                        : 'bg-primary-500/20 text-primary-400 border border-primary-500/30 active:scale-95'
+                    }`}
+                  >
+                    +{n}
+                  </button>
+                )
+              })}
             </div>
 
-            {/* Custom Bid Input */}
+            {/* Custom Bid Input with +/- */}
             <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setBidAmount(String(Math.max(auction.currentPrice + 1, parseInt(bidAmount || '0') - 1)))}
+                disabled={isTimerExpired || parseInt(bidAmount || '0') <= auction.currentPrice + 1}
+                className="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                −
+              </button>
               <input
                 type="number"
                 value={bidAmount}
@@ -1907,6 +1934,14 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 className="flex-1 bg-surface-300 border border-surface-50/30 rounded-lg px-3 py-2 text-white text-center font-mono"
                 placeholder="Importo..."
               />
+              <button
+                type="button"
+                onClick={() => setBidAmount(String(parseInt(bidAmount || '0') + 1))}
+                disabled={isTimerExpired || parseInt(bidAmount || '0') + 1 > (membership?.currentBudget || 0)}
+                className="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                +
+              </button>
               <button
                 onClick={handlePlaceBid}
                 disabled={isTimerExpired || !membership || membership.currentBudget < (parseInt(bidAmount) || 0)}

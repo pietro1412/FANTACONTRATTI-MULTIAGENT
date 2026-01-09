@@ -11,6 +11,8 @@ import {
   getConsolidationStatus,
   consolidateContracts,
   getAllConsolidationStatus,
+  saveDrafts,
+  simulateAllConsolidation,
 } from '../../services/contract.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -198,11 +200,46 @@ router.get('/leagues/:leagueId/contracts/consolidation', authMiddleware, async (
   }
 })
 
-// POST /api/leagues/:leagueId/contracts/consolidate - Consolidate contracts
+// POST /api/leagues/:leagueId/contracts/save-drafts - Save draft renewals, new contracts, and releases
+router.post('/leagues/:leagueId/contracts/save-drafts', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const { renewals, newContracts, releases } = req.body as {
+      renewals?: { contractId: string; salary: number; duration: number }[]
+      newContracts?: { rosterId: string; salary: number; duration: number }[]
+      releases?: string[]  // Contract IDs to mark for release
+    }
+
+    const result = await saveDrafts(
+      leagueId,
+      req.user!.userId,
+      renewals || [],
+      newContracts || [],
+      releases || []
+    )
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Save drafts error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/leagues/:leagueId/contracts/consolidate - Consolidate contracts with optional renewals/new contracts
 router.post('/leagues/:leagueId/contracts/consolidate', authMiddleware, async (req: Request, res: Response) => {
   try {
     const leagueId = req.params.leagueId as string
-    const result = await consolidateContracts(leagueId, req.user!.userId)
+    const { renewals, newContracts } = req.body as {
+      renewals?: { contractId: string; salary: number; duration: number }[]
+      newContracts?: { rosterId: string; salary: number; duration: number }[]
+    }
+
+    const result = await consolidateContracts(leagueId, req.user!.userId, renewals, newContracts)
 
     if (!result.success) {
       res.status(400).json(result)
@@ -230,6 +267,24 @@ router.get('/leagues/:leagueId/contracts/consolidation-all', authMiddleware, asy
     res.json(result)
   } catch (error) {
     console.error('Get all consolidation status error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/leagues/:leagueId/contracts/simulate-consolidation - Simulate all managers consolidated (admin test only)
+router.post('/leagues/:leagueId/contracts/simulate-consolidation', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await simulateAllConsolidation(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Solo gli admin possono simulare il consolidamento' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Simulate consolidation error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

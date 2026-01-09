@@ -129,6 +129,7 @@ model LeagueMember {
   // Relazioni
   roster      PlayerRoster[]
   contracts   PlayerContract[]
+  draftContracts DraftContract[]
   wonAuctions Auction[]        @relation("AuctionWinner")
   bids        AuctionBid[]
   movementsFrom PlayerMovement[] @relation("MovementFrom")
@@ -219,6 +220,7 @@ model PlayerRoster {
 
   // Relazioni
   contract        PlayerContract?
+  draftContract   DraftContract?
 
   @@unique([leagueMemberId, playerId, status])
 }
@@ -255,11 +257,36 @@ model PlayerContract {
   // Calcolato
   rescissionClause Int     // salary * multiplier
 
+  // Bozza rinnovo (staging area)
+  draftSalary     Int?     // Nuovo ingaggio proposto
+  draftDuration   Int?     // Nuova durata proposta
+  draftReleased   Boolean  @default(false)  // Marcato per taglio (pending)
+
   signedAt        DateTime @default(now())
   expiresAt       DateTime?
 
   // Storico rinnovi
   renewalHistory  Json?    // [{salary, duration, renewedAt}]
+}
+
+// Bozza per nuovi contratti (giocatori senza contratto)
+model DraftContract {
+  id              String   @id @default(cuid())
+
+  rosterId        String   @unique
+  roster          PlayerRoster @relation(fields: [rosterId], references: [id])
+
+  memberId        String
+  member          LeagueMember @relation(fields: [memberId], references: [id])
+
+  sessionId       String
+  session         MarketSession @relation(fields: [sessionId], references: [id])
+
+  salary          Int
+  duration        Int
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 // ==================== SESSIONI MERCATO ====================
@@ -289,6 +316,50 @@ model MarketSession {
   // ===== RUBATA =====
   // Ordine rubata per questa sessione (JSON array di leagueMemberId)
   rubataOrder  Json?
+  // Tabellone rubata ordinato (JSON array di {rosterId, memberId, playerId})
+  rubataBoard  Json?
+  // Indice corrente nel tabellone (quale giocatore è in esame)
+  rubataBoardIndex Int?
+  // Timer per offerta iniziale in secondi
+  rubataOfferTimerSeconds Int @default(30)
+  // Timer per asta rubata in secondi
+  rubataAuctionTimerSeconds Int @default(15)
+  // Timestamp quando il timer corrente è iniziato
+  rubataTimerStartedAt DateTime?
+  // Stato rubata: WAITING (aspetta admin), READY_CHECK, OFFERING (timer offerta), AUCTION_READY_CHECK (attesa pronti pre-asta), AUCTION (asta attiva), PENDING_ACK, PAUSED, COMPLETED
+  rubataState String?
+  // Manager pronti per iniziare/riprendere rubata (JSON array di leagueMemberId)
+  rubataReadyMembers Json?
+  // Info per annuncio rubata durante AUCTION_READY_CHECK (JSON: {bidderUsername, playerName, playerTeam, playerPosition, ownerUsername, basePrice})
+  rubataAuctionReadyInfo Json?
+  // Pending acknowledgment dopo chiusura asta rubata (JSON: {auctionId, playerId, winnerId, price, acknowledgedMembers[], pendingMembers[]})
+  rubataPendingAck Json?
+
+  // ===== ASTA SVINCOLATI =====
+  // Ordine turni svincolati (JSON array di leagueMemberId)
+  svincolatiTurnOrder     Json?
+  // Indice del turno corrente
+  svincolatiCurrentTurnIndex Int?
+  // Timer asta svincolati in secondi
+  svincolatiTimerSeconds  Int @default(30)
+  // Timestamp quando il timer corrente è iniziato
+  svincolatiTimerStartedAt DateTime?
+  // Stato svincolati: SETUP, READY_CHECK, NOMINATION, AUCTION, PENDING_ACK, COMPLETED
+  svincolatiState         String?
+  // Manager pronti per la prossima asta (JSON array di leagueMemberId)
+  svincolatiReadyMembers  Json?
+  // Manager che hanno passato (non vogliono più chiamare) (JSON array di leagueMemberId)
+  svincolatiPassedMembers Json?
+  // Manager che hanno dichiarato di aver finito la fase (non possono più fare offerte) (JSON array di leagueMemberId)
+  svincolatiFinishedMembers Json?
+  // Giocatore svincolato nominato in attesa (playerId)
+  svincolatiPendingPlayerId String?
+  // Chi ha nominato il giocatore pending
+  svincolatiPendingNominatorId String?
+  // Se il nominatore ha confermato
+  svincolatiNominatorConfirmed Boolean @default(false)
+  // Pending acknowledgment dopo chiusura asta (JSON: {auctionId, playerId, winnerId, price, acknowledgedMembers[], pendingMembers[]})
+  svincolatiPendingAck    Json?
 
   // ===== READY CHECK =====
   // Manager pronti per la prossima asta (JSON array di leagueMemberId)
@@ -305,6 +376,9 @@ model MarketSession {
   startsAt    DateTime?
   endsAt      DateTime?
 
+  // Timestamp inizio fase corrente (aggiornato ad ogni cambio fase)
+  phaseStartedAt DateTime?
+
   createdAt   DateTime @default(now())
 
   // Relazioni
@@ -312,7 +386,13 @@ model MarketSession {
   trades      TradeOffer[]
   movements   PlayerMovement[]
   consolidations ContractConsolidation[]
+  draftContracts DraftContract[]
   chatMessages ChatMessage[]
+
+  // Indice per velocizzare ricerca sessioni attive per lega
+  @@index([leagueId, status])
+  // Indice per verificare esistenza PRIMO_MERCATO
+  @@index([leagueId, type])
 }
 
 // ==================== CONSOLIDAMENTO CONTRATTI ====================
@@ -368,7 +448,7 @@ enum MarketPhase {
   OFFERTE_PRE_RINNOVO            // Prima fase MERCATO_RICORRENTE - scambi/offerte pre rinnovo
   CONTRATTI                      // Rinnovo contratti
   RUBATA                         // Asta forzata
-  SVINCOLATI                     // Svincolati
+  ASTA_SVINCOLATI                // Asta svincolati (solo MERCATO_RICORRENTE)
   OFFERTE_POST_ASTA_SVINCOLATI   // Fase finale - scambi/offerte post svincolati
 }
 

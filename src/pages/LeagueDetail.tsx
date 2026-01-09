@@ -36,6 +36,18 @@ interface Session {
   status: string
   currentPhase: string
   createdAt: string
+  startsAt: string | null
+  phaseStartedAt: string | null
+}
+
+// Mapping fasi a nomi user-friendly
+const PHASE_LABELS: Record<string, string> = {
+  ASTA_LIBERA: 'Asta Primo Mercato',
+  OFFERTE_PRE_RINNOVO: 'Scambi e Offerte',
+  CONTRATTI: 'Rinnovo Contratti',
+  RUBATA: 'Rubata',
+  ASTA_SVINCOLATI: 'Asta Svincolati',
+  OFFERTE_POST_ASTA_SVINCOLATI: 'Scambi Finali',
 }
 
 const POSITION_COLORS: Record<string, { bg: string; text: string }> = {
@@ -113,13 +125,6 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
     setIsCreatingSession(false)
   }
 
-  async function handleCloseSession(sessionId: string) {
-    const result = await auctionApi.closeSession(sessionId)
-    if (result.success) {
-      loadSessions()
-    }
-  }
-
   async function handleLeaveLeague() {
     if (!confirm('Sei sicuro di voler abbandonare questa lega?')) return
 
@@ -135,6 +140,10 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
 
   function getActiveSession() {
     return sessions.find(s => s.status === 'ACTIVE')
+  }
+
+  function isFirstMarketCompleted() {
+    return sessions.some(s => s.type === 'PRIMO_MERCATO' && s.status === 'COMPLETED')
   }
 
   // Show loading while checking superadmin status
@@ -208,15 +217,55 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           </div>
         )}
 
+        {/* Waiting for Market Banner - shown when league is ACTIVE but no session */}
+        {!activeSession && league.status === 'ACTIVE' && (() => {
+          const firstMarketDone = isFirstMarketCompleted()
+          return (
+            <div className="bg-gradient-to-r from-primary-600/20 to-primary-500/10 border-2 border-primary-500/40 rounded-2xl p-6 mb-8 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-primary-500/20 flex items-center justify-center">
+                  <span className="text-3xl">{firstMarketDone ? '🔄' : '⏳'}</span>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-primary-400">
+                    {firstMarketDone ? 'In Attesa del Mercato Ricorrente' : 'In Attesa del Primo Mercato'}
+                  </h2>
+                  <p className="text-gray-300">
+                    {isAdmin
+                      ? firstMarketDone
+                        ? 'Avvia la sessione per iniziare il mercato ricorrente (Scambi, Rinnovi, Rubata, Svincolati).'
+                        : 'Avvia la sessione d\'asta per iniziare il primo mercato.'
+                      : firstMarketDone
+                        ? 'In attesa che l\'admin avvii il mercato ricorrente.'
+                        : 'In attesa che l\'admin avvii la sessione d\'asta.'}
+                  </p>
+                </div>
+              </div>
+              {isAdmin && (
+                <Button size="lg" onClick={handleOpenAuctionClick}>
+                  {firstMarketDone ? 'Avvia Mercato Ricorrente' : 'Avvia Primo Mercato'}
+                </Button>
+              )}
+            </div>
+          )
+        })()}
+
         {/* Active Session Banner */}
         {activeSession && (() => {
+          const isFirstMarket = activeSession.type === 'PRIMO_MERCATO'
           const phaseConfig: Record<string, { icon: string; title: string; description: string; buttonText: string; color: string }> = {
-            ASTA_LIBERA: { icon: '🔨', title: 'Asta in Corso', description: "L'asta è in corso, entra subito!", buttonText: "Entra nell'Asta", color: 'secondary' },
-            OFFERTE_PRE_RINNOVO: { icon: '🔄', title: 'Offerte Pre Rinnovo', description: 'Proponi e accetta scambi con altri DG prima del rinnovo contratti', buttonText: 'Vai agli Scambi', color: 'primary' },
-            CONTRATTI: { icon: '📝', title: 'Rinnovo Contratti', description: 'Rinnova i contratti dei tuoi giocatori', buttonText: 'Gestisci Contratti', color: 'accent' },
-            RUBATA: { icon: '🎯', title: 'Fase Rubata', description: 'Prova a rubare giocatori dagli altri DG', buttonText: 'Vai alla Rubata', color: 'warning' },
-            SVINCOLATI: { icon: '📋', title: 'Mercato Svincolati', description: 'Acquista giocatori svincolati', buttonText: 'Vai agli Svincolati', color: 'success' },
-            OFFERTE_POST_ASTA_SVINCOLATI: { icon: '🔄', title: 'Offerte Post Svincolati', description: 'Ultima finestra per proporre scambi', buttonText: 'Vai agli Scambi', color: 'primary' },
+            ASTA_LIBERA: {
+              icon: '🔨',
+              title: isFirstMarket ? 'Asta Primo Mercato' : 'Asta Libera',
+              description: isFirstMarket ? 'Costruisci la tua rosa! Entra in asta e acquista i tuoi giocatori.' : "L'asta è in corso, entra subito!",
+              buttonText: isFirstMarket ? 'Entra in Asta Primo Mercato' : "Entra nell'Asta",
+              color: 'secondary'
+            },
+            OFFERTE_PRE_RINNOVO: { icon: '🔄', title: 'Fase Scambi Pre-Rinnovo', description: 'Proponi scambi e offerte agli altri DG prima di rinnovare i contratti.', buttonText: 'Effettua Scambi', color: 'primary' },
+            CONTRATTI: { icon: '📝', title: 'Rinnovo Contratti', description: 'È il momento di rinnovare i contratti dei tuoi giocatori in scadenza.', buttonText: 'Rinnova Contratti', color: 'accent' },
+            RUBATA: { icon: '🎯', title: 'Fase Rubata', description: 'Prova a strappare giocatori dalle rose avversarie!', buttonText: 'Partecipa alla Rubata', color: 'warning' },
+            ASTA_SVINCOLATI: { icon: '📋', title: 'Asta Svincolati', description: 'Acquista giocatori senza contratto per completare la tua rosa.', buttonText: 'Partecipa all\'Asta Svincolati', color: 'success' },
+            OFFERTE_POST_ASTA_SVINCOLATI: { icon: '🔄', title: 'Fase Scambi Finale', description: 'Ultima opportunità per proporre scambi prima della chiusura del mercato.', buttonText: 'Effettua Scambi Finali', color: 'primary' },
           }
           const phase = activeSession.currentPhase || 'ASTA_LIBERA'
           const defaultConfig = { icon: '🔨', title: 'Sessione Attiva', description: 'Sessione di mercato in corso', buttonText: 'Entra', color: 'secondary' }
@@ -237,7 +286,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
               case 'ASTA_LIBERA': return () => onNavigate('auction', { sessionId: activeSession.id, leagueId })
               case 'OFFERTE_PRE_RINNOVO':
               case 'OFFERTE_POST_ASTA_SVINCOLATI': return () => onNavigate('trades', { leagueId })
-              case 'SVINCOLATI': return () => onNavigate('svincolati', { leagueId })
+              case 'ASTA_SVINCOLATI': return () => onNavigate('svincolati', { leagueId })
               case 'RUBATA': return () => onNavigate('rubata', { leagueId })
               case 'CONTRATTI': return () => onNavigate('contracts', { leagueId })
               default: return () => onNavigate('auction', { sessionId: activeSession.id, leagueId })
@@ -255,24 +304,13 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
                   <p className="text-gray-300">{config.description}</p>
                 </div>
               </div>
-              <div className="flex gap-3">
-                <Button
-                  size="lg"
-                  variant={config.color === 'secondary' ? 'secondary' : 'primary'}
-                  onClick={getNavTarget()}
-                >
-                  {config.buttonText}
-                </Button>
-                {isAdmin && (
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    onClick={() => handleCloseSession(activeSession.id)}
-                  >
-                    Chiudi Sessione
-                  </Button>
-                )}
-              </div>
+              <Button
+                size="lg"
+                variant={config.color === 'secondary' ? 'secondary' : 'primary'}
+                onClick={getNavTarget()}
+              >
+                {config.buttonText}
+              </Button>
             </div>
           )
         })()}
@@ -403,23 +441,17 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
             </div>
           </div>
 
-          {/* Auction Sessions */}
+          {/* STATO */}
           <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
             <div className="p-5 border-b border-surface-50/20 flex items-center gap-3">
-              <span className="text-xl">🔨</span>
-              <h3 className="text-xl font-bold text-white">Sessioni d'Asta</h3>
+              <span className="text-xl">📊</span>
+              <h3 className="text-xl font-bold text-white">STATO</h3>
             </div>
             <div className="p-5">
-              {isAdmin && !activeSession && league.status === 'ACTIVE' && (
-                <Button size="lg" onClick={handleOpenAuctionClick} className="w-full mb-5">
-                  Apri Sessione d'Asta
-                </Button>
-              )}
-
               {league.status === 'DRAFT' && (
-                <div className="mb-5 p-4 bg-primary-500/10 border border-primary-500/30 rounded-xl text-center">
-                  <p className="text-primary-400 font-semibold text-base">Fase: Creazione Lega</p>
-                  <p className="text-sm text-gray-400 mt-2">
+                <div className="p-4 bg-primary-500/10 border border-primary-500/30 rounded-xl">
+                  <p className="text-primary-400 font-semibold text-base mb-1">Creazione Lega</p>
+                  <p className="text-sm text-gray-400">
                     {isAdmin
                       ? 'Passa al Primo Mercato dal Pannello Admin per avviare le aste'
                       : 'In attesa che l\'admin passi al Primo Mercato'}
@@ -427,31 +459,89 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
                 </div>
               )}
 
-              {sessions.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="text-4xl mb-3 opacity-50">📭</div>
-                  <p className="text-gray-500">Nessuna sessione d'asta</p>
+              {league.status === 'ACTIVE' && !activeSession && (
+                <div className="space-y-4">
+                  <div className="p-4 bg-surface-300 rounded-xl">
+                    <p className="text-gray-400 font-medium mb-1">Nessuna sessione attiva</p>
+                    <p className="text-sm text-gray-500">
+                      {sessions.some(s => s.type === 'PRIMO_MERCATO' && s.status === 'COMPLETED')
+                        ? 'In attesa del prossimo Mercato Ricorrente'
+                        : 'In attesa del Primo Mercato'}
+                    </p>
+                  </div>
+                  {isAdmin && (
+                    <Button size="lg" onClick={handleOpenAuctionClick} className="w-full">
+                      {sessions.some(s => s.type === 'PRIMO_MERCATO' && s.status === 'COMPLETED')
+                        ? 'Avvia Mercato Ricorrente'
+                        : 'Avvia Primo Mercato'}
+                    </Button>
+                  )}
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {sessions.map(session => (
-                    <div key={session.id} className={`flex justify-between items-center p-4 rounded-lg ${
-                      session.status === 'ACTIVE' ? 'bg-secondary-500/10 border border-secondary-500/30' : 'bg-surface-300'
-                    }`}>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">{session.status === 'ACTIVE' ? '🔥' : '📋'}</span>
-                        <span className="font-medium text-white">
-                          {session.type === 'PRIMO_MERCATO' ? 'Primo Mercato' : 'Mercato'}
-                        </span>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        session.status === 'ACTIVE' ? 'bg-secondary-500/20 text-secondary-400' :
-                        session.status === 'COMPLETED' ? 'bg-gray-500/20 text-gray-400' : 'bg-surface-50/20 text-gray-500'
-                      }`}>
-                        {session.status === 'ACTIVE' ? 'Attiva' : session.status === 'COMPLETED' ? 'Completata' : session.status}
+              )}
+
+              {activeSession && (
+                <div className="space-y-4">
+                  {/* Tipo sessione */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400 text-sm">Sessione</span>
+                    <span className="font-semibold text-white">
+                      {activeSession.type === 'PRIMO_MERCATO' ? 'Primo Mercato' : 'Mercato Ricorrente'}
+                    </span>
+                  </div>
+
+                  {/* Fase corrente */}
+                  <div className="p-4 bg-primary-500/20 border border-primary-500/40 rounded-xl">
+                    <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Fase Corrente</p>
+                    <p className="text-xl font-bold text-primary-400">
+                      {PHASE_LABELS[activeSession.currentPhase] || activeSession.currentPhase}
+                    </p>
+                    {activeSession.phaseStartedAt && (
+                      <p className="text-sm text-gray-400 mt-2">
+                        Iniziata: {new Date(activeSession.phaseStartedAt).toLocaleString('it-IT', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Sessione iniziata */}
+                  {activeSession.startsAt && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Sessione iniziata</span>
+                      <span className="text-gray-400">
+                        {new Date(activeSession.startsAt).toLocaleString('it-IT', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                       </span>
                     </div>
-                  ))}
+                  )}
+                </div>
+              )}
+
+              {/* Storico sessioni completate */}
+              {sessions.filter(s => s.status === 'COMPLETED').length > 0 && (
+                <div className="mt-4 pt-4 border-t border-surface-50/20">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Sessioni Completate</p>
+                  <div className="space-y-2">
+                    {sessions.filter(s => s.status === 'COMPLETED').map(session => (
+                      <div key={session.id} className="flex justify-between items-center text-sm">
+                        <span className="text-gray-400">
+                          {session.type === 'PRIMO_MERCATO' ? 'Primo Mercato' : 'Mercato Ricorrente'}
+                        </span>
+                        <span className="text-gray-500">
+                          {session.startsAt && new Date(session.startsAt).toLocaleDateString('it-IT')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

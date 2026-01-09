@@ -71,6 +71,41 @@ export interface TimerUpdateData {
   timestamp: string;
 }
 
+// ==================== RUBATA TYPES ====================
+
+export interface RubataStealDeclaredData {
+  sessionId: string;
+  bidderId: string;
+  bidderUsername: string;
+  playerId: string;
+  playerName: string;
+  playerTeam: string;
+  playerPosition: string;
+  ownerUsername: string;
+  basePrice: number;
+  timestamp: string;
+}
+
+export interface RubataBidPlacedData {
+  sessionId: string;
+  auctionId: string;
+  bidderId: string;
+  bidderUsername: string;
+  amount: number;
+  playerName: string;
+  timestamp: string;
+}
+
+export interface RubataReadyChangedData {
+  sessionId: string;
+  memberId: string;
+  memberUsername: string;
+  isReady: boolean;
+  readyCount: number;
+  totalMembers: number;
+  timestamp: string;
+}
+
 export interface AuctionEventHandlers {
   onBidPlaced?: (data: BidPlacedData) => void;
   onNominationPending?: (data: NominationPendingData) => void;
@@ -79,6 +114,10 @@ export interface AuctionEventHandlers {
   onAuctionStarted?: (data: AuctionStartedData) => void;
   onAuctionClosed?: (data: AuctionClosedData) => void;
   onTimerUpdate?: (data: TimerUpdateData) => void;
+  // Rubata events
+  onRubataStealDeclared?: (data: RubataStealDeclaredData) => void;
+  onRubataBidPlaced?: (data: RubataBidPlacedData) => void;
+  onRubataReadyChanged?: (data: RubataReadyChangedData) => void;
 }
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'failed' | 'unavailable';
@@ -157,6 +196,19 @@ export function subscribeToAuction(
     channel.bind('timer-update', handlers.onTimerUpdate);
   }
 
+  // Rubata events
+  if (handlers.onRubataStealDeclared) {
+    channel.bind('rubata-steal-declared', handlers.onRubataStealDeclared);
+  }
+
+  if (handlers.onRubataBidPlaced) {
+    channel.bind('rubata-bid-placed', handlers.onRubataBidPlaced);
+  }
+
+  if (handlers.onRubataReadyChanged) {
+    channel.bind('rubata-ready-changed', handlers.onRubataReadyChanged);
+  }
+
   return channel;
 }
 
@@ -214,6 +266,16 @@ export function unbindAuctionHandlers(
     if (handlers.onTimerUpdate) {
       channel.unbind('timer-update', handlers.onTimerUpdate);
     }
+    // Rubata events
+    if (handlers.onRubataStealDeclared) {
+      channel.unbind('rubata-steal-declared', handlers.onRubataStealDeclared);
+    }
+    if (handlers.onRubataBidPlaced) {
+      channel.unbind('rubata-bid-placed', handlers.onRubataBidPlaced);
+    }
+    if (handlers.onRubataReadyChanged) {
+      channel.unbind('rubata-ready-changed', handlers.onRubataReadyChanged);
+    }
   }
 }
 
@@ -227,6 +289,10 @@ export interface UsePusherAuctionOptions {
   onAuctionStarted?: (data: AuctionStartedData) => void;
   onAuctionClosed?: (data: AuctionClosedData) => void;
   onTimerUpdate?: (data: TimerUpdateData) => void;
+  // Rubata events
+  onRubataStealDeclared?: (data: RubataStealDeclaredData) => void;
+  onRubataBidPlaced?: (data: RubataBidPlacedData) => void;
+  onRubataReadyChanged?: (data: RubataReadyChangedData) => void;
 }
 
 export interface UsePusherAuctionResult {
@@ -287,6 +353,10 @@ export function usePusherAuction(
       onAuctionStarted: (data) => handlersRef.current.onAuctionStarted?.(data),
       onAuctionClosed: (data) => handlersRef.current.onAuctionClosed?.(data),
       onTimerUpdate: (data) => handlersRef.current.onTimerUpdate?.(data),
+      // Rubata events
+      onRubataStealDeclared: (data) => handlersRef.current.onRubataStealDeclared?.(data),
+      onRubataBidPlaced: (data) => handlersRef.current.onRubataBidPlaced?.(data),
+      onRubataReadyChanged: (data) => handlersRef.current.onRubataReadyChanged?.(data),
     };
 
     const subscribedChannel = subscribeToAuction(sessionId, handlers);

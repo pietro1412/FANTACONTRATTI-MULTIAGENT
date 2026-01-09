@@ -16,7 +16,7 @@ async function isInSvincolatiPhase(leagueId: string): Promise<boolean> {
     where: {
       leagueId,
       status: 'ACTIVE',
-      currentPhase: 'SVINCOLATI',
+      currentPhase: 'ASTA_SVINCOLATI',
     },
   })
   return !!activeSession
@@ -140,10 +140,10 @@ export async function startFreeAgentAuction(
     return { success: false, message: 'Non autorizzato' }
   }
 
-  // Check if in SVINCOLATI phase
+  // Check if in ASTA_SVINCOLATI phase
   const inSvincolatiPhase = await isInSvincolatiPhase(leagueId)
   if (!inSvincolatiPhase) {
-    return { success: false, message: 'Puoi avviare aste per svincolati solo in fase SVINCOLATI' }
+    return { success: false, message: 'Puoi avviare aste per svincolati solo in fase ASTA_SVINCOLATI' }
   }
 
   // Get player
@@ -247,6 +247,7 @@ export async function bidOnFreeAgent(
         orderBy: { amount: 'desc' },
         take: 1,
       },
+      marketSession: true,
     },
   })
 
@@ -275,6 +276,14 @@ export async function bidOnFreeAgent(
     return { success: false, message: 'Non sei membro di questa lega' }
   }
 
+  // Check if member has declared finished (can't bid anymore)
+  if (auction.marketSession) {
+    const finishedMembers = (auction.marketSession.svincolatiFinishedMembers as string[] | null) || []
+    if (finishedMembers.includes(bidder.id)) {
+      return { success: false, message: 'Hai dichiarato di aver finito questa fase. Non puoi più fare offerte.' }
+    }
+  }
+
   // Check bid amount
   if (amount <= auction.currentPrice) {
     return { success: false, message: `L'offerta deve essere maggiore di ${auction.currentPrice}` }
@@ -285,37 +294,47 @@ export async function bidOnFreeAgent(
     return { success: false, message: `Budget insufficiente. Disponibile: ${bidder.currentBudget}` }
   }
 
-  // Check roster slot availability
-  const position = auction.player.position
-  const league = await prisma.league.findUnique({
-    where: { id: auction.leagueId },
-  })
+  // Check if this is a turn-based svincolati auction (no slot limits)
+  const isTurnBasedSvincolati = auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI' &&
+                                auction.marketSession?.svincolatiState === 'AUCTION'
 
-  if (!league) {
-    return { success: false, message: 'Lega non trovata' }
+  // Only check roster slot availability if NOT in turn-based svincolati phase
+  if (!isTurnBasedSvincolati) {
+    const position = auction.player.position
+    const league = await prisma.league.findUnique({
+      where: { id: auction.leagueId },
+    })
+
+    if (!league) {
+      return { success: false, message: 'Lega non trovata' }
+    }
+
+    const currentRoster = await prisma.playerRoster.findMany({
+      where: {
+        leagueMemberId: bidder.id,
+        status: 'ACTIVE',
+      },
+      include: { player: true },
+    })
+
+    const slotMap: Record<Position, number> = {
+      P: league.goalkeeperSlots,
+      D: league.defenderSlots,
+      C: league.midfielderSlots,
+      A: league.forwardSlots,
+    }
+
+    const currentCount = currentRoster.filter(r => r.player.position === position).length
+    if (currentCount >= slotMap[position]) {
+      return { success: false, message: `Slot ${position} pieni. Non puoi fare offerte per questo ruolo.` }
+    }
   }
 
-  const currentRoster = await prisma.playerRoster.findMany({
-    where: {
-      leagueMemberId: bidder.id,
-      status: 'ACTIVE',
-    },
-    include: { player: true },
-  })
+  // Get timer settings from session
+  const timerSeconds = auction.marketSession?.svincolatiTimerSeconds ?? auction.marketSession?.auctionTimerSeconds ?? 30
+  const newTimerExpires = new Date(Date.now() + timerSeconds * 1000)
 
-  const slotMap: Record<Position, number> = {
-    P: league.goalkeeperSlots,
-    D: league.defenderSlots,
-    C: league.midfielderSlots,
-    A: league.forwardSlots,
-  }
-
-  const currentCount = currentRoster.filter(r => r.player.position === position).length
-  if (currentCount >= slotMap[position]) {
-    return { success: false, message: `Slot ${position} pieni. Non puoi fare offerte per questo ruolo.` }
-  }
-
-  // Place bid
+  // Place bid and reset timer
   await prisma.$transaction(async (tx) => {
     // Mark previous bids as not winning
     await tx.auctionBid.updateMany({
@@ -334,17 +353,25 @@ export async function bidOnFreeAgent(
       },
     })
 
-    // Update auction current price
+    // Update auction current price and RESET TIMER
     await tx.auction.update({
       where: { id: auctionId },
-      data: { currentPrice: amount },
+      data: {
+        currentPrice: amount,
+        timerExpiresAt: newTimerExpires,
+        timerSeconds,
+      },
     })
   })
 
   return {
     success: true,
     message: `Offerta di ${amount} registrata`,
-    data: { currentPrice: amount },
+    data: {
+      currentPrice: amount,
+      timerExpiresAt: newTimerExpires,
+      timerSeconds,
+    },
   }
 }
 
@@ -520,7 +547,7 @@ export async function getCurrentFreeAgentAuction(
   return {
     success: true,
     data: {
-      isSvincolatiPhase: activeSession.currentPhase === 'SVINCOLATI',
+      isSvincolatiPhase: activeSession.currentPhase === 'ASTA_SVINCOLATI',
       currentPhase: activeSession.currentPhase,
       activeAuction: activeAuction
         ? {
@@ -584,5 +611,1699 @@ export async function getFreeAgentsHistory(
       finalPrice: a.currentPrice,
       closedAt: a.endsAt,
     })),
+  }
+}
+
+// ===========================================================================
+// ==================== NUOVA LOGICA A TURNI SVINCOLATI ======================
+// ===========================================================================
+
+// ==================== SET TURN ORDER ====================
+
+export async function setSvincolatiTurnOrder(
+  leagueId: string,
+  adminUserId: string,
+  memberIds: string[]
+): Promise<ServiceResult> {
+  // Verify admin
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  // Verify phase
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione svincolati attiva' }
+  }
+
+  // Verify all memberIds are valid active members
+  const validMembers = await prisma.leagueMember.findMany({
+    where: {
+      leagueId,
+      id: { in: memberIds },
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (validMembers.length !== memberIds.length) {
+    return { success: false, message: 'Alcuni membri non sono validi' }
+  }
+
+  // Update session with turn order
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: {
+      svincolatiTurnOrder: memberIds,
+      svincolatiCurrentTurnIndex: 0,
+      svincolatiState: 'READY_CHECK',
+      svincolatiReadyMembers: [],
+      svincolatiPassedMembers: [],
+      svincolatiPendingPlayerId: null,
+      svincolatiPendingNominatorId: null,
+      svincolatiNominatorConfirmed: false,
+      svincolatiPendingAck: null,
+    },
+  })
+
+  return {
+    success: true,
+    message: 'Ordine turni impostato',
+    data: { turnOrder: memberIds },
+  }
+}
+
+// ==================== GET SVINCOLATI BOARD STATE ====================
+
+export async function getSvincolatiBoard(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  // Verify membership
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+    include: { user: { select: { username: true } } },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return {
+      success: true,
+      data: {
+        isActive: false,
+        currentPhase: null,
+        state: 'SETUP',
+        isAdmin: member.role === 'ADMIN',
+        myMemberId: member.id,
+        myBudget: member.currentBudget,
+        turnOrder: [],
+        readyMembers: [],
+        passedMembers: [],
+        finishedMembers: [],
+        isFinished: false,
+      },
+    }
+  }
+
+  // Get turn order members with usernames
+  const turnOrder = (activeSession.svincolatiTurnOrder as string[] | null) || []
+  const turnOrderMembers = await prisma.leagueMember.findMany({
+    where: { id: { in: turnOrder } },
+    include: { user: { select: { username: true } } },
+  })
+
+  // Sort by turn order
+  const orderedMembers = turnOrder.map(id => turnOrderMembers.find(m => m.id === id)).filter(Boolean)
+
+  // Get pending player if any
+  let pendingPlayer = null
+  if (activeSession.svincolatiPendingPlayerId) {
+    pendingPlayer = await prisma.serieAPlayer.findUnique({
+      where: { id: activeSession.svincolatiPendingPlayerId },
+    })
+  }
+
+  // Get active auction (in AUCTION or AWAITING_RESUME state)
+  let activeAuction = null
+  let awaitingResumeAuctionId: string | null = null
+  if (activeSession.svincolatiState === 'AUCTION' || activeSession.svincolatiState === 'AWAITING_RESUME') {
+    const auctionStatus = activeSession.svincolatiState === 'AWAITING_RESUME' ? 'AWAITING_RESUME' : 'ACTIVE'
+    const auction = await prisma.auction.findFirst({
+      where: {
+        marketSessionId: activeSession.id,
+        type: 'FREE_BID',
+        status: auctionStatus,
+      },
+      include: {
+        player: true,
+        bids: {
+          orderBy: { amount: 'desc' },
+          take: 10,
+          include: {
+            bidder: {
+              include: { user: { select: { username: true } } },
+            },
+          },
+        },
+      },
+    })
+    if (auction) {
+      // Se siamo in AWAITING_RESUME, salva l'ID per il frontend
+      if (activeSession.svincolatiState === 'AWAITING_RESUME') {
+        awaitingResumeAuctionId = auction.id
+      }
+      activeAuction = {
+        id: auction.id,
+        player: auction.player,
+        basePrice: auction.basePrice,
+        currentPrice: auction.currentPrice,
+        timerExpiresAt: auction.timerExpiresAt,
+        timerSeconds: auction.timerSeconds,
+        nominatorId: auction.nominatorId,
+        bids: auction.bids.map(b => ({
+          amount: b.amount,
+          bidder: b.bidder.user.username,
+          bidderId: b.bidderId,
+          isWinning: b.isWinning,
+        })),
+      }
+    }
+  }
+
+  // Get current turn member
+  const currentTurnIndex = activeSession.svincolatiCurrentTurnIndex ?? 0
+  const currentTurnMemberId = turnOrder[currentTurnIndex] || null
+  const currentTurnMember = orderedMembers.find(m => m?.id === currentTurnMemberId)
+
+  // Get nominator username if pending
+  let nominatorUsername = null
+  if (activeSession.svincolatiPendingNominatorId) {
+    const nominator = turnOrderMembers.find(m => m.id === activeSession.svincolatiPendingNominatorId)
+    nominatorUsername = nominator?.user.username || null
+  }
+
+  // Parse pending ack
+  const pendingAck = activeSession.svincolatiPendingAck as {
+    auctionId: string
+    playerId: string
+    playerName: string
+    winnerId: string | null
+    winnerUsername: string | null
+    price: number
+    noBids: boolean
+    acknowledgedMembers: string[]
+    pendingMembers: string[]
+  } | null
+
+  return {
+    success: true,
+    data: {
+      isActive: true,
+      state: activeSession.svincolatiState || 'SETUP',
+      turnOrder: orderedMembers.map(m => ({
+        id: m!.id,
+        username: m!.user.username,
+        budget: m!.currentBudget,
+        hasPassed: ((activeSession.svincolatiPassedMembers as string[] | null) || []).includes(m!.id),
+      })),
+      currentTurnIndex,
+      currentTurnMemberId,
+      currentTurnUsername: currentTurnMember?.user.username || null,
+      myMemberId: member.id,
+      isMyTurn: currentTurnMemberId === member.id,
+      isAdmin: member.role === 'ADMIN',
+      readyMembers: (activeSession.svincolatiReadyMembers as string[] | null) || [],
+      passedMembers: (activeSession.svincolatiPassedMembers as string[] | null) || [],
+      finishedMembers: (activeSession.svincolatiFinishedMembers as string[] | null) || [],
+      isFinished: ((activeSession.svincolatiFinishedMembers as string[] | null) || []).includes(member.id),
+      pendingPlayer,
+      pendingNominatorId: activeSession.svincolatiPendingNominatorId,
+      nominatorUsername,
+      nominatorConfirmed: activeSession.svincolatiNominatorConfirmed,
+      activeAuction,
+      awaitingResumeAuctionId,
+      timerSeconds: activeSession.svincolatiTimerSeconds,
+      timerStartedAt: activeSession.svincolatiTimerStartedAt,
+      pendingAck,
+      myBudget: member.currentBudget,
+    },
+  }
+}
+
+// ==================== NOMINATE FREE AGENT (BY MANAGER) ====================
+
+export async function nominateFreeAgent(
+  leagueId: string,
+  userId: string,
+  playerId: string
+): Promise<ServiceResult> {
+  // Get member
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Get session
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione svincolati attiva' }
+  }
+
+  // Check state
+  if (activeSession.svincolatiState !== 'READY_CHECK' && activeSession.svincolatiState !== 'NOMINATION') {
+    return { success: false, message: 'Non è il momento di nominare' }
+  }
+
+  // Check it's this member's turn
+  const turnOrder = (activeSession.svincolatiTurnOrder as string[] | null) || []
+  const currentTurnIndex = activeSession.svincolatiCurrentTurnIndex ?? 0
+  const currentTurnMemberId = turnOrder[currentTurnIndex]
+
+  if (currentTurnMemberId !== member.id) {
+    return { success: false, message: 'Non è il tuo turno' }
+  }
+
+  // Verify player is free agent
+  const player = await prisma.serieAPlayer.findUnique({
+    where: { id: playerId },
+  })
+
+  if (!player) {
+    return { success: false, message: 'Giocatore non trovato' }
+  }
+
+  const existingRoster = await prisma.playerRoster.findFirst({
+    where: {
+      playerId,
+      leagueMember: { leagueId },
+      status: 'ACTIVE',
+    },
+  })
+
+  if (existingRoster) {
+    return { success: false, message: 'Questo giocatore è già in una rosa' }
+  }
+
+  // Check budget (must have at least 1)
+  if (member.currentBudget < 1) {
+    return { success: false, message: 'Budget insufficiente' }
+  }
+
+  // Set pending nomination
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: {
+      svincolatiState: 'NOMINATION',
+      svincolatiPendingPlayerId: playerId,
+      svincolatiPendingNominatorId: member.id,
+      svincolatiNominatorConfirmed: false,
+      svincolatiReadyMembers: [],
+    },
+  })
+
+  return {
+    success: true,
+    message: `${player.name} nominato. Conferma la tua scelta.`,
+    data: { player },
+  }
+}
+
+// ==================== CONFIRM NOMINATION ====================
+
+export async function confirmSvincolatiNomination(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione attiva' }
+  }
+
+  // Verify nominator
+  if (activeSession.svincolatiPendingNominatorId !== member.id) {
+    return { success: false, message: 'Non sei il nominatore' }
+  }
+
+  if (activeSession.svincolatiNominatorConfirmed) {
+    return { success: false, message: 'Già confermato' }
+  }
+
+  // Confirm and add nominator to ready
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: {
+      svincolatiNominatorConfirmed: true,
+      svincolatiReadyMembers: [member.id],
+    },
+  })
+
+  return {
+    success: true,
+    message: 'Nominazione confermata. Attendi che gli altri siano pronti.',
+  }
+}
+
+// ==================== CANCEL NOMINATION ====================
+
+export async function cancelSvincolatiNomination(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione attiva' }
+  }
+
+  // Verify nominator (or admin)
+  const isNominator = activeSession.svincolatiPendingNominatorId === member.id
+  const isAdmin = member.role === 'ADMIN'
+
+  if (!isNominator && !isAdmin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (activeSession.svincolatiNominatorConfirmed && !isAdmin) {
+    return { success: false, message: 'Nominazione già confermata' }
+  }
+
+  // Reset to ready check
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: {
+      svincolatiState: 'READY_CHECK',
+      svincolatiPendingPlayerId: null,
+      svincolatiPendingNominatorId: null,
+      svincolatiNominatorConfirmed: false,
+      svincolatiReadyMembers: [],
+    },
+  })
+
+  return {
+    success: true,
+    message: 'Nominazione annullata',
+  }
+}
+
+// ==================== MARK READY ====================
+
+export async function markReadyForSvincolati(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione attiva' }
+  }
+
+  if (activeSession.svincolatiState !== 'NOMINATION') {
+    return { success: false, message: 'Non è il momento di dichiararsi pronti' }
+  }
+
+  if (!activeSession.svincolatiNominatorConfirmed) {
+    return { success: false, message: 'Il nominatore non ha ancora confermato' }
+  }
+
+  const readyMembers = (activeSession.svincolatiReadyMembers as string[] | null) || []
+  if (readyMembers.includes(member.id)) {
+    return { success: false, message: 'Sei già pronto' }
+  }
+
+  const newReadyMembers = [...readyMembers, member.id]
+
+  // Check if all members are ready
+  const turnOrder = (activeSession.svincolatiTurnOrder as string[] | null) || []
+  const allReady = turnOrder.every(id => newReadyMembers.includes(id))
+
+  if (allReady) {
+    // Start auction
+    return await startSvincolatiAuction(activeSession.id, newReadyMembers)
+  }
+
+  // Update ready members
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: { svincolatiReadyMembers: newReadyMembers },
+  })
+
+  return {
+    success: true,
+    message: 'Pronto!',
+    data: { readyCount: newReadyMembers.length, totalCount: turnOrder.length },
+  }
+}
+
+// ==================== START SVINCOLATI AUCTION (INTERNAL) ====================
+
+async function startSvincolatiAuction(
+  sessionId: string,
+  readyMembers: string[]
+): Promise<ServiceResult> {
+  const session = await prisma.marketSession.findUnique({
+    where: { id: sessionId },
+  })
+
+  if (!session || !session.svincolatiPendingPlayerId || !session.svincolatiPendingNominatorId) {
+    return { success: false, message: 'Dati nomination non validi' }
+  }
+
+  const player = await prisma.serieAPlayer.findUnique({
+    where: { id: session.svincolatiPendingPlayerId },
+  })
+
+  if (!player) {
+    return { success: false, message: 'Giocatore non trovato' }
+  }
+
+  // Get nominator info for the initial bid
+  const nominator = await prisma.leagueMember.findUnique({
+    where: { id: session.svincolatiPendingNominatorId },
+  })
+
+  if (!nominator) {
+    return { success: false, message: 'Nominatore non trovato' }
+  }
+
+  const timerSeconds = session.svincolatiTimerSeconds
+  const timerExpires = new Date(Date.now() + timerSeconds * 1000)
+
+  // Create auction with initial bid from nominator
+  const auction = await prisma.$transaction(async (tx) => {
+    // Create the auction
+    const newAuction = await tx.auction.create({
+      data: {
+        leagueId: session.leagueId,
+        marketSessionId: session.id,
+        playerId: player.id,
+        type: 'FREE_BID',
+        basePrice: 1,
+        currentPrice: 1,
+        nominatorId: session.svincolatiPendingNominatorId,
+        timerExpiresAt: timerExpires,
+        timerSeconds,
+        status: AuctionStatus.ACTIVE,
+        startsAt: new Date(),
+      },
+    })
+
+    // Create initial bid from nominator (automatic bid of 1)
+    await tx.auctionBid.create({
+      data: {
+        auctionId: newAuction.id,
+        bidderId: nominator.id,
+        userId: nominator.userId,
+        amount: 1,
+        isWinning: true,
+      },
+    })
+
+    return newAuction
+  })
+
+  // Update session state
+  await prisma.marketSession.update({
+    where: { id: sessionId },
+    data: {
+      svincolatiState: 'AUCTION',
+      svincolatiTimerStartedAt: new Date(),
+      svincolatiReadyMembers: readyMembers,
+    },
+  })
+
+  return {
+    success: true,
+    message: `Asta per ${player.name} iniziata!`,
+    data: { auctionId: auction.id, player },
+  }
+}
+
+// ==================== PASS TURN ====================
+
+export async function passSvincolatiTurn(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione attiva' }
+  }
+
+  if (activeSession.svincolatiState !== 'READY_CHECK') {
+    return { success: false, message: 'Non puoi passare in questo momento' }
+  }
+
+  // Check it's this member's turn
+  const turnOrder = (activeSession.svincolatiTurnOrder as string[] | null) || []
+  const currentTurnIndex = activeSession.svincolatiCurrentTurnIndex ?? 0
+  const currentTurnMemberId = turnOrder[currentTurnIndex]
+
+  if (currentTurnMemberId !== member.id) {
+    return { success: false, message: 'Non è il tuo turno' }
+  }
+
+  // Add to passed members
+  const passedMembers = (activeSession.svincolatiPassedMembers as string[] | null) || []
+  const newPassedMembers = passedMembers.includes(member.id)
+    ? passedMembers
+    : [...passedMembers, member.id]
+
+  // Check if all have passed
+  if (newPassedMembers.length === turnOrder.length) {
+    // All passed - complete svincolati phase
+    await prisma.marketSession.update({
+      where: { id: activeSession.id },
+      data: {
+        svincolatiState: 'COMPLETED',
+        svincolatiPassedMembers: newPassedMembers,
+      },
+    })
+
+    return {
+      success: true,
+      message: 'Tutti i manager hanno passato. Fase svincolati completata!',
+      data: { completed: true },
+    }
+  }
+
+  // Advance to next turn
+  const nextTurnIndex = (currentTurnIndex + 1) % turnOrder.length
+  const nextMemberId = turnOrder[nextTurnIndex]
+
+  // Skip members who have already passed until we find one who hasn't
+  let searchIndex = nextTurnIndex
+  let searchCount = 0
+  while (newPassedMembers.includes(turnOrder[searchIndex]) && searchCount < turnOrder.length) {
+    searchIndex = (searchIndex + 1) % turnOrder.length
+    searchCount++
+  }
+
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: {
+      svincolatiCurrentTurnIndex: searchIndex,
+      svincolatiPassedMembers: newPassedMembers,
+    },
+  })
+
+  const nextMember = await prisma.leagueMember.findUnique({
+    where: { id: turnOrder[searchIndex] },
+    include: { user: { select: { username: true } } },
+  })
+
+  return {
+    success: true,
+    message: `Hai passato. Turno di ${nextMember?.user.username || 'prossimo'}`,
+    data: {
+      nextTurnMemberId: turnOrder[searchIndex],
+      nextTurnUsername: nextMember?.user.username,
+      passedCount: newPassedMembers.length,
+    },
+  }
+}
+
+// ==================== FORCE ALL READY (ADMIN) ====================
+
+export async function forceAllReadyForSvincolati(
+  leagueId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione attiva' }
+  }
+
+  if (activeSession.svincolatiState !== 'NOMINATION') {
+    return { success: false, message: 'Non è il momento di forzare ready' }
+  }
+
+  if (!activeSession.svincolatiNominatorConfirmed) {
+    return { success: false, message: 'Il nominatore non ha ancora confermato' }
+  }
+
+  const turnOrder = (activeSession.svincolatiTurnOrder as string[] | null) || []
+
+  // Start auction with all members ready
+  return await startSvincolatiAuction(activeSession.id, turnOrder)
+}
+
+// ==================== CLOSE SVINCOLATI AUCTION ====================
+
+export async function closeSvincolatiAuction(
+  auctionId: string,
+  adminUserId?: string
+): Promise<ServiceResult> {
+  const auction = await prisma.auction.findUnique({
+    where: { id: auctionId },
+    include: {
+      player: true,
+      bids: {
+        where: { isWinning: true, isCancelled: false },
+        include: {
+          bidder: {
+            include: { user: { select: { username: true } } },
+          },
+        },
+      },
+      marketSession: true,
+    },
+  })
+
+  if (!auction) {
+    return { success: false, message: 'Asta non trovata' }
+  }
+
+  if (auction.status !== 'ACTIVE') {
+    return { success: false, message: 'Asta non attiva' }
+  }
+
+  // Verify admin if userId provided
+  if (adminUserId) {
+    const adminMember = await prisma.leagueMember.findFirst({
+      where: {
+        leagueId: auction.leagueId,
+        userId: adminUserId,
+        role: 'ADMIN',
+        status: MemberStatus.ACTIVE,
+      },
+    })
+
+    if (!adminMember) {
+      return { success: false, message: 'Non autorizzato' }
+    }
+  }
+
+  const winningBid = auction.bids[0]
+  const turnOrder = (auction.marketSession?.svincolatiTurnOrder as string[] | null) || []
+
+  if (!winningBid) {
+    // No bids - player stays free
+    await prisma.$transaction(async (tx) => {
+      await tx.auction.update({
+        where: { id: auctionId },
+        data: {
+          status: AuctionStatus.NO_BIDS,
+          endsAt: new Date(),
+        },
+      })
+
+      // Set pending ack
+      await tx.marketSession.update({
+        where: { id: auction.marketSessionId! },
+        data: {
+          svincolatiState: 'PENDING_ACK',
+          svincolatiPendingAck: {
+            auctionId,
+            playerId: auction.playerId,
+            playerName: auction.player.name,
+            winnerId: null,
+            winnerUsername: null,
+            price: 0,
+            noBids: true,
+            acknowledgedMembers: [],
+            pendingMembers: turnOrder,
+          },
+        },
+      })
+    })
+
+    return {
+      success: true,
+      message: `Nessuna offerta per ${auction.player.name}. Il giocatore rimane svincolato.`,
+      data: { noBids: true },
+    }
+  }
+
+  // Assign player to winner
+  await prisma.$transaction(async (tx) => {
+    // Deduct budget from winner
+    await tx.leagueMember.update({
+      where: { id: winningBid.bidderId },
+      data: { currentBudget: { decrement: auction.currentPrice } },
+    })
+
+    // Create roster entry
+    await tx.playerRoster.create({
+      data: {
+        leagueMemberId: winningBid.bidderId,
+        playerId: auction.playerId,
+        acquisitionPrice: auction.currentPrice,
+        acquisitionType: 'SVINCOLATI',
+        status: 'ACTIVE',
+      },
+    })
+
+    // Complete auction
+    await tx.auction.update({
+      where: { id: auctionId },
+      data: {
+        status: AuctionStatus.COMPLETED,
+        winnerId: winningBid.bidderId,
+        endsAt: new Date(),
+      },
+    })
+
+    // Set pending ack
+    await tx.marketSession.update({
+      where: { id: auction.marketSessionId! },
+      data: {
+        svincolatiState: 'PENDING_ACK',
+        svincolatiPendingAck: {
+          auctionId,
+          playerId: auction.playerId,
+          playerName: auction.player.name,
+          winnerId: winningBid.bidderId,
+          winnerUsername: winningBid.bidder.user.username,
+          price: auction.currentPrice,
+          noBids: false,
+          acknowledgedMembers: [],
+          pendingMembers: turnOrder,
+        },
+      },
+    })
+  })
+
+  // Record movement
+  await recordMovement({
+    leagueId: auction.leagueId,
+    playerId: auction.playerId,
+    movementType: 'SVINCOLATI',
+    toMemberId: winningBid.bidderId,
+    price: auction.currentPrice,
+    auctionId,
+    marketSessionId: auction.marketSessionId ?? undefined,
+  })
+
+  return {
+    success: true,
+    message: `${auction.player.name} assegnato a ${winningBid.bidder.user.username} per ${auction.currentPrice}`,
+    data: {
+      player: auction.player,
+      winnerId: winningBid.bidderId,
+      winnerUsername: winningBid.bidder.user.username,
+      finalPrice: auction.currentPrice,
+    },
+  }
+}
+
+// ==================== ACKNOWLEDGE SVINCOLATI AUCTION ====================
+
+export async function acknowledgeSvincolatiAuction(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione attiva' }
+  }
+
+  if (activeSession.svincolatiState !== 'PENDING_ACK') {
+    return { success: false, message: 'Non ci sono aste da confermare' }
+  }
+
+  const pendingAck = activeSession.svincolatiPendingAck as {
+    auctionId: string
+    playerId: string
+    playerName: string
+    winnerId: string | null
+    winnerUsername: string | null
+    price: number
+    noBids: boolean
+    acknowledgedMembers: string[]
+    pendingMembers: string[]
+  }
+
+  if (!pendingAck) {
+    return { success: false, message: 'Nessun ack pendente' }
+  }
+
+  if (pendingAck.acknowledgedMembers.includes(member.id)) {
+    return { success: false, message: 'Hai già confermato' }
+  }
+
+  const newAcknowledged = [...pendingAck.acknowledgedMembers, member.id]
+  const newPending = pendingAck.pendingMembers.filter(id => id !== member.id)
+
+  // Check if all acknowledged
+  if (newPending.length === 0) {
+    // All acknowledged - advance to next turn
+    return await advanceSvincolatiToNextTurn(activeSession.id)
+  }
+
+  // Update pending ack
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: {
+      svincolatiPendingAck: {
+        ...pendingAck,
+        acknowledgedMembers: newAcknowledged,
+        pendingMembers: newPending,
+      },
+    },
+  })
+
+  return {
+    success: true,
+    message: 'Conferma registrata',
+    data: { acknowledgedCount: newAcknowledged.length, pendingCount: newPending.length },
+  }
+}
+
+// ==================== FORCE ALL ACK (ADMIN) ====================
+
+export async function forceAllSvincolatiAck(
+  leagueId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione attiva' }
+  }
+
+  if (activeSession.svincolatiState !== 'PENDING_ACK') {
+    return { success: false, message: 'Non ci sono aste da confermare' }
+  }
+
+  // Advance to next turn
+  return await advanceSvincolatiToNextTurn(activeSession.id)
+}
+
+// ==================== ADVANCE TO NEXT TURN (INTERNAL) ====================
+
+async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceResult> {
+  const session = await prisma.marketSession.findUnique({
+    where: { id: sessionId },
+  })
+
+  if (!session) {
+    return { success: false, message: 'Sessione non trovata' }
+  }
+
+  const turnOrder = (session.svincolatiTurnOrder as string[] | null) || []
+  const passedMembers = (session.svincolatiPassedMembers as string[] | null) || []
+  const currentTurnIndex = session.svincolatiCurrentTurnIndex ?? 0
+
+  // Reset the pass state for the member who just called (they didn't pass)
+  const previousNominatorId = session.svincolatiPendingNominatorId
+  const newPassedMembers = previousNominatorId
+    ? passedMembers.filter(id => id !== previousNominatorId)
+    : passedMembers
+
+  // Find next member who hasn't passed
+  let nextIndex = (currentTurnIndex + 1) % turnOrder.length
+  let searchCount = 0
+  while (newPassedMembers.includes(turnOrder[nextIndex]) && searchCount < turnOrder.length) {
+    nextIndex = (nextIndex + 1) % turnOrder.length
+    searchCount++
+  }
+
+  // Check if all remaining members have passed
+  const activeMembers = turnOrder.filter(id => !newPassedMembers.includes(id))
+  if (activeMembers.length === 0) {
+    // All passed - complete phase
+    await prisma.marketSession.update({
+      where: { id: sessionId },
+      data: {
+        svincolatiState: 'COMPLETED',
+        svincolatiPendingPlayerId: null,
+        svincolatiPendingNominatorId: null,
+        svincolatiNominatorConfirmed: false,
+        svincolatiPendingAck: null,
+        svincolatiReadyMembers: [],
+      },
+    })
+
+    return {
+      success: true,
+      message: 'Tutti i manager hanno passato. Fase svincolati completata!',
+      data: { completed: true },
+    }
+  }
+
+  // Update to next turn
+  await prisma.marketSession.update({
+    where: { id: sessionId },
+    data: {
+      svincolatiState: 'READY_CHECK',
+      svincolatiCurrentTurnIndex: nextIndex,
+      svincolatiPendingPlayerId: null,
+      svincolatiPendingNominatorId: null,
+      svincolatiNominatorConfirmed: false,
+      svincolatiPendingAck: null,
+      svincolatiReadyMembers: [],
+      svincolatiPassedMembers: newPassedMembers,
+    },
+  })
+
+  const nextMember = await prisma.leagueMember.findUnique({
+    where: { id: turnOrder[nextIndex] },
+    include: { user: { select: { username: true } } },
+  })
+
+  return {
+    success: true,
+    message: `Turno di ${nextMember?.user.username || 'prossimo manager'}`,
+    data: {
+      nextTurnMemberId: turnOrder[nextIndex],
+      nextTurnUsername: nextMember?.user.username,
+    },
+  }
+}
+
+// ==================== SET SVINCOLATI TIMER (ADMIN) ====================
+
+export async function setSvincolatiTimer(
+  leagueId: string,
+  adminUserId: string,
+  timerSeconds: number
+): Promise<ServiceResult> {
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione attiva' }
+  }
+
+  if (timerSeconds < 10 || timerSeconds > 300) {
+    return { success: false, message: 'Timer deve essere tra 10 e 300 secondi' }
+  }
+
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: { svincolatiTimerSeconds: timerSeconds },
+  })
+
+  return {
+    success: true,
+    message: `Timer impostato a ${timerSeconds} secondi`,
+  }
+}
+
+// ==================== COMPLETE SVINCOLATI PHASE (ADMIN) ====================
+
+export async function completeSvincolatiPhase(
+  leagueId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione attiva' }
+  }
+
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: {
+      svincolatiState: 'COMPLETED',
+    },
+  })
+
+  return {
+    success: true,
+    message: 'Fase svincolati completata',
+  }
+}
+
+// ==================== BOT NOMINATE (ADMIN SIMULATION) ====================
+
+export async function botNominateSvincolati(
+  leagueId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  // Verify admin
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione attiva' }
+  }
+
+  if (activeSession.svincolatiState !== 'READY_CHECK') {
+    return { success: false, message: 'Non è il momento di nominare (stato: ' + activeSession.svincolatiState + ')' }
+  }
+
+  // Get current turn member
+  const turnOrder = (activeSession.svincolatiTurnOrder as string[] | null) || []
+  const currentTurnIndex = activeSession.svincolatiCurrentTurnIndex ?? 0
+  const currentTurnMemberId = turnOrder[currentTurnIndex]
+
+  if (!currentTurnMemberId) {
+    return { success: false, message: 'Nessun manager di turno' }
+  }
+
+  const currentMember = await prisma.leagueMember.findUnique({
+    where: { id: currentTurnMemberId },
+    include: { user: { select: { username: true } } },
+  })
+
+  if (!currentMember) {
+    return { success: false, message: 'Manager di turno non trovato' }
+  }
+
+  // Get all players in rosters for this league
+  const rostersInLeague = await prisma.playerRoster.findMany({
+    where: {
+      leagueMember: { leagueId },
+      status: 'ACTIVE',
+    },
+    select: { playerId: true },
+  })
+
+  const assignedPlayerIds = rostersInLeague.map(r => r.playerId)
+
+  // Get a random free agent
+  const freeAgents = await prisma.serieAPlayer.findMany({
+    where: {
+      id: { notIn: assignedPlayerIds },
+      isActive: true,
+      listStatus: 'IN_LIST',
+    },
+    take: 50,
+  })
+
+  if (freeAgents.length === 0) {
+    return { success: false, message: 'Nessun giocatore svincolato disponibile' }
+  }
+
+  // Pick a random player
+  const randomPlayer = freeAgents[Math.floor(Math.random() * freeAgents.length)]
+
+  // Set pending nomination
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: {
+      svincolatiState: 'NOMINATION',
+      svincolatiPendingPlayerId: randomPlayer.id,
+      svincolatiPendingNominatorId: currentTurnMemberId,
+      svincolatiNominatorConfirmed: false,
+      svincolatiReadyMembers: [],
+    },
+  })
+
+  return {
+    success: true,
+    message: `[BOT] ${currentMember.user.username} ha nominato ${randomPlayer.name}`,
+    data: { player: randomPlayer, nominator: currentMember.user.username },
+  }
+}
+
+// ==================== BOT CONFIRM NOMINATION (ADMIN SIMULATION) ====================
+
+export async function botConfirmSvincolatiNomination(
+  leagueId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  // Verify admin
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione attiva' }
+  }
+
+  if (activeSession.svincolatiState !== 'NOMINATION') {
+    return { success: false, message: 'Non c\'è una nominazione da confermare' }
+  }
+
+  if (activeSession.svincolatiNominatorConfirmed) {
+    return { success: false, message: 'Nominazione già confermata' }
+  }
+
+  if (!activeSession.svincolatiPendingNominatorId) {
+    return { success: false, message: 'Nessun nominatore pendente' }
+  }
+
+  const player = activeSession.svincolatiPendingPlayerId
+    ? await prisma.serieAPlayer.findUnique({ where: { id: activeSession.svincolatiPendingPlayerId } })
+    : null
+
+  // Confirm and add nominator to ready
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: {
+      svincolatiNominatorConfirmed: true,
+      svincolatiReadyMembers: [activeSession.svincolatiPendingNominatorId],
+    },
+  })
+
+  return {
+    success: true,
+    message: `[BOT] Nominazione confermata per ${player?.name || 'giocatore'}`,
+    data: { player },
+  }
+}
+
+// ==================== BOT BID SVINCOLATI (ADMIN SIMULATION) ====================
+
+export async function botBidSvincolati(
+  auctionId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  const auction = await prisma.auction.findUnique({
+    where: { id: auctionId },
+    include: {
+      player: true,
+      bids: { orderBy: { amount: 'desc' }, take: 1 },
+    },
+  })
+
+  if (!auction) {
+    return { success: false, message: 'Asta non trovata' }
+  }
+
+  // Verify admin
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: auction.leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (auction.status !== 'ACTIVE') {
+    return { success: false, message: 'Asta non attiva' }
+  }
+
+  // Get active session to find turn order
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId: auction.leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione attiva' }
+  }
+
+  const turnOrder = (activeSession.svincolatiTurnOrder as string[] | null) || []
+
+  // Get all members in turn order
+  const members = await prisma.leagueMember.findMany({
+    where: {
+      id: { in: turnOrder },
+      status: MemberStatus.ACTIVE,
+    },
+    include: { user: { select: { username: true } } },
+  })
+
+  // Find the current winning bidder (to exclude from random selection)
+  const currentWinningBidderId = auction.bids[0]?.bidderId || null
+
+  // Filter out current winner and those without budget
+  const potentialBidders = members.filter(m =>
+    m.id !== currentWinningBidderId &&
+    m.currentBudget > auction.currentPrice
+  )
+
+  if (potentialBidders.length === 0) {
+    return {
+      success: true,
+      message: 'Nessun altro manager può rilanciare',
+      data: { hasBotBid: false },
+    }
+  }
+
+  // Pick a random bidder
+  const randomBidder = potentialBidders[Math.floor(Math.random() * potentialBidders.length)]
+
+  // Calculate bid amount (+1 to +3)
+  const bidIncrement = Math.floor(Math.random() * 3) + 1
+  const newBidAmount = Math.min(auction.currentPrice + bidIncrement, randomBidder.currentBudget)
+
+  if (newBidAmount <= auction.currentPrice) {
+    return {
+      success: true,
+      message: 'Budget insufficiente per rilanciare',
+      data: { hasBotBid: false },
+    }
+  }
+
+  // Get timer settings and calculate new expiration
+  const timerSeconds = activeSession.svincolatiTimerSeconds ?? activeSession.auctionTimerSeconds ?? 30
+  const newTimerExpires = new Date(Date.now() + timerSeconds * 1000)
+
+  // Place the bid and reset timer
+  await prisma.$transaction(async (tx) => {
+    // Mark previous bids as not winning
+    await tx.auctionBid.updateMany({
+      where: { auctionId },
+      data: { isWinning: false },
+    })
+
+    // Create new bid
+    await tx.auctionBid.create({
+      data: {
+        auctionId,
+        bidderId: randomBidder.id,
+        userId: randomBidder.userId,
+        amount: newBidAmount,
+        isWinning: true,
+      },
+    })
+
+    // Update auction current price and RESET TIMER
+    await tx.auction.update({
+      where: { id: auctionId },
+      data: {
+        currentPrice: newBidAmount,
+        timerExpiresAt: newTimerExpires,
+        timerSeconds,
+      },
+    })
+  })
+
+  return {
+    success: true,
+    message: `[BOT] ${randomBidder.user.username} ha offerto ${newBidAmount}`,
+    data: {
+      hasBotBid: true,
+      winningBot: randomBidder.user.username,
+      newCurrentPrice: newBidAmount,
+      timerExpiresAt: newTimerExpires,
+      timerSeconds,
+    },
+  }
+}
+
+// ==================== DECLARE FINISHED (MANAGER) ====================
+
+/**
+ * Manager dichiara di aver finito la fase svincolati.
+ * Non potrà più fare offerte ma potrà continuare a vedere l'asta.
+ */
+export async function declareSvincolatiFinished(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  // Verify membership
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione svincolati attiva' }
+  }
+
+  const finishedMembers = (activeSession.svincolatiFinishedMembers as string[] | null) || []
+
+  if (finishedMembers.includes(member.id)) {
+    return { success: false, message: 'Hai già dichiarato di aver finito' }
+  }
+
+  const newFinishedMembers = [...finishedMembers, member.id]
+
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: {
+      svincolatiFinishedMembers: newFinishedMembers,
+    },
+  })
+
+  // Get total active members to check if all finished
+  const allMembers = await prisma.leagueMember.findMany({
+    where: { leagueId, status: MemberStatus.ACTIVE },
+  })
+
+  const allFinished = newFinishedMembers.length >= allMembers.length
+
+  return {
+    success: true,
+    message: allFinished
+      ? 'Tutti i manager hanno finito! L\'admin può chiudere la fase.'
+      : 'Hai dichiarato di aver finito. Non potrai più fare offerte.',
+    data: {
+      finishedCount: newFinishedMembers.length,
+      totalMembers: allMembers.length,
+      allFinished,
+    },
+  }
+}
+
+// ==================== UNDO DECLARE FINISHED (MANAGER) ====================
+
+/**
+ * Manager annulla la dichiarazione di aver finito.
+ * Può tornare a fare offerte.
+ */
+export async function undoSvincolatiFinished(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  // Verify membership
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione svincolati attiva' }
+  }
+
+  const finishedMembers = (activeSession.svincolatiFinishedMembers as string[] | null) || []
+
+  if (!finishedMembers.includes(member.id)) {
+    return { success: false, message: 'Non hai ancora dichiarato di aver finito' }
+  }
+
+  const newFinishedMembers = finishedMembers.filter(id => id !== member.id)
+
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: {
+      svincolatiFinishedMembers: newFinishedMembers,
+    },
+  })
+
+  return {
+    success: true,
+    message: 'Puoi tornare a fare offerte.',
+  }
+}
+
+// ==================== FORCE ALL FINISHED (ADMIN SIMULATION) ====================
+
+/**
+ * Admin forza tutti i manager come "finito" per testing.
+ */
+export async function forceAllSvincolatiFinished(
+  leagueId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  // Verify admin
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione svincolati attiva' }
+  }
+
+  // Get all active members
+  const allMembers = await prisma.leagueMember.findMany({
+    where: { leagueId, status: MemberStatus.ACTIVE },
+  })
+
+  const allMemberIds = allMembers.map(m => m.id)
+
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: {
+      svincolatiFinishedMembers: allMemberIds,
+    },
+  })
+
+  return {
+    success: true,
+    message: `Tutti i ${allMembers.length} manager sono stati marcati come finiti.`,
+    data: {
+      finishedCount: allMembers.length,
+      totalMembers: allMembers.length,
+      allFinished: true,
+    },
   }
 }

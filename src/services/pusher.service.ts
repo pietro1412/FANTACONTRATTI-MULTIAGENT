@@ -77,6 +77,48 @@ export interface TimerUpdateData {
   timestamp: string
 }
 
+// ==================== RUBATA EVENTS ====================
+
+export interface RubataStealDeclaredData {
+  sessionId: string
+  bidderId: string
+  bidderUsername: string
+  playerId: string
+  playerName: string
+  playerTeam: string
+  playerPosition: string
+  ownerUsername: string
+  basePrice: number
+  timestamp: string
+}
+
+export interface RubataBidPlacedData {
+  sessionId: string
+  auctionId: string
+  bidderId: string
+  bidderUsername: string
+  amount: number
+  playerName: string
+  timestamp: string
+}
+
+export interface RubataStateChangedData {
+  sessionId: string
+  newState: string
+  currentIndex: number
+  timestamp: string
+}
+
+export interface RubataReadyChangedData {
+  sessionId: string
+  memberId: string
+  memberUsername: string
+  isReady: boolean
+  readyCount: number
+  totalMembers: number
+  timestamp: string
+}
+
 // ==================== PUSHER INITIALIZATION ====================
 
 // Initialize Pusher with environment variables
@@ -138,6 +180,16 @@ export const PUSHER_EVENTS = {
   AUCTION_STARTED: 'auction-started',
   AUCTION_CLOSED: 'auction-closed',
   TIMER_UPDATE: 'timer-update',
+  // Rubata events
+  RUBATA_STEAL_DECLARED: 'rubata-steal-declared',
+  RUBATA_BID_PLACED: 'rubata-bid-placed',
+  RUBATA_STATE_CHANGED: 'rubata-state-changed',
+  RUBATA_READY_CHANGED: 'rubata-ready-changed',
+  // Svincolati events
+  SVINCOLATI_STATE_CHANGED: 'svincolati-state-changed',
+  SVINCOLATI_NOMINATION: 'svincolati-nomination',
+  SVINCOLATI_BID_PLACED: 'svincolati-bid-placed',
+  SVINCOLATI_READY_CHANGED: 'svincolati-ready-changed',
 } as const
 
 // ==================== HELPER FUNCTIONS ====================
@@ -254,4 +306,116 @@ export function isPusherReady(): boolean {
  */
 export function getChannelName(sessionId: string): string {
   return getAuctionChannel(sessionId)
+}
+
+// ==================== RUBATA TRIGGER FUNCTIONS ====================
+
+/**
+ * Trigger when someone declares intent to steal (rubata)
+ */
+export async function triggerRubataStealDeclared(
+  sessionId: string,
+  data: RubataStealDeclaredData
+): Promise<boolean> {
+  return triggerEvent(sessionId, PUSHER_EVENTS.RUBATA_STEAL_DECLARED, data)
+}
+
+/**
+ * Trigger when a bid is placed during rubata auction
+ */
+export async function triggerRubataBidPlaced(
+  sessionId: string,
+  data: RubataBidPlacedData
+): Promise<boolean> {
+  return triggerEvent(sessionId, PUSHER_EVENTS.RUBATA_BID_PLACED, data)
+}
+
+/**
+ * Trigger when rubata state changes
+ */
+export async function triggerRubataStateChanged(
+  sessionId: string,
+  data: RubataStateChangedData
+): Promise<boolean> {
+  return triggerEvent(sessionId, PUSHER_EVENTS.RUBATA_STATE_CHANGED, data)
+}
+
+/**
+ * Trigger when a member's ready status changes during rubata
+ */
+export async function triggerRubataReadyChanged(
+  sessionId: string,
+  data: RubataReadyChangedData
+): Promise<boolean> {
+  return triggerEvent(sessionId, PUSHER_EVENTS.RUBATA_READY_CHANGED, data)
+}
+
+// ==================== SVINCOLATI TRIGGER FUNCTIONS ====================
+
+interface SvincolatiStateChangedData {
+  state: string
+  currentTurnMemberId: string | null
+  currentTurnUsername: string | null
+  passedMembers: string[]
+}
+
+interface SvincolatiNominationData {
+  playerId: string
+  playerName: string
+  nominatorId: string
+  nominatorUsername: string
+  confirmed: boolean
+}
+
+interface SvincolatiBidPlacedData {
+  auctionId: string
+  playerId: string
+  bidderId: string
+  bidderUsername: string
+  amount: number
+}
+
+interface SvincolatiReadyChangedData {
+  readyMembers: string[]
+  totalMembers: number
+}
+
+/**
+ * Trigger when svincolati state changes
+ */
+export async function triggerSvincolatiStateChanged(
+  sessionId: string,
+  data: SvincolatiStateChangedData
+): Promise<boolean> {
+  return triggerEvent(sessionId, PUSHER_EVENTS.SVINCOLATI_STATE_CHANGED, data)
+}
+
+/**
+ * Trigger when a player is nominated in svincolati
+ */
+export async function triggerSvincolatiNomination(
+  sessionId: string,
+  data: SvincolatiNominationData
+): Promise<boolean> {
+  return triggerEvent(sessionId, PUSHER_EVENTS.SVINCOLATI_NOMINATION, data)
+}
+
+/**
+ * Trigger when a bid is placed in svincolati auction
+ */
+export async function triggerSvincolatiBidPlaced(
+  sessionId: string,
+  data: SvincolatiBidPlacedData
+): Promise<boolean> {
+  return triggerEvent(sessionId, PUSHER_EVENTS.SVINCOLATI_BID_PLACED, data)
+}
+
+/**
+ * Trigger when ready status changes in svincolati
+ */
+export async function triggerSvincolatiReadyChanged(
+  sessionId: string,
+  data: SvincolatiReadyChangedData
+): Promise<boolean> {
+  return triggerEvent(sessionId, PUSHER_EVENTS.SVINCOLATI_READY_CHANGED, data)
 }

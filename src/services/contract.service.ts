@@ -19,6 +19,7 @@ const DURATION_MULTIPLIERS: Record<number, number> = {
 
 const MAX_DURATION = 4 // Max 4 semestri
 const MIN_SALARY_PERCENTAGE = 0.1 // 10% del prezzo acquisto per acquisti non-PRIMO MERCATO
+const MAX_ROSTER_SIZE = 29 // Massimo giocatori in rosa dopo consolidamento
 
 function getMultiplier(duration: number): number {
   return DURATION_MULTIPLIERS[duration] ?? 4
@@ -26,6 +27,11 @@ function getMultiplier(duration: number): number {
 
 export function calculateRescissionClause(salary: number, duration: number): number {
   return salary * getMultiplier(duration)
+}
+
+// Costo taglio = (ingaggio × durata rimanente) / 2
+export function calculateReleaseCost(salary: number, duration: number): number {
+  return Math.ceil((salary * duration) / 2)
 }
 
 // Verifica se la lega è in fase CONTRATTI
@@ -93,7 +99,7 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
   // Check if in CONTRATTI phase
   const inContrattiPhase = await isInContrattiPhase(leagueId)
 
-  // Get roster with contracts
+  // Get roster with contracts and draft contracts
   const roster = await prisma.playerRoster.findMany({
     where: {
       leagueMemberId: member.id,
@@ -102,6 +108,7 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
     include: {
       player: true,
       contract: true,
+      draftContract: true,
     },
     orderBy: {
       player: {
@@ -114,7 +121,7 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
   const playersWithContract = roster.filter(r => r.contract)
   const playersWithoutContract = roster.filter(r => !r.contract)
 
-  // Add calculated fields for contracts
+  // Add calculated fields for contracts (including draft values)
   const contracts = playersWithContract.map(r => ({
     id: r.contract!.id,
     salary: r.contract!.salary,
@@ -124,6 +131,10 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
     rescissionClause: calculateRescissionClause(r.contract!.salary, r.contract!.duration),
     canRenew: r.contract!.duration < MAX_DURATION,
     canSpalmare: r.contract!.duration === 1,
+    // Draft values (if any saved)
+    draftSalary: r.contract!.draftSalary,
+    draftDuration: r.contract!.draftDuration,
+    draftReleased: r.contract!.draftReleased,  // Marcato per taglio
     roster: {
       id: r.id,
       player: r.player,
@@ -132,7 +143,7 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
     },
   }))
 
-  // Players needing contract setup
+  // Players needing contract setup (include any saved draft values)
   const pendingContracts = playersWithoutContract.map(r => ({
     rosterId: r.id,
     player: r.player,
@@ -141,6 +152,9 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
     minSalary: r.acquisitionType === AcquisitionType.FIRST_MARKET
       ? 1
       : Math.ceil(r.acquisitionPrice * MIN_SALARY_PERCENTAGE),
+    // Draft values (if any saved)
+    draftSalary: r.draftContract?.salary || null,
+    draftDuration: r.draftContract?.duration || null,
   }))
 
   return {
@@ -496,13 +510,13 @@ export async function releasePlayer(
     return { success: false, message: 'Puoi svincolare giocatori solo durante la fase CONTRATTI' }
   }
 
-  // Calculate release cost (rescission clause)
-  const releaseCost = calculateRescissionClause(contract.salary, contract.duration)
+  // Calculate release cost = (ingaggio × durata) / 2
+  const releaseCost = calculateReleaseCost(contract.salary, contract.duration)
 
   // Check budget
   const member = contract.roster.leagueMember
   if (releaseCost > member.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Clausola rescissoria: ${releaseCost}, Budget: ${member.currentBudget}` }
+    return { success: false, message: `Budget insufficiente. Costo taglio: ${releaseCost}, Budget: ${member.currentBudget}` }
   }
 
   const playerName = contract.roster.player.name
@@ -554,7 +568,7 @@ export async function releasePlayer(
 
   return {
     success: true,
-    message: `${playerName} svincolato. Clausola pagata: ${releaseCost}`,
+    message: `${playerName} svincolato. Costo taglio: ${releaseCost}M (${contract.salary}×${contract.duration}/2)`,
     data: {
       releaseCost,
       newBudget: member.currentBudget - releaseCost,
@@ -745,7 +759,9 @@ export async function getConsolidationStatus(
 // Consolidate contracts for the current manager
 export async function consolidateContracts(
   leagueId: string,
-  userId: string
+  userId: string,
+  renewals?: { contractId: string; salary: number; duration: number }[],
+  newContracts?: { rosterId: string; salary: number; duration: number }[]
 ): Promise<ServiceResult> {
   const member = await prisma.leagueMember.findFirst({
     where: {
@@ -772,27 +788,6 @@ export async function consolidateContracts(
     return { success: false, message: 'Non siamo in fase CONTRATTI' }
   }
 
-  // Check if all players have contracts
-  const roster = await prisma.playerRoster.findMany({
-    where: {
-      leagueMemberId: member.id,
-      status: RosterStatus.ACTIVE,
-    },
-    include: {
-      contract: true,
-      player: true,
-    },
-  })
-
-  const playersWithoutContract = roster.filter(r => !r.contract)
-  if (playersWithoutContract.length > 0) {
-    const names = playersWithoutContract.map(r => r.player.name).join(', ')
-    return {
-      success: false,
-      message: `Non puoi consolidare: ${playersWithoutContract.length} giocatori senza contratto (${names})`,
-    }
-  }
-
   // Check if already consolidated
   const existingConsolidation = await prisma.contractConsolidation.findUnique({
     where: {
@@ -807,20 +802,170 @@ export async function consolidateContracts(
     return { success: false, message: 'Hai già consolidato i tuoi contratti' }
   }
 
-  // Create consolidation record
-  const consolidation = await prisma.contractConsolidation.create({
-    data: {
-      sessionId: activeSession.id,
-      memberId: member.id,
-    },
-  })
+  // Process all operations in a transaction
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Process all renewals
+      if (renewals && renewals.length > 0) {
+        for (const renewal of renewals) {
+          const contract = await tx.playerContract.findUnique({
+            where: { id: renewal.contractId },
+            include: { roster: { include: { leagueMember: true } } },
+          })
 
-  return {
-    success: true,
-    message: 'Contratti consolidati con successo',
-    data: {
-      consolidatedAt: consolidation.consolidatedAt,
-    },
+          if (!contract || contract.roster.leagueMember.id !== member.id) {
+            throw new Error(`Contratto ${renewal.contractId} non valido`)
+          }
+
+          // Calculate renewal cost
+          const salaryDiff = renewal.salary - contract.salary
+          const renewalCost = salaryDiff > 0 ? salaryDiff : 0
+
+          // Calculate new rescission clause
+          const multiplier = DURATION_MULTIPLIERS[renewal.duration as keyof typeof DURATION_MULTIPLIERS] || 7
+          const newRescissionClause = renewal.salary * multiplier
+
+          // Update contract
+          await tx.playerContract.update({
+            where: { id: renewal.contractId },
+            data: {
+              salary: renewal.salary,
+              duration: renewal.duration,
+              rescissionClause: newRescissionClause,
+            },
+          })
+
+          // Deduct renewal cost from budget
+          if (renewalCost > 0) {
+            await tx.leagueMember.update({
+              where: { id: member.id },
+              data: { currentBudget: { decrement: renewalCost } },
+            })
+          }
+        }
+      }
+
+      // 2. Process all new contracts
+      if (newContracts && newContracts.length > 0) {
+        for (const nc of newContracts) {
+          const rosterEntry = await tx.playerRoster.findUnique({
+            where: { id: nc.rosterId },
+            include: { leagueMember: true, contract: true },
+          })
+
+          if (!rosterEntry || rosterEntry.leagueMember.id !== member.id) {
+            throw new Error(`Roster entry ${nc.rosterId} non valido`)
+          }
+
+          if (rosterEntry.contract) {
+            throw new Error(`Il giocatore ha già un contratto`)
+          }
+
+          // Calculate rescission clause
+          const multiplier = DURATION_MULTIPLIERS[nc.duration as keyof typeof DURATION_MULTIPLIERS] || 7
+          const rescissionClause = nc.salary * multiplier
+
+          // Create contract
+          await tx.playerContract.create({
+            data: {
+              rosterId: nc.rosterId,
+              salary: nc.salary,
+              duration: nc.duration,
+              initialSalary: nc.salary,
+              initialDuration: nc.duration,
+              rescissionClause,
+            },
+          })
+        }
+      }
+
+      // 3. Process draft releases (players marked for release)
+      const contractsToRelease = await tx.playerContract.findMany({
+        where: {
+          leagueMemberId: member.id,
+          draftReleased: true,
+        },
+        include: {
+          roster: { include: { player: true } },
+        },
+      })
+
+      for (const contract of contractsToRelease) {
+        // Costo taglio = (ingaggio × durata) / 2
+        const releaseCost = calculateReleaseCost(contract.salary, contract.duration)
+
+        // Deduct release cost from budget
+        await tx.leagueMember.update({
+          where: { id: member.id },
+          data: { currentBudget: { decrement: releaseCost } },
+        })
+
+        // Record the movement
+        await recordMovement(tx, {
+          leagueId,
+          sessionId: activeSession.id,
+          playerId: contract.roster.playerId,
+          fromMemberId: member.id,
+          toMemberId: null,
+          type: 'RELEASE',
+          amount: releaseCost,
+        })
+
+        // Delete the contract
+        await tx.playerContract.delete({
+          where: { id: contract.id },
+        })
+
+        // Mark roster entry as released
+        await tx.playerRoster.update({
+          where: { id: contract.rosterId },
+          data: {
+            status: RosterStatus.RELEASED,
+            releasedAt: new Date(),
+          },
+        })
+      }
+
+      // 4. Check if all remaining active players have contracts
+      const roster = await tx.playerRoster.findMany({
+        where: {
+          leagueMemberId: member.id,
+          status: RosterStatus.ACTIVE,
+        },
+        include: { contract: true, player: true },
+      })
+
+      const playersWithoutContract = roster.filter(r => !r.contract)
+      if (playersWithoutContract.length > 0) {
+        const names = playersWithoutContract.map(r => r.player.name).join(', ')
+        throw new Error(`${playersWithoutContract.length} giocatori senza contratto: ${names}`)
+      }
+
+      // 4.5 Check roster size limit (max 29 players)
+      if (roster.length > MAX_ROSTER_SIZE) {
+        const excess = roster.length - MAX_ROSTER_SIZE
+        throw new Error(`Rosa troppo grande: ${roster.length} giocatori. Devi tagliare ${excess} giocator${excess === 1 ? 'e' : 'i'} (max ${MAX_ROSTER_SIZE})`)
+      }
+
+      // 5. Clear all draft values and create consolidation record
+      await tx.contractConsolidation.create({
+        data: {
+          sessionId: activeSession.id,
+          memberId: member.id,
+        },
+      })
+    })
+
+    return {
+      success: true,
+      message: 'Contratti consolidati con successo',
+      data: {
+        consolidatedAt: new Date().toISOString(),
+      },
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Errore nel consolidamento'
+    return { success: false, message }
   }
 }
 
@@ -915,6 +1060,88 @@ export async function getAllConsolidationStatus(
   }
 }
 
+// Simulate all managers consolidated (admin test only)
+export async function simulateAllConsolidation(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  // Verify user is admin
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  if (member.role !== 'ADMIN') {
+    return { success: false, message: 'Solo gli admin possono simulare il consolidamento' }
+  }
+
+  // Get active session in CONTRATTI phase
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'CONTRATTI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Non siamo in fase CONTRATTI' }
+  }
+
+  // Get all active members with players (excluding admin)
+  const allMembers = await prisma.leagueMember.findMany({
+    where: {
+      leagueId,
+      status: MemberStatus.ACTIVE,
+    },
+    include: {
+      roster: { where: { status: RosterStatus.ACTIVE } },
+      user: { select: { username: true } },
+    },
+  })
+
+  const managersWithPlayers = allMembers.filter(m => m.roster.length > 0)
+
+  // Get existing consolidations
+  const existingConsolidations = await prisma.contractConsolidation.findMany({
+    where: { sessionId: activeSession.id },
+  })
+
+  const existingMemberIds = new Set(existingConsolidations.map(c => c.memberId))
+
+  // Create consolidation records for all members who haven't consolidated yet
+  const membersToConsolidate = managersWithPlayers.filter(m => !existingMemberIds.has(m.id))
+
+  if (membersToConsolidate.length === 0) {
+    return { success: true, message: 'Tutti i manager hanno già consolidato' }
+  }
+
+  await prisma.contractConsolidation.createMany({
+    data: membersToConsolidate.map(m => ({
+      sessionId: activeSession.id,
+      memberId: m.id,
+    })),
+  })
+
+  const consolidatedNames = membersToConsolidate.map(m => m.user.username).join(', ')
+
+  return {
+    success: true,
+    message: `Consolidamento simulato per: ${consolidatedNames}`,
+    data: {
+      consolidatedCount: membersToConsolidate.length,
+      consolidatedMembers: membersToConsolidate.map(m => m.user.username),
+    },
+  }
+}
+
 // Check if all managers have consolidated (for phase advancement validation)
 export async function canAdvanceFromContratti(
   sessionId: string
@@ -966,4 +1193,153 @@ export async function canAdvanceFromContratti(
   }
 
   return { canAdvance: true }
+}
+
+// Save draft renewals, new contracts, and releases (staging area)
+export async function saveDrafts(
+  leagueId: string,
+  userId: string,
+  renewals: { contractId: string; salary: number; duration: number }[],
+  newContracts: { rosterId: string; salary: number; duration: number }[],
+  releases: string[] = []  // Contract IDs to mark for release
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Get active session in CONTRATTI phase
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'CONTRATTI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Non siamo in fase CONTRATTI' }
+  }
+
+  // Check if already consolidated
+  const existingConsolidation = await prisma.contractConsolidation.findUnique({
+    where: {
+      sessionId_memberId: {
+        sessionId: activeSession.id,
+        memberId: member.id,
+      },
+    },
+  })
+
+  if (existingConsolidation) {
+    return { success: false, message: 'Hai già consolidato i tuoi contratti' }
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Validate and save draft renewals in batch
+      if (renewals.length > 0) {
+        const contractIds = renewals.map(r => r.contractId)
+        const contracts = await tx.playerContract.findMany({
+          where: {
+            id: { in: contractIds },
+            leagueMemberId: member.id
+          },
+        })
+
+        const validIds = new Set(contracts.map(c => c.id))
+        for (const renewal of renewals) {
+          if (!validIds.has(renewal.contractId)) {
+            throw new Error(`Contratto ${renewal.contractId} non valido`)
+          }
+        }
+
+        // Update each renewal
+        for (const renewal of renewals) {
+          await tx.playerContract.update({
+            where: { id: renewal.contractId },
+            data: {
+              draftSalary: renewal.salary,
+              draftDuration: renewal.duration,
+            },
+          })
+        }
+      }
+
+      // 2. Validate and save draft new contracts in batch
+      if (newContracts.length > 0) {
+        const rosterIds = newContracts.map(nc => nc.rosterId)
+        const rosterEntries = await tx.playerRoster.findMany({
+          where: {
+            id: { in: rosterIds },
+            leagueMemberId: member.id
+          },
+          include: { contract: true },
+        })
+
+        const validRosters = new Map(rosterEntries.map(r => [r.id, r]))
+        for (const nc of newContracts) {
+          const roster = validRosters.get(nc.rosterId)
+          if (!roster) {
+            throw new Error(`Roster entry ${nc.rosterId} non valido`)
+          }
+          if (roster.contract) {
+            throw new Error(`Il giocatore ha già un contratto`)
+          }
+        }
+
+        // Upsert each draft contract
+        for (const nc of newContracts) {
+          await tx.draftContract.upsert({
+            where: { rosterId: nc.rosterId },
+            create: {
+              rosterId: nc.rosterId,
+              memberId: member.id,
+              sessionId: activeSession.id,
+              salary: nc.salary,
+              duration: nc.duration,
+            },
+            update: {
+              salary: nc.salary,
+              duration: nc.duration,
+            },
+          })
+        }
+      }
+
+      // 3. Mark contracts for release using batch updates
+      // Reset all to not released, then mark the ones that should be released
+      await tx.playerContract.updateMany({
+        where: { leagueMemberId: member.id },
+        data: { draftReleased: false },
+      })
+
+      if (releases.length > 0) {
+        await tx.playerContract.updateMany({
+          where: {
+            id: { in: releases },
+            leagueMemberId: member.id
+          },
+          data: { draftReleased: true },
+        })
+      }
+    }, {
+      timeout: 30000, // 30 seconds timeout
+    })
+
+    return {
+      success: true,
+      message: 'Bozze salvate con successo',
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Errore nel salvataggio'
+    return { success: false, message }
+  }
 }
