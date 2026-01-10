@@ -4423,6 +4423,7 @@ export async function simulateAppeal(
 /**
  * [TEST] Completa l'asta riempiendo tutti gli slot roster di tutti i manager
  * con giocatori casuali a prezzi simulati, mantenendo la coerenza del budget.
+ * Ri-legge lo stato dal database per ogni manager per garantire consistenza.
  */
 export async function completeAllRosterSlots(
   sessionId: string,
@@ -4461,62 +4462,53 @@ export async function completeAllRosterSlots(
     C: league.midfielderSlots,
     A: league.forwardSlots,
   }
+  const totalSlotsPerMember = slotConfig.P + slotConfig.D + slotConfig.C + slotConfig.A
 
-  // Get all active members
-  const members = await prisma.leagueMember.findMany({
+  let totalPlayersAdded = 0
+  let totalContractsCreated = 0
+  const results: string[] = []
+
+  // Get all active members (just IDs and basic info)
+  const membersList = await prisma.leagueMember.findMany({
     where: {
       leagueId: session.leagueId,
       status: MemberStatus.ACTIVE,
     },
     include: {
       user: { select: { username: true } },
-      roster: {
-        where: { status: RosterStatus.ACTIVE },
-        include: { player: true },
+    },
+  })
+
+  // Process each member one by one, re-reading state each time
+  for (const memberInfo of membersList) {
+    // Fresh read of member's current state
+    const member = await prisma.leagueMember.findUnique({
+      where: { id: memberInfo.id },
+      include: {
+        user: { select: { username: true } },
       },
-    },
-  })
+    })
 
-  // Get all available players (not yet in any roster for this league)
-  const takenPlayerIds = await prisma.playerRoster.findMany({
-    where: {
-      leagueMember: { leagueId: session.leagueId },
-      status: RosterStatus.ACTIVE,
-    },
-    select: { playerId: true },
-  })
-  const takenIds = new Set(takenPlayerIds.map(p => p.playerId))
+    if (!member) continue
 
-  const availablePlayers = await prisma.serieAPlayer.findMany({
-    where: {
-      isActive: true,
-      id: { notIn: Array.from(takenIds) },
-    },
-    orderBy: { quotation: 'desc' },
-  })
+    // Fresh count of current roster by position using raw query
+    const rosterCounts = await prisma.playerRoster.findMany({
+      where: {
+        leagueMemberId: member.id,
+        status: RosterStatus.ACTIVE,
+      },
+      include: {
+        player: { select: { position: true } },
+      },
+    })
 
-  // Group available players by position
-  const playersByPosition: Record<string, typeof availablePlayers> = {
-    P: availablePlayers.filter(p => p.position === Position.P),
-    D: availablePlayers.filter(p => p.position === Position.D),
-    C: availablePlayers.filter(p => p.position === Position.C),
-    A: availablePlayers.filter(p => p.position === Position.A),
-  }
-
-  let totalPlayersAdded = 0
-  let totalContractsCreated = 0
-  const results: string[] = []
-
-  // Process each member
-  for (const member of members) {
-    // Count current roster by position
     const currentCount: Record<string, number> = { P: 0, D: 0, C: 0, A: 0 }
-    for (const entry of member.roster) {
+    for (const entry of rosterCounts) {
       const pos = entry.player.position
       currentCount[pos] = (currentCount[pos] || 0) + 1
     }
 
-    // Calculate total slots needed for this member
+    // Calculate slots needed
     const slotsNeeded: Record<string, number> = {
       P: Math.max(0, slotConfig.P - currentCount.P),
       D: Math.max(0, slotConfig.D - currentCount.D),
@@ -4526,59 +4518,63 @@ export async function completeAllRosterSlots(
     const totalSlotsNeeded = slotsNeeded.P + slotsNeeded.D + slotsNeeded.C + slotsNeeded.A
 
     if (totalSlotsNeeded === 0) {
-      results.push(`${member.user.username}: rosa già completa`)
+      results.push(`${member.user.username}: rosa già completa (${currentCount.P}P/${currentCount.D}D/${currentCount.C}C/${currentCount.A}A)`)
       continue
     }
 
     let memberBudget = member.currentBudget
     let memberPlayersAdded = 0
-    let slotsFilledSoFar = 0
 
-    // Fill missing slots for each position
+    // Process each position
     for (const position of ['P', 'D', 'C', 'A'] as const) {
       const needed = slotsNeeded[position]
 
       for (let i = 0; i < needed; i++) {
-        // Get available players for this position
-        const posPlayers = playersByPosition[position]
-        if (!posPlayers || posPlayers.length === 0) {
-          results.push(`${member.user.username}: nessun giocatore disponibile per ${position}`)
-          continue
+        // Fresh query for available players for this position (not in any roster in this league)
+        const takenPlayerIds = await prisma.playerRoster.findMany({
+          where: {
+            leagueMember: { leagueId: session.leagueId },
+            status: RosterStatus.ACTIVE,
+          },
+          select: { playerId: true },
+        })
+        const takenIds = new Set(takenPlayerIds.map(p => p.playerId))
+
+        const availablePlayers = await prisma.serieAPlayer.findMany({
+          where: {
+            isActive: true,
+            position: Position[position],
+            id: { notIn: Array.from(takenIds) },
+          },
+          orderBy: { quotation: 'asc' }, // Cheapest first
+        })
+
+        if (availablePlayers.length === 0) {
+          results.push(`${member.user.username}: nessun ${position} disponibile`)
+          break // No more players for this position
         }
 
-        // Calculate how many slots still need to be filled after this one
-        slotsFilledSoFar++
-        const remainingAfterThis = totalSlotsNeeded - slotsFilledSoFar
-
-        // Reserve 1 credit per remaining slot
+        // Calculate remaining slots to fill for budget reservation
+        const filledSoFar = memberPlayersAdded
+        const remainingAfterThis = totalSlotsNeeded - filledSoFar - 1
         const budgetForThisPlayer = Math.max(1, memberBudget - remainingAfterThis)
 
-        // Sort players by quotation (cheapest first)
-        const sortedPlayers = [...posPlayers].sort((a, b) => a.quotation - b.quotation)
+        // Pick a player - prefer affordable ones with some randomness
+        let player = availablePlayers[0] // Default to cheapest
+        let finalPrice = 1
 
-        // Find first player we can reasonably afford, or just take cheapest
-        let player = sortedPlayers[0] // Default to cheapest
-        let finalPrice = Math.min(budgetForThisPlayer, Math.max(1, player.quotation))
-
-        // Try to find a player that fits budget better (with some randomness)
-        const affordablePool = sortedPlayers.filter(p => p.quotation <= budgetForThisPlayer)
+        const affordablePool = availablePlayers.filter(p => p.quotation <= budgetForThisPlayer)
         if (affordablePool.length > 0) {
-          // Pick randomly from affordable players (weighted towards cheaper)
+          // Pick randomly from first 5 cheapest affordable players
           const pickIndex = Math.floor(Math.random() * Math.min(5, affordablePool.length))
           player = affordablePool[pickIndex]
-          // Price = quotation + small random bonus, capped by budget
-          const bonus = Math.floor(Math.random() * Math.min(5, budgetForThisPlayer - player.quotation))
+          // Price = quotation + small random bonus
+          const maxBonus = Math.min(5, budgetForThisPlayer - player.quotation)
+          const bonus = maxBonus > 0 ? Math.floor(Math.random() * maxBonus) : 0
           finalPrice = Math.min(player.quotation + bonus, budgetForThisPlayer)
         }
 
-        // Ensure minimum price of 1
         finalPrice = Math.max(1, finalPrice)
-
-        // Remove player from available pool (find in original array)
-        const playerIndex = posPlayers.findIndex(p => p.id === player.id)
-        if (playerIndex !== -1) {
-          posPlayers.splice(playerIndex, 1)
-        }
 
         // Create roster entry
         const rosterEntry = await prisma.playerRoster.create({
@@ -4591,9 +4587,9 @@ export async function completeAllRosterSlots(
           },
         })
 
-        // Create default contract (10% of acquisition price, minimum 1, 2 semesters)
+        // Create default contract
         const rawSalary = finalPrice * 0.1
-        const salary = Math.max(1, Math.round(rawSalary * 2) / 2) // Round to 0.5, min 1
+        const salary = Math.max(1, Math.round(rawSalary * 2) / 2)
         const duration = 2
         const rescissionClause = Math.round(salary * duration * 2)
 
@@ -4609,7 +4605,6 @@ export async function completeAllRosterSlots(
           },
         })
 
-        // Update member budget
         memberBudget -= finalPrice
         memberPlayersAdded++
         totalPlayersAdded++
@@ -4617,27 +4612,55 @@ export async function completeAllRosterSlots(
       }
     }
 
-    // Update member's budget in database
-    await prisma.leagueMember.update({
-      where: { id: member.id },
-      data: { currentBudget: Math.max(0, memberBudget) },
-    })
-
+    // Update member's budget
     if (memberPlayersAdded > 0) {
-      results.push(`${member.user.username}: +${memberPlayersAdded} giocatori (budget: ${memberBudget})`)
+      await prisma.leagueMember.update({
+        where: { id: member.id },
+        data: { currentBudget: Math.max(0, memberBudget) },
+      })
+      results.push(`${member.user.username}: +${memberPlayersAdded} giocatori (budget rimasto: ${memberBudget})`)
     }
   }
 
-  // NOTE: Non chiudiamo la sessione automaticamente.
-  // L'admin deve chiuderla esplicitamente dal pannello admin.
+  // Final verification - count incomplete rosters
+  const finalCheck = await prisma.leagueMember.findMany({
+    where: {
+      leagueId: session.leagueId,
+      status: MemberStatus.ACTIVE,
+    },
+    include: {
+      user: { select: { username: true } },
+      roster: {
+        where: { status: RosterStatus.ACTIVE },
+        include: { player: { select: { position: true } } },
+      },
+    },
+  })
+
+  const incompleteMembers: string[] = []
+  for (const m of finalCheck) {
+    const count: Record<string, number> = { P: 0, D: 0, C: 0, A: 0 }
+    for (const r of m.roster) {
+      count[r.player.position] = (count[r.player.position] || 0) + 1
+    }
+    const total = count.P + count.D + count.C + count.A
+    if (total < totalSlotsPerMember) {
+      incompleteMembers.push(`${m.user.username}: ${total}/${totalSlotsPerMember} (${count.P}P/${count.D}D/${count.C}C/${count.A}A)`)
+    }
+  }
+
+  const message = incompleteMembers.length > 0
+    ? `Completamento parziale: ${totalPlayersAdded} giocatori aggiunti. Rose incomplete: ${incompleteMembers.join(', ')}`
+    : `Rose completate! ${totalPlayersAdded} giocatori aggiunti, ${totalContractsCreated} contratti creati.`
 
   return {
     success: true,
-    message: `Rose completate! ${totalPlayersAdded} giocatori aggiunti, ${totalContractsCreated} contratti creati. Chiudi la sessione manualmente.`,
+    message,
     data: {
       totalPlayersAdded,
       totalContractsCreated,
       memberResults: results,
+      incompleteMembers,
     },
   }
 }
