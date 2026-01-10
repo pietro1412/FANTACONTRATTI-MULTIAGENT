@@ -1174,6 +1174,28 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           )}
         </div>
 
+        {/* Admin Quick Action: Complete All Rosters */}
+        {isAdmin && sessionId && !auction && !pendingAck && !readyStatus?.hasPendingNomination && (
+          <div className="mb-4 bg-gradient-to-r from-secondary-500/20 to-accent-500/20 border border-secondary-500/50 rounded-xl p-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-center sm:text-left">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2 justify-center sm:justify-start">
+                  <span>🚀</span> Completa Rose Automaticamente
+                </h3>
+                <p className="text-sm text-gray-400 mt-1">
+                  Riempi tutti gli slot mancanti di tutti i Direttori Generali con giocatori casuali
+                </p>
+              </div>
+              <Button
+                onClick={handleCompleteAllSlots}
+                className="btn-secondary px-6 py-3 font-bold text-base whitespace-nowrap shadow-lg hover:shadow-secondary-500/30 transition-all"
+              >
+                ✅ Completa Tutti Slot
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Mobile-first grid layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* LEFT: My Roster - Hidden on mobile during active auction, collapsible */}
