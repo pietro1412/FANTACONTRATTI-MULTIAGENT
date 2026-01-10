@@ -4524,40 +4524,60 @@ export async function completeAllRosterSlots(
       const needed = slotConfig[position] - (currentCount[position] || 0)
 
       for (let i = 0; i < needed; i++) {
-        // Get a random available player for this position
+        // Get available players for this position
         const posPlayers = playersByPosition[position]
         if (!posPlayers || posPlayers.length === 0) continue
 
-        // Pick a random player (weighted towards lower quotation for budget management)
-        const randomIndex = Math.floor(Math.random() * posPlayers.length)
-        const player = posPlayers[randomIndex]
-        if (!player) continue
+        // Calculate remaining slots to fill (for budget reservation)
+        const remainingSlotsAfterThis = (needed - i - 1) +
+          (position !== 'D' ? Math.max(0, slotConfig.D - (currentCount.D || 0)) : 0) +
+          (position !== 'C' ? Math.max(0, slotConfig.C - (currentCount.C || 0)) : 0) +
+          (position !== 'A' ? Math.max(0, slotConfig.A - (currentCount.A || 0)) : 0) +
+          (position !== 'P' ? Math.max(0, slotConfig.P - (currentCount.P || 0)) : 0)
 
-        // Remove from available pool
-        posPlayers.splice(randomIndex, 1)
+        // Reserve 1 credit per remaining slot
+        const minReserve = Math.max(remainingSlotsAfterThis, 0)
+        const maxAffordable = Math.max(1, memberBudget - minReserve)
 
-        // Calculate price: between quotation and quotation + 20% with some randomness
-        const basePrice = player.quotation
-        const maxExtra = Math.floor(basePrice * 0.3)
-        const acquisitionPrice = basePrice + Math.floor(Math.random() * maxExtra)
+        // Sort players by quotation (cheapest first) and find one we can afford
+        const affordablePlayers = posPlayers
+          .filter(p => p.quotation <= maxAffordable || maxAffordable >= 1)
+          .sort((a, b) => a.quotation - b.quotation)
 
-        // Check if member can afford this player
-        // Need to leave at least 1 credit per remaining slot after this one
-        const remainingSlots = (needed - i - 1) +
-          (slotConfig.D - (currentCount.D || 0) - (position === 'D' ? i + 1 : 0)) +
-          (slotConfig.C - (currentCount.C || 0) - (position === 'C' ? i + 1 : 0)) +
-          (slotConfig.A - (currentCount.A || 0) - (position === 'A' ? i + 1 : 0)) +
-          (slotConfig.P - (currentCount.P || 0) - (position === 'P' ? i + 1 : 0))
+        let player
+        let finalPrice: number
 
-        const minReserve = Math.max(remainingSlots, 0)
-        const actualPrice = Math.min(acquisitionPrice, memberBudget - minReserve)
+        if (affordablePlayers.length > 0 && maxAffordable > 1) {
+          // Pick a random player from affordable ones (prefer cheaper when budget is tight)
+          const budgetRatio = maxAffordable / (memberBudget || 1)
+          const pickRange = budgetRatio < 0.3
+            ? Math.min(3, affordablePlayers.length) // Very tight budget: pick from cheapest 3
+            : budgetRatio < 0.6
+              ? Math.min(Math.ceil(affordablePlayers.length / 2), affordablePlayers.length)
+              : affordablePlayers.length
 
-        if (actualPrice < 1) {
-          // Can't afford any player, use minimum price
-          continue
+          const randomIndex = Math.floor(Math.random() * pickRange)
+          player = affordablePlayers[randomIndex]
+
+          // Calculate price with some randomness, but capped by budget
+          const basePrice = player.quotation
+          const maxExtra = Math.floor(basePrice * 0.2)
+          const desiredPrice = basePrice + Math.floor(Math.random() * maxExtra)
+          finalPrice = Math.min(desiredPrice, maxAffordable)
+        } else {
+          // Fallback: pick cheapest player and pay minimum (1 credit)
+          const sortedByPrice = [...posPlayers].sort((a, b) => a.quotation - b.quotation)
+          player = sortedByPrice[0]
+          finalPrice = 1
         }
 
-        const finalPrice = Math.max(1, actualPrice)
+        if (!player) continue
+
+        // Remove player from available pool
+        const playerIndex = posPlayers.findIndex(p => p.id === player!.id)
+        if (playerIndex !== -1) {
+          posPlayers.splice(playerIndex, 1)
+        }
 
         // Create roster entry
         const rosterEntry = await prisma.playerRoster.create({
