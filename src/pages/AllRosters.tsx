@@ -105,27 +105,27 @@ function PlayerCard({ entry }: { entry: RosterEntry }) {
         {entry.contract && durStyle ? (
           <>
             {/* Ingaggio */}
-            <div className="bg-accent-500/20 border border-accent-500/40 rounded px-1.5 sm:px-2 py-1 text-center">
-              <p className="text-[8px] sm:text-[10px] text-accent-300 uppercase font-medium hidden sm:block">Ing.</p>
-              <p className="text-accent-400 font-bold text-sm sm:text-base">{entry.contract.salary}</p>
+            <div className="bg-accent-500/20 border border-accent-500/40 rounded px-1.5 sm:px-2 py-0.5 sm:py-1 text-center">
+              <p className="text-[7px] sm:text-[10px] text-accent-300 uppercase font-medium">Ing</p>
+              <p className="text-accent-400 font-bold text-xs sm:text-base">{entry.contract.salary}</p>
             </div>
             {/* Durata - con colori */}
-            <div className={`${durStyle.bg} border ${durStyle.border} rounded px-1.5 sm:px-2 py-1 text-center`}>
-              <p className={`text-[8px] sm:text-[10px] ${durStyle.label} uppercase font-medium hidden sm:block`}>Dur.</p>
-              <p className={`${durStyle.text} font-bold text-sm sm:text-base`}>{entry.contract.duration}</p>
+            <div className={`${durStyle.bg} border ${durStyle.border} rounded px-1.5 sm:px-2 py-0.5 sm:py-1 text-center`}>
+              <p className={`text-[7px] sm:text-[10px] ${durStyle.label} uppercase font-medium`}>Dur</p>
+              <p className={`${durStyle.text} font-bold text-xs sm:text-base`}>{entry.contract.duration}</p>
             </div>
             {/* Clausola Rubata */}
             {entry.contract.rescissionClause && (
-              <div className="bg-warning-500/20 border border-warning-500/40 rounded px-1.5 sm:px-2 py-1 text-center">
-                <p className="text-[8px] sm:text-[10px] text-warning-300 uppercase font-medium hidden sm:block">Rub.</p>
-                <p className="text-warning-400 font-bold text-sm sm:text-base">{entry.contract.rescissionClause}</p>
+              <div className="bg-warning-500/20 border border-warning-500/40 rounded px-1.5 sm:px-2 py-0.5 sm:py-1 text-center">
+                <p className="text-[7px] sm:text-[10px] text-warning-300 uppercase font-medium">Rub</p>
+                <p className="text-warning-400 font-bold text-xs sm:text-base">{entry.contract.rescissionClause}</p>
               </div>
             )}
           </>
         ) : (
-          <div className="bg-danger-500/20 border border-danger-500/40 rounded px-1.5 sm:px-2 py-1 text-center">
-            <p className="text-[8px] sm:text-[10px] text-danger-300 uppercase hidden sm:block">Costo</p>
-            <p className="text-danger-400 font-bold text-sm">{entry.acquisitionPrice}</p>
+          <div className="bg-danger-500/20 border border-danger-500/40 rounded px-1.5 sm:px-2 py-0.5 sm:py-1 text-center">
+            <p className="text-[7px] sm:text-[10px] text-danger-300 uppercase">Costo</p>
+            <p className="text-danger-400 font-bold text-xs sm:text-base">{entry.acquisitionPrice}</p>
           </div>
         )}
       </div>
@@ -230,18 +230,18 @@ function TeamPlayersModal({
                 {/* Contract Info */}
                 {entry.contract && durStyle ? (
                   <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                    <div className="bg-accent-500/20 border border-accent-500/40 rounded px-1.5 sm:px-2 py-1 text-center">
-                      <p className="text-[8px] sm:text-[9px] text-accent-300 uppercase hidden sm:block">Ing.</p>
-                      <p className="text-accent-400 font-bold text-sm">{entry.contract.salary}</p>
+                    <div className="bg-accent-500/20 border border-accent-500/40 rounded px-1.5 sm:px-2 py-0.5 sm:py-1 text-center">
+                      <p className="text-[7px] sm:text-[9px] text-accent-300 uppercase">Ing</p>
+                      <p className="text-accent-400 font-bold text-xs sm:text-sm">{entry.contract.salary}</p>
                     </div>
-                    <div className={`${durStyle.bg} border ${durStyle.border} rounded px-1.5 sm:px-2 py-1 text-center`}>
-                      <p className={`text-[8px] sm:text-[9px] ${durStyle.label} uppercase hidden sm:block`}>Dur.</p>
-                      <p className={`${durStyle.text} font-bold text-sm`}>{entry.contract.duration}</p>
+                    <div className={`${durStyle.bg} border ${durStyle.border} rounded px-1.5 sm:px-2 py-0.5 sm:py-1 text-center`}>
+                      <p className={`text-[7px] sm:text-[9px] ${durStyle.label} uppercase`}>Dur</p>
+                      <p className={`${durStyle.text} font-bold text-xs sm:text-sm`}>{entry.contract.duration}</p>
                     </div>
                     {entry.contract.rescissionClause && (
-                      <div className="bg-warning-500/20 border border-warning-500/40 rounded px-1.5 sm:px-2 py-1 text-center">
-                        <p className="text-[8px] sm:text-[9px] text-warning-300 uppercase hidden sm:block">Rub.</p>
-                        <p className="text-warning-400 font-bold text-sm">{entry.contract.rescissionClause}</p>
+                      <div className="bg-warning-500/20 border border-warning-500/40 rounded px-1.5 sm:px-2 py-0.5 sm:py-1 text-center">
+                        <p className="text-[7px] sm:text-[9px] text-warning-300 uppercase">Rub</p>
+                        <p className="text-warning-400 font-bold text-xs sm:text-sm">{entry.contract.rescissionClause}</p>
                       </div>
                     )}
                   </div>
