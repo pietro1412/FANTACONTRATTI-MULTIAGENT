@@ -848,24 +848,32 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                   </div>
                 ) : (
                   <div>
-                    <p className="text-gray-400 mb-5">Nessuna sessione attiva</p>
-                    {(() => {
-                      const hasPrimoMercato = sessions.some(s => s.type === 'PRIMO_MERCATO')
-                      return (
-                        <div className="flex gap-3">
-                          {!hasPrimoMercato && (
-                            <Button size="lg" onClick={() => handleCreateSession(false)} disabled={isSubmitting}>
-                              Avvia Primo Mercato
-                            </Button>
-                          )}
-                          {hasPrimoMercato && (
-                            <Button size="lg" onClick={() => handleCreateSession(true)} disabled={isSubmitting}>
-                              Avvia Mercato Ricorrente
-                            </Button>
-                          )}
-                        </div>
-                      )
-                    })()}
+                    {league?.status === 'DRAFT' ? (
+                      <p className="text-amber-400">
+                        ⚠️ La lega è in fase di creazione. Usa il pulsante "Passa al Primo Mercato" qui sopra per attivarla.
+                      </p>
+                    ) : (
+                      <>
+                        <p className="text-gray-400 mb-5">Nessuna sessione attiva</p>
+                        {(() => {
+                          const hasPrimoMercato = sessions.some(s => s.type === 'PRIMO_MERCATO')
+                          return (
+                            <div className="flex gap-3">
+                              {!hasPrimoMercato && (
+                                <Button size="lg" onClick={() => handleCreateSession(false)} disabled={isSubmitting}>
+                                  Avvia Primo Mercato
+                                </Button>
+                              )}
+                              {hasPrimoMercato && (
+                                <Button size="lg" onClick={() => handleCreateSession(true)} disabled={isSubmitting}>
+                                  Avvia Mercato Ricorrente
+                                </Button>
+                              )}
+                            </div>
+                          )
+                        })()}
+                      </>
+                    )}
                   </div>
                 )}
               </div>
