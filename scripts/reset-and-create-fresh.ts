@@ -61,6 +61,24 @@ async function main() {
   console.log('10. Cancellazione premi...')
   await prisma.prize.deleteMany()
 
+  console.log('10a. Cancellazione session prizes...')
+  await prisma.sessionPrize.deleteMany()
+
+  console.log('10b. Cancellazione prize categories...')
+  await prisma.prizeCategory.deleteMany()
+
+  console.log('10c. Cancellazione prize phase configs...')
+  await prisma.prizePhaseConfig.deleteMany()
+
+  console.log('10d. Cancellazione draft contracts...')
+  await prisma.draftContract.deleteMany()
+
+  console.log('10e. Cancellazione chat messages...')
+  await prisma.chatMessage.deleteMany()
+
+  console.log('10f. Cancellazione auction appeals...')
+  await prisma.auctionAppeal.deleteMany()
+
   console.log('11. Cancellazione sessioni mercato...')
   await prisma.marketSession.deleteMany()
 

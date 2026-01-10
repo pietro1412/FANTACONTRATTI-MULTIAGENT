@@ -1725,50 +1725,31 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             </div>
           </div>
 
-          {/* RIGHT: Chat + DGs - Collapsible on mobile */}
+          {/* RIGHT: DGs + Chat - Collapsible on mobile */}
           <div className={`lg:col-span-4 space-y-4 ${auction ? 'hidden lg:block' : ''}`}>
-            {/* Chat - Hidden on mobile during auction */}
-            <div className="hidden lg:block">
-              <Chat
-                sessionId={sessionId}
-                currentMemberId={managersStatus?.myId}
-                isAdmin={isAdmin}
-              />
-            </div>
-
-            {/* DG List with Turn Order - Enhanced */}
+            {/* DG List - Compact */}
             <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
-              <div className="p-3 border-b border-surface-50/20 sticky top-0 bg-surface-200 z-10">
+              <div className="p-2 border-b border-surface-50/20 bg-surface-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">👔</span>
+                    <span>👔</span>
                     <h3 className="font-bold text-white text-sm">Direttori Generali</h3>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {managersStatus?.allConnected === false && (
-                      <span className="text-xs text-red-400 flex items-center gap-1 px-2 py-0.5 bg-red-500/10 rounded-full">
-                        <span className="connection-dot connection-dot-offline"></span>
-                        Offline
-                      </span>
-                    )}
-                    {managersStatus?.allConnected === true && (
-                      <span className="text-xs text-green-400 flex items-center gap-1 px-2 py-0.5 bg-green-500/10 rounded-full">
-                        <span className="connection-dot connection-dot-online"></span>
-                        Tutti online
-                      </span>
-                    )}
-                  </div>
+                  {managersStatus?.allConnected === false && (
+                    <span className="text-xs text-red-400 flex items-center gap-1">
+                      <span className="connection-dot connection-dot-offline"></span>
+                      Offline
+                    </span>
+                  )}
                 </div>
               </div>
-              <div className="divide-y divide-surface-50/10 max-h-[35vh] overflow-y-auto">
+              <div className="divide-y divide-surface-50/10">
                 {!managersStatus && (
-                  <div className="p-4 text-center">
-                    <div className="w-8 h-8 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-2"></div>
-                    <p className="text-gray-500 text-sm">Caricamento...</p>
+                  <div className="p-3 text-center">
+                    <div className="w-6 h-6 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto"></div>
                   </div>
                 )}
                 {managersStatus?.managers && (() => {
-                  // Sort DGs by turn order if available
                   const sortedManagers = [...managersStatus.managers].sort((a, b) => {
                     if (!firstMarketStatus?.turnOrder) return 0
                     const aIndex = firstMarketStatus.turnOrder.indexOf(a.id)
@@ -1785,100 +1766,62 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       <button
                         key={m.id}
                         onClick={() => setSelectedManager(m)}
-                        className={`manager-item w-full px-3 py-3 hover:bg-surface-300/50 text-left ${
-                          isCurrent ? 'manager-item-current' : ''
+                        className={`w-full px-2 py-1.5 hover:bg-surface-300/50 text-left ${
+                          isCurrent ? 'bg-accent-500/10 border-l-2 border-accent-500' : ''
                         } ${isMe && !isCurrent ? 'border-l-2 border-primary-500 bg-primary-500/5' : ''}`}
                       >
-                        <div className="flex items-center gap-3">
-                          {/* Turn Order Badge */}
-                          <div className={`relative flex-shrink-0`}>
-                            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                        <div className="flex items-center gap-2">
+                          {/* Turn Order Badge + Connection */}
+                          <div className="relative flex-shrink-0">
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                               isCurrent
-                                ? 'bg-gradient-to-br from-accent-500 to-accent-600 text-dark-900 shadow-lg'
+                                ? 'bg-accent-500 text-dark-900'
                                 : 'bg-surface-300 text-gray-400'
                             }`}>
                               {turnIndex >= 0 ? turnIndex + 1 : '-'}
                             </span>
-                            {/* Connection dot overlay */}
                             <span
-                              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-surface-200 ${
-                                m.isConnected === true
-                                  ? 'connection-dot-online'
-                                  : m.isConnected === false
-                                    ? 'connection-dot-offline'
-                                    : 'bg-gray-500'
+                              className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-surface-200 ${
+                                m.isConnected === true ? 'bg-green-500' : m.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
                               }`}
-                              title={m.isConnected === true ? 'Connesso' : m.isConnected === false ? 'Disconnesso' : 'Stato sconosciuto'}
                             />
                           </div>
 
-                          {/* User Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className={`font-medium truncate ${
-                                isMe ? 'text-primary-400' : isCurrent ? 'text-accent-400 font-bold' : 'text-gray-200'
-                              }`}>
-                                {m.username}
-                                {isMe && <span className="text-xs text-primary-300 ml-1">(tu)</span>}
-                              </span>
-                              {isCurrent && (
-                                <span className="px-1.5 py-0.5 text-xs bg-accent-500/20 text-accent-400 rounded font-medium animate-pulse">
-                                  TURNO
-                                </span>
-                              )}
-                            </div>
-                            {m.teamName && <p className="text-xs text-gray-500 truncate">{m.teamName}</p>}
+                          {/* Username */}
+                          <span className={`flex-1 text-sm truncate ${
+                            isMe ? 'text-primary-400 font-medium' : isCurrent ? 'text-accent-400 font-bold' : 'text-gray-200'
+                          }`}>
+                            {m.username}
+                            {isMe && <span className="text-xs text-primary-300 ml-1">(tu)</span>}
+                            {isCurrent && <span className="text-xs text-accent-400 ml-1">TURNO</span>}
+                          </span>
 
-                            {/* Budget Progress Bar */}
-                            <div className="mt-1.5">
-                              <div className="budget-progress">
-                                <div
-                                  className={getBudgetBarClass(budgetPercent)}
-                                  style={{ width: `${budgetPercent}%` }}
-                                />
-                              </div>
-                            </div>
-                          </div>
+                          {/* Budget */}
+                          <span className={`text-sm font-mono font-bold ${
+                            budgetPercent <= 20 ? 'text-red-400' : budgetPercent <= 40 ? 'text-amber-400' : 'text-green-400'
+                          }`}>
+                            {m.currentBudget}M
+                          </span>
 
-                          {/* Budget & Slots */}
-                          <div className="text-right flex-shrink-0">
-                            <p className={`font-bold font-mono ${
-                              budgetPercent <= 20 ? 'text-red-400' :
-                              budgetPercent <= 40 ? 'text-amber-400' : 'text-accent-400'
-                            }`}>
-                              {m.currentBudget}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              <span className="font-medium">{m.slotsFilled}</span>/{m.totalSlots} slot
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Position slots preview (compact) */}
-                        <div className="flex items-center gap-1 mt-2 ml-11">
-                          {(['P', 'D', 'C', 'A'] as const).map(pos => {
-                            const posSlot = m.slotsByPosition[pos]
-                            const isFilled = posSlot.filled >= posSlot.total
-                            return (
-                              <span
-                                key={pos}
-                                className={`text-xs px-1.5 py-0.5 rounded ${
-                                  isFilled
-                                    ? `bg-gradient-to-br ${POSITION_COLORS[pos]} text-white`
-                                    : 'bg-surface-400/50 text-gray-500'
-                                }`}
-                                title={`${POSITION_NAMES[pos]}: ${posSlot.filled}/${posSlot.total}`}
-                              >
-                                {pos}:{posSlot.filled}
-                              </span>
-                            )
-                          })}
+                          {/* Slots compact */}
+                          <span className="text-xs text-gray-500">
+                            {m.slotsFilled}/{m.totalSlots}
+                          </span>
                         </div>
                       </button>
                     )
                   })
                 })()}
               </div>
+            </div>
+
+            {/* Chat - Below DGs, taller */}
+            <div className="hidden lg:block">
+              <Chat
+                sessionId={sessionId}
+                currentMemberId={managersStatus?.myId}
+                isAdmin={isAdmin}
+              />
             </div>
           </div>
         </div>

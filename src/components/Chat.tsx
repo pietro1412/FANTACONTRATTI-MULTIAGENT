@@ -137,7 +137,7 @@ export function Chat({ sessionId, currentMemberId, isAdmin }: ChatProps) {
       {!isCollapsed && (
         <>
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2 h-48 max-h-48">
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 h-80 max-h-80">
             {messages.length === 0 ? (
               <p className="text-center text-gray-500 text-sm py-4">Nessun messaggio</p>
             ) : (
