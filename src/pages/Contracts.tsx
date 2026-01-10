@@ -790,7 +790,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                       <div className={`w-6 h-6 flex items-center justify-center rounded ${roleStyle.bg}`}>
                         <span className={`text-xs font-bold ${roleStyle.text}`}>{pending.player.position}</span>
                       </div>
-                      <span className="text-white font-medium flex-1 truncate">{pending.player.name}</span>
+                      <span className="text-white font-medium flex-1 text-sm sm:text-base leading-tight">{pending.player.name}</span>
                     </div>
 
                     {/* Info row */}
@@ -897,7 +897,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                               <div className={`w-5 h-5 flex items-center justify-center rounded ${roleStyle.bg}`}>
                                 <span className={`text-[10px] font-bold ${roleStyle.text}`}>{pending.player.position}</span>
                               </div>
-                              <span className="text-white font-medium truncate">{pending.player.name}</span>
+                              <span className="text-white font-medium text-sm sm:text-base leading-tight">{pending.player.name}</span>
                             </div>
                           </td>
                           <td className="text-center p-2 text-gray-400">{pending.acquisitionPrice}M</td>
@@ -986,7 +986,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     <div className={`w-6 h-6 flex items-center justify-center rounded ${roleStyle.bg}`}>
                       <span className={`text-xs font-bold ${roleStyle.text}`}>{contract.roster.player.position}</span>
                     </div>
-                    <span className={`font-medium flex-1 truncate ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-white'}`}>
+                    <span className={`font-medium flex-1 text-sm sm:text-base leading-tight ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-white'}`}>
                       {contract.roster.player.name}
                     </span>
                     {isMarkedForRelease && (
@@ -1137,7 +1137,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                             <div className={`w-5 h-5 flex items-center justify-center rounded ${roleStyle.bg}`}>
                               <span className={`text-[10px] font-bold ${roleStyle.text}`}>{contract.roster.player.position}</span>
                             </div>
-                            <span className={`font-medium truncate ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-white'}`}>
+                            <span className={`font-medium text-sm leading-tight ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-white'}`}>
                               {contract.roster.player.name}
                             </span>
                             {isMarkedForRelease && (
