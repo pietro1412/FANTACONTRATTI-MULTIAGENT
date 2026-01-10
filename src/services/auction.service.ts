@@ -4516,65 +4516,66 @@ export async function completeAllRosterSlots(
       currentCount[pos] = (currentCount[pos] || 0) + 1
     }
 
+    // Calculate total slots needed for this member
+    const slotsNeeded: Record<string, number> = {
+      P: Math.max(0, slotConfig.P - currentCount.P),
+      D: Math.max(0, slotConfig.D - currentCount.D),
+      C: Math.max(0, slotConfig.C - currentCount.C),
+      A: Math.max(0, slotConfig.A - currentCount.A),
+    }
+    const totalSlotsNeeded = slotsNeeded.P + slotsNeeded.D + slotsNeeded.C + slotsNeeded.A
+
+    if (totalSlotsNeeded === 0) {
+      results.push(`${member.user.username}: rosa già completa`)
+      continue
+    }
+
     let memberBudget = member.currentBudget
     let memberPlayersAdded = 0
+    let slotsFilledSoFar = 0
 
     // Fill missing slots for each position
     for (const position of ['P', 'D', 'C', 'A'] as const) {
-      const needed = slotConfig[position] - (currentCount[position] || 0)
+      const needed = slotsNeeded[position]
 
       for (let i = 0; i < needed; i++) {
         // Get available players for this position
         const posPlayers = playersByPosition[position]
-        if (!posPlayers || posPlayers.length === 0) continue
-
-        // Calculate remaining slots to fill (for budget reservation)
-        const remainingSlotsAfterThis = (needed - i - 1) +
-          (position !== 'D' ? Math.max(0, slotConfig.D - (currentCount.D || 0)) : 0) +
-          (position !== 'C' ? Math.max(0, slotConfig.C - (currentCount.C || 0)) : 0) +
-          (position !== 'A' ? Math.max(0, slotConfig.A - (currentCount.A || 0)) : 0) +
-          (position !== 'P' ? Math.max(0, slotConfig.P - (currentCount.P || 0)) : 0)
-
-        // Reserve 1 credit per remaining slot
-        const minReserve = Math.max(remainingSlotsAfterThis, 0)
-        const maxAffordable = Math.max(1, memberBudget - minReserve)
-
-        // Sort players by quotation (cheapest first) and find one we can afford
-        const affordablePlayers = posPlayers
-          .filter(p => p.quotation <= maxAffordable || maxAffordable >= 1)
-          .sort((a, b) => a.quotation - b.quotation)
-
-        let player
-        let finalPrice: number
-
-        if (affordablePlayers.length > 0 && maxAffordable > 1) {
-          // Pick a random player from affordable ones (prefer cheaper when budget is tight)
-          const budgetRatio = maxAffordable / (memberBudget || 1)
-          const pickRange = budgetRatio < 0.3
-            ? Math.min(3, affordablePlayers.length) // Very tight budget: pick from cheapest 3
-            : budgetRatio < 0.6
-              ? Math.min(Math.ceil(affordablePlayers.length / 2), affordablePlayers.length)
-              : affordablePlayers.length
-
-          const randomIndex = Math.floor(Math.random() * pickRange)
-          player = affordablePlayers[randomIndex]
-
-          // Calculate price with some randomness, but capped by budget
-          const basePrice = player.quotation
-          const maxExtra = Math.floor(basePrice * 0.2)
-          const desiredPrice = basePrice + Math.floor(Math.random() * maxExtra)
-          finalPrice = Math.min(desiredPrice, maxAffordable)
-        } else {
-          // Fallback: pick cheapest player and pay minimum (1 credit)
-          const sortedByPrice = [...posPlayers].sort((a, b) => a.quotation - b.quotation)
-          player = sortedByPrice[0]
-          finalPrice = 1
+        if (!posPlayers || posPlayers.length === 0) {
+          results.push(`${member.user.username}: nessun giocatore disponibile per ${position}`)
+          continue
         }
 
-        if (!player) continue
+        // Calculate how many slots still need to be filled after this one
+        slotsFilledSoFar++
+        const remainingAfterThis = totalSlotsNeeded - slotsFilledSoFar
 
-        // Remove player from available pool
-        const playerIndex = posPlayers.findIndex(p => p.id === player!.id)
+        // Reserve 1 credit per remaining slot
+        const budgetForThisPlayer = Math.max(1, memberBudget - remainingAfterThis)
+
+        // Sort players by quotation (cheapest first)
+        const sortedPlayers = [...posPlayers].sort((a, b) => a.quotation - b.quotation)
+
+        // Find first player we can reasonably afford, or just take cheapest
+        let player = sortedPlayers[0] // Default to cheapest
+        let finalPrice = Math.min(budgetForThisPlayer, Math.max(1, player.quotation))
+
+        // Try to find a player that fits budget better (with some randomness)
+        const affordablePool = sortedPlayers.filter(p => p.quotation <= budgetForThisPlayer)
+        if (affordablePool.length > 0) {
+          // Pick randomly from affordable players (weighted towards cheaper)
+          const pickIndex = Math.floor(Math.random() * Math.min(5, affordablePool.length))
+          player = affordablePool[pickIndex]
+          // Price = quotation + small random bonus, capped by budget
+          const bonus = Math.floor(Math.random() * Math.min(5, budgetForThisPlayer - player.quotation))
+          finalPrice = Math.min(player.quotation + bonus, budgetForThisPlayer)
+        }
+
+        // Ensure minimum price of 1
+        finalPrice = Math.max(1, finalPrice)
+
+        // Remove player from available pool (find in original array)
+        const playerIndex = posPlayers.findIndex(p => p.id === player.id)
         if (playerIndex !== -1) {
           posPlayers.splice(playerIndex, 1)
         }
@@ -4613,9 +4614,6 @@ export async function completeAllRosterSlots(
         memberPlayersAdded++
         totalPlayersAdded++
         totalContractsCreated++
-
-        // Update current count for remaining iterations
-        currentCount[position] = (currentCount[position] || 0) + 1
       }
     }
 
