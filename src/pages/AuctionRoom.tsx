@@ -900,6 +900,24 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     }
   }
 
+  async function handleAssignOnePlayer() {
+    if (!sessionId) return
+    const result = await auctionApi.assignOnePlayer(sessionId)
+    if (result.success) {
+      const data = result.data as { player: string; member: string; position: string; remainingSlots: number; complete: boolean }
+      if (data.complete) {
+        setSuccessMessage('Tutte le rose sono complete!')
+      } else {
+        setSuccessMessage(result.message || `${data.player} → ${data.member}. Slot vuoti: ${data.remainingSlots}`)
+      }
+      loadMyRosterSlots()
+      loadManagersStatus()
+      loadPlayers()
+    } else {
+      setError(result.message || 'Errore')
+    }
+  }
+
   async function handlePlaceBid() {
     if (!auction) return
     setError('')
@@ -1183,15 +1201,23 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   <span>🚀</span> Completa Rose Automaticamente
                 </h3>
                 <p className="text-sm text-gray-400 mt-1">
-                  Riempi tutti gli slot mancanti di tutti i Direttori Generali con giocatori casuali
+                  Assegna giocatori casuali agli slot vuoti
                 </p>
               </div>
-              <Button
-                onClick={handleCompleteAllSlots}
-                className="btn-secondary px-6 py-3 font-bold text-base whitespace-nowrap shadow-lg hover:shadow-secondary-500/30 transition-all"
-              >
-                ✅ Completa Tutti Slot
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleAssignOnePlayer}
+                  className="btn-primary px-4 py-3 font-bold text-base whitespace-nowrap"
+                >
+                  +1 Giocatore
+                </Button>
+                <Button
+                  onClick={handleCompleteAllSlots}
+                  className="btn-secondary px-4 py-3 font-bold text-base whitespace-nowrap"
+                >
+                  Completa Tutti
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -1287,6 +1313,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                     )}
                     <Button size="sm" variant="outline" onClick={handleForceAllReady} className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10">Forza Tutti Pronti</Button>
                     <Button size="sm" variant="outline" onClick={handleForceAcknowledgeAll} className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10">Forza Conferme</Button>
+                    <Button size="sm" variant="primary" onClick={handleAssignOnePlayer} className="w-full text-xs">
+                      ➕ +1 Giocatore Random
+                    </Button>
                     <Button size="sm" variant="outline" onClick={handleCompleteAllSlots} className="w-full text-xs border-secondary-500/50 text-secondary-400 hover:bg-secondary-500/10">
                       ✅ Completa Tutti Slot
                     </Button>

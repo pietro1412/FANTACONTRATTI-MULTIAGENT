@@ -41,6 +41,7 @@ import {
   forceAllAppealDecisionAcks,
   getAppealStatus,
   completeAllRosterSlots,
+  assignOneRandomPlayer,
 } from '../../services/auction.service'
 import { simulateFirstMarketBotBidding, completeBotTurn, botNominate, botConfirmNomination } from '../../services/bot.service'
 import { authMiddleware } from '../middleware/auth'
@@ -767,6 +768,24 @@ router.post('/auctions/sessions/:sessionId/complete-all-slots', authMiddleware, 
     res.json(result)
   } catch (error) {
     console.error('Complete all slots error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/auctions/sessions/:sessionId/assign-one - Assign ONE random player to ONE empty slot (TEST)
+router.post('/auctions/sessions/:sessionId/assign-one', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const sessionId = req.params.sessionId as string
+    const result = await assignOneRandomPlayer(sessionId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Assign one player error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

@@ -336,6 +336,9 @@ export const auctionApi = {
   completeAllSlots: (sessionId: string) =>
     request(`/api/auctions/sessions/${sessionId}/complete-all-slots`, { method: 'POST' }),
 
+  assignOnePlayer: (sessionId: string) =>
+    request(`/api/auctions/sessions/${sessionId}/assign-one`, { method: 'POST' }),
+
   // Appeals / Ricorsi
   submitAppeal: (auctionId: string, content: string) =>
     request(`/api/auctions/${auctionId}/appeal`, {

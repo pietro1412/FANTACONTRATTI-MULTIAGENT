@@ -4635,3 +4635,171 @@ export async function completeAllRosterSlots(
     data: { totalPlayersAdded, totalContractsCreated, memberResults: results, incompleteMembers },
   }
 }
+
+/**
+ * Assegna UN giocatore casuale a UNO slot libero di un manager qualsiasi.
+ * Leggero e veloce - può essere chiamato ripetutamente.
+ */
+export async function assignOneRandomPlayer(
+  sessionId: string,
+  userId: string
+): Promise<ServiceResult> {
+  // Verify session and admin
+  const session = await prisma.marketSession.findUnique({
+    where: { id: sessionId },
+    include: { league: true },
+  })
+
+  if (!session) {
+    return { success: false, message: 'Sessione non trovata' }
+  }
+
+  const admin = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: session.leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+      role: MemberRole.ADMIN,
+    },
+  })
+
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const league = session.league
+  const slotConfig = {
+    P: league.goalkeeperSlots,
+    D: league.defenderSlots,
+    C: league.midfielderSlots,
+    A: league.forwardSlots,
+  }
+
+  // Find a member with an empty slot
+  const members = await prisma.leagueMember.findMany({
+    where: {
+      leagueId: session.leagueId,
+      status: MemberStatus.ACTIVE,
+    },
+    include: {
+      user: { select: { username: true } },
+      roster: {
+        where: { status: RosterStatus.ACTIVE },
+        include: { player: { select: { position: true } } },
+      },
+    },
+  })
+
+  // Find first member with empty slot
+  let targetMember: typeof members[0] | null = null
+  let targetPosition: 'P' | 'D' | 'C' | 'A' | null = null
+
+  for (const member of members) {
+    const count: Record<string, number> = { P: 0, D: 0, C: 0, A: 0 }
+    for (const r of member.roster) {
+      count[r.player.position]++
+    }
+
+    for (const pos of ['P', 'D', 'C', 'A'] as const) {
+      if (count[pos] < slotConfig[pos]) {
+        targetMember = member
+        targetPosition = pos
+        break
+      }
+    }
+    if (targetMember) break
+  }
+
+  if (!targetMember || !targetPosition) {
+    return { success: true, message: 'Tutte le rose sono complete!', data: { complete: true } }
+  }
+
+  // Get taken player IDs
+  const takenIds = await prisma.playerRoster.findMany({
+    where: {
+      leagueMember: { leagueId: session.leagueId },
+      status: RosterStatus.ACTIVE,
+    },
+    select: { playerId: true },
+  })
+  const takenSet = new Set(takenIds.map(t => t.playerId))
+
+  // Find available player for this position
+  const availablePlayers = await prisma.serieAPlayer.findMany({
+    where: {
+      isActive: true,
+      position: Position[targetPosition],
+      id: { notIn: Array.from(takenSet) },
+    },
+    orderBy: { quotation: 'asc' },
+    take: 10,
+  })
+
+  if (availablePlayers.length === 0) {
+    return { success: false, message: `Nessun ${targetPosition} disponibile` }
+  }
+
+  // Pick random from cheapest 10
+  const player = availablePlayers[Math.floor(Math.random() * availablePlayers.length)]
+  const price = Math.max(1, Math.min(player.quotation, targetMember.currentBudget))
+
+  // Create roster entry
+  const roster = await prisma.playerRoster.create({
+    data: {
+      leagueMemberId: targetMember.id,
+      playerId: player.id,
+      acquisitionPrice: price,
+      acquisitionType: AcquisitionType.FIRST_MARKET,
+      status: RosterStatus.ACTIVE,
+    },
+  })
+
+  // Create contract
+  const salary = Math.max(1, Math.round(price * 0.1 * 2) / 2)
+  await prisma.playerContract.create({
+    data: {
+      rosterId: roster.id,
+      leagueMemberId: targetMember.id,
+      salary,
+      duration: 2,
+      initialSalary: salary,
+      initialDuration: 2,
+      rescissionClause: Math.round(salary * 4),
+    },
+  })
+
+  // Update budget
+  await prisma.leagueMember.update({
+    where: { id: targetMember.id },
+    data: { currentBudget: Math.max(0, targetMember.currentBudget - price) },
+  })
+
+  // Count remaining empty slots
+  let totalEmpty = 0
+  for (const member of members) {
+    const count: Record<string, number> = { P: 0, D: 0, C: 0, A: 0 }
+    for (const r of member.roster) {
+      count[r.player.position]++
+    }
+    // Subtract 1 for the one we just filled if this is the target member
+    if (member.id === targetMember.id) {
+      count[targetPosition]++
+    }
+    for (const pos of ['P', 'D', 'C', 'A'] as const) {
+      totalEmpty += Math.max(0, slotConfig[pos] - count[pos])
+    }
+  }
+
+  return {
+    success: true,
+    message: `${player.name} → ${targetMember.user.username} (${targetPosition}). Slot vuoti: ${totalEmpty}`,
+    data: {
+      player: player.name,
+      member: targetMember.user.username,
+      position: targetPosition,
+      price,
+      remainingSlots: totalEmpty,
+      complete: totalEmpty === 0,
+    },
+  }
+}
