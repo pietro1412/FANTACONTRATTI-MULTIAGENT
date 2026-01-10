@@ -4,6 +4,7 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Navigation } from '../components/Navigation'
 import { MarketPhaseManager } from '../components/MarketPhaseManager'
+import { PrizePhaseManager } from '../components/PrizePhaseManager'
 
 interface AdminPanelProps {
   leagueId: string
@@ -92,6 +93,7 @@ interface Appeal {
 const MARKET_PHASES = [
   { value: 'ASTA_LIBERA', label: 'Asta Libera', onlyFirst: true },
   { value: 'OFFERTE_PRE_RINNOVO', label: 'Offerte Pre Rinnovo', onlyFirst: false },
+  { value: 'PREMI', label: 'Premi Budget', onlyFirst: false },
   { value: 'CONTRATTI', label: 'Rinnovo Contratti', onlyFirst: false },
   { value: 'RUBATA', label: 'Rubata', onlyFirst: false },
   { value: 'ASTA_SVINCOLATI', label: 'Asta Svincolati', onlyFirst: false },
@@ -745,6 +747,17 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                         Fase: <strong className="text-white">{activeSession.currentPhase || 'Non impostata'}</strong>
                       </span>
                     </div>
+
+                    {/* Prize Phase Manager for PREMI phase */}
+                    {activeSession.currentPhase === 'PREMI' && (
+                      <div className="mb-5">
+                        <PrizePhaseManager
+                          sessionId={activeSession.id}
+                          isAdmin={true}
+                          onUpdate={fetchData}
+                        />
+                      </div>
+                    )}
 
                     {/* Consolidation Status for CONTRATTI phase */}
                     {activeSession.currentPhase === 'CONTRATTI' && consolidationStatus?.inContrattiPhase && (

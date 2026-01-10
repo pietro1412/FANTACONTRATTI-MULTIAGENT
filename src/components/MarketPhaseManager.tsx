@@ -59,6 +59,21 @@ const MERCATO_RICORRENTE_PHASES: PhaseConfig[] = [
     onlyRecurrent: true
   },
   {
+    id: 'PREMI',
+    label: 'Premi Budget',
+    icon: '🏆',
+    description: 'Assegnazione premi budget. L\'admin configura il re-incremento base, l\'indennizzo partenza estero e premi personalizzati.',
+    actions: [
+      'Imposta re-incremento budget base (default 100M)',
+      'Configura indennizzo partenza estero per manager (default 50M)',
+      'Crea categorie premi personalizzate',
+      'Assegna importi liberi per ogni manager',
+      'Finalizza per accreditare i budget'
+    ],
+    exitCondition: 'I premi devono essere finalizzati',
+    onlyRecurrent: true
+  },
+  {
     id: 'CONTRATTI',
     label: 'Rinnovo Contratti',
     icon: '📝',

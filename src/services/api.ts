@@ -1078,3 +1078,43 @@ export const chatApi = {
   simulateMessage: (sessionId: string) =>
     request(`/api/sessions/${sessionId}/chat/simulate`, { method: 'POST' }),
 }
+
+// Prize Phase API (Fase PREMI)
+export const prizePhaseApi = {
+  // Initialize prize phase for session (Admin)
+  initialize: (sessionId: string) =>
+    request(`/api/sessions/${sessionId}/prizes/init`, { method: 'POST' }),
+
+  // Get prize phase data
+  getData: (sessionId: string) =>
+    request(`/api/sessions/${sessionId}/prizes`),
+
+  // Update base reincrement (Admin)
+  updateBaseReincrement: (sessionId: string, amount: number) =>
+    request(`/api/sessions/${sessionId}/prizes/base-reincrement`, {
+      method: 'PATCH',
+      body: JSON.stringify({ amount }),
+    }),
+
+  // Create prize category (Admin)
+  createCategory: (sessionId: string, name: string) =>
+    request(`/api/sessions/${sessionId}/prizes/categories`, {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
+
+  // Delete prize category (Admin)
+  deleteCategory: (categoryId: string) =>
+    request(`/api/prizes/categories/${categoryId}`, { method: 'DELETE' }),
+
+  // Set member prize amount (Admin)
+  setMemberPrize: (categoryId: string, memberId: string, amount: number) =>
+    request(`/api/prizes/categories/${categoryId}/members/${memberId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ amount }),
+    }),
+
+  // Finalize prize phase (Admin)
+  finalize: (sessionId: string) =>
+    request(`/api/sessions/${sessionId}/prizes/finalize`, { method: 'POST' }),
+}

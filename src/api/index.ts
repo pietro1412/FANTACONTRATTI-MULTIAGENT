@@ -18,6 +18,7 @@ import inviteRoutes from './routes/invites'
 import movementRoutes from './routes/movements'
 import superadminRoutes from './routes/superadmin'
 import chatRoutes from './routes/chat'
+import prizeRoutes from './routes/prizes'
 
 const app = express()
 const PORT = process.env.API_PORT || 3003
@@ -113,6 +114,7 @@ app.use('/api', inviteRoutes) // Invite routes include /leagues/:id/invites and 
 app.use('/api', movementRoutes) // Movement routes include /leagues/:id/movements and /movements/*
 app.use('/api', superadminRoutes) // Superadmin routes include /superadmin/*
 app.use('/api', chatRoutes) // Chat routes include /sessions/:id/chat
+app.use('/api', prizeRoutes) // Prize phase routes include /sessions/:id/prizes/*
 
 // 404 handler
 app.use((_req, res) => {
