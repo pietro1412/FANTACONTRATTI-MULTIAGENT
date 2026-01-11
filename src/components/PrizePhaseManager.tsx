@@ -164,28 +164,61 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
     const value = directValue ?? editingPrizes[categoryId]?.[memberId]
     if (value === undefined) return
 
-    setIsSubmitting(true)
-    try {
-      const result = await prizePhaseApi.setMemberPrize(categoryId, memberId, value)
-      if (result.success) {
-        // Clear editing state for this cell
-        setEditingPrizes(prev => {
-          const newState = { ...prev }
-          if (newState[categoryId]) {
-            delete newState[categoryId][memberId]
-            if (Object.keys(newState[categoryId]).length === 0) {
-              delete newState[categoryId]
+    // Update local state immediately (optimistic update)
+    setData(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        categories: prev.categories.map(cat => {
+          if (cat.id !== categoryId) return cat
+          const existingPrize = cat.prizes.find(p => p.memberId === memberId)
+          if (existingPrize) {
+            return {
+              ...cat,
+              prizes: cat.prizes.map(p =>
+                p.memberId === memberId ? { ...p, amount: value } : p
+              )
+            }
+          } else {
+            // Add new prize entry
+            const member = prev.members.find(m => m.id === memberId)
+            return {
+              ...cat,
+              prizes: [...cat.prizes, {
+                memberId,
+                teamName: member?.teamName || '',
+                username: member?.username || '',
+                amount: value
+              }]
             }
           }
-          return newState
         })
-        fetchData()
-        onUpdate?.()
-      } else {
-        setError(result.message || 'Errore salvataggio')
       }
-    } finally {
-      setIsSubmitting(false)
+    })
+
+    // Clear editing state for this cell
+    setEditingPrizes(prev => {
+      const newState = { ...prev }
+      if (newState[categoryId]) {
+        delete newState[categoryId][memberId]
+        if (Object.keys(newState[categoryId]).length === 0) {
+          delete newState[categoryId]
+        }
+      }
+      return newState
+    })
+
+    // Save to server in background (no loading state)
+    try {
+      const result = await prizePhaseApi.setMemberPrize(categoryId, memberId, value)
+      if (!result.success) {
+        setError(result.message || 'Errore salvataggio')
+        // Revert on error by fetching fresh data
+        fetchData()
+      }
+    } catch {
+      setError('Errore di connessione')
+      fetchData()
     }
   }
 
