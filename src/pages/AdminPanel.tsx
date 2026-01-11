@@ -663,6 +663,17 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
             onSimulateConsolidation={handleSimulateAllConsolidation}
             hasCompletedFirstMarket={sessions.some(s => s.type === 'PRIMO_MERCATO' && s.status === 'COMPLETED')}
           />
+
+          {/* Prize Phase Manager - Shown prominently when in PREMI phase */}
+          {activeSession?.currentPhase === 'PREMI' && (
+            <div className="mt-6">
+              <PrizePhaseManager
+                sessionId={activeSession.id}
+                isAdmin={true}
+                onUpdate={loadData}
+              />
+            </div>
+          )}
           </>
         )}
 
@@ -784,7 +795,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                         <PrizePhaseManager
                           sessionId={activeSession.id}
                           isAdmin={true}
-                          onUpdate={fetchData}
+                          onUpdate={loadData}
                         />
                       </div>
                     )}

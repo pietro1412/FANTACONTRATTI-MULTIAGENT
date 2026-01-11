@@ -43,6 +43,7 @@ interface Session {
 // Mapping fasi a nomi user-friendly
 const PHASE_LABELS: Record<string, string> = {
   ASTA_LIBERA: 'Asta Primo Mercato',
+  PREMI: 'Assegnazione Premi Budget',
   OFFERTE_PRE_RINNOVO: 'Scambi e Offerte',
   CONTRATTI: 'Rinnovo Contratti',
   RUBATA: 'Rubata',
@@ -253,13 +254,21 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
         {/* Active Session Banner */}
         {activeSession && (() => {
           const isFirstMarket = activeSession.type === 'PRIMO_MERCATO'
-          const phaseConfig: Record<string, { icon: string; title: string; description: string; buttonText: string; color: string }> = {
+          const phaseConfig: Record<string, { icon: string; title: string; description: string; buttonText: string; color: string; adminOnly?: boolean }> = {
             ASTA_LIBERA: {
               icon: '🔨',
               title: isFirstMarket ? 'Asta Primo Mercato' : 'Asta Libera',
               description: isFirstMarket ? 'Costruisci la tua rosa! Entra in asta e acquista i tuoi giocatori.' : "L'asta è in corso, entra subito!",
               buttonText: isFirstMarket ? 'Entra in Asta Primo Mercato' : "Entra nell'Asta",
               color: 'secondary'
+            },
+            PREMI: {
+              icon: '🏆',
+              title: 'Assegnazione Premi Budget',
+              description: isAdmin ? 'Assegna i premi budget ai manager per i risultati del campionato.' : 'L\'admin sta assegnando i premi budget per i risultati del campionato.',
+              buttonText: 'Gestisci Premi',
+              color: 'warning',
+              adminOnly: true
             },
             OFFERTE_PRE_RINNOVO: { icon: '🔄', title: 'Fase Scambi Pre-Rinnovo', description: 'Proponi scambi e offerte agli altri DG prima di rinnovare i contratti.', buttonText: 'Effettua Scambi', color: 'primary' },
             CONTRATTI: { icon: '📝', title: 'Rinnovo Contratti', description: 'È il momento di rinnovare i contratti dei tuoi giocatori in scadenza.', buttonText: 'Rinnova Contratti', color: 'accent' },
@@ -284,6 +293,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           const getNavTarget = () => {
             switch (phase) {
               case 'ASTA_LIBERA': return () => onNavigate('auction', { sessionId: activeSession.id, leagueId })
+              case 'PREMI': return () => onNavigate('adminPanel', { leagueId })
               case 'OFFERTE_PRE_RINNOVO':
               case 'OFFERTE_POST_ASTA_SVINCOLATI': return () => onNavigate('trades', { leagueId })
               case 'ASTA_SVINCOLATI': return () => onNavigate('svincolati', { leagueId })
@@ -292,6 +302,9 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
               default: return () => onNavigate('auction', { sessionId: activeSession.id, leagueId })
             }
           }
+
+          // Check if button should be shown (hide for non-admin when adminOnly)
+          const showButton = !(config.adminOnly && !isAdmin)
 
           return (
             <div className={`bg-gradient-to-r ${colors.bg} border-2 ${colors.border} rounded-2xl p-6 mb-8 flex items-center justify-between`}>
@@ -304,13 +317,15 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
                   <p className="text-gray-300">{config.description}</p>
                 </div>
               </div>
-              <Button
-                size="lg"
-                variant={config.color === 'secondary' ? 'secondary' : 'primary'}
-                onClick={getNavTarget()}
-              >
-                {config.buttonText}
-              </Button>
+              {showButton && (
+                <Button
+                  size="lg"
+                  variant={config.color === 'secondary' ? 'secondary' : 'primary'}
+                  onClick={getNavTarget()}
+                >
+                  {config.buttonText}
+                </Button>
+              )}
             </div>
           )
         })()}
