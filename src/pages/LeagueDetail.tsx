@@ -293,7 +293,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           const getNavTarget = () => {
             switch (phase) {
               case 'ASTA_LIBERA': return () => onNavigate('auction', { sessionId: activeSession.id, leagueId })
-              case 'PREMI': return () => onNavigate('adminPanel', { leagueId })
+              case 'PREMI': return () => onNavigate('prizes', { leagueId })
               case 'OFFERTE_PRE_RINNOVO':
               case 'OFFERTE_POST_ASTA_SVINCOLATI': return () => onNavigate('trades', { leagueId })
               case 'ASTA_SVINCOLATI': return () => onNavigate('svincolati', { leagueId })

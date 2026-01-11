@@ -18,6 +18,7 @@ import { ManagerDashboard } from './pages/ManagerDashboard'
 import { AdminPanel } from './pages/AdminPanel'
 import { Movements } from './pages/Movements'
 import { SuperAdmin } from './pages/SuperAdmin'
+import { PrizePhasePage } from './pages/PrizePhasePage'
 import LatencyTest from './pages/LatencyTest'
 import { useCallback } from 'react'
 
@@ -141,6 +142,7 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'trades': navigate(`/leagues/${lid}/trades`); break
       case 'rubata': navigate(`/leagues/${lid}/rubata`); break
       case 'svincolati': navigate(`/leagues/${lid}/svincolati`); break
+      case 'prizes': navigate(`/leagues/${lid}/prizes`); break
       case 'allPlayers': navigate(`/leagues/${lid}/players`); break
       case 'manager-dashboard': navigate(`/leagues/${lid}/manager`); break
       case 'admin':
@@ -268,6 +270,15 @@ function MovementsWrapper() {
   return <Movements leagueId={leagueId} onNavigate={onNavigate} />
 }
 
+function PrizePhasePageWrapper() {
+  const navigate = useNavigate()
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
+
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <PrizePhasePage leagueId={leagueId} onNavigate={onNavigate} />
+}
+
 function SuperAdminWrapper() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -308,6 +319,7 @@ function AppRoutes() {
       <Route path="/leagues/:leagueId/manager" element={<ProtectedRoute><ManagerDashboardWrapper /></ProtectedRoute>} />
       <Route path="/leagues/:leagueId/admin" element={<ProtectedRoute><AdminPanelWrapper /></ProtectedRoute>} />
       <Route path="/leagues/:leagueId/movements" element={<ProtectedRoute><MovementsWrapper /></ProtectedRoute>} />
+      <Route path="/leagues/:leagueId/prizes" element={<ProtectedRoute><PrizePhasePageWrapper /></ProtectedRoute>} />
 
       {/* Superadmin */}
       <Route path="/superadmin" element={<ProtectedRoute><SuperAdminWrapper /></ProtectedRoute>} />
