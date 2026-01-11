@@ -4,7 +4,6 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Navigation } from '../components/Navigation'
 import { MarketPhaseManager } from '../components/MarketPhaseManager'
-import { PrizePhaseManager } from '../components/PrizePhaseManager'
 
 interface AdminPanelProps {
   leagueId: string
@@ -664,16 +663,6 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
             hasCompletedFirstMarket={sessions.some(s => s.type === 'PRIMO_MERCATO' && s.status === 'COMPLETED')}
           />
 
-          {/* Prize Phase Manager - Shown prominently when in PREMI phase */}
-          {activeSession?.currentPhase === 'PREMI' && (
-            <div className="mt-6">
-              <PrizePhaseManager
-                sessionId={activeSession.id}
-                isAdmin={true}
-                onUpdate={loadData}
-              />
-            </div>
-          )}
           </>
         )}
 
@@ -788,17 +777,6 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                         Fase: <strong className="text-white">{activeSession.currentPhase || 'Non impostata'}</strong>
                       </span>
                     </div>
-
-                    {/* Prize Phase Manager for PREMI phase */}
-                    {activeSession.currentPhase === 'PREMI' && (
-                      <div className="mb-5">
-                        <PrizePhaseManager
-                          sessionId={activeSession.id}
-                          isAdmin={true}
-                          onUpdate={loadData}
-                        />
-                      </div>
-                    )}
 
                     {/* Consolidation Status for CONTRATTI phase */}
                     {activeSession.currentPhase === 'CONTRATTI' && consolidationStatus?.inContrattiPhase && (
