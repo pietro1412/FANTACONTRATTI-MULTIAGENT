@@ -421,9 +421,9 @@ export async function setMarketPhase(
 
   // Validate phase based on market type
   // PRIMO_MERCATO: solo ASTA_LIBERA
-  // MERCATO_RICORRENTE: OFFERTE_PRE_RINNOVO, CONTRATTI, RUBATA, ASTA_SVINCOLATI, OFFERTE_POST_ASTA_SVINCOLATI
+  // MERCATO_RICORRENTE: PREMI, OFFERTE_PRE_RINNOVO, CONTRATTI, RUBATA, ASTA_SVINCOLATI, OFFERTE_POST_ASTA_SVINCOLATI
   const primoMercatoPhases = ['ASTA_LIBERA']
-  const mercatoRicorrentePhases = ['OFFERTE_PRE_RINNOVO', 'CONTRATTI', 'RUBATA', 'ASTA_SVINCOLATI', 'OFFERTE_POST_ASTA_SVINCOLATI']
+  const mercatoRicorrentePhases = ['PREMI', 'OFFERTE_PRE_RINNOVO', 'CONTRATTI', 'RUBATA', 'ASTA_SVINCOLATI', 'OFFERTE_POST_ASTA_SVINCOLATI']
 
   const validPhases = session.type === 'PRIMO_MERCATO' ? primoMercatoPhases : mercatoRicorrentePhases
 
@@ -454,7 +454,7 @@ export async function setMarketPhase(
   const updatedSession = await prisma.marketSession.update({
     where: { id: sessionId },
     data: {
-      currentPhase: phase as 'ASTA_LIBERA' | 'OFFERTE_PRE_RINNOVO' | 'CONTRATTI' | 'RUBATA' | 'ASTA_SVINCOLATI' | 'OFFERTE_POST_ASTA_SVINCOLATI',
+      currentPhase: phase as 'ASTA_LIBERA' | 'PREMI' | 'OFFERTE_PRE_RINNOVO' | 'CONTRATTI' | 'RUBATA' | 'ASTA_SVINCOLATI' | 'OFFERTE_POST_ASTA_SVINCOLATI',
       phaseStartedAt: new Date(),
     },
   })
