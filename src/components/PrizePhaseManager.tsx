@@ -58,6 +58,10 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
   // Editing prizes state: { categoryId: { memberId: value } }
   const [editingPrizes, setEditingPrizes] = useState<Record<string, Record<string, number>>>({})
 
+  // Focus state for inputs: stores original value when input is focused
+  const [focusedInput, setFocusedInput] = useState<{ catId: string; memberId: string; originalValue: number } | null>(null)
+  const [inputDisplayValue, setInputDisplayValue] = useState<string>('')
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -156,8 +160,8 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
     }))
   }
 
-  const handleSavePrize = async (categoryId: string, memberId: string) => {
-    const value = editingPrizes[categoryId]?.[memberId]
+  const handleSavePrize = async (categoryId: string, memberId: string, directValue?: number) => {
+    const value = directValue ?? editingPrizes[categoryId]?.[memberId]
     if (value === undefined) return
 
     setIsSubmitting(true)
@@ -279,14 +283,28 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
 
         {editingBaseReincrement ? (
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setBaseReincrementValue(Math.max(0, baseReincrementValue - 10))}
+              className="w-10 h-10 bg-surface-400 hover:bg-surface-500 text-white rounded-lg text-xl font-bold flex items-center justify-center"
+              disabled={baseReincrementValue === 0}
+            >
+              -
+            </button>
             <input
               type="number"
               value={baseReincrementValue}
               onChange={(e) => setBaseReincrementValue(Number(e.target.value))}
-              className="w-32 px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white text-center"
+              onFocus={(e) => e.target.select()}
+              className="w-24 px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white text-center text-xl font-bold"
               min={0}
             />
-            <span className="text-gray-400">M</span>
+            <button
+              onClick={() => setBaseReincrementValue(baseReincrementValue + 10)}
+              className="w-10 h-10 bg-surface-400 hover:bg-surface-500 text-white rounded-lg text-xl font-bold flex items-center justify-center"
+            >
+              +
+            </button>
+            <span className="text-gray-400 text-lg">M</span>
             <Button
               size="sm"
               onClick={handleUpdateBaseReincrement}
@@ -353,31 +371,80 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                     </td>
                     {categories.map(cat => {
                       const prize = cat.prizes.find(p => p.memberId === member.id)
-                      const currentValue = editingPrizes[cat.id]?.[member.id] ?? prize?.amount ?? 0
+                      const savedValue = editingPrizes[cat.id]?.[member.id] ?? prize?.amount ?? 0
                       const isEditing = editingPrizes[cat.id]?.[member.id] !== undefined
+                      const isFocused = focusedInput?.catId === cat.id && focusedInput?.memberId === member.id
+
+                      const handleFocus = () => {
+                        setFocusedInput({ catId: cat.id, memberId: member.id, originalValue: savedValue })
+                        setInputDisplayValue('')
+                      }
+
+                      const handleBlur = () => {
+                        if (inputDisplayValue === '' && focusedInput) {
+                          // Restore original value if nothing was entered
+                          setFocusedInput(null)
+                          setInputDisplayValue('')
+                        } else if (inputDisplayValue !== '') {
+                          // Save the new value
+                          const newValue = parseInt(inputDisplayValue, 10)
+                          if (!isNaN(newValue) && newValue >= 0) {
+                            handlePrizeChange(cat.id, member.id, newValue)
+                            handleSavePrize(cat.id, member.id, newValue)
+                          }
+                          setFocusedInput(null)
+                          setInputDisplayValue('')
+                        } else {
+                          setFocusedInput(null)
+                        }
+                      }
+
+                      const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                        setInputDisplayValue(e.target.value)
+                      }
+
+                      const handleIncrement = () => {
+                        const newValue = savedValue + 5
+                        handlePrizeChange(cat.id, member.id, newValue)
+                        handleSavePrize(cat.id, member.id, newValue)
+                      }
+
+                      const handleDecrement = () => {
+                        const newValue = Math.max(0, savedValue - 5)
+                        handlePrizeChange(cat.id, member.id, newValue)
+                        handleSavePrize(cat.id, member.id, newValue)
+                      }
 
                       return (
-                        <td key={cat.id} className="text-center py-2 px-2">
+                        <td key={cat.id} className="text-center py-2 px-1">
                           {config.isFinalized ? (
                             <span className="text-gray-300">{prize?.amount ?? 0}M</span>
                           ) : (
-                            <div className="flex items-center justify-center gap-1">
+                            <div className="flex items-center justify-center gap-0.5">
+                              <button
+                                onClick={handleDecrement}
+                                className="w-6 h-6 bg-surface-400 hover:bg-surface-500 text-white rounded text-sm font-bold flex items-center justify-center"
+                                disabled={isSubmitting || savedValue === 0}
+                              >
+                                -
+                              </button>
                               <input
                                 type="number"
-                                value={currentValue}
-                                onChange={(e) => handlePrizeChange(cat.id, member.id, Number(e.target.value))}
-                                className="w-16 px-2 py-1 bg-surface-300 border border-surface-50/20 rounded text-white text-center text-sm"
+                                value={isFocused ? inputDisplayValue : savedValue}
+                                onChange={handleInputChange}
+                                onFocus={handleFocus}
+                                onBlur={handleBlur}
+                                className="w-14 px-1 py-1 bg-surface-300 border border-surface-50/20 rounded text-white text-center text-sm"
                                 min={0}
+                                placeholder={isFocused ? String(focusedInput?.originalValue) : ''}
                               />
-                              {isEditing && (
-                                <button
-                                  onClick={() => handleSavePrize(cat.id, member.id)}
-                                  className="text-green-400 hover:text-green-300 text-xs"
-                                  disabled={isSubmitting}
-                                >
-                                  ✓
-                                </button>
-                              )}
+                              <button
+                                onClick={handleIncrement}
+                                className="w-6 h-6 bg-surface-400 hover:bg-surface-500 text-white rounded text-sm font-bold flex items-center justify-center"
+                                disabled={isSubmitting}
+                              >
+                                +
+                              </button>
                             </div>
                           )}
                         </td>
