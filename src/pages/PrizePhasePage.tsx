@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { auctionApi } from '../services/api'
+import { auctionApi, leagueApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import { PrizePhaseManager } from '../components/PrizePhaseManager'
 
@@ -29,18 +29,19 @@ export function PrizePhasePage({ leagueId, onNavigate }: PrizePhasePageProps) {
     setIsLoading(true)
     setError('')
 
-    const sessionsRes = await auctionApi.getSessions(leagueId)
+    // Get league info to check admin status
+    const leagueRes = await leagueApi.getLeague(leagueId)
+    if (leagueRes.success && leagueRes.data) {
+      const data = leagueRes.data as { isAdmin: boolean }
+      setIsAdmin(data.isAdmin)
+    }
 
+    // Get active session
+    const sessionsRes = await auctionApi.getSessions(leagueId)
     if (sessionsRes.success && sessionsRes.data) {
       const sessions = sessionsRes.data as Session[]
       const active = sessions.find(s => s.status === 'ACTIVE')
       setActiveSession(active || null)
-
-      // Check if user is admin (we'll get this from the session API response or league API)
-      // For now, if they can access this page and there's an active session in PREMI, they're admin
-      if (active?.currentPhase === 'PREMI') {
-        setIsAdmin(true)
-      }
     }
 
     setIsLoading(false)
@@ -60,20 +61,15 @@ export function PrizePhasePage({ leagueId, onNavigate }: PrizePhasePageProps) {
     )
   }
 
-  if (!activeSession || activeSession.currentPhase !== 'PREMI') {
+  // Allow access during PREMI phase OR after (to view finalized prizes)
+  if (!activeSession) {
     return (
       <div className="min-h-screen bg-dark-300">
         <Navigation currentPage="prizes" leagueId={leagueId} isLeagueAdmin={true} onNavigate={onNavigate} />
         <div className="flex items-center justify-center h-[80vh]">
           <div className="text-center">
             <div className="text-5xl mb-4">🏆</div>
-            <p className="text-xl text-gray-400 mb-4">La fase premi non è attiva</p>
-            <p className="text-gray-500 mb-6">
-              {!activeSession
-                ? 'Nessuna sessione di mercato attiva'
-                : `Fase corrente: ${activeSession.currentPhase || 'Non impostata'}`
-              }
-            </p>
+            <p className="text-xl text-gray-400 mb-4">Nessuna sessione di mercato attiva</p>
             <button
               onClick={() => onNavigate('leagueDetail', { leagueId })}
               className="px-6 py-3 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors"
