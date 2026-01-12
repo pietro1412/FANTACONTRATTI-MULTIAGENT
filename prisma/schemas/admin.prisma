@@ -1,0 +1,28 @@
+// =============================================================================
+// admin.prisma - AuditLog
+// =============================================================================
+//
+// This file contains models for administration and audit logging.
+//
+// =============================================================================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])  // see: identity.prisma
+
+  leagueId    String?
+  league      League?  @relation(fields: [leagueId], references: [id])  // see: league.prisma
+
+  action      String
+  entityType  String?
+  entityId    String?
+  oldValues   Json?
+  newValues   Json?
+
+  ipAddress   String?
+  userAgent   String?
+
+  createdAt   DateTime @default(now())
+}

@@ -1,0 +1,28 @@
+// =============================================================================
+// identity.prisma - User Model
+// =============================================================================
+//
+// This file contains the User model for authentication and identity.
+//
+// =============================================================================
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  username      String   @unique
+  passwordHash  String
+  emailVerified Boolean  @default(false)
+  isSuperAdmin  Boolean  @default(false)  // Superadmin piattaforma (gestisce quotazioni)
+  profilePhoto  String?  // URL della foto profilo (base64 o path)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relazioni
+  leagueMemberships LeagueMember[]         // see: league.prisma
+  sentOffers        TradeOffer[]     @relation("OfferSender")   // see: trade.prisma
+  receivedOffers    TradeOffer[]     @relation("OfferReceiver") // see: trade.prisma
+  auctionBids       AuctionBid[]     // see: auction.prisma
+  auditLogs         AuditLog[]       // see: admin.prisma
+  sentInvites       LeagueInvite[]   // see: league.prisma
+  quotazioniUploads QuotazioniUpload[] // see: player.prisma
+}

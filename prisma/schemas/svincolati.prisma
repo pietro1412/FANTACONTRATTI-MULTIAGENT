@@ -1,0 +1,95 @@
+// =============================================================================
+// svincolati.prisma - Svincolati (Free Agents) Phase Models
+// =============================================================================
+//
+// This file documents the svincolati-related fields currently stored as JSON
+// in MarketSession, and provides the target normalized schema for future migration.
+//
+// =============================================================================
+
+// =============================================================================
+// CURRENT STATE (JSON fields in MarketSession - see: market-session.prisma)
+// =============================================================================
+//
+// The following fields in MarketSession store svincolati data as JSON:
+//
+// - svincolatiTurnOrder: Json?          // Array of leagueMemberId for turn order
+// - svincolatiCurrentTurnIndex: Int?    // Current turn index
+// - svincolatiState: String?            // Current state machine state
+// - svincolatiReadyMembers: Json?       // Array of ready member IDs
+// - svincolatiPassedMembers: Json?      // Array of members who passed
+// - svincolatiFinishedMembers: Json?    // Array of members who finished
+// - svincolatiPendingPlayerId: String?  // Nominated player waiting
+// - svincolatiPendingNominatorId: String? // Who nominated the player
+// - svincolatiNominatorConfirmed: Boolean // If nominator confirmed
+// - svincolatiPendingAck: Json?         // Pending acknowledgment data
+//
+// =============================================================================
+
+// =============================================================================
+// FUTURE NORMALIZED SCHEMA
+// =============================================================================
+//
+// TODO: In a future migration, the JSON fields above should be normalized
+// to the following tables. This will provide:
+// - Better query performance
+// - Referential integrity
+// - Type safety
+// - Easier debugging
+//
+// NOTE: The models below are commented out as they are not yet implemented.
+// Uncomment and migrate when ready to normalize.
+// =============================================================================
+
+// // Ordine turni svincolati
+// model SvincolatiTurnOrder {
+//   id              String   @id @default(cuid())
+//   sessionId       String
+//   session         MarketSession @relation(fields: [sessionId], references: [id])
+//   memberId        String
+//   member          LeagueMember @relation(fields: [memberId], references: [id])
+//   orderIndex      Int      // Position in turn order
+//   hasPassed       Boolean  @default(false)  // Member declared they don't want to call anymore
+//   hasFinished     Boolean  @default(false)  // Member declared they're completely done
+//
+//   @@unique([sessionId, memberId])
+//   @@unique([sessionId, orderIndex])
+//   @@index([sessionId, orderIndex])
+// }
+
+// // Nomination di giocatore svincolato
+// model SvincolatiNomination {
+//   id              String   @id @default(cuid())
+//   sessionId       String
+//   session         MarketSession @relation(fields: [sessionId], references: [id])
+//   playerId        String
+//   player          SerieAPlayer @relation(fields: [playerId], references: [id])
+//   nominatorId     String
+//   nominator       LeagueMember @relation(fields: [nominatorId], references: [id])
+//   nominatedAt     DateTime @default(now())
+//   status          SvincolatiNominationStatus @default(PENDING_CONFIRMATION)
+//   auctionId       String?  // Link to resulting Auction if any
+//   auction         Auction? @relation(fields: [auctionId], references: [id])
+//
+//   @@index([sessionId, status])
+//   @@index([nominatorId])
+// }
+//
+// enum SvincolatiNominationStatus {
+//   PENDING_CONFIRMATION  // Waiting for nominator to confirm
+//   CONFIRMED             // Nominator confirmed, waiting for ready check
+//   AUCTION_STARTED       // Auction is active
+//   COMPLETED             // Auction completed (won or no bids)
+//   CANCELLED             // Nomination cancelled
+// }
+
+// // Stato ready dei manager per svincolati
+// model SvincolatiReadyStatus {
+//   id              String   @id @default(cuid())
+//   sessionId       String
+//   memberId        String
+//   isReady         Boolean  @default(false)
+//   readyAt         DateTime?
+//
+//   @@unique([sessionId, memberId])
+// }

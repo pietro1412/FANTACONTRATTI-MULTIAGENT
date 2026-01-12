@@ -1,0 +1,82 @@
+// =============================================================================
+// roster.prisma - PlayerRoster, PlayerContract, DraftContract
+// =============================================================================
+//
+// This file contains models for player rosters and contracts.
+//
+// =============================================================================
+
+model PlayerRoster {
+  id              String   @id @default(cuid())
+
+  leagueMemberId  String
+  leagueMember    LeagueMember @relation(fields: [leagueMemberId], references: [id])  // see: league.prisma
+
+  playerId        String
+  player          SerieAPlayer @relation(fields: [playerId], references: [id])  // see: player.prisma
+
+  acquisitionPrice Int
+  acquisitionType  AcquisitionType  // see: _base.prisma
+
+  status          RosterStatus @default(ACTIVE)  // see: _base.prisma
+  acquiredAt      DateTime     @default(now())
+  releasedAt      DateTime?
+
+  // Relazioni
+  contract        PlayerContract?
+  draftContract   DraftContract?
+
+  @@unique([leagueMemberId, playerId, status])
+  @@index([leagueMemberId, status])
+  @@index([playerId])
+}
+
+model PlayerContract {
+  id              String   @id @default(cuid())
+
+  rosterId        String   @unique
+  roster          PlayerRoster @relation(fields: [rosterId], references: [id])
+
+  leagueMemberId  String
+  leagueMember    LeagueMember @relation(fields: [leagueMemberId], references: [id])  // see: league.prisma
+
+  // Parametri contratto
+  salary          Int      // Ingaggio
+  duration        Int      // Durata (1-4 semestri)
+  initialSalary   Int      // Per validazione rinnovi
+  initialDuration Int      // Per validazione rinnovi
+
+  // Calcolato
+  rescissionClause Int     // salary * multiplier
+
+  // Bozza rinnovo (staging area)
+  draftSalary     Int?     // Nuovo ingaggio proposto
+  draftDuration   Int?     // Nuova durata proposta
+  draftReleased   Boolean  @default(false)  // Marcato per taglio (pending)
+
+  signedAt        DateTime @default(now())
+  expiresAt       DateTime?
+
+  // Storico rinnovi
+  renewalHistory  Json?    // [{salary, duration, renewedAt}]
+}
+
+// Bozza per nuovi contratti (giocatori senza contratto)
+model DraftContract {
+  id              String   @id @default(cuid())
+
+  rosterId        String   @unique
+  roster          PlayerRoster @relation(fields: [rosterId], references: [id])
+
+  memberId        String
+  member          LeagueMember @relation(fields: [memberId], references: [id])  // see: league.prisma
+
+  sessionId       String
+  session         MarketSession @relation(fields: [sessionId], references: [id])  // see: market-session.prisma
+
+  salary          Int
+  duration        Int
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

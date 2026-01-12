@@ -1,0 +1,118 @@
+// =============================================================================
+// league.prisma - League, LeagueMember, LeagueInvite
+// =============================================================================
+//
+// This file contains models for league management and membership.
+//
+// =============================================================================
+
+model League {
+  id               String   @id @default(cuid())
+  name             String
+  description      String?
+
+  // Vincoli partecipanti
+  minParticipants  Int      @default(6)
+  maxParticipants  Int      @default(20)
+  requireEvenNumber Boolean @default(true)
+
+  initialBudget    Int      @default(500)
+
+  // Slot rosa
+  goalkeeperSlots  Int      @default(3)
+  defenderSlots    Int      @default(8)
+  midfielderSlots  Int      @default(8)
+  forwardSlots     Int      @default(6)
+
+  // Stato
+  status           LeagueStatus @default(DRAFT)  // see: _base.prisma
+  currentSeason    Int          @default(1)
+
+  // Codice invito
+  inviteCode       String   @unique @default(cuid())
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relazioni
+  members          LeagueMember[]
+  marketSessions   MarketSession[]    // see: market-session.prisma
+  auctions         Auction[]          // see: auction.prisma
+  auditLogs        AuditLog[]         // see: admin.prisma
+  invites          LeagueInvite[]
+  playerMovements  PlayerMovement[]   // see: movement.prisma
+  prophecies       Prophecy[]         // see: movement.prisma
+  prizes           Prize[]            // see: prize.prisma
+}
+
+model LeagueMember {
+  id          String   @id @default(cuid())
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])  // see: identity.prisma
+
+  leagueId    String
+  league      League   @relation(fields: [leagueId], references: [id])
+
+  role        MemberRole @default(MANAGER)    // see: _base.prisma
+  teamName    String?
+  status      MemberStatus @default(PENDING)  // see: _base.prisma
+
+  // Come e entrato nella lega
+  joinType    JoinType @default(REQUEST)      // see: _base.prisma
+
+  // Budget
+  currentBudget Int    @default(0)
+
+  // Ordine Rubata (impostato da admin)
+  rubataOrder   Int?
+
+  // Ordine turno primo mercato (impostato da admin)
+  firstMarketOrder Int?
+
+  joinedAt    DateTime @default(now())
+
+  // Relazioni
+  roster      PlayerRoster[]                 // see: roster.prisma
+  contracts   PlayerContract[]               // see: roster.prisma
+  draftContracts DraftContract[]             // see: roster.prisma
+  wonAuctions Auction[]        @relation("AuctionWinner")  // see: auction.prisma
+  bids        AuctionBid[]                   // see: auction.prisma
+  movementsFrom PlayerMovement[] @relation("MovementFrom") // see: movement.prisma
+  movementsTo   PlayerMovement[] @relation("MovementTo")   // see: movement.prisma
+  prophecies    Prophecy[]                   // see: movement.prisma
+  auctionAcknowledgments AuctionAcknowledgment[]  // see: auction.prisma
+  contractConsolidations ContractConsolidation[]  // see: market-session.prisma
+  prizesReceived Prize[]                     // see: prize.prisma
+  prizesGiven    Prize[] @relation("PrizeAdmin")  // see: prize.prisma
+  appeals        AuctionAppeal[]             // see: auction.prisma
+  appealsResolved AuctionAppeal[] @relation("AppealResolver")  // see: auction.prisma
+  chatMessages   ChatMessage[]               // see: chat.prisma
+  sessionPrizes  SessionPrize[]              // see: prize.prisma
+
+  @@unique([userId, leagueId])
+  @@index([leagueId, status])
+  @@index([userId])
+}
+
+model LeagueInvite {
+  id          String   @id @default(cuid())
+
+  leagueId    String
+  league      League   @relation(fields: [leagueId], references: [id])
+
+  email       String
+  token       String   @unique
+
+  invitedBy   String
+  inviter     User     @relation(fields: [invitedBy], references: [id])  // see: identity.prisma
+
+  status      InviteStatus @default(PENDING)  // see: _base.prisma
+
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+
+  createdAt   DateTime @default(now())
+
+  @@unique([leagueId, email])
+}
