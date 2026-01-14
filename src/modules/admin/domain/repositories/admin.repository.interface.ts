@@ -97,7 +97,14 @@ export interface IAdminRepository {
    * @param sessionId - The session ID
    * @returns Session with league ID
    */
-  getSessionWithLeague(sessionId: string): Promise<{ id: string; leagueId: string; status: string } | null>
+  getSessionWithLeague(sessionId: string): Promise<{ id: string; leagueId: string; status: string; currentPhase: string | null } | null>
+
+  /**
+   * Check if prize phase is finalized for a session
+   * @param sessionId - The session ID
+   * @returns true if finalized, false otherwise
+   */
+  isPrizePhaseFinalized(sessionId: string): Promise<boolean>
 
   /**
    * Import players from data

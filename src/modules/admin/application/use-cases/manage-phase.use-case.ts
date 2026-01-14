@@ -67,6 +67,14 @@ export class ManagePhaseUseCase {
     const sessionStats = await this.adminRepository.getSessionStatistics(dto.sessionId)
     const previousPhase = sessionStats?.session.currentPhase || null
 
+    // Validation: Cannot go from PREMI to CONTRATTI without finalizing prizes
+    if (previousPhase === 'PREMI' && dto.newPhase === 'CONTRATTI') {
+      const isPrizeFinalized = await this.adminRepository.isPrizePhaseFinalized(dto.sessionId)
+      if (!isPrizeFinalized) {
+        return fail(new ValidationError('Devi prima consolidare i premi prima di passare alla fase Contratti. Clicca su "Conferma Premi" nella sezione Premi.'))
+      }
+    }
+
     // Update phase
     const success = await this.adminRepository.updateMarketPhase(dto.sessionId, dto.newPhase)
     if (!success) {

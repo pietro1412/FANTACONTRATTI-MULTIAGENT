@@ -189,16 +189,28 @@ export class AdminPrismaRepository implements IAdminRepository {
   /**
    * Get session by ID with league info
    */
-  async getSessionWithLeague(sessionId: string): Promise<{ id: string; leagueId: string; status: string } | null> {
+  async getSessionWithLeague(sessionId: string): Promise<{ id: string; leagueId: string; status: string; currentPhase: string | null } | null> {
     const session = await prisma.marketSession.findUnique({
       where: { id: sessionId },
       select: {
         id: true,
         leagueId: true,
         status: true,
+        currentPhase: true,
       },
     })
     return session
+  }
+
+  /**
+   * Check if prize phase is finalized for a session
+   */
+  async isPrizePhaseFinalized(sessionId: string): Promise<boolean> {
+    const config = await prisma.prizePhaseConfig.findUnique({
+      where: { marketSessionId: sessionId },
+      select: { isFinalized: true },
+    })
+    return config?.isFinalized ?? false
   }
 
   /**
