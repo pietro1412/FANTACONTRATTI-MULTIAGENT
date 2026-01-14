@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { rubataApi, leagueApi, auctionApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
@@ -82,21 +82,48 @@ interface AuctionReadyInfo {
   basePrice: number
 }
 
+interface RubataPreference {
+  id: string
+  playerId: string
+  isWatchlist: boolean
+  isAutoPass: boolean
+  maxBid: number | null
+  priority: number | null
+  notes: string | null
+}
+
+interface BoardPlayerWithPreference extends BoardPlayer {
+  preference?: RubataPreference | null
+}
+
 interface BoardData {
   isRubataPhase: boolean
   board: BoardPlayer[] | null
   currentIndex: number | null
   currentPlayer: BoardPlayer | null
   totalPlayers: number
-  rubataState: 'WAITING' | 'READY_CHECK' | 'OFFERING' | 'AUCTION_READY_CHECK' | 'AUCTION' | 'PENDING_ACK' | 'PAUSED' | 'COMPLETED' | null
+  rubataState: 'WAITING' | 'PREVIEW' | 'READY_CHECK' | 'OFFERING' | 'AUCTION_READY_CHECK' | 'AUCTION' | 'PENDING_ACK' | 'PAUSED' | 'COMPLETED' | null
   remainingSeconds: number | null
   offerTimerSeconds: number
   auctionTimerSeconds: number
   activeAuction: ActiveAuction | null
   auctionReadyInfo: AuctionReadyInfo | null
+  // Pause info for resume ready check
+  pausedRemainingSeconds: number | null
+  pausedFromState: string | null
   sessionId: string | null
   myMemberId: string
   isAdmin: boolean
+}
+
+interface PreviewBoardData {
+  board: BoardPlayerWithPreference[]
+  totalPlayers: number
+  rubataState: string
+  isPreview: boolean
+  myMemberId: string
+  watchlistCount: number
+  autoPassCount: number
 }
 
 interface ReadyStatus {
@@ -136,6 +163,170 @@ const POSITION_COLORS: Record<string, string> = {
   D: 'bg-green-500/20 text-green-400 border-green-500/30',
   C: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   A: 'bg-red-500/20 text-red-400 border-red-500/30',
+}
+
+// Componente modale preferenze separato per evitare re-render del componente principale
+interface PreferenceModalProps {
+  player: BoardPlayerWithPreference
+  onClose: () => void
+  onSave: (data: { maxBid: number | null; priority: number | null; notes: string | null }) => Promise<void>
+  onDelete: () => Promise<void>
+  isSubmitting: boolean
+}
+
+function PreferenceModal({ player, onClose, onSave, onDelete, isSubmitting }: PreferenceModalProps) {
+  const [formData, setFormData] = useState({
+    maxBid: player.preference?.maxBid?.toString() || '',
+    priority: player.preference?.priority?.toString() || '',
+    notes: player.preference?.notes || '',
+  })
+
+  const handleSave = async () => {
+    await onSave({
+      maxBid: formData.maxBid ? parseInt(formData.maxBid) : null,
+      priority: formData.priority ? parseInt(formData.priority) : null,
+      notes: formData.notes || null,
+    })
+  }
+
+  // Controlla se c'è almeno una strategia impostata
+  const hasStrategy = formData.maxBid || formData.priority || formData.notes
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-surface-200 rounded-2xl p-6 max-w-md w-full shadow-2xl border border-indigo-500/50">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-white rounded p-1">
+            <TeamLogo team={player.playerTeam} />
+          </div>
+          <div>
+            <h3 className="font-bold text-white">{player.playerName}</h3>
+            <p className="text-sm text-gray-400">{player.playerTeam} • {player.rubataPrice}M</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="ml-auto w-8 h-8 rounded-full bg-surface-300 text-gray-400 hover:bg-surface-50/20 flex items-center justify-center"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Form */}
+        <div className="space-y-4">
+          {/* Max bid with +/- buttons */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Budget massimo</label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setFormData(p => ({
+                  ...p,
+                  maxBid: String(Math.max(0, (parseInt(p.maxBid) || 0) - 5))
+                }))}
+                disabled={!formData.maxBid || parseInt(formData.maxBid) <= 0}
+                className="w-10 h-10 rounded-lg bg-surface-300 border border-surface-50/30 text-white text-xl font-bold hover:bg-surface-50/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                −
+              </button>
+              <div className="flex-1 text-center">
+                <input
+                  type="number"
+                  value={formData.maxBid}
+                  onChange={e => setFormData(p => ({ ...p, maxBid: e.target.value }))}
+                  placeholder="—"
+                  className="w-full text-center text-2xl font-bold bg-transparent text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <p className="text-xs text-gray-500">milioni</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData(p => ({
+                  ...p,
+                  maxBid: String((parseInt(p.maxBid) || 0) + 5)
+                }))}
+                className="w-10 h-10 rounded-lg bg-surface-300 border border-surface-50/30 text-white text-xl font-bold hover:bg-surface-50/20 transition-all"
+              >
+                +
+              </button>
+            </div>
+            {formData.maxBid && (
+              <button
+                type="button"
+                onClick={() => setFormData(p => ({ ...p, maxBid: '' }))}
+                className="mt-1 text-xs text-gray-500 hover:text-gray-400"
+              >
+                Rimuovi limite
+              </button>
+            )}
+          </div>
+
+          {/* Priority with star rating */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Priorità</label>
+            <div className="flex items-center justify-center gap-1">
+              {[1, 2, 3, 4, 5].map(star => {
+                const currentPriority = parseInt(formData.priority) || 0
+                const isActive = star <= currentPriority
+                return (
+                  <button
+                    type="button"
+                    key={star}
+                    onClick={() => setFormData(p => ({
+                      ...p,
+                      priority: p.priority === String(star) ? '' : String(star)
+                    }))}
+                    className={`w-10 h-10 text-2xl transition-all transform hover:scale-110 ${
+                      isActive ? 'text-purple-400' : 'text-gray-600 hover:text-purple-400/50'
+                    }`}
+                    title={`Priorità ${star}`}
+                  >
+                    {isActive ? '★' : '☆'}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-center text-xs text-gray-500 mt-1">
+              {formData.priority ? `Priorità ${formData.priority} (clicca per rimuovere)` : 'Clicca per impostare'}
+            </p>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Note private</label>
+            <textarea
+              value={formData.notes}
+              onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))}
+              placeholder="Appunti personali..."
+              rows={3}
+              className="w-full px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white placeholder-gray-500 focus:border-indigo-500/50 focus:outline-none resize-none"
+            />
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2 mt-6">
+          {player.preference && (
+            <Button
+              onClick={onDelete}
+              disabled={isSubmitting}
+              variant="outline"
+              className="border-danger-500/50 text-danger-400 hover:bg-danger-500/10"
+            >
+              Rimuovi
+            </Button>
+          )}
+          <Button onClick={onClose} variant="outline" className="flex-1">
+            Annulla
+          </Button>
+          <Button onClick={handleSave} disabled={isSubmitting} className="flex-1">
+            Salva
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export function Rubata({ leagueId, onNavigate }: RubataProps) {
@@ -199,6 +390,10 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   // Drag and drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+
+  // Preview mode state
+  const [previewBoard, setPreviewBoard] = useState<PreviewBoardData | null>(null)
+  const [selectedPlayerForPrefs, setSelectedPlayerForPrefs] = useState<BoardPlayerWithPreference | null>(null)
 
   // Ref for current player row/card to scroll into view
   const currentPlayerRef = useRef<HTMLElement>(null)
@@ -572,20 +767,6 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     setIsSubmitting(false)
   }
 
-  async function handleUpdateTimers() {
-    setError('')
-    setIsSubmitting(true)
-
-    const res = await rubataApi.updateTimers(leagueId, offerTimer, auctionTimer)
-    if (res.success) {
-      setSuccess('Timer aggiornati!')
-      loadData()
-    } else {
-      setError(res.message || 'Errore')
-    }
-    setIsSubmitting(false)
-  }
-
   async function handleCloseAuction() {
     setError('')
     setIsSubmitting(true)
@@ -893,6 +1074,97 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     setIsSubmitting(false)
   }
 
+  // ========== Preview Mode ==========
+
+  async function loadPreviewBoard() {
+    const res = await rubataApi.getPreviewBoard(leagueId)
+    if (res.success && res.data) {
+      setPreviewBoard(res.data as PreviewBoardData)
+    }
+  }
+
+  async function handleSetToPreview() {
+    setError('')
+    setIsSubmitting(true)
+
+    const res = await rubataApi.setToPreview(leagueId)
+    if (res.success) {
+      setSuccess('Tabellone in modalità preview!')
+      loadData()
+      loadPreviewBoard()
+    } else {
+      setError(res.message || 'Errore')
+    }
+    setIsSubmitting(false)
+  }
+
+  function openPrefsModal(player: BoardPlayerWithPreference) {
+    setSelectedPlayerForPrefs(player)
+  }
+
+  function closePrefsModal() {
+    setSelectedPlayerForPrefs(null)
+  }
+
+  async function handleSavePreference(data: { maxBid: number | null; priority: number | null; notes: string | null }) {
+    if (!selectedPlayerForPrefs) return
+    setError('')
+    setIsSubmitting(true)
+
+    // isWatchlist è derivato automaticamente: true se c'è almeno una strategia
+    const hasStrategy = data.maxBid !== null || data.priority !== null || !!(data.notes && data.notes.trim() !== '')
+    const res = await rubataApi.setPreference(leagueId, selectedPlayerForPrefs.playerId, {
+      ...data,
+      isWatchlist: hasStrategy,
+      isAutoPass: false, // Non più usato
+    })
+
+    if (res.success) {
+      setSuccess('Preferenza salvata!')
+      loadPreviewBoard()
+      closePrefsModal()
+    } else {
+      setError(res.message || 'Errore')
+    }
+    setIsSubmitting(false)
+  }
+
+  async function handleDeletePreference() {
+    if (!selectedPlayerForPrefs) return
+    setError('')
+    setIsSubmitting(true)
+
+    const res = await rubataApi.deletePreference(leagueId, selectedPlayerForPrefs.playerId)
+    if (res.success) {
+      setSuccess('Preferenza rimossa!')
+      loadPreviewBoard()
+      closePrefsModal()
+    } else {
+      setError(res.message || 'Errore')
+    }
+    setIsSubmitting(false)
+  }
+
+  // Load preferences whenever there's a board (for all states)
+  useEffect(() => {
+    if (boardData?.isRubataPhase && boardData?.board && boardData.board.length > 0) {
+      loadPreviewBoard()
+    }
+  }, [boardData?.isRubataPhase, boardData?.board?.length])
+
+  // Create a map of preferences by playerId for quick lookup (memoized)
+  const preferencesMap = useMemo(() => {
+    const map = new Map<string, RubataPreference>()
+    if (previewBoard?.board) {
+      previewBoard.board.forEach(p => {
+        if (p.preference) {
+          map.set(p.playerId, p.preference)
+        }
+      })
+    }
+    return map
+  }, [previewBoard?.board])
+
   // ========== Drag & Drop ==========
 
   function moveInOrder(index: number, direction: 'up' | 'down') {
@@ -973,6 +1245,18 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   const activeAuction = boardData?.activeAuction
   const myMemberId = boardData?.myMemberId
   const canMakeOffer = rubataState === 'OFFERING' && currentPlayer && currentPlayer.memberId !== myMemberId
+
+  // Get preference for current player
+  const currentPlayerPreference = currentPlayer ? preferencesMap.get(currentPlayer.playerId) : null
+
+  // Check if preferences can be edited (before auction starts or when paused)
+  // Allowed: null (before start), WAITING, PREVIEW, READY_CHECK, PAUSED, AUCTION_READY_CHECK
+  const canEditPreferences = !rubataState ||
+    rubataState === 'WAITING' ||
+    rubataState === 'PREVIEW' ||
+    rubataState === 'READY_CHECK' ||
+    rubataState === 'PAUSED' ||
+    rubataState === 'AUCTION_READY_CHECK'
 
   return (
     <div className="min-h-screen bg-dark-300">
@@ -1849,6 +2133,25 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                           <p className="text-2xl font-bold text-primary-400">{currentPlayer.rubataPrice}M</p>
                           <p className="text-xs text-gray-500">prezzo rubata</p>
                         </div>
+                        {/* My strategy indicator for current player */}
+                        {currentPlayerPreference && currentPlayer.memberId !== myMemberId && (
+                          <div className="ml-4 px-3 py-2 bg-indigo-500/20 border border-indigo-500/40 rounded-lg">
+                            <p className="text-[10px] text-indigo-300 uppercase mb-1">La tua strategia</p>
+                            <div className="flex items-center gap-2 text-sm">
+                              {currentPlayerPreference.isWatchlist && <span title="Watchlist">⭐</span>}
+                              {currentPlayerPreference.isAutoPass && <span title="Auto-pass">🚫</span>}
+                              {currentPlayerPreference.priority && (
+                                <span className="text-purple-400">{'★'.repeat(currentPlayerPreference.priority)}</span>
+                              )}
+                              {currentPlayerPreference.maxBid && (
+                                <span className="text-blue-400">Max: {currentPlayerPreference.maxBid}M</span>
+                              )}
+                              {currentPlayerPreference.notes && (
+                                <span className="text-gray-400 truncate max-w-[100px]" title={currentPlayerPreference.notes}>📝</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </>
                     ) : (
                       <p className="text-gray-400">Nessun giocatore in esame</p>
@@ -1872,6 +2175,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     <div className="text-center">
                       <span className={`px-4 py-2 rounded-full font-bold text-sm ${
                         rubataState === 'READY_CHECK' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' :
+                        rubataState === 'PREVIEW' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40' :
                         rubataState === 'OFFERING' ? 'bg-warning-500/20 text-warning-400 border border-warning-500/40' :
                         rubataState === 'AUCTION_READY_CHECK' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40 animate-pulse' :
                         rubataState === 'AUCTION' ? 'bg-danger-500/20 text-danger-400 border border-danger-500/40 animate-pulse' :
@@ -1882,6 +2186,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         'bg-surface-300 text-gray-400'
                       }`}>
                         {rubataState === 'READY_CHECK' ? '🔔 PRONTI?' :
+                         rubataState === 'PREVIEW' ? '👁️ PREVIEW' :
                          rubataState === 'OFFERING' ? '⏳ OFFERTA' :
                          rubataState === 'AUCTION_READY_CHECK' ? '🎯 RUBATA!' :
                          rubataState === 'AUCTION' ? '🔥 ASTA' :
@@ -1901,14 +2206,14 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 {/* Admin Controls */}
                 {isAdmin && (
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {rubataState === 'WAITING' && (
+                    {(rubataState === 'WAITING' || rubataState === 'PREVIEW') && (
                       <Button onClick={handleStartRubata} disabled={isSubmitting}>
                         ▶️ Avvia Rubata
                       </Button>
                     )}
                     {rubataState === 'PAUSED' && (
                       <Button onClick={handleResume} disabled={isSubmitting}>
-                        ▶️ Riprendi
+                        🔔 Richiedi Pronti per Riprendere
                       </Button>
                     )}
                     {(rubataState === 'OFFERING' || rubataState === 'AUCTION') && (
@@ -1942,8 +2247,53 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     </Button>
                   </div>
                 )}
+
+                {/* Strategy Info - Inline section below "Voglio Rubare" */}
+                {currentPlayer && currentPlayerPreference &&
+                 currentPlayer.memberId !== myMemberId &&
+                 (currentPlayerPreference.maxBid || currentPlayerPreference.priority || currentPlayerPreference.notes) && (
+                  <div className="mt-4 bg-gradient-to-r from-indigo-900/50 to-purple-900/50 rounded-xl border border-indigo-500/40 overflow-hidden">
+                    <div className="p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-lg">🎯</span>
+                        <span className="font-bold text-indigo-300 text-sm">LA TUA STRATEGIA</span>
+                      </div>
+                      <div className="flex flex-wrap gap-3 items-center">
+                        {currentPlayerPreference.maxBid && (
+                          <div className="bg-black/20 rounded-lg px-3 py-1.5">
+                            <span className="text-[10px] text-indigo-300 uppercase mr-1">Max:</span>
+                            <span className="font-bold text-blue-400">{currentPlayerPreference.maxBid}M</span>
+                          </div>
+                        )}
+                        {currentPlayerPreference.priority && (
+                          <div className="bg-black/20 rounded-lg px-3 py-1.5">
+                            <span className="text-[10px] text-indigo-300 uppercase mr-1">Priorita:</span>
+                            <span className="text-purple-400">{'★'.repeat(currentPlayerPreference.priority)}</span>
+                          </div>
+                        )}
+                        {currentPlayerPreference.notes && (
+                          <div className="bg-black/20 rounded-lg px-3 py-1.5 flex-1 min-w-0">
+                            <span className="text-[10px] text-indigo-300 uppercase mr-1">Note:</span>
+                            <span className="text-gray-300 text-sm">{currentPlayerPreference.notes}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Preference Edit Modal - componente separato per evitare re-render */}
+            {selectedPlayerForPrefs && (
+              <PreferenceModal
+                player={selectedPlayerForPrefs}
+                onClose={closePrefsModal}
+                onSave={handleSavePreference}
+                onDelete={handleDeletePreference}
+                isSubmitting={isSubmitting}
+              />
+            )}
 
             {/* Ready Check Panel - With pending members list */}
             {rubataState === 'READY_CHECK' && readyStatus && (
@@ -1990,6 +2340,75 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* PAUSED State Panel - Ready check to resume */}
+            {rubataState === 'PAUSED' && readyStatus && (
+              <div className="mb-4 bg-surface-200 rounded-xl border border-gray-500/50 p-4">
+                <div className="flex items-center justify-between gap-4 flex-wrap mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">⏸️</span>
+                    <div>
+                      <span className="font-bold text-gray-300">IN PAUSA</span>
+                      {boardData?.pausedRemainingSeconds !== null && boardData.pausedRemainingSeconds !== undefined && (
+                        <span className="text-yellow-400 text-sm ml-2">
+                          ({boardData.pausedRemainingSeconds}s rimanenti - {boardData.pausedFromState === 'AUCTION' ? 'Asta' : 'Offerta'})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ready check for resume */}
+                <div className="bg-surface-300/50 rounded-lg p-3 mb-3">
+                  <div className="flex items-center justify-between gap-4 flex-wrap mb-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">🔔</span>
+                      <div>
+                        <span className="font-medium text-blue-400">Pronti a riprendere?</span>
+                        <span className="text-gray-400 text-sm ml-2">{readyStatus.readyCount}/{readyStatus.totalMembers}</span>
+                      </div>
+                      <div className="w-24 h-2 bg-surface-300 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 transition-all"
+                          style={{ width: `${(readyStatus.readyCount / readyStatus.totalMembers) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {!readyStatus.userIsReady ? (
+                        <Button onClick={handleSetReady} disabled={isSubmitting} size="sm">
+                          ✅ Sono Pronto
+                        </Button>
+                      ) : (
+                        <span className="px-3 py-1 bg-secondary-500/20 border border-secondary-500/40 rounded-lg text-secondary-400 text-sm">
+                          ✓ Pronto
+                        </span>
+                      )}
+                      {isAdmin && (
+                        <Button onClick={handleForceAllReady} disabled={isSubmitting} variant="outline" size="sm" className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
+                          🤖 Forza Tutti Pronti
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  {/* Pending members list */}
+                  {readyStatus.pendingMembers.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap text-sm">
+                      <span className="text-gray-500">In attesa:</span>
+                      {readyStatus.pendingMembers.map((member, idx) => (
+                        <span key={member.id} className="px-2 py-0.5 bg-warning-500/20 text-warning-400 rounded text-xs">
+                          {member.username}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-gray-400 text-xs text-center">
+                  L'admin ha messo in pausa la rubata. Tutti i manager devono confermare di essere pronti per riprendere.
+                </p>
               </div>
             )}
 
@@ -2108,13 +2527,14 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   <thead className="sticky top-0 z-10">
                     <tr className="bg-surface-300 text-sm text-gray-400 uppercase">
                       <th className="text-left p-2 w-10">#</th>
-                      <th className="text-left p-2 w-[22%]">Giocatore</th>
-                      <th className="text-left p-2 w-[14%]">Proprietario</th>
-                      <th className="text-center p-2 w-[10%]">Ing.</th>
-                      <th className="text-center p-2 w-[8%]">Dur.</th>
-                      <th className="text-center p-2 w-[10%]">Claus.</th>
-                      <th className="text-center p-2 w-[10%]">Rubata</th>
-                      <th className="text-center p-2">Nuovo Prop.</th>
+                      <th className="text-left p-2 w-[20%]">Giocatore</th>
+                      <th className="text-left p-2 w-[12%]">Proprietario</th>
+                      <th className="text-center p-2 w-[8%]">Ing.</th>
+                      <th className="text-center p-2 w-[6%]">Dur.</th>
+                      <th className="text-center p-2 w-[8%]">Claus.</th>
+                      <th className="text-center p-2 w-[8%]">Rubata</th>
+                      <th className="text-center p-2 w-[12%]">Nuovo Prop.</th>
+                      <th className="text-center p-2 w-[14%]">Strategia</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2200,6 +2620,45 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             ) : (
                               <span className="text-gray-600">—</span>
                             )}
+                          </td>
+                          <td className="p-2 text-center">
+                            {(() => {
+                              const pref = preferencesMap.get(player.playerId)
+                              const isMyPlayer = player.memberId === myMemberId
+                              if (isMyPlayer) return <span className="text-gray-600 text-xs">Mio</span>
+                              const hasStrategy = pref?.priority || pref?.maxBid || pref?.notes
+                              return (
+                                <div className="flex items-center justify-center gap-1">
+                                  {/* Strategy indicators */}
+                                  {pref?.priority && (
+                                    <span className="text-purple-400 text-[10px]" title={`Priorità ${pref.priority}`}>
+                                      {'★'.repeat(pref.priority)}
+                                    </span>
+                                  )}
+                                  {pref?.maxBid && (
+                                    <span className="text-blue-400 text-[10px]" title={`Max ${pref.maxBid}M`}>
+                                      {pref.maxBid}M
+                                    </span>
+                                  )}
+                                  {pref?.notes && !pref.priority && !pref.maxBid && (
+                                    <span className="text-gray-400 text-xs" title={pref.notes}>📝</span>
+                                  )}
+                                  {/* Edit button */}
+                                  {canEditPreferences && (
+                                    <button
+                                      type="button"
+                                      onClick={() => openPrefsModal({ ...player, preference: pref || null })}
+                                      className={`w-6 h-6 rounded flex items-center justify-center text-xs transition-all ${
+                                        hasStrategy ? 'bg-indigo-500/30 text-indigo-400' : 'bg-surface-50/20 text-gray-500 hover:bg-indigo-500/20'
+                                      }`}
+                                      title="Imposta strategia"
+                                    >
+                                      ⚙️
+                                    </button>
+                                  )}
+                                </div>
+                              )
+                            })()}
                           </td>
                         </tr>
                       )
@@ -2313,6 +2772,44 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                           ✓ Non rubato
                         </div>
                       )}
+
+                      {/* Strategia - Mobile */}
+                      {(() => {
+                        const pref = preferencesMap.get(player.playerId)
+                        const isMyPlayer = player.memberId === myMemberId
+                        if (isMyPlayer || isPassed) return null
+                        return (
+                          <div className="mt-2 pt-2 border-t border-surface-50/20">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {pref?.priority && (
+                                  <span className="text-purple-400 text-xs">{'★'.repeat(pref.priority)}</span>
+                                )}
+                                {pref?.maxBid && (
+                                  <span className="text-blue-400 text-xs">Max: {pref.maxBid}M</span>
+                                )}
+                                {pref?.notes && (
+                                  <span className="text-gray-400 text-xs" title={pref.notes}>📝</span>
+                                )}
+                                {!pref?.priority && !pref?.maxBid && !pref?.notes && (
+                                  <span className="text-gray-500 text-xs">Nessuna strategia</span>
+                                )}
+                              </div>
+                              {canEditPreferences && (
+                                <button
+                                  type="button"
+                                  onClick={() => openPrefsModal({ ...player, preference: pref || null })}
+                                  className={`px-2 py-1 rounded text-xs transition-all ${
+                                    (pref?.priority || pref?.maxBid || pref?.notes) ? 'bg-indigo-500/30 text-indigo-400' : 'bg-surface-50/20 text-gray-500'
+                                  }`}
+                                >
+                                  ⚙️ Strategia
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })()}
                     </div>
                   )
                 })}
@@ -2321,6 +2818,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             </div>
           </div>
         )}
+
 
         {/* Floating Chat - Bottom Right */}
         {isRubataPhase && isOrderSet && sessionId && (

@@ -673,6 +673,76 @@ export const rubataApi = {
       method: 'POST',
       body: JSON.stringify({ stealProbability }),
     }),
+
+  // ========== PREFERENCES (PREVIEW MODE) ==========
+
+  // Get my preferences
+  getPreferences: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/preferences`),
+
+  // Set preference for a player
+  setPreference: (leagueId: string, playerId: string, preference: {
+    isWatchlist?: boolean
+    isAutoPass?: boolean
+    maxBid?: number | null
+    priority?: number | null
+    notes?: string | null
+  }) =>
+    request(`/api/leagues/${leagueId}/rubata/preferences/${playerId}`, {
+      method: 'PUT',
+      body: JSON.stringify(preference),
+    }),
+
+  // Delete preference for a player
+  deletePreference: (leagueId: string, playerId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/preferences/${playerId}`, {
+      method: 'DELETE',
+    }),
+
+  // Get preview board with preferences
+  getPreviewBoard: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/preview`),
+
+  // Set rubata to preview mode (Admin)
+  setToPreview: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/preview`, { method: 'POST' }),
+
+  // Year-round strategies - Get all players with strategies
+  getAllPlayersForStrategies: (leagueId: string) =>
+    request<{
+      players: Array<{
+        rosterId: string
+        memberId: string
+        playerId: string
+        playerName: string
+        playerPosition: string
+        playerTeam: string
+        playerQuotation: number
+        ownerUsername: string
+        ownerTeamName: string | null
+        ownerRubataOrder: number | null
+        contractSalary: number
+        contractDuration: number
+        contractClause: number
+        rubataPrice: number
+        preference: {
+          id: string
+          playerId: string
+          memberId: string
+          maxBid: number | null
+          priority: number | null
+          notes: string | null
+          isWatchlist: boolean
+          isAutoPass: boolean
+        } | null
+      }>
+      myMemberId: string
+      hasRubataBoard: boolean
+      hasRubataOrder: boolean
+      rubataState: string | null
+      sessionId: string | null
+      totalPlayers: number
+    }>(`/api/leagues/${leagueId}/rubata/strategies`),
 }
 
 // Svincolati (Free Agents) API
@@ -1117,4 +1187,88 @@ export const prizePhaseApi = {
   // Finalize prize phase (Admin)
   finalize: (sessionId: string) =>
     request(`/api/sessions/${sessionId}/prizes/finalize`, { method: 'POST' }),
+
+  // Get prize history for league
+  getHistory: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/prizes/history`),
+}
+
+// History API (Storico Lega)
+export const historyApi = {
+  // Get sessions overview
+  getSessionsOverview: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/history/sessions`),
+
+  // Get session details
+  getSessionDetails: (leagueId: string, sessionId: string) =>
+    request(`/api/leagues/${leagueId}/history/sessions/${sessionId}`),
+
+  // Get first market history
+  getFirstMarketHistory: (leagueId: string, sessionId: string) =>
+    request(`/api/leagues/${leagueId}/history/sessions/${sessionId}/first-market`),
+
+  // Get session trades
+  getSessionTrades: (leagueId: string, sessionId: string, options?: {
+    status?: 'ALL' | 'ACCEPTED' | 'REJECTED' | 'PENDING' | 'COUNTERED'
+    limit?: number
+    offset?: number
+  }) => {
+    const params = new URLSearchParams()
+    if (options?.status) params.append('status', options.status)
+    if (options?.limit) params.append('limit', String(options.limit))
+    if (options?.offset) params.append('offset', String(options.offset))
+    const query = params.toString()
+    return request(`/api/leagues/${leagueId}/history/sessions/${sessionId}/trades${query ? `?${query}` : ''}`)
+  },
+
+  // Get session prizes
+  getSessionPrizes: (leagueId: string, sessionId: string) =>
+    request(`/api/leagues/${leagueId}/history/sessions/${sessionId}/prizes`),
+
+  // Get rubata history
+  getSessionRubata: (leagueId: string, sessionId: string) =>
+    request(`/api/leagues/${leagueId}/history/sessions/${sessionId}/rubata`),
+
+  // Get svincolati history
+  getSessionSvincolati: (leagueId: string, sessionId: string) =>
+    request(`/api/leagues/${leagueId}/history/sessions/${sessionId}/svincolati`),
+
+  // Get timeline events
+  getTimeline: (leagueId: string, options?: {
+    limit?: number
+    offset?: number
+    eventTypes?: string[]
+    sessionId?: string
+    playerId?: string
+    startDate?: string
+    endDate?: string
+  }) => {
+    const params = new URLSearchParams()
+    if (options?.limit) params.append('limit', String(options.limit))
+    if (options?.offset) params.append('offset', String(options.offset))
+    if (options?.eventTypes) params.append('eventTypes', options.eventTypes.join(','))
+    if (options?.sessionId) params.append('sessionId', options.sessionId)
+    if (options?.playerId) params.append('playerId', options.playerId)
+    if (options?.startDate) params.append('startDate', options.startDate)
+    if (options?.endDate) params.append('endDate', options.endDate)
+    const query = params.toString()
+    return request(`/api/leagues/${leagueId}/history/timeline${query ? `?${query}` : ''}`)
+  },
+
+  // Get player career
+  getPlayerCareer: (leagueId: string, playerId: string) =>
+    request(`/api/leagues/${leagueId}/history/players/${playerId}`),
+
+  // Search players for filter
+  searchPlayers: (leagueId: string, search?: string, options?: {
+    includeReleased?: boolean
+    limit?: number
+  }) => {
+    const params = new URLSearchParams()
+    if (search) params.append('search', search)
+    if (options?.includeReleased) params.append('includeReleased', 'true')
+    if (options?.limit) params.append('limit', String(options.limit))
+    const query = params.toString()
+    return request(`/api/leagues/${leagueId}/history/players/search${query ? `?${query}` : ''}`)
+  },
 }

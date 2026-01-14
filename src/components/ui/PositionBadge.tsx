@@ -1,4 +1,4 @@
-import { type HTMLAttributes } from 'react'
+import { type HTMLAttributes, type JSX } from 'react'
 
 type Position = 'P' | 'D' | 'C' | 'A'
 type BadgeSize = 'xs' | 'sm' | 'md' | 'lg'

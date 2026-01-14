@@ -7,16 +7,17 @@ import { CreateLeague } from './pages/CreateLeague'
 import { Profile } from './pages/Profile'
 import { LeagueDetail } from './pages/LeagueDetail'
 import { AuctionRoom } from './pages/AuctionRoom'
-import { Roster } from './pages/Roster'
-import { AllRosters } from './pages/AllRosters'
+import { Rose } from './pages/Rose'
 import { Contracts } from './pages/Contracts'
 import { Trades } from './pages/Trades'
 import { Rubata } from './pages/Rubata'
+import { StrategieRubata } from './pages/StrategieRubata'
 import { Svincolati } from './pages/Svincolati'
 import { AllPlayers } from './pages/AllPlayers'
 import { ManagerDashboard } from './pages/ManagerDashboard'
 import { AdminPanel } from './pages/AdminPanel'
 import { Movements } from './pages/Movements'
+import { History } from './pages/History'
 import { SuperAdmin } from './pages/SuperAdmin'
 import { PrizePhasePage } from './pages/PrizePhasePage'
 import LatencyTest from './pages/LatencyTest'
@@ -136,11 +137,15 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'profile': navigate('/profile'); break
       case 'leagueDetail': navigate(`/leagues/${lid}`); break
       case 'auction': navigate(`/leagues/${lid}/auction/${params?.sessionId}`); break
-      case 'roster': navigate(`/leagues/${lid}/roster`); break
-      case 'allRosters': navigate(`/leagues/${lid}/rosters`); break
+      case 'rose': navigate(`/leagues/${lid}/rose`); break
+      // Keep backward compatibility for old routes
+      case 'roster': navigate(`/leagues/${lid}/rose`); break
+      case 'allRosters':
+      case 'rosters': navigate(`/leagues/${lid}/rose`); break
       case 'contracts': navigate(`/leagues/${lid}/contracts`); break
       case 'trades': navigate(`/leagues/${lid}/trades`); break
       case 'rubata': navigate(`/leagues/${lid}/rubata`); break
+      case 'strategie-rubata': navigate(`/leagues/${lid}/strategie-rubata`); break
       case 'svincolati': navigate(`/leagues/${lid}/svincolati`); break
       case 'prizes': navigate(`/leagues/${lid}/prizes`); break
       case 'allPlayers': navigate(`/leagues/${lid}/players`); break
@@ -151,6 +156,7 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
         else navigate(`/leagues/${lid}/admin`)
         break
       case 'movements': navigate(`/leagues/${lid}/movements`); break
+      case 'history': navigate(`/leagues/${lid}/history`); break
       case 'superadmin':
         if (params?.tab) navigate(`/superadmin?tab=${params.tab}`)
         else navigate('/superadmin')
@@ -178,22 +184,13 @@ function AuctionRoomWrapper() {
   return <AuctionRoom sessionId={sessionId} leagueId={leagueId} onNavigate={onNavigate} />
 }
 
-function RosterWrapper() {
+function RoseWrapper() {
   const navigate = useNavigate()
   const { leagueId } = useParams<{ leagueId: string }>()
   const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
-  return <Roster leagueId={leagueId} onNavigate={onNavigate} />
-}
-
-function AllRostersWrapper() {
-  const navigate = useNavigate()
-  const { leagueId } = useParams<{ leagueId: string }>()
-  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
-
-  if (!leagueId) return <Navigate to="/dashboard" replace />
-  return <AllRosters leagueId={leagueId} onNavigate={onNavigate} />
+  return <Rose onNavigate={onNavigate} />
 }
 
 function ContractsWrapper() {
@@ -221,6 +218,15 @@ function RubataWrapper() {
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
   return <Rubata leagueId={leagueId} onNavigate={onNavigate} />
+}
+
+function StrategieRubataWrapper() {
+  const navigate = useNavigate()
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
+
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <StrategieRubata onNavigate={onNavigate} />
 }
 
 function SvincolatiWrapper() {
@@ -270,6 +276,15 @@ function MovementsWrapper() {
   return <Movements leagueId={leagueId} onNavigate={onNavigate} />
 }
 
+function HistoryWrapper() {
+  const navigate = useNavigate()
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
+
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <History leagueId={leagueId} onNavigate={onNavigate} />
+}
+
 function PrizePhasePageWrapper() {
   const navigate = useNavigate()
   const { leagueId } = useParams<{ leagueId: string }>()
@@ -309,16 +324,20 @@ function AppRoutes() {
       <Route path="/leagues/new" element={<ProtectedRoute><CreateLeagueWrapper /></ProtectedRoute>} />
       <Route path="/leagues/:leagueId" element={<ProtectedRoute><LeagueDetailWrapper /></ProtectedRoute>} />
       <Route path="/leagues/:leagueId/auction/:sessionId" element={<ProtectedRoute><AuctionRoomWrapper /></ProtectedRoute>} />
-      <Route path="/leagues/:leagueId/roster" element={<ProtectedRoute><RosterWrapper /></ProtectedRoute>} />
-      <Route path="/leagues/:leagueId/rosters" element={<ProtectedRoute><AllRostersWrapper /></ProtectedRoute>} />
+      <Route path="/leagues/:leagueId/rose" element={<ProtectedRoute><RoseWrapper /></ProtectedRoute>} />
+      {/* Backward compatibility redirects for old routes */}
+      <Route path="/leagues/:leagueId/roster" element={<Navigate to="../rose" replace />} />
+      <Route path="/leagues/:leagueId/rosters" element={<Navigate to="../rose" replace />} />
       <Route path="/leagues/:leagueId/contracts" element={<ProtectedRoute><ContractsWrapper /></ProtectedRoute>} />
       <Route path="/leagues/:leagueId/trades" element={<ProtectedRoute><TradesWrapper /></ProtectedRoute>} />
       <Route path="/leagues/:leagueId/rubata" element={<ProtectedRoute><RubataWrapper /></ProtectedRoute>} />
+      <Route path="/leagues/:leagueId/strategie-rubata" element={<ProtectedRoute><StrategieRubataWrapper /></ProtectedRoute>} />
       <Route path="/leagues/:leagueId/svincolati" element={<ProtectedRoute><SvincolatiWrapper /></ProtectedRoute>} />
       <Route path="/leagues/:leagueId/players" element={<ProtectedRoute><AllPlayersWrapper /></ProtectedRoute>} />
       <Route path="/leagues/:leagueId/manager" element={<ProtectedRoute><ManagerDashboardWrapper /></ProtectedRoute>} />
       <Route path="/leagues/:leagueId/admin" element={<ProtectedRoute><AdminPanelWrapper /></ProtectedRoute>} />
       <Route path="/leagues/:leagueId/movements" element={<ProtectedRoute><MovementsWrapper /></ProtectedRoute>} />
+      <Route path="/leagues/:leagueId/history" element={<ProtectedRoute><HistoryWrapper /></ProtectedRoute>} />
       <Route path="/leagues/:leagueId/prizes" element={<ProtectedRoute><PrizePhasePageWrapper /></ProtectedRoute>} />
 
       {/* Superadmin */}

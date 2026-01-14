@@ -8,9 +8,22 @@ interface CreateLeagueProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
 }
 
+interface FieldErrors {
+  name?: string
+  teamName?: string
+  description?: string
+  maxParticipants?: string
+  initialBudget?: string
+  goalkeeperSlots?: string
+  defenderSlots?: string
+  midfielderSlots?: string
+  forwardSlots?: string
+}
+
 export function CreateLeague({ onNavigate }: CreateLeagueProps) {
   const [name, setName] = useState('')
   const [teamName, setTeamName] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -44,6 +57,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
+    setFieldErrors({})
     setSuccess('')
     setIsLoading(true)
 
@@ -64,7 +78,24 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
       setSuccess('Lega creata con successo!')
       setInviteCode(data.inviteCode || '')
     } else {
-      setError(response.message || 'Errore durante la creazione')
+      // Parse validation errors from API response
+      if (response.errors && response.errors.length > 0) {
+        const newFieldErrors: FieldErrors = {}
+        response.errors.forEach(err => {
+          const field = err.path?.[0] as keyof FieldErrors
+          if (field && !newFieldErrors[field]) {
+            newFieldErrors[field] = err.message
+          }
+        })
+        setFieldErrors(newFieldErrors)
+
+        // If no field-specific errors, show generic message
+        if (Object.keys(newFieldErrors).length === 0) {
+          setError(response.message || 'Errore durante la creazione')
+        }
+      } else {
+        setError(response.message || 'Errore durante la creazione')
+      }
     }
 
     setIsLoading(false)
@@ -145,6 +176,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                     required
                     minLength={3}
                     maxLength={50}
+                    error={fieldErrors.name}
                   />
 
                   <Input
@@ -156,6 +188,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                     required
                     minLength={2}
                     maxLength={30}
+                    error={fieldErrors.teamName}
                   />
 
                   <div>
@@ -189,6 +222,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                         onChange={e => setMaxParticipants(Number(e.target.value))}
                         min={2}
                         max={20}
+                        error={fieldErrors.maxParticipants}
                       />
                     </div>
 
@@ -200,6 +234,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                         onChange={e => setInitialBudget(Number(e.target.value))}
                         min={100}
                         max={10000}
+                        error={fieldErrors.initialBudget}
                       />
                     </div>
                   </div>

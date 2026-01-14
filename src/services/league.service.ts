@@ -624,6 +624,7 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
       id: league.id,
       name: league.name,
       members: processedMembers,
+      currentUserId: userId,
       isAdmin: membership.role === MemberRole.ADMIN,
       inContrattiPhase: hideOthersContracts,
     },

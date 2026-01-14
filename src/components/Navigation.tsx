@@ -92,14 +92,14 @@ const MenuIcons = {
 }
 
 // League menu items configuration
-// Note: Contratti, Scambi, Rubata are phase-specific and accessible from Tutte le Rose or Dashboard when active
+// Note: Contratti, Scambi, Rubata are phase-specific and accessible from Rose or Dashboard when active
 const LEAGUE_MENU_ITEMS = [
   { key: 'leagueDetail', label: 'Dashboard', adminOnly: false, icon: 'dashboard' },
   { key: 'adminPanel', label: 'Admin', adminOnly: true, icon: 'admin' },
-  { key: 'roster', label: 'La Mia Rosa', adminOnly: false, icon: 'roster' },
-  { key: 'allRosters', label: 'Tutte le Rose', adminOnly: false, icon: 'allRosters' },
+  { key: 'rose', label: 'Rose', adminOnly: false, icon: 'roster' },
+  { key: 'strategie-rubata', label: 'Strategie', adminOnly: false, icon: 'strategy' },
   { key: 'svincolati', label: 'Svincolati', adminOnly: false, icon: 'svincolati' },
-  { key: 'movements', label: 'Storico', adminOnly: false, icon: 'history' },
+  { key: 'history', label: 'Storico', adminOnly: false, icon: 'history' },
 ]
 
 // Get page display name for breadcrumbs
@@ -107,14 +107,15 @@ function getPageDisplayName(page: string): string {
   const pageNames: Record<string, string> = {
     leagueDetail: 'Dashboard',
     adminPanel: 'Admin',
-    roster: 'La Mia Rosa',
-    allRosters: 'Tutte le Rose',
+    rose: 'Rose',
     svincolati: 'Svincolati',
-    movements: 'Storico',
+    movements: 'Movimenti',
+    history: 'Storico',
     auction: 'Asta',
     contracts: 'Contratti',
     trades: 'Scambi',
     rubata: 'Rubata',
+    'strategie-rubata': 'Strategie Rubata',
   }
   return pageNames[page] || page
 }

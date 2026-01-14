@@ -33,6 +33,14 @@ import {
   simulateRubataOffer,
   simulateRubataBid,
   completeRubataWithTransactions,
+  // Rubata preferences (preview mode)
+  getRubataPreferences,
+  setRubataPreference,
+  deleteRubataPreference,
+  getRubataPreviewBoard,
+  setRubataToPreview,
+  // Year-round strategies
+  getAllPlayersForStrategies,
 } from '../../services/rubata.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -610,7 +618,7 @@ router.post('/leagues/:leagueId/rubata/simulate-bid', authMiddleware, async (req
 // POST /api/leagues/:leagueId/rubata/complete-with-transactions - Complete rubata with random transactions (Admin)
 router.post('/leagues/:leagueId/rubata/complete-with-transactions', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { leagueId } = req.params
+    const leagueId = req.params.leagueId as string
     const { stealProbability } = req.body
 
     const result = await completeRubataWithTransactions(
@@ -627,6 +635,129 @@ router.post('/leagues/:leagueId/rubata/complete-with-transactions', authMiddlewa
     res.status(200).json(result)
   } catch (error) {
     console.error('Complete rubata with transactions error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== RUBATA PREFERENCES (PREVIEW MODE) ====================
+
+// GET /api/leagues/:leagueId/rubata/preferences - Get my preferences
+router.get('/leagues/:leagueId/rubata/preferences', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await getRubataPreferences(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get rubata preferences error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// PUT /api/leagues/:leagueId/rubata/preferences/:playerId - Set preference for a player
+router.put('/leagues/:leagueId/rubata/preferences/:playerId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const playerId = req.params.playerId as string
+    const { isWatchlist, isAutoPass, maxBid, priority, notes } = req.body
+
+    const result = await setRubataPreference(leagueId, req.user!.userId, playerId, {
+      isWatchlist,
+      isAutoPass,
+      maxBid,
+      priority,
+      notes,
+    })
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Set rubata preference error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// DELETE /api/leagues/:leagueId/rubata/preferences/:playerId - Delete preference
+router.delete('/leagues/:leagueId/rubata/preferences/:playerId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const playerId = req.params.playerId as string
+
+    const result = await deleteRubataPreference(leagueId, req.user!.userId, playerId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Delete rubata preference error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:leagueId/rubata/preview - Get preview board with preferences
+router.get('/leagues/:leagueId/rubata/preview', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await getRubataPreviewBoard(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get rubata preview board error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/leagues/:leagueId/rubata/preview - Set rubata to preview mode (Admin)
+router.post('/leagues/:leagueId/rubata/preview', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await setRubataToPreview(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Set rubata to preview error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== YEAR-ROUND STRATEGIES ====================
+
+// GET /api/leagues/:leagueId/rubata/strategies - Get all players with strategies (year-round)
+router.get('/leagues/:leagueId/rubata/strategies', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await getAllPlayersForStrategies(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get all players for strategies error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

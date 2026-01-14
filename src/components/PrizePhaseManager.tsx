@@ -21,6 +21,11 @@ interface PrizeCategory {
   }>
 }
 
+interface RosterSlot {
+  filled: number
+  total: number
+}
+
 interface MemberInfo {
   id: string
   teamName: string
@@ -28,6 +33,21 @@ interface MemberInfo {
   currentBudget: number
   totalPrize: number | null
   baseOnly: boolean
+  roster: {
+    P: RosterSlot
+    D: RosterSlot
+    C: RosterSlot
+    A: RosterSlot
+    totalPlayers: number
+  }
+}
+
+// Colori per ruolo (stesso stile di Contracts.tsx)
+const ROLE_COLORS = {
+  P: { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/30' },
+  D: { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30' },
+  C: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/30' },
+  A: { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/30' },
 }
 
 interface PrizePhaseData {
@@ -365,23 +385,28 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
 
       {/* Categories and Prizes Table - Admin only */}
       {isAdmin && (
-        <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-6">
-          <h3 className="text-lg font-bold text-white mb-4">Categorie Premi</h3>
+        <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
+          <div className="p-4 border-b border-surface-50/20">
+            <h3 className="text-lg font-bold text-white">Assegnazione Premi per Manager</h3>
+            <p className="text-sm text-gray-400 mt-1">Configura i premi budget per ogni manager</p>
+          </div>
 
-          {/* Categories table */}
-          <div className="overflow-x-auto">
+          {/* Desktop: Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-surface-50/20">
-                  <th className="text-left py-3 px-2 text-gray-400 font-medium">Manager</th>
+                <tr className="bg-yellow-500/10 text-xs text-gray-400 uppercase">
+                  <th className="text-left p-3">Manager / Squadra</th>
+                  <th className="text-center p-2">Rosa</th>
+                  <th className="text-center p-2 border-l border-surface-50/20">Budget</th>
                   {categories.map(cat => (
-                    <th key={cat.id} className="text-center py-3 px-2 min-w-[120px]">
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="text-gray-300 font-medium truncate">{cat.name}</span>
+                    <th key={cat.id} className="text-center p-2 min-w-[100px]">
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="truncate">{cat.name}</span>
                         {!cat.isSystemPrize && !config.isFinalized && (
                           <button
                             onClick={() => handleDeleteCategory(cat.id)}
-                            className="text-danger-400 hover:text-danger-300 text-xs"
+                            className="text-danger-400 hover:text-danger-300 text-sm"
                             title="Elimina categoria"
                           >
                             ×
@@ -390,22 +415,39 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                       </div>
                     </th>
                   ))}
-                  <th className="text-center py-3 px-2 text-primary-400 font-bold">Totale</th>
+                  <th className="text-center p-2 text-primary-400 font-bold border-l border-surface-50/20">Premio Tot.</th>
                 </tr>
               </thead>
               <tbody>
                 {members.map(member => (
-                  <tr key={member.id} className="border-b border-surface-50/10">
-                    <td className="py-3 px-2">
-                      <div>
-                        <p className="text-white font-medium">{member.teamName}</p>
-                        <p className="text-gray-500 text-xs">{member.username}</p>
+                  <tr key={member.id} className="border-t border-surface-50/10 hover:bg-surface-300/30">
+                    <td className="p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500/30 to-accent-500/30 flex items-center justify-center text-white font-bold">
+                          {member.teamName?.charAt(0) || '?'}
+                        </div>
+                        <div>
+                          <p className="text-white font-medium">{member.teamName || 'Senza nome'}</p>
+                          <p className="text-gray-500 text-xs">@{member.username}</p>
+                        </div>
                       </div>
+                    </td>
+                    <td className="p-2">
+                      <div className="flex items-center justify-center gap-1">
+                        {(['P', 'D', 'C', 'A'] as const).map(pos => (
+                          <div key={pos} className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${ROLE_COLORS[pos].bg} ${ROLE_COLORS[pos].text}`} title={`${pos}: ${member.roster[pos].filled}/${member.roster[pos].total}`}>
+                            {member.roster[pos].filled}
+                          </div>
+                        ))}
+                        <span className="text-gray-500 text-xs ml-1">({member.roster.totalPlayers})</span>
+                      </div>
+                    </td>
+                    <td className="p-2 text-center border-l border-surface-50/20">
+                      <span className="text-accent-400 font-medium">{member.currentBudget}M</span>
                     </td>
                     {categories.map(cat => {
                       const prize = cat.prizes.find(p => p.memberId === member.id)
                       const savedValue = editingPrizes[cat.id]?.[member.id] ?? prize?.amount ?? 0
-                      const isEditing = editingPrizes[cat.id]?.[member.id] !== undefined
                       const isFocused = focusedInput?.catId === cat.id && focusedInput?.memberId === member.id
 
                       const handleFocus = () => {
@@ -483,7 +525,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                         </td>
                       )
                     })}
-                    <td className="text-center py-3 px-2">
+                    <td className="text-center p-2 border-l border-surface-50/20">
                       <span className="text-primary-400 font-bold text-lg">
                         {calculateMemberTotal(member.id)}M
                       </span>
@@ -492,6 +534,85 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile: Card View */}
+          <div className="md:hidden p-4 space-y-4">
+            {members.map(member => (
+              <div key={member.id} className="bg-surface-300 rounded-xl p-4 border border-surface-50/20">
+                {/* Header: Manager info */}
+                <div className="flex items-center gap-3 mb-3 pb-3 border-b border-surface-50/20">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500/30 to-accent-500/30 flex items-center justify-center text-white font-bold text-lg">
+                    {member.teamName?.charAt(0) || '?'}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white font-bold">{member.teamName || 'Senza nome'}</p>
+                    <p className="text-gray-400 text-sm">@{member.username}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-primary-400 font-bold text-lg">{calculateMemberTotal(member.id)}M</p>
+                    <p className="text-gray-500 text-xs">Premio totale</p>
+                  </div>
+                </div>
+
+                {/* Roster slots */}
+                <div className="flex items-center justify-between mb-3 text-xs">
+                  <span className="text-gray-400">Rosa:</span>
+                  <div className="flex items-center gap-2">
+                    {(['P', 'D', 'C', 'A'] as const).map(pos => (
+                      <div key={pos} className={`px-2 py-1 rounded ${ROLE_COLORS[pos].bg} ${ROLE_COLORS[pos].text} font-bold`}>
+                        {pos}: {member.roster[pos].filled}/{member.roster[pos].total}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Budget */}
+                <div className="flex items-center justify-between mb-3 text-sm">
+                  <span className="text-gray-400">Budget attuale:</span>
+                  <span className="text-accent-400 font-medium">{member.currentBudget}M</span>
+                </div>
+
+                {/* Prizes */}
+                <div className="space-y-2">
+                  {categories.map(cat => {
+                    const prize = cat.prizes.find(p => p.memberId === member.id)
+                    const savedValue = editingPrizes[cat.id]?.[member.id] ?? prize?.amount ?? 0
+
+                    return (
+                      <div key={cat.id} className="flex items-center justify-between">
+                        <span className="text-gray-300 text-sm truncate flex-1">{cat.name}</span>
+                        {config.isFinalized ? (
+                          <span className="text-gray-300 font-medium">{savedValue}M</span>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => {
+                                const newValue = Math.max(0, savedValue - 5)
+                                handlePrizeChange(cat.id, member.id, newValue)
+                                handleSavePrize(cat.id, member.id, newValue)
+                              }}
+                              className="w-8 h-8 bg-surface-400 text-white rounded font-bold"
+                              disabled={isSubmitting || savedValue === 0}
+                            >-</button>
+                            <span className="w-14 text-center text-white font-medium">{savedValue}M</span>
+                            <button
+                              onClick={() => {
+                                const newValue = savedValue + 5
+                                handlePrizeChange(cat.id, member.id, newValue)
+                                handleSavePrize(cat.id, member.id, newValue)
+                              }}
+                              className="w-8 h-8 bg-surface-400 text-white rounded font-bold"
+                              disabled={isSubmitting}
+                            >+</button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Add category - only if not finalized */}

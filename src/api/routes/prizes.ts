@@ -8,6 +8,7 @@ import {
   deletePrizeCategory,
   setMemberPrize,
   finalizePrizePhase,
+  getPrizeHistory,
 } from '../../services/prize-phase.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -168,6 +169,26 @@ router.post('/sessions/:sessionId/prizes/finalize', authMiddleware, async (req: 
     res.json(result)
   } catch (error) {
     console.error('Finalize prize phase error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== GET PRIZE HISTORY ====================
+
+// GET /api/leagues/:leagueId/prizes/history - Get prize history for league
+router.get('/leagues/:leagueId/prizes/history', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await getPrizeHistory(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get prize history error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

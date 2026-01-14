@@ -7,12 +7,23 @@ interface User {
   username: string
 }
 
+interface ValidationError {
+  message: string
+  path?: string[]
+}
+
+interface AuthResult {
+  success: boolean
+  message?: string
+  errors?: ValidationError[]
+}
+
 interface AuthContextType {
   user: User | null
   isLoading: boolean
   isAuthenticated: boolean
-  login: (emailOrUsername: string, password: string) => Promise<{ success: boolean; message?: string }>
-  register: (email: string, username: string, password: string, confirmPassword: string) => Promise<{ success: boolean; message?: string }>
+  login: (emailOrUsername: string, password: string) => Promise<AuthResult>
+  register: (email: string, username: string, password: string, confirmPassword: string) => Promise<AuthResult>
   logout: () => Promise<void>
 }
 
@@ -49,7 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true }
     }
 
-    return { success: false, message: response.message || 'Errore durante il login' }
+    return {
+      success: false,
+      message: response.message || 'Errore durante il login',
+      errors: response.errors
+    }
   }
 
   async function register(email: string, username: string, password: string, confirmPassword: string) {
@@ -59,7 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true }
     }
 
-    return { success: false, message: response.message || 'Errore durante la registrazione' }
+    return {
+      success: false,
+      message: response.message || 'Errore durante la registrazione',
+      errors: response.errors
+    }
   }
 
   async function logout() {

@@ -90,3 +90,35 @@
 //   @@index([boardEntryId])
 //   @@index([sessionId, bidderId])
 // }
+
+// =============================================================================
+// ACTIVE MODELS - Preferenze strategiche rubata
+// =============================================================================
+
+// Preferenze dei manager per la fase rubata (watchlist, auto-pass, budget max, etc.)
+model RubataPreference {
+  id          String   @id @default(cuid())
+
+  sessionId   String
+  session     MarketSession @relation(fields: [sessionId], references: [id])
+
+  memberId    String
+  member      LeagueMember @relation(fields: [memberId], references: [id])
+
+  playerId    String
+  player      SerieAPlayer @relation(fields: [playerId], references: [id])
+
+  // Preferenze
+  isWatchlist Boolean  @default(false)  // Giocatore nella watchlist
+  isAutoPass  Boolean  @default(false)  // Salta automaticamente (non fare offerte)
+  maxBid      Int?                       // Budget massimo per questo giocatore
+  priority    Int?                       // Priorità (1 = più alta)
+  notes       String?                    // Note private del manager
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([sessionId, memberId, playerId])
+  @@index([sessionId, memberId])
+  @@index([memberId, isWatchlist])
+}

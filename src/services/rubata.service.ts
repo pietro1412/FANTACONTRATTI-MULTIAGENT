@@ -1247,6 +1247,9 @@ export async function getRubataBoard(
         ownerUsername: string
         basePrice: number
       } | null,
+      // Pause info for resume ready check
+      pausedRemainingSeconds: activeSession.rubataPausedRemainingSeconds,
+      pausedFromState: activeSession.rubataPausedFromState,
       sessionId: activeSession.id,
       myMemberId: member.id,
       isAdmin: member.role === 'ADMIN',
@@ -2056,17 +2059,39 @@ export async function pauseRubata(
     return { success: false, message: 'Nessuna sessione rubata attiva' }
   }
 
+  // Can only pause during OFFERING or AUCTION states
+  if (activeSession.rubataState !== 'OFFERING' && activeSession.rubataState !== 'AUCTION') {
+    return { success: false, message: 'Puoi mettere in pausa solo durante OFFERTA o ASTA' }
+  }
+
+  // Calculate remaining seconds
+  let remainingSeconds = 0
+  if (activeSession.rubataTimerStartedAt) {
+    const elapsedMs = Date.now() - activeSession.rubataTimerStartedAt.getTime()
+    const elapsedSeconds = Math.floor(elapsedMs / 1000)
+
+    const totalSeconds = activeSession.rubataState === 'OFFERING'
+      ? activeSession.rubataOfferTimerSeconds
+      : activeSession.rubataAuctionTimerSeconds
+
+    remainingSeconds = Math.max(0, totalSeconds - elapsedSeconds)
+  }
+
   await prisma.marketSession.update({
     where: { id: activeSession.id },
     data: {
+      rubataPausedFromState: activeSession.rubataState,
+      rubataPausedRemainingSeconds: remainingSeconds,
       rubataState: 'PAUSED',
       rubataTimerStartedAt: null,
+      rubataReadyMembers: [], // Clear ready members for resume check
     },
   })
 
   return {
     success: true,
-    message: 'Rubata in pausa',
+    message: `Rubata in pausa (${remainingSeconds} secondi rimanenti)`,
+    data: { remainingSeconds, pausedFromState: activeSession.rubataState },
   }
 }
 
@@ -2099,26 +2124,28 @@ export async function resumeRubata(
     return { success: false, message: 'Nessuna sessione rubata attiva' }
   }
 
-  // Check if there's an active auction
-  const hasActiveAuction = await prisma.auction.findFirst({
-    where: {
-      marketSessionId: activeSession.id,
-      type: 'RUBATA',
-      status: 'ACTIVE',
-    },
-  })
+  if (activeSession.rubataState !== 'PAUSED') {
+    return { success: false, message: 'La rubata non è in pausa' }
+  }
 
+  // Instead of immediately resuming, wait for all managers to be ready
+  // The actual resume will happen when all members are ready (via setRubataReady or forceAllRubataReady)
+  // For now, just clear the ready members and keep PAUSED state - frontend will show ready check UI
   await prisma.marketSession.update({
     where: { id: activeSession.id },
     data: {
-      rubataState: hasActiveAuction ? 'AUCTION' : 'OFFERING',
-      rubataTimerStartedAt: new Date(),
+      rubataReadyMembers: [],
     },
   })
 
   return {
     success: true,
-    message: 'Rubata ripresa',
+    message: 'Attendere che tutti i manager siano pronti per riprendere',
+    data: {
+      pausedRemainingSeconds: activeSession.rubataPausedRemainingSeconds,
+      pausedFromState: activeSession.rubataPausedFromState,
+      requiresReadyCheck: true,
+    },
   }
 }
 
@@ -2304,8 +2331,9 @@ export async function setRubataReady(
     return { success: false, message: 'Nessuna sessione rubata attiva' }
   }
 
-  // Only allow ready check in READY_CHECK, PENDING_ACK, or AUCTION_READY_CHECK state
-  if (activeSession.rubataState !== 'READY_CHECK' && activeSession.rubataState !== 'PENDING_ACK' && activeSession.rubataState !== 'AUCTION_READY_CHECK') {
+  // Only allow ready check in READY_CHECK, PENDING_ACK, AUCTION_READY_CHECK, or PAUSED state
+  const allowedReadyStates = ['READY_CHECK', 'PENDING_ACK', 'AUCTION_READY_CHECK', 'PAUSED']
+  if (!allowedReadyStates.includes(activeSession.rubataState || '')) {
     return { success: false, message: 'Non è il momento di dichiararsi pronti' }
   }
 
@@ -2376,6 +2404,38 @@ export async function setRubataReady(
       success: true,
       message: 'Tutti pronti! Si riparte.',
       data: { allReady: true },
+    }
+  }
+
+  // If in PAUSED state and all ready, resume with saved remaining time
+  if (activeSession.rubataState === 'PAUSED' && allReady) {
+    const resumeState = activeSession.rubataPausedFromState || 'OFFERING'
+    const remainingSeconds = activeSession.rubataPausedRemainingSeconds || 0
+
+    // Calculate the start time to make the timer show the remaining seconds
+    // If we have 10 seconds remaining and the timer is 30 seconds total,
+    // we set timerStartedAt to (now - (30 - 10) seconds) = (now - 20 seconds)
+    const totalSeconds = resumeState === 'AUCTION'
+      ? activeSession.rubataAuctionTimerSeconds
+      : activeSession.rubataOfferTimerSeconds
+    const offsetSeconds = totalSeconds - remainingSeconds
+    const adjustedStartTime = new Date(Date.now() - offsetSeconds * 1000)
+
+    await prisma.marketSession.update({
+      where: { id: activeSession.id },
+      data: {
+        rubataReadyMembers: [],
+        rubataState: resumeState,
+        rubataTimerStartedAt: adjustedStartTime,
+        rubataPausedFromState: null,
+        rubataPausedRemainingSeconds: null,
+      },
+    })
+
+    return {
+      success: true,
+      message: `Tutti pronti! Rubata ripresa (${remainingSeconds} secondi rimanenti).`,
+      data: { allReady: true, resumed: true, remainingSeconds },
     }
   }
 
@@ -2480,6 +2540,35 @@ export async function forceAllRubataReady(
     return {
       success: true,
       message: 'Tutti pronti! Rubata avviata.',
+    }
+  }
+
+  // If in PAUSED state, force resume with saved remaining time
+  if (activeSession.rubataState === 'PAUSED') {
+    const resumeState = activeSession.rubataPausedFromState || 'OFFERING'
+    const remainingSeconds = activeSession.rubataPausedRemainingSeconds || 0
+
+    // Calculate the start time to make the timer show the remaining seconds
+    const totalSeconds = resumeState === 'AUCTION'
+      ? activeSession.rubataAuctionTimerSeconds
+      : activeSession.rubataOfferTimerSeconds
+    const offsetSeconds = totalSeconds - remainingSeconds
+    const adjustedStartTime = new Date(Date.now() - offsetSeconds * 1000)
+
+    await prisma.marketSession.update({
+      where: { id: activeSession.id },
+      data: {
+        rubataReadyMembers: [],
+        rubataState: resumeState,
+        rubataTimerStartedAt: adjustedStartTime,
+        rubataPausedFromState: null,
+        rubataPausedRemainingSeconds: null,
+      },
+    })
+
+    return {
+      success: true,
+      message: `Tutti pronti forzati! Rubata ripresa (${remainingSeconds} secondi rimanenti).`,
     }
   }
 
@@ -3110,7 +3199,7 @@ export async function completeRubataWithTransactions(
               marketSessionId: activeSession.id,
               type: 'RUBATA',
               status: 'COMPLETED',
-              startingPrice: player.rubataPrice,
+              basePrice: player.rubataPrice,
               currentPrice: bidAmount,
               sellerId: player.memberId,
               winnerId: buyer.id,
@@ -3206,5 +3295,564 @@ export async function completeRubataWithTransactions(
       steals,
       skips: remainingPlayers - steals,
     },
+  }
+}
+
+// ==================== RUBATA PREFERENCES ====================
+
+export async function getRubataPreferences(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Find a session to load preferences from (prefer active RUBATA, then any active, then most recent)
+  let session = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'RUBATA',
+    },
+  })
+
+  // If no active RUBATA session, try to find any active session
+  if (!session) {
+    session = await prisma.marketSession.findFirst({
+      where: {
+        leagueId,
+        status: 'ACTIVE',
+      },
+    })
+  }
+
+  // If still no session, find the most recent session for the league
+  if (!session) {
+    session = await prisma.marketSession.findFirst({
+      where: { leagueId },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
+  if (!session) {
+    return { success: false, message: 'Nessuna sessione trovata per questa lega' }
+  }
+
+  const preferences = await prisma.rubataPreference.findMany({
+    where: {
+      sessionId: session.id,
+      memberId: member.id,
+    },
+    include: {
+      player: {
+        select: {
+          id: true,
+          name: true,
+          team: true,
+          position: true,
+          quotation: true,
+        },
+      },
+    },
+    orderBy: [
+      { priority: 'asc' },
+      { createdAt: 'desc' },
+    ],
+  })
+
+  return {
+    success: true,
+    data: {
+      preferences,
+      sessionId: session.id,
+      memberId: member.id,
+    },
+  }
+}
+
+export async function setRubataPreference(
+  leagueId: string,
+  userId: string,
+  playerId: string,
+  preference: {
+    isWatchlist?: boolean
+    isAutoPass?: boolean
+    maxBid?: number | null
+    priority?: number | null
+    notes?: string | null
+  }
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Find a session to attach preferences to (prefer active RUBATA, then any active, then most recent)
+  let session = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'RUBATA',
+    },
+  })
+
+  // If in active RUBATA phase, check if auction is running (block modifications during auction)
+  if (session) {
+    const blockedStates = ['OFFERING', 'AUCTION']
+    if (blockedStates.includes(session.rubataState || '')) {
+      return { success: false, message: 'Non puoi modificare le preferenze durante l\'asta attiva' }
+    }
+  }
+
+  // If no active RUBATA session, try to find any active session
+  if (!session) {
+    session = await prisma.marketSession.findFirst({
+      where: {
+        leagueId,
+        status: 'ACTIVE',
+      },
+    })
+  }
+
+  // If still no session, find the most recent session for the league
+  if (!session) {
+    session = await prisma.marketSession.findFirst({
+      where: { leagueId },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
+  if (!session) {
+    return { success: false, message: 'Nessuna sessione trovata per questa lega' }
+  }
+
+  // Verify player exists
+  const player = await prisma.serieAPlayer.findUnique({
+    where: { id: playerId },
+  })
+
+  if (!player) {
+    return { success: false, message: 'Giocatore non trovato' }
+  }
+
+  // Upsert preference
+  const result = await prisma.rubataPreference.upsert({
+    where: {
+      sessionId_memberId_playerId: {
+        sessionId: session.id,
+        memberId: member.id,
+        playerId,
+      },
+    },
+    create: {
+      sessionId: session.id,
+      memberId: member.id,
+      playerId,
+      isWatchlist: preference.isWatchlist ?? false,
+      isAutoPass: preference.isAutoPass ?? false,
+      maxBid: preference.maxBid,
+      priority: preference.priority,
+      notes: preference.notes,
+    },
+    update: {
+      isWatchlist: preference.isWatchlist,
+      isAutoPass: preference.isAutoPass,
+      maxBid: preference.maxBid,
+      priority: preference.priority,
+      notes: preference.notes,
+    },
+    include: {
+      player: {
+        select: {
+          id: true,
+          name: true,
+          team: true,
+          position: true,
+        },
+      },
+    },
+  })
+
+  return {
+    success: true,
+    message: 'Preferenza salvata',
+    data: result,
+  }
+}
+
+export async function deleteRubataPreference(
+  leagueId: string,
+  userId: string,
+  playerId: string
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Find a session to delete preferences from (prefer active RUBATA, then any active, then most recent)
+  let session = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'RUBATA',
+    },
+  })
+
+  // If in active RUBATA phase, block deletion during auction
+  if (session) {
+    const blockedStates = ['OFFERING', 'AUCTION']
+    if (blockedStates.includes(session.rubataState || '')) {
+      return { success: false, message: 'Non puoi modificare le preferenze durante l\'asta attiva' }
+    }
+  }
+
+  // If no active RUBATA session, try to find any active session
+  if (!session) {
+    session = await prisma.marketSession.findFirst({
+      where: {
+        leagueId,
+        status: 'ACTIVE',
+      },
+    })
+  }
+
+  // If still no session, find the most recent session for the league
+  if (!session) {
+    session = await prisma.marketSession.findFirst({
+      where: { leagueId },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
+  if (!session) {
+    return { success: false, message: 'Nessuna sessione trovata per questa lega' }
+  }
+
+  await prisma.rubataPreference.deleteMany({
+    where: {
+      sessionId: session.id,
+      memberId: member.id,
+      playerId,
+    },
+  })
+
+  return {
+    success: true,
+    message: 'Preferenza rimossa',
+  }
+}
+
+// ==================== ALL PLAYERS FOR STRATEGIES (Year-Round) ====================
+
+export async function getAllPlayersForStrategies(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Check if there's an active session (any phase)
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+    },
+  })
+
+  // Check if active session is in RUBATA phase with a board
+  const isRubataPhase = activeSession?.currentPhase === 'RUBATA'
+  const hasRubataBoard = isRubataPhase && !!(activeSession?.rubataBoard)
+
+  // Check if rubata order is set on the active session (admin has prepared rubata)
+  const rubataOrderArray = activeSession?.rubataOrder as string[] | null
+  const hasRubataOrder = !!(rubataOrderArray && rubataOrderArray.length > 0)
+
+  // Find the most relevant session for preferences
+  let preferenceSession = activeSession
+  if (!preferenceSession) {
+    preferenceSession = await prisma.marketSession.findFirst({
+      where: { leagueId },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
+  // Get user's preferences
+  let preferencesMap = new Map<string, {
+    id: string
+    playerId: string
+    memberId: string
+    maxBid: number | null
+    priority: number | null
+    notes: string | null
+    isWatchlist: boolean
+    isAutoPass: boolean
+  }>()
+
+  if (preferenceSession) {
+    const preferences = await prisma.rubataPreference.findMany({
+      where: {
+        sessionId: preferenceSession.id,
+        memberId: member.id,
+      },
+    })
+    preferencesMap = new Map(preferences.map(p => [p.playerId, p]))
+  }
+
+  // Get all rosters with contract info
+  const allMembers = await prisma.leagueMember.findMany({
+    where: {
+      leagueId,
+      status: MemberStatus.ACTIVE,
+    },
+    include: {
+      user: {
+        select: { username: true },
+      },
+      roster: {
+        include: {
+          player: {
+            select: {
+              id: true,
+              name: true,
+              team: true,
+              position: true,
+              quotation: true,
+            },
+          },
+          contract: {
+            select: {
+              id: true,
+              salary: true,
+              duration: true,
+              rescissionClause: true,
+            },
+          },
+        },
+      },
+    },
+  })
+
+  // Build the players list with all info
+  const players: Array<{
+    rosterId: string
+    memberId: string
+    playerId: string
+    playerName: string
+    playerPosition: string
+    playerTeam: string
+    playerQuotation: number
+    ownerUsername: string
+    ownerTeamName: string | null
+    ownerRubataOrder: number | null
+    contractSalary: number
+    contractDuration: number
+    contractClause: number
+    rubataPrice: number
+    preference: typeof preferencesMap extends Map<string, infer V> ? V | null : never
+  }> = []
+
+  for (const memberData of allMembers) {
+    for (const rosterEntry of memberData.roster) {
+      if (!rosterEntry.contract) continue // Skip players without contract
+
+      // Prezzo rubata = clausola rescissione + ingaggio (come nel rubata reale)
+      const rubataPrice = (rosterEntry.contract.rescissionClause ?? 0) + rosterEntry.contract.salary
+
+      players.push({
+        rosterId: rosterEntry.id,
+        memberId: memberData.id,
+        playerId: rosterEntry.playerId,
+        playerName: rosterEntry.player.name,
+        playerPosition: rosterEntry.player.position,
+        playerTeam: rosterEntry.player.team,
+        playerQuotation: rosterEntry.player.quotation,
+        ownerUsername: memberData.user.username,
+        ownerTeamName: memberData.teamName,
+        ownerRubataOrder: memberData.rubataOrder,
+        contractSalary: rosterEntry.contract.salary,
+        contractDuration: rosterEntry.contract.duration,
+        contractClause: rosterEntry.contract.rescissionClause ?? 0,
+        rubataPrice,
+        preference: preferencesMap.get(rosterEntry.playerId) || null,
+      })
+    }
+  }
+
+  // Sort by position order (P, D, C, A) then by name
+  const positionOrder: Record<string, number> = { P: 1, D: 2, C: 3, A: 4 }
+  players.sort((a, b) => {
+    const posA = positionOrder[a.playerPosition] || 99
+    const posB = positionOrder[b.playerPosition] || 99
+    if (posA !== posB) return posA - posB
+    return a.playerName.localeCompare(b.playerName)
+  })
+
+  return {
+    success: true,
+    data: {
+      players,
+      myMemberId: member.id,
+      hasRubataBoard,
+      hasRubataOrder,
+      rubataState: activeSession?.rubataState || null,
+      sessionId: preferenceSession?.id || null,
+      totalPlayers: players.length,
+    },
+  }
+}
+
+export async function getRubataPreviewBoard(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'RUBATA',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione rubata attiva' }
+  }
+
+  const board = activeSession.rubataBoard as Array<{
+    rosterId: string
+    memberId: string
+    playerId: string
+    playerName: string
+    playerPosition: Position
+    playerTeam: string
+    ownerUsername: string
+    ownerTeamName: string | null
+    rubataPrice: number
+    contractSalary: number
+    contractDuration: number
+    contractClause: number
+  }> | null
+
+  if (!board) {
+    return { success: false, message: 'Tabellone non ancora generato' }
+  }
+
+  // Get this member's preferences
+  const preferences = await prisma.rubataPreference.findMany({
+    where: {
+      sessionId: activeSession.id,
+      memberId: member.id,
+    },
+  })
+
+  const preferencesMap = new Map(preferences.map(p => [p.playerId, p]))
+
+  // Enrich board with preferences
+  const enrichedBoard = board.map(player => ({
+    ...player,
+    preference: preferencesMap.get(player.playerId) || null,
+  }))
+
+  return {
+    success: true,
+    data: {
+      board: enrichedBoard,
+      totalPlayers: board.length,
+      rubataState: activeSession.rubataState,
+      isPreview: activeSession.rubataState === 'PREVIEW' || activeSession.rubataState === 'WAITING',
+      myMemberId: member.id,
+      watchlistCount: preferences.filter(p => p.isWatchlist).length,
+      autoPassCount: preferences.filter(p => p.isAutoPass).length,
+    },
+  }
+}
+
+export async function setRubataToPreview(
+  leagueId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'RUBATA',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione rubata attiva' }
+  }
+
+  if (!activeSession.rubataBoard) {
+    return { success: false, message: 'Genera prima il tabellone rubata' }
+  }
+
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: {
+      rubataState: 'PREVIEW',
+    },
+  })
+
+  return {
+    success: true,
+    message: 'Tabellone rubata in anteprima - i manager possono ora studiare le strategie',
   }
 }

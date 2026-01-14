@@ -7,16 +7,23 @@ interface LoginProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
 }
 
+interface FieldErrors {
+  emailOrUsername?: string
+  password?: string
+}
+
 export function Login({ onNavigate }: LoginProps) {
   const { login } = useAuth()
   const [emailOrUsername, setEmailOrUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [isLoading, setIsLoading] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
+    setFieldErrors({})
     setIsLoading(true)
 
     const result = await login(emailOrUsername, password)
@@ -24,7 +31,24 @@ export function Login({ onNavigate }: LoginProps) {
     if (result.success) {
       onNavigate('dashboard')
     } else {
-      setError(result.message || 'Errore durante il login')
+      // Parse validation errors from API response
+      if (result.errors && result.errors.length > 0) {
+        const newFieldErrors: FieldErrors = {}
+        result.errors.forEach(err => {
+          const field = err.path?.[0] as keyof FieldErrors
+          if (field && !newFieldErrors[field]) {
+            newFieldErrors[field] = err.message
+          }
+        })
+        setFieldErrors(newFieldErrors)
+
+        // If no field-specific errors, show generic message
+        if (Object.keys(newFieldErrors).length === 0) {
+          setError(result.message || 'Errore durante il login')
+        }
+      } else {
+        setError(result.message || 'Errore durante il login')
+      }
     }
 
     setIsLoading(false)
@@ -64,6 +88,7 @@ export function Login({ onNavigate }: LoginProps) {
               onChange={e => setEmailOrUsername(e.target.value)}
               placeholder="mario@email.com"
               required
+              error={fieldErrors.emailOrUsername}
             />
 
             <Input
@@ -73,6 +98,7 @@ export function Login({ onNavigate }: LoginProps) {
               onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
               required
+              error={fieldErrors.password}
             />
 
             <Button type="submit" size="xl" className="w-full" isLoading={isLoading}>

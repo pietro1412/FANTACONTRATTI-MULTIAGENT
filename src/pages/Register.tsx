@@ -7,6 +7,13 @@ interface RegisterProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
 }
 
+interface FieldErrors {
+  email?: string
+  username?: string
+  password?: string
+  confirmPassword?: string
+}
+
 export function Register({ onNavigate }: RegisterProps) {
   const { register } = useAuth()
   const [email, setEmail] = useState('')
@@ -14,14 +21,16 @@ export function Register({ onNavigate }: RegisterProps) {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [isLoading, setIsLoading] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
+    setFieldErrors({})
 
     if (password !== confirmPassword) {
-      setError('Le password non corrispondono')
+      setFieldErrors({ confirmPassword: 'Le password non corrispondono' })
       return
     }
 
@@ -32,7 +41,24 @@ export function Register({ onNavigate }: RegisterProps) {
     if (result.success) {
       onNavigate('login')
     } else {
-      setError(result.message || 'Errore durante la registrazione')
+      // Parse validation errors from API response
+      if (result.errors && result.errors.length > 0) {
+        const newFieldErrors: FieldErrors = {}
+        result.errors.forEach(err => {
+          const field = err.path?.[0] as keyof FieldErrors
+          if (field && !newFieldErrors[field]) {
+            newFieldErrors[field] = err.message
+          }
+        })
+        setFieldErrors(newFieldErrors)
+
+        // If no field-specific errors, show generic message
+        if (Object.keys(newFieldErrors).length === 0) {
+          setError(result.message || 'Errore durante la registrazione')
+        }
+      } else {
+        setError(result.message || 'Errore durante la registrazione')
+      }
     }
 
     setIsLoading(false)
@@ -70,6 +96,7 @@ export function Register({ onNavigate }: RegisterProps) {
               onChange={e => setEmail(e.target.value)}
               placeholder="mario@email.com"
               required
+              error={fieldErrors.email}
             />
 
             <Input
@@ -81,6 +108,7 @@ export function Register({ onNavigate }: RegisterProps) {
               required
               minLength={3}
               maxLength={20}
+              error={fieldErrors.username}
             />
 
             <Input
@@ -91,6 +119,7 @@ export function Register({ onNavigate }: RegisterProps) {
               placeholder="••••••••"
               required
               minLength={8}
+              error={fieldErrors.password}
             />
 
             <Input
@@ -100,6 +129,7 @@ export function Register({ onNavigate }: RegisterProps) {
               onChange={e => setConfirmPassword(e.target.value)}
               placeholder="••••••••"
               required
+              error={fieldErrors.confirmPassword}
             />
 
             <p className="text-sm text-gray-400 bg-surface-300 p-3 rounded-lg">

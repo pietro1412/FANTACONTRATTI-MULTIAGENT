@@ -1680,7 +1680,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                             <span className="font-medium">Solo {marketProgress.currentRoleName}</span>
                           </div>
                         )}
-                        <div className="space-y-1">
+                        <div className="max-h-[45vh] overflow-y-auto space-y-1">
                           {players.length === 0 ? (
                             <p className="text-gray-500 text-center py-4">Nessun giocatore</p>
                           ) : players.slice(0, 50).map(player => (

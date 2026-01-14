@@ -257,7 +257,6 @@ export function MarketPhaseManager({
             {phases.map((phase, idx) => {
               const isCurrentPhase = phase.id === session.currentPhase
               const isPastPhase = idx < currentPhaseIndex
-              const isFuturePhase = idx > currentPhaseIndex
 
               return (
                 <div

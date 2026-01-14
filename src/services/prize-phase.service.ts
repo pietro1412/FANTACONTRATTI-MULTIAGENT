@@ -133,7 +133,7 @@ export async function getPrizePhaseData(
     return { success: false, message: 'Fase premi non inizializzata' }
   }
 
-  // Get all members
+  // Get all members with roster info
   const members = await prisma.leagueMember.findMany({
     where: {
       leagueId: session.leagueId,
@@ -141,8 +141,23 @@ export async function getPrizePhaseData(
     },
     include: {
       user: { select: { username: true } },
+      roster: {
+        where: { status: 'ACTIVE' },
+        include: { player: { select: { position: true } } },
+      },
     },
     orderBy: { teamName: 'asc' },
+  })
+
+  // Get league for slot limits
+  const league = await prisma.league.findUnique({
+    where: { id: session.leagueId },
+    select: {
+      goalkeeperSlots: true,
+      defenderSlots: true,
+      midfielderSlots: true,
+      forwardSlots: true,
+    },
   })
 
   // Get categories with prizes
@@ -190,16 +205,35 @@ export async function getPrizePhaseData(
     })),
   }))
 
-  const formattedMembers = members.map(m => ({
-    id: m.id,
-    teamName: m.teamName,
-    username: m.user.username,
-    currentBudget: m.currentBudget,
-    // Se la fase è finalizzata o l'utente è admin, mostra i totali
-    // Altrimenti mostra solo il base reincrement
-    totalPrize: config.isFinalized || isAdmin ? memberTotals[m.id] : null,
-    baseOnly: !config.isFinalized && !isAdmin,
-  }))
+  const formattedMembers = members.map(m => {
+    // Count roster slots by position
+    const rosterCounts = { P: 0, D: 0, C: 0, A: 0 }
+    for (const r of m.roster) {
+      const pos = r.player.position as keyof typeof rosterCounts
+      if (rosterCounts[pos] !== undefined) {
+        rosterCounts[pos]++
+      }
+    }
+
+    return {
+      id: m.id,
+      teamName: m.teamName,
+      username: m.user.username,
+      currentBudget: m.currentBudget,
+      // Se la fase è finalizzata o l'utente è admin, mostra i totali
+      // Altrimenti mostra solo il base reincrement
+      totalPrize: config.isFinalized || isAdmin ? memberTotals[m.id] : null,
+      baseOnly: !config.isFinalized && !isAdmin,
+      // Roster slot info
+      roster: {
+        P: { filled: rosterCounts.P, total: league?.goalkeeperSlots ?? 3 },
+        D: { filled: rosterCounts.D, total: league?.defenderSlots ?? 8 },
+        C: { filled: rosterCounts.C, total: league?.midfielderSlots ?? 8 },
+        A: { filled: rosterCounts.A, total: league?.forwardSlots ?? 6 },
+        totalPlayers: m.roster.length,
+      },
+    }
+  })
 
   return {
     success: true,
@@ -582,5 +616,108 @@ export async function finalizePrizePhase(
         newBudget: m.currentBudget,
       })),
     },
+  }
+}
+
+// ==================== GET PRIZE HISTORY ====================
+
+/**
+ * Ottieni lo storico di tutti i premi assegnati per una lega
+ * Mostra tutte le sessioni con premi finalizzati
+ */
+export async function getPrizeHistory(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  // Verify membership
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Get all finalized prize phases for this league
+  const sessions = await prisma.marketSession.findMany({
+    where: {
+      leagueId,
+      prizePhaseConfig: {
+        isFinalized: true,
+      },
+    },
+    include: {
+      prizePhaseConfig: true,
+      prizeCategories: {
+        include: {
+          managerPrizes: {
+            include: {
+              leagueMember: {
+                include: {
+                  user: { select: { username: true } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  // Format the response
+  const history = sessions.map(session => {
+    // Calculate totals per member for this session
+    const memberTotals: Record<string, {
+      memberId: string
+      teamName: string | null
+      username: string
+      baseReincrement: number
+      categoryPrizes: Record<string, number>
+      total: number
+    }> = {}
+
+    // Initialize with base reincrement
+    for (const cat of session.prizeCategories) {
+      for (const prize of cat.managerPrizes) {
+        if (!memberTotals[prize.leagueMemberId]) {
+          memberTotals[prize.leagueMemberId] = {
+            memberId: prize.leagueMemberId,
+            teamName: prize.leagueMember.teamName,
+            username: prize.leagueMember.user.username,
+            baseReincrement: session.prizePhaseConfig?.baseReincrement ?? 0,
+            categoryPrizes: {},
+            total: session.prizePhaseConfig?.baseReincrement ?? 0,
+          }
+        }
+        memberTotals[prize.leagueMemberId].categoryPrizes[cat.name] = prize.amount
+        memberTotals[prize.leagueMemberId].total += prize.amount
+      }
+    }
+
+    return {
+      sessionId: session.id,
+      type: session.type,
+      season: session.season,
+      semester: session.semester,
+      finalizedAt: session.prizePhaseConfig?.finalizedAt,
+      baseReincrement: session.prizePhaseConfig?.baseReincrement ?? 0,
+      categories: session.prizeCategories.map(cat => ({
+        name: cat.name,
+        isSystemPrize: cat.isSystemPrize,
+      })),
+      members: Object.values(memberTotals).sort((a, b) =>
+        (a.teamName || '').localeCompare(b.teamName || '')
+      ),
+    }
+  })
+
+  return {
+    success: true,
+    data: { history },
   }
 }

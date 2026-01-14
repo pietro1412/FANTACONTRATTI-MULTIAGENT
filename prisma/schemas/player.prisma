@@ -28,6 +28,7 @@ model SerieAPlayer {
   movements    PlayerMovement[]     // see: movement.prisma
   prophecies   Prophecy[]           // see: movement.prisma
   pendingNominations MarketSession[] @relation("PendingNomination")  // see: market-session.prisma
+  rubataPreferences RubataPreference[] // see: rubata.prisma
 }
 
 model QuotazioniUpload {

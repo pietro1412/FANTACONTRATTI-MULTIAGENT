@@ -55,6 +55,10 @@ model MarketSession {
   rubataAuctionReadyInfo Json?
   // Pending acknowledgment dopo chiusura asta rubata (JSON: {auctionId, playerId, winnerId, price, acknowledgedMembers[], pendingMembers[]})
   rubataPendingAck Json?
+  // Pausa rubata: secondi rimanenti quando è stata messa in pausa
+  rubataPausedRemainingSeconds Int?
+  // Pausa rubata: stato da cui è stata messa in pausa (OFFERING o AUCTION)
+  rubataPausedFromState String?
 
   // ===== ASTA SVINCOLATI =====
   // NOTE: The following JSON fields should be normalized in future.
@@ -113,6 +117,7 @@ model MarketSession {
   chatMessages ChatMessage[]         // see: chat.prisma
   prizePhaseConfig PrizePhaseConfig? // see: prize.prisma
   prizeCategories  PrizeCategory[]   // see: prize.prisma
+  rubataPreferences RubataPreference[] // see: rubata.prisma
 
   // Indice per velocizzare ricerca sessioni attive per lega
   @@index([leagueId, status])
