@@ -245,17 +245,10 @@ export function Rose({ onNavigate }: RoseProps) {
       <main className="max-w-[1400px] mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-4">
-          <div className="flex flex-wrap items-center gap-3 mb-2">
-            <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-              <span className="text-2xl">📋</span>
-              Rose
-            </h1>
-            {isOwnRoster && (
-              <span className="px-2 py-1 text-xs font-medium bg-primary-500/20 text-primary-400 rounded-full">
-                LA MIA ROSA
-              </span>
-            )}
-          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 mb-2">
+            <span className="text-2xl">📋</span>
+            Rose
+          </h1>
           <p className="text-gray-400 text-sm">
             Visualizza le rose di tutti i Direttori Generali della lega.
           </p>
@@ -277,42 +270,42 @@ export function Rose({ onNavigate }: RoseProps) {
             <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
               {/* Manager Selector Row */}
               <div className="p-3 border-b border-surface-50/20 bg-surface-300/30">
-                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
-                  {leagueData.members
-                    .filter(m => m.roster.length > 0 || m.currentBudget > 0)
-                    .sort((a, b) => {
-                      // Current user first
-                      if (a.userId === leagueData.currentUserId) return -1
-                      if (b.userId === leagueData.currentUserId) return 1
-                      return (a.teamName || a.user.username).localeCompare(b.teamName || b.user.username)
-                    })
-                    .map(m => {
-                      const isMe = m.userId === leagueData.currentUserId
-                      const isSelected = m.id === selectedMemberId
-                      return (
-                        <button
-                          key={m.id}
-                          onClick={() => {
-                            setSelectedMemberId(m.id)
-                            setTeamFilter('ALL')
-                          }}
-                          className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                            isSelected
-                              ? isMe
-                                ? 'bg-primary-500/30 text-primary-300 border border-primary-500/50'
-                                : 'bg-white/20 text-white border border-white/30'
-                              : isMe
-                                ? 'bg-primary-500/10 text-primary-400 border border-primary-500/20 hover:bg-primary-500/20'
-                                : 'bg-surface-300 text-gray-400 border border-transparent hover:text-white hover:bg-surface-50/20'
-                          }`}
-                        >
-                          {isMe && <span className="mr-1">⭐</span>}
-                          <span className="font-semibold">{m.teamName || m.user.username}</span>
-                          {m.teamName && <span className="ml-1 text-xs opacity-70">({m.user.username})</span>}
-                        </button>
-                      )
-                    })
-                  }
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-gray-400 whitespace-nowrap">Seleziona Manager:</label>
+                  <select
+                    value={selectedMemberId}
+                    onChange={(e) => {
+                      setSelectedMemberId(e.target.value)
+                      setTeamFilter('ALL')
+                    }}
+                    className="flex-1 max-w-md px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
+                  >
+                    {leagueData.members
+                      .filter(m => m.roster.length > 0 || m.currentBudget > 0)
+                      .sort((a, b) => {
+                        // Current user first
+                        if (a.userId === leagueData.currentUserId) return -1
+                        if (b.userId === leagueData.currentUserId) return 1
+                        return (a.teamName || a.user.username).localeCompare(b.teamName || b.user.username)
+                      })
+                      .map(m => {
+                        const isMe = m.userId === leagueData.currentUserId
+                        const displayName = m.teamName
+                          ? `${m.teamName} (${m.user.username})`
+                          : m.user.username
+                        return (
+                          <option key={m.id} value={m.id}>
+                            {isMe ? '⭐ ' : ''}{displayName}{isMe ? ' - LA MIA ROSA' : ''}
+                          </option>
+                        )
+                      })
+                    }
+                  </select>
+                  {isOwnRoster && (
+                    <span className="px-2 py-1 text-xs font-medium bg-primary-500/20 text-primary-400 rounded-full whitespace-nowrap">
+                      LA MIA ROSA
+                    </span>
+                  )}
                 </div>
               </div>
 
