@@ -23,6 +23,7 @@ interface Prophecy {
     season: number
     semester: string
   } | null
+  movementType: string | null
   movementPrice: number | null
 }
 
@@ -171,6 +172,20 @@ export default function Prophecies() {
     D: 'text-blue-400 bg-blue-400/20',
     C: 'text-emerald-400 bg-emerald-400/20',
     A: 'text-red-400 bg-red-400/20',
+  }
+
+  const movementTypeLabels: Record<string, { label: string; color: string }> = {
+    FIRST_MARKET: { label: 'Primo Mercato', color: 'bg-blue-500/20 text-blue-400' },
+    RUBATA: { label: 'Rubata', color: 'bg-orange-500/20 text-orange-400' },
+    SVINCOLATI: { label: 'Svincolati', color: 'bg-cyan-500/20 text-cyan-400' },
+    TRADE: { label: 'Scambio', color: 'bg-pink-500/20 text-pink-400' },
+    CONTRACT_RENEW: { label: 'Rinnovo', color: 'bg-emerald-500/20 text-emerald-400' },
+    RELEASE: { label: 'Svincolo', color: 'bg-red-500/20 text-red-400' },
+  }
+
+  const getMovementLabel = (type: string | null) => {
+    if (!type) return null
+    return movementTypeLabels[type] || { label: type, color: 'bg-gray-500/20 text-gray-400' }
   }
 
   const getActiveFilterLabel = () => {
@@ -373,8 +388,9 @@ export default function Prophecies() {
               <thead className="bg-surface-300/50 border-b border-surface-50/20">
                 <tr>
                   <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase">Giocatore</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase hidden md:table-cell">Profezia</th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase hidden lg:table-cell">Profezia</th>
                   <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase">Autore</th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase hidden sm:table-cell">Evento</th>
                   <th className="text-right px-3 py-2 text-xs font-semibold text-gray-400 uppercase hidden sm:table-cell">Prezzo</th>
                 </tr>
               </thead>
@@ -395,7 +411,7 @@ export default function Prophecies() {
                         </div>
                       </button>
                     </td>
-                    <td className="px-3 py-2 hidden md:table-cell">
+                    <td className="px-3 py-2 hidden lg:table-cell">
                       <p className="text-gray-300 italic text-xs max-w-md truncate" title={prophecy.content}>
                         "{prophecy.content}"
                       </p>
@@ -407,6 +423,13 @@ export default function Prophecies() {
                       >
                         {prophecy.author.teamName || prophecy.author.username}
                       </button>
+                    </td>
+                    <td className="px-3 py-2 hidden sm:table-cell">
+                      {prophecy.movementType && (
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${getMovementLabel(prophecy.movementType)?.color}`}>
+                          {getMovementLabel(prophecy.movementType)?.label}
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-right hidden sm:table-cell">
                       {prophecy.movementPrice && (
@@ -444,13 +467,18 @@ export default function Prophecies() {
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <p className="text-gray-300 text-sm italic">"{prophecy.content}"</p>
-                    <div className="flex items-center gap-2 mt-1 text-xs">
+                    <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
                       <button
                         onClick={() => handleFilterByAuthor(prophecy.author.memberId)}
                         className="text-purple-400 hover:text-purple-300"
                       >
                         — {prophecy.author.teamName || prophecy.author.username}
                       </button>
+                      {prophecy.movementType && (
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${getMovementLabel(prophecy.movementType)?.color}`}>
+                          {getMovementLabel(prophecy.movementType)?.label}
+                        </span>
+                      )}
                       {prophecy.movementPrice && (
                         <span className="text-primary-400">{prophecy.movementPrice}M</span>
                       )}

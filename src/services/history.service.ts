@@ -1243,6 +1243,7 @@ export async function getProphecies(
           semester: p.movement.marketSession.semester,
         }
       : null,
+    movementType: p.movement?.movementType ?? null,
     movementPrice: p.movement?.price ?? null,
   }))
 
