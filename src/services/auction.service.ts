@@ -442,6 +442,20 @@ export async function setMarketPhase(
     }
   }
 
+  // Check prize finalization when moving from PREMI to CONTRATTI
+  if (session.currentPhase === 'PREMI' && phase === 'CONTRATTI') {
+    const prizeConfig = await prisma.prizePhaseConfig.findUnique({
+      where: { marketSessionId: sessionId },
+      select: { isFinalized: true }
+    })
+    if (!prizeConfig?.isFinalized) {
+      return {
+        success: false,
+        message: 'Devi prima consolidare i premi prima di passare alla fase Contratti. Clicca su "Conferma Premi" nella sezione Premi.'
+      }
+    }
+  }
+
   // Check consolidation when leaving CONTRATTI phase
   if (session.currentPhase === 'CONTRATTI' && phase !== 'CONTRATTI') {
     const consolidationCheck = await canAdvanceFromContratti(sessionId)
