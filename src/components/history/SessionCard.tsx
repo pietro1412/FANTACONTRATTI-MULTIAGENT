@@ -355,6 +355,8 @@ function OverviewTab({ data }: { data: unknown }) {
 }
 
 function FirstMarketTab({ data }: { data: unknown }) {
+  const [expandedAuction, setExpandedAuction] = useState<string | null>(null)
+
   if (!data) return <div className="text-gray-400">Caricamento...</div>
 
   const { auctions, stats } = data as {
@@ -365,6 +367,10 @@ function FirstMarketTab({ data }: { data: unknown }) {
       finalPrice: number
       winner: { memberId: string; username: string; teamName: string | null } | null
       bidCount: number
+      prophecies?: Array<{
+        content: string
+        author: { username: string; teamName: string | null }
+      }>
     }>
     members: Array<{
       memberId: string
@@ -403,23 +409,59 @@ function FirstMarketTab({ data }: { data: unknown }) {
               <th className="text-right py-2 px-2">Prezzo</th>
               <th className="text-center py-2 px-2 hidden sm:table-cell">Bid</th>
               <th className="text-left py-2 px-2">Acquirente</th>
+              <th className="text-center py-2 px-2 w-10">🔮</th>
             </tr>
           </thead>
           <tbody>
-            {auctions.map(auction => (
-              <tr key={auction.id} className="border-b border-surface-50/10 hover:bg-surface-300/20">
-                <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position]}`}>
-                  {auction.player.position}
-                </td>
-                <td className="py-1.5 px-2 text-white">{auction.player.name}</td>
-                <td className="py-1.5 px-2 text-gray-500 hidden md:table-cell">{auction.player.team}</td>
-                <td className="py-1.5 px-2 text-right font-medium text-primary-400">{auction.finalPrice}M</td>
-                <td className="py-1.5 px-2 text-center text-gray-500 hidden sm:table-cell">{auction.bidCount}</td>
-                <td className="py-1.5 px-2 text-gray-300">
-                  {auction.winner?.teamName || auction.winner?.username || '-'}
-                </td>
-              </tr>
-            ))}
+            {auctions.map(auction => {
+              const hasProphecies = auction.prophecies && auction.prophecies.length > 0
+              const isExpanded = expandedAuction === auction.id
+
+              return (
+                <>
+                  <tr
+                    key={auction.id}
+                    className={`border-b border-surface-50/10 hover:bg-surface-300/20 ${hasProphecies ? 'cursor-pointer' : ''}`}
+                    onClick={() => hasProphecies && setExpandedAuction(isExpanded ? null : auction.id)}
+                  >
+                    <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position]}`}>
+                      {auction.player.position}
+                    </td>
+                    <td className="py-1.5 px-2 text-white">{auction.player.name}</td>
+                    <td className="py-1.5 px-2 text-gray-500 hidden md:table-cell">{auction.player.team}</td>
+                    <td className="py-1.5 px-2 text-right font-medium text-primary-400">{auction.finalPrice}M</td>
+                    <td className="py-1.5 px-2 text-center text-gray-500 hidden sm:table-cell">{auction.bidCount}</td>
+                    <td className="py-1.5 px-2 text-gray-300">
+                      {auction.winner?.teamName || auction.winner?.username || '-'}
+                    </td>
+                    <td className="py-1.5 px-2 text-center">
+                      {hasProphecies && (
+                        <span className="text-purple-400" title={`${auction.prophecies!.length} profezia/e`}>
+                          {auction.prophecies!.length}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                  {isExpanded && hasProphecies && (
+                    <tr key={`${auction.id}-prophecies`}>
+                      <td colSpan={7} className="bg-purple-500/10 px-4 py-3">
+                        <div className="space-y-2">
+                          <p className="text-xs font-semibold text-purple-400 uppercase mb-2">🔮 Profezie</p>
+                          {auction.prophecies!.map((p, idx) => (
+                            <div key={idx} className="bg-purple-500/20 border border-purple-500/30 rounded-lg p-2">
+                              <p className="text-sm text-white italic">"{p.content}"</p>
+                              <p className="text-xs text-purple-300 mt-1">
+                                — {p.author.teamName || p.author.username}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
+              )
+            })}
           </tbody>
         </table>
       </div>
