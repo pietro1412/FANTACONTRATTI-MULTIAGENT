@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { historyApi } from '../services/api'
 
@@ -43,19 +43,27 @@ interface ProphecyStats {
   }>
 }
 
-type FilterMode = 'all' | 'player' | 'author'
-
 export default function Prophecies() {
   const { leagueId } = useParams<{ leagueId: string }>()
   const [prophecies, setProphecies] = useState<Prophecy[]>([])
   const [stats, setStats] = useState<ProphecyStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [search, setSearch] = useState('')
-  const [filterMode, setFilterMode] = useState<FilterMode>('all')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null)
   const [selectedAuthorId, setSelectedAuthorId] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(false)
   const [offset, setOffset] = useState(0)
+  const [showStats, setShowStats] = useState(true)
+  const [compactView, setCompactView] = useState(true)
+  const observerTarget = useRef<HTMLDivElement>(null)
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(timer)
+  }, [search])
 
   useEffect(() => {
     if (leagueId) {
@@ -68,7 +76,25 @@ export default function Prophecies() {
     if (leagueId) {
       loadProphecies(true)
     }
-  }, [selectedPlayerId, selectedAuthorId, search])
+  }, [selectedPlayerId, selectedAuthorId, debouncedSearch])
+
+  // Infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isLoading) {
+          loadProphecies(false)
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current)
+    }
+
+    return () => observer.disconnect()
+  }, [hasMore, isLoadingMore, isLoading, offset])
 
   async function loadStats() {
     try {
@@ -81,26 +107,31 @@ export default function Prophecies() {
     }
   }
 
-  async function loadProphecies(reset = false) {
-    setIsLoading(true)
+  const loadProphecies = useCallback(async (reset = false) => {
+    if (reset) {
+      setIsLoading(true)
+    } else {
+      setIsLoadingMore(true)
+    }
+
     try {
       const newOffset = reset ? 0 : offset
       const result = await historyApi.getProphecies(leagueId!, {
         playerId: selectedPlayerId || undefined,
         authorId: selectedAuthorId || undefined,
-        search: search || undefined,
-        limit: 30,
+        search: debouncedSearch || undefined,
+        limit: 50,
         offset: newOffset,
       })
 
       if (result.success && result.data) {
-        const data = result.data as { prophecies: Prophecy[]; pagination: { hasMore: boolean } }
+        const data = result.data as { prophecies: Prophecy[]; pagination: { hasMore: boolean; total: number } }
         if (reset) {
           setProphecies(data.prophecies)
-          setOffset(30)
+          setOffset(50)
         } else {
           setProphecies(prev => [...prev, ...data.prophecies])
-          setOffset(newOffset + 30)
+          setOffset(newOffset + 50)
         }
         setHasMore(data.pagination.hasMore)
       }
@@ -108,24 +139,28 @@ export default function Prophecies() {
       console.error('Error loading prophecies:', err)
     }
     setIsLoading(false)
-  }
+    setIsLoadingMore(false)
+  }, [leagueId, selectedPlayerId, selectedAuthorId, debouncedSearch, offset])
 
   function handleFilterByPlayer(playerId: string) {
-    setFilterMode('player')
-    setSelectedPlayerId(playerId)
-    setSelectedAuthorId(null)
-    setSearch('')
+    if (selectedPlayerId === playerId) {
+      setSelectedPlayerId(null)
+    } else {
+      setSelectedPlayerId(playerId)
+      setSelectedAuthorId(null)
+    }
   }
 
   function handleFilterByAuthor(authorId: string) {
-    setFilterMode('author')
-    setSelectedAuthorId(authorId)
-    setSelectedPlayerId(null)
-    setSearch('')
+    if (selectedAuthorId === authorId) {
+      setSelectedAuthorId(null)
+    } else {
+      setSelectedAuthorId(authorId)
+      setSelectedPlayerId(null)
+    }
   }
 
   function clearFilters() {
-    setFilterMode('all')
     setSelectedPlayerId(null)
     setSelectedAuthorId(null)
     setSearch('')
@@ -138,128 +173,127 @@ export default function Prophecies() {
     A: 'text-red-400 bg-red-400/20',
   }
 
-  const formatSessionType = (type: string) => {
-    const types: Record<string, string> = {
-      PRIMO_MERCATO: 'Primo Mercato',
-      SESSIONE_INVERNALE: 'Sessione Invernale',
-      SESSIONE_ESTIVA: 'Sessione Estiva',
-    }
-    return types[type] || type
-  }
-
   const getActiveFilterLabel = () => {
-    if (filterMode === 'player' && selectedPlayerId) {
+    if (selectedPlayerId) {
       const player = stats?.topPlayers.find(p => p.playerId === selectedPlayerId)
-      return `Giocatore: ${player?.name || 'Selezionato'}`
+      if (player) return `${player.name}`
+      const fromList = prophecies.find(p => p.player.id === selectedPlayerId)
+      return fromList?.player.name || 'Giocatore'
     }
-    if (filterMode === 'author' && selectedAuthorId) {
+    if (selectedAuthorId) {
       const author = stats?.byAuthor.find(a => a.memberId === selectedAuthorId)
-      return `Manager: ${author?.teamName || author?.username || 'Selezionato'}`
+      if (author) return author.teamName || author.username
+      const fromList = prophecies.find(p => p.author.memberId === selectedAuthorId)
+      return fromList?.author.teamName || fromList?.author.username || 'Manager'
     }
     return null
   }
 
+  const hasActiveFilters = selectedPlayerId || selectedAuthorId || debouncedSearch
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-surface-100 to-surface-200">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Link
-            to={`/leagues/${leagueId}`}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-              <span className="text-4xl">🔮</span>
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        {/* Header compatto */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Link
+              to={`/leagues/${leagueId}`}
+              className="text-gray-400 hover:text-white transition-colors p-1"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Link>
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+              <span>🔮</span>
               Profezie
+              <span className="text-base font-normal text-gray-400">
+                ({stats?.total || 0})
+              </span>
             </h1>
-            <p className="text-gray-400 mt-1">
-              {stats?.total || 0} profezie nella lega
-            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Toggle Stats */}
+            <button
+              onClick={() => setShowStats(!showStats)}
+              className={`p-2 rounded-lg transition-colors ${showStats ? 'bg-purple-500/20 text-purple-400' : 'text-gray-400 hover:text-white'}`}
+              title={showStats ? 'Nascondi statistiche' : 'Mostra statistiche'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </button>
+
+            {/* Toggle View */}
+            <button
+              onClick={() => setCompactView(!compactView)}
+              className={`p-2 rounded-lg transition-colors ${compactView ? 'text-gray-400 hover:text-white' : 'bg-primary-500/20 text-primary-400'}`}
+              title={compactView ? 'Vista espansa' : 'Vista compatta'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {compactView ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                )}
+              </svg>
+            </button>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {/* Top Prophets */}
-            <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4">
-              <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-                <span>👤</span> Profeti Attivi
-              </h3>
-              <div className="space-y-2">
-                {stats.byAuthor.slice(0, 5).map((author, idx) => (
+        {/* Stats Cards - Collapsible */}
+        {showStats && stats && (
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {/* Top Prophets - Compact */}
+            <div className="bg-surface-200 rounded-lg border border-surface-50/20 p-3">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">Top Profeti</h3>
+              <div className="flex flex-wrap gap-1">
+                {stats.byAuthor.slice(0, 6).map((author, idx) => (
                   <button
                     key={author.memberId}
                     onClick={() => handleFilterByAuthor(author.memberId)}
-                    className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors ${
+                    className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors ${
                       selectedAuthorId === author.memberId
-                        ? 'bg-purple-500/30 border border-purple-500/50'
-                        : 'hover:bg-surface-300/50'
+                        ? 'bg-purple-500/30 text-purple-300 ring-1 ring-purple-500/50'
+                        : 'bg-surface-300/50 text-gray-300 hover:bg-surface-300'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${
-                        idx === 0 ? 'bg-yellow-500/30 text-yellow-400' :
-                        idx === 1 ? 'bg-gray-400/30 text-gray-300' :
-                        idx === 2 ? 'bg-amber-600/30 text-amber-500' :
-                        'bg-surface-300 text-gray-400'
-                      }`}>
-                        {idx + 1}
-                      </span>
-                      <div className="text-left">
-                        <p className="text-white font-medium">{author.teamName || author.username}</p>
-                        {author.teamName && (
-                          <p className="text-xs text-gray-500">{author.username}</p>
-                        )}
-                      </div>
-                    </div>
-                    <span className="text-purple-400 font-bold">{author.count}</span>
+                    <span className={`w-4 h-4 flex items-center justify-center rounded-full text-[10px] font-bold ${
+                      idx === 0 ? 'bg-yellow-500/30 text-yellow-400' :
+                      idx === 1 ? 'bg-gray-400/30 text-gray-300' :
+                      idx === 2 ? 'bg-amber-600/30 text-amber-500' :
+                      'bg-surface-400 text-gray-500'
+                    }`}>
+                      {idx + 1}
+                    </span>
+                    <span className="truncate max-w-[80px]">{author.teamName || author.username}</span>
+                    <span className="text-purple-400 font-semibold">{author.count}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Most Prophesied Players */}
-            <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4">
-              <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-                <span>⚽</span> Giocatori Più Profetizzati
-              </h3>
-              <div className="space-y-2">
-                {stats.topPlayers.slice(0, 5).map((player, idx) => (
+            {/* Most Prophesied Players - Compact */}
+            <div className="bg-surface-200 rounded-lg border border-surface-50/20 p-3">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">Top Giocatori</h3>
+              <div className="flex flex-wrap gap-1">
+                {stats.topPlayers.slice(0, 6).map((player, idx) => (
                   <button
                     key={player.playerId}
                     onClick={() => handleFilterByPlayer(player.playerId)}
-                    className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors ${
+                    className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors ${
                       selectedPlayerId === player.playerId
-                        ? 'bg-purple-500/30 border border-purple-500/50'
-                        : 'hover:bg-surface-300/50'
+                        ? 'bg-purple-500/30 text-purple-300 ring-1 ring-purple-500/50'
+                        : 'bg-surface-300/50 text-gray-300 hover:bg-surface-300'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${
-                        idx === 0 ? 'bg-yellow-500/30 text-yellow-400' :
-                        idx === 1 ? 'bg-gray-400/30 text-gray-300' :
-                        idx === 2 ? 'bg-amber-600/30 text-amber-500' :
-                        'bg-surface-300 text-gray-400'
-                      }`}>
-                        {idx + 1}
-                      </span>
-                      <div className="text-left">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${positionColors[player.position]}`}>
-                            {player.position}
-                          </span>
-                          <p className="text-white font-medium">{player.name}</p>
-                        </div>
-                        <p className="text-xs text-gray-500">{player.team}</p>
-                      </div>
-                    </div>
-                    <span className="text-purple-400 font-bold">{player.count}</span>
+                    <span className={`px-1 rounded text-[10px] font-bold ${positionColors[player.position]}`}>
+                      {player.position}
+                    </span>
+                    <span className="truncate max-w-[80px]">{player.name}</span>
+                    <span className="text-purple-400 font-semibold">{player.count}</span>
                   </button>
                 ))}
               </div>
@@ -267,145 +301,195 @@ export default function Prophecies() {
           </div>
         )}
 
-        {/* Filters */}
-        <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4 mb-6">
-          <div className="flex flex-wrap items-center gap-4">
+        {/* Search & Filters Bar */}
+        <div className="bg-surface-200 rounded-lg border border-surface-50/20 p-3 mb-4 sticky top-0 z-10">
+          <div className="flex items-center gap-3">
             {/* Search */}
-            <div className="flex-1 min-w-[200px]">
+            <div className="relative flex-1">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
               <input
                 type="text"
-                placeholder="Cerca per giocatore, manager o contenuto..."
+                placeholder="Cerca giocatore, manager o testo..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full px-4 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-500"
+                className="w-full pl-9 pr-4 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500"
               />
             </div>
 
-            {/* Active Filter Badge */}
-            {getActiveFilterLabel() && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-purple-500/20 border border-purple-500/30 rounded-lg">
-                <span className="text-purple-300 text-sm">{getActiveFilterLabel()}</span>
+            {/* Active Filters */}
+            {hasActiveFilters && (
+              <div className="flex items-center gap-2">
+                {getActiveFilterLabel() && (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-1.5 bg-purple-500/20 border border-purple-500/30 rounded-lg text-xs text-purple-300">
+                    {selectedPlayerId && <span className={`px-1 rounded text-[10px] font-bold ${positionColors[prophecies.find(p => p.player.id === selectedPlayerId)?.player.position || 'P']}`}>{prophecies.find(p => p.player.id === selectedPlayerId)?.player.position}</span>}
+                    {getActiveFilterLabel()}
+                    <button onClick={clearFilters} className="ml-1 hover:text-white">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
                 <button
                   onClick={clearFilters}
-                  className="text-purple-400 hover:text-purple-300"
+                  className="text-xs text-gray-500 hover:text-white transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  Reset
                 </button>
               </div>
             )}
 
-            {/* Clear All */}
-            {(search || selectedPlayerId || selectedAuthorId) && (
+            {/* Results count */}
+            <span className="text-xs text-gray-500 whitespace-nowrap">
+              {prophecies.length} risultati
+            </span>
+          </div>
+        </div>
+
+        {/* Prophecies List */}
+        {isLoading && prophecies.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-8 h-8 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin"></div>
+          </div>
+        ) : prophecies.length === 0 ? (
+          <div className="bg-surface-200 rounded-lg border border-surface-50/20 p-8 text-center">
+            <span className="text-4xl mb-3 block">🔮</span>
+            <p className="text-gray-400 text-sm">Nessuna profezia trovata</p>
+            {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+                className="mt-3 px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
               >
                 Resetta filtri
               </button>
             )}
           </div>
-        </div>
-
-        {/* Prophecies List */}
-        <div className="space-y-4">
-          {isLoading && prophecies.length === 0 ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-10 h-10 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin"></div>
-            </div>
-          ) : prophecies.length === 0 ? (
-            <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-8 text-center">
-              <span className="text-5xl mb-4 block">🔮</span>
-              <p className="text-gray-400">Nessuna profezia trovata</p>
-              {(search || selectedPlayerId || selectedAuthorId) && (
-                <button
-                  onClick={clearFilters}
-                  className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-                >
-                  Resetta filtri
-                </button>
-              )}
-            </div>
-          ) : (
-            <>
-              {prophecies.map(prophecy => (
-                <div
-                  key={prophecy.id}
-                  className="bg-surface-200 rounded-xl border border-surface-50/20 p-4 hover:border-purple-500/30 transition-colors"
-                >
-                  <div className="flex flex-col md:flex-row md:items-start gap-4">
-                    {/* Player Info */}
-                    <button
-                      onClick={() => handleFilterByPlayer(prophecy.player.id)}
-                      className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-                    >
-                      <span className={`w-10 h-10 flex items-center justify-center rounded-lg text-sm font-bold ${positionColors[prophecy.player.position]}`}>
-                        {prophecy.player.position}
-                      </span>
-                      <div className="text-left">
-                        <p className="text-white font-semibold">{prophecy.player.name}</p>
-                        <p className="text-xs text-gray-500">{prophecy.player.team}</p>
-                      </div>
-                    </button>
-
-                    {/* Content */}
-                    <div className="flex-1">
-                      <p className="text-white italic">"{prophecy.content}"</p>
-                      <div className="flex flex-wrap items-center gap-3 mt-2 text-xs">
-                        <button
-                          onClick={() => handleFilterByAuthor(prophecy.author.memberId)}
-                          className="text-purple-400 hover:text-purple-300 transition-colors"
-                        >
-                          — {prophecy.author.teamName || prophecy.author.username}
-                        </button>
-                        {prophecy.session && (
-                          <span className="text-gray-500">
-                            {formatSessionType(prophecy.session.type)} S{prophecy.session.season}
-                          </span>
-                        )}
-                        {prophecy.movementPrice && (
-                          <span className="text-primary-400">
-                            {prophecy.movementPrice}M
-                          </span>
-                        )}
-                        <span className={`px-2 py-0.5 rounded text-xs ${
-                          prophecy.authorRole === 'BUYER'
-                            ? 'bg-green-500/20 text-green-400'
-                            : 'bg-gray-500/20 text-gray-400'
-                        }`}>
-                          {prophecy.authorRole === 'BUYER' ? 'Acquirente' : 'Osservatore'}
+        ) : compactView ? (
+          /* Vista Compatta - Tabella */
+          <div className="bg-surface-200 rounded-lg border border-surface-50/20 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-300/50 border-b border-surface-50/20">
+                <tr>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase">Giocatore</th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase hidden md:table-cell">Profezia</th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase">Autore</th>
+                  <th className="text-right px-3 py-2 text-xs font-semibold text-gray-400 uppercase hidden sm:table-cell">Prezzo</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-50/10">
+                {prophecies.map(prophecy => (
+                  <tr key={prophecy.id} className="hover:bg-surface-300/30 transition-colors">
+                    <td className="px-3 py-2">
+                      <button
+                        onClick={() => handleFilterByPlayer(prophecy.player.id)}
+                        className="flex items-center gap-2 hover:opacity-80"
+                      >
+                        <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${positionColors[prophecy.player.position]}`}>
+                          {prophecy.player.position}
                         </span>
-                      </div>
+                        <div>
+                          <p className="text-white font-medium text-left">{prophecy.player.name}</p>
+                          <p className="text-[10px] text-gray-500 md:hidden">{prophecy.content.substring(0, 40)}...</p>
+                        </div>
+                      </button>
+                    </td>
+                    <td className="px-3 py-2 hidden md:table-cell">
+                      <p className="text-gray-300 italic text-xs max-w-md truncate" title={prophecy.content}>
+                        "{prophecy.content}"
+                      </p>
+                    </td>
+                    <td className="px-3 py-2">
+                      <button
+                        onClick={() => handleFilterByAuthor(prophecy.author.memberId)}
+                        className="text-purple-400 hover:text-purple-300 text-xs"
+                      >
+                        {prophecy.author.teamName || prophecy.author.username}
+                      </button>
+                    </td>
+                    <td className="px-3 py-2 text-right hidden sm:table-cell">
+                      {prophecy.movementPrice && (
+                        <span className="text-primary-400 text-xs font-medium">{prophecy.movementPrice}M</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* Vista Espansa - Cards */
+          <div className="space-y-3">
+            {prophecies.map(prophecy => (
+              <div
+                key={prophecy.id}
+                className="bg-surface-200 rounded-lg border border-surface-50/20 p-3 hover:border-purple-500/30 transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  {/* Player */}
+                  <button
+                    onClick={() => handleFilterByPlayer(prophecy.player.id)}
+                    className="flex items-center gap-2 hover:opacity-80 shrink-0"
+                  >
+                    <span className={`w-8 h-8 flex items-center justify-center rounded text-xs font-bold ${positionColors[prophecy.player.position]}`}>
+                      {prophecy.player.position}
+                    </span>
+                    <div className="text-left">
+                      <p className="text-white font-medium text-sm">{prophecy.player.name}</p>
+                      <p className="text-[10px] text-gray-500">{prophecy.player.team}</p>
                     </div>
+                  </button>
 
-                    {/* Date */}
-                    <div className="text-xs text-gray-500 md:text-right">
-                      {new Date(prophecy.createdAt).toLocaleDateString('it-IT', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-gray-300 text-sm italic">"{prophecy.content}"</p>
+                    <div className="flex items-center gap-2 mt-1 text-xs">
+                      <button
+                        onClick={() => handleFilterByAuthor(prophecy.author.memberId)}
+                        className="text-purple-400 hover:text-purple-300"
+                      >
+                        — {prophecy.author.teamName || prophecy.author.username}
+                      </button>
+                      {prophecy.movementPrice && (
+                        <span className="text-primary-400">{prophecy.movementPrice}M</span>
+                      )}
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                        prophecy.authorRole === 'BUYER'
+                          ? 'bg-green-500/20 text-green-400'
+                          : 'bg-gray-500/20 text-gray-400'
+                      }`}>
+                        {prophecy.authorRole === 'BUYER' ? 'Acquirente' : 'Osservatore'}
+                      </span>
                     </div>
                   </div>
-                </div>
-              ))}
 
-              {/* Load More */}
-              {hasMore && (
-                <div className="text-center pt-4">
-                  <button
-                    onClick={() => loadProphecies(false)}
-                    disabled={isLoading}
-                    className="px-6 py-3 bg-surface-300 text-white rounded-lg hover:bg-surface-400 transition-colors disabled:opacity-50"
-                  >
-                    {isLoading ? 'Caricamento...' : 'Carica altre profezie'}
-                  </button>
+                  {/* Date */}
+                  <span className="text-[10px] text-gray-500 shrink-0">
+                    {new Date(prophecy.createdAt).toLocaleDateString('it-IT', {
+                      day: '2-digit',
+                      month: 'short',
+                    })}
+                  </span>
                 </div>
-              )}
-            </>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Infinite Scroll Trigger */}
+        <div ref={observerTarget} className="h-10 flex items-center justify-center">
+          {isLoadingMore && (
+            <div className="w-6 h-6 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin"></div>
           )}
         </div>
+
+        {/* End of list indicator */}
+        {!hasMore && prophecies.length > 0 && (
+          <p className="text-center text-xs text-gray-500 py-4">
+            Fine delle profezie
+          </p>
+        )}
       </div>
     </div>
   )
