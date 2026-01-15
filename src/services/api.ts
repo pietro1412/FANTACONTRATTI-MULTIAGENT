@@ -752,8 +752,6 @@ export const rubataApi = {
         playerName: string
         playerPosition: string
         playerTeam: string
-        playerQuotation: number
-        basePrice: number
         preference: {
           id: string
           playerId: string

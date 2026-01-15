@@ -26,8 +26,6 @@ interface SvincolatoPlayer {
   playerName: string
   playerPosition: string
   playerTeam: string
-  playerQuotation: number
-  basePrice: number
 }
 
 interface RubataPreference {
@@ -547,11 +545,6 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
               <span className="text-2xl">🎯</span>
               Strategie Rubata
             </h1>
-            {strategiesData?.hasRubataBoard && (
-              <span className="px-2 py-1 text-xs font-medium bg-secondary-500/20 text-secondary-400 rounded-full">
-                RUBATA ATTIVA
-              </span>
-            )}
           </div>
           <p className="text-gray-400 text-sm">
             Imposta offerta massima, priorita e note. Le modifiche vengono salvate automaticamente dopo 2 secondi.

@@ -3839,10 +3839,6 @@ export async function getAllSvincolatiForStrategies(
     playerName: player.name,
     playerPosition: player.position,
     playerTeam: player.team,
-    playerQuotation: player.quotation,
-    // Svincolati non hanno proprietario, contratto o prezzo rubata
-    // Il prezzo base è la quotazione
-    basePrice: player.quotation,
     preference: preferencesMap.get(player.id) || null,
   }))
 
