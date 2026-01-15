@@ -743,6 +743,32 @@ export const rubataApi = {
       sessionId: string | null
       totalPlayers: number
     }>(`/api/leagues/${leagueId}/rubata/strategies`),
+
+  // Year-round strategies - Get all svincolati (free agents) with strategies
+  getAllSvincolatiForStrategies: (leagueId: string) =>
+    request<{
+      players: Array<{
+        playerId: string
+        playerName: string
+        playerPosition: string
+        playerTeam: string
+        playerQuotation: number
+        basePrice: number
+        preference: {
+          id: string
+          playerId: string
+          memberId: string
+          maxBid: number | null
+          priority: number | null
+          notes: string | null
+          isWatchlist: boolean
+          isAutoPass: boolean
+        } | null
+      }>
+      myMemberId: string
+      sessionId: string | null
+      totalPlayers: number
+    }>(`/api/leagues/${leagueId}/rubata/svincolati-strategies`),
 }
 
 // Svincolati (Free Agents) API

@@ -41,6 +41,7 @@ import {
   setRubataToPreview,
   // Year-round strategies
   getAllPlayersForStrategies,
+  getAllSvincolatiForStrategies,
 } from '../../services/rubata.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -758,6 +759,24 @@ router.get('/leagues/:leagueId/rubata/strategies', authMiddleware, async (req: R
     res.json(result)
   } catch (error) {
     console.error('Get all players for strategies error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:leagueId/rubata/svincolati-strategies - Get all svincolati with strategies (year-round)
+router.get('/leagues/:leagueId/rubata/svincolati-strategies', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await getAllSvincolatiForStrategies(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get all svincolati for strategies error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

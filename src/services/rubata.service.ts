@@ -3734,6 +3734,138 @@ export async function getAllPlayersForStrategies(
   }
 }
 
+/**
+ * Get all svincolati (free agents) for year-round strategy planning.
+ * These are SerieAPlayer records that are NOT in any active roster within the league.
+ */
+export async function getAllSvincolatiForStrategies(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Get all active members in the league
+  const allMembers = await prisma.leagueMember.findMany({
+    where: {
+      leagueId,
+      status: MemberStatus.ACTIVE,
+    },
+    select: { id: true },
+  })
+  const memberIds = allMembers.map(m => m.id)
+
+  // Get all playerIds that are in active rosters in this league
+  const ownedPlayers = await prisma.playerRoster.findMany({
+    where: {
+      leagueMemberId: { in: memberIds },
+      status: RosterStatus.ACTIVE,
+    },
+    select: { playerId: true },
+  })
+  const ownedPlayerIds = ownedPlayers.map(r => r.playerId)
+
+  // Check if there's an active session
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+    },
+  })
+
+  // Find the most relevant session for preferences
+  let preferenceSession = activeSession
+  if (!preferenceSession) {
+    preferenceSession = await prisma.marketSession.findFirst({
+      where: { leagueId },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
+  // Get user's preferences
+  let preferencesMap = new Map<string, {
+    id: string
+    playerId: string
+    memberId: string
+    maxBid: number | null
+    priority: number | null
+    notes: string | null
+    isWatchlist: boolean
+    isAutoPass: boolean
+  }>()
+
+  if (preferenceSession) {
+    const preferences = await prisma.rubataPreference.findMany({
+      where: {
+        sessionId: preferenceSession.id,
+        memberId: member.id,
+      },
+    })
+    preferencesMap = new Map(preferences.map(p => [p.playerId, p]))
+  }
+
+  // Get all svincolati (players not in any roster)
+  const svincolati = await prisma.serieAPlayer.findMany({
+    where: {
+      isActive: true,
+      listStatus: 'IN_LIST',
+      id: { notIn: ownedPlayerIds.length > 0 ? ownedPlayerIds : ['__none__'] },
+    },
+    select: {
+      id: true,
+      name: true,
+      team: true,
+      position: true,
+      quotation: true,
+    },
+    orderBy: [
+      { position: 'asc' },
+      { name: 'asc' },
+    ],
+  })
+
+  // Build the players list
+  const players = svincolati.map(player => ({
+    playerId: player.id,
+    playerName: player.name,
+    playerPosition: player.position,
+    playerTeam: player.team,
+    playerQuotation: player.quotation,
+    // Svincolati non hanno proprietario, contratto o prezzo rubata
+    // Il prezzo base è la quotazione
+    basePrice: player.quotation,
+    preference: preferencesMap.get(player.id) || null,
+  }))
+
+  // Sort by position order (P, D, C, A) then by name
+  const positionOrder: Record<string, number> = { P: 1, D: 2, C: 3, A: 4 }
+  players.sort((a, b) => {
+    const posA = positionOrder[a.playerPosition] || 99
+    const posB = positionOrder[b.playerPosition] || 99
+    if (posA !== posB) return posA - posB
+    return a.playerName.localeCompare(b.playerName)
+  })
+
+  return {
+    success: true,
+    data: {
+      players,
+      myMemberId: member.id,
+      sessionId: preferenceSession?.id || null,
+      totalPlayers: players.length,
+    },
+  }
+}
+
 export async function getRubataPreviewBoard(
   leagueId: string,
   userId: string

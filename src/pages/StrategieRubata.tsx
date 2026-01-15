@@ -21,6 +21,15 @@ interface StrategyPlayer {
   contractClause: number
 }
 
+interface SvincolatoPlayer {
+  playerId: string
+  playerName: string
+  playerPosition: string
+  playerTeam: string
+  playerQuotation: number
+  basePrice: number
+}
+
 interface RubataPreference {
   id: string
   playerId: string
@@ -36,6 +45,13 @@ interface StrategyPlayerWithPreference extends StrategyPlayer {
   preference?: RubataPreference | null
 }
 
+interface SvincolatoPlayerWithPreference extends SvincolatoPlayer {
+  preference?: RubataPreference | null
+}
+
+// Union type for display - can be either owned player or svincolato
+type DisplayPlayer = (StrategyPlayerWithPreference & { type: 'owned' }) | (SvincolatoPlayerWithPreference & { type: 'svincolato' })
+
 interface StrategiesData {
   players: StrategyPlayerWithPreference[]
   myMemberId: string
@@ -45,6 +61,15 @@ interface StrategiesData {
   sessionId: string | null
   totalPlayers: number
 }
+
+interface SvincolatiData {
+  players: SvincolatoPlayerWithPreference[]
+  myMemberId: string
+  sessionId: string | null
+  totalPlayers: number
+}
+
+type ViewMode = 'owned' | 'svincolati' | 'all'
 
 const POSITION_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   P: { bg: 'bg-gradient-to-r from-amber-500 to-amber-600', text: 'text-white', border: '' },
@@ -93,6 +118,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
 
   const [strategiesData, setStrategiesData] = useState<StrategiesData | null>(null)
+  const [svincolatiData, setSvincolatiData] = useState<SvincolatiData | null>(null)
+
+  // View mode: owned players, svincolati, or all
+  const [viewMode, setViewMode] = useState<ViewMode>('owned')
 
   // Filter state
   const [positionFilter, setPositionFilter] = useState<string>('ALL')
@@ -124,12 +153,18 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         setIsLeagueAdmin(data.userMembership?.role === 'ADMIN')
       }
 
-      const res = await rubataApi.getAllPlayersForStrategies(leagueId)
-      if (res.success && res.data) {
-        setStrategiesData(res.data)
-        // Initialize local strategies from server data
-        const locals: Record<string, LocalStrategy> = {}
-        res.data.players.forEach(p => {
+      // Fetch both owned players and svincolati in parallel
+      const [ownedRes, svincolatiRes] = await Promise.all([
+        rubataApi.getAllPlayersForStrategies(leagueId),
+        rubataApi.getAllSvincolatiForStrategies(leagueId),
+      ])
+
+      // Initialize local strategies
+      const locals: Record<string, LocalStrategy> = {}
+
+      if (ownedRes.success && ownedRes.data) {
+        setStrategiesData(ownedRes.data)
+        ownedRes.data.players.forEach(p => {
           if (p.preference) {
             locals[p.playerId] = {
               maxBid: p.preference.maxBid?.toString() || '',
@@ -139,10 +174,25 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
             }
           }
         })
-        setLocalStrategies(locals)
       } else {
-        setError(res.message || 'Errore nel caricamento')
+        setError(ownedRes.message || 'Errore nel caricamento giocatori')
       }
+
+      if (svincolatiRes.success && svincolatiRes.data) {
+        setSvincolatiData(svincolatiRes.data)
+        svincolatiRes.data.players.forEach(p => {
+          if (p.preference) {
+            locals[p.playerId] = {
+              maxBid: p.preference.maxBid?.toString() || '',
+              priority: p.preference.priority || 0,
+              notes: p.preference.notes || '',
+              isDirty: false,
+            }
+          }
+        })
+      }
+
+      setLocalStrategies(locals)
     } catch (err) {
       setError('Errore nel caricamento')
     } finally {
@@ -305,41 +355,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     }
   }, [sortField])
 
-  // Filtered and sorted players
-  const filteredPlayers = useMemo(() => {
-    if (!strategiesData?.players) return []
+  // Filtered and sorted players - now supports both owned and svincolati
+  const filteredPlayers = useMemo((): DisplayPlayer[] => {
+    const result: DisplayPlayer[] = []
 
-    let players = strategiesData.players.filter(player => {
-      // Exclude own players
-      if (player.memberId === myMemberId) return false
-
-      // Position filter
-      if (positionFilter !== 'ALL' && player.playerPosition !== positionFilter) return false
-
-      // Owner filter
-      if (ownerFilter !== 'ALL' && player.ownerUsername !== ownerFilter) return false
-
-      // Search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase()
-        if (!player.playerName.toLowerCase().includes(query) &&
-            !player.playerTeam.toLowerCase().includes(query) &&
-            !player.ownerUsername.toLowerCase().includes(query) &&
-            !(player.ownerTeamName?.toLowerCase().includes(query))) {
-          return false
-        }
-      }
-
-      // Strategy filter
-      if (showOnlyWithStrategy) {
-        const local = getLocalStrategy(player.playerId)
-        if (!local.maxBid && !local.priority && !local.notes) return false
-      }
-
-      return true
-    })
-
-    // Sort
     // Position order: P (0) > D (1) > C (2) > A (3)
     const getPositionOrder = (pos: string): number => {
       const normalized = (pos || '').toString().trim().toUpperCase()
@@ -347,72 +366,146 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       return order[normalized] ?? 99
     }
 
-    // Compare by position (P, D, C, A)
-    const comparePosition = (a: StrategyPlayerWithPreference, b: StrategyPlayerWithPreference): number => {
-      return getPositionOrder(a.playerPosition) - getPositionOrder(b.playerPosition)
+    // Add owned players if viewMode is 'owned' or 'all'
+    if ((viewMode === 'owned' || viewMode === 'all') && strategiesData?.players) {
+      strategiesData.players.forEach(player => {
+        // Exclude own players
+        if (player.memberId === myMemberId) return
+
+        // Position filter
+        if (positionFilter !== 'ALL' && player.playerPosition !== positionFilter) return
+
+        // Owner filter (only for owned)
+        if (ownerFilter !== 'ALL' && player.ownerUsername !== ownerFilter) return
+
+        // Search filter
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase()
+          if (!player.playerName.toLowerCase().includes(query) &&
+              !player.playerTeam.toLowerCase().includes(query) &&
+              !player.ownerUsername.toLowerCase().includes(query) &&
+              !(player.ownerTeamName?.toLowerCase().includes(query))) {
+            return
+          }
+        }
+
+        // Strategy filter
+        if (showOnlyWithStrategy) {
+          const local = getLocalStrategy(player.playerId)
+          if (!local.maxBid && !local.priority && !local.notes) return
+        }
+
+        result.push({ ...player, type: 'owned' })
+      })
     }
 
-    // Compare alphabetically
-    const compareName = (a: StrategyPlayerWithPreference, b: StrategyPlayerWithPreference): number => {
-      return a.playerName.localeCompare(b.playerName)
+    // Add svincolati if viewMode is 'svincolati' or 'all'
+    if ((viewMode === 'svincolati' || viewMode === 'all') && svincolatiData?.players) {
+      svincolatiData.players.forEach(player => {
+        // Position filter
+        if (positionFilter !== 'ALL' && player.playerPosition !== positionFilter) return
+
+        // Owner filter doesn't apply to svincolati, skip them if a specific owner is selected
+        if (viewMode === 'all' && ownerFilter !== 'ALL') return
+
+        // Search filter
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase()
+          if (!player.playerName.toLowerCase().includes(query) &&
+              !player.playerTeam.toLowerCase().includes(query)) {
+            return
+          }
+        }
+
+        // Strategy filter
+        if (showOnlyWithStrategy) {
+          const local = getLocalStrategy(player.playerId)
+          if (!local.maxBid && !local.priority && !local.notes) return
+        }
+
+        result.push({ ...player, type: 'svincolato' })
+      })
     }
 
-    // Compare by manager
-    const compareManager = (a: StrategyPlayerWithPreference, b: StrategyPlayerWithPreference): number => {
-      const teamA = a.ownerTeamName || a.ownerUsername
-      const teamB = b.ownerTeamName || b.ownerUsername
-      return teamA.localeCompare(teamB)
-    }
-
-    // Compare by rubata order
-    const compareRubataOrder = (a: StrategyPlayerWithPreference, b: StrategyPlayerWithPreference): number => {
-      const orderA = a.ownerRubataOrder ?? 999
-      const orderB = b.ownerRubataOrder ?? 999
-      return orderA - orderB
-    }
-
-    players.sort((a, b) => {
+    // Sort
+    result.sort((a, b) => {
       let cmp = 0
+
+      // Compare by position
+      const comparePosition = () => getPositionOrder(a.playerPosition) - getPositionOrder(b.playerPosition)
+
+      // Compare alphabetically
+      const compareName = () => a.playerName.localeCompare(b.playerName)
+
+      // Compare by manager (only for owned)
+      const compareManager = () => {
+        if (a.type === 'svincolato' && b.type === 'svincolato') return 0
+        if (a.type === 'svincolato') return 1 // Svincolati after owned
+        if (b.type === 'svincolato') return -1
+        const teamA = a.ownerTeamName || a.ownerUsername
+        const teamB = b.ownerTeamName || b.ownerUsername
+        return teamA.localeCompare(teamB)
+      }
+
+      // Compare by rubata order (only for owned)
+      const compareRubataOrder = () => {
+        if (a.type === 'svincolato' && b.type === 'svincolato') return 0
+        if (a.type === 'svincolato') return 1
+        if (b.type === 'svincolato') return -1
+        const orderA = a.ownerRubataOrder ?? 999
+        const orderB = b.ownerRubataOrder ?? 999
+        return orderA - orderB
+      }
 
       // Sort by mode
       if (sortMode === 'rubata') {
-        // 1. Rubata order > 2. Position > 3. Name
-        cmp = compareRubataOrder(a, b)
+        cmp = compareRubataOrder()
         if (cmp !== 0) return cmp
-        cmp = comparePosition(a, b)
+        cmp = comparePosition()
         if (cmp !== 0) return cmp
-        return compareName(a, b)
+        return compareName()
       }
 
       if (sortMode === 'manager') {
-        // 1. Manager > 2. Position > 3. Name
-        cmp = compareManager(a, b)
+        cmp = compareManager()
         if (cmp !== 0) return cmp
-        cmp = comparePosition(a, b)
+        cmp = comparePosition()
         if (cmp !== 0) return cmp
-        return compareName(a, b)
+        return compareName()
       }
 
       // Default: role mode
-      // 1. Position > 2. Name
-      cmp = comparePosition(a, b)
+      cmp = comparePosition()
       if (cmp !== 0) return cmp
-      return compareName(a, b)
+      return compareName()
     })
 
-    return players
-  }, [strategiesData?.players, myMemberId, positionFilter, ownerFilter, searchQuery, showOnlyWithStrategy, sortMode, sortField, sortDirection, getLocalStrategy])
+    return result
+  }, [strategiesData?.players, svincolatiData?.players, myMemberId, viewMode, positionFilter, ownerFilter, searchQuery, showOnlyWithStrategy, sortMode, getLocalStrategy])
 
-  // My strategies count (for footer)
+  // My strategies count (for footer) - includes both owned and svincolati
   const myStrategiesCount = useMemo(() => {
-    if (!strategiesData?.players) return 0
+    let count = 0
 
-    return strategiesData.players.filter(p => {
-      if (p.memberId === myMemberId) return false
-      const local = getLocalStrategy(p.playerId)
-      return local.maxBid || local.priority || local.notes
-    }).length
-  }, [strategiesData?.players, myMemberId, getLocalStrategy])
+    // Count owned strategies
+    if (strategiesData?.players) {
+      count += strategiesData.players.filter(p => {
+        if (p.memberId === myMemberId) return false
+        const local = getLocalStrategy(p.playerId)
+        return local.maxBid || local.priority || local.notes
+      }).length
+    }
+
+    // Count svincolati strategies
+    if (svincolatiData?.players) {
+      count += svincolatiData.players.filter(p => {
+        const local = getLocalStrategy(p.playerId)
+        return local.maxBid || local.priority || local.notes
+      }).length
+    }
+
+    return count
+  }, [strategiesData?.players, svincolatiData?.players, myMemberId, getLocalStrategy])
 
   // Sortable column header component
   const SortableHeader = ({ field, label, className = '' }: { field: SortField; label: string; className?: string }) => (
@@ -481,10 +574,47 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
               {/* Filters */}
               <div className="p-3 border-b border-surface-50/20 bg-surface-300/30">
                 <div className="flex flex-wrap gap-2 items-center">
+                  {/* View Mode Toggle */}
+                  <div className="flex gap-1 bg-surface-300/50 rounded-lg p-0.5">
+                    <button
+                      onClick={() => { setViewMode('owned'); setOwnerFilter('ALL'); }}
+                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                        viewMode === 'owned'
+                          ? 'bg-blue-500 text-white'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                      title="Giocatori di altri manager"
+                    >
+                      Rose
+                    </button>
+                    <button
+                      onClick={() => { setViewMode('svincolati'); setOwnerFilter('ALL'); }}
+                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                        viewMode === 'svincolati'
+                          ? 'bg-emerald-500 text-white'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                      title="Giocatori svincolati"
+                    >
+                      Svincolati
+                    </button>
+                    <button
+                      onClick={() => { setViewMode('all'); setOwnerFilter('ALL'); }}
+                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                        viewMode === 'all'
+                          ? 'bg-purple-500 text-white'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                      title="Tutti i giocatori"
+                    >
+                      Tutti
+                    </button>
+                  </div>
+
                   {/* Position Filter */}
                   <div className="flex gap-1">
                     {['ALL', 'P', 'D', 'C', 'A'].map(pos => {
-                      const colors = POSITION_COLORS[pos]
+                      const colors = POSITION_COLORS[pos] ?? { bg: 'bg-white/20', text: 'text-white', border: '' }
                       return (
                         <button
                           key={pos}
@@ -542,17 +672,19 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     )}
                   </div>
 
-                  {/* Owner Filter */}
-                  <select
-                    value={ownerFilter}
-                    onChange={(e) => setOwnerFilter(e.target.value)}
-                    className="px-2 py-1 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
-                  >
-                    <option value="ALL">Tutti i manager</option>
-                    {uniqueOwners.map(o => (
-                      <option key={o.username} value={o.username}>{o.teamName}</option>
-                    ))}
-                  </select>
+                  {/* Owner Filter - only show for owned or all views */}
+                  {viewMode !== 'svincolati' && (
+                    <select
+                      value={ownerFilter}
+                      onChange={(e) => setOwnerFilter(e.target.value)}
+                      className="px-2 py-1 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
+                    >
+                      <option value="ALL">Tutti i manager</option>
+                      {uniqueOwners.map(o => (
+                        <option key={o.username} value={o.username}>{o.teamName}</option>
+                      ))}
+                    </select>
+                  )}
 
                   {/* Search */}
                   <input
@@ -579,45 +711,67 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
               {/* Mobile Card Layout */}
               <div className="md:hidden space-y-3 p-3">
                 {filteredPlayers.map(player => {
-                  const posColors = POSITION_COLORS[player.playerPosition] || POSITION_COLORS.P
+                  const defaultColors = { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white', border: '' }
+                  const posColors = POSITION_COLORS[player.playerPosition] ?? defaultColors
                   const local = getLocalStrategy(player.playerId)
                   const hasStrategy = !!(local.maxBid || local.priority || local.notes)
+                  const isSvincolato = player.type === 'svincolato'
 
                   return (
-                    <div key={player.playerId} className={`bg-surface-300/30 rounded-lg p-3 border ${hasStrategy ? 'border-indigo-500/30 bg-indigo-500/5' : 'border-surface-50/10'}`}>
-                      {/* Header: Position + Player */}
+                    <div key={player.playerId} className={`bg-surface-300/30 rounded-lg p-3 border ${hasStrategy ? 'border-indigo-500/30 bg-indigo-500/5' : isSvincolato ? 'border-emerald-500/20' : 'border-surface-50/10'}`}>
+                      {/* Header: Position + Player + Svincolato badge */}
                       <div className="flex items-center gap-2 mb-2">
                         <div className={`w-8 h-8 rounded-full ${posColors.bg} ${posColors.text} flex items-center justify-center text-xs font-bold flex-shrink-0`}>
                           {player.playerPosition}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-white text-sm truncate">{player.playerName}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-white text-sm truncate">{player.playerName}</span>
+                            {isSvincolato && (
+                              <span className="px-1.5 py-0.5 text-[10px] font-medium bg-emerald-500/20 text-emerald-400 rounded">SVINC.</span>
+                            )}
+                          </div>
                           <div className="text-xs text-gray-500">{player.playerTeam}</div>
                         </div>
                       </div>
-                      {/* Owner + Contract */}
-                      <div className="flex justify-between items-center mb-2 text-xs">
-                        <span className="text-gray-400">
-                          <span className="text-gray-500">Prop: </span>
-                          {player.ownerTeamName || player.ownerUsername}
-                        </span>
-                        <span>
-                          <span className="text-accent-400 font-medium">{player.contractSalary}M</span>
-                          <span className="text-gray-500"> x </span>
-                          <span className="text-white">{player.contractDuration}s</span>
-                        </span>
-                      </div>
-                      {/* Clausola + Rubata */}
-                      <div className="grid grid-cols-2 gap-2 text-center text-xs mb-3">
-                        <div className="bg-surface-300/50 rounded p-1.5">
-                          <div className="text-gray-500 text-[10px] uppercase">Clausola</div>
-                          <div className="text-orange-400 font-medium">{player.contractClause}M</div>
+                      {/* Owner + Contract - only for owned players */}
+                      {!isSvincolato && (
+                        <div className="flex justify-between items-center mb-2 text-xs">
+                          <span className="text-gray-400">
+                            <span className="text-gray-500">Prop: </span>
+                            {player.ownerTeamName || player.ownerUsername}
+                          </span>
+                          <span>
+                            <span className="text-accent-400 font-medium">{player.contractSalary}M</span>
+                            <span className="text-gray-500"> x </span>
+                            <span className="text-white">{player.contractDuration}s</span>
+                          </span>
                         </div>
-                        <div className="bg-surface-300/50 rounded p-1.5">
-                          <div className="text-gray-500 text-[10px] uppercase">Rubata</div>
-                          <div className="text-warning-400 font-bold">{player.rubataPrice}M</div>
+                      )}
+                      {/* Price info */}
+                      {isSvincolato ? (
+                        <div className="grid grid-cols-2 gap-2 text-center text-xs mb-3">
+                          <div className="bg-surface-300/50 rounded p-1.5">
+                            <div className="text-gray-500 text-[10px] uppercase">Quotazione</div>
+                            <div className="text-accent-400 font-medium">{player.playerQuotation}M</div>
+                          </div>
+                          <div className="bg-emerald-500/10 rounded p-1.5">
+                            <div className="text-gray-500 text-[10px] uppercase">Prezzo Base</div>
+                            <div className="text-emerald-400 font-bold">{player.basePrice}M</div>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2 text-center text-xs mb-3">
+                          <div className="bg-surface-300/50 rounded p-1.5">
+                            <div className="text-gray-500 text-[10px] uppercase">Clausola</div>
+                            <div className="text-orange-400 font-medium">{player.contractClause}M</div>
+                          </div>
+                          <div className="bg-surface-300/50 rounded p-1.5">
+                            <div className="text-gray-500 text-[10px] uppercase">Rubata</div>
+                            <div className="text-warning-400 font-bold">{player.rubataPrice}M</div>
+                          </div>
+                        </div>
+                      )}
                       {/* Strategy Section */}
                       <div className="bg-indigo-500/10 rounded-lg p-2 border border-indigo-500/20">
                         <div className="flex items-center gap-2 mb-2">
@@ -663,10 +817,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     <tr className="text-xs text-gray-400 uppercase">
                       <SortableHeader field="position" label="R" className="w-10 p-2 text-center" />
                       <SortableHeader field="name" label="Giocatore" className="text-left p-2" />
-                      <SortableHeader field="owner" label="Proprietario" className="text-left p-2" />
-                      <SortableHeader field="contract" label="Contratto" className="text-center p-2" />
-                      <th className="text-center p-2 text-orange-400">Cls</th>
-                      <SortableHeader field="rubata" label="Rubata" className="text-center p-2" />
+                      <SortableHeader field="owner" label={viewMode === 'svincolati' ? 'Stato' : 'Proprietario'} className="text-left p-2" />
+                      <SortableHeader field="contract" label={viewMode === 'svincolati' ? 'Quot.' : 'Contratto'} className="text-center p-2" />
+                      <th className="text-center p-2 text-orange-400">{viewMode === 'svincolati' ? '-' : 'Cls'}</th>
+                      <SortableHeader field="rubata" label={viewMode === 'svincolati' ? 'Base' : 'Rubata'} className="text-center p-2" />
                       <th className="text-center p-2 bg-indigo-500/5 border-l-2 border-indigo-500/30">Offerta Max</th>
                       <th className="text-center p-2 bg-indigo-500/5">Priorità</th>
                       <th className="text-left p-2 bg-indigo-500/5">Note</th>
@@ -674,16 +828,18 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   </thead>
                   <tbody>
                     {filteredPlayers.map(player => {
-                      const posColors = POSITION_COLORS[player.playerPosition] || POSITION_COLORS.P
+                      const defaultColors = { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white', border: '' }
+                      const posColors = POSITION_COLORS[player.playerPosition] ?? defaultColors
                       const local = getLocalStrategy(player.playerId)
                       const isSaving = savingPlayerIds.has(player.playerId)
                       const hasStrategy = !!(local.maxBid || local.priority || local.notes)
+                      const isSvincolato = player.type === 'svincolato'
 
                       return (
                         <tr
                           key={player.playerId}
                           className={`border-t border-surface-50/10 transition-colors ${
-                            hasStrategy ? 'bg-indigo-500/5' : ''
+                            hasStrategy ? 'bg-indigo-500/5' : isSvincolato ? 'bg-emerald-500/5' : ''
                           } hover:bg-surface-300/30`}
                         >
                           {/* Position */}
@@ -700,41 +856,69 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                 <TeamLogo team={player.playerTeam} />
                               </div>
                               <div className="min-w-0">
-                                <div className="font-medium text-white text-sm truncate">{player.playerName}</div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-white text-sm truncate">{player.playerName}</span>
+                                  {isSvincolato && (
+                                    <span className="px-1.5 py-0.5 text-[10px] font-medium bg-emerald-500/20 text-emerald-400 rounded flex-shrink-0">SVINC.</span>
+                                  )}
+                                </div>
                                 <div className="text-xs text-gray-500">{player.playerTeam}</div>
                               </div>
                             </div>
                           </td>
 
-                          {/* Owner */}
+                          {/* Owner / Svincolato badge */}
                           <td className="p-2">
-                            <div className="min-w-0">
-                              <div className="font-medium text-gray-300 text-sm truncate">
-                                {player.ownerTeamName || player.ownerUsername}
+                            {isSvincolato ? (
+                              <div className="text-center">
+                                <span className="px-2 py-1 text-xs font-medium bg-emerald-500/20 text-emerald-400 rounded">
+                                  Libero
+                                </span>
                               </div>
-                              {player.ownerTeamName && (
-                                <div className="text-xs text-gray-500">{player.ownerUsername}</div>
-                              )}
-                            </div>
+                            ) : (
+                              <div className="min-w-0">
+                                <div className="font-medium text-gray-300 text-sm truncate">
+                                  {player.ownerTeamName || player.ownerUsername}
+                                </div>
+                                {player.ownerTeamName && (
+                                  <div className="text-xs text-gray-500">{player.ownerUsername}</div>
+                                )}
+                              </div>
+                            )}
                           </td>
 
-                          {/* Contract */}
+                          {/* Contract / Quotation */}
                           <td className="p-2 text-center">
-                            <div className="text-xs">
-                              <span className="text-accent-400 font-medium">{player.contractSalary}M</span>
-                              <span className="text-gray-500"> x </span>
-                              <span className="text-white">{player.contractDuration}s</span>
-                            </div>
+                            {isSvincolato ? (
+                              <div className="text-xs">
+                                <span className="text-accent-400 font-medium">{player.playerQuotation}M</span>
+                                <span className="text-gray-500"> quot.</span>
+                              </div>
+                            ) : (
+                              <div className="text-xs">
+                                <span className="text-accent-400 font-medium">{player.contractSalary}M</span>
+                                <span className="text-gray-500"> x </span>
+                                <span className="text-white">{player.contractDuration}s</span>
+                              </div>
+                            )}
                           </td>
 
                           {/* Clausola */}
                           <td className="p-2 text-center">
-                            <span className="text-orange-400 font-medium">{player.contractClause}M</span>
+                            {isSvincolato ? (
+                              <span className="text-gray-600">-</span>
+                            ) : (
+                              <span className="text-orange-400 font-medium">{player.contractClause}M</span>
+                            )}
                           </td>
 
-                          {/* Rubata Price */}
+                          {/* Rubata Price / Base Price */}
                           <td className="p-2 text-center">
-                            <span className="text-warning-400 font-bold">{player.rubataPrice}M</span>
+                            {isSvincolato ? (
+                              <span className="text-emerald-400 font-bold">{player.basePrice}M</span>
+                            ) : (
+                              <span className="text-warning-400 font-bold">{player.rubataPrice}M</span>
+                            )}
                           </td>
 
                           {/* === STRATEGY SECTION === */}
@@ -823,9 +1007,14 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
               </div>
 
               {/* Footer */}
-              <div className="p-3 border-t border-surface-50/20 bg-surface-300/20 text-xs text-gray-500 flex justify-between">
-                <span>{filteredPlayers.length} giocatori</span>
-                <span>{myStrategiesCount} strategie impostate</span>
+              <div className="p-3 border-t border-surface-50/20 bg-surface-300/20 text-xs text-gray-500 flex flex-wrap justify-between gap-2">
+                <span>
+                  {filteredPlayers.length} giocatori
+                  {viewMode === 'owned' && ' (rose)'}
+                  {viewMode === 'svincolati' && ' (svincolati)'}
+                  {viewMode === 'all' && ` (${filteredPlayers.filter(p => p.type === 'owned').length} rose, ${filteredPlayers.filter(p => p.type === 'svincolato').length} svinc.)`}
+                </span>
+                <span className="text-indigo-400">{myStrategiesCount} strategie impostate</span>
               </div>
             </div>
           </div>
