@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { historyApi } from '../services/api'
+import { historyApi, leagueApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
 
 interface Prophecy {
@@ -62,6 +62,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
   const [offset, setOffset] = useState(0)
   const [showStats, setShowStats] = useState(true)
   const [compactView, setCompactView] = useState(true)
+  const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
   const observerTarget = useRef<HTMLDivElement>(null)
 
   // Debounce search
@@ -72,10 +73,19 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
 
   useEffect(() => {
     if (leagueId) {
+      loadLeagueInfo()
       loadStats()
       loadProphecies(true)
     }
   }, [leagueId])
+
+  async function loadLeagueInfo() {
+    const response = await leagueApi.getById(leagueId)
+    if (response.success && response.data) {
+      const data = response.data as { userMembership?: { role: string } }
+      setIsLeagueAdmin(data.userMembership?.role === 'ADMIN')
+    }
+  }
 
   useEffect(() => {
     if (leagueId) {
@@ -212,7 +222,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
 
   return (
     <div className="min-h-screen bg-dark-300">
-      <Navigation currentPage="prophecies" leagueId={leagueId} isLeagueAdmin={false} onNavigate={onNavigate} />
+      <Navigation currentPage="prophecies" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Header compatto */}

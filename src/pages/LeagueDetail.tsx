@@ -439,8 +439,8 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
                           {member.teamName || member.user.username}
                         </span>
                         {member.role === 'ADMIN' && (
-                          <span className="text-xs bg-accent-500/20 text-accent-400 px-2 py-0.5 rounded border border-accent-500/40">
-                            Admin
+                          <span className="text-xs bg-accent-500/20 text-accent-400 px-2 py-0.5 rounded-full border border-accent-500/40 font-medium">
+                            Presidente
                           </span>
                         )}
                       </div>

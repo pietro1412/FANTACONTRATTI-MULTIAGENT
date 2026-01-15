@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import * as XLSX from 'xlsx'
 import { leagueApi, auctionApi, adminApi, inviteApi, contractApi, chatApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -121,6 +122,14 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   const [activeTab, setActiveTab] = useState<typeof TABS[number]['id']>(
     (initialTab as typeof TABS[number]['id']) || 'market'
   )
+
+  // Redirect to prizes page if initialTab is 'prizes'
+  useEffect(() => {
+    if (initialTab === 'prizes') {
+      onNavigate('prizes', { leagueId })
+    }
+  }, [initialTab, leagueId, onNavigate])
+
   const [newInviteEmail, setNewInviteEmail] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -412,29 +421,37 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     setIsSubmitting(false)
   }
 
-  function exportToCSV() {
+  function exportToExcel() {
     const headers = ['Username', 'Team', 'Ruolo', 'Stato', 'Budget']
     const rows = members.map(m => [
       m.user.username,
       m.teamName || '-',
-      m.role,
-      m.status,
-      m.currentBudget.toString(),
+      m.role === 'ADMIN' ? 'Presidente' : 'DG',
+      m.status === 'ACTIVE' ? 'Attivo' : m.status,
+      m.currentBudget,
     ])
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(r => r.join(',')),
-    ].join('\n')
+    // Create worksheet with headers and data
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `lega_${league?.name || 'export'}_membri.csv`
-    link.click()
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 20 }, // Username
+      { wch: 25 }, // Team
+      { wch: 12 }, // Ruolo
+      { wch: 10 }, // Stato
+      { wch: 10 }, // Budget
+    ]
+
+    // Create workbook and add worksheet
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Membri')
+
+    // Download
+    XLSX.writeFile(wb, `lega_${league?.name || 'export'}_membri.xlsx`)
   }
 
-  async function exportRostersToCSV() {
+  async function exportRostersToExcel() {
     setIsSubmitting(true)
     const res = await adminApi.exportRosters(leagueId)
 
@@ -462,41 +479,56 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     }>
 
     const headers = ['DG', 'Team', 'Budget', 'Giocatore', 'Squadra', 'Ruolo', 'Quotazione', 'Costo Acquisto', 'Tipo', 'Ingaggio', 'Durata', 'Clausola']
-    const rows: string[][] = []
+    const rows: (string | number | null)[][] = []
 
     data.forEach(member => {
       if (member.players.length === 0) {
-        rows.push([member.username, member.teamName || '-', member.budget.toString(), '', '', '', '', '', '', '', '', ''])
+        rows.push([member.username, member.teamName || '-', member.budget, '', '', '', null, null, '', null, null, null])
       } else {
         member.players.forEach((p, i) => {
           rows.push([
             i === 0 ? member.username : '',
             i === 0 ? (member.teamName || '-') : '',
-            i === 0 ? member.budget.toString() : '',
+            i === 0 ? member.budget : null,
             p.name,
             p.team,
             p.position,
-            p.quotation.toString(),
-            p.acquisitionPrice.toString(),
-            p.acquisitionType,
-            p.salary?.toString() || '-',
-            p.duration?.toString() || '-',
-            p.rescissionClause?.toString() || '-',
+            p.quotation,
+            p.acquisitionPrice,
+            p.acquisitionType === 'ASTA' ? 'Asta' : p.acquisitionType === 'RUBATA' ? 'Rubata' : p.acquisitionType,
+            p.salary,
+            p.duration,
+            p.rescissionClause,
           ])
         })
       }
     })
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(r => r.map(cell => `"${cell}"`).join(',')),
-    ].join('\n')
+    // Create worksheet with headers and data
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `lega_${league?.name || 'export'}_rose.csv`
-    link.click()
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 18 }, // DG
+      { wch: 22 }, // Team
+      { wch: 10 }, // Budget
+      { wch: 25 }, // Giocatore
+      { wch: 18 }, // Squadra
+      { wch: 8 },  // Ruolo
+      { wch: 12 }, // Quotazione
+      { wch: 14 }, // Costo Acquisto
+      { wch: 10 }, // Tipo
+      { wch: 10 }, // Ingaggio
+      { wch: 8 },  // Durata
+      { wch: 10 }, // Clausola
+    ]
+
+    // Create workbook and add worksheet
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Rose')
+
+    // Download
+    XLSX.writeFile(wb, `lega_${league?.name || 'export'}_rose.xlsx`)
 
     setIsSubmitting(false)
   }
@@ -594,7 +626,14 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
           {TABS.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                // Prizes tab navigates to dedicated prizes page
+                if (tab.id === 'prizes') {
+                  onNavigate('prizes', { leagueId })
+                } else {
+                  setActiveTab(tab.id)
+                }
+              }}
               className={`px-5 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all ${
                 activeTab === tab.id
                   ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-glow'
@@ -956,7 +995,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                             member.role === 'ADMIN'
                               ? 'bg-accent-500/20 text-accent-400 border border-accent-500/40'
-                              : 'bg-surface-300 text-gray-400'
+                              : 'bg-surface-50/20 text-gray-400 border border-surface-50/30'
                           }`}>
                             {member.role === 'ADMIN' ? 'Presidente' : 'DG'}
                           </span>
@@ -1424,15 +1463,15 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                   <p className="font-semibold text-white text-lg">Lista Membri</p>
                   <p className="text-sm text-gray-400">Username, team, ruolo, budget</p>
                 </div>
-                <Button onClick={exportToCSV}>Scarica CSV</Button>
+                <Button onClick={exportToExcel}>Scarica Excel</Button>
               </div>
               <div className="flex items-center justify-between p-5 bg-surface-300 rounded-lg">
                 <div>
                   <p className="font-semibold text-white text-lg">Tutte le Rose</p>
                   <p className="text-sm text-gray-400">Giocatori, contratti, valori</p>
                 </div>
-                <Button variant="outline" onClick={exportRostersToCSV} disabled={isSubmitting}>
-                  {isSubmitting ? 'Export...' : 'Scarica CSV'}
+                <Button variant="outline" onClick={exportRostersToExcel} disabled={isSubmitting}>
+                  {isSubmitting ? 'Export...' : 'Scarica Excel'}
                 </Button>
               </div>
             </div>

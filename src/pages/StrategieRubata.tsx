@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { rubataApi } from '../services/api'
+import { rubataApi, leagueApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 
@@ -90,6 +90,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [savingPlayerIds, setSavingPlayerIds] = useState<Set<string>>(new Set())
+  const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
 
   const [strategiesData, setStrategiesData] = useState<StrategiesData | null>(null)
 
@@ -121,6 +122,13 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     setLoading(true)
 
     try {
+      // Fetch league info for admin status
+      const leagueResponse = await leagueApi.getById(leagueId)
+      if (leagueResponse.success && leagueResponse.data) {
+        const data = leagueResponse.data as { userMembership?: { role: string } }
+        setIsLeagueAdmin(data.userMembership?.role === 'ADMIN')
+      }
+
       const res = await rubataApi.getAllPlayersForStrategies(leagueId)
       if (res.success && res.data) {
         setStrategiesData(res.data)
@@ -460,7 +468,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   if (loading) {
     return (
       <div className="min-h-screen bg-dark-300">
-        <Navigation currentPage="strategie-rubata" leagueId={leagueId} onNavigate={onNavigate} />
+        <Navigation currentPage="strategie-rubata" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <main className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-400"></div>
@@ -472,7 +480,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
   return (
     <div className="min-h-screen bg-dark-300 pb-6">
-      <Navigation currentPage="strategie-rubata" leagueId={leagueId} onNavigate={onNavigate} />
+      <Navigation currentPage="strategie-rubata" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
       <main className="max-w-[1600px] mx-auto px-4 py-6">
         {/* Header */}

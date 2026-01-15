@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { historyApi } from '../services/api'
+import { historyApi, leagueApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import { SessionView } from '../components/history/SessionView'
 import { TimelineView } from '../components/history/TimelineView'
@@ -52,15 +52,24 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
   const [playerResults, setPlayerResults] = useState<PlayerInfo[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [error, setError] = useState('')
+  const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
 
   useEffect(() => {
-    loadSessions()
+    loadData()
   }, [leagueId])
 
-  async function loadSessions() {
+  async function loadData() {
     setIsLoading(true)
     setError('')
     try {
+      // Fetch league info for admin status
+      const leagueResponse = await leagueApi.getById(leagueId)
+      if (leagueResponse.success && leagueResponse.data) {
+        const data = leagueResponse.data as { userMembership?: { role: string } }
+        setIsLeagueAdmin(data.userMembership?.role === 'ADMIN')
+      }
+
+      // Fetch sessions
       const result = await historyApi.getSessionsOverview(leagueId)
       if (result.success && result.data) {
         const data = result.data as { sessions: SessionSummary[] }
@@ -114,7 +123,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-dark-300">
-        <Navigation currentPage="history" leagueId={leagueId} isLeagueAdmin={false} onNavigate={onNavigate} />
+        <Navigation currentPage="history" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <div className="flex items-center justify-center h-[80vh]">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
@@ -127,7 +136,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
 
   return (
     <div className="min-h-screen bg-dark-300">
-      <Navigation currentPage="history" leagueId={leagueId} isLeagueAdmin={false} onNavigate={onNavigate} />
+      <Navigation currentPage="history" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
       <main className="max-w-7xl mx-auto px-4 py-6">
         {error && (
