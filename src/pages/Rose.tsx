@@ -89,6 +89,7 @@ export function Rose({ onNavigate }: RoseProps) {
   const [loading, setLoading] = useState(true)
   const [leagueData, setLeagueData] = useState<LeagueData | null>(null)
   const [selectedMemberId, setSelectedMemberId] = useState<string>('')
+  const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
 
   // Filters
   const [positionFilter, setPositionFilter] = useState<string>('ALL')
@@ -105,6 +106,7 @@ export function Rose({ onNavigate }: RoseProps) {
       if (res.success && res.data) {
         const data = res.data as LeagueData
         setLeagueData(data)
+        setIsLeagueAdmin(data.isAdmin || false)
 
         // Default to current user's member
         const myMember = data.members.find(m => m.userId === data.currentUserId)
@@ -210,7 +212,7 @@ export function Rose({ onNavigate }: RoseProps) {
   if (loading) {
     return (
       <div className="min-h-screen bg-dark-300">
-        <Navigation currentPage="rose" leagueId={leagueId} onNavigate={onNavigate} />
+        <Navigation currentPage="rose" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <main className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-400"></div>
@@ -223,7 +225,7 @@ export function Rose({ onNavigate }: RoseProps) {
   if (!leagueData) {
     return (
       <div className="min-h-screen bg-dark-300">
-        <Navigation currentPage="rose" leagueId={leagueId} onNavigate={onNavigate} />
+        <Navigation currentPage="rose" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <main className="max-w-7xl mx-auto px-4 py-8">
           <div className="text-center text-gray-400 py-20">
             Errore nel caricamento delle rose
@@ -238,7 +240,7 @@ export function Rose({ onNavigate }: RoseProps) {
       <Navigation
         currentPage="rose"
         leagueId={leagueId}
-        isLeagueAdmin={leagueData.isAdmin}
+        isLeagueAdmin={isLeagueAdmin}
         onNavigate={onNavigate}
       />
 
