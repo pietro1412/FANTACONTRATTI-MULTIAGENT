@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { auctionApi, leagueApi } from '../services/api'
+import { auctionApi, leagueApi, prizePhaseApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { Navigation } from '../components/Navigation'
@@ -42,6 +42,19 @@ interface BudgetMovement {
   date: string
 }
 
+interface PrizeData {
+  config: {
+    baseReincrement: number
+    isFinalized: boolean
+  }
+  members: Array<{
+    id: string
+    teamName: string
+    username: string
+    totalPrize: number | null
+  }>
+}
+
 interface LeagueMember {
   id: string
   currentBudget: number
@@ -57,10 +70,10 @@ interface LeagueMember {
 }
 
 const POSITION_CONFIG = {
-  P: { name: 'Portieri', color: 'yellow', bgClass: 'bg-yellow-50', textClass: 'text-yellow-700' },
-  D: { name: 'Difensori', color: 'blue', bgClass: 'bg-blue-50', textClass: 'text-blue-700' },
-  C: { name: 'Centrocampisti', color: 'green', bgClass: 'bg-green-50', textClass: 'text-green-700' },
-  A: { name: 'Attaccanti', color: 'red', bgClass: 'bg-red-50', textClass: 'text-red-700' },
+  P: { name: 'Portieri', color: 'amber', bgClass: 'bg-amber-500/20', textClass: 'text-amber-400' },
+  D: { name: 'Difensori', color: 'blue', bgClass: 'bg-blue-500/20', textClass: 'text-blue-400' },
+  C: { name: 'Centrocampisti', color: 'emerald', bgClass: 'bg-emerald-500/20', textClass: 'text-emerald-400' },
+  A: { name: 'Attaccanti', color: 'red', bgClass: 'bg-red-500/20', textClass: 'text-red-400' },
 }
 
 export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps) {
@@ -73,6 +86,8 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
   const [budgetMovements, setBudgetMovements] = useState<BudgetMovement[]>([])
   const [activeTab, setActiveTab] = useState<'overview' | 'roster' | 'contracts' | 'budget'>('overview')
   const [isAfterFirstMarket, setIsAfterFirstMarket] = useState(false)
+  const [prizeData, setPrizeData] = useState<PrizeData | null>(null)
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
 
   useEffect(() => {
     loadData()
@@ -94,10 +109,21 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
     }
 
     if (sessionsRes.success && sessionsRes.data) {
-      const sessions = sessionsRes.data as Array<{ type: string; status: string }>
+      const sessions = sessionsRes.data as Array<{ id: string; type: string; status: string }>
       const firstMarket = sessions.find(s => s.type === 'PRIMO_MERCATO')
       const recurringMarket = sessions.find(s => s.type === 'MERCATO_RICORRENTE')
       setIsAfterFirstMarket(firstMarket?.status === 'COMPLETED' || !!recurringMarket)
+
+      // Get active session for prize data
+      const activeSession = sessions.find(s => s.status === 'ACTIVE')
+      if (activeSession) {
+        setActiveSessionId(activeSession.id)
+        // Try to fetch prize data
+        const prizeRes = await prizePhaseApi.getData(activeSession.id)
+        if (prizeRes.success && prizeRes.data) {
+          setPrizeData(prizeRes.data as PrizeData)
+        }
+      }
     }
 
     if (rosterRes.success && rosterRes.data) {
@@ -246,6 +272,57 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                 </CardContent>
               </Card>
             </div>
+
+            {/* Prize Info Banner - Show if there's prize data */}
+            {prizeData && (
+              <div className={`rounded-xl border p-5 ${
+                prizeData.config.isFinalized
+                  ? 'bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border-yellow-500/30'
+                  : 'bg-surface-200 border-surface-50/20'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">🏆</span>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">
+                        {prizeData.config.isFinalized ? 'Premi Budget Ricevuti' : 'Premi Budget in Assegnazione'}
+                      </h3>
+                      {prizeData.config.isFinalized ? (
+                        <p className="text-sm text-gray-400">
+                          I premi sono stati accreditati sul tuo budget
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-400">
+                          L'admin sta assegnando i premi. Base: <span className="text-primary-400 font-bold">{prizeData.config.baseReincrement}M</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {prizeData.config.isFinalized && (
+                    <div className="text-right">
+                      {(() => {
+                        const myPrize = prizeData.members.find(m => m.username === member?.user?.username)
+                        return myPrize?.totalPrize ? (
+                          <div>
+                            <p className="text-2xl font-bold text-yellow-400">+{myPrize.totalPrize}M</p>
+                            <p className="text-xs text-gray-500">Premio totale</p>
+                          </div>
+                        ) : null
+                      })()}
+                    </div>
+                  )}
+                  {activeSessionId && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onNavigate('prizes', { leagueId })}
+                    >
+                      Vedi Dettagli
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Roster Summary */}
             <Card>

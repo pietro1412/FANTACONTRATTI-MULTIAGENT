@@ -43,6 +43,7 @@ interface Session {
 // Mapping fasi a nomi user-friendly
 const PHASE_LABELS: Record<string, string> = {
   ASTA_LIBERA: 'Asta Primo Mercato',
+  PREMI: 'Assegnazione Premi Budget',
   OFFERTE_PRE_RINNOVO: 'Scambi e Offerte',
   CONTRATTI: 'Rinnovo Contratti',
   RUBATA: 'Rubata',
@@ -253,13 +254,21 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
         {/* Active Session Banner */}
         {activeSession && (() => {
           const isFirstMarket = activeSession.type === 'PRIMO_MERCATO'
-          const phaseConfig: Record<string, { icon: string; title: string; description: string; buttonText: string; color: string }> = {
+          const phaseConfig: Record<string, { icon: string; title: string; description: string; buttonText: string; color: string; adminOnly?: boolean }> = {
             ASTA_LIBERA: {
               icon: '🔨',
               title: isFirstMarket ? 'Asta Primo Mercato' : 'Asta Libera',
               description: isFirstMarket ? 'Costruisci la tua rosa! Entra in asta e acquista i tuoi giocatori.' : "L'asta è in corso, entra subito!",
               buttonText: isFirstMarket ? 'Entra in Asta Primo Mercato' : "Entra nell'Asta",
               color: 'secondary'
+            },
+            PREMI: {
+              icon: '🏆',
+              title: 'Assegnazione Premi Budget',
+              description: isAdmin ? 'Assegna i premi budget ai manager per i risultati del campionato.' : 'L\'admin sta assegnando i premi budget per i risultati del campionato.',
+              buttonText: 'Gestisci Premi',
+              color: 'warning',
+              adminOnly: true
             },
             OFFERTE_PRE_RINNOVO: { icon: '🔄', title: 'Fase Scambi Pre-Rinnovo', description: 'Proponi scambi e offerte agli altri DG prima di rinnovare i contratti.', buttonText: 'Effettua Scambi', color: 'primary' },
             CONTRATTI: { icon: '📝', title: 'Rinnovo Contratti', description: 'È il momento di rinnovare i contratti dei tuoi giocatori in scadenza.', buttonText: 'Rinnova Contratti', color: 'accent' },
@@ -268,7 +277,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
             OFFERTE_POST_ASTA_SVINCOLATI: { icon: '🔄', title: 'Fase Scambi Finale', description: 'Ultima opportunità per proporre scambi prima della chiusura del mercato.', buttonText: 'Effettua Scambi Finali', color: 'primary' },
           }
           const phase = activeSession.currentPhase || 'ASTA_LIBERA'
-          const defaultConfig = { icon: '🔨', title: 'Sessione Attiva', description: 'Sessione di mercato in corso', buttonText: 'Entra', color: 'secondary' }
+          const defaultConfig = { icon: '🔨', title: 'Sessione Attiva', description: 'Sessione di mercato in corso', buttonText: 'Entra', color: 'secondary', adminOnly: false }
           const config = phaseConfig[phase] ?? defaultConfig
           const colorClasses: Record<string, { bg: string; border: string; text: string; iconBg: string }> = {
             secondary: { bg: 'from-secondary-600/30 to-secondary-500/20', border: 'border-secondary-500/50', text: 'text-secondary-400', iconBg: 'bg-secondary-500/30' },
@@ -284,6 +293,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           const getNavTarget = () => {
             switch (phase) {
               case 'ASTA_LIBERA': return () => onNavigate('auction', { sessionId: activeSession.id, leagueId })
+              case 'PREMI': return () => onNavigate('prizes', { leagueId })
               case 'OFFERTE_PRE_RINNOVO':
               case 'OFFERTE_POST_ASTA_SVINCOLATI': return () => onNavigate('trades', { leagueId })
               case 'ASTA_SVINCOLATI': return () => onNavigate('svincolati', { leagueId })
@@ -292,6 +302,9 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
               default: return () => onNavigate('auction', { sessionId: activeSession.id, leagueId })
             }
           }
+
+          // Check if button should be shown (hide for non-admin when adminOnly)
+          const showButton = !(config.adminOnly && !isAdmin)
 
           return (
             <div className={`bg-gradient-to-r ${colors.bg} border-2 ${colors.border} rounded-2xl p-6 mb-8 flex items-center justify-between`}>
@@ -304,13 +317,15 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
                   <p className="text-gray-300">{config.description}</p>
                 </div>
               </div>
-              <Button
-                size="lg"
-                variant={config.color === 'secondary' ? 'secondary' : 'primary'}
-                onClick={getNavTarget()}
-              >
-                {config.buttonText}
-              </Button>
+              {showButton && (
+                <Button
+                  size="lg"
+                  variant={config.color === 'secondary' ? 'secondary' : 'primary'}
+                  onClick={getNavTarget()}
+                >
+                  {config.buttonText}
+                </Button>
+              )}
             </div>
           )
         })()}
@@ -408,6 +423,8 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
                         src={member.user.profilePhoto}
                         alt={member.user.username}
                         className="w-10 h-10 rounded-full object-cover border-2 border-surface-50/30"
+                        width={40}
+                        height={40}
                       />
                     ) : (
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
@@ -422,8 +439,8 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
                           {member.teamName || member.user.username}
                         </span>
                         {member.role === 'ADMIN' && (
-                          <span className="text-xs bg-accent-500/20 text-accent-400 px-2 py-0.5 rounded border border-accent-500/40">
-                            Admin
+                          <span className="text-xs bg-accent-500/20 text-accent-400 px-2 py-0.5 rounded-full border border-accent-500/40 font-medium">
+                            Presidente
                           </span>
                         )}
                       </div>
@@ -489,24 +506,44 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
                     </span>
                   </div>
 
-                  {/* Fase corrente */}
-                  <div className="p-4 bg-primary-500/20 border border-primary-500/40 rounded-xl">
-                    <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Fase Corrente</p>
-                    <p className="text-xl font-bold text-primary-400">
-                      {PHASE_LABELS[activeSession.currentPhase] || activeSession.currentPhase}
-                    </p>
-                    {activeSession.phaseStartedAt && (
-                      <p className="text-sm text-gray-400 mt-2">
-                        Iniziata: {new Date(activeSession.phaseStartedAt).toLocaleString('it-IT', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    )}
-                  </div>
+                  {/* Fase corrente - cliccabile */}
+                  <button
+                    onClick={() => {
+                      const phase = activeSession.currentPhase
+                      switch (phase) {
+                        case 'ASTA_LIBERA': onNavigate('auction', { sessionId: activeSession.id, leagueId }); break
+                        case 'PREMI': onNavigate('prizes', { leagueId }); break
+                        case 'OFFERTE_PRE_RINNOVO':
+                        case 'OFFERTE_POST_ASTA_SVINCOLATI': onNavigate('trades', { leagueId }); break
+                        case 'ASTA_SVINCOLATI': onNavigate('svincolati', { leagueId }); break
+                        case 'RUBATA': onNavigate('rubata', { leagueId }); break
+                        case 'CONTRATTI': onNavigate('contracts', { leagueId }); break
+                        default: break
+                      }
+                    }}
+                    className="w-full p-4 bg-primary-500/20 border border-primary-500/40 rounded-xl text-left hover:bg-primary-500/30 transition-colors group"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Fase Corrente</p>
+                        <p className="text-xl font-bold text-primary-400 group-hover:text-primary-300 transition-colors">
+                          {PHASE_LABELS[activeSession.currentPhase] || activeSession.currentPhase}
+                        </p>
+                        {activeSession.phaseStartedAt && (
+                          <p className="text-sm text-gray-400 mt-2">
+                            Iniziata: {new Date(activeSession.phaseStartedAt).toLocaleString('it-IT', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        )}
+                      </div>
+                      <span className="text-primary-500 group-hover:text-primary-400 transition-colors text-xl">→</span>
+                    </div>
+                  </button>
 
                   {/* Sessione iniziata */}
                   {activeSession.startsAt && (
@@ -532,14 +569,21 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Sessioni Completate</p>
                   <div className="space-y-2">
                     {sessions.filter(s => s.status === 'COMPLETED').map(session => (
-                      <div key={session.id} className="flex justify-between items-center text-sm">
-                        <span className="text-gray-400">
+                      <button
+                        key={session.id}
+                        onClick={() => onNavigate('history', { leagueId })}
+                        className="w-full flex justify-between items-center text-sm p-2 -mx-2 rounded-lg hover:bg-surface-300/50 transition-colors group"
+                      >
+                        <span className="text-gray-400 group-hover:text-primary-400 transition-colors">
                           {session.type === 'PRIMO_MERCATO' ? 'Primo Mercato' : 'Mercato Ricorrente'}
                         </span>
-                        <span className="text-gray-500">
-                          {session.startsAt && new Date(session.startsAt).toLocaleDateString('it-IT')}
-                        </span>
-                      </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500">
+                            {session.startsAt && new Date(session.startsAt).toLocaleDateString('it-IT')}
+                          </span>
+                          <span className="text-gray-600 group-hover:text-primary-400 transition-colors">→</span>
+                        </div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -548,50 +592,6 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="mt-8">
-          <h3 className="text-lg font-bold text-gray-400 mb-4 uppercase tracking-wide">Azioni Rapide</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            <Button size="lg" onClick={() => onNavigate('manager-dashboard', { leagueId })} className="flex flex-col items-center gap-2 py-6">
-              <span className="text-2xl">📈</span>
-              <span>Dashboard</span>
-            </Button>
-            {isAdmin && (
-              <Button size="lg" variant="accent" onClick={() => onNavigate('adminPanel', { leagueId })} className="flex flex-col items-center gap-2 py-6">
-                <span className="text-2xl">⚙️</span>
-                <span>Admin Panel</span>
-              </Button>
-            )}
-            <Button size="lg" variant="outline" onClick={() => onNavigate('roster', { leagueId })} className="flex flex-col items-center gap-2 py-6">
-              <span className="text-2xl">📋</span>
-              <span>La Mia Rosa</span>
-            </Button>
-            <Button size="lg" variant="outline" onClick={() => onNavigate('allRosters', { leagueId })} className="flex flex-col items-center gap-2 py-6">
-              <span className="text-2xl">👥</span>
-              <span>Tutte le Rose</span>
-            </Button>
-            <Button size="lg" variant="outline" onClick={() => onNavigate('contracts', { leagueId })} className="flex flex-col items-center gap-2 py-6">
-              <span className="text-2xl">📝</span>
-              <span>Contratti</span>
-            </Button>
-            <Button size="lg" variant="outline" onClick={() => onNavigate('trades', { leagueId })} className="flex flex-col items-center gap-2 py-6">
-              <span className="text-2xl">🔄</span>
-              <span>Scambi</span>
-            </Button>
-            <Button size="lg" variant="outline" onClick={() => onNavigate('rubata', { leagueId })} className="flex flex-col items-center gap-2 py-6">
-              <span className="text-2xl">🎯</span>
-              <span>Rubata</span>
-            </Button>
-            <Button size="lg" variant="outline" onClick={() => onNavigate('svincolati', { leagueId })} className="flex flex-col items-center gap-2 py-6">
-              <span className="text-2xl">🆓</span>
-              <span>Svincolati</span>
-            </Button>
-            <Button size="lg" variant="outline" onClick={() => onNavigate('movements', { leagueId })} className="flex flex-col items-center gap-2 py-6">
-              <span className="text-2xl">📜</span>
-              <span>Storico</span>
-            </Button>
-          </div>
-        </div>
       </main>
 
       {/* Modal conferma apertura asta */}

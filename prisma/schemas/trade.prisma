@@ -1,0 +1,44 @@
+// =============================================================================
+// trade.prisma - TradeOffer
+// =============================================================================
+//
+// This file contains models for the trading system between managers.
+//
+// =============================================================================
+
+model TradeOffer {
+  id              String   @id @default(cuid())
+
+  marketSessionId String
+  marketSession   MarketSession @relation(fields: [marketSessionId], references: [id])  // see: market-session.prisma
+
+  senderId        String
+  sender          User     @relation("OfferSender", fields: [senderId], references: [id])  // see: identity.prisma
+
+  receiverId      String
+  receiver        User     @relation("OfferReceiver", fields: [receiverId], references: [id])  // see: identity.prisma
+
+  // Offerta
+  offeredPlayers  Json     // [playerId, ...]
+  offeredBudget   Int      @default(0)
+
+  // Richiesta
+  requestedPlayers Json    // [playerId, ...]
+  requestedBudget  Int     @default(0)
+
+  status          TradeStatus @default(PENDING)  // see: _base.prisma
+
+  // Per vincolo anti-ritroso
+  involvedPlayers Json     // tutti i playerId coinvolti
+
+  message         String?
+
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime?  // Scadenza dell'offerta
+  respondedAt     DateTime?
+
+  // Controproposta
+  parentOfferId   String?
+  parentOffer     TradeOffer?  @relation("CounterOffers", fields: [parentOfferId], references: [id])
+  counterOffers   TradeOffer[] @relation("CounterOffers")
+}

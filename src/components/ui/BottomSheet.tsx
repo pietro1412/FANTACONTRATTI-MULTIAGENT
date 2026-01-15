@@ -59,13 +59,18 @@ export function BottomSheet({
 
   // Touch handlers for drag to dismiss
   const handleTouchStart = (e: React.TouchEvent) => {
-    startY.current = e.touches[0].clientY
+    const touch = e.touches[0]
+    if (touch) {
+      startY.current = touch.clientY
+    }
     setIsDragging(true)
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return
-    const currentY = e.touches[0].clientY
+    const touch = e.touches[0]
+    if (!touch) return
+    const currentY = touch.clientY
     const diff = currentY - startY.current
     // Only allow dragging down
     if (diff > 0) {

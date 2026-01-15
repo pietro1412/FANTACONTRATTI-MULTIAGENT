@@ -1,0 +1,145 @@
+// =============================================================================
+// market-session.prisma - MarketSession, ContractConsolidation
+// =============================================================================
+//
+// This file contains the MarketSession model and related consolidation model.
+//
+// NOTE: Many JSON fields in MarketSession are candidates for future normalization.
+// See rubata.prisma and svincolati.prisma for planned normalized models.
+//
+// =============================================================================
+
+model MarketSession {
+  id          String   @id @default(cuid())
+
+  leagueId    String
+  league      League   @relation(fields: [leagueId], references: [id])  // see: league.prisma
+
+  type        MarketType       // see: _base.prisma
+  season      Int
+  semester    Int      // 1 = estivo, 2 = invernale
+
+  status      SessionStatus @default(SCHEDULED)  // see: _base.prisma
+  currentPhase MarketPhase?                       // see: _base.prisma
+
+  // ===== PRIMO MERCATO ASSOLUTO =====
+  // Ruolo attualmente in asta (P, D, C, A)
+  currentRole       Position?            // see: _base.prisma
+  // Ordine turni per primo mercato (JSON array di leagueMemberId)
+  turnOrder         Json?
+  // Indice del turno corrente
+  currentTurnIndex  Int?
+  // Timer asta in secondi (configurabile da admin)
+  auctionTimerSeconds Int @default(30)
+
+  // ===== RUBATA =====
+  // NOTE: The following JSON fields should be normalized in future.
+  // See rubata.prisma for the target normalized schema (RubataBoard table).
+  // Ordine rubata per questa sessione (JSON array di leagueMemberId)
+  rubataOrder  Json?
+  // Tabellone rubata ordinato (JSON array di {rosterId, memberId, playerId})
+  rubataBoard  Json?
+  // Indice corrente nel tabellone (quale giocatore e in esame)
+  rubataBoardIndex Int?
+  // Timer per offerta iniziale in secondi
+  rubataOfferTimerSeconds Int @default(30)
+  // Timer per asta rubata in secondi
+  rubataAuctionTimerSeconds Int @default(15)
+  // Timestamp quando il timer corrente e iniziato
+  rubataTimerStartedAt DateTime?
+  // Stato rubata: WAITING (aspetta admin), READY_CHECK, OFFERING (timer offerta), AUCTION_READY_CHECK (attesa pronti pre-asta), AUCTION (asta attiva), PENDING_ACK, PAUSED, COMPLETED
+  rubataState String?
+  // Manager pronti per iniziare/riprendere rubata (JSON array di leagueMemberId)
+  rubataReadyMembers Json?
+  // Info per annuncio rubata durante AUCTION_READY_CHECK (JSON: {bidderUsername, playerName, playerTeam, playerPosition, ownerUsername, basePrice})
+  rubataAuctionReadyInfo Json?
+  // Pending acknowledgment dopo chiusura asta rubata (JSON: {auctionId, playerId, winnerId, price, acknowledgedMembers[], pendingMembers[]})
+  rubataPendingAck Json?
+  // Pausa rubata: secondi rimanenti quando è stata messa in pausa
+  rubataPausedRemainingSeconds Int?
+  // Pausa rubata: stato da cui è stata messa in pausa (OFFERING o AUCTION)
+  rubataPausedFromState String?
+
+  // ===== ASTA SVINCOLATI =====
+  // NOTE: The following JSON fields should be normalized in future.
+  // See svincolati.prisma for the target normalized schema (SvincolatiTurnOrder table).
+  // Ordine turni svincolati (JSON array di leagueMemberId)
+  svincolatiTurnOrder     Json?
+  // Indice del turno corrente
+  svincolatiCurrentTurnIndex Int?
+  // Timer asta svincolati in secondi
+  svincolatiTimerSeconds  Int @default(30)
+  // Timestamp quando il timer corrente e iniziato
+  svincolatiTimerStartedAt DateTime?
+  // Stato svincolati: SETUP, READY_CHECK, NOMINATION, AUCTION, PENDING_ACK, COMPLETED
+  svincolatiState         String?
+  // Manager pronti per la prossima asta (JSON array di leagueMemberId)
+  svincolatiReadyMembers  Json?
+  // Manager che hanno passato (non vogliono piu chiamare) (JSON array di leagueMemberId)
+  svincolatiPassedMembers Json?
+  // Manager che hanno dichiarato di aver finito la fase (non possono piu fare offerte) (JSON array di leagueMemberId)
+  svincolatiFinishedMembers Json?
+  // Giocatore svincolato nominato in attesa (playerId)
+  svincolatiPendingPlayerId String?
+  // Chi ha nominato il giocatore pending
+  svincolatiPendingNominatorId String?
+  // Se il nominatore ha confermato
+  svincolatiNominatorConfirmed Boolean @default(false)
+  // Pending acknowledgment dopo chiusura asta (JSON: {auctionId, playerId, winnerId, price, acknowledgedMembers[], pendingMembers[]})
+  svincolatiPendingAck    Json?
+
+  // ===== READY CHECK =====
+  // Manager pronti per la prossima asta (JSON array di leagueMemberId)
+  // Resettato quando un'asta viene nominata
+  readyMembers Json?
+  // Giocatore nominato in attesa di ready check (null se nessuna nomination pending)
+  pendingNominationPlayerId String?
+  pendingNominationPlayer   SerieAPlayer? @relation("PendingNomination", fields: [pendingNominationPlayerId], references: [id])  // see: player.prisma
+  // Chi ha nominato il giocatore pending
+  pendingNominatorId        String?
+  // Se il nominatore ha confermato la sua scelta (gli altri vedono "SONO PRONTO" solo dopo)
+  nominatorConfirmed        Boolean @default(false)
+
+  startsAt    DateTime?
+  endsAt      DateTime?
+
+  // Timestamp inizio fase corrente (aggiornato ad ogni cambio fase)
+  phaseStartedAt DateTime?
+
+  createdAt   DateTime @default(now())
+
+  // Relazioni
+  auctions    Auction[]              // see: auction.prisma
+  trades      TradeOffer[]           // see: trade.prisma
+  movements   PlayerMovement[]       // see: movement.prisma
+  consolidations ContractConsolidation[]
+  draftContracts DraftContract[]     // see: roster.prisma
+  chatMessages ChatMessage[]         // see: chat.prisma
+  prizePhaseConfig PrizePhaseConfig? // see: prize.prisma
+  prizeCategories  PrizeCategory[]   // see: prize.prisma
+  rubataPreferences RubataPreference[] // see: rubata.prisma
+
+  // Indice per velocizzare ricerca sessioni attive per lega
+  @@index([leagueId, status])
+  // Indice per verificare esistenza PRIMO_MERCATO
+  @@index([leagueId, type])
+  // Index for performance optimization
+  @@index([leagueId, currentPhase])
+  @@index([status, phaseStartedAt])
+}
+
+// ==================== CONSOLIDAMENTO CONTRATTI ====================
+// Traccia quali manager hanno consolidato i propri contratti durante la fase CONTRATTI
+model ContractConsolidation {
+  id          String   @id @default(cuid())
+
+  sessionId   String
+  session     MarketSession @relation(fields: [sessionId], references: [id])
+
+  memberId    String
+  member      LeagueMember @relation(fields: [memberId], references: [id])  // see: league.prisma
+
+  consolidatedAt DateTime @default(now())
+
+  @@unique([sessionId, memberId])
+}

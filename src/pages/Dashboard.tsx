@@ -145,7 +145,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                           : 'bg-surface-50/20 text-gray-400 border border-surface-50/30'
                       }`}
                     >
-                      {membership.role === 'ADMIN' ? '👑 Presidente' : 'DG'}
+                      {membership.role === 'ADMIN' ? 'Presidente' : 'DG'}
                     </span>
                   </div>
                 </div>

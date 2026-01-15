@@ -1,0 +1,24 @@
+// =============================================================================
+// chat.prisma - ChatMessage
+// =============================================================================
+//
+// This file contains the ChatMessage model for auction/session chat.
+//
+// =============================================================================
+
+model ChatMessage {
+  id              String   @id @default(cuid())
+
+  marketSessionId String
+  marketSession   MarketSession @relation(fields: [marketSessionId], references: [id])  // see: market-session.prisma
+
+  memberId        String
+  member          LeagueMember @relation(fields: [memberId], references: [id])  // see: league.prisma
+
+  content         String
+
+  // Per messaggi di sistema (es. "Asta iniziata", "Giocatore nominato")
+  isSystem        Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+}

@@ -1,0 +1,51 @@
+// =============================================================================
+// player.prisma - SerieAPlayer, QuotazioniUpload
+// =============================================================================
+//
+// This file contains models for Serie A players and quotation imports.
+//
+// =============================================================================
+
+model SerieAPlayer {
+  id           String   @id @default(cuid())
+  externalId   String?  @unique     // ID dal file quotazioni (es. "123")
+  name         String
+  team         String
+  position     Position             // see: _base.prisma
+  quotation    Int      @default(1)
+  age          Int?
+  isActive     Boolean  @default(true)
+
+  // Status nella lista quotazioni
+  listStatus   PlayerListStatus @default(IN_LIST)  // see: _base.prisma
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relazioni
+  rosters      PlayerRoster[]       // see: roster.prisma
+  auctions     Auction[]            // see: auction.prisma
+  movements    PlayerMovement[]     // see: movement.prisma
+  prophecies   Prophecy[]           // see: movement.prisma
+  pendingNominations MarketSession[] @relation("PendingNomination")  // see: market-session.prisma
+  rubataPreferences RubataPreference[] // see: rubata.prisma
+}
+
+model QuotazioniUpload {
+  id            String   @id @default(cuid())
+
+  uploadedById  String
+  uploadedBy    User     @relation(fields: [uploadedById], references: [id])  // see: identity.prisma
+
+  fileName      String
+  sheetName     String
+
+  // Risultati import
+  playersCreated   Int
+  playersUpdated   Int
+  playersNotInList Int
+  totalProcessed   Int
+  errors           Json?    // Array of error strings
+
+  createdAt     DateTime @default(now())
+}

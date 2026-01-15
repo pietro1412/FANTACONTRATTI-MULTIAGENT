@@ -1,0 +1,141 @@
+// =============================================================================
+// _base.prisma - Shared Enums
+// =============================================================================
+//
+// This file contains all shared enums used across multiple models.
+// It is loaded first (underscore prefix ensures alphabetical priority).
+//
+// =============================================================================
+
+// ==================== LEAGUE STATUS ====================
+enum LeagueStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+// ==================== MEMBER ENUMS ====================
+enum MemberRole {
+  ADMIN
+  MANAGER
+}
+
+enum MemberStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  LEFT
+}
+
+enum JoinType {
+  CREATOR   // Creatore della lega (auto-admin)
+  INVITE    // Invitato via email (auto-entra)
+  REQUEST   // Richiesta spontanea (admin approva)
+}
+
+// ==================== PLAYER ENUMS ====================
+enum Position {
+  P  // Portiere
+  D  // Difensore
+  C  // Centrocampista
+  A  // Attaccante
+}
+
+enum PlayerListStatus {
+  IN_LIST       // Presente nella lista quotazioni corrente
+  NOT_IN_LIST   // Non piu in lista (serie B, estero, etc.)
+}
+
+// ==================== ROSTER ENUMS ====================
+enum AcquisitionType {
+  FIRST_MARKET
+  RUBATA
+  SVINCOLATI
+  TRADE
+}
+
+enum RosterStatus {
+  ACTIVE
+  RELEASED
+  TRADED
+}
+
+// ==================== MARKET SESSION ENUMS ====================
+enum MarketType {
+  PRIMO_MERCATO
+  MERCATO_RICORRENTE
+}
+
+enum SessionStatus {
+  SCHEDULED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum MarketPhase {
+  ASTA_LIBERA                    // Solo per PRIMO_MERCATO
+  OFFERTE_PRE_RINNOVO            // Prima fase MERCATO_RICORRENTE - scambi/offerte pre rinnovo
+  PREMI                          // Assegnazione premi budget ai manager
+  CONTRATTI                      // Rinnovo contratti
+  RUBATA                         // Asta forzata
+  ASTA_SVINCOLATI                // Asta svincolati (solo MERCATO_RICORRENTE)
+  OFFERTE_POST_ASTA_SVINCOLATI   // Fase finale - scambi/offerte post svincolati
+}
+
+// ==================== AUCTION ENUMS ====================
+enum AuctionType {
+  FREE_BID        // Asta libera (PRIMO MERCATO e SVINCOLATI)
+  RUBATA          // Asta rubata (forzata)
+}
+
+enum AuctionStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  NO_BIDS
+  APPEAL_REVIEW           // Asta conclusa ma con ricorso PENDING da gestire
+  AWAITING_APPEAL_ACK     // Ricorso risolto, in attesa che tutti prendano visione
+  AWAITING_RESUME         // Ricorso ACCEPTED, in attesa ready check per riprendere
+}
+
+enum AppealStatus {
+  PENDING    // In attesa di revisione
+  ACCEPTED   // Accettato - asta riaperta
+  REJECTED   // Respinto - esito confermato
+}
+
+// ==================== TRADE ENUMS ====================
+enum TradeStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COUNTERED
+  CANCELLED
+  EXPIRED
+}
+
+// ==================== INVITE ENUMS ====================
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+// ==================== MOVEMENT ENUMS ====================
+enum MovementType {
+  FIRST_MARKET    // Primo mercato assoluto
+  TRADE           // Scambio
+  RUBATA          // Rubata
+  SVINCOLATI      // Acquisto svincolato
+  RELEASE         // Svincolo (contratto scaduto o volontario)
+  CONTRACT_RENEW  // Rinnovo contratto
+}
+
+// ==================== PROPHECY ENUMS ====================
+enum ProphecyRole {
+  BUYER   // Chi acquista
+  SELLER  // Chi cede
+}

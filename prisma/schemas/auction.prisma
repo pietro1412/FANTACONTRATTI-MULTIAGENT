@@ -1,0 +1,133 @@
+// =============================================================================
+// auction.prisma - Auction, AuctionBid, AuctionAppeal, AuctionAcknowledgment
+// =============================================================================
+//
+// This file contains models for the auction system.
+//
+// =============================================================================
+
+model Auction {
+  id              String   @id @default(cuid())
+
+  leagueId        String
+  league          League   @relation(fields: [leagueId], references: [id])  // see: league.prisma
+
+  marketSessionId String?
+  marketSession   MarketSession? @relation(fields: [marketSessionId], references: [id])  // see: market-session.prisma
+
+  playerId        String
+  player          SerieAPlayer @relation(fields: [playerId], references: [id])  // see: player.prisma
+
+  type            AuctionType         // see: _base.prisma
+  basePrice       Int         @default(1)  // Sempre 1 per default
+  currentPrice    Int
+
+  winnerId        String?
+  winner          LeagueMember? @relation("AuctionWinner", fields: [winnerId], references: [id])  // see: league.prisma
+
+  // Per rubata: chi sta cedendo
+  sellerId        String?
+
+  // Chi ha nominato il giocatore (per primo mercato)
+  nominatorId     String?
+
+  status          AuctionStatus @default(PENDING)  // see: _base.prisma
+
+  // Timer con reset
+  timerExpiresAt  DateTime?     // Quando scade il timer attuale
+  timerSeconds    Int?          // Durata timer in secondi
+
+  startsAt        DateTime?
+  endsAt          DateTime?
+
+  createdAt       DateTime @default(now())
+
+  // Per gestione ricorsi - chi ha preso visione della decisione
+  appealDecisionAcks  Json?     // Array di memberId che hanno confermato la decisione
+  // Per ripresa asta dopo ricorso ACCEPTED - chi e pronto
+  resumeReadyMembers  Json?     // Array di memberId pronti a riprendere
+
+  // Relazioni
+  bids            AuctionBid[]
+  acknowledgments AuctionAcknowledgment[]
+  appeals         AuctionAppeal[]
+
+  // Performance indexes as specified in REFACTORING_PLAN.md
+  @@index([marketSessionId, status])
+  @@index([timerExpiresAt])
+  @@index([winnerId])
+}
+
+model AuctionBid {
+  id          String   @id @default(cuid())
+
+  auctionId   String
+  auction     Auction  @relation(fields: [auctionId], references: [id])
+
+  bidderId    String
+  bidder      LeagueMember @relation(fields: [bidderId], references: [id])  // see: league.prisma
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])  // see: identity.prisma
+
+  amount      Int
+  isWinning   Boolean  @default(false)
+
+  // Admin puo annullare un'offerta
+  isCancelled Boolean  @default(false)
+  cancelledAt DateTime?
+  cancelledBy String?   // userId dell'admin che ha annullato
+
+  placedAt    DateTime @default(now())
+
+  // Performance indexes as specified in REFACTORING_PLAN.md
+  @@index([auctionId, isWinning])
+  @@index([auctionId, placedAt])
+  @@index([bidderId])
+}
+
+// Conferma visualizzazione risultato asta
+model AuctionAcknowledgment {
+  id          String   @id @default(cuid())
+
+  auctionId   String
+  auction     Auction  @relation(fields: [auctionId], references: [id])
+
+  memberId    String
+  member      LeagueMember @relation(fields: [memberId], references: [id])  // see: league.prisma
+
+  // Profezia opzionale inserita dal manager
+  prophecy    String?
+
+  acknowledgedAt DateTime @default(now())
+
+  @@unique([auctionId, memberId])
+}
+
+// Ricorsi su aste concluse
+model AuctionAppeal {
+  id          String   @id @default(cuid())
+
+  auctionId   String
+  auction     Auction  @relation(fields: [auctionId], references: [id])
+
+  // Chi ha fatto il ricorso
+  memberId    String
+  member      LeagueMember @relation(fields: [memberId], references: [id])  // see: league.prisma
+
+  // Motivazione del ricorso
+  content     String
+
+  // Stato del ricorso
+  status      AppealStatus @default(PENDING)  // see: _base.prisma
+
+  // Admin che ha risolto il ricorso
+  resolvedById String?
+  resolvedBy   LeagueMember? @relation("AppealResolver", fields: [resolvedById], references: [id])  // see: league.prisma
+
+  // Note admin sulla risoluzione
+  resolutionNote String?
+
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
+}

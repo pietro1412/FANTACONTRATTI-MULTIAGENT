@@ -421,9 +421,9 @@ export async function setMarketPhase(
 
   // Validate phase based on market type
   // PRIMO_MERCATO: solo ASTA_LIBERA
-  // MERCATO_RICORRENTE: OFFERTE_PRE_RINNOVO, CONTRATTI, RUBATA, ASTA_SVINCOLATI, OFFERTE_POST_ASTA_SVINCOLATI
+  // MERCATO_RICORRENTE: PREMI, OFFERTE_PRE_RINNOVO, CONTRATTI, RUBATA, ASTA_SVINCOLATI, OFFERTE_POST_ASTA_SVINCOLATI
   const primoMercatoPhases = ['ASTA_LIBERA']
-  const mercatoRicorrentePhases = ['OFFERTE_PRE_RINNOVO', 'CONTRATTI', 'RUBATA', 'ASTA_SVINCOLATI', 'OFFERTE_POST_ASTA_SVINCOLATI']
+  const mercatoRicorrentePhases = ['PREMI', 'OFFERTE_PRE_RINNOVO', 'CONTRATTI', 'RUBATA', 'ASTA_SVINCOLATI', 'OFFERTE_POST_ASTA_SVINCOLATI']
 
   const validPhases = session.type === 'PRIMO_MERCATO' ? primoMercatoPhases : mercatoRicorrentePhases
 
@@ -442,6 +442,20 @@ export async function setMarketPhase(
     }
   }
 
+  // Check prize finalization when moving from PREMI to CONTRATTI
+  if (session.currentPhase === 'PREMI' && phase === 'CONTRATTI') {
+    const prizeConfig = await prisma.prizePhaseConfig.findUnique({
+      where: { marketSessionId: sessionId },
+      select: { isFinalized: true }
+    })
+    if (!prizeConfig?.isFinalized) {
+      return {
+        success: false,
+        message: 'Devi prima consolidare i premi prima di passare alla fase Contratti. Clicca su "Conferma Premi" nella sezione Premi.'
+      }
+    }
+  }
+
   // Check consolidation when leaving CONTRATTI phase
   if (session.currentPhase === 'CONTRATTI' && phase !== 'CONTRATTI') {
     const consolidationCheck = await canAdvanceFromContratti(sessionId)
@@ -454,7 +468,7 @@ export async function setMarketPhase(
   const updatedSession = await prisma.marketSession.update({
     where: { id: sessionId },
     data: {
-      currentPhase: phase as 'ASTA_LIBERA' | 'OFFERTE_PRE_RINNOVO' | 'CONTRATTI' | 'RUBATA' | 'ASTA_SVINCOLATI' | 'OFFERTE_POST_ASTA_SVINCOLATI',
+      currentPhase: phase as 'ASTA_LIBERA' | 'PREMI' | 'OFFERTE_PRE_RINNOVO' | 'CONTRATTI' | 'RUBATA' | 'ASTA_SVINCOLATI' | 'OFFERTE_POST_ASTA_SVINCOLATI',
       phaseStartedAt: new Date(),
     },
   })

@@ -114,12 +114,18 @@ function PlayerCard({ entry }: { entry: RosterEntry }) {
               <p className={`text-[7px] sm:text-[10px] ${durStyle.label} uppercase font-medium`}>Dur</p>
               <p className={`${durStyle.text} font-bold text-xs sm:text-base`}>{entry.contract.duration}</p>
             </div>
-            {/* Clausola Rubata */}
-            {entry.contract.rescissionClause && (
-              <div className="bg-warning-500/20 border border-warning-500/40 rounded px-1.5 sm:px-2 py-0.5 sm:py-1 text-center">
-                <p className="text-[7px] sm:text-[10px] text-warning-300 uppercase font-medium">Rub</p>
-                <p className="text-warning-400 font-bold text-xs sm:text-base">{entry.contract.rescissionClause}</p>
-              </div>
+            {/* Clausola e Rubata */}
+            {entry.contract.rescissionClause !== undefined && entry.contract.rescissionClause !== null && (
+              <>
+                <div className="bg-orange-500/20 border border-orange-500/40 rounded px-1.5 sm:px-2 py-0.5 sm:py-1 text-center">
+                  <p className="text-[7px] sm:text-[10px] text-orange-300 uppercase font-medium">Cls</p>
+                  <p className="text-orange-400 font-bold text-xs sm:text-base">{entry.contract.rescissionClause}</p>
+                </div>
+                <div className="bg-warning-500/20 border border-warning-500/40 rounded px-1.5 sm:px-2 py-0.5 sm:py-1 text-center">
+                  <p className="text-[7px] sm:text-[10px] text-warning-300 uppercase font-medium">Rub</p>
+                  <p className="text-warning-400 font-bold text-xs sm:text-base">{entry.contract.rescissionClause + entry.contract.salary}</p>
+                </div>
+              </>
             )}
           </>
         ) : (
@@ -238,11 +244,17 @@ function TeamPlayersModal({
                       <p className={`text-[7px] sm:text-[9px] ${durStyle.label} uppercase`}>Dur</p>
                       <p className={`${durStyle.text} font-bold text-xs sm:text-sm`}>{entry.contract.duration}</p>
                     </div>
-                    {entry.contract.rescissionClause && (
-                      <div className="bg-warning-500/20 border border-warning-500/40 rounded px-1.5 sm:px-2 py-0.5 sm:py-1 text-center">
-                        <p className="text-[7px] sm:text-[9px] text-warning-300 uppercase">Rub</p>
-                        <p className="text-warning-400 font-bold text-xs sm:text-sm">{entry.contract.rescissionClause}</p>
-                      </div>
+                    {entry.contract.rescissionClause !== undefined && entry.contract.rescissionClause !== null && (
+                      <>
+                        <div className="bg-orange-500/20 border border-orange-500/40 rounded px-1.5 sm:px-2 py-0.5 sm:py-1 text-center">
+                          <p className="text-[7px] sm:text-[9px] text-orange-300 uppercase">Cls</p>
+                          <p className="text-orange-400 font-bold text-xs sm:text-sm">{entry.contract.rescissionClause}</p>
+                        </div>
+                        <div className="bg-warning-500/20 border border-warning-500/40 rounded px-1.5 sm:px-2 py-0.5 sm:py-1 text-center">
+                          <p className="text-[7px] sm:text-[9px] text-warning-300 uppercase">Rub</p>
+                          <p className="text-warning-400 font-bold text-xs sm:text-sm">{entry.contract.rescissionClause + entry.contract.salary}</p>
+                        </div>
+                      </>
                     )}
                   </div>
                 ) : (

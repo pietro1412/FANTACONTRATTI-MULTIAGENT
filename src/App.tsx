@@ -1,27 +1,35 @@
+import { lazy, Suspense, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import { AuthProvider, useAuth } from './hooks/useAuth'
+
+// Pagine critiche - import statico (usate al primo caricamento)
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { Dashboard } from './pages/Dashboard'
-import { CreateLeague } from './pages/CreateLeague'
-import { Profile } from './pages/Profile'
-import { LeagueDetail } from './pages/LeagueDetail'
-import { AuctionRoom } from './pages/AuctionRoom'
-import { Roster } from './pages/Roster'
-import { AllRosters } from './pages/AllRosters'
-import { Contracts } from './pages/Contracts'
-import { Trades } from './pages/Trades'
-import { Rubata } from './pages/Rubata'
-import { Svincolati } from './pages/Svincolati'
-import { AllPlayers } from './pages/AllPlayers'
-import { ManagerDashboard } from './pages/ManagerDashboard'
-import { AdminPanel } from './pages/AdminPanel'
-import { Movements } from './pages/Movements'
-import { SuperAdmin } from './pages/SuperAdmin'
-import LatencyTest from './pages/LatencyTest'
-import { useCallback } from 'react'
 
-// Loading component
+// Pagine lazy loaded - caricate on-demand
+const CreateLeague = lazy(() => import('./pages/CreateLeague').then(m => ({ default: m.CreateLeague })))
+const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })))
+const LeagueDetail = lazy(() => import('./pages/LeagueDetail').then(m => ({ default: m.LeagueDetail })))
+const AuctionRoom = lazy(() => import('./pages/AuctionRoom').then(m => ({ default: m.AuctionRoom })))
+const Rose = lazy(() => import('./pages/Rose').then(m => ({ default: m.Rose })))
+const Contracts = lazy(() => import('./pages/Contracts').then(m => ({ default: m.Contracts })))
+const Trades = lazy(() => import('./pages/Trades').then(m => ({ default: m.Trades })))
+const Rubata = lazy(() => import('./pages/Rubata').then(m => ({ default: m.Rubata })))
+const StrategieRubata = lazy(() => import('./pages/StrategieRubata').then(m => ({ default: m.StrategieRubata })))
+const Svincolati = lazy(() => import('./pages/Svincolati').then(m => ({ default: m.Svincolati })))
+const AllPlayers = lazy(() => import('./pages/AllPlayers').then(m => ({ default: m.AllPlayers })))
+const ManagerDashboard = lazy(() => import('./pages/ManagerDashboard').then(m => ({ default: m.ManagerDashboard })))
+const AdminPanel = lazy(() => import('./pages/AdminPanel').then(m => ({ default: m.AdminPanel })))
+const Movements = lazy(() => import('./pages/Movements').then(m => ({ default: m.Movements })))
+const History = lazy(() => import('./pages/History').then(m => ({ default: m.History })))
+const Prophecies = lazy(() => import('./pages/Prophecies').then(m => ({ default: m.Prophecies })))
+const SuperAdmin = lazy(() => import('./pages/SuperAdmin').then(m => ({ default: m.SuperAdmin })))
+const PrizePhasePage = lazy(() => import('./pages/PrizePhasePage').then(m => ({ default: m.PrizePhasePage })))
+const LatencyTest = lazy(() => import('./pages/LatencyTest'))
+
+// Loading component per autenticazione
 function LoadingScreen() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center">
@@ -30,6 +38,15 @@ function LoadingScreen() {
         <div className="animate-spin h-8 w-8 border-4 border-white border-t-transparent rounded-full mx-auto"></div>
         <p className="mt-4">Caricamento...</p>
       </div>
+    </div>
+  )
+}
+
+// Page loader per Suspense fallback (lazy loading)
+function PageLoader() {
+  return (
+    <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+      <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin"></div>
     </div>
   )
 }
@@ -135,12 +152,17 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'profile': navigate('/profile'); break
       case 'leagueDetail': navigate(`/leagues/${lid}`); break
       case 'auction': navigate(`/leagues/${lid}/auction/${params?.sessionId}`); break
-      case 'roster': navigate(`/leagues/${lid}/roster`); break
-      case 'allRosters': navigate(`/leagues/${lid}/rosters`); break
+      case 'rose': navigate(`/leagues/${lid}/rose`); break
+      // Keep backward compatibility for old routes
+      case 'roster': navigate(`/leagues/${lid}/rose`); break
+      case 'allRosters':
+      case 'rosters': navigate(`/leagues/${lid}/rose`); break
       case 'contracts': navigate(`/leagues/${lid}/contracts`); break
       case 'trades': navigate(`/leagues/${lid}/trades`); break
       case 'rubata': navigate(`/leagues/${lid}/rubata`); break
+      case 'strategie-rubata': navigate(`/leagues/${lid}/strategie-rubata`); break
       case 'svincolati': navigate(`/leagues/${lid}/svincolati`); break
+      case 'prizes': navigate(`/leagues/${lid}/prizes`); break
       case 'allPlayers': navigate(`/leagues/${lid}/players`); break
       case 'manager-dashboard': navigate(`/leagues/${lid}/manager`); break
       case 'admin':
@@ -149,6 +171,8 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
         else navigate(`/leagues/${lid}/admin`)
         break
       case 'movements': navigate(`/leagues/${lid}/movements`); break
+      case 'history': navigate(`/leagues/${lid}/history`); break
+      case 'prophecies': navigate(`/leagues/${lid}/prophecies`); break
       case 'superadmin':
         if (params?.tab) navigate(`/superadmin?tab=${params.tab}`)
         else navigate('/superadmin')
@@ -176,22 +200,13 @@ function AuctionRoomWrapper() {
   return <AuctionRoom sessionId={sessionId} leagueId={leagueId} onNavigate={onNavigate} />
 }
 
-function RosterWrapper() {
+function RoseWrapper() {
   const navigate = useNavigate()
   const { leagueId } = useParams<{ leagueId: string }>()
   const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
-  return <Roster leagueId={leagueId} onNavigate={onNavigate} />
-}
-
-function AllRostersWrapper() {
-  const navigate = useNavigate()
-  const { leagueId } = useParams<{ leagueId: string }>()
-  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
-
-  if (!leagueId) return <Navigate to="/dashboard" replace />
-  return <AllRosters leagueId={leagueId} onNavigate={onNavigate} />
+  return <Rose onNavigate={onNavigate} />
 }
 
 function ContractsWrapper() {
@@ -219,6 +234,15 @@ function RubataWrapper() {
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
   return <Rubata leagueId={leagueId} onNavigate={onNavigate} />
+}
+
+function StrategieRubataWrapper() {
+  const navigate = useNavigate()
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
+
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <StrategieRubata onNavigate={onNavigate} />
 }
 
 function SvincolatiWrapper() {
@@ -268,6 +292,33 @@ function MovementsWrapper() {
   return <Movements leagueId={leagueId} onNavigate={onNavigate} />
 }
 
+function HistoryWrapper() {
+  const navigate = useNavigate()
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
+
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <History leagueId={leagueId} onNavigate={onNavigate} />
+}
+
+function PrizePhasePageWrapper() {
+  const navigate = useNavigate()
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
+
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <PrizePhasePage leagueId={leagueId} onNavigate={onNavigate} />
+}
+
+function PropheciesWrapper() {
+  const navigate = useNavigate()
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
+
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <Prophecies leagueId={leagueId} onNavigate={onNavigate} />
+}
+
 function SuperAdminWrapper() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -287,30 +338,150 @@ function SuperAdminWrapper() {
 function AppRoutes() {
   return (
     <Routes>
-      {/* Public routes */}
+      {/* Public routes - Login/Register sono import statici */}
       <Route path="/login" element={<PublicRoute><LoginWrapper /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><RegisterWrapper /></PublicRoute>} />
-      <Route path="/test-latency" element={<LatencyTest />} />
+      <Route path="/test-latency" element={
+        <Suspense fallback={<PageLoader />}>
+          <LatencyTest />
+        </Suspense>
+      } />
 
-      {/* Protected routes */}
+      {/* Protected routes - Dashboard e' import statico */}
       <Route path="/dashboard" element={<ProtectedRoute><DashboardWrapper /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><ProfileWrapper /></ProtectedRoute>} />
-      <Route path="/leagues/new" element={<ProtectedRoute><CreateLeagueWrapper /></ProtectedRoute>} />
-      <Route path="/leagues/:leagueId" element={<ProtectedRoute><LeagueDetailWrapper /></ProtectedRoute>} />
-      <Route path="/leagues/:leagueId/auction/:sessionId" element={<ProtectedRoute><AuctionRoomWrapper /></ProtectedRoute>} />
-      <Route path="/leagues/:leagueId/roster" element={<ProtectedRoute><RosterWrapper /></ProtectedRoute>} />
-      <Route path="/leagues/:leagueId/rosters" element={<ProtectedRoute><AllRostersWrapper /></ProtectedRoute>} />
-      <Route path="/leagues/:leagueId/contracts" element={<ProtectedRoute><ContractsWrapper /></ProtectedRoute>} />
-      <Route path="/leagues/:leagueId/trades" element={<ProtectedRoute><TradesWrapper /></ProtectedRoute>} />
-      <Route path="/leagues/:leagueId/rubata" element={<ProtectedRoute><RubataWrapper /></ProtectedRoute>} />
-      <Route path="/leagues/:leagueId/svincolati" element={<ProtectedRoute><SvincolatiWrapper /></ProtectedRoute>} />
-      <Route path="/leagues/:leagueId/players" element={<ProtectedRoute><AllPlayersWrapper /></ProtectedRoute>} />
-      <Route path="/leagues/:leagueId/manager" element={<ProtectedRoute><ManagerDashboardWrapper /></ProtectedRoute>} />
-      <Route path="/leagues/:leagueId/admin" element={<ProtectedRoute><AdminPanelWrapper /></ProtectedRoute>} />
-      <Route path="/leagues/:leagueId/movements" element={<ProtectedRoute><MovementsWrapper /></ProtectedRoute>} />
+
+      {/* Protected routes - lazy loaded */}
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <ProfileWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/new" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <CreateLeagueWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <LeagueDetailWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/auction/:sessionId" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <AuctionRoomWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/rose" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <RoseWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      {/* Backward compatibility redirects for old routes */}
+      <Route path="/leagues/:leagueId/roster" element={<Navigate to="../rose" replace />} />
+      <Route path="/leagues/:leagueId/rosters" element={<Navigate to="../rose" replace />} />
+      <Route path="/leagues/:leagueId/contracts" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <ContractsWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/trades" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <TradesWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/rubata" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <RubataWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/strategie-rubata" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <StrategieRubataWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/svincolati" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <SvincolatiWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/players" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <AllPlayersWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/manager" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <ManagerDashboardWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/admin" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <AdminPanelWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/movements" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <MovementsWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/history" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <HistoryWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/prophecies" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <PropheciesWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/prizes" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <PrizePhasePageWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
 
       {/* Superadmin */}
-      <Route path="/superadmin" element={<ProtectedRoute><SuperAdminWrapper /></ProtectedRoute>} />
+      <Route path="/superadmin" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <SuperAdminWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
 
       {/* Default redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -324,6 +495,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <AppRoutes />
+        <SpeedInsights />
       </AuthProvider>
     </BrowserRouter>
   )

@@ -1,0 +1,66 @@
+// =============================================================================
+// prize.prisma - Prize, PrizeCategory, SessionPrize, PrizePhaseConfig
+// =============================================================================
+//
+// This file contains models for the prize/bonus system.
+//
+// =============================================================================
+
+// ==================== PREMI (Legacy) ====================
+// Traccia i premi assegnati dall'admin ai manager
+model Prize {
+  id          String   @id @default(cuid())
+
+  leagueId    String
+  league      League   @relation(fields: [leagueId], references: [id])  // see: league.prisma
+
+  memberId    String
+  member      LeagueMember @relation(fields: [memberId], references: [id])  // see: league.prisma
+
+  adminId     String
+  admin       LeagueMember @relation("PrizeAdmin", fields: [adminId], references: [id])  // see: league.prisma
+
+  amount      Int
+  reason      String?
+
+  createdAt   DateTime @default(now())
+}
+
+// ==================== FASE PREMI (MERCATO RICORRENTE) ====================
+// Configurazione fase PREMI per sessione di mercato
+model PrizePhaseConfig {
+  id                String        @id @default(cuid())
+  marketSessionId   String        @unique
+  marketSession     MarketSession @relation(fields: [marketSessionId], references: [id], onDelete: Cascade)  // see: market-session.prisma
+  baseReincrement   Int           @default(100)  // Re-incremento base uguale per tutti
+  isFinalized       Boolean       @default(false)
+  finalizedAt       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+// Categoria premio (es. "Classifica Portieri", "Indennizzo Partenza Estero")
+model PrizeCategory {
+  id                String         @id @default(cuid())
+  marketSessionId   String
+  marketSession     MarketSession  @relation(fields: [marketSessionId], references: [id], onDelete: Cascade)  // see: market-session.prisma
+  name              String
+  isSystemPrize     Boolean        @default(false)  // true per "Indennizzo Partenza Estero"
+  managerPrizes     SessionPrize[]
+  createdAt         DateTime       @default(now())
+
+  @@unique([marketSessionId, name])
+}
+
+// Premio assegnato a un manager per questa sessione
+model SessionPrize {
+  id              String        @id @default(cuid())
+  prizeCategoryId String
+  prizeCategory   PrizeCategory @relation(fields: [prizeCategoryId], references: [id], onDelete: Cascade)
+  leagueMemberId  String
+  leagueMember    LeagueMember  @relation(fields: [leagueMemberId], references: [id], onDelete: Cascade)  // see: league.prisma
+  amount          Int           // Importo assegnato
+  createdAt       DateTime      @default(now())
+
+  @@unique([prizeCategoryId, leagueMemberId])
+}

@@ -946,10 +946,10 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                                   <div className="text-right">
                                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                                       member.role === 'ADMIN'
-                                        ? 'bg-accent-500/20 text-accent-400'
-                                        : 'bg-surface-50/20 text-gray-400'
+                                        ? 'bg-accent-500/20 text-accent-400 border border-accent-500/40'
+                                        : 'bg-surface-50/20 text-gray-400 border border-surface-50/30'
                                     }`}>
-                                      {member.role === 'ADMIN' ? 'Admin' : 'DG'}
+                                      {member.role === 'ADMIN' ? 'Presidente' : 'DG'}
                                     </span>
                                     <p className="text-sm font-mono text-accent-400 mt-1">{member.currentBudget}</p>
                                   </div>

@@ -191,7 +191,7 @@ export function Notifications({ leagueId, onNavigate }: NotificationsProps) {
                         <p className="text-[10px] text-secondary-400 font-medium uppercase">Ricevi</p>
                         {offer.offeredPlayerDetails?.slice(0, 2).map(p => (
                           <div key={p.id} className="flex items-center gap-1.5">
-                            <img src={getTeamLogo(p.team)} alt="" className="w-4 h-4 object-contain" />
+                            <img src={getTeamLogo(p.team)} alt="" className="w-4 h-4 object-contain" width={16} height={16} />
                             <span className={`font-medium ${getRoleColor(p.position)}`}>{p.position}</span>
                             <span className="text-gray-300 truncate">{p.name}</span>
                           </div>
@@ -212,7 +212,7 @@ export function Notifications({ leagueId, onNavigate }: NotificationsProps) {
                         <p className="text-[10px] text-danger-400 font-medium uppercase">Cedi</p>
                         {offer.requestedPlayerDetails?.slice(0, 2).map(p => (
                           <div key={p.id} className="flex items-center gap-1.5">
-                            <img src={getTeamLogo(p.team)} alt="" className="w-4 h-4 object-contain" />
+                            <img src={getTeamLogo(p.team)} alt="" className="w-4 h-4 object-contain" width={16} height={16} />
                             <span className={`font-medium ${getRoleColor(p.position)}`}>{p.position}</span>
                             <span className="text-gray-300 truncate">{p.name}</span>
                           </div>

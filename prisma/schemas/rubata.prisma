@@ -1,0 +1,124 @@
+// =============================================================================
+// rubata.prisma - Rubata Phase Models
+// =============================================================================
+//
+// This file documents the rubata-related fields currently stored as JSON
+// in MarketSession, and provides the target normalized schema for future migration.
+//
+// =============================================================================
+
+// =============================================================================
+// CURRENT STATE (JSON fields in MarketSession - see: market-session.prisma)
+// =============================================================================
+//
+// The following fields in MarketSession store rubata data as JSON:
+//
+// - rubataOrder: Json?           // Array of leagueMemberId for turn order
+// - rubataBoard: Json?           // Array of {rosterId, memberId, playerId}
+// - rubataBoardIndex: Int?       // Current index in the board
+// - rubataState: String?         // Current state machine state
+// - rubataReadyMembers: Json?    // Array of ready member IDs
+// - rubataAuctionReadyInfo: Json? // Info for auction announcement
+// - rubataPendingAck: Json?      // Pending acknowledgment data
+//
+// =============================================================================
+
+// =============================================================================
+// FUTURE NORMALIZED SCHEMA
+// =============================================================================
+//
+// TODO: In a future migration, the JSON fields above should be normalized
+// to the following tables. This will provide:
+// - Better query performance
+// - Referential integrity
+// - Type safety
+// - Easier debugging
+//
+// NOTE: The models below are commented out as they are not yet implemented.
+// Uncomment and migrate when ready to normalize.
+// =============================================================================
+
+// // Tabellone rubata - lista ordinata di giocatori da esaminare
+// model RubataBoard {
+//   id              String   @id @default(cuid())
+//   sessionId       String
+//   session         MarketSession @relation(fields: [sessionId], references: [id])
+//   rosterId        String
+//   roster          PlayerRoster @relation(fields: [rosterId], references: [id])
+//   memberId        String
+//   member          LeagueMember @relation(fields: [memberId], references: [id])
+//   playerId        String
+//   player          SerieAPlayer @relation(fields: [playerId], references: [id])
+//   orderIndex      Int      // Position in the board
+//   status          RubataBoardStatus @default(PENDING)
+//   createdAt       DateTime @default(now())
+//
+//   @@unique([sessionId, orderIndex])
+//   @@index([sessionId, status])
+//   @@index([memberId])
+// }
+//
+// enum RubataBoardStatus {
+//   PENDING     // Not yet examined
+//   OFFERING    // Currently in offering phase
+//   AUCTION     // Currently in auction
+//   COMPLETED   // Transfer completed
+//   SKIPPED     // No offers received, kept by owner
+// }
+
+// // Stato ready dei manager per rubata
+// model RubataReadyStatus {
+//   id              String   @id @default(cuid())
+//   sessionId       String
+//   memberId        String
+//   isReady         Boolean  @default(false)
+//   readyAt         DateTime?
+//
+//   @@unique([sessionId, memberId])
+// }
+
+// // Offerte durante la fase rubata
+// model RubataOffer {
+//   id              String   @id @default(cuid())
+//   sessionId       String
+//   boardEntryId    String   // Reference to RubataBoard entry
+//   bidderId        String   // LeagueMember making the offer
+//   amount          Int
+//   offeredAt       DateTime @default(now())
+//   isInitialOffer  Boolean  @default(false)  // The first offer that triggers auction
+//
+//   @@index([boardEntryId])
+//   @@index([sessionId, bidderId])
+// }
+
+// =============================================================================
+// ACTIVE MODELS - Preferenze strategiche rubata
+// =============================================================================
+
+// Preferenze dei manager per la fase rubata (watchlist, auto-pass, budget max, etc.)
+model RubataPreference {
+  id          String   @id @default(cuid())
+
+  sessionId   String
+  session     MarketSession @relation(fields: [sessionId], references: [id])
+
+  memberId    String
+  member      LeagueMember @relation(fields: [memberId], references: [id])
+
+  playerId    String
+  player      SerieAPlayer @relation(fields: [playerId], references: [id])
+
+  // Preferenze
+  isWatchlist Boolean  @default(false)  // Giocatore nella watchlist
+  isAutoPass  Boolean  @default(false)  // Salta automaticamente (non fare offerte)
+  maxBid      Int?                       // Budget massimo per questo giocatore
+  priority    Int?                       // Priorità (1 = più alta)
+  notes       String?                    // Note private del manager
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([sessionId, memberId, playerId])
+  @@index([sessionId, memberId])
+  @@index([memberId, isWatchlist])
+}

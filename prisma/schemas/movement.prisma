@@ -1,0 +1,81 @@
+// =============================================================================
+// movement.prisma - PlayerMovement, Prophecy
+// =============================================================================
+//
+// This file contains models for tracking player movements and prophecies.
+//
+// =============================================================================
+
+model PlayerMovement {
+  id              String   @id @default(cuid())
+
+  leagueId        String
+  league          League   @relation(fields: [leagueId], references: [id])  // see: league.prisma
+
+  playerId        String
+  player          SerieAPlayer @relation(fields: [playerId], references: [id])  // see: player.prisma
+
+  // Tipo movimento
+  movementType    MovementType  // see: _base.prisma
+
+  // Da chi / A chi
+  fromMemberId    String?
+  fromMember      LeagueMember? @relation("MovementFrom", fields: [fromMemberId], references: [id])  // see: league.prisma
+
+  toMemberId      String?
+  toMember        LeagueMember? @relation("MovementTo", fields: [toMemberId], references: [id])  // see: league.prisma
+
+  // Dettagli movimento
+  price           Int?
+
+  // Contratto precedente (snapshot)
+  oldSalary       Int?
+  oldDuration     Int?
+  oldClause       Int?
+
+  // Nuovo contratto (snapshot)
+  newSalary       Int?
+  newDuration     Int?
+  newClause       Int?
+
+  // Riferimento all'asta/scambio se applicabile
+  auctionId       String?
+  tradeId         String?
+
+  // Sessione mercato
+  marketSessionId String?
+  marketSession   MarketSession? @relation(fields: [marketSessionId], references: [id])  // see: market-session.prisma
+
+  createdAt       DateTime @default(now())
+
+  // Relazioni
+  prophecies      Prophecy[]
+}
+
+model Prophecy {
+  id              String   @id @default(cuid())
+
+  leagueId        String
+  league          League   @relation(fields: [leagueId], references: [id])  // see: league.prisma
+
+  playerId        String
+  player          SerieAPlayer @relation(fields: [playerId], references: [id])  // see: player.prisma
+
+  // Chi ha fatto la profezia
+  authorId        String
+  author          LeagueMember @relation(fields: [authorId], references: [id])  // see: league.prisma
+
+  // Movimento associato
+  movementId      String
+  movement        PlayerMovement @relation(fields: [movementId], references: [id])
+
+  // Tipo: acquirente o cedente
+  authorRole      ProphecyRole  // see: _base.prisma
+
+  // Contenuto profezia
+  content         String
+
+  createdAt       DateTime @default(now())
+
+  @@unique([movementId, authorId])
+}
