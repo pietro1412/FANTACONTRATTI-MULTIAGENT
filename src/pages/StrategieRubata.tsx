@@ -734,33 +734,26 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           <div className="text-xs text-gray-500">{player.playerTeam}</div>
                         </div>
                       </div>
-                      {/* Owner + Contract - only for owned players */}
-                      {!isSvincolato && (
-                        <div className="flex justify-between items-center mb-2 text-xs">
-                          <span className="text-gray-400">
-                            <span className="text-gray-500">Prop: </span>
-                            {player.ownerTeamName || player.ownerUsername}
-                          </span>
+                      {/* Owner + Contract */}
+                      <div className="flex justify-between items-center mb-2 text-xs">
+                        <span className="text-gray-400">
+                          <span className="text-gray-500">Prop: </span>
+                          {isSvincolato ? (
+                            <span className="text-emerald-400">Svincolato</span>
+                          ) : (
+                            <span>{player.ownerTeamName || player.ownerUsername}</span>
+                          )}
+                        </span>
+                        {!isSvincolato && (
                           <span>
                             <span className="text-accent-400 font-medium">{player.contractSalary}M</span>
                             <span className="text-gray-500"> x </span>
                             <span className="text-white">{player.contractDuration}s</span>
                           </span>
-                        </div>
-                      )}
-                      {/* Price info */}
-                      {isSvincolato ? (
-                        <div className="grid grid-cols-2 gap-2 text-center text-xs mb-3">
-                          <div className="bg-surface-300/50 rounded p-1.5">
-                            <div className="text-gray-500 text-[10px] uppercase">Quotazione</div>
-                            <div className="text-accent-400 font-medium">{player.playerQuotation}M</div>
-                          </div>
-                          <div className="bg-emerald-500/10 rounded p-1.5">
-                            <div className="text-gray-500 text-[10px] uppercase">Prezzo Base</div>
-                            <div className="text-emerald-400 font-bold">{player.basePrice}M</div>
-                          </div>
-                        </div>
-                      ) : (
+                        )}
+                      </div>
+                      {/* Price info - only for owned players */}
+                      {!isSvincolato && (
                         <div className="grid grid-cols-2 gap-2 text-center text-xs mb-3">
                           <div className="bg-surface-300/50 rounded p-1.5">
                             <div className="text-gray-500 text-[10px] uppercase">Clausola</div>
@@ -817,10 +810,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     <tr className="text-xs text-gray-400 uppercase">
                       <SortableHeader field="position" label="R" className="w-10 p-2 text-center" />
                       <SortableHeader field="name" label="Giocatore" className="text-left p-2" />
-                      <SortableHeader field="owner" label={viewMode === 'svincolati' ? 'Stato' : 'Proprietario'} className="text-left p-2" />
-                      <SortableHeader field="contract" label={viewMode === 'svincolati' ? 'Quot.' : 'Contratto'} className="text-center p-2" />
-                      <th className="text-center p-2 text-orange-400">{viewMode === 'svincolati' ? '-' : 'Cls'}</th>
-                      <SortableHeader field="rubata" label={viewMode === 'svincolati' ? 'Base' : 'Rubata'} className="text-center p-2" />
+                      <SortableHeader field="owner" label="Proprietario" className="text-left p-2" />
+                      <SortableHeader field="contract" label="Contratto" className="text-center p-2" />
+                      <th className="text-center p-2 text-orange-400">Cls</th>
+                      <SortableHeader field="rubata" label="Rubata" className="text-center p-2" />
                       <th className="text-center p-2 bg-indigo-500/5 border-l-2 border-indigo-500/30">Offerta Max</th>
                       <th className="text-center p-2 bg-indigo-500/5">Priorità</th>
                       <th className="text-left p-2 bg-indigo-500/5">Note</th>
@@ -867,13 +860,11 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             </div>
                           </td>
 
-                          {/* Owner / Svincolato badge */}
+                          {/* Owner / Svincolato */}
                           <td className="p-2">
                             {isSvincolato ? (
-                              <div className="text-center">
-                                <span className="px-2 py-1 text-xs font-medium bg-emerald-500/20 text-emerald-400 rounded">
-                                  Libero
-                                </span>
+                              <div className="min-w-0">
+                                <div className="font-medium text-emerald-400 text-sm">Svincolato</div>
                               </div>
                             ) : (
                               <div className="min-w-0">
@@ -887,13 +878,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             )}
                           </td>
 
-                          {/* Contract / Quotation */}
+                          {/* Contract */}
                           <td className="p-2 text-center">
                             {isSvincolato ? (
-                              <div className="text-xs">
-                                <span className="text-accent-400 font-medium">{player.playerQuotation}M</span>
-                                <span className="text-gray-500"> quot.</span>
-                              </div>
+                              <span className="text-gray-600">-</span>
                             ) : (
                               <div className="text-xs">
                                 <span className="text-accent-400 font-medium">{player.contractSalary}M</span>
@@ -912,10 +900,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             )}
                           </td>
 
-                          {/* Rubata Price / Base Price */}
+                          {/* Rubata Price */}
                           <td className="p-2 text-center">
                             {isSvincolato ? (
-                              <span className="text-emerald-400 font-bold">{player.basePrice}M</span>
+                              <span className="text-gray-600">-</span>
                             ) : (
                               <span className="text-warning-400 font-bold">{player.rubataPrice}M</span>
                             )}
