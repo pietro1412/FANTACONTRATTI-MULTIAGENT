@@ -43,7 +43,7 @@ const POSITION_CONFIG: Record<Position, {
   C: {
     label: 'Centrocampista',
     shortLabel: 'C',
-    colors: 'bg-gradient-to-r from-green-500 to-green-600 text-white',
+    colors: 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white',
     // Gear/hexagon icon for accessibility
     icon: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="currentColor">

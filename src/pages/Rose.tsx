@@ -53,10 +53,10 @@ interface LeagueData {
 }
 
 const POSITION_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  P: { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/40' },
-  D: { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/40' },
-  C: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/40' },
-  A: { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/40' },
+  P: { bg: 'bg-gradient-to-r from-amber-500 to-amber-600', text: 'text-white', border: '' },
+  D: { bg: 'bg-gradient-to-r from-blue-500 to-blue-600', text: 'text-white', border: '' },
+  C: { bg: 'bg-gradient-to-r from-emerald-500 to-emerald-600', text: 'text-white', border: '' },
+  A: { bg: 'bg-gradient-to-r from-red-500 to-red-600', text: 'text-white', border: '' },
 }
 
 const DURATION_COLORS: Record<number, { bg: string; text: string; border: string }> = {
