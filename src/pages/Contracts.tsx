@@ -63,14 +63,14 @@ interface LocalEdit {
   isSaving: boolean
 }
 
-// Stile per ruolo
+// Stile per ruolo (gradiente consistente con resto piattaforma)
 function getRoleStyle(position: string) {
   switch (position) {
-    case 'P': return { bg: 'bg-amber-500/20', text: 'text-amber-400' }
-    case 'D': return { bg: 'bg-blue-500/20', text: 'text-blue-400' }
-    case 'C': return { bg: 'bg-emerald-500/20', text: 'text-emerald-400' }
-    case 'A': return { bg: 'bg-red-500/20', text: 'text-red-400' }
-    default: return { bg: 'bg-gray-500/20', text: 'text-gray-400' }
+    case 'P': return { bg: 'bg-gradient-to-r from-amber-500 to-amber-600', text: 'text-white' }
+    case 'D': return { bg: 'bg-gradient-to-r from-blue-500 to-blue-600', text: 'text-white' }
+    case 'C': return { bg: 'bg-gradient-to-r from-emerald-500 to-emerald-600', text: 'text-white' }
+    case 'A': return { bg: 'bg-gradient-to-r from-red-500 to-red-600', text: 'text-white' }
+    default: return { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white' }
   }
 }
 
@@ -775,10 +775,9 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                   : String(pending.draftDuration ?? 2)
                 const currentSalary = parseInt(salaryStr) || pending.minSalary
                 const currentDuration = parseInt(durationStr) || 2
-                // Costo = solo ingaggio del prossimo semestre (si paga semestralmente)
-                const newCost = currentSalary
                 const multiplier = DURATION_MULTIPLIERS[currentDuration as keyof typeof DURATION_MULTIPLIERS] || 7
-                const newRubata = (currentSalary * multiplier) + currentSalary
+                const newClausola = currentSalary * multiplier
+                const newRubata = newClausola + currentSalary
 
                 return (
                   <div key={pending.rosterId} className="bg-surface-200 rounded-lg border border-warning-500/30 p-3">
@@ -842,8 +841,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     {/* Results row */}
                     <div className="flex justify-around bg-surface-300/50 rounded p-2">
                       <div className="text-center">
-                        <div className="text-[10px] text-gray-500 uppercase">Costo Sem.</div>
-                        <div className="text-accent-400 font-bold">{newCost}M</div>
+                        <div className="text-[10px] text-gray-500 uppercase">Clausola</div>
+                        <div className="text-accent-400 font-bold">{newClausola}M</div>
                       </div>
                       <div className="text-center">
                         <div className="text-[10px] text-gray-500 uppercase">Rubata</div>
@@ -866,7 +865,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                       <th className="text-center p-2">Min Ing.</th>
                       <th className="text-center p-2 border-l border-surface-50/20">Ingaggio</th>
                       <th className="text-center p-2">Durata</th>
-                      <th className="text-center p-2">Costo Sem.</th>
+                      <th className="text-center p-2">Clausola</th>
                       <th className="text-center p-2">Nuova Rubata</th>
                     </tr>
                   </thead>
@@ -882,10 +881,9 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                         : String(pending.draftDuration ?? 2)
                       const currentSalary = parseInt(salaryStr) || pending.minSalary
                       const currentDuration = parseInt(durationStr) || 2
-                      // Costo = solo ingaggio del prossimo semestre (si paga semestralmente)
-                      const newCost = currentSalary
                       const multiplier = DURATION_MULTIPLIERS[currentDuration as keyof typeof DURATION_MULTIPLIERS] || 7
-                      const newRubata = (currentSalary * multiplier) + currentSalary
+                      const newClausola = currentSalary * multiplier
+                      const newRubata = newClausola + currentSalary
 
                       return (
                         <tr key={pending.rosterId} className="border-t border-surface-50/10 hover:bg-surface-300/30">
@@ -933,7 +931,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                             </div>
                           </td>
                           <td className="text-center p-2">
-                            <span className="text-accent-400 font-medium">{newCost}M</span>
+                            <span className="text-accent-400 font-medium">{newClausola}M</span>
                           </td>
                           <td className="text-center p-2">
                             <span className="text-warning-400 font-bold">{newRubata}M</span>
@@ -965,8 +963,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
               const currentRubata = contract.rescissionClause + contract.salary
               const newSalary = parseInt(edit?.newSalary || '') || contract.salary
               const newDuration = parseInt(edit?.newDuration || '') || contract.duration
-              // Costo = solo ingaggio del prossimo semestre (si paga semestralmente)
-              const semesterCost = newSalary
               const newMultiplier = DURATION_MULTIPLIERS[newDuration as keyof typeof DURATION_MULTIPLIERS] || 7
               const newRescissionClause = newSalary * newMultiplier
               const newRubata = newRescissionClause + newSalary
@@ -1057,8 +1053,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                       {/* Results row */}
                       <div className="flex justify-around bg-primary-500/10 rounded p-2 mb-3">
                         <div className="text-center">
-                          <div className="text-[10px] text-gray-500 uppercase">Costo Sem.</div>
-                          <div className={hasChanges ? 'text-accent-400 font-bold' : 'text-gray-400'}>{semesterCost}M</div>
+                          <div className="text-[10px] text-gray-500 uppercase">Clausola</div>
+                          <div className={hasChanges ? 'text-accent-400 font-bold' : 'text-gray-400'}>{newRescissionClause}M</div>
                         </div>
                         <div className="text-center">
                           <div className="text-[10px] text-gray-500 uppercase">Nuova Rub.</div>
@@ -1104,7 +1100,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     <th className="text-center p-1">Rubata</th>
                     <th className="text-center p-1 border-l border-surface-50/20">Nuovo Ing.</th>
                     <th className="text-center p-1">Nuova Dur.</th>
-                    <th className="text-center p-1">Costo Sem.</th>
+                    <th className="text-center p-1">Clausola</th>
                     <th className="text-center p-1">Nuova Rub.</th>
                     <th className="text-center p-1">Azione</th>
                   </tr>
@@ -1116,8 +1112,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     const currentRubata = contract.rescissionClause + contract.salary
                     const newSalary = parseInt(edit?.newSalary || '') || contract.salary
                     const newDuration = parseInt(edit?.newDuration || '') || contract.duration
-                    // Costo = solo ingaggio del prossimo semestre (si paga semestralmente)
-                    const semesterCost = newSalary
                     const newMultiplier = DURATION_MULTIPLIERS[newDuration as keyof typeof DURATION_MULTIPLIERS] || 7
                     const newRescissionClause = newSalary * newMultiplier
                     const newRubata = newRescissionClause + newSalary
@@ -1187,7 +1181,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                         </td>
                         <td className="text-center p-2">
                           <span className={hasChanges ? 'text-accent-400 font-medium' : 'text-gray-400'}>
-                            {semesterCost}M
+                            {newRescissionClause}M
                           </span>
                           {edit?.previewData?.validationError && (
                             <span className="text-danger-400 text-xs ml-1" title={edit.previewData.validationError}>!</span>
