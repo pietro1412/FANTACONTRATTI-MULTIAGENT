@@ -335,55 +335,31 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                     {(roster[pos]?.length ?? 0) === 0 ? (
                       <p className="p-4 text-gray-400 text-sm text-center">Nessun giocatore</p>
                     ) : (
-                      <>
-                        {/* Mobile Card Layout */}
-                        <div className="md:hidden divide-y">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left text-xs text-gray-500">Giocatore</th>
+                            <th className="px-4 py-2 text-right text-xs text-gray-500">Costo</th>
+                            <th className="px-4 py-2 text-right text-xs text-gray-500">Quot.</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
                           {(roster[pos] ?? []).map(entry => (
-                            <div key={entry.id} className="p-3 flex items-center justify-between">
-                              <div className="min-w-0 flex-1">
-                                <p className="font-medium truncate">{entry.player.name}</p>
+                            <tr key={entry.id} className="hover:bg-gray-50">
+                              <td className="px-4 py-3">
+                                <p className="font-medium">{entry.player.name}</p>
                                 <p className="text-xs text-gray-500">{entry.player.team}</p>
-                              </div>
-                              <div className="flex gap-3 text-right text-sm">
-                                <div>
-                                  <div className="text-[10px] text-gray-500 uppercase">Costo</div>
-                                  <div className="font-mono">{entry.acquisitionPrice}</div>
-                                </div>
-                                <div>
-                                  <div className="text-[10px] text-gray-500 uppercase">Quot.</div>
-                                  <div className="font-mono text-gray-500">{entry.player.quotation}</div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        {/* Desktop Table */}
-                        <table className="hidden md:table w-full">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-4 py-2 text-left text-xs text-gray-500">Giocatore</th>
-                              <th className="px-4 py-2 text-right text-xs text-gray-500">Costo</th>
-                              <th className="px-4 py-2 text-right text-xs text-gray-500">Quot.</th>
+                              </td>
+                              <td className="px-4 py-3 text-right font-mono">
+                                {entry.acquisitionPrice}
+                              </td>
+                              <td className="px-4 py-3 text-right font-mono text-gray-500">
+                                {entry.player.quotation}
+                              </td>
                             </tr>
-                          </thead>
-                          <tbody className="divide-y">
-                            {(roster[pos] ?? []).map(entry => (
-                              <tr key={entry.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3">
-                                  <p className="font-medium">{entry.player.name}</p>
-                                  <p className="text-xs text-gray-500">{entry.player.team}</p>
-                                </td>
-                                <td className="px-4 py-3 text-right font-mono">
-                                  {entry.acquisitionPrice}
-                                </td>
-                                <td className="px-4 py-3 text-right font-mono text-gray-500">
-                                  {entry.player.quotation}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </>
+                          ))}
+                        </tbody>
+                      </table>
                     )}
                   </CardContent>
                 </Card>
@@ -399,57 +375,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
               <CardTitle>Tutti i Contratti</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              {/* Mobile Card Layout */}
-              <div className="md:hidden divide-y">
-                {allPlayers.map(entry => {
-                  const posConfig = POSITION_CONFIG[entry.player.position as keyof typeof POSITION_CONFIG]
-                  return (
-                    <div key={entry.id} className="p-3">
-                      {/* Header: Position + Player */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${posConfig.bgClass} ${posConfig.textClass}`}>
-                          {entry.player.position}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{entry.player.name}</p>
-                          <p className="text-xs text-gray-500">{entry.player.team}</p>
-                        </div>
-                        {/* Status Badge */}
-                        {!entry.contract ? (
-                          <span className="px-2 py-1 bg-danger-100 text-danger-700 rounded text-xs">Da impostare</span>
-                        ) : entry.contract.duration === 0 ? (
-                          <span className="px-2 py-1 bg-danger-100 text-danger-700 rounded text-xs">Scaduto</span>
-                        ) : entry.contract.duration === 1 ? (
-                          <span className="px-2 py-1 bg-warning-100 text-warning-700 rounded text-xs">In scadenza</span>
-                        ) : (
-                          <span className="px-2 py-1 bg-success-100 text-success-700 rounded text-xs">Attivo</span>
-                        )}
-                      </div>
-                      {/* Contract Data */}
-                      {entry.contract && (
-                        <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                          <div className="bg-gray-50 rounded p-1.5">
-                            <div className="text-gray-500 text-[10px] uppercase">Ing</div>
-                            <div className="font-mono">{entry.contract.salary}</div>
-                          </div>
-                          <div className="bg-gray-50 rounded p-1.5">
-                            <div className="text-gray-500 text-[10px] uppercase">Dur</div>
-                            <div className={entry.contract.duration <= 1 ? 'text-warning-600 font-medium' : ''}>
-                              {entry.contract.duration} sem.
-                            </div>
-                          </div>
-                          <div className="bg-gray-50 rounded p-1.5">
-                            <div className="text-gray-500 text-[10px] uppercase">Cls</div>
-                            <div className="font-mono">{entry.contract.rescissionClause}</div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-              {/* Desktop Table */}
-              <table className="hidden md:table w-full">
+              <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs text-gray-500">Giocatore</th>
