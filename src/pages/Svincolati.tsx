@@ -959,6 +959,23 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
             </div>
           </div>
 
+          {/* Position Counters */}
+          <div className="grid grid-cols-4 gap-3 mb-4">
+            {(['P', 'D', 'C', 'A'] as const).map(pos => {
+              const count = freeAgents.filter(p => p.position === pos).length
+              const posNames: Record<string, string> = { P: 'Portieri', D: 'Difensori', C: 'Centrocampisti', A: 'Attaccanti' }
+              return (
+                <div
+                  key={pos}
+                  className={`bg-gradient-to-br ${POSITION_COLORS[pos]} rounded-xl p-3 text-center`}
+                >
+                  <div className="text-2xl font-bold text-white">{count}</div>
+                  <div className="text-xs text-white/80">{posNames[pos]}</div>
+                </div>
+              )
+            })}
+          </div>
+
           {/* Free Agents Table */}
           <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
             <div className="p-4 border-b border-surface-50/20">
