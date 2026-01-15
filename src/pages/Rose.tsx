@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { leagueApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
+import { POSITION_COLORS } from '../components/ui/PositionBadge'
 
 interface RoseProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
@@ -50,13 +51,6 @@ interface LeagueData {
   currentUserId: string
   inContrattiPhase?: boolean
   isAdmin?: boolean
-}
-
-const POSITION_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  P: { bg: 'bg-gradient-to-r from-amber-500 to-amber-600', text: 'text-white', border: '' },
-  D: { bg: 'bg-gradient-to-r from-blue-500 to-blue-600', text: 'text-white', border: '' },
-  C: { bg: 'bg-gradient-to-r from-emerald-500 to-emerald-600', text: 'text-white', border: '' },
-  A: { bg: 'bg-gradient-to-r from-red-500 to-red-600', text: 'text-white', border: '' },
 }
 
 const DURATION_COLORS: Record<number, { bg: string; text: string; border: string }> = {

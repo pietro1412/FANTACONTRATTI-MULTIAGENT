@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Navigation } from '../components/Navigation'
 import { playerApi, leagueApi } from '../services/api'
 import { Input } from '../components/ui/Input'
+import { POSITION_GRADIENTS, POSITION_FILTER_COLORS } from '../components/ui/PositionBadge'
 
 interface AllPlayersProps {
   leagueId: string
@@ -53,19 +54,9 @@ interface LeagueData {
   userMembership?: { role: string }
 }
 
-const POSITION_COLORS: Record<string, string> = {
-  P: 'from-amber-500 to-amber-600',
-  D: 'from-blue-500 to-blue-600',
-  C: 'from-emerald-500 to-emerald-600',
-  A: 'from-red-500 to-red-600',
-}
-
-const POSITION_BG: Record<string, string> = {
-  P: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  D: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  C: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  A: 'bg-red-500/20 text-red-400 border-red-500/30',
-}
+// Alias for backward compatibility
+const POSITION_COLORS = POSITION_GRADIENTS
+const POSITION_BG = POSITION_FILTER_COLORS
 
 export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
   const [players, setPlayers] = useState<PlayerWithRoster[]>([])

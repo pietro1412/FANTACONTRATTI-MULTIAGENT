@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { rubataApi, leagueApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
+import { POSITION_COLORS } from '../components/ui/PositionBadge'
 
 interface StrategyPlayer {
   rosterId: string
@@ -68,13 +69,6 @@ interface SvincolatiData {
 }
 
 type ViewMode = 'owned' | 'svincolati' | 'all'
-
-const POSITION_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  P: { bg: 'bg-gradient-to-r from-amber-500 to-amber-600', text: 'text-white', border: '' },
-  D: { bg: 'bg-gradient-to-r from-blue-500 to-blue-600', text: 'text-white', border: '' },
-  C: { bg: 'bg-gradient-to-r from-emerald-500 to-emerald-600', text: 'text-white', border: '' },
-  A: { bg: 'bg-gradient-to-r from-red-500 to-red-600', text: 'text-white', border: '' },
-}
 
 // Team logo component
 function TeamLogo({ team }: { team: string }) {

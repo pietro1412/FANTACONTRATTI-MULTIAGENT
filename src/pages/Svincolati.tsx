@@ -4,6 +4,7 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
+import { POSITION_GRADIENTS, POSITION_FILTER_COLORS } from '../components/ui/PositionBadge'
 
 interface AppealStatus {
   auctionId: string
@@ -100,19 +101,9 @@ interface BoardState {
   myBudget: number
 }
 
-const POSITION_COLORS: Record<string, string> = {
-  P: 'from-amber-500 to-amber-600',
-  D: 'from-blue-500 to-blue-600',
-  C: 'from-emerald-500 to-emerald-600',
-  A: 'from-red-500 to-red-600',
-}
-
-const POSITION_BG: Record<string, string> = {
-  P: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
-  D: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
-  C: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
-  A: 'bg-red-500/20 text-red-400 border-red-500/40',
-}
+// Alias for backward compatibility with existing code that uses POSITION_COLORS as gradients
+const POSITION_COLORS = POSITION_GRADIENTS
+const POSITION_BG = POSITION_FILTER_COLORS
 
 const SERIE_A_TEAMS = [
   'Atalanta', 'Bologna', 'Cagliari', 'Como', 'Empoli',

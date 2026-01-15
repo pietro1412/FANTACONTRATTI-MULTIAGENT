@@ -166,4 +166,46 @@ export const POSITION_NAMES: Record<Position, string> = {
   A: 'Attaccante',
 }
 
+/**
+ * Standard position colors for badges (solid gradient with text)
+ * Use this for circular/pill badges displaying the position letter
+ */
+export const POSITION_COLORS: Record<Position, { bg: string; text: string; border: string }> = {
+  P: { bg: 'bg-gradient-to-r from-amber-500 to-amber-600', text: 'text-white', border: '' },
+  D: { bg: 'bg-gradient-to-r from-blue-500 to-blue-600', text: 'text-white', border: '' },
+  C: { bg: 'bg-gradient-to-r from-emerald-500 to-emerald-600', text: 'text-white', border: '' },
+  A: { bg: 'bg-gradient-to-r from-red-500 to-red-600', text: 'text-white', border: '' },
+}
+
+/**
+ * Position colors for filter buttons/tabs (transparent bg with colored border/text)
+ * Use this for toggleable filter buttons
+ */
+export const POSITION_FILTER_COLORS: Record<Position, string> = {
+  P: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  D: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  C: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  A: 'bg-red-500/20 text-red-400 border-red-500/30',
+}
+
+/**
+ * Position text colors only (for inline text coloring)
+ */
+export const POSITION_TEXT_COLORS: Record<Position, string> = {
+  P: 'text-amber-400',
+  D: 'text-blue-400',
+  C: 'text-emerald-400',
+  A: 'text-red-400',
+}
+
+/**
+ * Position gradient strings (for custom bg-gradient-to-* usage)
+ */
+export const POSITION_GRADIENTS: Record<Position, string> = {
+  P: 'from-amber-500 to-amber-600',
+  D: 'from-blue-500 to-blue-600',
+  C: 'from-emerald-500 to-emerald-600',
+  A: 'from-red-500 to-red-600',
+}
+
 export default PositionBadge

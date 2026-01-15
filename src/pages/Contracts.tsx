@@ -3,6 +3,7 @@ import { contractApi, leagueApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
+import { POSITION_COLORS } from '../components/ui/PositionBadge'
 
 interface ContractsProps {
   leagueId: string
@@ -63,15 +64,10 @@ interface LocalEdit {
   isSaving: boolean
 }
 
-// Stile per ruolo (gradiente consistente con resto piattaforma)
+// Stile per ruolo (usa costanti centralizzate)
 function getRoleStyle(position: string) {
-  switch (position) {
-    case 'P': return { bg: 'bg-gradient-to-r from-amber-500 to-amber-600', text: 'text-white' }
-    case 'D': return { bg: 'bg-gradient-to-r from-blue-500 to-blue-600', text: 'text-white' }
-    case 'C': return { bg: 'bg-gradient-to-r from-emerald-500 to-emerald-600', text: 'text-white' }
-    case 'A': return { bg: 'bg-gradient-to-r from-red-500 to-red-600', text: 'text-white' }
-    default: return { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white' }
-  }
+  const colors = POSITION_COLORS[position as keyof typeof POSITION_COLORS]
+  return colors || { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white', border: '' }
 }
 
 // Componente logo squadra
