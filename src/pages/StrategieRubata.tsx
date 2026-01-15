@@ -576,8 +576,78 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                 </div>
               </div>
 
-              {/* Table */}
-              <div className="overflow-x-auto">
+              {/* Mobile Card Layout */}
+              <div className="md:hidden space-y-3 p-3">
+                {filteredPlayers.map(player => {
+                  const posColors = POSITION_COLORS[player.playerPosition] || POSITION_COLORS.P
+                  const local = getLocalStrategy(player.playerId)
+                  const hasStrategy = !!(local.maxBid || local.priority || local.notes)
+
+                  return (
+                    <div key={player.playerId} className={`bg-surface-300/30 rounded-lg p-3 border ${hasStrategy ? 'border-indigo-500/30 bg-indigo-500/5' : 'border-surface-50/10'}`}>
+                      {/* Header: Position + Player */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`w-8 h-8 rounded-full ${posColors.bg} ${posColors.text} flex items-center justify-center text-xs font-bold flex-shrink-0`}>
+                          {player.playerPosition}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-white text-sm truncate">{player.playerName}</div>
+                          <div className="text-xs text-gray-500">{player.playerTeam}</div>
+                        </div>
+                      </div>
+                      {/* Owner + Contract */}
+                      <div className="flex justify-between items-center mb-2 text-xs">
+                        <span className="text-gray-400">
+                          <span className="text-gray-500">Prop: </span>
+                          {player.ownerTeamName || player.ownerUsername}
+                        </span>
+                        <span>
+                          <span className="text-accent-400 font-medium">{player.contractSalary}M</span>
+                          <span className="text-gray-500"> x </span>
+                          <span className="text-white">{player.contractDuration}s</span>
+                        </span>
+                      </div>
+                      {/* Clausola + Rubata */}
+                      <div className="grid grid-cols-2 gap-2 text-center text-xs mb-3">
+                        <div className="bg-surface-300/50 rounded p-1.5">
+                          <div className="text-gray-500 text-[10px] uppercase">Clausola</div>
+                          <div className="text-orange-400 font-medium">{player.contractClause}M</div>
+                        </div>
+                        <div className="bg-surface-300/50 rounded p-1.5">
+                          <div className="text-gray-500 text-[10px] uppercase">Rubata</div>
+                          <div className="text-warning-400 font-bold">{player.rubataPrice}M</div>
+                        </div>
+                      </div>
+                      {/* Strategy Section */}
+                      <div className="bg-indigo-500/10 rounded-lg p-2 border border-indigo-500/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          {/* Max Bid */}
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-gray-500 uppercase">Max:</span>
+                            <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, (parseInt(local.maxBid) || 0) - 1).toString())} className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 text-sm font-bold">−</button>
+                            <input type="number" value={local.maxBid} onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)} placeholder="-" className="w-12 px-1 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-center text-sm" />
+                            <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', ((parseInt(local.maxBid) || 0) + 1).toString())} className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 text-sm font-bold">+</button>
+                          </div>
+                          {/* Priority */}
+                          <div className="flex items-center gap-0.5 ml-auto">
+                            {[1, 2, 3, 4, 5].map(star => (
+                              <button key={star} onClick={() => updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star)} className={`w-5 h-5 text-sm ${local.priority >= star ? 'text-purple-400' : 'text-gray-600'}`}>★</button>
+                            ))}
+                          </div>
+                        </div>
+                        {/* Notes */}
+                        <input type="text" value={local.notes} onChange={(e) => updateLocalStrategy(player.playerId, 'notes', e.target.value)} placeholder="Note..." className="w-full px-2 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-sm" />
+                      </div>
+                    </div>
+                  )
+                })}
+                {filteredPlayers.length === 0 && (
+                  <div className="text-center text-gray-500 py-8">Nessun giocatore trovato</div>
+                )}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full min-w-[900px] text-sm">
                   <thead className="bg-surface-300/50">
                     {/* Group headers */}

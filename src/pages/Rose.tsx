@@ -388,8 +388,70 @@ export function Rose({ onNavigate }: RoseProps) {
                 </div>
               )}
 
-              {/* Table */}
-              <div className="overflow-x-auto">
+              {/* Mobile Card Layout */}
+              <div className="md:hidden space-y-2 p-3">
+                {filteredPlayers.map(entry => {
+                  const defaultPosColor = { bg: 'bg-gray-500/20', text: 'text-gray-400', border: 'border-gray-500/40' }
+                  const posColors = POSITION_COLORS[entry.player.position] ?? defaultPosColor
+                  const defaultDurColor = { bg: 'bg-gray-500/20', text: 'text-gray-400', border: 'border-gray-500/40' }
+                  const durColors = entry.contract ? (DURATION_COLORS[entry.contract.duration] ?? defaultDurColor) : null
+                  const clause = entry.contract?.rescissionClause ?? null
+                  const rubata = clause !== null && entry.contract ? clause + entry.contract.salary : null
+
+                  return (
+                    <div key={entry.id} className="bg-surface-300/30 rounded-lg p-3 border border-surface-50/10">
+                      {/* Header: Position + Player + Team */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`w-8 h-8 rounded-full ${posColors.bg} ${posColors.text} flex items-center justify-center text-xs font-bold flex-shrink-0`}>
+                          {entry.player.position}
+                        </div>
+                        <div className="flex-1 min-w-0 leading-tight">
+                          <div className="font-medium text-white text-sm truncate">{entry.player.name}</div>
+                          <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
+                            <TeamLogo team={entry.player.team} size="sm" />
+                            <span className="truncate">{entry.player.team}</span>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Contract Details Grid */}
+                      {entry.contract && (
+                        <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                          <div className="bg-surface-300/50 rounded p-1.5">
+                            <div className="text-gray-500 text-[10px] uppercase">Ing</div>
+                            <div className="text-accent-400 font-medium">{entry.contract.salary}M</div>
+                          </div>
+                          <div className="bg-surface-300/50 rounded p-1.5">
+                            <div className="text-gray-500 text-[10px] uppercase">Dur</div>
+                            <div className={`${durColors?.text || 'text-gray-400'} font-medium`}>{entry.contract.duration}s</div>
+                          </div>
+                          <div className="bg-surface-300/50 rounded p-1.5">
+                            <div className="text-gray-500 text-[10px] uppercase">Cls</div>
+                            <div className="text-orange-400 font-medium">{clause ?? '-'}M</div>
+                          </div>
+                          <div className="bg-surface-300/50 rounded p-1.5">
+                            <div className="text-gray-500 text-[10px] uppercase">Rub</div>
+                            <div className="text-warning-400 font-bold">{rubata ?? '-'}M</div>
+                          </div>
+                        </div>
+                      )}
+                      {!entry.contract && (
+                        <div className="text-center text-gray-500 text-xs py-1">Nessun contratto</div>
+                      )}
+                    </div>
+                  )
+                })}
+                {filteredPlayers.length === 0 && (
+                  <div className="text-center text-gray-500 py-8">
+                    {selectedMember?.roster.length === 0
+                      ? 'Nessun giocatore in rosa'
+                      : 'Nessun giocatore trovato con i filtri selezionati'
+                    }
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full min-w-[600px] text-sm table-fixed">
                   <thead className="bg-surface-300/50">
                     <tr className="text-xs text-gray-400 uppercase">
