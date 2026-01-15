@@ -311,12 +311,9 @@ function PrizePhasePageWrapper() {
 }
 
 function PropheciesWrapper() {
-  const { leagueId } = useParams<{ leagueId: string }>()
   const navigate = useNavigate()
-
-  function onNavigate(page: string, params?: Record<string, string>) {
-    handleNavigate(page, leagueId, navigate, params)
-  }
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
   return <Prophecies leagueId={leagueId} onNavigate={onNavigate} />
