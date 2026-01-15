@@ -7,20 +7,27 @@ Repository: `pietro1412/FANTACONTRATTI-MULTIAGENT`
 
 ### Workflow Evolutive
 
-1. **Quando l'utente propone un'evolutiva:**
-   - Creare una Issue su GitHub
-   - Aggiungerla al project EVOLUTIVE nella colonna **Backlog**
-   - NON iniziare lo sviluppo
+#### Fase 1: Raccolta Rapida (Backlog)
+Quando l'utente propone evolutive, raccoglierle **velocemente**:
+- Creare Issue su GitHub con titolo sintetico
+- Aggiungerla al project EVOLUTIVE → **Backlog**
+- Conferma rapida: "✅ #N in Backlog"
+- **NON iniziare sviluppo**, permettere all'utente di continuare con la prossima
 
-2. **Quando l'utente dice di attivare l'evolutiva:**
-   - Spostare la Issue da Backlog a **Todo**
-   - Creare il branch feature da `develop`
-   - Iniziare lo sviluppo
-   - Spostare la Issue in **In Progress**
+Se ci sono dubbi sulla classificazione o comprensione, chiedere **prima** di creare l'issue.
 
-3. **Quando lo sviluppo è completato:**
-   - Creare PR verso `develop`
-   - Spostare la Issue in **Done**
+#### Fase 2: Attivazione (Todo → In Progress)
+**Solo quando l'utente indica** quali evolutive attivare:
+- Spostare Issue da Backlog a **Todo**
+- Creare branch feature da `develop`
+- Spostare in **In Progress**
+- Iniziare sviluppo
+
+#### Fase 3: Completamento (Done)
+Quando lo sviluppo è completato:
+- Committare con riferimento all'issue
+- Spostare Issue in **Done**
+- Chiudere Issue
 
 ### Colonne Project
 | Colonna | Descrizione |
