@@ -19,6 +19,7 @@ import { ManagerDashboard } from './pages/ManagerDashboard'
 import { AdminPanel } from './pages/AdminPanel'
 import { Movements } from './pages/Movements'
 import { History } from './pages/History'
+import Prophecies from './pages/Prophecies'
 import { SuperAdmin } from './pages/SuperAdmin'
 import { PrizePhasePage } from './pages/PrizePhasePage'
 import LatencyTest from './pages/LatencyTest'
@@ -339,6 +340,7 @@ function AppRoutes() {
       <Route path="/leagues/:leagueId/admin" element={<ProtectedRoute><AdminPanelWrapper /></ProtectedRoute>} />
       <Route path="/leagues/:leagueId/movements" element={<ProtectedRoute><MovementsWrapper /></ProtectedRoute>} />
       <Route path="/leagues/:leagueId/history" element={<ProtectedRoute><HistoryWrapper /></ProtectedRoute>} />
+      <Route path="/leagues/:leagueId/prophecies" element={<ProtectedRoute><Prophecies /></ProtectedRoute>} />
       <Route path="/leagues/:leagueId/prizes" element={<ProtectedRoute><PrizePhasePageWrapper /></ProtectedRoute>} />
 
       {/* Superadmin */}

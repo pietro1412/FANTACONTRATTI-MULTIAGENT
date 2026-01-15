@@ -1271,4 +1271,26 @@ export const historyApi = {
     const query = params.toString()
     return request(`/api/leagues/${leagueId}/history/players/search${query ? `?${query}` : ''}`)
   },
+
+  // Get prophecies with filters
+  getProphecies: (leagueId: string, options?: {
+    playerId?: string
+    authorId?: string
+    search?: string
+    limit?: number
+    offset?: number
+  }) => {
+    const params = new URLSearchParams()
+    if (options?.playerId) params.append('playerId', options.playerId)
+    if (options?.authorId) params.append('authorId', options.authorId)
+    if (options?.search) params.append('search', options.search)
+    if (options?.limit) params.append('limit', String(options.limit))
+    if (options?.offset) params.append('offset', String(options.offset))
+    const query = params.toString()
+    return request(`/api/leagues/${leagueId}/history/prophecies${query ? `?${query}` : ''}`)
+  },
+
+  // Get prophecy stats
+  getProphecyStats: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/history/prophecies/stats`),
 }

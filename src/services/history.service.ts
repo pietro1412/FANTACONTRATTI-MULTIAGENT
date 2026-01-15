@@ -1143,6 +1143,199 @@ export async function getPlayerCareer(
   }
 }
 
+// ==================== PROFEZIE ====================
+
+/**
+ * Ottieni tutte le profezie della lega con filtri
+ */
+export async function getProphecies(
+  leagueId: string,
+  userId: string,
+  options?: {
+    playerId?: string
+    authorId?: string
+    search?: string
+    limit?: number
+    offset?: number
+  }
+): Promise<ServiceResult> {
+  // Verify membership
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Build where clause
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = { leagueId }
+
+  if (options?.playerId) {
+    where.playerId = options.playerId
+  }
+
+  if (options?.authorId) {
+    where.authorId = options.authorId
+  }
+
+  if (options?.search) {
+    where.OR = [
+      { content: { contains: options.search, mode: 'insensitive' } },
+      { player: { name: { contains: options.search, mode: 'insensitive' } } },
+      { author: { user: { username: { contains: options.search, mode: 'insensitive' } } } },
+      { author: { teamName: { contains: options.search, mode: 'insensitive' } } },
+    ]
+  }
+
+  const limit = options?.limit ?? 50
+  const offset = options?.offset ?? 0
+
+  // Get total count
+  const total = await prisma.prophecy.count({ where })
+
+  // Get prophecies
+  const prophecies = await prisma.prophecy.findMany({
+    where,
+    include: {
+      player: true,
+      author: {
+        include: { user: { select: { username: true } } },
+      },
+      movement: {
+        include: {
+          marketSession: {
+            select: { type: true, season: true, semester: true },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    skip: offset,
+  })
+
+  const formatted = prophecies.map(p => ({
+    id: p.id,
+    content: p.content,
+    authorRole: p.authorRole,
+    createdAt: p.createdAt,
+    player: {
+      id: p.player.id,
+      name: p.player.name,
+      position: p.player.position,
+      team: p.player.team,
+    },
+    author: {
+      memberId: p.author.id,
+      username: p.author.user.username,
+      teamName: p.author.teamName,
+    },
+    session: p.movement?.marketSession
+      ? {
+          type: p.movement.marketSession.type,
+          season: p.movement.marketSession.season,
+          semester: p.movement.marketSession.semester,
+        }
+      : null,
+    movementPrice: p.movement?.price ?? null,
+  }))
+
+  return {
+    success: true,
+    data: {
+      prophecies: formatted,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + prophecies.length < total,
+      },
+    },
+  }
+}
+
+/**
+ * Ottieni statistiche profezie per la lega
+ */
+export async function getProphecyStats(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  // Verify membership
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Get counts by author
+  const byAuthor = await prisma.prophecy.groupBy({
+    by: ['authorId'],
+    _count: { id: true },
+    where: { leagueId },
+    orderBy: { _count: { id: 'desc' } },
+  })
+
+  // Get author details
+  const authorIds = byAuthor.map(a => a.authorId)
+  const authors = await prisma.leagueMember.findMany({
+    where: { id: { in: authorIds } },
+    include: { user: { select: { username: true } } },
+  })
+  const authorMap = new Map(authors.map(a => [a.id, a]))
+
+  // Get counts by player
+  const byPlayer = await prisma.prophecy.groupBy({
+    by: ['playerId'],
+    _count: { id: true },
+    where: { leagueId },
+    orderBy: { _count: { id: 'desc' } },
+    take: 10,
+  })
+
+  // Get player details
+  const playerIds = byPlayer.map(p => p.playerId)
+  const players = await prisma.serieAPlayer.findMany({
+    where: { id: { in: playerIds } },
+  })
+  const playerMap = new Map(players.map(p => [p.id, p]))
+
+  // Total count
+  const total = await prisma.prophecy.count({ where: { leagueId } })
+
+  return {
+    success: true,
+    data: {
+      total,
+      byAuthor: byAuthor.map(a => ({
+        memberId: a.authorId,
+        username: authorMap.get(a.authorId)?.user.username ?? 'Unknown',
+        teamName: authorMap.get(a.authorId)?.teamName,
+        count: a._count.id,
+      })),
+      topPlayers: byPlayer.map(p => ({
+        playerId: p.playerId,
+        name: playerMap.get(p.playerId)?.name ?? 'Unknown',
+        position: playerMap.get(p.playerId)?.position,
+        team: playerMap.get(p.playerId)?.team,
+        count: p._count.id,
+      })),
+    },
+  }
+}
+
 // ==================== RICERCA GIOCATORI ====================
 
 /**

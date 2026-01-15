@@ -49,6 +49,11 @@ const MenuIcons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
+  prophecy: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+    </svg>
+  ),
   back: (
     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -100,6 +105,7 @@ const LEAGUE_MENU_ITEMS = [
   { key: 'strategie-rubata', label: 'Strategie', adminOnly: false, icon: 'strategy' },
   { key: 'svincolati', label: 'Svincolati', adminOnly: false, icon: 'svincolati' },
   { key: 'history', label: 'Storico', adminOnly: false, icon: 'history' },
+  { key: 'prophecies', label: 'Profezie', adminOnly: false, icon: 'prophecy' },
 ]
 
 // Get page display name for breadcrumbs
@@ -111,6 +117,7 @@ function getPageDisplayName(page: string): string {
     svincolati: 'Svincolati',
     movements: 'Movimenti',
     history: 'Storico',
+    prophecies: 'Profezie',
     auction: 'Asta',
     contracts: 'Contratti',
     trades: 'Scambi',

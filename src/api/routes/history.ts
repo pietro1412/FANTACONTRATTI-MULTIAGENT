@@ -11,6 +11,8 @@ import {
   getTimelineEvents,
   getPlayerCareer,
   searchPlayersForHistory,
+  getProphecies,
+  getProphecyStats,
 } from '../../services/history.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -216,6 +218,66 @@ router.get('/leagues/:leagueId/history/timeline', authMiddleware, async (req: Re
     res.json(result)
   } catch (error) {
     console.error('Get timeline events error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== PROPHECIES ====================
+
+// GET /api/leagues/:leagueId/history/prophecies - Get all prophecies with filters
+router.get('/leagues/:leagueId/history/prophecies', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const { playerId, authorId, search, limit, offset } = req.query as {
+      playerId?: string
+      authorId?: string
+      search?: string
+      limit?: string
+      offset?: string
+    }
+
+    const options: {
+      playerId?: string
+      authorId?: string
+      search?: string
+      limit?: number
+      offset?: number
+    } = {}
+
+    if (playerId) options.playerId = playerId
+    if (authorId) options.authorId = authorId
+    if (search) options.search = search
+    if (limit) options.limit = parseInt(limit)
+    if (offset) options.offset = parseInt(offset)
+
+    const result = await getProphecies(leagueId, req.user!.userId, options)
+
+    if (!result.success) {
+      res.status(result.message === 'Non sei membro di questa lega' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get prophecies error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:leagueId/history/prophecies/stats - Get prophecy statistics
+router.get('/leagues/:leagueId/history/prophecies/stats', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await getProphecyStats(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non sei membro di questa lega' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get prophecy stats error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })
