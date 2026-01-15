@@ -720,9 +720,6 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-white text-sm truncate">{player.playerName}</span>
-                            {isSvincolato && (
-                              <span className="px-1.5 py-0.5 text-[10px] font-medium bg-emerald-500/20 text-emerald-400 rounded">SVINC.</span>
-                            )}
                           </div>
                           <div className="text-xs text-gray-500">{player.playerTeam}</div>
                         </div>
@@ -792,7 +789,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   <thead className="bg-surface-300/50">
                     {/* Group headers */}
                     <tr className="text-[10px] text-gray-500 uppercase border-b border-surface-50/20">
-                      <th colSpan={6} className="text-left py-1 px-3 bg-surface-300/30">
+                      <th colSpan={7} className="text-left py-1 px-3 bg-surface-300/30">
                         Dati Giocatore
                       </th>
                       <th colSpan={3} className="text-center py-1 px-3 bg-indigo-500/10 border-l-2 border-indigo-500/30">
@@ -804,7 +801,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       <SortableHeader field="position" label="R" className="w-10 p-2 text-center" />
                       <SortableHeader field="name" label="Giocatore" className="text-left p-2" />
                       <SortableHeader field="owner" label="Proprietario" className="text-left p-2" />
-                      <SortableHeader field="contract" label="Contratto" className="text-center p-2" />
+                      <th className="text-center p-2 text-accent-400">Ing.</th>
+                      <th className="text-center p-2">Dur.</th>
                       <th className="text-center p-2 text-orange-400">Cls</th>
                       <SortableHeader field="rubata" label="Rubata" className="text-center p-2" />
                       <th className="text-center p-2 bg-indigo-500/5 border-l-2 border-indigo-500/30">Offerta Max</th>
@@ -844,9 +842,6 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
                                   <span className="font-medium text-white text-sm truncate">{player.playerName}</span>
-                                  {isSvincolato && (
-                                    <span className="px-1.5 py-0.5 text-[10px] font-medium bg-emerald-500/20 text-emerald-400 rounded flex-shrink-0">SVINC.</span>
-                                  )}
                                 </div>
                                 <div className="text-xs text-gray-500">{player.playerTeam}</div>
                               </div>
@@ -871,16 +866,21 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             )}
                           </td>
 
-                          {/* Contract */}
+                          {/* Ingaggio */}
                           <td className="p-2 text-center">
                             {isSvincolato ? (
                               <span className="text-gray-600">-</span>
                             ) : (
-                              <div className="text-xs">
-                                <span className="text-accent-400 font-medium">{player.contractSalary}M</span>
-                                <span className="text-gray-500"> x </span>
-                                <span className="text-white">{player.contractDuration}s</span>
-                              </div>
+                              <span className="text-accent-400 font-medium text-xs">{player.contractSalary}M</span>
+                            )}
+                          </td>
+
+                          {/* Durata */}
+                          <td className="p-2 text-center">
+                            {isSvincolato ? (
+                              <span className="text-gray-600">-</span>
+                            ) : (
+                              <span className="text-white text-xs">{player.contractDuration}</span>
                             )}
                           </td>
 
