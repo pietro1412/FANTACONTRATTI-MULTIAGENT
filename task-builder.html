@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Builder - Fantacontratti</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e4e4e7;
+            padding: 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 10px; color: #a78bfa; }
+        .subtitle { text-align: center; color: #71717a; margin-bottom: 30px; font-size: 14px; }
+
+        .task-card {
+            background: #27272a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid #3f3f46;
+        }
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .task-number {
+            background: #a78bfa;
+            color: #1a1a2e;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .remove-btn {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .remove-btn:hover { background: #b91c1c; }
+
+        .form-group { margin-bottom: 16px; }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #a1a1aa;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 10px 12px;
+            background: #18181b;
+            border: 1px solid #3f3f46;
+            border-radius: 8px;
+            color: #e4e4e7;
+            font-size: 14px;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #a78bfa;
+        }
+        textarea { resize: vertical; min-height: 80px; }
+        select { cursor: pointer; }
+
+        .priority-group {
+            display: flex;
+            gap: 12px;
+        }
+        .priority-option {
+            flex: 1;
+            text-align: center;
+        }
+        .priority-option input { display: none; }
+        .priority-option label {
+            display: block;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid #3f3f46;
+            transition: all 0.2s;
+        }
+        .priority-option input:checked + label.alta { border-color: #ef4444; background: #ef444420; color: #ef4444; }
+        .priority-option input:checked + label.media { border-color: #f59e0b; background: #f59e0b20; color: #f59e0b; }
+        .priority-option input:checked + label.bassa { border-color: #22c55e; background: #22c55e20; color: #22c55e; }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-add {
+            background: #3f3f46;
+            color: #e4e4e7;
+            flex: 1;
+        }
+        .btn-add:hover { background: #52525b; }
+        .btn-generate {
+            background: #a78bfa;
+            color: #1a1a2e;
+            flex: 2;
+        }
+        .btn-generate:hover { background: #8b5cf6; }
+
+        .output-section {
+            margin-top: 30px;
+            display: none;
+        }
+        .output-section.visible { display: block; }
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .output-title { color: #a78bfa; font-size: 18px; }
+        .btn-copy {
+            background: #22c55e;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-copy:hover { background: #16a34a; }
+        .btn-copy.copied { background: #3f3f46; }
+        .output-box {
+            background: #18181b;
+            border: 1px solid #3f3f46;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+        .task-count {
+            text-align: center;
+            color: #71717a;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .task-count span { color: #a78bfa; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Task Builder</h1>
+        <p class="subtitle">Definisci i task e genera l'output da incollare in Claude</p>
+
+        <div class="task-count">Task definiti: <span id="taskCount">1</span></div>
+
+        <div id="tasksContainer"></div>
+
+        <div class="actions">
+            <button class="btn btn-add" onclick="addTask()">+ Aggiungi Task</button>
+            <button class="btn btn-generate" onclick="generateOutput()">Genera Output</button>
+        </div>
+
+        <div class="output-section" id="outputSection">
+            <div class="output-header">
+                <span class="output-title">Output da copiare:</span>
+                <button class="btn-copy" id="copyBtn" onclick="copyOutput()">Copia</button>
+            </div>
+            <div class="output-box" id="outputBox"></div>
+        </div>
+    </div>
+
+    <script>
+        const sections = [
+            'Dashboard',
+            'Rose',
+            'Strategie',
+            'Svincolati',
+            'Storico',
+            'Profezie',
+            'Sala Aste',
+            'Contratti',
+            'Scambi',
+            'Rubata',
+            'Premi',
+            'Admin',
+            'Navigazione/Menu',
+            'Login/Registrazione',
+            'Altro'
+        ];
+
+        let taskId = 0;
+
+        function createTaskCard(id) {
+            const sectionsOptions = sections.map(s => `<option value="${s}">${s}</option>`).join('');
+            return `
+                <div class="task-card" id="task-${id}">
+                    <div class="task-header">
+                        <span class="task-number">TASK ${id + 1}</span>
+                        <button class="remove-btn" onclick="removeTask(${id})">Rimuovi</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nome Task</label>
+                        <input type="text" id="name-${id}" placeholder="Es: Migliorare filtri, Aggiungere ordinamento...">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Sezione/Menu</label>
+                        <select id="section-${id}">
+                            <option value="">-- Seleziona sezione --</option>
+                            ${sectionsOptions}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Problema / Situazione attuale</label>
+                        <textarea id="problem-${id}" placeholder="Descrivi cosa vedi ora che non va o cosa manca..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Risultato desiderato</label>
+                        <textarea id="result-${id}" placeholder="Descrivi come vorresti che funzionasse/apparisse..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Priorità</label>
+                        <div class="priority-group">
+                            <div class="priority-option">
+                                <input type="radio" name="priority-${id}" id="priority-alta-${id}" value="Alta">
+                                <label for="priority-alta-${id}" class="alta">Alta</label>
+                            </div>
+                            <div class="priority-option">
+                                <input type="radio" name="priority-${id}" id="priority-media-${id}" value="Media" checked>
+                                <label for="priority-media-${id}" class="media">Media</label>
+                            </div>
+                            <div class="priority-option">
+                                <input type="radio" name="priority-${id}" id="priority-bassa-${id}" value="Bassa">
+                                <label for="priority-bassa-${id}" class="bassa">Bassa</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function addTask() {
+            const container = document.getElementById('tasksContainer');
+            container.insertAdjacentHTML('beforeend', createTaskCard(taskId));
+            taskId++;
+            updateCount();
+        }
+
+        function removeTask(id) {
+            const task = document.getElementById(`task-${id}`);
+            if (task) {
+                task.remove();
+                updateCount();
+            }
+        }
+
+        function updateCount() {
+            const count = document.querySelectorAll('.task-card').length;
+            document.getElementById('taskCount').textContent = count;
+        }
+
+        function generateOutput() {
+            const tasks = document.querySelectorAll('.task-card');
+            let output = '## TASK PARALLELI DA ESEGUIRE\n\n';
+
+            let taskNum = 1;
+            tasks.forEach((task) => {
+                const id = task.id.replace('task-', '');
+                const name = document.getElementById(`name-${id}`)?.value || 'Task senza nome';
+                const section = document.getElementById(`section-${id}`)?.value || 'Non specificata';
+                const problem = document.getElementById(`problem-${id}`)?.value || '';
+                const result = document.getElementById(`result-${id}`)?.value || '';
+                const priority = document.querySelector(`input[name="priority-${id}"]:checked`)?.value || 'Media';
+
+                output += `### TASK ${taskNum}: ${name}\n`;
+                output += `- **Sezione:** ${section}\n`;
+                output += `- **Priorità:** ${priority}\n`;
+                output += `- **Problema attuale:** ${problem || 'Non specificato'}\n`;
+                output += `- **Risultato desiderato:** ${result || 'Non specificato'}\n\n`;
+                output += `---\n\n`;
+                taskNum++;
+            });
+
+            output += `**Totale task: ${tasks.length}**\n\n`;
+            output += `Procedi con l'analisi dei file coinvolti e lancia i subagent in parallelo dove possibile.`;
+
+            document.getElementById('outputBox').textContent = output;
+            document.getElementById('outputSection').classList.add('visible');
+            document.getElementById('copyBtn').textContent = 'Copia';
+            document.getElementById('copyBtn').classList.remove('copied');
+        }
+
+        function copyOutput() {
+            const output = document.getElementById('outputBox').textContent;
+            navigator.clipboard.writeText(output).then(() => {
+                const btn = document.getElementById('copyBtn');
+                btn.textContent = 'Copiato!';
+                btn.classList.add('copied');
+            });
+        }
+
+        // Inizializza con un task
+        addTask();
+    </script>
+</body>
+</html>

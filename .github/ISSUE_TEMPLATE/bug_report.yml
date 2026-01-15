@@ -1,0 +1,93 @@
+name: Bug Report
+description: Segnala un problema o malfunzionamento
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: sezione
+    attributes:
+      label: Sezione
+      description: In quale sezione si verifica il problema?
+      options:
+        - Dashboard
+        - Rose
+        - Svincolati
+        - Storico
+        - Profezie
+        - Rubata
+        - Scambi
+        - Contratti
+        - Premi
+        - Admin
+        - Sala Aste
+        - Login/Registrazione
+        - Navigazione
+        - Altro
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severità
+      description: Quanto è grave il problema?
+      options:
+        - Critica (blocca l'uso)
+        - Alta (problema grave)
+        - Media (problema moderato)
+        - Bassa (problema minore)
+    validations:
+      required: true
+
+  - type: textarea
+    id: descrizione
+    attributes:
+      label: Descrizione del problema
+      description: Cosa succede? Cosa vedi?
+      placeholder: "Quando clicco su X succede Y invece di Z..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: comportamento-atteso
+    attributes:
+      label: Comportamento atteso
+      description: Cosa dovrebbe succedere invece?
+      placeholder: "Mi aspetterei che..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: riproduzione
+    attributes:
+      label: Come riprodurre
+      description: Passi per riprodurre il problema
+      placeholder: |
+        1. Vai su...
+        2. Clicca su...
+        3. Osserva...
+    validations:
+      required: false
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - Mobile (iOS)
+        - Mobile (Android)
+        - Altro
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: Se possibile, allega uno screenshot
+    validations:
+      required: false
