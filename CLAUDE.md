@@ -1,5 +1,43 @@
 # CLAUDE.md - Linee Guida Progetto
 
+## GitHub Project Management
+
+### Progetto: EVOLUTIVE
+Repository: `pietro1412/FANTACONTRATTI-MULTIAGENT`
+
+### Workflow Evolutive
+
+1. **Quando l'utente propone un'evolutiva:**
+   - Creare una Issue su GitHub
+   - Aggiungerla al project EVOLUTIVE nella colonna **Backlog**
+   - NON iniziare lo sviluppo
+
+2. **Quando l'utente dice di attivare l'evolutiva:**
+   - Spostare la Issue da Backlog a **Todo**
+   - Creare il branch feature da `develop`
+   - Iniziare lo sviluppo
+   - Spostare la Issue in **In Progress**
+
+3. **Quando lo sviluppo è completato:**
+   - Creare PR verso `develop`
+   - Spostare la Issue in **Done**
+
+### Colonne Project
+| Colonna | Descrizione |
+|---------|-------------|
+| Backlog | Evolutive proposte, in attesa di priorità |
+| Todo | Evolutive approvate, pronte per sviluppo |
+| In Progress | Evolutive in lavorazione |
+| Done | Evolutive completate |
+
+### Labels Issue
+- `1.x-web` = Evolutiva Web App
+- `2.x-mobile` = Evolutiva Mobile App
+- `enhancement` = Miglioramento
+- `bug` = Bug fix
+
+---
+
 ## Branching Strategy
 
 ### Branch Principali
