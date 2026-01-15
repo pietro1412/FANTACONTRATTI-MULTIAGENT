@@ -24,7 +24,7 @@ const ManagerDashboard = lazy(() => import('./pages/ManagerDashboard').then(m =>
 const AdminPanel = lazy(() => import('./pages/AdminPanel').then(m => ({ default: m.AdminPanel })))
 const Movements = lazy(() => import('./pages/Movements').then(m => ({ default: m.Movements })))
 const History = lazy(() => import('./pages/History').then(m => ({ default: m.History })))
-const Prophecies = lazy(() => import('./pages/Prophecies'))
+const Prophecies = lazy(() => import('./pages/Prophecies').then(m => ({ default: m.Prophecies })))
 const SuperAdmin = lazy(() => import('./pages/SuperAdmin').then(m => ({ default: m.SuperAdmin })))
 const PrizePhasePage = lazy(() => import('./pages/PrizePhasePage').then(m => ({ default: m.PrizePhasePage })))
 const LatencyTest = lazy(() => import('./pages/LatencyTest'))
@@ -312,9 +312,14 @@ function PrizePhasePageWrapper() {
 
 function PropheciesWrapper() {
   const { leagueId } = useParams<{ leagueId: string }>()
+  const navigate = useNavigate()
+
+  function onNavigate(page: string, params?: Record<string, string>) {
+    handleNavigate(page, leagueId, navigate, params)
+  }
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
-  return <Prophecies />
+  return <Prophecies leagueId={leagueId} onNavigate={onNavigate} />
 }
 
 function SuperAdminWrapper() {

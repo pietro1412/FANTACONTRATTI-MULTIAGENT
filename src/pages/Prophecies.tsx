@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useParams, Link } from 'react-router-dom'
 import { historyApi } from '../services/api'
+import { Navigation } from '../components/Navigation'
 
 interface Prophecy {
   id: string
@@ -27,6 +27,11 @@ interface Prophecy {
   movementPrice: number | null
 }
 
+interface PropheciesProps {
+  leagueId: string
+  onNavigate: (page: string, params?: Record<string, string>) => void
+}
+
 interface ProphecyStats {
   total: number
   byAuthor: Array<{
@@ -44,8 +49,7 @@ interface ProphecyStats {
   }>
 }
 
-export default function Prophecies() {
-  const { leagueId } = useParams<{ leagueId: string }>()
+export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
   const [prophecies, setProphecies] = useState<Prophecy[]>([])
   const [stats, setStats] = useState<ProphecyStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -207,27 +211,19 @@ export default function Prophecies() {
   const hasActiveFilters = selectedPlayerId || selectedAuthorId || debouncedSearch
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-surface-100 to-surface-200">
-      <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className="min-h-screen bg-dark-300">
+      <Navigation currentPage="prophecies" leagueId={leagueId} isLeagueAdmin={false} onNavigate={onNavigate} />
+
+      <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Header compatto */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Link
-              to={`/leagues/${leagueId}`}
-              className="text-gray-400 hover:text-white transition-colors p-1"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </Link>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <span>🔮</span>
-              Profezie
-              <span className="text-base font-normal text-gray-400">
-                ({stats?.total || 0})
-              </span>
-            </h1>
-          </div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <span>🔮</span>
+            Profezie
+            <span className="text-base font-normal text-gray-400">
+              ({stats?.total || 0})
+            </span>
+          </h1>
 
           <div className="flex items-center gap-2">
             {/* Toggle Stats */}
@@ -518,7 +514,7 @@ export default function Prophecies() {
             Fine delle profezie
           </p>
         )}
-      </div>
+      </main>
     </div>
   )
 }
