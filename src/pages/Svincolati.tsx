@@ -981,13 +981,12 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <th className="text-left py-3 px-4 w-12">R</th>
                     <th className="text-left py-3 px-4">Giocatore</th>
                     <th className="text-left py-3 px-4 hidden sm:table-cell">Squadra</th>
-                    <th className="text-right py-3 px-4">Quot.</th>
                   </tr>
                 </thead>
                 <tbody>
                   {freeAgents.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="text-center py-8 text-gray-500">
+                      <td colSpan={3} className="text-center py-8 text-gray-500">
                         Nessun giocatore trovato con i filtri selezionati
                       </td>
                     </tr>
@@ -1015,7 +1014,6 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                             <span className="text-gray-400">{player.team}</span>
                           </div>
                         </td>
-                        <td className="py-2 px-4 text-right font-mono text-accent-400">{player.quotation}</td>
                       </tr>
                     ))
                   )}
@@ -1284,7 +1282,6 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                             <p className="font-medium text-white truncate">{player.name}</p>
                             <p className="text-xs text-gray-400 truncate">{player.team}</p>
                           </div>
-                          <span className="font-mono text-accent-400 text-sm">{player.quotation}</span>
                         </div>
                       </button>
                     ))
