@@ -397,16 +397,16 @@ export function Rose({ onNavigate }: RoseProps) {
 
               {/* Table */}
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px] text-sm">
+                <table className="w-full min-w-[600px] text-sm table-fixed">
                   <thead className="bg-surface-300/50">
                     <tr className="text-xs text-gray-400 uppercase">
                       <th className="w-12 p-2 text-center">R</th>
-                      <th className="text-left p-2">Giocatore</th>
-                      <th className="text-left p-2">Squadra</th>
-                      <th className="text-center p-2 text-accent-400">Ing</th>
-                      <th className="text-center p-2">Dur</th>
-                      <th className="text-center p-2 text-orange-400">Cls</th>
-                      <th className="text-center p-2 text-warning-400">Rub</th>
+                      <th className="w-auto text-left p-2">Giocatore</th>
+                      <th className="w-36 text-left p-2">Squadra</th>
+                      <th className="w-16 text-center p-2 text-accent-400">Ing</th>
+                      <th className="w-14 text-center p-2">Dur</th>
+                      <th className="w-16 text-center p-2 text-orange-400">Cls</th>
+                      <th className="w-16 text-center p-2 text-warning-400">Rub</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -432,14 +432,14 @@ export function Rose({ onNavigate }: RoseProps) {
 
                           {/* Player */}
                           <td className="p-2">
-                            <span className="font-medium text-white text-sm">{entry.player.name}</span>
+                            <span className="font-medium text-white text-sm truncate block">{entry.player.name}</span>
                           </td>
 
                           {/* Team */}
                           <td className="p-2">
                             <div className="flex items-center gap-2">
                               <TeamLogo team={entry.player.team} />
-                              <span className="text-gray-400 text-sm">{entry.player.team}</span>
+                              <span className="text-gray-400 text-sm truncate">{entry.player.team}</span>
                             </div>
                           </td>
 
