@@ -19,6 +19,7 @@ import movementRoutes from './routes/movements'
 import superadminRoutes from './routes/superadmin'
 import chatRoutes from './routes/chat'
 import prizeRoutes from './routes/prizes'
+import historyRoutes from './routes/history'
 
 const app = express()
 
@@ -378,6 +379,7 @@ app.use('/api', movementRoutes)
 app.use('/api', superadminRoutes)
 app.use('/api', chatRoutes)
 app.use('/api', prizeRoutes)
+app.use('/api', historyRoutes)
 
 // 404 handler
 app.use((_req, res) => {
