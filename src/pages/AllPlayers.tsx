@@ -54,16 +54,16 @@ interface LeagueData {
 }
 
 const POSITION_COLORS: Record<string, string> = {
-  P: 'from-yellow-500 to-yellow-600',
-  D: 'from-green-500 to-green-600',
-  C: 'from-blue-500 to-blue-600',
+  P: 'from-amber-500 to-amber-600',
+  D: 'from-blue-500 to-blue-600',
+  C: 'from-emerald-500 to-emerald-600',
   A: 'from-red-500 to-red-600',
 }
 
 const POSITION_BG: Record<string, string> = {
-  P: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  D: 'bg-green-500/20 text-green-400 border-green-500/30',
-  C: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  P: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  D: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  C: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
   A: 'bg-red-500/20 text-red-400 border-red-500/30',
 }
 

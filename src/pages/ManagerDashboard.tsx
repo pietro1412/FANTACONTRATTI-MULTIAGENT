@@ -70,10 +70,10 @@ interface LeagueMember {
 }
 
 const POSITION_CONFIG = {
-  P: { name: 'Portieri', color: 'yellow', bgClass: 'bg-yellow-50', textClass: 'text-yellow-700' },
-  D: { name: 'Difensori', color: 'blue', bgClass: 'bg-blue-50', textClass: 'text-blue-700' },
-  C: { name: 'Centrocampisti', color: 'green', bgClass: 'bg-green-50', textClass: 'text-green-700' },
-  A: { name: 'Attaccanti', color: 'red', bgClass: 'bg-red-50', textClass: 'text-red-700' },
+  P: { name: 'Portieri', color: 'amber', bgClass: 'bg-amber-500/20', textClass: 'text-amber-400' },
+  D: { name: 'Difensori', color: 'blue', bgClass: 'bg-blue-500/20', textClass: 'text-blue-400' },
+  C: { name: 'Centrocampisti', color: 'emerald', bgClass: 'bg-emerald-500/20', textClass: 'text-emerald-400' },
+  A: { name: 'Attaccanti', color: 'red', bgClass: 'bg-red-500/20', textClass: 'text-red-400' },
 }
 
 export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps) {
