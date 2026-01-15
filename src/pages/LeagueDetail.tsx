@@ -423,6 +423,8 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
                         src={member.user.profilePhoto}
                         alt={member.user.username}
                         className="w-10 h-10 rounded-full object-cover border-2 border-surface-50/30"
+                        width={40}
+                        height={40}
                       />
                     ) : (
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${

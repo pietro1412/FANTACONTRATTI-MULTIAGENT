@@ -75,11 +75,13 @@ export function Login({ onNavigate }: LoginProps) {
           <h2 className="text-2xl font-bold text-white text-center mb-8">Accedi al tuo account</h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-lg text-base">
-                {error}
-              </div>
-            )}
+            <div className={`min-h-[56px] transition-all duration-200 ${error ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              {error && (
+                <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-lg text-base">
+                  {error}
+                </div>
+              )}
+            </div>
 
             <Input
               label="Email o Username"
