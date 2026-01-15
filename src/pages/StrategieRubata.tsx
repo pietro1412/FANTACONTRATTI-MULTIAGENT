@@ -99,6 +99,11 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   const [showOnlyWithStrategy, setShowOnlyWithStrategy] = useState(false)
   const [ownerFilter, setOwnerFilter] = useState<string>('ALL')
 
+  // Sidebar strategy filters
+  const [strategyPriorityFilter, setStrategyPriorityFilter] = useState<number>(0) // 0 = all
+  const [strategyMinOffer, setStrategyMinOffer] = useState<string>('')
+  const [strategySearchQuery, setStrategySearchQuery] = useState('')
+
   // Sort state
   const [sortMode, setSortMode] = useState<SortMode>('role')
   const [sortField, setSortField] = useState<SortField>('position')
@@ -395,7 +400,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     return players
   }, [strategiesData?.players, myMemberId, positionFilter, ownerFilter, searchQuery, showOnlyWithStrategy, sortMode, sortField, sortDirection, getLocalStrategy])
 
-  // My strategies list (for sidebar)
+  // My strategies list (for sidebar) - with filters
   const myStrategies = useMemo(() => {
     if (!strategiesData?.players) return []
 
@@ -403,7 +408,31 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       .filter(p => {
         if (p.memberId === myMemberId) return false
         const local = getLocalStrategy(p.playerId)
-        return local.maxBid || local.priority || local.notes
+        const hasStrategy = local.maxBid || local.priority || local.notes
+        if (!hasStrategy) return false
+
+        // Priority filter
+        if (strategyPriorityFilter > 0 && local.priority < strategyPriorityFilter) return false
+
+        // Min offer filter
+        if (strategyMinOffer) {
+          const minOffer = parseInt(strategyMinOffer)
+          const playerOffer = parseInt(local.maxBid) || 0
+          if (playerOffer < minOffer) return false
+        }
+
+        // Search filter
+        if (strategySearchQuery) {
+          const query = strategySearchQuery.toLowerCase()
+          if (!p.playerName.toLowerCase().includes(query) &&
+              !p.playerTeam.toLowerCase().includes(query) &&
+              !(p.ownerTeamName?.toLowerCase().includes(query)) &&
+              !p.ownerUsername.toLowerCase().includes(query)) {
+            return false
+          }
+        }
+
+        return true
       })
       .sort((a, b) => {
         const prioA = getLocalStrategy(a.playerId).priority || 0
@@ -411,7 +440,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         if (prioB !== prioA) return prioB - prioA
         return a.playerName.localeCompare(b.playerName)
       })
-  }, [strategiesData?.players, myMemberId, getLocalStrategy])
+  }, [strategiesData?.players, myMemberId, getLocalStrategy, strategyPriorityFilter, strategyMinOffer, strategySearchQuery])
 
   // Sortable column header component
   const SortableHeader = ({ field, label, className = '' }: { field: SortField; label: string; className?: string }) => (
@@ -596,8 +625,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       <SortableHeader field="contract" label="Contratto" className="text-center p-2" />
                       <th className="text-center p-2 text-orange-400">Cls</th>
                       <SortableHeader field="rubata" label="Rubata" className="text-center p-2" />
-                      <th className="text-center p-2 bg-indigo-500/5 border-l-2 border-indigo-500/30">Max Bid</th>
-                      <th className="text-center p-2 bg-indigo-500/5">Priorita</th>
+                      <th className="text-center p-2 bg-indigo-500/5 border-l-2 border-indigo-500/30">Offerta Max</th>
+                      <th className="text-center p-2 bg-indigo-500/5">Priorità</th>
                       <th className="text-left p-2 bg-indigo-500/5">Note</th>
                     </tr>
                   </thead>
@@ -668,7 +697,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
                           {/* === STRATEGY SECTION === */}
 
-                          {/* Max Bid */}
+                          {/* Offerta Max */}
                           <td className="p-2 text-center bg-indigo-500/5 border-l-2 border-indigo-500/30">
                             <div className="flex items-center justify-center gap-1">
                               <button
@@ -770,12 +799,75 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   </h2>
                 </div>
 
+                {/* Filters for strategies */}
+                <div className="p-3 border-b border-surface-50/20 bg-surface-300/30 space-y-2">
+                  {/* Search */}
+                  <input
+                    type="text"
+                    value={strategySearchQuery}
+                    onChange={(e) => setStrategySearchQuery(e.target.value)}
+                    placeholder="Cerca nelle strategie..."
+                    className="w-full px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
+                  />
+
+                  <div className="flex gap-2">
+                    {/* Priority filter */}
+                    <div className="flex-1">
+                      <label className="text-[10px] text-gray-500 uppercase block mb-1">Min Priorità</label>
+                      <div className="flex gap-0.5">
+                        {[0, 1, 2, 3, 4, 5].map(star => (
+                          <button
+                            key={star}
+                            onClick={() => setStrategyPriorityFilter(star)}
+                            className={`flex-1 py-1 rounded text-xs transition-colors ${
+                              strategyPriorityFilter === star
+                                ? 'bg-purple-500/30 text-purple-300'
+                                : 'bg-surface-300 text-gray-500 hover:text-gray-300'
+                            }`}
+                          >
+                            {star === 0 ? 'All' : '★'.repeat(star)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Min offer filter */}
+                  <div>
+                    <label className="text-[10px] text-gray-500 uppercase block mb-1">Offerta Min (M)</label>
+                    <input
+                      type="number"
+                      value={strategyMinOffer}
+                      onChange={(e) => setStrategyMinOffer(e.target.value)}
+                      placeholder="Es: 10"
+                      className="w-full px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
+                    />
+                  </div>
+
+                  {/* Clear filters */}
+                  {(strategyPriorityFilter > 0 || strategyMinOffer || strategySearchQuery) && (
+                    <button
+                      onClick={() => {
+                        setStrategyPriorityFilter(0)
+                        setStrategyMinOffer('')
+                        setStrategySearchQuery('')
+                      }}
+                      className="w-full py-1.5 text-xs text-gray-400 hover:text-white bg-surface-300/50 rounded-lg transition-colors"
+                    >
+                      Resetta filtri
+                    </button>
+                  )}
+                </div>
+
                 {myStrategies.length === 0 ? (
                   <div className="p-4 text-center text-gray-500 text-sm">
-                    Nessuna strategia impostata
+                    {(strategyPriorityFilter > 0 || strategyMinOffer || strategySearchQuery)
+                      ? 'Nessuna strategia corrisponde ai filtri'
+                      : 'Nessuna strategia impostata'
+                    }
                   </div>
                 ) : (
-                  <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
+                  <div className="max-h-[calc(100vh-350px)] overflow-y-auto">
                     <div className="p-3 space-y-2">
                       {myStrategies.map(player => {
                         const posColors = POSITION_COLORS[player.playerPosition] || POSITION_COLORS.P
@@ -811,13 +903,13 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               </div>
                               {local.maxBid && (
                                 <div className="bg-blue-500/10 rounded-lg py-1">
-                                  <div className="text-[9px] text-gray-500 uppercase">Max Bid</div>
+                                  <div className="text-[9px] text-gray-500 uppercase">Offerta Max</div>
                                   <div className="text-blue-400 font-bold text-xs">{local.maxBid}M</div>
                                 </div>
                               )}
                               {local.priority > 0 && (
                                 <div className="bg-purple-500/10 rounded-lg py-1">
-                                  <div className="text-[9px] text-gray-500 uppercase">Priorita</div>
+                                  <div className="text-[9px] text-gray-500 uppercase">Priorità</div>
                                   <div className="text-purple-400 font-bold text-xs">{'★'.repeat(local.priority)}</div>
                                 </div>
                               )}
