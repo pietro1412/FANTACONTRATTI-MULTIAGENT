@@ -228,6 +228,28 @@ export async function getFirstMarketHistory(
     orderBy: { endsAt: 'asc' },
   })
 
+  // Get prophecies from the Prophecy table (linked via movements)
+  const playerIds = auctions.map(a => a.playerId)
+  const propheciesFromTable = await prisma.prophecy.findMany({
+    where: {
+      leagueId,
+      playerId: { in: playerIds },
+    },
+    include: {
+      author: {
+        include: { user: { select: { username: true } } },
+      },
+    },
+  })
+
+  // Group prophecies by playerId
+  const propheciesByPlayer = new Map<string, typeof propheciesFromTable>()
+  for (const p of propheciesFromTable) {
+    const existing = propheciesByPlayer.get(p.playerId) || []
+    existing.push(p)
+    propheciesByPlayer.set(p.playerId, existing)
+  }
+
   // Get members' final budgets and roster stats after first market
   const members = await prisma.leagueMember.findMany({
     where: {
@@ -276,15 +298,29 @@ export async function getFirstMarketHistory(
       placedAt: b.placedAt,
       isWinning: b.isWinning,
     })),
-    prophecies: a.acknowledgments
-      .filter(ack => ack.prophecy)
-      .map(ack => ({
-        content: ack.prophecy,
+    prophecies: [
+      // From acknowledgments (temporary storage during auction)
+      ...a.acknowledgments
+        .filter(ack => ack.prophecy)
+        .map(ack => ({
+          content: ack.prophecy as string,
+          author: {
+            username: ack.member.user.username,
+            teamName: ack.member.teamName,
+          },
+        })),
+      // From Prophecy table (permanent storage)
+      ...(propheciesByPlayer.get(a.playerId) || []).map(p => ({
+        content: p.content,
         author: {
-          username: ack.member.user.username,
-          teamName: ack.member.teamName,
+          username: p.author.user.username,
+          teamName: p.author.teamName,
         },
       })),
+    ].filter((p, idx, arr) =>
+      // Remove duplicates based on content
+      arr.findIndex(x => x.content === p.content && x.author.username === p.author.username) === idx
+    ),
     endedAt: a.endsAt,
   }))
 
