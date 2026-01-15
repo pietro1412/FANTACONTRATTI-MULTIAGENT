@@ -883,13 +883,6 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
             </div>
           </div>
 
-          {/* Info Banner */}
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6">
-            <p className="text-amber-400 text-sm">
-              <span className="font-bold">Fase ASTA SVINCOLATI non attiva.</span> Puoi consultare i giocatori liberi ma non puoi fare offerte.
-            </p>
-          </div>
-
           {/* Filters */}
           <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4 mb-4">
             <div className="flex flex-wrap gap-3">
