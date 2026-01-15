@@ -21,11 +21,6 @@ interface PrizeCategory {
   }>
 }
 
-interface RosterSlot {
-  filled: number
-  total: number
-}
-
 interface MemberInfo {
   id: string
   teamName: string
@@ -33,21 +28,6 @@ interface MemberInfo {
   currentBudget: number
   totalPrize: number | null
   baseOnly: boolean
-  roster: {
-    P: RosterSlot
-    D: RosterSlot
-    C: RosterSlot
-    A: RosterSlot
-    totalPlayers: number
-  }
-}
-
-// Colori per ruolo (stesso stile di Contracts.tsx)
-const ROLE_COLORS = {
-  P: { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/30' },
-  D: { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30' },
-  C: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/30' },
-  A: { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/30' },
 }
 
 interface PrizePhaseData {
@@ -397,7 +377,6 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
               <thead>
                 <tr className="bg-yellow-500/10 text-xs text-gray-400 uppercase">
                   <th className="text-left p-3">Manager / Squadra</th>
-                  <th className="text-center p-2">Rosa</th>
                   <th className="text-center p-2 border-l border-surface-50/20">Budget</th>
                   {categories.map(cat => (
                     <th key={cat.id} className="text-center p-2 min-w-[100px]">
@@ -430,16 +409,6 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                           <p className="text-white font-medium">{member.teamName || 'Senza nome'}</p>
                           <p className="text-gray-500 text-xs">@{member.username}</p>
                         </div>
-                      </div>
-                    </td>
-                    <td className="p-2">
-                      <div className="flex items-center justify-center gap-1">
-                        {(['P', 'D', 'C', 'A'] as const).map(pos => (
-                          <div key={pos} className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${ROLE_COLORS[pos].bg} ${ROLE_COLORS[pos].text}`} title={`${pos}: ${member.roster[pos].filled}/${member.roster[pos].total}`}>
-                            {member.roster[pos].filled}
-                          </div>
-                        ))}
-                        <span className="text-gray-500 text-xs ml-1">({member.roster.totalPlayers})</span>
                       </div>
                     </td>
                     <td className="p-2 text-center border-l border-surface-50/20">
@@ -552,18 +521,6 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                   <div className="text-right">
                     <p className="text-primary-400 font-bold text-lg">{calculateMemberTotal(member.id)}M</p>
                     <p className="text-gray-500 text-xs">Premio totale</p>
-                  </div>
-                </div>
-
-                {/* Roster slots */}
-                <div className="flex items-center justify-between mb-3 text-xs">
-                  <span className="text-gray-400">Rosa:</span>
-                  <div className="flex items-center gap-2">
-                    {(['P', 'D', 'C', 'A'] as const).map(pos => (
-                      <div key={pos} className={`px-2 py-1 rounded ${ROLE_COLORS[pos].bg} ${ROLE_COLORS[pos].text} font-bold`}>
-                        {pos}: {member.roster[pos].filled}/{member.roster[pos].total}
-                      </div>
-                    ))}
                   </div>
                 </div>
 
