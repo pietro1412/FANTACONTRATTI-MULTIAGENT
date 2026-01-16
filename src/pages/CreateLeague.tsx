@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react'
 import { leagueApi, superadminApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { NumberStepper } from '../components/ui/NumberStepper'
 import { Navigation } from '../components/Navigation'
 
 interface CreateLeagueProps {
@@ -215,11 +216,10 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
 
                   <div className="grid grid-cols-2 gap-6">
                     <div className="bg-surface-300 rounded-xl p-5 border border-surface-50/20">
-                      <Input
+                      <NumberStepper
                         label="Max Partecipanti"
-                        type="number"
                         value={maxParticipants}
-                        onChange={e => setMaxParticipants(Number(e.target.value))}
+                        onChange={setMaxParticipants}
                         min={2}
                         max={20}
                         error={fieldErrors.maxParticipants}
@@ -227,13 +227,13 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                     </div>
 
                     <div className="bg-surface-300 rounded-xl p-5 border border-surface-50/20">
-                      <Input
+                      <NumberStepper
                         label="Budget Iniziale"
-                        type="number"
                         value={initialBudget}
-                        onChange={e => setInitialBudget(Number(e.target.value))}
+                        onChange={setInitialBudget}
                         min={100}
                         max={10000}
+                        step={50}
                         error={fieldErrors.initialBudget}
                       />
                     </div>
@@ -252,13 +252,12 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center mx-auto mb-3 text-white font-bold text-lg">
                         P
                       </div>
-                      <Input
-                        type="number"
+                      <NumberStepper
                         value={goalkeeperSlots}
-                        onChange={e => setGoalkeeperSlots(Number(e.target.value))}
+                        onChange={setGoalkeeperSlots}
                         min={1}
                         max={5}
-                        className="text-center"
+                        size="sm"
                       />
                       <p className="text-xs text-amber-400 mt-2">Portieri</p>
                     </div>
@@ -267,13 +266,12 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mx-auto mb-3 text-white font-bold text-lg">
                         D
                       </div>
-                      <Input
-                        type="number"
+                      <NumberStepper
                         value={defenderSlots}
-                        onChange={e => setDefenderSlots(Number(e.target.value))}
+                        onChange={setDefenderSlots}
                         min={3}
                         max={12}
-                        className="text-center"
+                        size="sm"
                       />
                       <p className="text-xs text-blue-400 mt-2">Difensori</p>
                     </div>
@@ -282,13 +280,12 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center mx-auto mb-3 text-white font-bold text-lg">
                         C
                       </div>
-                      <Input
-                        type="number"
+                      <NumberStepper
                         value={midfielderSlots}
-                        onChange={e => setMidfielderSlots(Number(e.target.value))}
+                        onChange={setMidfielderSlots}
                         min={3}
                         max={12}
-                        className="text-center"
+                        size="sm"
                       />
                       <p className="text-xs text-emerald-400 mt-2">Centrocampisti</p>
                     </div>
@@ -297,13 +294,12 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mx-auto mb-3 text-white font-bold text-lg">
                         A
                       </div>
-                      <Input
-                        type="number"
+                      <NumberStepper
                         value={forwardSlots}
-                        onChange={e => setForwardSlots(Number(e.target.value))}
+                        onChange={setForwardSlots}
                         min={2}
                         max={8}
-                        className="text-center"
+                        size="sm"
                       />
                       <p className="text-xs text-red-400 mt-2">Attaccanti</p>
                     </div>
