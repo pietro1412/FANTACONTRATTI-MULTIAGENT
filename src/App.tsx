@@ -30,6 +30,7 @@ const PrizePhasePage = lazy(() => import('./pages/PrizePhasePage').then(m => ({ 
 const LatencyTest = lazy(() => import('./pages/LatencyTest'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })))
 const ResetPassword = lazy(() => import('./pages/ResetPassword').then(m => ({ default: m.ResetPassword })))
+const InviteDetail = lazy(() => import('./pages/InviteDetail').then(m => ({ default: m.InviteDetail })))
 
 // Loading component per autenticazione
 function LoadingScreen() {
@@ -110,6 +111,7 @@ function DashboardWrapper() {
     if (page === 'create-league') navigate('/leagues/new')
     else if (page === 'profile') navigate('/profile')
     else if (page === 'leagueDetail' && params?.leagueId) navigate(`/leagues/${params.leagueId}`)
+    else if (page === 'inviteDetail' && params?.token) navigate(`/invite/${params.token}`)
     else if (page === 'login') navigate('/login')
     else if (page === 'superadmin') {
       if (params?.tab) navigate(`/superadmin?tab=${params.tab}`)
@@ -126,6 +128,7 @@ function CreateLeagueWrapper() {
     if (page === 'dashboard') navigate('/dashboard')
     else if (page === 'profile') navigate('/profile')
     else if (page === 'leagueDetail' && params?.leagueId) navigate(`/leagues/${params.leagueId}`)
+    else if (page === 'inviteDetail' && params?.token) navigate(`/invite/${params.token}`)
     else navigate('/' + page)
   }, [navigate])
   return <CreateLeague onNavigate={onNavigate} />
@@ -136,6 +139,7 @@ function ProfileWrapper() {
   const onNavigate = useCallback((page: string, params?: Record<string, string>) => {
     if (page === 'dashboard') navigate('/dashboard')
     else if (page === 'leagueDetail' && params?.leagueId) navigate(`/leagues/${params.leagueId}`)
+    else if (page === 'inviteDetail' && params?.token) navigate(`/invite/${params.token}`)
     else if (page === 'superadmin') {
       if (params?.tab) navigate(`/superadmin?tab=${params.tab}`)
       else navigate('/superadmin')
@@ -153,6 +157,7 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'dashboard': navigate('/dashboard'); break
       case 'profile': navigate('/profile'); break
       case 'leagueDetail': navigate(`/leagues/${lid}`); break
+      case 'inviteDetail': navigate(`/invite/${params?.token}`); break
       case 'auction': navigate(`/leagues/${lid}/auction/${params?.sessionId}`); break
       case 'rose': navigate(`/leagues/${lid}/rose`); break
       // Keep backward compatibility for old routes
@@ -337,6 +342,19 @@ function SuperAdminWrapper() {
   return <SuperAdmin onNavigate={onNavigate} initialTab={tabParam || undefined} />
 }
 
+function InviteDetailWrapper() {
+  const navigate = useNavigate()
+  const { token } = useParams<{ token: string }>()
+  const onNavigate = useCallback((page: string, params?: Record<string, string>) => {
+    if (page === 'dashboard') navigate('/dashboard')
+    else if (page === 'leagueDetail' && params?.leagueId) navigate(`/leagues/${params.leagueId}`)
+    else navigate('/' + page)
+  }, [navigate])
+
+  if (!token) return <Navigate to="/dashboard" replace />
+  return <InviteDetail token={token} onNavigate={onNavigate} />
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -493,6 +511,15 @@ function AppRoutes() {
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
             <SuperAdminWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+
+      {/* Invite Detail */}
+      <Route path="/invite/:token" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <InviteDetailWrapper />
           </Suspense>
         </ProtectedRoute>
       } />

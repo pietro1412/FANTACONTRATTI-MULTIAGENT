@@ -206,26 +206,41 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleAccept(invite)}
+                            disabled={isProcessing}
+                            className="flex-1 px-3 py-1.5 text-xs font-medium bg-secondary-500 hover:bg-secondary-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isProcessing ? (
+                              <span className="flex items-center justify-center gap-1">
+                                <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                              </span>
+                            ) : (
+                              'Accetta'
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleReject(invite)}
+                            disabled={isProcessing}
+                            className="flex-1 px-3 py-1.5 text-xs font-medium bg-surface-300 hover:bg-surface-400 text-gray-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Rifiuta
+                          </button>
+                        </div>
                         <button
-                          onClick={() => handleAccept(invite)}
-                          disabled={isProcessing}
-                          className="flex-1 px-3 py-1.5 text-xs font-medium bg-secondary-500 hover:bg-secondary-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={() => {
+                            setIsOpen(false)
+                            onNavigate('inviteDetail', { token: invite.token })
+                          }}
+                          className="w-full px-3 py-1.5 text-xs font-medium text-primary-400 hover:text-primary-300 hover:bg-primary-500/10 rounded-lg transition-colors flex items-center justify-center gap-1.5"
                         >
-                          {isProcessing ? (
-                            <span className="flex items-center justify-center gap-1">
-                              <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
-                            </span>
-                          ) : (
-                            'Accetta'
-                          )}
-                        </button>
-                        <button
-                          onClick={() => handleReject(invite)}
-                          disabled={isProcessing}
-                          className="flex-1 px-3 py-1.5 text-xs font-medium bg-surface-300 hover:bg-surface-400 text-gray-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Rifiuta
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          Vedi Dettagli
                         </button>
                       </div>
                     </div>

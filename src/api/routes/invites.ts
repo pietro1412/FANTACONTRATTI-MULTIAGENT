@@ -6,6 +6,7 @@ import {
   getPendingInvites,
   cancelInvite,
   getInviteInfo,
+  getInviteInfoDetailed,
   rejectInvite,
 } from '../../services/invite.service'
 import { authMiddleware } from '../middleware/auth'
@@ -89,6 +90,24 @@ router.get('/invites/:token', async (req: Request, res: Response) => {
     res.json(result)
   } catch (error) {
     console.error('Get invite info error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/invites/:token/details - Ottieni info dettagliate invito (richiede auth)
+router.get('/invites/:token/details', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const token = req.params.token as string
+    const result = await getInviteInfoDetailed(token)
+
+    if (!result.success) {
+      res.status(404).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get invite details error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

@@ -210,6 +210,51 @@ export const inviteApi = {
   getInfo: (token: string) =>
     request(`/api/invites/${token}`),
 
+  // Get detailed invite info (requires auth)
+  getDetails: (token: string) =>
+    request<{
+      token: string
+      email: string
+      expiresAt: string
+      createdAt: string
+      inviter: {
+        username: string
+        profilePhoto: string | null
+      }
+      league: {
+        id: string
+        name: string
+        description: string | null
+        status: string
+        createdAt: string
+        config: {
+          minParticipants: number
+          maxParticipants: number
+          initialBudget: number
+          slots: {
+            goalkeeper: number
+            defender: number
+            midfielder: number
+            forward: number
+          }
+        }
+        admin: {
+          username: string
+          teamName: string
+          profilePhoto: string | null
+        } | null
+        members: Array<{
+          id: string
+          role: string
+          teamName: string
+          username: string
+          profilePhoto: string | null
+        }>
+        currentMembers: number
+        availableSpots: number
+      }
+    }>(`/api/invites/${token}/details`),
+
   // Accept invite
   accept: (token: string) =>
     request(`/api/invites/${token}/accept`, { method: 'POST' }),

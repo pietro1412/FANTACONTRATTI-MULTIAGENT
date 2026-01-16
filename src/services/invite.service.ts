@@ -383,6 +383,119 @@ export async function getInviteInfo(token: string): Promise<ServiceResult> {
   }
 }
 
+// ==================== OTTIENI INFO INVITO DETTAGLIATO ====================
+
+export async function getInviteInfoDetailed(token: string): Promise<ServiceResult> {
+  const invite = await prisma.leagueInvite.findUnique({
+    where: { token },
+    include: {
+      inviter: {
+        select: {
+          id: true,
+          username: true,
+          profilePhoto: true,
+        },
+      },
+      league: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          status: true,
+          minParticipants: true,
+          maxParticipants: true,
+          initialBudget: true,
+          goalkeeperSlots: true,
+          defenderSlots: true,
+          midfielderSlots: true,
+          forwardSlots: true,
+          createdAt: true,
+          members: {
+            where: { status: MemberStatus.ACTIVE },
+            select: {
+              id: true,
+              role: true,
+              teamName: true,
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  profilePhoto: true,
+                },
+              },
+            },
+            orderBy: [
+              { role: 'asc' },
+              { joinedAt: 'asc' },
+            ],
+          },
+        },
+      },
+    },
+  })
+
+  if (!invite) {
+    return { success: false, message: 'Invito non trovato' }
+  }
+
+  if (invite.status !== InviteStatus.PENDING) {
+    return { success: false, message: 'Questo invito non è più valido' }
+  }
+
+  if (new Date() > invite.expiresAt) {
+    return { success: false, message: 'Questo invito è scaduto' }
+  }
+
+  // Find admin
+  const admin = invite.league.members.find(m => m.role === 'ADMIN')
+
+  return {
+    success: true,
+    data: {
+      token: invite.token,
+      email: invite.email,
+      expiresAt: invite.expiresAt,
+      createdAt: invite.createdAt,
+      inviter: {
+        username: invite.inviter.username,
+        profilePhoto: invite.inviter.profilePhoto,
+      },
+      league: {
+        id: invite.league.id,
+        name: invite.league.name,
+        description: invite.league.description,
+        status: invite.league.status,
+        createdAt: invite.league.createdAt,
+        config: {
+          minParticipants: invite.league.minParticipants,
+          maxParticipants: invite.league.maxParticipants,
+          initialBudget: invite.league.initialBudget,
+          slots: {
+            goalkeeper: invite.league.goalkeeperSlots,
+            defender: invite.league.defenderSlots,
+            midfielder: invite.league.midfielderSlots,
+            forward: invite.league.forwardSlots,
+          },
+        },
+        admin: admin ? {
+          username: admin.user.username,
+          teamName: admin.teamName,
+          profilePhoto: admin.user.profilePhoto,
+        } : null,
+        members: invite.league.members.map(m => ({
+          id: m.id,
+          role: m.role,
+          teamName: m.teamName,
+          username: m.user.username,
+          profilePhoto: m.user.profilePhoto,
+        })),
+        currentMembers: invite.league.members.length,
+        availableSpots: invite.league.maxParticipants - invite.league.members.length,
+      },
+    },
+  }
+}
+
 // ==================== INVITI PENDENTI PER UTENTE ====================
 
 export async function getMyPendingInvites(userId: string): Promise<ServiceResult> {
