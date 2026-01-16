@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx'
 import { leagueApi, auctionApi, adminApi, inviteApi, contractApi, chatApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { NumberStepper } from '../components/ui/NumberStepper'
 import { Navigation } from '../components/Navigation'
 import { MarketPhaseManager } from '../components/MarketPhaseManager'
 
@@ -1026,34 +1027,59 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                 <h3 className="text-xl font-bold text-white">Invia Nuovo Invito</h3>
               </div>
               <div className="p-5">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Input
-                    type="email"
-                    value={newInviteEmail}
-                    onChange={(e) => setNewInviteEmail(e.target.value)}
-                    placeholder="Email dell'invitato..."
-                    className="flex-1"
-                  />
-                  <div className="flex gap-3">
-                    <select
-                      value={inviteDuration}
-                      onChange={(e) => setInviteDuration(Number(e.target.value))}
-                      className="px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-                    >
-                      <option value={1}>1 giorno</option>
-                      <option value={3}>3 giorni</option>
-                      <option value={7}>7 giorni</option>
-                      <option value={14}>14 giorni</option>
-                      <option value={30}>30 giorni</option>
-                    </select>
+                <div className="flex flex-col gap-5">
+                  {/* Email Input */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-300 mb-2">
+                      Email del nuovo partecipante
+                    </label>
+                    <Input
+                      type="email"
+                      value={newInviteEmail}
+                      onChange={(e) => setNewInviteEmail(e.target.value)}
+                      placeholder="Email dell'invitato..."
+                    />
+                  </div>
+
+                  {/* Duration Selector */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-300 mb-2">
+                      Validità dell'invito (giorni)
+                    </label>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                      <NumberStepper
+                        value={inviteDuration}
+                        onChange={setInviteDuration}
+                        min={1}
+                        max={30}
+                        size="sm"
+                      />
+                      <div className="flex items-center gap-2 text-sm">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-gray-400">
+                          Scade il{' '}
+                          <span className="text-white font-medium">
+                            {new Date(Date.now() + inviteDuration * 24 * 60 * 60 * 1000).toLocaleDateString('it-IT', {
+                              weekday: 'long',
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="flex justify-end">
                     <Button onClick={handleCreateInvite} disabled={!newInviteEmail.trim() || isSubmitting}>
                       {isSubmitting ? 'Invio...' : 'Invia Invito'}
                     </Button>
                   </div>
                 </div>
-                <p className="text-sm text-gray-400 mt-3">
-                  L'utente invitato riceverà un link valido per {inviteDuration} giorn{inviteDuration === 1 ? 'o' : 'i'}.
-                </p>
               </div>
             </div>
 
