@@ -1,0 +1,145 @@
+import nodemailer from 'nodemailer'
+import type { Transporter } from 'nodemailer'
+import { IEmailService } from '../../domain/services/email.service.interface'
+
+/**
+ * Gmail Email Service Implementation
+ * Uses Gmail SMTP with App Password for sending emails
+ */
+export class GmailEmailService implements IEmailService {
+  private transporter: Transporter
+
+  constructor() {
+    const user = process.env.GMAIL_USER
+    const pass = process.env.GMAIL_APP_PASSWORD
+
+    if (!user || !pass) {
+      console.warn('[GmailService] GMAIL_USER or GMAIL_APP_PASSWORD not configured')
+    }
+
+    this.transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: user || '',
+        pass: pass || '',
+      },
+    })
+  }
+
+  async sendPasswordResetEmail(email: string, resetToken: string, resetUrl: string): Promise<void> {
+    const fullResetUrl = `${resetUrl}?token=${resetToken}`
+
+    // If no credentials, log to console (development mode)
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+      console.log('[GmailService] === PASSWORD RESET EMAIL ===')
+      console.log(`[GmailService] To: ${email}`)
+      console.log(`[GmailService] Reset URL: ${fullResetUrl}`)
+      console.log('[GmailService] ==============================')
+      return
+    }
+
+    try {
+      await this.transporter.sendMail({
+        from: `"Fantacontratti" <${process.env.GMAIL_USER}>`,
+        to: email,
+        subject: '🔐 Reimposta la tua password - Fantacontratti',
+        html: this.getPasswordResetTemplate(fullResetUrl),
+      })
+      console.log(`[GmailService] Password reset email sent to ${email}`)
+    } catch (error) {
+      console.error('[GmailService] Failed to send email:', error)
+      throw new Error('Errore nell\'invio dell\'email')
+    }
+  }
+
+  /**
+   * Generate password reset email template matching platform style
+   */
+  private getPasswordResetTemplate(resetUrl: string): string {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #0a0a0b; font-family: 'Segoe UI', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0a0a0b;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 500px; background-color: #1a1c20; border-radius: 16px; border: 1px solid #2d3139;">
+
+          <!-- Header con logo -->
+          <tr>
+            <td align="center" style="padding: 40px 40px 20px;">
+              <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 50%; display: inline-block; line-height: 70px; font-size: 36px; text-align: center;">
+                ⚽
+              </div>
+              <h1 style="color: #ffffff; font-size: 28px; font-weight: bold; margin: 20px 0 0; letter-spacing: -0.5px;">
+                Fantacontratti
+              </h1>
+              <p style="color: #9ca3af; font-size: 14px; margin: 5px 0 0;">
+                Dynasty Fantasy Football
+              </p>
+            </td>
+          </tr>
+
+          <!-- Contenuto -->
+          <tr>
+            <td style="padding: 20px 40px 30px;">
+              <h2 style="color: #f3f4f6; font-size: 20px; font-weight: 600; margin: 0 0 15px; text-align: center;">
+                Reimposta la tua password
+              </h2>
+              <p style="color: #9ca3af; font-size: 15px; line-height: 1.6; margin: 0 0 25px; text-align: center;">
+                Hai richiesto di reimpostare la password del tuo account. Clicca il pulsante qui sotto per scegliere una nuova password.
+              </p>
+
+              <!-- Pulsante CTA -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding: 10px 0 25px;">
+                    <a href="${resetUrl}"
+                       style="display: inline-block; background: linear-gradient(135deg, #22c55e, #16a34a);
+                              color: #ffffff; font-size: 16px; font-weight: 600;
+                              text-decoration: none; padding: 14px 32px; border-radius: 8px;
+                              box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);">
+                      🔐 Reimposta Password
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Info scadenza -->
+              <div style="background-color: #111214; border-radius: 8px; padding: 15px; border-left: 3px solid #f59e0b;">
+                <p style="color: #fbbf24; font-size: 13px; margin: 0; font-weight: 500;">
+                  ⏱️ Il link scade tra 1 ora
+                </p>
+                <p style="color: #6b7280; font-size: 12px; margin: 8px 0 0;">
+                  Se non hai richiesto tu il reset, puoi ignorare questa email in sicurezza.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 40px 30px; border-top: 1px solid #2d3139;">
+              <p style="color: #6b7280; font-size: 12px; text-align: center; margin: 0;">
+                Questa email è stata inviata automaticamente da Fantacontratti.<br>
+                Non rispondere a questa email.
+              </p>
+              <p style="color: #4b5563; font-size: 11px; text-align: center; margin: 15px 0 0;">
+                © ${new Date().getFullYear()} Fantacontratti. Tutti i diritti riservati.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `
+  }
+}

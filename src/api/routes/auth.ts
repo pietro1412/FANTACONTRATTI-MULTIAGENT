@@ -8,7 +8,7 @@ import { ForgotPasswordUseCase } from '../../modules/identity/application/use-ca
 import { ResetPasswordUseCase } from '../../modules/identity/application/use-cases/reset-password.use-case'
 import { UserPrismaRepository } from '../../modules/identity/infrastructure/repositories/user.prisma-repository'
 import { BcryptPasswordService } from '../../modules/identity/infrastructure/services/bcrypt-password.service'
-import { ResendEmailService } from '../../modules/identity/infrastructure/services/resend-email.service'
+import { createEmailService } from '../../modules/identity/infrastructure/services/email.factory'
 
 const router = Router()
 
@@ -153,7 +153,7 @@ router.get('/me', authMiddleware, async (req: Request, res: Response) => {
 router.post('/forgot-password', async (req: Request, res: Response) => {
   try {
     const userRepository = new UserPrismaRepository()
-    const emailService = new ResendEmailService()
+    const emailService = createEmailService()
     const forgotPasswordUseCase = new ForgotPasswordUseCase(userRepository, emailService)
 
     const result = await forgotPasswordUseCase.execute(req.body)
