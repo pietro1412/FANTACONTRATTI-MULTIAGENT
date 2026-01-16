@@ -174,7 +174,7 @@ export const inviteApi = {
 
   // Cancel an invite (admin only)
   cancel: (inviteId: string) =>
-    request(`/api/invites/${inviteId}/cancel`, { method: 'PUT' }),
+    request(`/api/invites/${inviteId}`, { method: 'DELETE' }),
 
   // Get invite info by token (public)
   getInfo: (token: string) =>
