@@ -131,6 +131,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   }, [initialTab, leagueId, onNavigate])
 
   const [newInviteEmail, setNewInviteEmail] = useState('')
+  const [inviteDuration, setInviteDuration] = useState(7)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -382,9 +383,9 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     setError('')
     setIsSubmitting(true)
 
-    const res = await inviteApi.create(leagueId, newInviteEmail.trim())
+    const res = await inviteApi.create(leagueId, newInviteEmail.trim(), inviteDuration)
     if (res.success) {
-      setSuccess(`Invito inviato a ${newInviteEmail}`)
+      setSuccess(`Invito inviato a ${newInviteEmail} (valido ${inviteDuration} giorni)`)
       setNewInviteEmail('')
       loadData()
     } else {
@@ -1025,7 +1026,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                 <h3 className="text-xl font-bold text-white">Invia Nuovo Invito</h3>
               </div>
               <div className="p-5">
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                   <Input
                     type="email"
                     value={newInviteEmail}
@@ -1033,12 +1034,25 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                     placeholder="Email dell'invitato..."
                     className="flex-1"
                   />
-                  <Button onClick={handleCreateInvite} disabled={!newInviteEmail.trim() || isSubmitting}>
-                    {isSubmitting ? 'Invio...' : 'Invia Invito'}
-                  </Button>
+                  <div className="flex gap-3">
+                    <select
+                      value={inviteDuration}
+                      onChange={(e) => setInviteDuration(Number(e.target.value))}
+                      className="px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                    >
+                      <option value={1}>1 giorno</option>
+                      <option value={3}>3 giorni</option>
+                      <option value={7}>7 giorni</option>
+                      <option value={14}>14 giorni</option>
+                      <option value={30}>30 giorni</option>
+                    </select>
+                    <Button onClick={handleCreateInvite} disabled={!newInviteEmail.trim() || isSubmitting}>
+                      {isSubmitting ? 'Invio...' : 'Invia Invito'}
+                    </Button>
+                  </div>
                 </div>
                 <p className="text-sm text-gray-400 mt-3">
-                  L'utente invitato riceverà un link per entrare direttamente nella lega.
+                  L'utente invitato riceverà un link valido per {inviteDuration} giorn{inviteDuration === 1 ? 'o' : 'i'}.
                 </p>
               </div>
             </div>
