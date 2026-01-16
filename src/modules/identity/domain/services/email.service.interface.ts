@@ -28,4 +28,20 @@ export interface IEmailService {
     inviteUrl: string,
     expiresAt: Date
   ): Promise<void>
+
+  /**
+   * Send notification to league admin when someone requests to join
+   * @param adminEmail - Admin's email address
+   * @param leagueName - Name of the league
+   * @param requesterUsername - Username of who requested to join
+   * @param teamName - Proposed team name
+   * @param adminPanelUrl - Direct link to admin panel members section
+   */
+  sendJoinRequestNotificationEmail(
+    adminEmail: string,
+    leagueName: string,
+    requesterUsername: string,
+    teamName: string,
+    adminPanelUrl: string
+  ): Promise<void>
 }

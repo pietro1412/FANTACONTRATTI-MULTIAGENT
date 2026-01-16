@@ -1,7 +1,9 @@
 import { PrismaClient, MemberRole, MemberStatus, JoinType } from '@prisma/client'
 import type { CreateLeagueInput, UpdateLeagueInput } from '../utils/validation'
+import { GmailEmailService } from '../modules/identity/infrastructure/services/gmail-email.service'
 
 const prisma = new PrismaClient()
+const emailService = new GmailEmailService()
 
 export interface ServiceResult {
   success: boolean
@@ -196,12 +198,17 @@ export async function getLeagueByInviteCode(inviteCode: string): Promise<Service
 }
 
 export async function requestJoinLeague(leagueId: string, userId: string, teamName?: string): Promise<ServiceResult> {
-  // Check if league exists
+  // Check if league exists - include admin user for email notification
   const league = await prisma.league.findUnique({
     where: { id: leagueId },
     include: {
       members: {
         where: { status: MemberStatus.ACTIVE },
+        include: {
+          user: {
+            select: { email: true },
+          },
+        },
       },
     },
   })
@@ -256,6 +263,32 @@ export async function requestJoinLeague(leagueId: string, userId: string, teamNa
       currentBudget: 0, // Will be set when approved
     },
   })
+
+  // Send email notification to admin
+  try {
+    // Find admin member
+    const adminMember = league.members.find(m => m.role === MemberRole.ADMIN)
+    if (adminMember?.user?.email) {
+      // Get requester username
+      const requester = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { username: true },
+      })
+
+      const adminPanelUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/leagues/${leagueId}/admin?tab=members`
+
+      await emailService.sendJoinRequestNotificationEmail(
+        adminMember.user.email,
+        league.name,
+        requester?.username || 'Utente',
+        teamName.trim(),
+        adminPanelUrl
+      )
+    }
+  } catch (error) {
+    // Don't fail the request if email fails
+    console.error('[LeagueService] Failed to send join request notification:', error)
+  }
 
   return {
     success: true,

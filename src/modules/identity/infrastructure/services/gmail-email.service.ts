@@ -88,6 +88,39 @@ export class GmailEmailService implements IEmailService {
     }
   }
 
+  async sendJoinRequestNotificationEmail(
+    adminEmail: string,
+    leagueName: string,
+    requesterUsername: string,
+    teamName: string,
+    adminPanelUrl: string
+  ): Promise<void> {
+    // If no credentials, log to console (development mode)
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+      console.log('[GmailService] === JOIN REQUEST NOTIFICATION ===')
+      console.log(`[GmailService] To: ${adminEmail}`)
+      console.log(`[GmailService] League: ${leagueName}`)
+      console.log(`[GmailService] Requester: ${requesterUsername}`)
+      console.log(`[GmailService] Team Name: ${teamName}`)
+      console.log(`[GmailService] Admin Panel URL: ${adminPanelUrl}`)
+      console.log('[GmailService] ==============================')
+      return
+    }
+
+    try {
+      await this.transporter.sendMail({
+        from: `"Fantacontratti" <${process.env.GMAIL_USER}>`,
+        to: adminEmail,
+        subject: `📥 Nuova richiesta di partecipazione a "${leagueName}" - Fantacontratti`,
+        html: this.getJoinRequestTemplate(leagueName, requesterUsername, teamName, adminPanelUrl),
+      })
+      console.log(`[GmailService] Join request notification sent to ${adminEmail}`)
+    } catch (error) {
+      console.error('[GmailService] Failed to send join request notification:', error)
+      // Don't throw - notification failure shouldn't block the join request
+    }
+  }
+
   /**
    * Generate password reset email template matching platform style
    */
@@ -254,6 +287,121 @@ export class GmailEmailService implements IEmailService {
                 </p>
                 <p style="color: #6b7280; font-size: 12px; margin: 8px 0 0;">
                   Se non conosci chi ti ha invitato, puoi ignorare questa email.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 40px 30px; border-top: 1px solid #2d3139;">
+              <p style="color: #6b7280; font-size: 12px; text-align: center; margin: 0;">
+                Questa email è stata inviata automaticamente da Fantacontratti.<br>
+                Non rispondere a questa email.
+              </p>
+              <p style="color: #4b5563; font-size: 11px; text-align: center; margin: 15px 0 0;">
+                © ${new Date().getFullYear()} Fantacontratti. Tutti i diritti riservati.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `
+  }
+
+  /**
+   * Generate join request notification email template
+   */
+  private getJoinRequestTemplate(leagueName: string, requesterUsername: string, teamName: string, adminPanelUrl: string): string {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #0a0a0b; font-family: 'Segoe UI', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0a0a0b;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 500px; background-color: #1a1c20; border-radius: 16px; border: 1px solid #2d3139;">
+
+          <!-- Header con logo -->
+          <tr>
+            <td align="center" style="padding: 40px 40px 20px;">
+              <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 50%; display: inline-block; line-height: 70px; font-size: 36px; text-align: center;">
+                ⚽
+              </div>
+              <h1 style="color: #ffffff; font-size: 28px; font-weight: bold; margin: 20px 0 0; letter-spacing: -0.5px;">
+                Fantacontratti
+              </h1>
+              <p style="color: #9ca3af; font-size: 14px; margin: 5px 0 0;">
+                Dynasty Fantasy Football
+              </p>
+            </td>
+          </tr>
+
+          <!-- Contenuto -->
+          <tr>
+            <td style="padding: 20px 40px 30px;">
+              <h2 style="color: #f3f4f6; font-size: 20px; font-weight: 600; margin: 0 0 15px; text-align: center;">
+                📥 Nuova Richiesta di Partecipazione
+              </h2>
+              <p style="color: #9ca3af; font-size: 15px; line-height: 1.6; margin: 0 0 20px; text-align: center;">
+                Un utente vuole unirsi alla tua lega
+              </p>
+
+              <!-- Info richiesta -->
+              <div style="background-color: #111214; border-radius: 12px; padding: 20px; margin-bottom: 25px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="padding: 8px 0;">
+                      <span style="color: #6b7280; font-size: 12px; text-transform: uppercase;">Lega</span>
+                      <p style="color: #fbbf24; font-size: 18px; font-weight: bold; margin: 5px 0 0;">🏆 ${leagueName}</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; border-top: 1px solid #2d3139;">
+                      <span style="color: #6b7280; font-size: 12px; text-transform: uppercase;">Utente</span>
+                      <p style="color: #ffffff; font-size: 16px; font-weight: 600; margin: 5px 0 0;">👤 ${requesterUsername}</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; border-top: 1px solid #2d3139;">
+                      <span style="color: #6b7280; font-size: 12px; text-transform: uppercase;">Nome Squadra Proposto</span>
+                      <p style="color: #22c55e; font-size: 16px; font-weight: 600; margin: 5px 0 0;">⚽ ${teamName}</p>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Pulsante CTA -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding: 10px 0 25px;">
+                    <a href="${adminPanelUrl}"
+                       style="display: inline-block; background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+                              color: #ffffff; font-size: 16px; font-weight: 600;
+                              text-decoration: none; padding: 14px 32px; border-radius: 8px;
+                              box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);">
+                      👀 Visualizza Richiesta
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Info -->
+              <div style="background-color: #111214; border-radius: 8px; padding: 15px; border-left: 3px solid #3b82f6;">
+                <p style="color: #60a5fa; font-size: 13px; margin: 0; font-weight: 500;">
+                  ℹ️ Azione richiesta
+                </p>
+                <p style="color: #6b7280; font-size: 12px; margin: 8px 0 0;">
+                  Vai al pannello Admin per approvare o rifiutare la richiesta.
                 </p>
               </div>
             </td>
