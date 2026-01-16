@@ -110,6 +110,22 @@ export const userApi = {
 
   removeProfilePhoto: () =>
     request('/api/users/photo', { method: 'DELETE' }),
+
+  // Get pending invites for current user
+  getMyPendingInvites: () =>
+    request<Array<{
+      id: string
+      token: string
+      leagueId: string
+      leagueName: string
+      leagueDescription: string | null
+      leagueStatus: string
+      currentMembers: number
+      maxMembers: number
+      invitedBy: string
+      expiresAt: string
+      createdAt: string
+    }>>('/api/users/me/invites'),
 }
 
 // League API
@@ -157,6 +173,20 @@ export const leagueApi = {
   // Leave league
   leave: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/leave`, { method: 'POST' }),
+
+  // Search leagues
+  search: (query: string) =>
+    request<Array<{
+      id: string
+      name: string
+      description: string | null
+      inviteCode: string
+      status: string
+      maxParticipants: number
+      currentParticipants: number
+      adminUsername: string
+      createdAt: string
+    }>>(`/api/leagues/search?q=${encodeURIComponent(query)}`),
 }
 
 // Invite API
@@ -183,6 +213,10 @@ export const inviteApi = {
   // Accept invite
   accept: (token: string) =>
     request(`/api/invites/${token}/accept`, { method: 'POST' }),
+
+  // Reject invite
+  reject: (token: string) =>
+    request(`/api/invites/${token}/reject`, { method: 'POST' }),
 }
 
 // Player API

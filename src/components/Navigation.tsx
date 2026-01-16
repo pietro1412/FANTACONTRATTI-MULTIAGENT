@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { superadminApi } from '../services/api'
 import { Button } from './ui/Button'
 import { Notifications } from './Notifications'
+import { PendingInvites } from './PendingInvites'
 import { pusherClient } from '../services/pusher.client'
 
 interface NavigationProps {
@@ -399,6 +400,9 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                 Test Latency
               </a>
             )}
+
+            {/* Pending Invites - shown globally */}
+            <PendingInvites onNavigate={onNavigate} />
 
             {leagueId && (
               <>

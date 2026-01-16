@@ -630,3 +630,93 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
     },
   }
 }
+
+// ==================== RICERCA LEGHE ====================
+
+export async function searchLeagues(
+  userId: string,
+  query: string
+): Promise<ServiceResult> {
+  if (!query || query.trim().length < 2) {
+    return { success: false, message: 'Inserisci almeno 2 caratteri per la ricerca' }
+  }
+
+  const searchTerm = query.trim()
+
+  // Cerca leghe per:
+  // 1. Nome lega (parziale)
+  // 2. Codice invito (esatto match su primi caratteri ID)
+  // 3. Username o email di admin/membri
+  const leagues = await prisma.league.findMany({
+    where: {
+      OR: [
+        // Ricerca per nome lega
+        { name: { contains: searchTerm, mode: 'insensitive' } },
+        // Ricerca per codice invito (primi 8 caratteri dell'ID)
+        { id: { startsWith: searchTerm } },
+        // Ricerca per username o email di membri
+        {
+          members: {
+            some: {
+              status: MemberStatus.ACTIVE,
+              user: {
+                OR: [
+                  { username: { contains: searchTerm, mode: 'insensitive' } },
+                  { email: { contains: searchTerm, mode: 'insensitive' } },
+                ],
+              },
+            },
+          },
+        },
+      ],
+    },
+    include: {
+      members: {
+        where: { status: MemberStatus.ACTIVE },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+            },
+          },
+        },
+      },
+    },
+    take: 20, // Limita risultati
+    orderBy: { createdAt: 'desc' },
+  })
+
+  // Escludi le leghe di cui l'utente è già membro
+  const userMemberships = await prisma.leagueMember.findMany({
+    where: {
+      userId,
+      status: { in: [MemberStatus.ACTIVE, MemberStatus.PENDING] },
+    },
+    select: { leagueId: true },
+  })
+
+  const userLeagueIds = new Set(userMemberships.map(m => m.leagueId))
+
+  const filteredLeagues = leagues
+    .filter(league => !userLeagueIds.has(league.id))
+    .map(league => {
+      const admin = league.members.find(m => m.role === MemberRole.ADMIN)
+      return {
+        id: league.id,
+        name: league.name,
+        description: league.description,
+        inviteCode: league.id.substring(0, 8),
+        status: league.status,
+        maxParticipants: league.maxParticipants,
+        currentParticipants: league.members.length,
+        adminUsername: admin?.user.username || 'N/A',
+        createdAt: league.createdAt,
+      }
+    })
+
+  return {
+    success: true,
+    data: filteredLeagues,
+  }
+}

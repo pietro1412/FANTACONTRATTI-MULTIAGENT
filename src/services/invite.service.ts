@@ -382,3 +382,96 @@ export async function getInviteInfo(token: string): Promise<ServiceResult> {
     },
   }
 }
+
+// ==================== INVITI PENDENTI PER UTENTE ====================
+
+export async function getMyPendingInvites(userId: string): Promise<ServiceResult> {
+  // Ottieni l'email dell'utente
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  })
+
+  if (!user) {
+    return { success: false, message: 'Utente non trovato' }
+  }
+
+  // Trova tutti gli inviti pendenti per questa email
+  const invites = await prisma.leagueInvite.findMany({
+    where: {
+      email: user.email,
+      status: InviteStatus.PENDING,
+      expiresAt: { gt: new Date() }, // Non scaduti
+    },
+    include: {
+      league: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          status: true,
+          maxParticipants: true,
+          members: {
+            where: { status: MemberStatus.ACTIVE },
+            select: { id: true },
+          },
+        },
+      },
+      inviter: {
+        select: { username: true },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  return {
+    success: true,
+    data: invites.map(inv => ({
+      id: inv.id,
+      token: inv.token,
+      leagueId: inv.league.id,
+      leagueName: inv.league.name,
+      leagueDescription: inv.league.description,
+      leagueStatus: inv.league.status,
+      currentMembers: inv.league.members.length,
+      maxMembers: inv.league.maxParticipants,
+      invitedBy: inv.inviter.username,
+      expiresAt: inv.expiresAt,
+      createdAt: inv.createdAt,
+    })),
+  }
+}
+
+// ==================== RIFIUTA INVITO ====================
+
+export async function rejectInvite(
+  token: string,
+  userId: string
+): Promise<ServiceResult> {
+  // Trova l'invito
+  const invite = await prisma.leagueInvite.findUnique({
+    where: { token },
+  })
+
+  if (!invite) {
+    return { success: false, message: 'Invito non trovato' }
+  }
+
+  if (invite.status !== InviteStatus.PENDING) {
+    return { success: false, message: 'Questo invito non è più valido' }
+  }
+
+  // Verifica che l'utente abbia l'email giusta
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  if (!user || user.email !== invite.email) {
+    return { success: false, message: 'Questo invito è per un altro indirizzo email' }
+  }
+
+  // Rifiuta l'invito
+  await prisma.leagueInvite.update({
+    where: { id: invite.id },
+    data: { status: InviteStatus.CANCELLED },
+  })
+
+  return { success: true, message: 'Invito rifiutato' }
+}

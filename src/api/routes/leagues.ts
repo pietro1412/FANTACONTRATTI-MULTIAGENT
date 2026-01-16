@@ -13,6 +13,7 @@ import {
   startLeague,
   leaveLeague,
   getAllRosters,
+  searchLeagues,
 } from '../../services/league.service'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth'
 
@@ -71,6 +72,24 @@ router.get('/join/:code', optionalAuthMiddleware, async (req: Request, res: Resp
     res.json(result)
   } catch (error) {
     console.error('Get league by invite error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/search - Search for leagues (requires auth)
+router.get('/search', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const query = req.query.q as string
+    const result = await searchLeagues(req.user!.userId, query)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Search leagues error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

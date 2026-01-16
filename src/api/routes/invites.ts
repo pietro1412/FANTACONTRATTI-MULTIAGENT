@@ -6,6 +6,7 @@ import {
   getPendingInvites,
   cancelInvite,
   getInviteInfo,
+  rejectInvite,
 } from '../../services/invite.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -106,6 +107,24 @@ router.post('/invites/:token/accept', authMiddleware, async (req: Request, res: 
     res.json(result)
   } catch (error) {
     console.error('Accept invite error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/invites/:token/reject - Rifiuta invito
+router.post('/invites/:token/reject', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const token = req.params.token as string
+    const result = await rejectInvite(token, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Reject invite error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

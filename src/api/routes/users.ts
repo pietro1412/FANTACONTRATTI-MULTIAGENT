@@ -2,6 +2,7 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { updateProfileSchema, changePasswordSchema } from '../../utils/validation'
 import { getProfile, updateProfile, changePassword, updateProfilePhoto, removeProfilePhoto } from '../../services/user.service'
+import { getMyPendingInvites } from '../../services/invite.service'
 import { authMiddleware } from '../middleware/auth'
 
 const router = Router()
@@ -22,6 +23,17 @@ router.get('/profile', async (req: Request, res: Response) => {
     res.json(result)
   } catch (error) {
     console.error('Get profile error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/users/me/invites - Get pending invites for current user
+router.get('/me/invites', async (req: Request, res: Response) => {
+  try {
+    const result = await getMyPendingInvites(req.user!.userId)
+    res.json(result)
+  } catch (error) {
+    console.error('Get pending invites error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })
