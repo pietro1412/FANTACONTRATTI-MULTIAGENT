@@ -70,37 +70,58 @@ export async function createEmailInvite(
     }
   }
 
-  // Verifica che non ci sia già un invito pendente per questa email
+  // Verifica se esiste già un invito per questa email in questa lega
   const existingInvite = await prisma.leagueInvite.findFirst({
     where: {
       leagueId,
       email,
-      status: InviteStatus.PENDING,
     },
   })
 
   if (existingInvite) {
-    return { success: false, message: 'Esiste già un invito pendente per questa email' }
+    // Se l'invito è ancora PENDING, non permettere di crearne un altro
+    if (existingInvite.status === InviteStatus.PENDING) {
+      return { success: false, message: 'Esiste già un invito pendente per questa email' }
+    }
+
+    // Se l'invito è CANCELLED o EXPIRED, aggiornalo invece di crearne uno nuovo
+    // (vincolo unique su leagueId + email)
   }
 
-  // Crea l'invito
+  // Genera nuovo token e scadenza
   const token = generateInviteToken()
   const expiresAt = new Date()
   expiresAt.setDate(expiresAt.getDate() + expiresInDays)
 
-  const invite = await prisma.leagueInvite.create({
-    data: {
-      leagueId,
-      email,
-      token,
-      invitedBy: adminUserId,
-      expiresAt,
-    },
-    include: {
-      league: { select: { name: true } },
-      inviter: { select: { username: true } },
-    },
-  })
+  // Crea o aggiorna l'invito
+  const invite = existingInvite
+    ? await prisma.leagueInvite.update({
+        where: { id: existingInvite.id },
+        data: {
+          token,
+          invitedBy: adminUserId,
+          expiresAt,
+          status: InviteStatus.PENDING,
+          acceptedAt: null,
+        },
+        include: {
+          league: { select: { name: true } },
+          inviter: { select: { username: true } },
+        },
+      })
+    : await prisma.leagueInvite.create({
+        data: {
+          leagueId,
+          email,
+          token,
+          invitedBy: adminUserId,
+          expiresAt,
+        },
+        include: {
+          league: { select: { name: true } },
+          inviter: { select: { username: true } },
+        },
+      })
 
   // Invia email di invito
   const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
