@@ -38,8 +38,8 @@ export class ForgotPasswordUseCase {
     // Store token in database
     await this.userRepository.setPasswordResetToken(user.id, resetToken, expiresAt)
 
-    // Build reset URL
-    const baseUrl = process.env.APP_URL || 'http://localhost:5173'
+    // Build reset URL - use FRONTEND_URL for production, fallback to localhost
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
     const resetUrl = `${baseUrl}/reset-password`
 
     // Send email (don't await to avoid timing attacks)
