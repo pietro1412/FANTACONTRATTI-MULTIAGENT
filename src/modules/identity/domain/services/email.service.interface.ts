@@ -10,4 +10,22 @@ export interface IEmailService {
    * @param resetUrl - Full URL for password reset page
    */
   sendPasswordResetEmail(email: string, resetToken: string, resetUrl: string): Promise<void>
+
+  /**
+   * Send league invite email with invite link
+   * @param email - Recipient email address
+   * @param leagueName - Name of the league
+   * @param inviterName - Name of who sent the invite
+   * @param inviteToken - The invite token
+   * @param inviteUrl - Base URL for invite acceptance page
+   * @param expiresAt - When the invite expires
+   */
+  sendLeagueInviteEmail(
+    email: string,
+    leagueName: string,
+    inviterName: string,
+    inviteToken: string,
+    inviteUrl: string,
+    expiresAt: Date
+  ): Promise<void>
 }
