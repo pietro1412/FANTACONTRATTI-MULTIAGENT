@@ -860,7 +860,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     return (
       <div className="min-h-screen bg-dark-300">
         <Navigation currentPage="svincolati" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
-        <main className="max-w-5xl mx-auto px-4 py-6">
+        <main className="max-w-[1600px] mx-auto px-4 py-6">
           {/* Header */}
           <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-6 mb-6">
             <div className="flex items-center gap-4">

@@ -138,7 +138,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
     <div className="min-h-screen bg-dark-300">
       <Navigation currentPage="history" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="max-w-[1600px] mx-auto px-4 py-6">
         {error && (
           <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-xl mb-6">
             {error}

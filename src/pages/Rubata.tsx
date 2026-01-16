@@ -1798,7 +1798,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 py-8">
         {error && (
           <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-3 rounded-lg mb-4">{error}</div>
         )}

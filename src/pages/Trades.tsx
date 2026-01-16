@@ -512,7 +512,7 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
     <div className="min-h-screen bg-dark-300">
       <Navigation currentPage="trades" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 py-8">
         {/* Phase Status */}
         <Card className="mb-6">
           <CardContent className="py-4">

@@ -431,7 +431,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
 
       {/* Page Header */}
       <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
-        <div className="max-w-6xl mx-auto px-6 py-6">
+        <div className="max-w-[1600px] mx-auto px-6 py-6">
           <div className="flex items-center gap-5">
             <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-glow-gold">
               <span className="text-3xl">👑</span>
@@ -444,7 +444,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
         </div>
       </div>
 
-      <main className="max-w-6xl mx-auto px-6 py-6 space-y-6">
+      <main className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
         {/* UPLOAD TAB */}
         {activeTab === 'upload' && (
           <>

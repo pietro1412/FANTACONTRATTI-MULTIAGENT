@@ -69,7 +69,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       <Navigation currentPage="dashboard" onNavigate={onNavigate} />
 
       {/* Main content */}
-      <main className="max-w-7xl mx-auto px-6 py-10">
+      <main className="max-w-[1600px] mx-auto px-6 py-10">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h2 className="text-3xl font-bold text-white mb-1">Le mie Leghe</h2>

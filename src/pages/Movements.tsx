@@ -204,7 +204,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
 
       {/* Header compatto */}
       <div className="bg-surface-200 border-b border-surface-50/20">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-[1600px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
@@ -246,7 +246,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-6 py-4">
+      <main className="max-w-[1600px] mx-auto px-6 py-4">
         {error && (
           <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg mb-4 text-sm">
             {error}

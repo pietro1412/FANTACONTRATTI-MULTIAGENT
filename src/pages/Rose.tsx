@@ -207,7 +207,7 @@ export function Rose({ onNavigate }: RoseProps) {
     return (
       <div className="min-h-screen bg-dark-300">
         <Navigation currentPage="rose" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
-        <main className="max-w-7xl mx-auto px-4 py-8">
+        <main className="max-w-[1600px] mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-400"></div>
           </div>
@@ -220,7 +220,7 @@ export function Rose({ onNavigate }: RoseProps) {
     return (
       <div className="min-h-screen bg-dark-300">
         <Navigation currentPage="rose" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
-        <main className="max-w-7xl mx-auto px-4 py-8">
+        <main className="max-w-[1600px] mx-auto px-4 py-8">
           <div className="text-center text-gray-400 py-20">
             Errore nel caricamento delle rose
           </div>

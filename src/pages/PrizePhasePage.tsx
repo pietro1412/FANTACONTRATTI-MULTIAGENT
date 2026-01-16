@@ -221,7 +221,7 @@ export function PrizePhasePage({ leagueId, onNavigate }: PrizePhasePageProps) {
     return (
       <div className="min-h-screen bg-dark-300">
         <Navigation currentPage="prizes" leagueId={leagueId} isLeagueAdmin={true} onNavigate={onNavigate} />
-        <main className="max-w-5xl mx-auto px-4 py-8">
+        <main className="max-w-[1600px] mx-auto px-4 py-8">
           <div className="text-center mb-8">
             <div className="text-5xl mb-4">🏆</div>
             <p className="text-xl text-gray-400 mb-2">Nessuna sessione di mercato attiva</p>
@@ -253,7 +253,7 @@ export function PrizePhasePage({ leagueId, onNavigate }: PrizePhasePageProps) {
     <div className="min-h-screen bg-dark-300">
       <Navigation currentPage="prizes" leagueId={leagueId} isLeagueAdmin={true} onNavigate={onNavigate} />
 
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 py-8">
         {error && (
           <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-xl mb-6">
             {error}

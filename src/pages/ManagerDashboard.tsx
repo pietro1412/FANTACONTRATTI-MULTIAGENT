@@ -213,7 +213,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
     <div className="min-h-screen bg-dark-300">
       <Navigation currentPage="managerDashboard" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 py-8">
         {/* Tabs */}
         <div className="flex gap-2 mb-6 flex-wrap">
           <Button

@@ -224,7 +224,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
     <div className="min-h-screen bg-dark-300">
       <Navigation currentPage="prophecies" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="max-w-[1600px] mx-auto px-4 py-6">
         {/* Header compatto */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">

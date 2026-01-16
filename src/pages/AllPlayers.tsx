@@ -133,7 +133,7 @@ export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
     <div className="min-h-screen bg-dark-100">
       <Navigation currentPage="allPlayers" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-[1600px] mx-auto px-4 py-6">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">Tutti i Giocatori</h1>
           <p className="text-gray-400">{leagueName}</p>

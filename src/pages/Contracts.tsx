@@ -641,7 +641,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
       {/* Header compatto */}
       <div className="bg-surface-200 border-b border-surface-50/20 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 py-3">
+        <div className="max-w-[1600px] mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <span className="text-2xl">📝</span>
@@ -741,13 +741,13 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
       {/* Messaggi */}
       {(error || success) && (
-        <div className="max-w-7xl mx-auto px-4 py-2">
+        <div className="max-w-[1600px] mx-auto px-4 py-2">
           {error && <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-2 rounded text-sm">{error}</div>}
           {success && <div className="bg-secondary-500/20 border border-secondary-500/30 text-secondary-400 p-2 rounded text-sm">{success}</div>}
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-4 py-4">
+      <main className="max-w-[1600px] mx-auto px-4 py-4">
         <div className="flex flex-col xl:flex-row gap-4">
           {/* Colonna principale - Contratti */}
           <div className="flex-1 min-w-0">
@@ -1374,7 +1374,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
       {/* Sticky Budget Bar - Prominente */}
       <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-surface-200 via-surface-200 to-surface-200 border-t-2 border-primary-500/50 z-40 shadow-lg shadow-black/30">
-        <div className="max-w-7xl mx-auto px-4 py-3">
+        <div className="max-w-[1600px] mx-auto px-4 py-3">
           {/* Mobile: layout a griglia */}
           <div className="md:hidden">
             {/* Indicatore modifiche non salvate - Mobile */}
