@@ -1,7 +1,9 @@
 import { PrismaClient, MemberStatus, InviteStatus, JoinType } from '@prisma/client'
 import { randomBytes } from 'crypto'
+import { createEmailService } from '../modules/identity/infrastructure/services/email.factory'
 
 const prisma = new PrismaClient()
+const emailService = createEmailService()
 
 export interface ServiceResult {
   success: boolean
@@ -96,8 +98,28 @@ export async function createEmailInvite(
     },
     include: {
       league: { select: { name: true } },
+      inviter: { select: { username: true } },
     },
   })
+
+  // Invia email di invito
+  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+  const inviteUrl = `${baseUrl}/join`
+
+  try {
+    await emailService.sendLeagueInviteEmail(
+      email,
+      invite.league.name,
+      invite.inviter.username,
+      token,
+      inviteUrl,
+      expiresAt
+    )
+    console.log(`[InviteService] Email sent to ${email} for league ${invite.league.name}`)
+  } catch (err) {
+    console.error('[InviteService] Failed to send invite email:', err)
+    // Non blocchiamo la creazione dell'invito se l'email fallisce
+  }
 
   return {
     success: true,
