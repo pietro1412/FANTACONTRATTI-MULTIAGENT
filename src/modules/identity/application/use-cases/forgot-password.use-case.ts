@@ -23,11 +23,14 @@ export class ForgotPasswordUseCase {
     }
 
     // Find user by email
+    console.log(`[ForgotPassword] Looking for user with email: ${email}`)
     const user = await this.userRepository.findByEmail(email)
     if (!user) {
+      console.log(`[ForgotPassword] User not found: ${email}`)
       // Don't reveal that user doesn't exist
       return ok(successMessage)
     }
+    console.log(`[ForgotPassword] User found: ${user.id}`)
 
     // Generate secure reset token
     const resetToken = randomBytes(32).toString('hex')
@@ -37,15 +40,20 @@ export class ForgotPasswordUseCase {
 
     // Store token in database
     await this.userRepository.setPasswordResetToken(user.id, resetToken, expiresAt)
+    console.log(`[ForgotPassword] Token stored for user: ${user.id}`)
 
     // Build reset URL - use FRONTEND_URL for production, fallback to localhost
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
     const resetUrl = `${baseUrl}/reset-password`
+    console.log(`[ForgotPassword] Reset URL base: ${baseUrl}`)
 
-    // Send email (don't await to avoid timing attacks)
-    this.emailService.sendPasswordResetEmail(email, resetToken, resetUrl).catch(err => {
+    // Send email - await to ensure it completes in serverless environment
+    try {
+      await this.emailService.sendPasswordResetEmail(email, resetToken, resetUrl)
+      console.log(`[ForgotPassword] Email sent successfully to: ${email}`)
+    } catch (err) {
       console.error('[ForgotPassword] Failed to send email:', err)
-    })
+    }
 
     return ok(successMessage)
   }
