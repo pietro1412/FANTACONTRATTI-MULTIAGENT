@@ -403,6 +403,10 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  // Password reset
+  passwordResetToken    String?   @unique
+  passwordResetExpires  DateTime?
+
   // Relazioni
   leagueMemberships LeagueMember[]         // see: league.prisma
   sentOffers        TradeOffer[]     @relation("OfferSender")   // see: trade.prisma

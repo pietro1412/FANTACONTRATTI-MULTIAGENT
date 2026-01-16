@@ -9,9 +9,12 @@ import { Router } from 'express'
 import { LoginUseCase } from '../../application/use-cases/login.use-case'
 import { RegisterUseCase } from '../../application/use-cases/register.use-case'
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case'
+import { ForgotPasswordUseCase } from '../../application/use-cases/forgot-password.use-case'
+import { ResetPasswordUseCase } from '../../application/use-cases/reset-password.use-case'
 import { UserPrismaRepository } from '../repositories/user.prisma-repository'
 import { BcryptPasswordService } from '../services/bcrypt-password.service'
 import { JwtTokenService } from '../services/jwt-token.service'
+import { ResendEmailService } from '../services/resend-email.service'
 import { asyncHandler } from '@/shared/infrastructure/http/error-handler'
 import { authMiddleware } from '@/api/middleware/auth'
 
@@ -21,6 +24,7 @@ const router = Router()
 const userRepository = new UserPrismaRepository()
 const passwordService = new BcryptPasswordService()
 const tokenService = new JwtTokenService()
+const emailService = new ResendEmailService()
 
 /**
  * POST /api/auth/login
@@ -158,6 +162,42 @@ router.get('/me', authMiddleware, asyncHandler(async (req, res) => {
   }
 
   res.json({ success: true, data: user })
+}))
+
+/**
+ * POST /api/auth/forgot-password
+ * Request password reset email
+ */
+router.post('/forgot-password', asyncHandler(async (req, res) => {
+  const forgotPasswordUseCase = new ForgotPasswordUseCase(userRepository, emailService)
+  const result = await forgotPasswordUseCase.execute(req.body)
+
+  // Always return success (even if email doesn't exist) to prevent enumeration
+  res.json({
+    success: true,
+    message: result.value.message
+  })
+}))
+
+/**
+ * POST /api/auth/reset-password
+ * Reset password with token
+ */
+router.post('/reset-password', asyncHandler(async (req, res) => {
+  const resetPasswordUseCase = new ResetPasswordUseCase(userRepository, passwordService)
+  const result = await resetPasswordUseCase.execute(req.body)
+
+  if (result.isFailure) {
+    return res.status(result.error.statusCode).json({
+      success: false,
+      error: result.error.message
+    })
+  }
+
+  res.json({
+    success: true,
+    message: result.value.message
+  })
 }))
 
 export default router

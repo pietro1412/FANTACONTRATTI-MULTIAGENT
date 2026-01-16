@@ -35,4 +35,32 @@ export interface IUserRepository {
    * @param userId - The user's unique identifier
    */
   updateLastLogin(userId: string): Promise<void>
+
+  /**
+   * Set password reset token for a user
+   * @param userId - The user's unique identifier
+   * @param token - The reset token
+   * @param expiresAt - When the token expires
+   */
+  setPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<void>
+
+  /**
+   * Find a user by their password reset token
+   * @param token - The reset token
+   * @returns The user with credentials and reset info or null
+   */
+  findByPasswordResetToken(token: string): Promise<(UserWithCredentials & { passwordResetExpires: Date | null }) | null>
+
+  /**
+   * Clear password reset token for a user
+   * @param userId - The user's unique identifier
+   */
+  clearPasswordResetToken(userId: string): Promise<void>
+
+  /**
+   * Update user's password
+   * @param userId - The user's unique identifier
+   * @param passwordHash - The new hashed password
+   */
+  updatePassword(userId: string, passwordHash: string): Promise<void>
 }

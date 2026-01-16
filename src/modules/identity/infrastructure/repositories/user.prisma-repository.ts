@@ -54,6 +54,56 @@ export class UserPrismaRepository implements IUserRepository {
   }
 
   /**
+   * Set password reset token for a user
+   */
+  async setPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<void> {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        passwordResetToken: token,
+        passwordResetExpires: expiresAt
+      }
+    })
+  }
+
+  /**
+   * Find a user by their password reset token
+   */
+  async findByPasswordResetToken(token: string): Promise<(import('../../domain/entities/user.entity').UserWithCredentials & { passwordResetExpires: Date | null }) | null> {
+    const user = await prisma.user.findUnique({
+      where: { passwordResetToken: token }
+    })
+    if (!user) return null
+    return {
+      ...this.mapToUserWithCredentials(user),
+      passwordResetExpires: user.passwordResetExpires
+    }
+  }
+
+  /**
+   * Clear password reset token for a user
+   */
+  async clearPasswordResetToken(userId: string): Promise<void> {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        passwordResetToken: null,
+        passwordResetExpires: null
+      }
+    })
+  }
+
+  /**
+   * Update user's password
+   */
+  async updatePassword(userId: string, passwordHash: string): Promise<void> {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash }
+    })
+  }
+
+  /**
    * Map Prisma User model to domain User entity
    */
   private mapToUser(prismaUser: {

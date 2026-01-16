@@ -28,6 +28,8 @@ const Prophecies = lazy(() => import('./pages/Prophecies').then(m => ({ default:
 const SuperAdmin = lazy(() => import('./pages/SuperAdmin').then(m => ({ default: m.SuperAdmin })))
 const PrizePhasePage = lazy(() => import('./pages/PrizePhasePage').then(m => ({ default: m.PrizePhasePage })))
 const LatencyTest = lazy(() => import('./pages/LatencyTest'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })))
+const ResetPassword = lazy(() => import('./pages/ResetPassword').then(m => ({ default: m.ResetPassword })))
 
 // Loading component per autenticazione
 function LoadingScreen() {
@@ -341,6 +343,18 @@ function AppRoutes() {
       {/* Public routes - Login/Register sono import statici */}
       <Route path="/login" element={<PublicRoute><LoginWrapper /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><RegisterWrapper /></PublicRoute>} />
+      <Route path="/forgot-password" element={
+        <PublicRoute>
+          <Suspense fallback={<PageLoader />}>
+            <ForgotPassword />
+          </Suspense>
+        </PublicRoute>
+      } />
+      <Route path="/reset-password" element={
+        <Suspense fallback={<PageLoader />}>
+          <ResetPassword />
+        </Suspense>
+      } />
       <Route path="/test-latency" element={
         <Suspense fallback={<PageLoader />}>
           <LatencyTest />

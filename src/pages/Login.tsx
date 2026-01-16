@@ -103,6 +103,16 @@ export function Login({ onNavigate }: LoginProps) {
               error={fieldErrors.password}
             />
 
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => onNavigate('forgot-password')}
+                className="text-sm text-gray-400 hover:text-primary-400 transition-colors"
+              >
+                Password dimenticata?
+              </button>
+            </div>
+
             <Button type="submit" size="xl" className="w-full" isLoading={isLoading}>
               Accedi
             </Button>
