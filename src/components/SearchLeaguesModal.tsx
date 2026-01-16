@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { leagueApi } from '../services/api'
 import { Button } from './ui/Button'
+import { JoinLeagueModal } from './JoinLeagueModal'
 
 interface SearchResult {
   id: string
@@ -32,6 +33,7 @@ export function SearchLeaguesModal({ isOpen, onClose, onNavigate }: SearchLeague
   const [isSearching, setIsSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedLeague, setSelectedLeague] = useState<SearchResult | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Focus input when modal opens
@@ -48,6 +50,7 @@ export function SearchLeaguesModal({ isOpen, onClose, onNavigate }: SearchLeague
       setResults([])
       setHasSearched(false)
       setError(null)
+      setSelectedLeague(null)
     }
   }, [isOpen])
 
@@ -76,9 +79,12 @@ export function SearchLeaguesModal({ isOpen, onClose, onNavigate }: SearchLeague
   }
 
   function handleSelectLeague(league: SearchResult) {
+    setSelectedLeague(league)
+  }
+
+  function handleJoinSuccess() {
+    setSelectedLeague(null)
     onClose()
-    // Navigate to join page with the invite code
-    onNavigate('join', { code: league.inviteCode })
   }
 
   if (!isOpen) return null
@@ -258,6 +264,14 @@ export function SearchLeaguesModal({ isOpen, onClose, onNavigate }: SearchLeague
           </p>
         </div>
       </div>
+
+      {/* Join League Modal */}
+      <JoinLeagueModal
+        isOpen={selectedLeague !== null}
+        league={selectedLeague}
+        onClose={() => setSelectedLeague(null)}
+        onSuccess={handleJoinSuccess}
+      />
     </div>
   )
 }
