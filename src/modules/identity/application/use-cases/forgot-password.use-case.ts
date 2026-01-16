@@ -2,7 +2,7 @@ import { randomBytes } from 'crypto'
 import { IUserRepository } from '../../domain/repositories/user.repository.interface'
 import { IEmailService } from '../../domain/services/email.service.interface'
 import { ForgotPasswordDto, ForgotPasswordResultDto } from '../dto/password-reset.dto'
-import { Result, success } from '../../../../shared/infrastructure/http/result'
+import { Result, ok } from '../../../../shared/infrastructure/http/result'
 
 /**
  * Use case for initiating password reset
@@ -26,7 +26,7 @@ export class ForgotPasswordUseCase {
     const user = await this.userRepository.findByEmail(email)
     if (!user) {
       // Don't reveal that user doesn't exist
-      return success(successMessage)
+      return ok(successMessage)
     }
 
     // Generate secure reset token
@@ -47,6 +47,6 @@ export class ForgotPasswordUseCase {
       console.error('[ForgotPassword] Failed to send email:', err)
     })
 
-    return success(successMessage)
+    return ok(successMessage)
   }
 }

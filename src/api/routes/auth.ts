@@ -4,6 +4,11 @@ import { registerSchema, loginSchema } from '../../utils/validation'
 import { registerUser, loginUser, getUserById } from '../../services/auth.service'
 import { generateTokens, verifyRefreshToken } from '../../utils/jwt'
 import { authMiddleware } from '../middleware/auth'
+import { ForgotPasswordUseCase } from '../../modules/identity/application/use-cases/forgot-password.use-case'
+import { ResetPasswordUseCase } from '../../modules/identity/application/use-cases/reset-password.use-case'
+import { UserPrismaRepository } from '../../modules/identity/infrastructure/repositories/user.prisma-repository'
+import { BcryptPasswordService } from '../../modules/identity/infrastructure/services/bcrypt-password.service'
+import { ResendEmailService } from '../../modules/identity/infrastructure/services/resend-email.service'
 
 const router = Router()
 
@@ -141,6 +146,57 @@ router.get('/me', authMiddleware, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Get me error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  try {
+    const userRepository = new UserPrismaRepository()
+    const emailService = new ResendEmailService()
+    const forgotPasswordUseCase = new ForgotPasswordUseCase(userRepository, emailService)
+
+    const result = await forgotPasswordUseCase.execute(req.body)
+
+    // Always return success to prevent email enumeration
+    res.json({
+      success: true,
+      message: result.value?.message || 'Se l\'email esiste, riceverai un link per reimpostare la password'
+    })
+  } catch (error) {
+    console.error('Forgot password error:', error)
+    // Still return success to prevent enumeration
+    res.json({
+      success: true,
+      message: 'Se l\'email esiste, riceverai un link per reimpostare la password'
+    })
+  }
+})
+
+// POST /api/auth/reset-password
+router.post('/reset-password', async (req: Request, res: Response) => {
+  try {
+    const userRepository = new UserPrismaRepository()
+    const passwordService = new BcryptPasswordService()
+    const resetPasswordUseCase = new ResetPasswordUseCase(userRepository, passwordService)
+
+    const result = await resetPasswordUseCase.execute(req.body)
+
+    if (result.isFailure) {
+      res.status(result.error.statusCode).json({
+        success: false,
+        error: result.error.message
+      })
+      return
+    }
+
+    res.json({
+      success: true,
+      message: result.value.message
+    })
+  } catch (error) {
+    console.error('Reset password error:', error)
+    res.status(500).json({ success: false, error: 'Errore durante il reset della password' })
   }
 })
 
