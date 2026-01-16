@@ -1,5 +1,3 @@
-import { cn } from '../../lib/utils'
-
 interface NumberStepperProps {
   value: number
   onChange: (value: number) => void
@@ -21,7 +19,7 @@ export function NumberStepper({
   step = 1,
   label,
   error,
-  className,
+  className = '',
   size = 'md',
   showValue = true,
 }: NumberStepperProps) {
@@ -60,28 +58,29 @@ export function NumberStepper({
     },
   }
 
+  const buttonBaseStyles = `
+    flex items-center justify-center rounded-lg font-bold transition-all duration-200
+    bg-surface-300 border-2 border-surface-50/30 text-gray-300
+    hover:bg-primary-600 hover:border-primary-500 hover:text-white
+    active:scale-95
+    disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-surface-300 disabled:hover:border-surface-50/30 disabled:hover:text-gray-300
+  `.replace(/\s+/g, ' ').trim()
+
   return (
-    <div className={cn('', className)}>
+    <div className={className}>
       {label && (
         <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wide">
           {label}
         </label>
       )}
 
-      <div className={cn('flex items-center justify-center', sizeClasses[size].container)}>
+      <div className={`flex items-center justify-center ${sizeClasses[size].container}`}>
         {/* Decrement Button */}
         <button
           type="button"
           onClick={handleDecrement}
           disabled={isMinDisabled}
-          className={cn(
-            'flex items-center justify-center rounded-lg font-bold transition-all duration-200',
-            'bg-surface-300 border-2 border-surface-50/30 text-gray-300',
-            'hover:bg-primary-600 hover:border-primary-500 hover:text-white',
-            'active:scale-95',
-            'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-surface-300 disabled:hover:border-surface-50/30 disabled:hover:text-gray-300',
-            sizeClasses[size].button
-          )}
+          className={`${buttonBaseStyles} ${sizeClasses[size].button}`}
           aria-label="Diminuisci"
         >
           −
@@ -89,12 +88,7 @@ export function NumberStepper({
 
         {/* Value Display */}
         {showValue && (
-          <span
-            className={cn(
-              'font-bold text-white text-center tabular-nums',
-              sizeClasses[size].value
-            )}
-          >
+          <span className={`font-bold text-white text-center tabular-nums ${sizeClasses[size].value}`}>
             {value}
           </span>
         )}
@@ -104,14 +98,7 @@ export function NumberStepper({
           type="button"
           onClick={handleIncrement}
           disabled={isMaxDisabled}
-          className={cn(
-            'flex items-center justify-center rounded-lg font-bold transition-all duration-200',
-            'bg-surface-300 border-2 border-surface-50/30 text-gray-300',
-            'hover:bg-primary-600 hover:border-primary-500 hover:text-white',
-            'active:scale-95',
-            'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-surface-300 disabled:hover:border-surface-50/30 disabled:hover:text-gray-300',
-            sizeClasses[size].button
-          )}
+          className={`${buttonBaseStyles} ${sizeClasses[size].button}`}
           aria-label="Aumenta"
         >
           +
