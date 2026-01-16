@@ -1,9 +1,22 @@
 import { PrismaClient, MemberRole, MemberStatus, JoinType } from '@prisma/client'
 import type { CreateLeagueInput, UpdateLeagueInput } from '../utils/validation'
-import { GmailEmailService } from '../modules/identity/infrastructure/services/gmail-email.service'
+import type { IEmailService } from '../modules/identity/domain/services/email.service.interface'
 
 const prisma = new PrismaClient()
-const emailService = new GmailEmailService()
+
+// Lazy-loaded email service to avoid initialization errors
+let emailService: IEmailService | null = null
+async function getEmailService(): Promise<IEmailService | null> {
+  if (emailService) return emailService
+  try {
+    const { GmailEmailService } = await import('../modules/identity/infrastructure/services/gmail-email.service')
+    emailService = new GmailEmailService()
+    return emailService
+  } catch (error) {
+    console.error('[LeagueService] Failed to initialize email service:', error)
+    return null
+  }
+}
 
 export interface ServiceResult {
   success: boolean
@@ -277,13 +290,17 @@ export async function requestJoinLeague(leagueId: string, userId: string, teamNa
 
       const adminPanelUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/leagues/${leagueId}/admin?tab=members`
 
-      await emailService.sendJoinRequestNotificationEmail(
-        adminMember.user.email,
-        league.name,
-        requester?.username || 'Utente',
-        teamName.trim(),
-        adminPanelUrl
-      )
+      // Lazy-load email service
+      const emailSvc = await getEmailService()
+      if (emailSvc) {
+        await emailSvc.sendJoinRequestNotificationEmail(
+          adminMember.user.email,
+          league.name,
+          requester?.username || 'Utente',
+          teamName.trim(),
+          adminPanelUrl
+        )
+      }
     }
   } catch (error) {
     // Don't fail the request if email fails
