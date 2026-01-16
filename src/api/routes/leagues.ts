@@ -8,6 +8,7 @@ import {
   getLeagueByInviteCode,
   requestJoinLeague,
   getLeagueMembers,
+  getPendingJoinRequests,
   updateMemberStatus,
   updateLeague,
   startLeague,
@@ -174,6 +175,24 @@ router.get('/:id/members', authMiddleware, async (req: Request, res: Response) =
     res.json(result)
   } catch (error) {
     console.error('Get members error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:id/pending-requests - Get pending join requests (admin only)
+router.get('/:id/pending-requests', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const result = await getPendingJoinRequests(id, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 404).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get pending requests error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

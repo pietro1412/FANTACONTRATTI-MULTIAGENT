@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { tradeApi } from '../services/api'
+import { tradeApi, leagueApi } from '../services/api'
 import { getTeamLogo } from '../utils/teamLogos'
 
 interface NotificationsProps {
   leagueId: string
+  isAdmin?: boolean
   onNavigate: (page: string, params?: Record<string, string>) => void
 }
 
@@ -23,6 +24,18 @@ interface TradeOffer {
   requestedBudget: number
   expiresAt?: string
   createdAt: string
+}
+
+interface JoinRequest {
+  id: string
+  teamName: string
+  createdAt: string
+  user: {
+    id: string
+    username: string
+    email: string
+    profilePhoto: string | null
+  }
 }
 
 // Helper per calcolare il tempo rimanente
@@ -61,18 +74,38 @@ function getRoleColor(position: string): string {
   }
 }
 
-export function Notifications({ leagueId, onNavigate }: NotificationsProps) {
+// Helper per formattare la data
+function formatDate(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+
+  if (diffHours < 1) {
+    const diffMinutes = Math.floor(diffMs / (1000 * 60))
+    return `${diffMinutes}m fa`
+  } else if (diffHours < 24) {
+    return `${diffHours}h fa`
+  } else {
+    const diffDays = Math.floor(diffHours / 24)
+    return `${diffDays}g fa`
+  }
+}
+
+export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'trades' | 'requests'>('trades')
   const [offers, setOffers] = useState<TradeOffer[]>([])
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    loadOffers()
-    // Poll every 30 seconds for new offers
-    const interval = setInterval(loadOffers, 30000)
+    loadNotifications()
+    // Poll every 30 seconds for new notifications
+    const interval = setInterval(loadNotifications, 30000)
     return () => clearInterval(interval)
-  }, [leagueId])
+  }, [leagueId, isAdmin])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -85,12 +118,23 @@ export function Notifications({ leagueId, onNavigate }: NotificationsProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  async function loadOffers() {
+  async function loadNotifications() {
     setIsLoading(true)
-    const res = await tradeApi.getReceived(leagueId)
-    if (res.success && res.data) {
-      setOffers(res.data as TradeOffer[])
+
+    // Load trade offers
+    const tradeRes = await tradeApi.getReceived(leagueId)
+    if (tradeRes.success && tradeRes.data) {
+      setOffers(tradeRes.data as TradeOffer[])
     }
+
+    // Load join requests if admin
+    if (isAdmin) {
+      const joinRes = await leagueApi.getPendingRequests(leagueId)
+      if (joinRes.success && joinRes.data) {
+        setJoinRequests(joinRes.data as JoinRequest[])
+      }
+    }
+
     setIsLoading(false)
   }
 
@@ -99,12 +143,19 @@ export function Notifications({ leagueId, onNavigate }: NotificationsProps) {
     onNavigate('trades', { leagueId, highlight: offerId })
   }
 
-  function handleViewAll() {
+  function handleViewAllTrades() {
     setIsOpen(false)
     onNavigate('trades', { leagueId })
   }
 
-  const count = offers.length
+  function handleViewJoinRequests() {
+    setIsOpen(false)
+    onNavigate('adminPanel', { leagueId, tab: 'members' })
+  }
+
+  const tradeCount = offers.length
+  const requestCount = joinRequests.length
+  const totalCount = tradeCount + requestCount
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -119,9 +170,9 @@ export function Notifications({ leagueId, onNavigate }: NotificationsProps) {
         </svg>
 
         {/* Badge */}
-        {count > 0 && (
+        {totalCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-danger-500 rounded-full animate-pulse">
-            {count > 9 ? '9+' : count}
+            {totalCount > 9 ? '9+' : totalCount}
           </span>
         )}
       </button>
@@ -129,16 +180,41 @@ export function Notifications({ leagueId, onNavigate }: NotificationsProps) {
       {/* Dropdown */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 bg-surface-200 border border-surface-50/30 rounded-xl shadow-2xl overflow-hidden z-50">
-          {/* Header */}
+          {/* Header with tabs if admin */}
           <div className="px-4 py-3 bg-gradient-to-r from-surface-300 to-transparent border-b border-surface-50/20">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-white">Offerte Ricevute</h3>
-              {count > 0 && (
-                <span className="px-2 py-0.5 text-xs font-medium bg-accent-500/20 text-accent-400 rounded-full">
-                  {count} nuova{count > 1 ? 'e' : ''}
-                </span>
-              )}
-            </div>
+            {isAdmin && requestCount > 0 ? (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setActiveTab('trades')}
+                  className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                    activeTab === 'trades'
+                      ? 'bg-primary-500/20 text-primary-400'
+                      : 'text-gray-400 hover:text-white hover:bg-surface-400/50'
+                  }`}
+                >
+                  Offerte {tradeCount > 0 && <span className="ml-1 px-1.5 py-0.5 bg-primary-500/30 rounded-full">{tradeCount}</span>}
+                </button>
+                <button
+                  onClick={() => setActiveTab('requests')}
+                  className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                    activeTab === 'requests'
+                      ? 'bg-accent-500/20 text-accent-400'
+                      : 'text-gray-400 hover:text-white hover:bg-surface-400/50'
+                  }`}
+                >
+                  Richieste {requestCount > 0 && <span className="ml-1 px-1.5 py-0.5 bg-accent-500/30 rounded-full">{requestCount}</span>}
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-white">Offerte Ricevute</h3>
+                {tradeCount > 0 && (
+                  <span className="px-2 py-0.5 text-xs font-medium bg-accent-500/20 text-accent-400 rounded-full">
+                    {tradeCount} nuova{tradeCount > 1 ? 'e' : ''}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Content */}
@@ -147,101 +223,151 @@ export function Notifications({ leagueId, onNavigate }: NotificationsProps) {
               <div className="py-8 text-center">
                 <div className="animate-spin h-6 w-6 border-2 border-primary-500 border-t-transparent rounded-full mx-auto" />
               </div>
-            ) : offers.length === 0 ? (
-              <div className="py-8 text-center">
-                <svg className="w-12 h-12 mx-auto text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
-                <p className="text-gray-500 text-sm">Nessuna offerta in sospeso</p>
-              </div>
+            ) : activeTab === 'trades' ? (
+              // Trade offers tab
+              offers.length === 0 ? (
+                <div className="py-8 text-center">
+                  <svg className="w-12 h-12 mx-auto text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                  <p className="text-gray-500 text-sm">Nessuna offerta in sospeso</p>
+                </div>
+              ) : (
+                offers.map(offer => {
+                  const timeRemaining = getTimeRemaining(offer.expiresAt)
+                  return (
+                    <div
+                      key={offer.id}
+                      onClick={() => handleViewOffer(offer.id)}
+                      className="p-3 border-b border-surface-50/10 last:border-b-0 hover:bg-surface-300/50 cursor-pointer transition-colors"
+                    >
+                      {/* Sender & Time */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-accent-500/20 flex items-center justify-center">
+                            <span className="text-accent-400 font-bold text-xs">
+                              {(offer.sender?.username?.[0] || '?').toUpperCase()}
+                            </span>
+                          </div>
+                          <span className="font-medium text-white text-sm">{offer.sender?.username}</span>
+                        </div>
+                        {timeRemaining.text && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                            timeRemaining.isUrgent
+                              ? 'bg-danger-500/20 text-danger-400'
+                              : 'bg-surface-300 text-gray-400'
+                          }`}>
+                            {timeRemaining.text}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Preview */}
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        {/* What you receive */}
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-secondary-400 font-medium uppercase">Ricevi</p>
+                          {offer.offeredPlayerDetails?.slice(0, 2).map(p => (
+                            <div key={p.id} className="flex items-center gap-1.5">
+                              <img src={getTeamLogo(p.team)} alt="" className="w-4 h-4 object-contain" width={16} height={16} />
+                              <span className={`font-medium ${getRoleColor(p.position)}`}>{p.position}</span>
+                              <span className="text-gray-300 truncate">{p.name}</span>
+                            </div>
+                          ))}
+                          {(offer.offeredPlayerDetails?.length || 0) > 2 && (
+                            <p className="text-gray-500">+{(offer.offeredPlayerDetails?.length || 0) - 2} altri</p>
+                          )}
+                          {offer.offeredBudget > 0 && (
+                            <p className="text-accent-400">+{offer.offeredBudget} crediti</p>
+                          )}
+                          {!offer.offeredPlayerDetails?.length && offer.offeredBudget === 0 && (
+                            <p className="text-gray-600 italic">Nulla</p>
+                          )}
+                        </div>
+
+                        {/* What you give */}
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-danger-400 font-medium uppercase">Cedi</p>
+                          {offer.requestedPlayerDetails?.slice(0, 2).map(p => (
+                            <div key={p.id} className="flex items-center gap-1.5">
+                              <img src={getTeamLogo(p.team)} alt="" className="w-4 h-4 object-contain" width={16} height={16} />
+                              <span className={`font-medium ${getRoleColor(p.position)}`}>{p.position}</span>
+                              <span className="text-gray-300 truncate">{p.name}</span>
+                            </div>
+                          ))}
+                          {(offer.requestedPlayerDetails?.length || 0) > 2 && (
+                            <p className="text-gray-500">+{(offer.requestedPlayerDetails?.length || 0) - 2} altri</p>
+                          )}
+                          {offer.requestedBudget > 0 && (
+                            <p className="text-accent-400">+{offer.requestedBudget} crediti</p>
+                          )}
+                          {!offer.requestedPlayerDetails?.length && offer.requestedBudget === 0 && (
+                            <p className="text-gray-600 italic">Nulla</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
+              )
             ) : (
-              offers.map(offer => {
-                const timeRemaining = getTimeRemaining(offer.expiresAt)
-                return (
+              // Join requests tab (admin only)
+              joinRequests.length === 0 ? (
+                <div className="py-8 text-center">
+                  <svg className="w-12 h-12 mx-auto text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <p className="text-gray-500 text-sm">Nessuna richiesta in attesa</p>
+                </div>
+              ) : (
+                joinRequests.map(request => (
                   <div
-                    key={offer.id}
-                    onClick={() => handleViewOffer(offer.id)}
+                    key={request.id}
+                    onClick={handleViewJoinRequests}
                     className="p-3 border-b border-surface-50/10 last:border-b-0 hover:bg-surface-300/50 cursor-pointer transition-colors"
                   >
-                    {/* Sender & Time */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-accent-500/20 flex items-center justify-center">
-                          <span className="text-accent-400 font-bold text-xs">
-                            {(offer.sender?.username?.[0] || '?').toUpperCase()}
+                    <div className="flex items-center gap-3">
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center flex-shrink-0">
+                        {request.user.profilePhoto ? (
+                          <img src={request.user.profilePhoto} alt="" className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <span className="text-white font-bold text-sm">
+                            {request.user.username[0]?.toUpperCase() || '?'}
                           </span>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-white text-sm truncate">{request.user.username}</span>
+                          <span className="text-[10px] text-gray-500">{formatDate(request.createdAt)}</span>
                         </div>
-                        <span className="font-medium text-white text-sm">{offer.sender?.username}</span>
-                      </div>
-                      {timeRemaining.text && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                          timeRemaining.isUrgent
-                            ? 'bg-danger-500/20 text-danger-400'
-                            : 'bg-surface-300 text-gray-400'
-                        }`}>
-                          {timeRemaining.text}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Preview */}
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      {/* What you receive */}
-                      <div className="space-y-1">
-                        <p className="text-[10px] text-secondary-400 font-medium uppercase">Ricevi</p>
-                        {offer.offeredPlayerDetails?.slice(0, 2).map(p => (
-                          <div key={p.id} className="flex items-center gap-1.5">
-                            <img src={getTeamLogo(p.team)} alt="" className="w-4 h-4 object-contain" width={16} height={16} />
-                            <span className={`font-medium ${getRoleColor(p.position)}`}>{p.position}</span>
-                            <span className="text-gray-300 truncate">{p.name}</span>
-                          </div>
-                        ))}
-                        {(offer.offeredPlayerDetails?.length || 0) > 2 && (
-                          <p className="text-gray-500">+{(offer.offeredPlayerDetails?.length || 0) - 2} altri</p>
-                        )}
-                        {offer.offeredBudget > 0 && (
-                          <p className="text-accent-400">+{offer.offeredBudget} crediti</p>
-                        )}
-                        {!offer.offeredPlayerDetails?.length && offer.offeredBudget === 0 && (
-                          <p className="text-gray-600 italic">Nulla</p>
-                        )}
+                        <p className="text-xs text-gray-400 truncate">
+                          Vuole unirsi come <span className="text-accent-400 font-medium">{request.teamName}</span>
+                        </p>
                       </div>
 
-                      {/* What you give */}
-                      <div className="space-y-1">
-                        <p className="text-[10px] text-danger-400 font-medium uppercase">Cedi</p>
-                        {offer.requestedPlayerDetails?.slice(0, 2).map(p => (
-                          <div key={p.id} className="flex items-center gap-1.5">
-                            <img src={getTeamLogo(p.team)} alt="" className="w-4 h-4 object-contain" width={16} height={16} />
-                            <span className={`font-medium ${getRoleColor(p.position)}`}>{p.position}</span>
-                            <span className="text-gray-300 truncate">{p.name}</span>
-                          </div>
-                        ))}
-                        {(offer.requestedPlayerDetails?.length || 0) > 2 && (
-                          <p className="text-gray-500">+{(offer.requestedPlayerDetails?.length || 0) - 2} altri</p>
-                        )}
-                        {offer.requestedBudget > 0 && (
-                          <p className="text-accent-400">+{offer.requestedBudget} crediti</p>
-                        )}
-                        {!offer.requestedPlayerDetails?.length && offer.requestedBudget === 0 && (
-                          <p className="text-gray-600 italic">Nulla</p>
-                        )}
-                      </div>
+                      {/* Arrow */}
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
                   </div>
-                )
-              })
+                ))
+              )
             )}
           </div>
 
           {/* Footer */}
-          {offers.length > 0 && (
+          {((activeTab === 'trades' && offers.length > 0) || (activeTab === 'requests' && joinRequests.length > 0)) && (
             <div className="px-4 py-2 bg-surface-300/50 border-t border-surface-50/20">
               <button
-                onClick={handleViewAll}
+                onClick={activeTab === 'trades' ? handleViewAllTrades : handleViewJoinRequests}
                 className="w-full text-center text-sm text-primary-400 hover:text-primary-300 font-medium transition-colors"
               >
-                Vedi tutte le offerte
+                {activeTab === 'trades' ? 'Vedi tutte le offerte' : 'Gestisci richieste'}
               </button>
             </div>
           )}

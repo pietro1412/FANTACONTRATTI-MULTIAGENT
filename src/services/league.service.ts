@@ -353,6 +353,45 @@ export async function getLeagueMembers(leagueId: string, userId: string): Promis
   }
 }
 
+export async function getPendingJoinRequests(leagueId: string, userId: string): Promise<ServiceResult> {
+  // Check if user is admin
+  const adminCheck = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      role: MemberRole.ADMIN,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminCheck) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const pendingRequests = await prisma.leagueMember.findMany({
+    where: {
+      leagueId,
+      status: MemberStatus.PENDING,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          profilePhoto: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  return {
+    success: true,
+    data: pendingRequests,
+  }
+}
+
 export async function updateMemberStatus(
   leagueId: string,
   memberId: string,

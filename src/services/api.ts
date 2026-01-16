@@ -158,6 +158,8 @@ export const leagueApi = {
 
   getMembers: (id: string) => request(`/api/leagues/${id}/members`),
 
+  getPendingRequests: (id: string) => request(`/api/leagues/${id}/pending-requests`),
+
   getAllRosters: (id: string) => request(`/api/leagues/${id}/rosters`),
 
   updateMember: (leagueId: string, memberId: string, action: 'accept' | 'reject' | 'kick') =>

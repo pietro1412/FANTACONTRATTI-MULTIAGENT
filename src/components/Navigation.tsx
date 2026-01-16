@@ -407,7 +407,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             {leagueId && (
               <>
                 {/* Notifications with enhanced badge */}
-                <Notifications leagueId={leagueId} onNavigate={onNavigate} />
+                <Notifications leagueId={leagueId} isAdmin={isLeagueAdmin} onNavigate={onNavigate} />
                 <button
                   onClick={() => onNavigate('dashboard')}
                   className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-white bg-surface-300/50 hover:bg-surface-300 rounded-lg transition-all duration-200 hover:shadow-md group"
