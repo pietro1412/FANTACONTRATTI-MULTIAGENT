@@ -15,6 +15,7 @@ const LeagueDetail = lazy(() => import('./pages/LeagueDetail').then(m => ({ defa
 const AuctionRoom = lazy(() => import('./pages/AuctionRoom').then(m => ({ default: m.AuctionRoom })))
 const Rose = lazy(() => import('./pages/Rose').then(m => ({ default: m.Rose })))
 const Contracts = lazy(() => import('./pages/Contracts').then(m => ({ default: m.Contracts })))
+const Indemnity = lazy(() => import('./pages/Indemnity').then(m => ({ default: m.Indemnity })))
 const Trades = lazy(() => import('./pages/Trades').then(m => ({ default: m.Trades })))
 const Rubata = lazy(() => import('./pages/Rubata').then(m => ({ default: m.Rubata })))
 const StrategieRubata = lazy(() => import('./pages/StrategieRubata').then(m => ({ default: m.StrategieRubata })))
@@ -225,6 +226,15 @@ function ContractsWrapper() {
   return <Contracts leagueId={leagueId} onNavigate={onNavigate} />
 }
 
+function IndemnityWrapper() {
+  const navigate = useNavigate()
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
+
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <Indemnity leagueId={leagueId} onNavigate={onNavigate} />
+}
+
 function TradesWrapper() {
   const navigate = useNavigate()
   const { leagueId } = useParams<{ leagueId: string }>()
@@ -425,6 +435,13 @@ function AppRoutes() {
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
             <ContractsWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/indemnity" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <IndemnityWrapper />
           </Suspense>
         </ProtectedRoute>
       } />
