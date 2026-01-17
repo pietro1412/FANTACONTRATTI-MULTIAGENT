@@ -268,9 +268,14 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                 <h1 className="text-base font-bold text-white leading-tight tracking-tight group-hover:text-primary-300 transition-colors duration-300">
                   Fantacontratti
                 </h1>
-                <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">
-                  Dynasty DG
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">
+                    Dynasty DG
+                  </p>
+                  <span className="text-[9px] text-gray-600 font-mono bg-surface-300/50 px-1.5 py-0.5 rounded">
+                    v{__APP_VERSION__}
+                  </span>
+                </div>
               </div>
             </button>
 
@@ -569,7 +574,10 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
               </div>
               <div>
                 <h2 className="text-sm font-bold text-white">Fantacontratti</h2>
-                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Dynasty DG</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Dynasty DG</p>
+                  <span className="text-[9px] text-gray-500 font-mono bg-surface-100/50 px-1 py-0.5 rounded">v{__APP_VERSION__}</span>
+                </div>
               </div>
             </div>
             <button
