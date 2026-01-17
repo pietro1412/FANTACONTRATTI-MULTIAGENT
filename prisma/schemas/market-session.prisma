@@ -113,6 +113,7 @@ model MarketSession {
   trades      TradeOffer[]           // see: trade.prisma
   movements   PlayerMovement[]       // see: movement.prisma
   consolidations ContractConsolidation[]
+  indemnityDecisions IndemnityDecision[]
   draftContracts DraftContract[]     // see: roster.prisma
   chatMessages ChatMessage[]         // see: chat.prisma
   prizePhaseConfig PrizePhaseConfig? // see: prize.prisma
@@ -140,6 +141,25 @@ model ContractConsolidation {
   member      LeagueMember @relation(fields: [memberId], references: [id])  // see: league.prisma
 
   consolidatedAt DateTime @default(now())
+
+  @@unique([sessionId, memberId])
+}
+
+// ==================== DECISIONI INDENNIZZI ====================
+// Traccia le decisioni dei manager durante la fase CALCOLO_INDENNIZZI
+model IndemnityDecision {
+  id          String   @id @default(cuid())
+
+  sessionId   String
+  session     MarketSession @relation(fields: [sessionId], references: [id])
+
+  memberId    String
+  member      LeagueMember @relation(fields: [memberId], references: [id])  // see: league.prisma
+
+  // JSON array of decisions: [{rosterId, decision: 'KEEP' | 'RELEASE'}]
+  decisions   Json
+
+  decidedAt   DateTime @default(now())
 
   @@unique([sessionId, memberId])
 }

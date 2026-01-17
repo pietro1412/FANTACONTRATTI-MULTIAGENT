@@ -1,5 +1,6 @@
 import { PrismaClient, AuctionStatus, AuctionType, MemberRole, MemberStatus, AcquisitionType, RosterStatus, Position, SessionStatus, Prisma } from '@prisma/client'
 import { calculateRescissionClause, canAdvanceFromContratti } from './contract.service'
+import { canAdvanceFromCalcoloIndennizzi } from './indemnity-phase.service'
 import { recordMovement } from './movement.service'
 import {
   triggerBidPlaced,
@@ -421,9 +422,9 @@ export async function setMarketPhase(
 
   // Validate phase based on market type
   // PRIMO_MERCATO: solo ASTA_LIBERA
-  // MERCATO_RICORRENTE: PREMI, OFFERTE_PRE_RINNOVO, CONTRATTI, RUBATA, ASTA_SVINCOLATI, OFFERTE_POST_ASTA_SVINCOLATI
+  // MERCATO_RICORRENTE: PREMI, OFFERTE_PRE_RINNOVO, CONTRATTI, CALCOLO_INDENNIZZI, RUBATA, ASTA_SVINCOLATI, OFFERTE_POST_ASTA_SVINCOLATI
   const primoMercatoPhases = ['ASTA_LIBERA']
-  const mercatoRicorrentePhases = ['PREMI', 'OFFERTE_PRE_RINNOVO', 'CONTRATTI', 'RUBATA', 'ASTA_SVINCOLATI', 'OFFERTE_POST_ASTA_SVINCOLATI']
+  const mercatoRicorrentePhases = ['PREMI', 'OFFERTE_PRE_RINNOVO', 'CONTRATTI', 'CALCOLO_INDENNIZZI', 'RUBATA', 'ASTA_SVINCOLATI', 'OFFERTE_POST_ASTA_SVINCOLATI']
 
   const validPhases = session.type === 'PRIMO_MERCATO' ? primoMercatoPhases : mercatoRicorrentePhases
 
@@ -464,11 +465,19 @@ export async function setMarketPhase(
     }
   }
 
+  // Check indemnity decisions when leaving CALCOLO_INDENNIZZI phase
+  if (session.currentPhase === 'CALCOLO_INDENNIZZI' && phase !== 'CALCOLO_INDENNIZZI') {
+    const indemnityCheck = await canAdvanceFromCalcoloIndennizzi(sessionId)
+    if (!indemnityCheck.canAdvance) {
+      return { success: false, message: indemnityCheck.reason || 'Non tutti i manager hanno inviato le decisioni sugli indennizzi' }
+    }
+  }
+
   // Update session phase
   const updatedSession = await prisma.marketSession.update({
     where: { id: sessionId },
     data: {
-      currentPhase: phase as 'ASTA_LIBERA' | 'PREMI' | 'OFFERTE_PRE_RINNOVO' | 'CONTRATTI' | 'RUBATA' | 'ASTA_SVINCOLATI' | 'OFFERTE_POST_ASTA_SVINCOLATI',
+      currentPhase: phase as 'ASTA_LIBERA' | 'PREMI' | 'OFFERTE_PRE_RINNOVO' | 'CONTRATTI' | 'CALCOLO_INDENNIZZI' | 'RUBATA' | 'ASTA_SVINCOLATI' | 'OFFERTE_POST_ASTA_SVINCOLATI',
       phaseStartedAt: new Date(),
     },
   })

@@ -20,6 +20,7 @@ import superadminRoutes from './routes/superadmin'
 import chatRoutes from './routes/chat'
 import prizeRoutes from './routes/prizes'
 import historyRoutes from './routes/history'
+import indemnityRoutes from './routes/indemnity'
 
 const app = express()
 const PORT = process.env.API_PORT || 3003
@@ -117,6 +118,7 @@ app.use('/api', superadminRoutes) // Superadmin routes include /superadmin/*
 app.use('/api', chatRoutes) // Chat routes include /sessions/:id/chat
 app.use('/api', prizeRoutes) // Prize phase routes include /sessions/:id/prizes/*
 app.use('/api', historyRoutes) // History routes include /leagues/:id/history/*
+app.use('/api', indemnityRoutes) // Indemnity phase routes include /leagues/:id/indemnity/*
 
 // 404 handler
 app.use((_req, res) => {

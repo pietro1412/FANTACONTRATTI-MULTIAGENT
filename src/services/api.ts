@@ -1234,6 +1234,17 @@ export const superadminApi = {
       method: 'POST',
       body: JSON.stringify({ targetUserId, isSuperAdmin }),
     }),
+
+  // Get players needing exit classification
+  getPlayersNeedingClassification: () =>
+    request('/api/superadmin/players/needing-classification'),
+
+  // Classify exited players
+  classifyExitedPlayers: (classifications: Array<{ playerId: string; exitReason: 'RITIRATO' | 'RETROCESSO' | 'ESTERO' }>) =>
+    request('/api/superadmin/players/classify-exits', {
+      method: 'POST',
+      body: JSON.stringify({ classifications }),
+    }),
 }
 
 // Chat API
@@ -1402,4 +1413,26 @@ export const historyApi = {
   // Get prophecy stats
   getProphecyStats: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/history/prophecies/stats`),
+}
+
+// Indemnity Phase API (Calcolo Indennizzi)
+export const indemnityApi = {
+  // Get all affected players for the league (admin view)
+  getAffectedPlayers: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/indemnity/affected`),
+
+  // Get my affected players
+  getMyAffectedPlayers: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/indemnity/my-affected`),
+
+  // Submit decisions for affected players
+  submitDecisions: (leagueId: string, decisions: Array<{ rosterId: string; decision: 'KEEP' | 'RELEASE' }>) =>
+    request(`/api/leagues/${leagueId}/indemnity/decisions`, {
+      method: 'POST',
+      body: JSON.stringify({ decisions }),
+    }),
+
+  // Get all decisions status (admin view)
+  getAllDecisionsStatus: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/indemnity/status`),
 }

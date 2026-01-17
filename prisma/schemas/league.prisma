@@ -83,6 +83,7 @@ model LeagueMember {
   prophecies    Prophecy[]                   // see: movement.prisma
   auctionAcknowledgments AuctionAcknowledgment[]  // see: auction.prisma
   contractConsolidations ContractConsolidation[]  // see: market-session.prisma
+  indemnityDecisions IndemnityDecision[]          // see: market-session.prisma
   prizesReceived Prize[]                     // see: prize.prisma
   prizesGiven    Prize[] @relation("PrizeAdmin")  // see: prize.prisma
   appeals        AuctionAppeal[]             // see: auction.prisma
