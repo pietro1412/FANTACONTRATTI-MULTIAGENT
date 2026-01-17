@@ -46,6 +46,12 @@ enum PlayerListStatus {
   NOT_IN_LIST   // Non piu in lista (serie B, estero, etc.)
 }
 
+enum PlayerExitReason {
+  RITIRATO      // Il giocatore ha smesso di giocare
+  RETROCESSO    // Il giocatore e' retrocesso in Serie B o inferiore
+  ESTERO        // Il giocatore e' andato in una lega estera
+}
+
 // ==================== ROSTER ENUMS ====================
 enum AcquisitionType {
   FIRST_MARKET
@@ -78,6 +84,7 @@ enum MarketPhase {
   OFFERTE_PRE_RINNOVO            // Prima fase MERCATO_RICORRENTE - scambi/offerte pre rinnovo
   PREMI                          // Assegnazione premi budget ai manager
   CONTRATTI                      // Rinnovo contratti
+  CALCOLO_INDENNIZZI             // Gestione giocatori usciti (ritirato, retrocesso, estero)
   RUBATA                         // Asta forzata
   ASTA_SVINCOLATI                // Asta svincolati (solo MERCATO_RICORRENTE)
   OFFERTE_POST_ASTA_SVINCOLATI   // Fase finale - scambi/offerte post svincolati
@@ -126,12 +133,17 @@ enum InviteStatus {
 
 // ==================== MOVEMENT ENUMS ====================
 enum MovementType {
-  FIRST_MARKET    // Primo mercato assoluto
-  TRADE           // Scambio
-  RUBATA          // Rubata
-  SVINCOLATI      // Acquisto svincolato
-  RELEASE         // Svincolo (contratto scaduto o volontario)
-  CONTRACT_RENEW  // Rinnovo contratto
+  FIRST_MARKET          // Primo mercato assoluto
+  TRADE                 // Scambio
+  RUBATA                // Rubata
+  SVINCOLATI            // Acquisto svincolato
+  RELEASE               // Svincolo (contratto scaduto o volontario)
+  CONTRACT_RENEW        // Rinnovo contratto
+  RETIREMENT            // Ritirato - contratto risolto
+  RELEGATION_RELEASE    // Retrocesso - rilasciato senza compenso
+  RELEGATION_KEEP       // Retrocesso - mantenuto in rosa
+  ABROAD_COMPENSATION   // Estero - rilasciato con compenso
+  ABROAD_KEEP           // Estero - mantenuto in rosa
 }
 
 // ==================== PROPHECY ENUMS ====================
