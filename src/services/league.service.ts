@@ -210,6 +210,39 @@ export async function getLeagueByInviteCode(inviteCode: string): Promise<Service
   }
 }
 
+// Helper function to send join request email notification
+async function sendJoinRequestEmail(
+  league: { name: string; members: Array<{ role: string; user: { email: string } | null }> },
+  userId: string,
+  teamName: string,
+  leagueId: string
+): Promise<void> {
+  try {
+    const adminMember = league.members.find(m => m.role === MemberRole.ADMIN)
+    if (adminMember?.user?.email) {
+      const requester = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { username: true },
+      })
+
+      const adminPanelUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/leagues/${leagueId}/admin?tab=members`
+
+      const emailSvc = await getEmailService()
+      if (emailSvc) {
+        await emailSvc.sendJoinRequestNotificationEmail(
+          adminMember.user.email,
+          league.name,
+          requester?.username || 'Utente',
+          teamName,
+          adminPanelUrl
+        )
+      }
+    }
+  } catch (error) {
+    console.error('[LeagueService] Failed to send join request notification:', error)
+  }
+}
+
 export async function requestJoinLeague(leagueId: string, userId: string, teamName?: string): Promise<ServiceResult> {
   // Check if league exists - include admin user for email notification
   const league = await prisma.league.findUnique({
@@ -273,6 +306,10 @@ export async function requestJoinLeague(leagueId: string, userId: string, teamNa
           joinType: JoinType.REQUEST,
         },
       })
+
+      // Send email notification to admin
+      await sendJoinRequestEmail(league, userId, teamName.trim(), leagueId)
+
       return {
         success: true,
         message: 'Richiesta di partecipazione inviata',
@@ -300,34 +337,7 @@ export async function requestJoinLeague(leagueId: string, userId: string, teamNa
   })
 
   // Send email notification to admin
-  try {
-    // Find admin member
-    const adminMember = league.members.find(m => m.role === MemberRole.ADMIN)
-    if (adminMember?.user?.email) {
-      // Get requester username
-      const requester = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { username: true },
-      })
-
-      const adminPanelUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/leagues/${leagueId}/admin?tab=members`
-
-      // Lazy-load email service
-      const emailSvc = await getEmailService()
-      if (emailSvc) {
-        await emailSvc.sendJoinRequestNotificationEmail(
-          adminMember.user.email,
-          league.name,
-          requester?.username || 'Utente',
-          teamName.trim(),
-          adminPanelUrl
-        )
-      }
-    }
-  } catch (error) {
-    // Don't fail the request if email fails
-    console.error('[LeagueService] Failed to send join request notification:', error)
-  }
+  await sendJoinRequestEmail(league, userId, teamName.trim(), leagueId)
 
   return {
     success: true,
