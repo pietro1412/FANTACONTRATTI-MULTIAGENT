@@ -383,7 +383,7 @@ export async function getPendingJoinRequests(leagueId: string, userId: string): 
         },
       },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { joinedAt: 'desc' },
   })
 
   return {

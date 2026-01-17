@@ -29,7 +29,7 @@ interface TradeOffer {
 interface JoinRequest {
   id: string
   teamName: string
-  createdAt: string
+  joinedAt: string
   user: {
     id: string
     username: string
@@ -342,7 +342,7 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-white text-sm truncate">{request.user.username}</span>
-                          <span className="text-[10px] text-gray-500">{formatDate(request.createdAt)}</span>
+                          <span className="text-[10px] text-gray-500">{formatDate(request.joinedAt)}</span>
                         </div>
                         <p className="text-xs text-gray-400 truncate">
                           Vuole unirsi come <span className="text-accent-400 font-medium">{request.teamName}</span>
