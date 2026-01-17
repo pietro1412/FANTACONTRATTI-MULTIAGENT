@@ -190,6 +190,9 @@ export const PUSHER_EVENTS = {
   SVINCOLATI_NOMINATION: 'svincolati-nomination',
   SVINCOLATI_BID_PLACED: 'svincolati-bid-placed',
   SVINCOLATI_READY_CHANGED: 'svincolati-ready-changed',
+  // Indemnity phase events
+  INDEMNITY_DECISION_SUBMITTED: 'indemnity-decision-submitted',
+  INDEMNITY_ALL_DECIDED: 'indemnity-all-decided',
 } as const
 
 // ==================== HELPER FUNCTIONS ====================
@@ -418,4 +421,39 @@ export async function triggerSvincolatiReadyChanged(
   data: SvincolatiReadyChangedData
 ): Promise<boolean> {
   return triggerEvent(sessionId, PUSHER_EVENTS.SVINCOLATI_READY_CHANGED, data)
+}
+
+// ==================== INDEMNITY PHASE EVENTS ====================
+
+interface IndemnityDecisionSubmittedData {
+  memberId: string
+  memberUsername: string
+  decidedCount: number
+  totalCount: number
+  timestamp: string
+}
+
+interface IndemnityAllDecidedData {
+  totalMembers: number
+  timestamp: string
+}
+
+/**
+ * Trigger when a manager submits indemnity decisions
+ */
+export async function triggerIndemnityDecisionSubmitted(
+  sessionId: string,
+  data: IndemnityDecisionSubmittedData
+): Promise<boolean> {
+  return triggerEvent(sessionId, PUSHER_EVENTS.INDEMNITY_DECISION_SUBMITTED, data)
+}
+
+/**
+ * Trigger when all managers have submitted their indemnity decisions
+ */
+export async function triggerIndemnityAllDecided(
+  sessionId: string,
+  data: IndemnityAllDecidedData
+): Promise<boolean> {
+  return triggerEvent(sessionId, PUSHER_EVENTS.INDEMNITY_ALL_DECIDED, data)
 }

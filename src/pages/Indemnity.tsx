@@ -103,7 +103,7 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
   // Admin view
   const [decisionStatuses, setDecisionStatuses] = useState<DecisionStatus[]>([])
   const [allDecided, setAllDecided] = useState(false)
-  const [indennizzoEstero] = useState(50) // Default 50M
+  const [indennizzoEstero, setIndennizzoEstero] = useState(50) // Default 50M, fetched from API
 
   useEffect(() => {
     loadData()
@@ -128,12 +128,14 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
         hasSubmittedDecisions: boolean
         submittedAt: string | null
         currentBudget: number
+        indennizzoEstero: number
         affectedPlayers: AffectedPlayer[]
       }
       setInCalcoloPhase(data.inCalcoloIndennizziPhase)
       setHasSubmitted(data.hasSubmittedDecisions)
       setSubmittedAt(data.submittedAt)
       setCurrentBudget(data.currentBudget)
+      setIndennizzoEstero(data.indennizzoEstero || 50)
       setAffectedPlayers(data.affectedPlayers)
 
       // Initialize decisions with KEEP for all players (except RITIRATO which is auto)

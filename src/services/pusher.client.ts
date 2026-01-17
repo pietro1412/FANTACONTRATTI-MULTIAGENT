@@ -106,6 +106,21 @@ export interface RubataReadyChangedData {
   timestamp: string;
 }
 
+// ==================== INDEMNITY TYPES ====================
+
+export interface IndemnityDecisionSubmittedData {
+  memberId: string;
+  memberUsername: string;
+  decidedCount: number;
+  totalCount: number;
+  timestamp: string;
+}
+
+export interface IndemnityAllDecidedData {
+  totalMembers: number;
+  timestamp: string;
+}
+
 export interface AuctionEventHandlers {
   onBidPlaced?: (data: BidPlacedData) => void;
   onNominationPending?: (data: NominationPendingData) => void;
@@ -118,6 +133,9 @@ export interface AuctionEventHandlers {
   onRubataStealDeclared?: (data: RubataStealDeclaredData) => void;
   onRubataBidPlaced?: (data: RubataBidPlacedData) => void;
   onRubataReadyChanged?: (data: RubataReadyChangedData) => void;
+  // Indemnity events
+  onIndemnityDecisionSubmitted?: (data: IndemnityDecisionSubmittedData) => void;
+  onIndemnityAllDecided?: (data: IndemnityAllDecidedData) => void;
 }
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'failed' | 'unavailable';
@@ -209,6 +227,15 @@ export function subscribeToAuction(
     channel.bind('rubata-ready-changed', handlers.onRubataReadyChanged);
   }
 
+  // Indemnity events
+  if (handlers.onIndemnityDecisionSubmitted) {
+    channel.bind('indemnity-decision-submitted', handlers.onIndemnityDecisionSubmitted);
+  }
+
+  if (handlers.onIndemnityAllDecided) {
+    channel.bind('indemnity-all-decided', handlers.onIndemnityAllDecided);
+  }
+
   return channel;
 }
 
@@ -276,6 +303,13 @@ export function unbindAuctionHandlers(
     if (handlers.onRubataReadyChanged) {
       channel.unbind('rubata-ready-changed', handlers.onRubataReadyChanged);
     }
+    // Indemnity events
+    if (handlers.onIndemnityDecisionSubmitted) {
+      channel.unbind('indemnity-decision-submitted', handlers.onIndemnityDecisionSubmitted);
+    }
+    if (handlers.onIndemnityAllDecided) {
+      channel.unbind('indemnity-all-decided', handlers.onIndemnityAllDecided);
+    }
   }
 }
 
@@ -293,6 +327,9 @@ export interface UsePusherAuctionOptions {
   onRubataStealDeclared?: (data: RubataStealDeclaredData) => void;
   onRubataBidPlaced?: (data: RubataBidPlacedData) => void;
   onRubataReadyChanged?: (data: RubataReadyChangedData) => void;
+  // Indemnity events
+  onIndemnityDecisionSubmitted?: (data: IndemnityDecisionSubmittedData) => void;
+  onIndemnityAllDecided?: (data: IndemnityAllDecidedData) => void;
 }
 
 export interface UsePusherAuctionResult {

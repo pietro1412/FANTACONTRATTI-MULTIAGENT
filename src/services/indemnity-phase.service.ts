@@ -1,5 +1,6 @@
 import { PrismaClient, MemberStatus, RosterStatus, PlayerExitReason, Prisma } from '@prisma/client'
 import { recordMovement } from './movement.service'
+import { triggerIndemnityDecisionSubmitted, triggerIndemnityAllDecided } from './pusher.service'
 
 const prisma = new PrismaClient()
 
@@ -202,6 +203,26 @@ export async function getMyAffectedPlayers(
     },
   }) : null
 
+  // Get the indennizzo estero amount from the session's prize configuration
+  let indennizzoEstero = 50 // Default
+  if (activeSession) {
+    const prizeCategory = await prisma.prizeCategory.findFirst({
+      where: {
+        marketSessionId: activeSession.id,
+        name: 'Indennizzo Partenza Estero',
+        isSystemPrize: true,
+      },
+      include: {
+        managerPrizes: {
+          where: { leagueMemberId: member.id },
+        },
+      },
+    })
+    if (prizeCategory?.managerPrizes[0]?.amount) {
+      indennizzoEstero = prizeCategory.managerPrizes[0].amount
+    }
+  }
+
   const affectedPlayers: AffectedPlayer[] = member.roster
     .filter(r => r.contract)
     .map(r => ({
@@ -231,6 +252,7 @@ export async function getMyAffectedPlayers(
       hasSubmittedDecisions: !!existingDecision,
       submittedAt: existingDecision?.decidedAt || null,
       currentBudget: member.currentBudget,
+      indennizzoEstero,
       affectedPlayers,
     },
   }
@@ -321,10 +343,10 @@ export async function submitPlayerDecisions(
     }
   }
 
-  // Get league for Indennizzo Estero calculation
+  // Get Indennizzo Estero from the current session's prize configuration
   const prizeCategory = await prisma.prizeCategory.findFirst({
     where: {
-      marketSession: { leagueId, status: 'ACTIVE' },
+      marketSessionId: activeSession.id,
       name: 'Indennizzo Partenza Estero',
       isSystemPrize: true,
     },
@@ -476,6 +498,62 @@ export async function submitPlayerDecisions(
     const totalCompensation = processedResults
       .filter(r => r.compensation > 0)
       .reduce((sum, r) => sum + r.compensation, 0)
+
+    // Trigger Pusher notification for decision submission
+    // Check how many managers have submitted decisions
+    const allMembers = await prisma.leagueMember.findMany({
+      where: {
+        leagueId,
+        status: MemberStatus.ACTIVE,
+      },
+      include: {
+        user: { select: { username: true } },
+        roster: {
+          where: {
+            status: RosterStatus.ACTIVE,
+            player: {
+              listStatus: 'NOT_IN_LIST',
+              exitReason: { not: null },
+            },
+          },
+          include: { contract: true },
+        },
+      },
+    })
+
+    const managersWithAffected = allMembers.filter(m =>
+      m.roster.some(r => r.contract)
+    )
+
+    const allDecisions = await prisma.indemnityDecision.findMany({
+      where: { sessionId: activeSession.id },
+    })
+
+    const decidedCount = allDecisions.length
+    const totalCount = managersWithAffected.length
+
+    // Get the current member's username
+    const currentMember = await prisma.leagueMember.findUnique({
+      where: { id: member.id },
+      include: { user: { select: { username: true } } },
+    })
+
+    // Trigger decision submitted event
+    await triggerIndemnityDecisionSubmitted(activeSession.id, {
+      memberId: member.id,
+      memberUsername: currentMember?.user.username || 'Unknown',
+      decidedCount,
+      totalCount,
+      timestamp: new Date().toISOString(),
+    })
+
+    // If all managers have decided, trigger the all decided event
+    if (decidedCount >= totalCount && totalCount > 0) {
+      await triggerIndemnityAllDecided(activeSession.id, {
+        totalMembers: totalCount,
+        timestamp: new Date().toISOString(),
+      })
+    }
 
     return {
       success: true,
