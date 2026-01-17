@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FANTACONTRATTI - Guida Utente</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #319795;
+      --primary-light: #4FD1C5;
+      --accent: #F6AD55;
+      --danger: #FC8181;
+      --success: #68D391;
+      --purple: #B794F4;
+      --dark-100: #0a0a0b;
+      --dark-200: #111214;
+      --dark-300: #1a1c20;
+      --surface: #2d3139;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --sidebar-width: 280px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--dark-100);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: var(--sidebar-width);
+      height: 100vh;
+      background: var(--dark-200);
+      border-right: 1px solid var(--surface);
+      overflow-y: auto;
+      z-index: 100;
+    }
+
+    .sidebar-header {
+      padding: 25px 20px;
+      border-bottom: 1px solid var(--surface);
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .sidebar-logo {
+      width: 45px;
+      height: 45px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .sidebar-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .sidebar-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .sidebar-nav {
+      padding: 15px 0;
+    }
+
+    .nav-section {
+      padding: 0 15px;
+      margin-bottom: 5px;
+    }
+
+    .nav-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 15px 10px 8px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 15px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .nav-link:hover {
+      background: var(--dark-300);
+      color: var(--text);
+    }
+
+    .nav-link.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .nav-link .icon {
+      font-size: 16px;
+      width: 20px;
+      text-align: center;
+    }
+
+    .nav-link.superadmin { border-left: 3px solid var(--danger); }
+    .nav-link.admin { border-left: 3px solid var(--accent); }
+    .nav-link.manager { border-left: 3px solid var(--success); }
+
+    /* Main Content */
+    .main {
+      margin-left: var(--sidebar-width);
+      min-height: 100vh;
+    }
+
+    .content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 50px;
+    }
+
+    /* Header */
+    .page-header {
+      text-align: center;
+      padding: 60px 40px;
+      background: linear-gradient(135deg, var(--dark-200), var(--dark-300));
+      border-bottom: 4px solid;
+      border-image: linear-gradient(90deg, var(--primary), var(--primary-light), var(--accent)) 1;
+      margin-bottom: 50px;
+    }
+
+    .page-header h1 {
+      font-size: 42px;
+      font-weight: 800;
+      margin-bottom: 15px;
+      background: linear-gradient(135deg, var(--text), var(--primary-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .page-header p {
+      font-size: 18px;
+      color: var(--text-muted);
+    }
+
+    /* Sections */
+    .section {
+      margin-bottom: 60px;
+      scroll-margin-top: 30px;
+    }
+
+    h2 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid var(--surface);
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    h2 .badge {
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    h2 .badge.superadmin { background: var(--danger); color: white; }
+    h2 .badge.admin { background: var(--accent); color: var(--dark-100); }
+    h2 .badge.manager { background: var(--success); color: var(--dark-100); }
+
+    h3 {
+      font-size: 22px;
+      font-weight: 600;
+      margin: 35px 0 15px;
+      color: var(--primary-light);
+    }
+
+    h4 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 25px 0 12px;
+      color: var(--accent);
+    }
+
+    p {
+      font-size: 16px;
+      color: var(--text-muted);
+      margin-bottom: 15px;
+    }
+
+    /* Cards */
+    .role-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin: 30px 0;
+    }
+
+    .role-card {
+      background: var(--dark-300);
+      border-radius: 16px;
+      padding: 25px;
+      text-align: center;
+      border: 2px solid var(--surface);
+      transition: all 0.3s;
+    }
+
+    .role-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .role-card.superadmin { border-color: var(--danger); }
+    .role-card.admin { border-color: var(--accent); }
+    .role-card.manager { border-color: var(--success); }
+
+    .role-card .icon {
+      font-size: 40px;
+      margin-bottom: 15px;
+    }
+
+    .role-card h4 {
+      margin: 0 0 8px;
+      color: var(--text);
+    }
+
+    .role-card p {
+      font-size: 14px;
+      margin: 0;
+    }
+
+    /* Feature Box */
+    .feature-box {
+      background: var(--dark-300);
+      border-radius: 12px;
+      padding: 25px;
+      margin: 20px 0;
+      border-left: 4px solid var(--primary);
+    }
+
+    .feature-box h4 {
+      margin-top: 0;
+      color: var(--primary-light);
+    }
+
+    .feature-box.warning {
+      border-color: var(--accent);
+    }
+
+    .feature-box.danger {
+      border-color: var(--danger);
+    }
+
+    /* Lists */
+    ul, ol {
+      margin: 15px 0;
+      padding-left: 25px;
+    }
+
+    li {
+      margin: 8px 0;
+      color: var(--text-muted);
+    }
+
+    li strong {
+      color: var(--text);
+    }
+
+    /* Check lists */
+    .check-list {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .check-list li {
+      padding-left: 30px;
+      position: relative;
+    }
+
+    .check-list li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--success);
+      font-weight: bold;
+    }
+
+    /* Tables */
+    .table-wrapper {
+      overflow-x: auto;
+      margin: 20px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th {
+      background: var(--primary);
+      color: white;
+      padding: 12px 15px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    th:first-child { border-radius: 8px 0 0 0; }
+    th:last-child { border-radius: 0 8px 0 0; }
+
+    td {
+      padding: 12px 15px;
+      border-bottom: 1px solid var(--surface);
+      background: var(--dark-300);
+    }
+
+    tr:last-child td:first-child { border-radius: 0 0 0 8px; }
+    tr:last-child td:last-child { border-radius: 0 0 8px 0; }
+
+    /* Steps */
+    .steps {
+      margin: 25px 0;
+    }
+
+    .step {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+      padding: 20px;
+      background: var(--dark-300);
+      border-radius: 12px;
+    }
+
+    .step-number {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .step-content h4 {
+      margin: 0 0 8px;
+      color: var(--text);
+    }
+
+    .step-content p {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    /* Code blocks */
+    code {
+      background: var(--dark-200);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 14px;
+      color: var(--primary-light);
+    }
+
+    pre {
+      background: var(--dark-200);
+      padding: 20px;
+      border-radius: 10px;
+      overflow-x: auto;
+      margin: 15px 0;
+    }
+
+    pre code {
+      padding: 0;
+      background: none;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 5px;
+      margin: 25px 0 20px;
+      border-bottom: 2px solid var(--surface);
+      padding-bottom: 10px;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      background: var(--dark-300);
+      border-radius: 8px 8px 0 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .tab.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* Phase timeline */
+    .phase-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin: 25px 0;
+    }
+
+    .phase {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 15px 20px;
+      background: var(--dark-300);
+      border-radius: 10px;
+      border-left: 4px solid var(--primary);
+    }
+
+    .phase:nth-child(2) { border-color: var(--primary-light); }
+    .phase:nth-child(3) { border-color: var(--accent); }
+    .phase:nth-child(4) { border-color: var(--purple); }
+    .phase:nth-child(5) { border-color: var(--success); }
+    .phase:nth-child(6) { border-color: var(--danger); }
+
+    .phase-number {
+      width: 30px;
+      height: 30px;
+      background: var(--surface);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .phase-info h4 {
+      margin: 0;
+      font-size: 16px;
+      color: var(--text);
+    }
+
+    .phase-info p {
+      margin: 3px 0 0;
+      font-size: 13px;
+    }
+
+    /* Glossary */
+    .glossary {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin: 25px 0;
+    }
+
+    .glossary-item {
+      background: var(--dark-300);
+      border-radius: 10px;
+      padding: 15px 20px;
+    }
+
+    .glossary-item dt {
+      font-weight: 600;
+      color: var(--primary-light);
+      margin-bottom: 5px;
+    }
+
+    .glossary-item dd {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 40px;
+      border-top: 1px solid var(--surface);
+      margin-top: 60px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* Mobile */
+    @media (max-width: 900px) {
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s;
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .main {
+        margin-left: 0;
+      }
+
+      .content {
+        padding: 30px 20px;
+      }
+
+      .role-cards, .glossary {
+        grid-template-columns: 1fr;
+      }
+
+      .page-header h1 {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">⚽</div>
+    <div>
+      <div class="sidebar-title">FANTACONTRATTI</div>
+      <div class="sidebar-subtitle">Guida Utente</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">
+      <div class="nav-section-title">Introduzione</div>
+      <a href="#intro" class="nav-link"><span class="icon">📖</span> Panoramica</a>
+      <a href="#roles" class="nav-link"><span class="icon">👥</span> Ruoli Utente</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Super Admin</div>
+      <a href="#superadmin" class="nav-link superadmin"><span class="icon">👑</span> Dashboard</a>
+      <a href="#quotazioni" class="nav-link superadmin"><span class="icon">📊</span> Quotazioni</a>
+      <a href="#sa-users" class="nav-link superadmin"><span class="icon">👤</span> Gestione Utenti</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Presidente</div>
+      <a href="#admin" class="nav-link admin"><span class="icon">🏛️</span> Gestione Lega</a>
+      <a href="#create-league" class="nav-link admin"><span class="icon">➕</span> Crea Lega</a>
+      <a href="#phases" class="nav-link admin"><span class="icon">🔄</span> Fasi Mercato</a>
+      <a href="#admin-panel" class="nav-link admin"><span class="icon">⚙️</span> Pannello Admin</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Manager</div>
+      <a href="#manager" class="nav-link manager"><span class="icon">⚽</span> Dashboard</a>
+      <a href="#roster" class="nav-link manager"><span class="icon">📋</span> Rosa</a>
+      <a href="#auctions" class="nav-link manager"><span class="icon">🔨</span> Sistema Aste</a>
+      <a href="#contracts" class="nav-link manager"><span class="icon">📝</span> Contratti</a>
+      <a href="#trades" class="nav-link manager"><span class="icon">🔄</span> Scambi</a>
+      <a href="#history" class="nav-link manager"><span class="icon">📚</span> Storico</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Appendice</div>
+      <a href="#glossary" class="nav-link"><span class="icon">📖</span> Glossario</a>
+      <a href="#phase-order" class="nav-link"><span class="icon">📅</span> Ordine Fasi</a>
+    </div>
+  </nav>
+</aside>
+
+<!-- Main Content -->
+<main class="main">
+
+  <header class="page-header">
+    <h1>Guida Utente FANTACONTRATTI</h1>
+    <p>Manuale completo per tutti i ruoli della piattaforma</p>
+  </header>
+
+  <div class="content">
+
+    <!-- Introduzione -->
+    <section class="section" id="intro">
+      <h2>Introduzione</h2>
+      <p>FANTACONTRATTI e' una piattaforma di fantacalcio dinastico con sistema di contratti realistici. A differenza del fantacalcio tradizionale, le rose si mantengono nel tempo e ogni giocatore ha un contratto con ingaggio, durata e clausola rescissoria.</p>
+
+      <div class="feature-box">
+        <h4>Caratteristiche Principali</h4>
+        <ul class="check-list">
+          <li>Rose pluriennali che si mantengono tra le stagioni</li>
+          <li>Sistema contratti con ingaggio, durata e clausole</li>
+          <li>5 fasi di mercato dinamiche</li>
+          <li>Meccanismo RUBATA per il riequilibrio competitivo</li>
+          <li>Aste in tempo reale via WebSocket</li>
+          <li>Storico completo di tutti i movimenti</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Ruoli -->
+    <section class="section" id="roles">
+      <h2>Ruoli Utente</h2>
+      <p>La piattaforma prevede tre ruoli principali con diversi livelli di accesso:</p>
+
+      <div class="role-cards">
+        <div class="role-card superadmin">
+          <div class="icon">👑</div>
+          <h4>Super Admin</h4>
+          <p>Amministratore della piattaforma. Gestisce quotazioni e utenti.</p>
+        </div>
+        <div class="role-card admin">
+          <div class="icon">🏛️</div>
+          <h4>Presidente</h4>
+          <p>Admin di una lega. Gestisce fasi, membri e configurazione.</p>
+        </div>
+        <div class="role-card manager">
+          <div class="icon">⚽</div>
+          <h4>Direttore Generale</h4>
+          <p>Partecipante attivo. Gestisce la propria squadra.</p>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Funzionalita'</th>
+              <th>Super Admin</th>
+              <th>Presidente</th>
+              <th>Manager</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Gestione quotazioni</td>
+              <td>✓</td>
+              <td>-</td>
+              <td>-</td>
+            </tr>
+            <tr>
+              <td>Creazione lega</td>
+              <td>-</td>
+              <td>✓</td>
+              <td>-</td>
+            </tr>
+            <tr>
+              <td>Gestione fasi mercato</td>
+              <td>-</td>
+              <td>✓</td>
+              <td>-</td>
+            </tr>
+            <tr>
+              <td>Partecipazione aste</td>
+              <td>-</td>
+              <td>-</td>
+              <td>✓</td>
+            </tr>
+            <tr>
+              <td>Gestione contratti</td>
+              <td>-</td>
+              <td>-</td>
+              <td>✓</td>
+            </tr>
+            <tr>
+              <td>Proporre scambi</td>
+              <td>-</td>
+              <td>-</td>
+              <td>✓</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SUPER ADMIN -->
+    <section class="section" id="superadmin">
+      <h2>Super Admin <span class="badge superadmin">Piattaforma</span></h2>
+      <p>Il Super Admin gestisce la piattaforma a livello globale. Non partecipa alle leghe come manager.</p>
+
+      <h3>Dashboard Super Admin</h3>
+      <p>Dopo il login, vieni reindirizzato automaticamente a <code>/superadmin</code>. La dashboard presenta 4 tab:</p>
+
+      <div class="tabs">
+        <span class="tab active">Upload Quotazioni</span>
+        <span class="tab">Giocatori</span>
+        <span class="tab">Leghe</span>
+        <span class="tab">Utenti</span>
+      </div>
+    </section>
+
+    <section class="section" id="quotazioni">
+      <h3>Upload Quotazioni</h3>
+      <p>Gestione del database giocatori tramite upload di file Excel.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h4>Seleziona File XLSX</h4>
+            <p>Clicca su "Upload Quotazioni" e seleziona il file Excel con le quotazioni ufficiali.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h4>Conferma Upload</h4>
+            <p>Il sistema elabora il file, creando nuovi giocatori o aggiornando quelli esistenti.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h4>Verifica Report</h4>
+            <p>Visualizza il report con: giocatori creati, aggiornati ed eventuali errori.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="sa-users">
+      <h3>Gestione Utenti</h3>
+      <p>Panoramica e gestione di tutti gli utenti registrati.</p>
+
+      <ul>
+        <li><strong>Visualizza utenti:</strong> Username, email, stato verifica</li>
+        <li><strong>Membership:</strong> Conteggio leghe per utente</li>
+        <li><strong>Promozione:</strong> Concedi/revoca status Super Admin</li>
+      </ul>
+
+      <div class="feature-box warning">
+        <h4>Attenzione</h4>
+        <p>La promozione a Super Admin da' accesso completo alla piattaforma. Usa questa funzione con cautela.</p>
+      </div>
+    </section>
+
+    <!-- PRESIDENTE -->
+    <section class="section" id="admin">
+      <h2>Presidente <span class="badge admin">Lega</span></h2>
+      <p>Il Presidente gestisce una lega specifica con pieni poteri amministrativi.</p>
+    </section>
+
+    <section class="section" id="create-league">
+      <h3>Creazione Lega</h3>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h4>Dati Base</h4>
+            <p>Nome della lega e descrizione opzionale.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h4>Configurazione Partecipanti</h4>
+            <p>Numero minimo e massimo partecipanti, vincolo numero pari.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h4>Budget e Rose</h4>
+            <p>Budget iniziale e slot per ruolo (GK, DEF, MID, FWD).</p>
+          </div>
+        </div>
+      </div>
+
+      <p>Dopo la creazione diventi automaticamente Presidente della lega.</p>
+    </section>
+
+    <section class="section" id="phases">
+      <h3>Gestione Fasi di Mercato</h3>
+
+      <h4>Tipi di Sessione</h4>
+      <ul>
+        <li><strong>Primo Mercato:</strong> Prima sessione con asta libera per costruire le rose</li>
+        <li><strong>Mercato Ricorrente:</strong> Sessioni successive (Contratti, Scambi, Rubata, Svincolati, Premi)</li>
+      </ul>
+
+      <h4>Azioni Disponibili</h4>
+      <ul class="check-list">
+        <li>Crea nuova sessione di mercato</li>
+        <li>Imposta ordine turni dei manager</li>
+        <li>Configura timer asta</li>
+        <li>Avanza o retrocedi tra le fasi</li>
+        <li>Reset Primo Mercato (se necessario)</li>
+      </ul>
+    </section>
+
+    <section class="section" id="admin-panel">
+      <h3>Pannello Amministrazione</h3>
+
+      <div class="tabs">
+        <span class="tab active">Mercato</span>
+        <span class="tab">Membri</span>
+        <span class="tab">Premi</span>
+        <span class="tab">Ricorsi</span>
+        <span class="tab">Inviti</span>
+        <span class="tab">Audit</span>
+      </div>
+
+      <h4>Membri</h4>
+      <ul>
+        <li>Approva richieste pendenti</li>
+        <li>Sospendi membri attivi</li>
+        <li>Visualizza rosa di ogni manager</li>
+        <li>Monitora budget disponibili</li>
+      </ul>
+
+      <h4>Premi</h4>
+      <p>Durante la fase PREMI:</p>
+      <ol>
+        <li>Imposta il re-incremento base</li>
+        <li>Crea categorie premio personalizzate</li>
+        <li>Assegna premi per categoria</li>
+        <li>Finalizza la fase</li>
+      </ol>
+
+      <h4>Ricorsi</h4>
+      <p>Gestione delle contestazioni durante le aste:</p>
+      <ul>
+        <li>Rivedi storico offerte</li>
+        <li>Accetta o rifiuta con motivazione</li>
+        <li>Se accettato, l'asta viene annullata</li>
+      </ul>
+
+      <h4>Audit Log</h4>
+      <p>Registro completo di tutte le azioni: timestamp, utente, azione, valori precedenti/nuovi.</p>
+    </section>
+
+    <!-- MANAGER -->
+    <section class="section" id="manager">
+      <h2>Direttore Generale <span class="badge manager">Squadra</span></h2>
+      <p>Il Manager partecipa attivamente alla lega gestendo la propria squadra.</p>
+
+      <h3>Dashboard Personale</h3>
+      <ul>
+        <li>Nome squadra e budget disponibile</li>
+        <li>Fase di mercato corrente</li>
+        <li>Azioni disponibili nella fase</li>
+        <li>Navigazione rapida a Rosa, Contratti, Scambi</li>
+      </ul>
+    </section>
+
+    <section class="section" id="roster">
+      <h3>Rosa (Roster)</h3>
+
+      <h4>Visualizzazione</h4>
+      <ul>
+        <li>Giocatori ordinati per ruolo (P, D, C, A)</li>
+        <li>Dettagli contratto per ogni giocatore</li>
+        <li>Quotazione attuale e squadra reale</li>
+      </ul>
+
+      <h4>Dettagli Contratto</h4>
+      <ul>
+        <li><strong>Ingaggio:</strong> Costo per semestre</li>
+        <li><strong>Durata:</strong> Semestri rimanenti (1-4)</li>
+        <li><strong>Clausola Rescissoria:</strong> Prezzo per la rubata</li>
+      </ul>
+
+      <h4>Slot Disponibili</h4>
+      <p>Monitora gli slot per ruolo: Portieri, Difensori, Centrocampisti, Attaccanti.</p>
+    </section>
+
+    <section class="section" id="auctions">
+      <h3>Sistema Aste</h3>
+
+      <h4>Primo Mercato</h4>
+      <p>L'asta iniziale per costruire la rosa:</p>
+      <ol>
+        <li>A turno, ogni manager nomina un giocatore</li>
+        <li>Parte l'asta con timer</li>
+        <li>Tutti possono rilanciare</li>
+        <li>Il timer si resetta ad ogni rilancio</li>
+        <li>Quando scade, il miglior offerente vince</li>
+      </ol>
+
+      <div class="feature-box">
+        <h4>Profezie</h4>
+        <p>Puoi lasciare una "profezia" sul giocatore: un commento ironico o serio che sara' visibile a tutti dopo l'asta. Crea engagement nella lega!</p>
+      </div>
+
+      <h4>Fase Rubata</h4>
+      <p>Il meccanismo di riequilibrio competitivo:</p>
+      <ol>
+        <li>Ogni manager "espone" i propri giocatori</li>
+        <li>Gli altri possono "rubarli" pagando clausola + ingaggio</li>
+        <li>Se qualcuno paga, il giocatore cambia squadra</li>
+        <li><strong>Impossibile rifiutare!</strong></li>
+      </ol>
+
+      <h4>Strategie Rubata</h4>
+      <p>Imposta preferenze per ogni giocatore:</p>
+      <ul>
+        <li><strong>Watchlist:</strong> Giocatori da monitorare</li>
+        <li><strong>Auto-Pass:</strong> Salta automaticamente</li>
+        <li><strong>Max Bid:</strong> Offerta massima automatica</li>
+        <li><strong>Priorita':</strong> Ordine di preferenza</li>
+        <li><strong>Note private:</strong> Appunti strategici</li>
+      </ul>
+
+      <h4>Asta Svincolati</h4>
+      <p>Acquisto di giocatori senza contratto (free agent):</p>
+      <ul>
+        <li>Nomina un giocatore svincolato</li>
+        <li>Parte l'asta libera</li>
+        <li>Il prezzo base e' la quotazione</li>
+        <li>Vince il miglior offerente</li>
+      </ul>
+    </section>
+
+    <section class="section" id="contracts">
+      <h3>Gestione Contratti</h3>
+
+      <p>Durante la fase CONTRATTI puoi rinnovare i contratti dei tuoi giocatori:</p>
+
+      <ul>
+        <li>Modifica l'ingaggio (entro limiti)</li>
+        <li>Modifica la durata (1-4 semestri)</li>
+        <li>Segna per lo svincolo (taglio)</li>
+      </ul>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h4>Seleziona Giocatore</h4>
+            <p>Vai su Contratti e scegli il giocatore da rinnovare.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h4>Imposta Parametri</h4>
+            <p>Modifica ingaggio e durata, verifica l'anteprima costi.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h4>Consolida</h4>
+            <p>Quando hai finito con tutti i giocatori, clicca "Consolida".</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-box warning">
+        <h4>Regole di Rinnovo</h4>
+        <ul>
+          <li>Aumenti/diminuzioni massime per parametro</li>
+          <li>Budget sufficiente richiesto</li>
+          <li>Clausola ricalcolata automaticamente</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="trades">
+      <h3>Scambi tra Manager</h3>
+
+      <h4>Proporre uno Scambio</h4>
+      <ol>
+        <li>Vai su Scambi > Nuova Offerta</li>
+        <li>Seleziona il manager destinatario</li>
+        <li>Scegli giocatori da offrire e richiedere</li>
+        <li>Aggiungi/richiedi budget (opzionale)</li>
+        <li>Imposta la scadenza e invia</li>
+      </ol>
+
+      <h4>Ricevere un'Offerta</h4>
+      <p>Quando ricevi un'offerta puoi:</p>
+      <ul>
+        <li><strong>Accetta:</strong> Lo scambio viene eseguito</li>
+        <li><strong>Rifiuta:</strong> L'offerta viene chiusa</li>
+        <li><strong>Controproposta:</strong> Modifica i termini</li>
+      </ul>
+    </section>
+
+    <section class="section" id="history">
+      <h3>Storico e Movimenti</h3>
+
+      <p>Registro completo di tutte le transazioni:</p>
+      <ul>
+        <li>Acquisti Primo Mercato</li>
+        <li>Movimenti Rubata</li>
+        <li>Acquisti Svincolati</li>
+        <li>Scambi tra manager</li>
+        <li>Svincoli e rinnovi</li>
+      </ul>
+
+      <p>Per ogni movimento: data, tipo, giocatore, manager coinvolti, prezzo, dettagli contratto.</p>
+    </section>
+
+    <!-- APPENDICE -->
+    <section class="section" id="glossary">
+      <h2>Glossario</h2>
+
+      <dl class="glossary">
+        <div class="glossary-item">
+          <dt>Ingaggio</dt>
+          <dd>Costo del giocatore per semestre</dd>
+        </div>
+        <div class="glossary-item">
+          <dt>Clausola Rescissoria</dt>
+          <dd>Prezzo per "rubare" un giocatore nella fase Rubata</dd>
+        </div>
+        <div class="glossary-item">
+          <dt>Rubata</dt>
+          <dd>Fase di aste forzate dove si possono acquisire giocatori altrui</dd>
+        </div>
+        <div class="glossary-item">
+          <dt>Svincolato</dt>
+          <dd>Giocatore senza contratto, disponibile all'acquisto</dd>
+        </div>
+        <div class="glossary-item">
+          <dt>Consolidamento</dt>
+          <dd>Conferma definitiva dei contratti rinnovati</dd>
+        </div>
+        <div class="glossary-item">
+          <dt>Profezia</dt>
+          <dd>Commento/previsione lasciato su un'acquisizione</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="section" id="phase-order">
+      <h2>Ordine Fasi di Mercato</h2>
+
+      <div class="phase-timeline">
+        <div class="phase">
+          <div class="phase-number">1</div>
+          <div class="phase-info">
+            <h4>PRIMO_MERCATO</h4>
+            <p>Asta iniziale per costruire le rose (solo prima sessione)</p>
+          </div>
+        </div>
+        <div class="phase">
+          <div class="phase-number">2</div>
+          <div class="phase-info">
+            <h4>CONTRATTI</h4>
+            <p>Rinnovo contratti esistenti, modifica ingaggio e durata</p>
+          </div>
+        </div>
+        <div class="phase">
+          <div class="phase-number">3</div>
+          <div class="phase-info">
+            <h4>SCAMBI</h4>
+            <p>Trattative e scambi tra manager</p>
+          </div>
+        </div>
+        <div class="phase">
+          <div class="phase-number">4</div>
+          <div class="phase-info">
+            <h4>RUBATA</h4>
+            <p>Aste forzate con pagamento clausola rescissoria</p>
+          </div>
+        </div>
+        <div class="phase">
+          <div class="phase-number">5</div>
+          <div class="phase-info">
+            <h4>ASTA_SVINCOLATI</h4>
+            <p>Acquisto giocatori liberi (free agent)</p>
+          </div>
+        </div>
+        <div class="phase">
+          <div class="phase-number">6</div>
+          <div class="phase-info">
+            <h4>PREMI</h4>
+            <p>Assegnazione bonus budget ai manager</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-box">
+        <h4>Calcolo Clausola Rescissoria</h4>
+        <pre><code>Clausola = Ingaggio x Moltiplicatore</code></pre>
+        <p>Il moltiplicatore dipende dalla durata: contratti piu' lunghi = clausola piu' alta.</p>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>Guida Utente v1.0 - Gennaio 2026</p>
+      <p>FANTACONTRATTI - Dynasty Fantasy Football Platform</p>
+    </footer>
+
+  </div>
+</main>
+
+</body>
+</html>
