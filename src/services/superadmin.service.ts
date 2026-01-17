@@ -1,7 +1,25 @@
-import { PrismaClient, Position, Prisma } from '@prisma/client'
+import { PrismaClient, Position, Prisma, PlayerExitReason } from '@prisma/client'
 import * as XLSX from 'xlsx'
 
 const prisma = new PrismaClient()
+
+// ==================== TYPES ====================
+
+export interface ExitedPlayerInfo {
+  playerId: string
+  playerName: string
+  position: Position
+  team: string
+  lastQuotation: number
+  contracts: Array<{
+    leagueId: string
+    leagueName: string
+    memberId: string
+    memberUsername: string
+    salary: number
+    duration: number
+  }>
+}
 
 export interface ServiceResult {
   success: boolean
@@ -302,6 +320,10 @@ export async function importQuotazioni(
       })
     }, { timeout: 25000 }) // 25 second timeout for transaction
 
+    // After import, find players that need exit classification
+    // These are players marked as NOT_IN_LIST that have active contracts AND no exitReason set yet
+    const playersNeedingClassification = await detectPlayersNeedingClassification()
+
     return {
       success: true,
       message: `Import completato: ${stats.created} nuovi, ${stats.updated} aggiornati, ${stats.notInList} non più in lista`,
@@ -311,6 +333,7 @@ export async function importQuotazioni(
         notInList: stats.notInList,
         errors: stats.errors.length > 0 ? stats.errors.slice(0, 10) : undefined,
         totalProcessed: rows.length,
+        playersNeedingClassification,
       },
     }
   } catch (error) {
@@ -319,6 +342,128 @@ export async function importQuotazioni(
       success: false,
       message: `Errore durante l'import: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`,
     }
+  }
+}
+
+// ==================== DETECT PLAYERS NEEDING CLASSIFICATION ====================
+
+export async function detectPlayersNeedingClassification(): Promise<ExitedPlayerInfo[]> {
+  // Find all players that are NOT_IN_LIST, have NO exitReason, and have active contracts
+  const playersWithContracts = await prisma.serieAPlayer.findMany({
+    where: {
+      listStatus: 'NOT_IN_LIST',
+      exitReason: null,
+      rosters: {
+        some: {
+          status: 'ACTIVE',
+          contract: {
+            isNot: null,
+          },
+        },
+      },
+    },
+    include: {
+      rosters: {
+        where: {
+          status: 'ACTIVE',
+          contract: {
+            isNot: null,
+          },
+        },
+        include: {
+          contract: true,
+          leagueMember: {
+            include: {
+              user: {
+                select: { username: true },
+              },
+              league: {
+                select: { id: true, name: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+
+  return playersWithContracts.map((player) => ({
+    playerId: player.id,
+    playerName: player.name,
+    position: player.position,
+    team: player.team,
+    lastQuotation: player.quotation,
+    contracts: player.rosters.map((roster) => ({
+      leagueId: roster.leagueMember.league.id,
+      leagueName: roster.leagueMember.league.name,
+      memberId: roster.leagueMember.id,
+      memberUsername: roster.leagueMember.user.username,
+      salary: roster.contract!.salary,
+      duration: roster.contract!.duration,
+    })),
+  }))
+}
+
+// ==================== CLASSIFY EXITED PLAYERS ====================
+
+export async function classifyExitedPlayers(
+  userId: string,
+  classifications: Array<{ playerId: string; exitReason: PlayerExitReason }>
+): Promise<ServiceResult> {
+  // Verify superadmin
+  const isSuperAdmin = await verifySuperAdmin(userId)
+  if (!isSuperAdmin) {
+    return { success: false, message: 'Non autorizzato. Solo i superadmin possono classificare i giocatori.' }
+  }
+
+  if (!classifications || classifications.length === 0) {
+    return { success: false, message: 'Nessuna classificazione fornita' }
+  }
+
+  try {
+    const now = new Date()
+
+    // Update each player with their exit reason
+    await prisma.$transaction(async (tx) => {
+      for (const { playerId, exitReason } of classifications) {
+        await tx.serieAPlayer.update({
+          where: { id: playerId },
+          data: {
+            exitReason,
+            exitDate: now,
+          },
+        })
+      }
+    })
+
+    return {
+      success: true,
+      message: `Classificati ${classifications.length} giocatori`,
+      data: { classified: classifications.length },
+    }
+  } catch (error) {
+    console.error('Classification error:', error)
+    return {
+      success: false,
+      message: `Errore durante la classificazione: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`,
+    }
+  }
+}
+
+// ==================== GET PLAYERS NEEDING CLASSIFICATION ====================
+
+export async function getPlayersNeedingClassification(userId: string): Promise<ServiceResult> {
+  // Verify superadmin
+  const isSuperAdmin = await verifySuperAdmin(userId)
+  if (!isSuperAdmin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const players = await detectPlayersNeedingClassification()
+
+  return {
+    success: true,
+    data: { players },
   }
 }
 

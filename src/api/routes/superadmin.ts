@@ -12,7 +12,10 @@ import {
   getMemberRoster,
   getUploadHistory,
   deleteAllPlayers,
+  getPlayersNeedingClassification,
+  classifyExitedPlayers,
 } from '../../services/superadmin.service'
+import { PlayerExitReason } from '@prisma/client'
 import { authMiddleware } from '../middleware/auth'
 
 const router = Router()
@@ -247,6 +250,64 @@ router.delete('/superadmin/players', authMiddleware, async (req: Request, res: R
     res.json(result)
   } catch (error) {
     console.error('Delete all players error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== PLAYERS EXIT CLASSIFICATION ====================
+
+// GET /api/superadmin/players/needing-classification - Get players needing exit classification
+router.get('/superadmin/players/needing-classification', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const result = await getPlayersNeedingClassification(req.user!.userId)
+
+    if (!result.success) {
+      res.status(403).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get players needing classification error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/superadmin/players/classify-exits - Classify exited players
+router.post('/superadmin/players/classify-exits', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { classifications } = req.body as {
+      classifications: Array<{ playerId: string; exitReason: PlayerExitReason }>
+    }
+
+    if (!classifications || !Array.isArray(classifications)) {
+      res.status(400).json({ success: false, message: 'Classificazioni mancanti o formato non valido' })
+      return
+    }
+
+    // Validate exit reasons
+    const validReasons: PlayerExitReason[] = ['RITIRATO', 'RETROCESSO', 'ESTERO']
+    for (const c of classifications) {
+      if (!c.playerId || !c.exitReason) {
+        res.status(400).json({ success: false, message: 'Ogni classificazione deve avere playerId e exitReason' })
+        return
+      }
+      if (!validReasons.includes(c.exitReason)) {
+        res.status(400).json({ success: false, message: `exitReason non valido: ${c.exitReason}` })
+        return
+      }
+    }
+
+    const result = await classifyExitedPlayers(req.user!.userId, classifications)
+
+    if (!result.success) {
+      res.status(result.message?.includes('Non autorizzato') ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Classify exited players error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })
