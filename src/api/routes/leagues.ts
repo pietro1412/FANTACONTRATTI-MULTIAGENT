@@ -13,6 +13,7 @@ import {
   updateLeague,
   startLeague,
   leaveLeague,
+  cancelJoinRequest,
   getAllRosters,
   searchLeagues,
 } from '../../services/league.service'
@@ -278,6 +279,24 @@ router.post('/:id/leave', authMiddleware, async (req: Request, res: Response) =>
     res.json(result)
   } catch (error) {
     console.error('Leave league error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/leagues/:id/cancel-request - Annulla richiesta di partecipazione (#50)
+router.post('/:id/cancel-request', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const result = await cancelJoinRequest(id, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Cancel join request error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

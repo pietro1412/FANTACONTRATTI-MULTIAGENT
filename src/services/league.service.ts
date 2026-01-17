@@ -444,10 +444,13 @@ export async function updateMemberStatus(
     return { success: false, message: 'Non autorizzato' }
   }
 
-  // Get target member
+  // Get target member with user info for email
   const member = await prisma.leagueMember.findUnique({
     where: { id: memberId },
-    include: { league: true },
+    include: {
+      league: true,
+      user: { select: { email: true } },
+    },
   })
 
   if (!member || member.leagueId !== leagueId) {
@@ -482,6 +485,24 @@ export async function updateMemberStatus(
       },
     })
 
+    // Send email notification to the manager (#52)
+    if (member.user?.email) {
+      try {
+        const leagueUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/leagues/${leagueId}`
+        const emailSvc = await getEmailService()
+        if (emailSvc) {
+          await emailSvc.sendJoinRequestResponseEmail(
+            member.user.email,
+            member.league.name,
+            true, // approved
+            leagueUrl
+          )
+        }
+      } catch (error) {
+        console.error('[LeagueService] Failed to send approval email:', error)
+      }
+    }
+
     return { success: true, message: 'Membro accettato' }
   }
 
@@ -490,6 +511,22 @@ export async function updateMemberStatus(
       where: { id: memberId },
       data: { status: MemberStatus.LEFT },
     })
+
+    // Send email notification for rejection (#52)
+    if (action === 'reject' && member.user?.email) {
+      try {
+        const emailSvc = await getEmailService()
+        if (emailSvc) {
+          await emailSvc.sendJoinRequestResponseEmail(
+            member.user.email,
+            member.league.name,
+            false // rejected
+          )
+        }
+      } catch (error) {
+        console.error('[LeagueService] Failed to send rejection email:', error)
+      }
+    }
 
     return {
       success: true,
@@ -585,11 +622,12 @@ export async function startLeague(leagueId: string, adminUserId: string): Promis
 // ==================== LASCIA LEGA ====================
 
 export async function leaveLeague(leagueId: string, userId: string): Promise<ServiceResult> {
+  // Check for both ACTIVE and PENDING memberships
   const member = await prisma.leagueMember.findFirst({
     where: {
       leagueId,
       userId,
-      status: MemberStatus.ACTIVE,
+      status: { in: [MemberStatus.ACTIVE, MemberStatus.PENDING] },
     },
     include: { league: true },
   })
@@ -598,7 +636,16 @@ export async function leaveLeague(leagueId: string, userId: string): Promise<Ser
     return { success: false, message: 'Non sei membro di questa lega' }
   }
 
-  // BLOCCO POST-AVVIO: Non si può lasciare se la lega è ACTIVE
+  // PENDING members can always cancel their request (#50)
+  if (member.status === MemberStatus.PENDING) {
+    await prisma.leagueMember.update({
+      where: { id: member.id },
+      data: { status: MemberStatus.LEFT },
+    })
+    return { success: true, message: 'Richiesta di partecipazione annullata' }
+  }
+
+  // ACTIVE members cannot leave after league starts (#51)
   if (member.league.status === 'ACTIVE') {
     return { success: false, message: 'Non puoi lasciare la lega dopo che è stata avviata' }
   }
@@ -614,6 +661,29 @@ export async function leaveLeague(leagueId: string, userId: string): Promise<Ser
   })
 
   return { success: true, message: 'Hai lasciato la lega' }
+}
+
+// ==================== ANNULLA RICHIESTA PARTECIPAZIONE ====================
+
+export async function cancelJoinRequest(leagueId: string, userId: string): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.PENDING,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Nessuna richiesta pendente trovata' }
+  }
+
+  await prisma.leagueMember.update({
+    where: { id: member.id },
+    data: { status: MemberStatus.LEFT },
+  })
+
+  return { success: true, message: 'Richiesta di partecipazione annullata' }
 }
 
 export async function updateLeague(

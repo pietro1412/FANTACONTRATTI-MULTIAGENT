@@ -176,6 +176,10 @@ export const leagueApi = {
   leave: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/leave`, { method: 'POST' }),
 
+  // Cancel join request (#50)
+  cancelRequest: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/cancel-request`, { method: 'POST' }),
+
   // Search leagues
   search: (query: string) =>
     request<Array<{

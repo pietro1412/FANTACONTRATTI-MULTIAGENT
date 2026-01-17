@@ -220,6 +220,16 @@ export async function acceptInvite(
     return { success: false, message: 'La lega ha raggiunto il numero massimo di partecipanti' }
   }
 
+  // Get admin member for email notification (#53)
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: invite.leagueId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+    include: { user: { select: { email: true } } },
+  })
+
   // Crea il membro (ACTIVE direttamente, senza approvazione)
   const member = await prisma.leagueMember.create({
     data: {
@@ -240,6 +250,22 @@ export async function acceptInvite(
       acceptedAt: new Date(),
     },
   })
+
+  // Send email notification to admin (#53)
+  if (adminMember?.user?.email) {
+    try {
+      const leagueUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/leagues/${invite.leagueId}`
+      await emailService.sendInviteResponseNotificationEmail(
+        adminMember.user.email,
+        invite.league.name,
+        user.email.split('@')[0], // username approximation from email
+        true, // accepted
+        leagueUrl
+      )
+    } catch (err) {
+      console.error('[InviteService] Failed to send invite acceptance notification:', err)
+    }
+  }
 
   return {
     success: true,
@@ -561,9 +587,10 @@ export async function rejectInvite(
   token: string,
   userId: string
 ): Promise<ServiceResult> {
-  // Trova l'invito
+  // Trova l'invito with league info
   const invite = await prisma.leagueInvite.findUnique({
     where: { token },
+    include: { league: { select: { id: true, name: true } } },
   })
 
   if (!invite) {
@@ -580,11 +607,37 @@ export async function rejectInvite(
     return { success: false, message: 'Questo invito è per un altro indirizzo email' }
   }
 
+  // Get admin member for email notification (#53)
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: invite.leagueId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+    include: { user: { select: { email: true } } },
+  })
+
   // Rifiuta l'invito
   await prisma.leagueInvite.update({
     where: { id: invite.id },
     data: { status: InviteStatus.CANCELLED },
   })
+
+  // Send email notification to admin (#53)
+  if (adminMember?.user?.email) {
+    try {
+      const leagueUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/leagues/${invite.leagueId}`
+      await emailService.sendInviteResponseNotificationEmail(
+        adminMember.user.email,
+        invite.league.name,
+        user.email.split('@')[0], // username approximation from email
+        false, // rejected
+        leagueUrl
+      )
+    } catch (err) {
+      console.error('[InviteService] Failed to send invite rejection notification:', err)
+    }
+  }
 
   return { success: true, message: 'Invito rifiutato' }
 }

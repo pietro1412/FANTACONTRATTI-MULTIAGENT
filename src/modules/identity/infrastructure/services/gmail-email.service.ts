@@ -428,4 +428,226 @@ export class GmailEmailService implements IEmailService {
 </html>
     `
   }
+
+  async sendJoinRequestResponseEmail(
+    managerEmail: string,
+    leagueName: string,
+    approved: boolean,
+    leagueUrl?: string
+  ): Promise<void> {
+    // If no credentials, log to console (development mode)
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+      console.log('[GmailService] === JOIN REQUEST RESPONSE EMAIL ===')
+      console.log(`[GmailService] To: ${managerEmail}`)
+      console.log(`[GmailService] League: ${leagueName}`)
+      console.log(`[GmailService] Approved: ${approved}`)
+      console.log(`[GmailService] League URL: ${leagueUrl || 'N/A'}`)
+      console.log('[GmailService] ==============================')
+      return
+    }
+
+    try {
+      await this.transporter.sendMail({
+        from: `"Fantacontratti" <${process.env.GMAIL_USER}>`,
+        to: managerEmail,
+        subject: approved
+          ? `✅ Sei stato accettato in "${leagueName}" - Fantacontratti`
+          : `❌ Richiesta rifiutata per "${leagueName}" - Fantacontratti`,
+        html: this.getJoinRequestResponseTemplate(leagueName, approved, leagueUrl),
+      })
+      console.log(`[GmailService] Join request response email sent to ${managerEmail}`)
+    } catch (error) {
+      console.error('[GmailService] Failed to send join request response email:', error)
+    }
+  }
+
+  async sendInviteResponseNotificationEmail(
+    adminEmail: string,
+    leagueName: string,
+    managerUsername: string,
+    accepted: boolean,
+    leagueUrl: string
+  ): Promise<void> {
+    // If no credentials, log to console (development mode)
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+      console.log('[GmailService] === INVITE RESPONSE NOTIFICATION ===')
+      console.log(`[GmailService] To: ${adminEmail}`)
+      console.log(`[GmailService] League: ${leagueName}`)
+      console.log(`[GmailService] Manager: ${managerUsername}`)
+      console.log(`[GmailService] Accepted: ${accepted}`)
+      console.log(`[GmailService] League URL: ${leagueUrl}`)
+      console.log('[GmailService] ==============================')
+      return
+    }
+
+    try {
+      await this.transporter.sendMail({
+        from: `"Fantacontratti" <${process.env.GMAIL_USER}>`,
+        to: adminEmail,
+        subject: accepted
+          ? `✅ ${managerUsername} ha accettato l'invito a "${leagueName}" - Fantacontratti`
+          : `❌ ${managerUsername} ha rifiutato l'invito a "${leagueName}" - Fantacontratti`,
+        html: this.getInviteResponseTemplate(leagueName, managerUsername, accepted, leagueUrl),
+      })
+      console.log(`[GmailService] Invite response notification sent to ${adminEmail}`)
+    } catch (error) {
+      console.error('[GmailService] Failed to send invite response notification:', error)
+    }
+  }
+
+  /**
+   * Generate join request response email template
+   */
+  private getJoinRequestResponseTemplate(leagueName: string, approved: boolean, leagueUrl?: string): string {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #0a0a0b; font-family: 'Segoe UI', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0a0a0b;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 500px; background-color: #1a1c20; border-radius: 16px; border: 1px solid #2d3139;">
+          <!-- Header -->
+          <tr>
+            <td align="center" style="padding: 40px 40px 20px;">
+              <div style="width: 70px; height: 70px; background: linear-gradient(135deg, ${approved ? '#22c55e, #16a34a' : '#ef4444, #dc2626'}); border-radius: 50%; display: inline-block; line-height: 70px; font-size: 36px; text-align: center;">
+                ${approved ? '✅' : '❌'}
+              </div>
+              <h1 style="color: #ffffff; font-size: 28px; font-weight: bold; margin: 20px 0 0;">
+                Fantacontratti
+              </h1>
+            </td>
+          </tr>
+          <!-- Contenuto -->
+          <tr>
+            <td style="padding: 20px 40px 30px;">
+              <h2 style="color: #f3f4f6; font-size: 20px; font-weight: 600; margin: 0 0 15px; text-align: center;">
+                ${approved ? 'Richiesta Approvata!' : 'Richiesta Rifiutata'}
+              </h2>
+              <p style="color: #9ca3af; font-size: 15px; line-height: 1.6; margin: 0 0 10px; text-align: center;">
+                La tua richiesta di partecipare alla lega
+              </p>
+              <p style="color: #fbbf24; font-size: 22px; font-weight: bold; margin: 0 0 25px; text-align: center;">
+                🏆 ${leagueName}
+              </p>
+              <p style="color: #9ca3af; font-size: 15px; line-height: 1.6; margin: 0 0 25px; text-align: center;">
+                ${approved
+                  ? 'è stata <strong style="color: #22c55e;">approvata</strong>! Ora fai parte della lega.'
+                  : 'è stata <strong style="color: #ef4444;">rifiutata</strong> dall\'amministratore.'}
+              </p>
+              ${approved && leagueUrl ? `
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding: 10px 0 25px;">
+                    <a href="${leagueUrl}"
+                       style="display: inline-block; background: linear-gradient(135deg, #22c55e, #16a34a);
+                              color: #ffffff; font-size: 16px; font-weight: 600;
+                              text-decoration: none; padding: 14px 32px; border-radius: 8px;">
+                      🚀 Vai alla Lega
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              ` : ''}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 40px 30px; border-top: 1px solid #2d3139;">
+              <p style="color: #6b7280; font-size: 12px; text-align: center; margin: 0;">
+                © ${new Date().getFullYear()} Fantacontratti. Tutti i diritti riservati.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `
+  }
+
+  /**
+   * Generate invite response notification email template
+   */
+  private getInviteResponseTemplate(leagueName: string, managerUsername: string, accepted: boolean, leagueUrl: string): string {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #0a0a0b; font-family: 'Segoe UI', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0a0a0b;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 500px; background-color: #1a1c20; border-radius: 16px; border: 1px solid #2d3139;">
+          <!-- Header -->
+          <tr>
+            <td align="center" style="padding: 40px 40px 20px;">
+              <div style="width: 70px; height: 70px; background: linear-gradient(135deg, ${accepted ? '#22c55e, #16a34a' : '#f59e0b, #d97706'}); border-radius: 50%; display: inline-block; line-height: 70px; font-size: 36px; text-align: center;">
+                ${accepted ? '🎉' : '📭'}
+              </div>
+              <h1 style="color: #ffffff; font-size: 28px; font-weight: bold; margin: 20px 0 0;">
+                Fantacontratti
+              </h1>
+            </td>
+          </tr>
+          <!-- Contenuto -->
+          <tr>
+            <td style="padding: 20px 40px 30px;">
+              <h2 style="color: #f3f4f6; font-size: 20px; font-weight: 600; margin: 0 0 15px; text-align: center;">
+                ${accepted ? 'Invito Accettato!' : 'Invito Rifiutato'}
+              </h2>
+              <p style="color: #9ca3af; font-size: 15px; line-height: 1.6; margin: 0 0 20px; text-align: center;">
+                <strong style="color: #ffffff;">${managerUsername}</strong> ha
+                ${accepted
+                  ? '<strong style="color: #22c55e;">accettato</strong>'
+                  : '<strong style="color: #f59e0b;">rifiutato</strong>'}
+                il tuo invito per la lega
+              </p>
+              <p style="color: #fbbf24; font-size: 22px; font-weight: bold; margin: 0 0 25px; text-align: center;">
+                🏆 ${leagueName}
+              </p>
+              ${accepted ? `
+              <p style="color: #22c55e; font-size: 15px; text-align: center; margin: 0 0 25px;">
+                Il nuovo membro è ora parte della tua lega!
+              </p>
+              ` : ''}
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding: 10px 0 25px;">
+                    <a href="${leagueUrl}"
+                       style="display: inline-block; background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+                              color: #ffffff; font-size: 16px; font-weight: 600;
+                              text-decoration: none; padding: 14px 32px; border-radius: 8px;">
+                      👀 Vai alla Lega
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 40px 30px; border-top: 1px solid #2d3139;">
+              <p style="color: #6b7280; font-size: 12px; text-align: center; margin: 0;">
+                © ${new Date().getFullYear()} Fantacontratti. Tutti i diritti riservati.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `
+  }
 }

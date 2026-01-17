@@ -44,4 +44,34 @@ export interface IEmailService {
     teamName: string,
     adminPanelUrl: string
   ): Promise<void>
+
+  /**
+   * Send notification to manager when admin approves or rejects their join request
+   * @param managerEmail - Manager's email address
+   * @param leagueName - Name of the league
+   * @param approved - Whether the request was approved or rejected
+   * @param leagueUrl - Direct link to the league (if approved)
+   */
+  sendJoinRequestResponseEmail(
+    managerEmail: string,
+    leagueName: string,
+    approved: boolean,
+    leagueUrl?: string
+  ): Promise<void>
+
+  /**
+   * Send notification to admin when a manager accepts or rejects their invite
+   * @param adminEmail - Admin's email address
+   * @param leagueName - Name of the league
+   * @param managerUsername - Username of the manager who responded
+   * @param accepted - Whether the invite was accepted or rejected
+   * @param leagueUrl - Direct link to the league
+   */
+  sendInviteResponseNotificationEmail(
+    adminEmail: string,
+    leagueName: string,
+    managerUsername: string,
+    accepted: boolean,
+    leagueUrl: string
+  ): Promise<void>
 }
