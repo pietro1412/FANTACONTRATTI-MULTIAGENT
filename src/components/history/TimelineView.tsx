@@ -53,6 +53,12 @@ const eventTypeConfig: Record<string, { label: string; color: string }> = {
   SVINCOLATI: { label: 'Svincolati', color: 'text-green-400' },
   RELEASE: { label: 'Cessione', color: 'text-gray-400' },
   CONTRACT_RENEW: { label: 'Rinnovo', color: 'text-purple-400' },
+  // Indemnity movement types
+  RETIREMENT: { label: 'Ritiro', color: 'text-gray-500' },
+  RELEGATION_RELEASE: { label: 'Retrocesso (Rilascio)', color: 'text-amber-500' },
+  RELEGATION_KEEP: { label: 'Retrocesso (Mantenuto)', color: 'text-amber-400' },
+  ABROAD_COMPENSATION: { label: 'Estero (Compenso)', color: 'text-cyan-400' },
+  ABROAD_KEEP: { label: 'Estero (Mantenuto)', color: 'text-cyan-300' },
 }
 
 const positionColors: Record<string, string> = {
