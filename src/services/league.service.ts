@@ -257,6 +257,28 @@ export async function requestJoinLeague(leagueId: string, userId: string, teamNa
     if (existingMembership.status === MemberStatus.PENDING) {
       return { success: false, message: 'Hai già una richiesta in attesa' }
     }
+    if (existingMembership.status === MemberStatus.SUSPENDED) {
+      return { success: false, message: 'Il tuo account è stato sospeso da questa lega' }
+    }
+    if (existingMembership.status === MemberStatus.LEFT) {
+      // If user left the league, allow to re-request by updating the existing record
+      if (!teamName || teamName.trim().length < 2) {
+        return { success: false, message: 'Il nome della squadra è obbligatorio (minimo 2 caratteri)' }
+      }
+      const membership = await prisma.leagueMember.update({
+        where: { id: existingMembership.id },
+        data: {
+          status: MemberStatus.PENDING,
+          teamName: teamName.trim(),
+          joinType: JoinType.REQUEST,
+        },
+      })
+      return {
+        success: true,
+        message: 'Richiesta di partecipazione inviata',
+        data: membership,
+      }
+    }
   }
 
   // Validate team name
