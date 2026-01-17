@@ -125,6 +125,30 @@ interface UploadRecord {
   }
 }
 
+interface ExitedPlayerInfo {
+  playerId: string
+  playerName: string
+  position: string
+  team: string
+  lastQuotation: number
+  contracts: Array<{
+    leagueId: string
+    leagueName: string
+    memberId: string
+    memberUsername: string
+    salary: number
+    duration: number
+  }>
+}
+
+type ExitReason = 'RITIRATO' | 'RETROCESSO' | 'ESTERO'
+
+const EXIT_REASON_COLORS: Record<ExitReason, string> = {
+  RITIRATO: 'bg-gray-500/20 text-gray-400 border-gray-500/40',
+  RETROCESSO: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+  ESTERO: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
+}
+
 const POSITION_COLORS: Record<string, string> = {
   P: 'from-amber-500 to-amber-600',
   D: 'from-blue-500 to-blue-600',
@@ -194,6 +218,14 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
   const [users, setUsers] = useState<User[]>([])
   const [usersLoading, setUsersLoading] = useState(false)
 
+  // Classification state
+  const [playersNeedingClassification, setPlayersNeedingClassification] = useState<ExitedPlayerInfo[]>([])
+  const [classificationLoading, setClassificationLoading] = useState(false)
+  const [showClassificationModal, setShowClassificationModal] = useState(false)
+  const [classifications, setClassifications] = useState<Record<string, ExitReason>>({})
+  const [classifyingPlayers, setClassifyingPlayers] = useState(false)
+  const [classificationResult, setClassificationResult] = useState<{ success: boolean; message: string } | null>(null)
+
   useEffect(() => {
     loadStatus()
   }, [])
@@ -219,7 +251,10 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
 
   useEffect(() => {
     if (isSuperAdmin) {
-      if (activeTab === 'upload') loadUploadHistory()
+      if (activeTab === 'upload') {
+        loadUploadHistory()
+        loadPlayersNeedingClassification()
+      }
       if (activeTab === 'players') {
         loadPlayers()
         loadTeams()
@@ -318,6 +353,70 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
       setUsers((result.data as { users: User[] }).users)
     }
     setUsersLoading(false)
+  }
+
+  async function loadPlayersNeedingClassification() {
+    setClassificationLoading(true)
+    const result = await superadminApi.getPlayersNeedingClassification()
+    if (result.success && result.data) {
+      const players = (result.data as { players: ExitedPlayerInfo[] }).players
+      setPlayersNeedingClassification(players)
+      // Initialize classifications with empty values
+      const initialClassifications: Record<string, ExitReason> = {}
+      players.forEach(p => {
+        initialClassifications[p.playerId] = 'RITIRATO' // Default value
+      })
+      setClassifications(initialClassifications)
+    }
+    setClassificationLoading(false)
+  }
+
+  function openClassificationModal() {
+    setShowClassificationModal(true)
+    setClassificationResult(null)
+  }
+
+  function closeClassificationModal() {
+    setShowClassificationModal(false)
+    setClassificationResult(null)
+  }
+
+  function handleClassificationChange(playerId: string, reason: ExitReason) {
+    setClassifications(prev => ({
+      ...prev,
+      [playerId]: reason
+    }))
+  }
+
+  async function handleSubmitClassifications() {
+    setClassifyingPlayers(true)
+    setClassificationResult(null)
+
+    const classificationArray = Object.entries(classifications).map(([playerId, exitReason]) => ({
+      playerId,
+      exitReason
+    }))
+
+    try {
+      const result = await superadminApi.classifyExitedPlayers(classificationArray)
+      setClassificationResult({
+        success: result.success,
+        message: result.message || (result.success ? 'Classificazione completata!' : 'Errore sconosciuto')
+      })
+
+      if (result.success) {
+        // Reload data after successful classification
+        loadPlayersNeedingClassification()
+        loadStats()
+      }
+    } catch (error) {
+      setClassificationResult({
+        success: false,
+        message: 'Errore durante la classificazione'
+      })
+    }
+
+    setClassifyingPlayers(false)
   }
 
   async function handleFileUpload() {
@@ -649,6 +748,81 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                 <p className="text-gray-400 text-center py-4">
                   Nessun caricamento effettuato
                 </p>
+              )}
+            </Card>
+
+            {/* Players Needing Classification */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-warning-500/20 flex items-center justify-center">
+                    <span className="text-xl">⚠️</span>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white">Giocatori da Classificare</h2>
+                    <p className="text-sm text-gray-400">Giocatori usciti dalla lista con contratti attivi</p>
+                  </div>
+                </div>
+                {playersNeedingClassification.length > 0 && (
+                  <Button
+                    onClick={openClassificationModal}
+                    className="btn-primary"
+                  >
+                    Classifica ({playersNeedingClassification.length})
+                  </Button>
+                )}
+              </div>
+
+              {classificationLoading ? (
+                <div className="py-8 text-center">
+                  <div className="w-10 h-10 border-4 border-warning-500/30 border-t-warning-500 rounded-full animate-spin mx-auto"></div>
+                </div>
+              ) : playersNeedingClassification.length > 0 ? (
+                <div className="space-y-3">
+                  {playersNeedingClassification.slice(0, 5).map((player) => (
+                    <div key={player.playerId} className="bg-surface-300 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xs`}>
+                            {player.position}
+                          </span>
+                          <div>
+                            <p className="font-medium text-white">{player.playerName}</p>
+                            <p className="text-xs text-gray-400">{player.team}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-400">Quotazione</p>
+                          <p className="font-mono text-accent-400">{player.lastQuotation}</p>
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        <span className="text-warning-400">{player.contracts.length} contratt{player.contracts.length === 1 ? 'o' : 'i'} attiv{player.contracts.length === 1 ? 'o' : 'i'}</span>
+                        {' in '}
+                        {player.contracts.map((c, i) => (
+                          <span key={c.memberId}>
+                            {i > 0 && ', '}
+                            <span className="text-white">{c.leagueName}</span>
+                            {' ('}
+                            <span className="text-primary-400">{c.memberUsername}</span>
+                            {')'}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {playersNeedingClassification.length > 5 && (
+                    <p className="text-sm text-gray-400 text-center py-2">
+                      ...e altri {playersNeedingClassification.length - 5} giocatori
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-gray-400">
+                  <p className="text-4xl mb-2">✅</p>
+                  <p>Nessun giocatore da classificare</p>
+                  <p className="text-sm mt-1">Tutti i giocatori usciti dalla lista sono stati classificati</p>
+                </div>
               )}
             </Card>
           </>
@@ -1041,6 +1215,128 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
           </Card>
         )}
       </main>
+
+      {/* Classification Modal */}
+      {showClassificationModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-200 rounded-xl border border-surface-50/20 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-surface-50/20 bg-gradient-to-r from-warning-500/10 to-surface-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-warning-500/20 flex items-center justify-center">
+                    <span className="text-2xl">⚠️</span>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Classifica Giocatori Usciti</h2>
+                    <p className="text-sm text-gray-400">
+                      Indica il motivo per cui ogni giocatore non e' piu' in lista
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeClassificationModal}
+                  className="w-10 h-10 rounded-lg bg-surface-300 hover:bg-surface-50/20 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto flex-1">
+              {/* Legend */}
+              <div className="bg-surface-300 rounded-lg p-4 mb-6">
+                <h3 className="text-sm font-bold text-gray-400 uppercase mb-3">Legenda Classificazioni</h3>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="flex items-start gap-3">
+                    <span className={`px-2 py-1 rounded text-xs font-medium border ${EXIT_REASON_COLORS.RITIRATO}`}>RITIRATO</span>
+                    <p className="text-xs text-gray-400">Il giocatore ha smesso di giocare. Contratto terminato senza compenso.</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className={`px-2 py-1 rounded text-xs font-medium border ${EXIT_REASON_COLORS.RETROCESSO}`}>RETROCESSO</span>
+                    <p className="text-xs text-gray-400">Il giocatore e' sceso in Serie B o inferiore. Il manager decidera' se tenerlo.</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className={`px-2 py-1 rounded text-xs font-medium border ${EXIT_REASON_COLORS.ESTERO}`}>ESTERO</span>
+                    <p className="text-xs text-gray-400">Il giocatore e' andato all'estero. Il manager ricevera' un compenso se rilascia.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Players List */}
+              <div className="space-y-3">
+                {playersNeedingClassification.map((player) => (
+                  <div key={player.playerId} className="bg-surface-300 rounded-lg p-4">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                      <div className="flex items-center gap-3">
+                        <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-sm`}>
+                          {player.position}
+                        </span>
+                        <div>
+                          <p className="font-medium text-white">{player.playerName}</p>
+                          <p className="text-sm text-gray-400">{player.team} · Quot. <span className="text-accent-400">{player.lastQuotation}</span></p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="text-right mr-4">
+                          <p className="text-xs text-gray-500">Contratti attivi</p>
+                          <p className="text-sm">
+                            {player.contracts.map((c, i) => (
+                              <span key={c.memberId} className="text-primary-400">
+                                {i > 0 && ', '}
+                                {c.memberUsername}
+                              </span>
+                            ))}
+                          </p>
+                        </div>
+
+                        <select
+                          value={classifications[player.playerId] || 'RITIRATO'}
+                          onChange={(e) => handleClassificationChange(player.playerId, e.target.value as ExitReason)}
+                          className={`px-4 py-2 rounded-lg border text-sm font-medium ${
+                            EXIT_REASON_COLORS[classifications[player.playerId] || 'RITIRATO']
+                          } bg-surface-200 cursor-pointer min-w-[140px]`}
+                        >
+                          <option value="RITIRATO">Ritirato</option>
+                          <option value="RETROCESSO">Retrocesso</option>
+                          <option value="ESTERO">Estero</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Result message */}
+              {classificationResult && (
+                <div className={`mt-4 p-4 rounded-lg ${
+                  classificationResult.success
+                    ? 'bg-secondary-500/20 border border-secondary-500/50 text-secondary-400'
+                    : 'bg-danger-500/20 border border-danger-500/50 text-danger-400'
+                }`}>
+                  <p className="font-medium">{classificationResult.message}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-surface-50/20 bg-surface-300 flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={closeClassificationModal}>
+                Annulla
+              </Button>
+              <Button
+                className="flex-1 btn-primary"
+                onClick={handleSubmitClassifications}
+                disabled={classifyingPlayers || playersNeedingClassification.length === 0}
+              >
+                {classifyingPlayers ? 'Salvataggio...' : `Conferma Classificazioni (${playersNeedingClassification.length})`}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Roster Modal */}
       {selectedMember && (
