@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FANTACONTRATTI - Investor One-Pager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #319795;
+      --primary-light: #4FD1C5;
+      --accent: #F6AD55;
+      --danger: #FC8181;
+      --success: #68D391;
+      --dark-100: #0a0a0b;
+      --dark-200: #111214;
+      --dark-300: #1a1c20;
+      --surface: #2d3139;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--dark-100);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 25px;
+      border-bottom: 3px solid;
+      border-image: linear-gradient(90deg, var(--primary), var(--primary-light), var(--accent)) 1;
+      margin-bottom: 25px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .logo {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      box-shadow: 0 10px 30px rgba(49, 151, 149, 0.3);
+    }
+
+    .brand-text h1 {
+      font-size: 32px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--text), var(--primary-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -1px;
+    }
+
+    .brand-text .tagline {
+      font-size: 14px;
+      color: var(--primary-light);
+      font-weight: 500;
+    }
+
+    .elevator-pitch {
+      max-width: 500px;
+      text-align: right;
+    }
+
+    .elevator-pitch p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .elevator-pitch strong {
+      color: var(--primary-light);
+    }
+
+    /* Main Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+    }
+
+    /* Sections */
+    .section {
+      background: var(--dark-300);
+      border-radius: 14px;
+      padding: 20px;
+      border: 1px solid var(--surface);
+    }
+
+    .section h2 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary-light);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section h2 .icon {
+      font-size: 16px;
+    }
+
+    /* Problem Section */
+    .problem-item {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+
+    .problem-item .label {
+      color: var(--danger);
+      font-weight: 600;
+      min-width: 100px;
+    }
+
+    .problem-item .desc {
+      color: var(--text-muted);
+    }
+
+    /* Solution Section */
+    .pillar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--surface);
+    }
+
+    .pillar:last-child {
+      border-bottom: none;
+    }
+
+    .pillar .number {
+      width: 24px;
+      height: 24px;
+      background: var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .pillar .text {
+      font-size: 13px;
+    }
+
+    .pillar strong {
+      color: var(--primary-light);
+    }
+
+    /* Metrics */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .metric {
+      text-align: center;
+      padding: 12px;
+      background: var(--dark-200);
+      border-radius: 10px;
+    }
+
+    .metric .value {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--primary-light);
+    }
+
+    .metric .label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* Comparison Table */
+    .comparison {
+      font-size: 12px;
+    }
+
+    .comparison-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--surface);
+    }
+
+    .comparison-row:first-child {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .comparison-row .feature {
+      color: var(--text-muted);
+    }
+
+    .comparison-row .old {
+      color: var(--danger);
+      text-align: center;
+    }
+
+    .comparison-row .new {
+      color: var(--success);
+      font-weight: 600;
+      text-align: center;
+    }
+
+    /* Moat */
+    .moat-item {
+      display: flex;
+      gap: 10px;
+      padding: 6px 0;
+      font-size: 12px;
+    }
+
+    .moat-item .icon {
+      color: var(--accent);
+    }
+
+    .moat-item strong {
+      color: var(--text);
+    }
+
+    /* Business Model */
+    .pricing-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .pricing-box {
+      background: var(--dark-200);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .pricing-box.featured {
+      border: 1px solid var(--primary);
+    }
+
+    .pricing-box .tier {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .pricing-box .price {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--primary-light);
+      margin: 5px 0;
+    }
+
+    .pricing-box .desc {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    /* Use of Funds */
+    .funds-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .fund-item {
+      background: var(--dark-200);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .fund-item .percent {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .fund-item .label {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .fund-item .amount {
+      font-size: 11px;
+      color: var(--primary-light);
+      margin-top: 3px;
+    }
+
+    /* Ask Box */
+    .ask-box {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    .ask-box .label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.8);
+      text-transform: uppercase;
+    }
+
+    .ask-box .amount {
+      font-size: 28px;
+      font-weight: 800;
+      color: white;
+    }
+
+    /* Wide section */
+    .wide {
+      grid-column: span 2;
+    }
+
+    .full-width {
+      grid-column: span 3;
+    }
+
+    /* Contact Footer */
+    .footer {
+      grid-column: span 3;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--dark-300);
+      border-radius: 14px;
+      padding: 15px 25px;
+      border: 1px solid var(--surface);
+      margin-top: 5px;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .footer-brand .logo-small {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .footer-brand h3 {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 30px;
+    }
+
+    .footer-links a {
+      color: var(--primary-light);
+      text-decoration: none;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    .footer-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
+    /* Milestones */
+    .milestones {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .milestone {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .milestone .check {
+      color: var(--success);
+    }
+
+    @media print {
+      body { background: white; }
+      .page { padding: 15px; }
+      .section { border: 1px solid #ddd; }
+    }
+
+    @media (max-width: 900px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      .wide, .full-width, .footer {
+        grid-column: span 1;
+      }
+      .header {
+        flex-direction: column;
+        text-align: center;
+        gap: 20px;
+      }
+      .elevator-pitch {
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="brand">
+      <div class="logo">⚽</div>
+      <div class="brand-text">
+        <h1>FANTACONTRATTI</h1>
+        <p class="tagline">Dynasty Fantasy Football Platform</p>
+      </div>
+    </div>
+    <div class="elevator-pitch">
+      <p>
+        La prima piattaforma italiana di <strong>fantacalcio dinastico</strong> con sistema contratti.
+        Rose pluriennali, ingaggi realistici e il meccanismo esclusivo <strong>RUBATA</strong> per engagement 365 giorni/anno.
+      </p>
+    </div>
+  </header>
+
+  <!-- Main Grid -->
+  <div class="main-grid">
+
+    <!-- IL PROBLEMA -->
+    <div class="section">
+      <h2><span class="icon">⚠️</span> Il Problema</h2>
+      <div class="problem-item">
+        <span class="label">Reset annuale</span>
+        <span class="desc">Zero continuita', nessun valore a lungo termine</span>
+      </div>
+      <div class="problem-item">
+        <span class="label">Asta singola</span>
+        <span class="desc">Engagement solo 38 giorni/anno</span>
+      </div>
+      <div class="problem-item">
+        <span class="label">Mercato statico</span>
+        <span class="desc">Scambi rari, nessuna strategia</span>
+      </div>
+      <div class="problem-item">
+        <span class="label">Leghe sbilanciate</span>
+        <span class="desc">Chi parte male abbandona</span>
+      </div>
+    </div>
+
+    <!-- LA SOLUZIONE -->
+    <div class="section">
+      <h2><span class="icon">💡</span> La Soluzione - 5 Pilastri</h2>
+      <div class="pillar">
+        <span class="number">1</span>
+        <span class="text"><strong>Rose Pluriennali</strong> - Giocatori crescono con te</span>
+      </div>
+      <div class="pillar">
+        <span class="number">2</span>
+        <span class="text"><strong>Contratti</strong> - Ingaggio, durata, clausole</span>
+      </div>
+      <div class="pillar">
+        <span class="number">3</span>
+        <span class="text"><strong>Mercato Dinamico</strong> - 5 fasi di mercato</span>
+      </div>
+      <div class="pillar">
+        <span class="number">4</span>
+        <span class="text"><strong>RUBATA</strong> - Riequilibrio competitivo forzato</span>
+      </div>
+      <div class="pillar">
+        <span class="number">5</span>
+        <span class="text"><strong>365 giorni</strong> - Sempre qualcosa da fare</span>
+      </div>
+    </div>
+
+    <!-- KEY METRICS -->
+    <div class="section">
+      <h2><span class="icon">📊</span> Key Metrics (Target Y1)</h2>
+      <div class="metrics-grid">
+        <div class="metric">
+          <div class="value">10K</div>
+          <div class="label">Utenti Registrati</div>
+        </div>
+        <div class="metric">
+          <div class="value">5K</div>
+          <div class="label">MAU</div>
+        </div>
+        <div class="metric">
+          <div class="value">1.5K</div>
+          <div class="label">Leghe Attive</div>
+        </div>
+        <div class="metric">
+          <div class="value">60%</div>
+          <div class="label">Retention D30</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DIFFERENZIATORI -->
+    <div class="section wide">
+      <h2><span class="icon">🎯</span> Differenziatori Competitivi</h2>
+      <div class="comparison">
+        <div class="comparison-row">
+          <span class="feature">Feature</span>
+          <span class="old">Competitor</span>
+          <span class="new">FANTACONTRATTI</span>
+        </div>
+        <div class="comparison-row">
+          <span class="feature">Continuita' rose</span>
+          <span class="old">NO</span>
+          <span class="new">SI (pluriennale)</span>
+        </div>
+        <div class="comparison-row">
+          <span class="feature">Sistema contratti</span>
+          <span class="old">NO</span>
+          <span class="new">SI (completo)</span>
+        </div>
+        <div class="comparison-row">
+          <span class="feature">Meccanismo riequilibrio</span>
+          <span class="old">NO</span>
+          <span class="new">SI (RUBATA)</span>
+        </div>
+        <div class="comparison-row">
+          <span class="feature">Real-time auctions</span>
+          <span class="old">Limitato</span>
+          <span class="new">SI (WebSocket)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MOAT -->
+    <div class="section">
+      <h2><span class="icon">🏰</span> Moat Competitivo</h2>
+      <div class="moat-item">
+        <span class="icon">🔗</span>
+        <span><strong>Network Effect</strong> - Piu' giocatori = piu' valore</span>
+      </div>
+      <div class="moat-item">
+        <span class="icon">🔒</span>
+        <span><strong>Switching Cost</strong> - Rose pluriennali = lock-in</span>
+      </div>
+      <div class="moat-item">
+        <span class="icon">🥇</span>
+        <span><strong>First Mover</strong> - Primo dynasty in Italia</span>
+      </div>
+      <div class="moat-item">
+        <span class="icon">👥</span>
+        <span><strong>Community</strong> - Profezie e engagement sociale</span>
+      </div>
+    </div>
+
+    <!-- BUSINESS MODEL -->
+    <div class="section">
+      <h2><span class="icon">💰</span> Modello di Business</h2>
+      <div class="pricing-row">
+        <div class="pricing-box">
+          <div class="tier">Free</div>
+          <div class="price">€0</div>
+          <div class="desc">1 lega, 8 partecipanti, ads</div>
+        </div>
+        <div class="pricing-box featured">
+          <div class="tier">Premium</div>
+          <div class="price">€4.99/mese</div>
+          <div class="desc">Leghe illimitate, 16 part.</div>
+        </div>
+      </div>
+      <div class="pricing-row">
+        <div class="pricing-box" style="grid-column: span 2;">
+          <div class="tier">League Premium</div>
+          <div class="price">€9.99/anno</div>
+          <div class="desc">Customizzazione regole, analytics, supporto prioritario</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- USE OF FUNDS -->
+    <div class="section wide">
+      <h2><span class="icon">📈</span> Use of Funds</h2>
+      <div class="ask-box">
+        <div class="label">Round Pre-Seed</div>
+        <div class="amount">€150.000</div>
+      </div>
+      <div class="funds-grid">
+        <div class="fund-item">
+          <div class="percent">50%</div>
+          <div class="label">Prodotto</div>
+          <div class="amount">€75K</div>
+        </div>
+        <div class="fund-item">
+          <div class="percent">30%</div>
+          <div class="label">Marketing</div>
+          <div class="amount">€45K</div>
+        </div>
+        <div class="fund-item">
+          <div class="percent">15%</div>
+          <div class="label">Operations</div>
+          <div class="amount">€22.5K</div>
+        </div>
+        <div class="fund-item">
+          <div class="percent">5%</div>
+          <div class="label">Buffer</div>
+          <div class="amount">€7.5K</div>
+        </div>
+      </div>
+      <div class="milestones">
+        <div class="milestone"><span class="check">✓</span> 10.000 utenti attivi</div>
+        <div class="milestone"><span class="check">✓</span> App iOS/Android</div>
+        <div class="milestone"><span class="check">✓</span> 500 leghe premium</div>
+        <div class="milestone"><span class="check">✓</span> Breakeven operativo</div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-brand">
+        <div class="logo-small">⚽</div>
+        <h3>FANTACONTRATTI</h3>
+      </div>
+      <div class="footer-links">
+        <a href="mailto:info@fantacontratti.com">📧 info@fantacontratti.com</a>
+        <a href="https://fantacontratti.com">🌐 fantacontratti.com</a>
+        <a href="https://linkedin.com/company/fantacontratti">💼 LinkedIn</a>
+      </div>
+      <div class="footer-meta">
+        <div>Confidenziale</div>
+        <div>Gennaio 2026 - v1.0</div>
+      </div>
+    </footer>
+
+  </div>
+
+</div>
+
+</body>
+</html>

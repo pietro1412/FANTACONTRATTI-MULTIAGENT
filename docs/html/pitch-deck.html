@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FANTACONTRATTI - Pitch Deck</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #319795;
+      --primary-light: #4FD1C5;
+      --accent: #F6AD55;
+      --danger: #FC8181;
+      --success: #68D391;
+      --dark-100: #0a0a0b;
+      --dark-200: #111214;
+      --dark-300: #1a1c20;
+      --surface: #2d3139;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--dark-100);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .slide {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 60px 80px;
+      border-bottom: 1px solid var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--primary-light), var(--accent));
+    }
+
+    .slide-number {
+      position: absolute;
+      bottom: 30px;
+      right: 40px;
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Cover Slide */
+    .cover {
+      background: linear-gradient(135deg, var(--dark-200) 0%, var(--dark-100) 50%, var(--dark-300) 100%);
+      text-align: center;
+    }
+
+    .cover .logo {
+      width: 120px;
+      height: 120px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 60px;
+      margin: 0 auto 40px;
+      box-shadow: 0 20px 60px rgba(49, 151, 149, 0.3);
+    }
+
+    .cover h1 {
+      font-size: 72px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--text), var(--primary-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 20px;
+      letter-spacing: -2px;
+    }
+
+    .cover .tagline {
+      font-size: 28px;
+      color: var(--primary-light);
+      font-weight: 500;
+      margin-bottom: 60px;
+    }
+
+    .cover .subtitle {
+      font-size: 18px;
+      color: var(--text-muted);
+    }
+
+    /* Section Headers */
+    h2 {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 40px;
+      color: var(--text);
+    }
+
+    h2 span {
+      color: var(--primary-light);
+    }
+
+    h3 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--accent);
+    }
+
+    h4 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--primary-light);
+    }
+
+    p {
+      font-size: 20px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .highlight {
+      color: var(--primary-light);
+      font-weight: 600;
+    }
+
+    /* Problem Cards */
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+      margin-top: 40px;
+    }
+
+    .problem-card {
+      background: var(--dark-300);
+      border-radius: 20px;
+      padding: 40px;
+      border: 1px solid var(--surface);
+      transition: all 0.3s ease;
+    }
+
+    .problem-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--danger);
+      box-shadow: 0 20px 40px rgba(252, 129, 129, 0.1);
+    }
+
+    .problem-card .icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    .problem-card h4 {
+      color: var(--danger);
+    }
+
+    .problem-card ul {
+      list-style: none;
+      color: var(--text-muted);
+    }
+
+    .problem-card li {
+      padding: 8px 0;
+      padding-left: 24px;
+      position: relative;
+      font-size: 16px;
+    }
+
+    .problem-card li::before {
+      content: '✕';
+      position: absolute;
+      left: 0;
+      color: var(--danger);
+    }
+
+    /* Solution Cards */
+    .solution-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+      margin-top: 40px;
+    }
+
+    .solution-card {
+      background: linear-gradient(135deg, var(--dark-300), var(--dark-200));
+      border-radius: 20px;
+      padding: 40px;
+      border: 1px solid var(--primary);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .solution-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--primary-light));
+    }
+
+    .solution-card .icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    .solution-card h4 {
+      color: var(--primary-light);
+    }
+
+    /* Comparison Table */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 40px;
+      font-size: 18px;
+    }
+
+    .comparison-table th {
+      background: var(--primary);
+      color: white;
+      padding: 20px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .comparison-table th:first-child {
+      border-radius: 12px 0 0 0;
+    }
+
+    .comparison-table th:last-child {
+      border-radius: 0 12px 0 0;
+    }
+
+    .comparison-table td {
+      padding: 20px;
+      border-bottom: 1px solid var(--surface);
+      background: var(--dark-300);
+    }
+
+    .comparison-table tr:last-child td:first-child {
+      border-radius: 0 0 0 12px;
+    }
+
+    .comparison-table tr:last-child td:last-child {
+      border-radius: 0 0 12px 0;
+    }
+
+    .comparison-table .old {
+      color: var(--danger);
+    }
+
+    .comparison-table .new {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    /* Steps */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-top: 40px;
+    }
+
+    .step {
+      background: var(--dark-300);
+      border-radius: 20px;
+      padding: 30px;
+      text-align: center;
+      border: 1px solid var(--surface);
+      position: relative;
+    }
+
+    .step-number {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0 auto 20px;
+    }
+
+    .step h4 {
+      margin-bottom: 15px;
+    }
+
+    .step p {
+      font-size: 14px;
+      margin: 0;
+    }
+
+    /* Market Circles */
+    .market-visual {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 40px;
+      margin: 60px 0;
+    }
+
+    .market-circle {
+      text-align: center;
+    }
+
+    .market-circle .circle {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .market-circle.tam .circle {
+      background: linear-gradient(135deg, rgba(49, 151, 149, 0.2), rgba(49, 151, 149, 0.1));
+      border: 3px solid var(--primary);
+    }
+
+    .market-circle.sam .circle {
+      background: linear-gradient(135deg, rgba(79, 209, 197, 0.2), rgba(79, 209, 197, 0.1));
+      border: 3px solid var(--primary-light);
+      width: 160px;
+      height: 160px;
+    }
+
+    .market-circle.som .circle {
+      background: linear-gradient(135deg, rgba(246, 173, 85, 0.2), rgba(246, 173, 85, 0.1));
+      border: 3px solid var(--accent);
+      width: 120px;
+      height: 120px;
+    }
+
+    .market-circle .number {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .market-circle .label {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Pricing */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+      margin-top: 40px;
+    }
+
+    .pricing-card {
+      background: var(--dark-300);
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      border: 1px solid var(--surface);
+    }
+
+    .pricing-card.featured {
+      border-color: var(--primary);
+      transform: scale(1.05);
+      box-shadow: 0 20px 60px rgba(49, 151, 149, 0.2);
+    }
+
+    .pricing-card .price {
+      font-size: 48px;
+      font-weight: 800;
+      color: var(--primary-light);
+      margin: 20px 0;
+    }
+
+    .pricing-card .price span {
+      font-size: 18px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .pricing-card ul {
+      list-style: none;
+      text-align: left;
+      margin-top: 30px;
+    }
+
+    .pricing-card li {
+      padding: 10px 0;
+      padding-left: 30px;
+      position: relative;
+      color: var(--text-muted);
+    }
+
+    .pricing-card li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--success);
+      font-weight: bold;
+    }
+
+    /* The Ask */
+    .ask-box {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 30px;
+      padding: 60px;
+      text-align: center;
+      margin-top: 40px;
+    }
+
+    .ask-box h3 {
+      color: white;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .ask-box .amount {
+      font-size: 72px;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .allocation-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-top: 40px;
+    }
+
+    .allocation-item {
+      background: var(--dark-300);
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .allocation-item .percent {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--primary-light);
+    }
+
+    .allocation-item .label {
+      color: var(--text-muted);
+      margin-top: 10px;
+    }
+
+    .allocation-item .amount {
+      color: var(--accent);
+      font-weight: 600;
+      margin-top: 5px;
+    }
+
+    /* Contact */
+    .contact-box {
+      background: var(--dark-300);
+      border-radius: 30px;
+      padding: 60px;
+      text-align: center;
+      max-width: 600px;
+      margin: 40px auto 0;
+      border: 1px solid var(--surface);
+    }
+
+    .contact-box .logo-small {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      margin: 0 auto 30px;
+    }
+
+    .contact-info {
+      margin-top: 30px;
+    }
+
+    .contact-info a {
+      display: block;
+      color: var(--primary-light);
+      text-decoration: none;
+      font-size: 18px;
+      padding: 10px;
+      transition: color 0.3s;
+    }
+
+    .contact-info a:hover {
+      color: var(--accent);
+    }
+
+    .confidential {
+      margin-top: 40px;
+      font-size: 14px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* Roadmap */
+    .roadmap {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-top: 40px;
+    }
+
+    .roadmap-item {
+      background: var(--dark-300);
+      border-radius: 16px;
+      padding: 30px;
+      border-left: 4px solid var(--primary);
+    }
+
+    .roadmap-item.q2 { border-color: var(--primary-light); }
+    .roadmap-item.q3 { border-color: var(--accent); }
+    .roadmap-item.q4 { border-color: var(--success); }
+
+    .roadmap-item .quarter {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary-light);
+      margin-bottom: 10px;
+    }
+
+    .roadmap-item h4 {
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+
+    .roadmap-item ul {
+      list-style: none;
+    }
+
+    .roadmap-item li {
+      font-size: 14px;
+      color: var(--text-muted);
+      padding: 5px 0;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .roadmap-item li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--primary);
+    }
+
+    @media print {
+      .slide {
+        page-break-after: always;
+        min-height: 100vh;
+      }
+    }
+
+    @media (max-width: 1024px) {
+      .slide { padding: 40px; }
+      h2 { font-size: 36px; }
+      .cover h1 { font-size: 48px; }
+      .problem-grid, .solution-grid, .steps, .pricing-grid, .roadmap, .allocation-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .problem-grid, .solution-grid, .steps, .pricing-grid, .roadmap, .allocation-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Slide 1: Cover -->
+<section class="slide cover">
+  <div class="logo">⚽</div>
+  <h1>FANTACONTRATTI</h1>
+  <p class="tagline">Dynasty Fantasy Football Platform</p>
+  <p class="subtitle">La prima piattaforma italiana di fantacalcio dinastico con sistema contratti</p>
+  <span class="slide-number">01</span>
+</section>
+
+<!-- Slide 2: Il Problema -->
+<section class="slide">
+  <h2>Il <span>Problema</span></h2>
+  <p>Il fantacalcio tradizionale e' diventato noioso e ripetitivo</p>
+
+  <div class="problem-grid">
+    <div class="problem-card">
+      <div class="icon">🔄</div>
+      <h4>Reset Annuale</h4>
+      <ul>
+        <li>Ogni anno si ricomincia da zero</li>
+        <li>Nessun valore strategico a lungo termine</li>
+        <li>Zero legame emotivo con i giocatori</li>
+      </ul>
+    </div>
+    <div class="problem-card">
+      <div class="icon">😴</div>
+      <h4>Engagement Limitato</h4>
+      <ul>
+        <li>Attivi solo 38 giorni/anno</li>
+        <li>Zero interazioni tra manager</li>
+        <li>Nessuna strategia di mercato</li>
+      </ul>
+    </div>
+    <div class="problem-card">
+      <div class="icon">📉</div>
+      <h4>Mercato Statico</h4>
+      <ul>
+        <li>Asta iniziale e poi il nulla</li>
+        <li>Scambi rari e prevedibili</li>
+        <li>Nessun bilanciamento competitivo</li>
+      </ul>
+    </div>
+  </div>
+  <span class="slide-number">02</span>
+</section>
+
+<!-- Slide 3: La Soluzione -->
+<section class="slide">
+  <h2>La <span>Soluzione</span></h2>
+  <p>FANTACONTRATTI - Dynasty Fantasy Football con meccaniche innovative</p>
+
+  <div class="solution-grid">
+    <div class="solution-card">
+      <div class="icon">🏆</div>
+      <h4>Continuita' Pluriennale</h4>
+      <p>Le rose si mantengono anno dopo anno. I tuoi giocatori crescono con te.</p>
+    </div>
+    <div class="solution-card">
+      <div class="icon">📝</div>
+      <h4>Sistema Contratti</h4>
+      <p>Ingaggi, durate, clausole rescissorie. Gestisci come un vero DS.</p>
+    </div>
+    <div class="solution-card">
+      <div class="icon">📈</div>
+      <h4>Mercato Dinamico</h4>
+      <p>5 fasi di mercato che tengono vivo l'engagement 365 giorni.</p>
+    </div>
+  </div>
+  <span class="slide-number">03</span>
+</section>
+
+<!-- Slide 4: Comparison -->
+<section class="slide">
+  <h2>Proposta di <span>Valore Unica</span></h2>
+
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Fantacalcio Tradizionale</th>
+        <th>FANTACONTRATTI</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Continuita'</td>
+        <td class="old">Reset annuale</td>
+        <td class="new">Rose pluriennali</td>
+      </tr>
+      <tr>
+        <td>Contratti</td>
+        <td class="old">Non esistono</td>
+        <td class="new">Ingaggio, durata, clausole</td>
+      </tr>
+      <tr>
+        <td>Mercato</td>
+        <td class="old">1 asta/anno</td>
+        <td class="new">5 fasi dinamiche</td>
+      </tr>
+      <tr>
+        <td>Scambi</td>
+        <td class="old">Liberi, caotici</td>
+        <td class="new">Regolamentati con vincoli</td>
+      </tr>
+      <tr>
+        <td>Riequilibrio</td>
+        <td class="old">Nessuno</td>
+        <td class="new">Sistema RUBATA</td>
+      </tr>
+      <tr>
+        <td>Engagement</td>
+        <td class="old">38 giorni/anno</td>
+        <td class="new">365 giorni/anno</td>
+      </tr>
+    </tbody>
+  </table>
+  <span class="slide-number">04</span>
+</section>
+
+<!-- Slide 5: Come Funziona -->
+<section class="slide">
+  <h2>Come <span>Funziona</span></h2>
+  <p>Il ciclo di mercato in 4 step</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-number">1</div>
+      <h4>Asta Iniziale</h4>
+      <p>Costruisci la rosa con budget iniziale. Asta real-time con WebSocket.</p>
+    </div>
+    <div class="step">
+      <div class="step-number">2</div>
+      <h4>Fase Contratti</h4>
+      <p>Imposta ingaggio, durata (1-4 semestri) e clausole rescissorie.</p>
+    </div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <h4>Scambi</h4>
+      <p>Negozia con altri manager. Offerte multi-giocatore + budget.</p>
+    </div>
+    <div class="step">
+      <div class="step-number">4</div>
+      <h4>RUBATA</h4>
+      <p>Meccanismo rivoluzionario: paga la clausola e il giocatore e' tuo!</p>
+    </div>
+  </div>
+  <span class="slide-number">05</span>
+</section>
+
+<!-- Slide 6: Mercato Target -->
+<section class="slide">
+  <h2>Mercato <span>Target</span></h2>
+
+  <div class="market-visual">
+    <div class="market-circle tam">
+      <div class="circle">
+        <span class="number">8M</span>
+        <span class="label">TAM</span>
+      </div>
+      <p>Italiani che giocano a fantacalcio</p>
+    </div>
+    <div class="market-circle sam">
+      <div class="circle">
+        <span class="number">2M</span>
+        <span class="label">SAM</span>
+      </div>
+      <p>Fantacalcisti hardcore</p>
+    </div>
+    <div class="market-circle som">
+      <div class="circle">
+        <span class="number">100K</span>
+        <span class="label">SOM</span>
+      </div>
+      <p>Target 3 anni</p>
+    </div>
+  </div>
+  <span class="slide-number">06</span>
+</section>
+
+<!-- Slide 7: Business Model -->
+<section class="slide">
+  <h2>Modello di <span>Business</span></h2>
+
+  <div class="pricing-grid">
+    <div class="pricing-card">
+      <h4>FREE</h4>
+      <div class="price">€0</div>
+      <ul>
+        <li>1 lega attiva</li>
+        <li>Max 8 partecipanti</li>
+        <li>Funzionalita' base</li>
+        <li>Pubblicita' discreta</li>
+      </ul>
+    </div>
+    <div class="pricing-card featured">
+      <h4>PREMIUM</h4>
+      <div class="price">€4.99<span>/mese</span></div>
+      <ul>
+        <li>Leghe illimitate</li>
+        <li>Max 16 partecipanti</li>
+        <li>Statistiche avanzate</li>
+        <li>Storico completo</li>
+        <li>Zero pubblicita'</li>
+        <li>Badge esclusivi</li>
+      </ul>
+    </div>
+    <div class="pricing-card">
+      <h4>LEAGUE PREMIUM</h4>
+      <div class="price">€9.99<span>/anno</span></div>
+      <ul>
+        <li>Customizzazione regolamento</li>
+        <li>Analytics avanzati</li>
+        <li>Backup automatici</li>
+        <li>Supporto prioritario</li>
+      </ul>
+    </div>
+  </div>
+  <span class="slide-number">07</span>
+</section>
+
+<!-- Slide 8: Roadmap -->
+<section class="slide">
+  <h2><span>Roadmap</span> 2026</h2>
+
+  <div class="roadmap">
+    <div class="roadmap-item">
+      <div class="quarter">Q1 2026</div>
+      <h4>Launch</h4>
+      <ul>
+        <li>Beta pubblica</li>
+        <li>Onboarding guidato</li>
+        <li>Mobile PWA</li>
+      </ul>
+    </div>
+    <div class="roadmap-item q2">
+      <div class="quarter">Q2 2026</div>
+      <h4>Growth</h4>
+      <ul>
+        <li>App nativa iOS/Android</li>
+        <li>Notifiche push</li>
+        <li>Dati live partite</li>
+      </ul>
+    </div>
+    <div class="roadmap-item q3">
+      <div class="quarter">Q3 2026</div>
+      <h4>Expansion</h4>
+      <ul>
+        <li>Liga spagnola</li>
+        <li>Premier League</li>
+        <li>Tornei inter-lega</li>
+      </ul>
+    </div>
+    <div class="roadmap-item q4">
+      <div class="quarter">Q4 2026</div>
+      <h4>Monetization</h4>
+      <ul>
+        <li>Premium completo</li>
+        <li>Partnership creators</li>
+        <li>API pubblica</li>
+      </ul>
+    </div>
+  </div>
+  <span class="slide-number">08</span>
+</section>
+
+<!-- Slide 9: The Ask -->
+<section class="slide">
+  <h2>The <span>Ask</span></h2>
+
+  <div class="ask-box">
+    <h3>Round Pre-Seed</h3>
+    <div class="amount">€150.000</div>
+  </div>
+
+  <div class="allocation-grid">
+    <div class="allocation-item">
+      <div class="percent">50%</div>
+      <div class="label">Sviluppo Prodotto</div>
+      <div class="amount">€75.000</div>
+    </div>
+    <div class="allocation-item">
+      <div class="percent">30%</div>
+      <div class="label">Marketing & Growth</div>
+      <div class="amount">€45.000</div>
+    </div>
+    <div class="allocation-item">
+      <div class="percent">15%</div>
+      <div class="label">Operazioni</div>
+      <div class="amount">€22.500</div>
+    </div>
+    <div class="allocation-item">
+      <div class="percent">5%</div>
+      <div class="label">Buffer</div>
+      <div class="amount">€7.500</div>
+    </div>
+  </div>
+  <span class="slide-number">09</span>
+</section>
+
+<!-- Slide 10: Contact -->
+<section class="slide cover">
+  <div class="contact-box">
+    <div class="logo-small">⚽</div>
+    <h2>Let's Talk</h2>
+    <p>FANTACONTRATTI</p>
+    <div class="contact-info">
+      <a href="mailto:info@fantacontratti.com">info@fantacontratti.com</a>
+      <a href="https://fantacontratti.com">fantacontratti.com</a>
+    </div>
+  </div>
+  <p class="confidential">Deck Version 1.0 - Gennaio 2026<br>Confidenziale - Solo per potenziali investitori</p>
+  <span class="slide-number">10</span>
+</section>
+
+</body>
+</html>
