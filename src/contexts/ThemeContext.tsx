@@ -17,9 +17,19 @@ const STORAGE_KEY_FONT = 'fantacontratti-font'
 
 function applyThemeVariables(theme: StyleTheme) {
   const root = document.documentElement
+  const body = document.body
+
+  // Set CSS variables
   Object.entries(theme.vars).forEach(([key, value]) => {
     root.style.setProperty(key, value)
   })
+
+  // Apply theme colors directly to body for immediate effect
+  body.style.backgroundColor = theme.vars['--bg']
+  body.style.color = theme.vars['--text']
+
+  // Add a data attribute for potential CSS selectors
+  root.setAttribute('data-theme', theme.id)
 }
 
 function applyFont(fontKey: FontKey) {

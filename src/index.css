@@ -55,14 +55,47 @@
 /* Custom base styles - Football Manager Dark Theme */
 @layer base {
   html {
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-family, 'Inter'), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
   body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: var(--color-dark-300);
-    color: #f3f4f6;
+    /* Use theme CSS variables with fallback to default dark */
+    background-color: var(--bg, var(--color-dark-300));
+    color: var(--text, #f3f4f6);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Override common dark backgrounds to use theme */
+  .bg-dark-300 {
+    background-color: var(--bg, #0a0a0b) !important;
+  }
+
+  .bg-dark-200, .bg-surface-200 {
+    background-color: var(--bg-card, #111214) !important;
+  }
+
+  .bg-dark-100, .bg-surface-300 {
+    background-color: var(--bg-hover, #1a1c20) !important;
+  }
+
+  /* Override text colors */
+  .text-white {
+    color: var(--text, #ffffff) !important;
+  }
+
+  .text-gray-400, .text-gray-500 {
+    color: var(--text-muted, #9ca3af) !important;
+  }
+
+  .text-gray-600 {
+    color: var(--text-dim, #6b7280) !important;
+  }
+
+  /* Override border colors */
+  .border-surface-50\/20, .border-gray-700 {
+    border-color: var(--border, rgba(42, 49, 66, 0.2)) !important;
   }
 
   /* Custom scrollbar */
