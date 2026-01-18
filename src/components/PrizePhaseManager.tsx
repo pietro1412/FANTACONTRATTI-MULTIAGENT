@@ -344,9 +344,14 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
 
   const { config, categories, members } = data
 
-  // Separate regular categories from individual indemnity categories
-  // Individual indemnity categories have names like "Indennizzo - PlayerName"
-  const regularCategories = categories.filter(cat => !cat.name.startsWith('Indennizzo - '))
+  // Separate regular categories from indemnity-related categories
+  // Indemnity categories include:
+  // - "Indennizzo Partenza Estero" (base system category - should not show per-manager)
+  // - "Indennizzo - PlayerName" (individual player indemnities)
+  const isIndemnityCategory = (cat: { name: string }) =>
+    cat.name.startsWith('Indennizzo - ') || cat.name === 'Indennizzo Partenza Estero'
+
+  const regularCategories = categories.filter(cat => !isIndemnityCategory(cat))
   const indemnityCategories = categories.filter(cat => cat.name.startsWith('Indennizzo - '))
 
   // Calculate indemnity total per member (sum of all "Indennizzo - X" categories)
@@ -361,15 +366,22 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
     return total
   }
 
-  // Calculate totals for display (includes all categories)
+  // Calculate totals for display
+  // Includes regular categories + individual indemnities (but NOT the base "Indennizzo Partenza Estero")
   const calculateMemberTotal = (memberId: string) => {
     let total = config.baseReincrement
-    for (const cat of categories) {
+
+    // Add regular category prizes
+    for (const cat of regularCategories) {
       const prize = cat.prizes.find(p => p.memberId === memberId)
       if (prize) {
         total += prize.amount
       }
     }
+
+    // Add individual indemnity prizes (the "Indennizzo - PlayerName" ones)
+    total += calculateMemberIndemnityTotal(memberId)
+
     return total
   }
 
