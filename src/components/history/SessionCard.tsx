@@ -580,7 +580,7 @@ function TradesTab({ data }: { data: unknown }) {
 function PrizesTab({ data }: { data: unknown }) {
   if (!data) return <div className="text-gray-400">Premi non ancora finalizzati</div>
 
-  const { config, categories, members } = data as {
+  const { config, categories, members, indemnityStats } = data as {
     config: { baseReincrement: number; isFinalized: boolean; finalizedAt: string | null }
     categories: Array<{
       id: string
@@ -588,12 +588,33 @@ function PrizesTab({ data }: { data: unknown }) {
       isSystemPrize: boolean
       prizes: Array<{ memberId: string; teamName: string | null; username: string; amount: number }>
     }>
-    members: Array<{ id: string; username: string; teamName: string | null; totalPrize: number }>
+    members: Array<{
+      id: string
+      username: string
+      teamName: string | null
+      totalPrize: number
+      totalIndemnity?: number
+      indemnityPlayers?: Array<{
+        playerId: string
+        playerName: string
+        position: string
+        team: string
+        exitReason: string
+        indemnityAmount: number
+      }>
+    }>
+    indemnityStats?: {
+      totalPlayers: number
+      totalAmount: number
+      byReason: { RITIRATO: number; RETROCESSO: number; ESTERO: number }
+    }
   }
 
   if (!config.isFinalized) {
     return <div className="text-gray-400">Premi non ancora finalizzati</div>
   }
+
+  const hasIndemnities = indemnityStats && indemnityStats.totalPlayers > 0
 
   return (
     <div className="space-y-4">
@@ -650,6 +671,75 @@ function PrizesTab({ data }: { data: unknown }) {
           </table>
         </div>
       </div>
+
+      {/* Indemnities Section */}
+      {hasIndemnities && (
+        <div className="mt-6 pt-4 border-t border-surface-50/20">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-medium text-white flex items-center gap-2">
+              <span>⚠️</span>
+              Indennizzi Giocatori Usciti
+            </h4>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="px-2 py-1 rounded bg-cyan-500/20 text-cyan-400">
+                {indemnityStats.byReason.ESTERO} Estero
+              </span>
+              <span className="px-2 py-1 rounded bg-cyan-500/10 text-cyan-300 font-bold">
+                Totale: {indemnityStats.totalAmount}M
+              </span>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-surface-50/20 text-xs text-gray-400 uppercase">
+                  <th className="text-left py-2 px-2">Manager</th>
+                  <th className="text-center py-2 px-2 w-10">R</th>
+                  <th className="text-left py-2 px-2">Giocatore</th>
+                  <th className="text-center py-2 px-2">Motivo</th>
+                  <th className="text-right py-2 px-2">Indennizzo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {members.filter(m => (m.indemnityPlayers?.length ?? 0) > 0).flatMap(member =>
+                  (member.indemnityPlayers ?? []).map((player, idx) => {
+                    const posColors: Record<string, string> = {
+                      P: 'text-amber-400',
+                      D: 'text-blue-400',
+                      C: 'text-emerald-400',
+                      A: 'text-red-400',
+                    }
+                    return (
+                      <tr key={`${member.id}-${player.playerId}`} className="border-b border-surface-50/10">
+                        {idx === 0 && (
+                          <td rowSpan={member.indemnityPlayers?.length ?? 1} className="py-2 px-2 align-top border-r border-surface-50/10">
+                            <span className="text-white text-sm">{member.teamName || member.username}</span>
+                          </td>
+                        )}
+                        <td className={`py-2 px-2 text-center font-bold ${posColors[player.position] || 'text-gray-400'}`}>
+                          {player.position}
+                        </td>
+                        <td className="py-2 px-2">
+                          <span className="text-white">{player.playerName}</span>
+                          <span className="text-gray-500 text-xs ml-2">{player.team}</span>
+                        </td>
+                        <td className="py-2 px-2 text-center">
+                          <span className="px-2 py-0.5 rounded text-xs font-medium bg-cyan-500/20 text-cyan-400">
+                            {player.exitReason}
+                          </span>
+                        </td>
+                        <td className="py-2 px-2 text-right font-bold text-cyan-400">
+                          {player.indemnityAmount}M
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

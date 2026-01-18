@@ -1,6 +1,21 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from './ui/Button'
 import { prizePhaseApi } from '../services/api'
+import { getTeamLogo } from '../utils/teamLogos'
+
+// Team logo component
+function TeamLogo({ team }: { team: string }) {
+  return (
+    <img
+      src={getTeamLogo(team)}
+      alt={team}
+      className="w-full h-full object-contain"
+      onError={(e) => {
+        (e.target as HTMLImageElement).style.display = 'none'
+      }}
+    />
+  )
+}
 
 interface PrizePhaseConfig {
   id: string
@@ -21,6 +36,29 @@ interface PrizeCategory {
   }>
 }
 
+interface IndemnityPlayer {
+  playerId: string
+  playerName: string
+  position: string
+  team: string
+  quotation: number
+  exitReason: 'RITIRATO' | 'RETROCESSO' | 'ESTERO'
+  contract: {
+    salary: number
+    duration: number
+    rescissionClause: number | null
+  } | null
+}
+
+interface IndemnityStats {
+  totalPlayers: number
+  byReason: {
+    RITIRATO: number
+    RETROCESSO: number
+    ESTERO: number
+  }
+}
+
 interface MemberInfo {
   id: string
   teamName: string
@@ -28,6 +66,7 @@ interface MemberInfo {
   currentBudget: number
   totalPrize: number | null
   baseOnly: boolean
+  indemnityPlayers: IndemnityPlayer[]
 }
 
 interface PrizePhaseData {
@@ -35,6 +74,7 @@ interface PrizePhaseData {
   categories: PrizeCategory[]
   members: MemberInfo[]
   isAdmin: boolean
+  indemnityStats: IndemnityStats
 }
 
 interface PrizePhaseManagerProps {
@@ -62,6 +102,10 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
   const [focusedInput, setFocusedInput] = useState<{ catId: string; memberId: string; originalValue: number } | null>(null)
   const [inputDisplayValue, setInputDisplayValue] = useState<string>('')
 
+  // Custom indemnity amounts: { playerId: amount }
+  const [customIndemnities, setCustomIndemnities] = useState<Record<string, number>>({})
+  const [savingIndemnity, setSavingIndemnity] = useState<string | null>(null)
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -70,6 +114,16 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       if (result.success && result.data) {
         setData(result.data as PrizePhaseData)
         setBaseReincrementValue((result.data as PrizePhaseData).config.baseReincrement)
+
+        // Also load custom indemnities
+        try {
+          const indemnityResult = await prizePhaseApi.getCustomIndemnities(sessionId)
+          if (indemnityResult.success && indemnityResult.data) {
+            setCustomIndemnities((indemnityResult.data as { customIndemnities: Record<string, number> }).customIndemnities)
+          }
+        } catch {
+          // Custom indemnities are optional, ignore errors
+        }
       } else if (result.message === 'Fase premi non inizializzata') {
         // Need to initialize
         if (isAdmin) {
@@ -238,6 +292,36 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
     }
   }
 
+  // Handle custom indemnity change for ESTERO players
+  const handleIndemnityChange = async (playerId: string, delta: number) => {
+    const currentAmount = customIndemnities[playerId] ?? 50
+    const newAmount = Math.max(0, currentAmount + delta)
+
+    // Optimistic update
+    setCustomIndemnities(prev => ({ ...prev, [playerId]: newAmount }))
+    setSavingIndemnity(playerId)
+
+    try {
+      const result = await prizePhaseApi.setCustomIndemnity(sessionId, playerId, newAmount)
+      if (!result.success) {
+        // Revert on error
+        setCustomIndemnities(prev => ({ ...prev, [playerId]: currentAmount }))
+        setError(result.message || 'Errore salvataggio indennizzo')
+      }
+    } catch {
+      // Revert on error
+      setCustomIndemnities(prev => ({ ...prev, [playerId]: currentAmount }))
+      setError('Errore di connessione')
+    } finally {
+      setSavingIndemnity(null)
+    }
+  }
+
+  // Get indemnity amount for a player (custom or default 50)
+  const getIndemnityAmount = (playerId: string) => {
+    return customIndemnities[playerId] ?? 50
+  }
+
   if (loading) {
     return (
       <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-8 text-center">
@@ -362,6 +446,192 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
           </div>
         )}
       </div>
+
+      {/* Indemnity Details Section - Show if there are affected players */}
+      {data.indemnityStats.totalPlayers > 0 && (
+        <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
+          <div className="p-4 border-b border-surface-50/20 bg-gradient-to-r from-cyan-500/10 to-surface-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                  <span className="text-xl">⚠️</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Giocatori Usciti dalla Lista</h3>
+                  <p className="text-sm text-gray-400">
+                    {data.indemnityStats.totalPlayers} giocatori con contratti attivi
+                  </p>
+                </div>
+              </div>
+              {/* Stats badges */}
+              <div className="flex items-center gap-2">
+                {data.indemnityStats.byReason.RITIRATO > 0 && (
+                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-400 border border-gray-500/30">
+                    {data.indemnityStats.byReason.RITIRATO} Ritirati
+                  </span>
+                )}
+                {data.indemnityStats.byReason.RETROCESSO > 0 && (
+                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                    {data.indemnityStats.byReason.RETROCESSO} Retrocessi
+                  </span>
+                )}
+                {data.indemnityStats.byReason.ESTERO > 0 && (
+                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                    {data.indemnityStats.byReason.ESTERO} Estero
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-300/50">
+                <tr className="text-xs text-gray-400 uppercase">
+                  <th className="text-left py-3 px-4">Manager</th>
+                  <th className="text-center py-3 px-2 w-10">R</th>
+                  <th className="text-left py-3 px-3">Giocatore</th>
+                  <th className="text-center py-3 px-2 hidden lg:table-cell">Quot.</th>
+                  <th className="text-center py-3 px-2 hidden lg:table-cell">Contratto</th>
+                  <th className="text-center py-3 px-3">Motivo</th>
+                  <th className="text-right py-3 px-4">Indennizzo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {members.filter(m => m.indemnityPlayers.length > 0).flatMap(member =>
+                  member.indemnityPlayers.map((player, idx) => {
+                    const posColorMap: Record<string, { bg: string; text: string }> = {
+                      P: { bg: 'bg-gradient-to-r from-amber-500 to-amber-600', text: 'text-white' },
+                      D: { bg: 'bg-gradient-to-r from-blue-500 to-blue-600', text: 'text-white' },
+                      C: { bg: 'bg-gradient-to-r from-emerald-500 to-emerald-600', text: 'text-white' },
+                      A: { bg: 'bg-gradient-to-r from-red-500 to-red-600', text: 'text-white' },
+                    }
+                    const exitConfig: Record<string, { bg: string; text: string; label: string; indemnity: string }> = {
+                      RITIRATO: { bg: 'bg-gray-500/10', text: 'text-gray-400', label: 'Ritirato', indemnity: '-' },
+                      RETROCESSO: { bg: 'bg-amber-500/10', text: 'text-amber-400', label: 'Retrocesso', indemnity: '-' },
+                      ESTERO: { bg: 'bg-cyan-500/10', text: 'text-cyan-400', label: 'Estero', indemnity: '50M' },
+                    }
+                    const posColors = posColorMap[player.position] || { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white' }
+                    const cfg = exitConfig[player.exitReason]
+                    const isFirstOfMember = idx === 0
+                    const memberRowSpan = member.indemnityPlayers.length
+
+                    return (
+                      <tr key={`${member.id}-${player.playerId}`} className={`border-t border-surface-50/10 ${cfg.bg}`}>
+                        {isFirstOfMember && (
+                          <td rowSpan={memberRowSpan} className="py-2 px-4 border-r border-surface-50/10 align-top">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500/30 to-accent-500/30 flex items-center justify-center text-white font-bold text-xs">
+                                {member.teamName?.charAt(0) || '?'}
+                              </div>
+                              <div>
+                                <p className="font-medium text-white text-sm">{member.teamName}</p>
+                                <p className="text-[10px] text-gray-500">@{member.username}</p>
+                              </div>
+                            </div>
+                          </td>
+                        )}
+                        <td className="py-2 px-2 text-center">
+                          <div className={`w-7 h-7 mx-auto rounded-full ${posColors.bg} ${posColors.text} flex items-center justify-center text-xs font-bold`}>
+                            {player.position}
+                          </div>
+                        </td>
+                        <td className="py-2 px-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 bg-white rounded p-0.5 flex-shrink-0">
+                              <TeamLogo team={player.team} />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="font-medium text-white text-sm">{player.playerName}</span>
+                              <div className="text-xs text-gray-500">{player.team}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-2 px-2 text-center text-gray-400 hidden lg:table-cell">
+                          {player.quotation}M
+                        </td>
+                        <td className="py-2 px-2 text-center text-primary-400 hidden lg:table-cell">
+                          {player.contract ? `${player.contract.salary}M/${player.contract.duration}a` : '-'}
+                        </td>
+                        <td className="py-2 px-3 text-center">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${cfg.text} ${cfg.bg} border border-current/30`}>
+                            {cfg.label}
+                          </span>
+                        </td>
+                        <td className="py-2 px-4 text-right">
+                          {player.exitReason === 'ESTERO' ? (
+                            isAdmin && !config.isFinalized ? (
+                              <div className="flex items-center justify-end gap-0.5">
+                                <button
+                                  type="button"
+                                  className="w-6 h-6 bg-surface-400 hover:bg-surface-500 text-white rounded text-sm font-bold flex items-center justify-center transition-colors disabled:opacity-50"
+                                  onClick={() => handleIndemnityChange(player.playerId, -10)}
+                                  disabled={savingIndemnity === player.playerId || getIndemnityAmount(player.playerId) <= 0}
+                                >
+                                  −
+                                </button>
+                                <span className={`w-14 px-1 py-1 bg-surface-300 border border-cyan-500/30 rounded text-cyan-400 text-center text-sm font-medium ${savingIndemnity === player.playerId ? 'opacity-50' : ''}`}>
+                                  {getIndemnityAmount(player.playerId)}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="w-6 h-6 bg-surface-400 hover:bg-surface-500 text-white rounded text-sm font-bold flex items-center justify-center transition-colors disabled:opacity-50"
+                                  onClick={() => handleIndemnityChange(player.playerId, 10)}
+                                  disabled={savingIndemnity === player.playerId}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-cyan-400 font-bold">{getIndemnityAmount(player.playerId)}M</span>
+                            )
+                          ) : (
+                            <span className="text-gray-500">−</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+              {/* Footer with totals */}
+              <tfoot>
+                <tr className="border-t-2 border-surface-50/30 bg-surface-300/30">
+                  <td colSpan={6} className="py-3 px-4 text-right text-gray-400 font-medium">
+                    Totale Indennizzi Estero:
+                  </td>
+                  <td className="py-3 px-4 text-right">
+                    <span className="text-cyan-400 font-bold text-lg">
+                      {members.flatMap(m => m.indemnityPlayers)
+                        .filter(p => p.exitReason === 'ESTERO')
+                        .reduce((sum, p) => sum + getIndemnityAmount(p.playerId), 0)}M
+                    </span>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Legend */}
+          <div className="p-4 border-t border-surface-50/20 bg-surface-300/20">
+            <div className="flex flex-wrap gap-6 text-xs text-gray-400">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded bg-gray-500/30"></span>
+                <span><strong>Ritirato:</strong> Contratto terminato, nessun compenso</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded bg-amber-500/30"></span>
+                <span><strong>Retrocesso:</strong> Il manager deciderà se mantenere o rilasciare</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded bg-cyan-500/30"></span>
+                <span><strong>Estero:</strong> Se il manager rilascia, riceve l'indennizzo</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Categories and Prizes Table - Admin only */}
       {isAdmin && (
@@ -597,29 +867,69 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
 
       {/* Summary for managers (non-admin) */}
       {!isAdmin && (
-        <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-6">
-          <h3 className="text-lg font-bold text-white mb-4">Riepilogo Budget</h3>
-          {config.isFinalized ? (
-            <div className="space-y-3">
-              {members.map(member => (
-                <div key={member.id} className="flex items-center justify-between p-3 bg-surface-300 rounded-lg">
-                  <div>
-                    <p className="text-white font-medium">{member.teamName}</p>
-                    <p className="text-gray-500 text-xs">{member.username}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-primary-400 font-bold text-lg">+{member.totalPrize}M</p>
-                    <p className="text-gray-500 text-xs">Budget: {member.currentBudget}M</p>
-                  </div>
+        <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
+          {/* Header with status */}
+          <div className={`p-4 border-b border-surface-50/20 ${config.isFinalized ? 'bg-green-500/10' : 'bg-yellow-500/10'}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${config.isFinalized ? 'bg-green-500/20' : 'bg-yellow-500/20'}`}>
+                  <span className="text-xl">{config.isFinalized ? '✅' : '⏳'}</span>
                 </div>
-              ))}
+                <div>
+                  <h3 className="text-lg font-bold text-white">Assegnazione Premi</h3>
+                  <p className="text-sm text-gray-400">
+                    {config.isFinalized
+                      ? `Convalidati il ${new Date(config.finalizedAt!).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+                      : 'In attesa di convalida da parte dell\'admin lega'}
+                  </p>
+                </div>
+              </div>
+              <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase ${
+                config.isFinalized
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+              }`}>
+                {config.isFinalized ? 'Convalidato' : 'In attesa'}
+              </span>
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-gray-400">I premi saranno visibili dopo la finalizzazione da parte dell'admin.</p>
-              <p className="text-gray-500 text-sm mt-2">Re-incremento base: <span className="text-primary-400">{config.baseReincrement}M</span></p>
-            </div>
-          )}
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            {config.isFinalized ? (
+              <div className="space-y-3">
+                {members.map(member => (
+                  <div key={member.id} className="flex items-center justify-between p-3 bg-surface-300 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500/30 to-accent-500/30 flex items-center justify-center text-white font-bold">
+                        {member.teamName?.charAt(0) || '?'}
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">{member.teamName}</p>
+                        <p className="text-gray-500 text-xs">@{member.username}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-green-400 font-bold text-lg">+{member.totalPrize}M</p>
+                      <p className="text-gray-500 text-xs">Budget: {member.currentBudget}M</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <div className="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">⏳</span>
+                </div>
+                <p className="text-gray-300 font-medium mb-2">Premi non ancora convalidati</p>
+                <p className="text-gray-500 text-sm">L'admin della lega deve ancora finalizzare l'assegnazione dei premi.</p>
+                <div className="mt-4 p-3 bg-surface-300 rounded-lg inline-block">
+                  <p className="text-gray-400 text-sm">Re-incremento base garantito:</p>
+                  <p className="text-primary-400 font-bold text-xl">{config.baseReincrement}M</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

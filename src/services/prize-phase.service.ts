@@ -192,6 +192,78 @@ export async function getPrizePhaseData(
     }
   }
 
+  // Get indemnity details - players with exitReason who have active contracts in this league
+  const playersWithIndemnity = await prisma.playerRoster.findMany({
+    where: {
+      leagueMember: {
+        leagueId: session.leagueId,
+        status: MemberStatus.ACTIVE,
+      },
+      status: 'ACTIVE',
+      player: {
+        listStatus: 'NOT_IN_LIST',
+        exitReason: { not: null },
+      },
+    },
+    include: {
+      player: {
+        select: {
+          id: true,
+          name: true,
+          position: true,
+          team: true,
+          quotation: true,
+          exitReason: true,
+        },
+      },
+      leagueMember: {
+        select: {
+          id: true,
+          teamName: true,
+          user: { select: { username: true } },
+        },
+      },
+      contract: {
+        select: {
+          salary: true,
+          duration: true,
+          rescissionClause: true,
+        },
+      },
+    },
+  })
+
+  // Group indemnity players by member
+  const indemnityByMember: Record<string, Array<{
+    playerId: string
+    playerName: string
+    position: string
+    team: string
+    quotation: number
+    exitReason: string
+    contract: { salary: number; duration: number; rescissionClause: number | null } | null
+  }>> = {}
+
+  for (const roster of playersWithIndemnity) {
+    const memberId = roster.leagueMember.id
+    if (!indemnityByMember[memberId]) {
+      indemnityByMember[memberId] = []
+    }
+    indemnityByMember[memberId].push({
+      playerId: roster.player.id,
+      playerName: roster.player.name,
+      position: roster.player.position,
+      team: roster.player.team,
+      quotation: roster.player.quotation,
+      exitReason: roster.player.exitReason!,
+      contract: roster.contract ? {
+        salary: roster.contract.salary,
+        duration: roster.contract.duration,
+        rescissionClause: roster.contract.rescissionClause,
+      } : null,
+    })
+  }
+
   // Format response
   const formattedCategories = categories.map(cat => ({
     id: cat.id,
@@ -232,8 +304,20 @@ export async function getPrizePhaseData(
         A: { filled: rosterCounts.A, total: league?.forwardSlots ?? 6 },
         totalPlayers: m.roster.length,
       },
+      // Indemnity players for this member
+      indemnityPlayers: indemnityByMember[m.id] || [],
     }
   })
+
+  // Calculate indemnity summary
+  const indemnityStats = {
+    totalPlayers: playersWithIndemnity.length,
+    byReason: {
+      RITIRATO: playersWithIndemnity.filter(p => p.player.exitReason === 'RITIRATO').length,
+      RETROCESSO: playersWithIndemnity.filter(p => p.player.exitReason === 'RETROCESSO').length,
+      ESTERO: playersWithIndemnity.filter(p => p.player.exitReason === 'ESTERO').length,
+    },
+  }
 
   return {
     success: true,
@@ -247,6 +331,7 @@ export async function getPrizePhaseData(
       categories: isAdmin ? formattedCategories : [],
       members: formattedMembers,
       isAdmin,
+      indemnityStats,
     },
   }
 }
@@ -616,6 +701,203 @@ export async function finalizePrizePhase(
         newBudget: m.currentBudget,
       })),
     },
+  }
+}
+
+// ==================== SET CUSTOM INDEMNITY ====================
+
+/**
+ * Imposta un importo indennizzo personalizzato per un giocatore ESTERO
+ * L'importo viene salvato creando/aggiornando un premio specifico per il giocatore
+ */
+export async function setCustomIndemnity(
+  sessionId: string,
+  playerId: string,
+  adminUserId: string,
+  amount: number
+): Promise<ServiceResult> {
+  const session = await prisma.marketSession.findUnique({
+    where: { id: sessionId },
+  })
+
+  if (!session) {
+    return { success: false, message: 'Sessione non trovata' }
+  }
+
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: session.leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const config = await prisma.prizePhaseConfig.findUnique({
+    where: { marketSessionId: sessionId },
+  })
+
+  if (!config) {
+    return { success: false, message: 'Fase premi non inizializzata' }
+  }
+
+  if (config.isFinalized) {
+    return { success: false, message: 'La fase premi è già stata finalizzata' }
+  }
+
+  // Verify the player exists and is ESTERO
+  const player = await prisma.serieAPlayer.findUnique({
+    where: { id: playerId },
+  })
+
+  if (!player) {
+    return { success: false, message: 'Giocatore non trovato' }
+  }
+
+  if (player.exitReason !== 'ESTERO') {
+    return { success: false, message: 'Solo i giocatori ESTERO possono avere indennizzo personalizzato' }
+  }
+
+  // Find the roster entry to get the member who owns this player
+  const roster = await prisma.playerRoster.findFirst({
+    where: {
+      playerId,
+      leagueMember: {
+        leagueId: session.leagueId,
+        status: MemberStatus.ACTIVE,
+      },
+      status: 'ACTIVE',
+    },
+    include: {
+      leagueMember: true,
+    },
+  })
+
+  if (!roster) {
+    return { success: false, message: 'Giocatore non in rosa di nessun manager' }
+  }
+
+  // Validate amount
+  if (!Number.isInteger(amount) || amount < 0) {
+    return { success: false, message: 'L\'importo deve essere un numero intero >= 0' }
+  }
+
+  // Find or create a category for this player's indemnity
+  const categoryName = `Indennizzo - ${player.name}`
+
+  let category = await prisma.prizeCategory.findFirst({
+    where: {
+      marketSessionId: sessionId,
+      name: categoryName,
+    },
+  })
+
+  if (!category) {
+    category = await prisma.prizeCategory.create({
+      data: {
+        marketSessionId: sessionId,
+        name: categoryName,
+        isSystemPrize: true, // Mark as system so it can't be deleted
+      },
+    })
+  }
+
+  // Set the prize amount for the member who owns this player
+  // The amount here represents the custom indemnity
+  // We store it as amount - 50 (difference from default) to track the delta
+  await prisma.sessionPrize.upsert({
+    where: {
+      prizeCategoryId_leagueMemberId: {
+        prizeCategoryId: category.id,
+        leagueMemberId: roster.leagueMemberId,
+      },
+    },
+    update: { amount },
+    create: {
+      prizeCategoryId: category.id,
+      leagueMemberId: roster.leagueMemberId,
+      amount,
+    },
+  })
+
+  return {
+    success: true,
+    message: `Indennizzo per ${player.name} impostato a ${amount}M`,
+    data: {
+      playerId,
+      playerName: player.name,
+      memberId: roster.leagueMemberId,
+      amount,
+    },
+  }
+}
+
+/**
+ * Ottieni gli importi indennizzo personalizzati per una sessione
+ */
+export async function getCustomIndemnities(
+  sessionId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const session = await prisma.marketSession.findUnique({
+    where: { id: sessionId },
+  })
+
+  if (!session) {
+    return { success: false, message: 'Sessione non trovata' }
+  }
+
+  // Verify membership
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: session.leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Get all "Indennizzo - " categories for this session
+  const categories = await prisma.prizeCategory.findMany({
+    where: {
+      marketSessionId: sessionId,
+      name: { startsWith: 'Indennizzo - ' },
+    },
+    include: {
+      managerPrizes: true,
+    },
+  })
+
+  // Extract player names and amounts
+  const customIndemnities: Record<string, number> = {}
+
+  for (const cat of categories) {
+    // Extract player name from category name
+    const playerName = cat.name.replace('Indennizzo - ', '')
+
+    // Get the amount (there should be only one prize per category)
+    const prize = cat.managerPrizes[0]
+    if (prize) {
+      // Find the player ID by name
+      const player = await prisma.serieAPlayer.findFirst({
+        where: { name: playerName },
+      })
+      if (player) {
+        customIndemnities[player.id] = prize.amount
+      }
+    }
+  }
+
+  return {
+    success: true,
+    data: { customIndemnities },
   }
 }
 

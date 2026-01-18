@@ -1311,6 +1311,17 @@ export const prizePhaseApi = {
   // Get prize history for league
   getHistory: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/prizes/history`),
+
+  // Set custom indemnity for ESTERO player (Admin)
+  setCustomIndemnity: (sessionId: string, playerId: string, amount: number) =>
+    request(`/api/sessions/${sessionId}/prizes/indemnities/${playerId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ amount }),
+    }),
+
+  // Get custom indemnities for session
+  getCustomIndemnities: (sessionId: string) =>
+    request(`/api/sessions/${sessionId}/prizes/indemnities`),
 }
 
 // History API (Storico Lega)

@@ -9,6 +9,8 @@ import {
   setMemberPrize,
   finalizePrizePhase,
   getPrizeHistory,
+  setCustomIndemnity,
+  getCustomIndemnities,
 } from '../../services/prize-phase.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -189,6 +191,51 @@ router.get('/leagues/:leagueId/prizes/history', authMiddleware, async (req: Requ
     res.json(result)
   } catch (error) {
     console.error('Get prize history error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== CUSTOM INDEMNITIES ====================
+
+// PUT /api/sessions/:sessionId/prizes/indemnities/:playerId - Set custom indemnity for player (Admin)
+router.put('/sessions/:sessionId/prizes/indemnities/:playerId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { sessionId, playerId } = req.params as { sessionId: string; playerId: string }
+    const { amount } = req.body as { amount: number }
+
+    if (amount === undefined) {
+      res.status(400).json({ success: false, message: 'amount è obbligatorio' })
+      return
+    }
+
+    const result = await setCustomIndemnity(sessionId, playerId, req.user!.userId, amount)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Set custom indemnity error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/sessions/:sessionId/prizes/indemnities - Get custom indemnities for session
+router.get('/sessions/:sessionId/prizes/indemnities', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const sessionId = req.params.sessionId as string
+    const result = await getCustomIndemnities(sessionId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get custom indemnities error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

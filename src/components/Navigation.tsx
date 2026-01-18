@@ -268,13 +268,18 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                 <h1 className="text-base font-bold text-white leading-tight tracking-tight group-hover:text-primary-300 transition-colors duration-300">
                   Fantacontratti
                 </h1>
-                <div className="flex items-center gap-2">
-                  <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">
-                    Dynasty DG
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">
+                      Dynasty DG
+                    </p>
+                    <span className="text-xs text-primary-400 font-mono font-medium px-2 py-0.5 bg-primary-500/10 border border-primary-500/20 rounded">
+                      {__APP_VERSION__}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-gray-600 font-mono truncate max-w-[200px]" title={__GIT_COMMIT_MESSAGE__}>
+                    {__GIT_COMMIT_MESSAGE__}
                   </p>
-                  <span className="text-[9px] text-gray-600 font-mono bg-surface-300/50 px-1.5 py-0.5 rounded">
-                    v{__APP_VERSION__}
-                  </span>
                 </div>
               </div>
             </button>
@@ -574,9 +579,16 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
               </div>
               <div>
                 <h2 className="text-sm font-bold text-white">Fantacontratti</h2>
-                <div className="flex items-center gap-2">
-                  <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Dynasty DG</p>
-                  <span className="text-[9px] text-gray-500 font-mono bg-surface-100/50 px-1 py-0.5 rounded">v{__APP_VERSION__}</span>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Dynasty DG</p>
+                    <span className="text-xs text-primary-400 font-mono font-medium px-2 py-0.5 bg-primary-500/10 border border-primary-500/20 rounded">
+                      {__APP_VERSION__}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-gray-500 font-mono truncate max-w-[180px]">
+                    {__GIT_COMMIT_MESSAGE__}
+                  </p>
                 </div>
               </div>
             </div>

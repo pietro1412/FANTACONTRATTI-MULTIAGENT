@@ -599,18 +599,134 @@ export async function getSessionPrizes(
     orderBy: { teamName: 'asc' },
   })
 
+  // Get indemnity movements for this session (if any)
+  const indemnityMovements = await prisma.playerMovement.findMany({
+    where: {
+      marketSessionId: sessionId,
+      movementType: 'INDEMNITY_RECEIVED',
+    },
+    include: {
+      player: true,
+      toMember: {
+        include: { user: { select: { username: true } } },
+      },
+    },
+  })
+
+  // Also get players with indemnities (ESTERO players with contracts)
+  // This provides real-time data for current session
+  const playersWithIndemnity = await prisma.playerRoster.findMany({
+    where: {
+      leagueMember: { leagueId, status: MemberStatus.ACTIVE },
+      status: 'ACTIVE',
+      player: {
+        listStatus: 'NOT_IN_LIST',
+        exitReason: { not: null },
+      },
+    },
+    include: {
+      player: true,
+      leagueMember: {
+        include: { user: { select: { username: true } } },
+      },
+      contract: true,
+    },
+  })
+
+  // Group indemnity data by member
+  const indemnityByMember: Record<string, Array<{
+    playerId: string
+    playerName: string
+    position: string
+    team: string
+    quotation: number
+    exitReason: string
+    indemnityAmount: number
+    contract: { salary: number; duration: number } | null
+  }>> = {}
+
+  // From movements (historical)
+  for (const mov of indemnityMovements) {
+    const memberId = mov.toMemberId
+    if (!memberId) continue
+    if (!indemnityByMember[memberId]) {
+      indemnityByMember[memberId] = []
+    }
+    indemnityByMember[memberId].push({
+      playerId: mov.player.id,
+      playerName: mov.player.name,
+      position: mov.player.position,
+      team: mov.player.team,
+      quotation: mov.player.quotation,
+      exitReason: 'ESTERO',
+      indemnityAmount: mov.price ?? 50,
+      contract: null,
+    })
+  }
+
+  // From roster (current state for ESTERO players)
+  for (const roster of playersWithIndemnity) {
+    const memberId = roster.leagueMemberId
+    if (!indemnityByMember[memberId]) {
+      indemnityByMember[memberId] = []
+    }
+    // Only add ESTERO players as they receive indemnity
+    if (roster.player.exitReason === 'ESTERO') {
+      // Check if not already added from movements
+      const alreadyAdded = indemnityByMember[memberId].some(
+        p => p.playerId === roster.player.id
+      )
+      if (!alreadyAdded) {
+        indemnityByMember[memberId].push({
+          playerId: roster.player.id,
+          playerName: roster.player.name,
+          position: roster.player.position,
+          team: roster.player.team,
+          quotation: roster.player.quotation,
+          exitReason: roster.player.exitReason,
+          indemnityAmount: 50, // Default indemnity amount for ESTERO
+          contract: roster.contract
+            ? { salary: roster.contract.salary, duration: roster.contract.duration }
+            : null,
+        })
+      }
+    }
+  }
+
   // Calculate totals per member
   const memberTotals: Record<string, number> = {}
+  const memberIndemnityTotals: Record<string, number> = {}
   const baseReincrement = session.prizePhaseConfig?.baseReincrement ?? 0
 
   for (const m of members) {
     memberTotals[m.id] = baseReincrement
+    memberIndemnityTotals[m.id] = 0
+
+    // Add category prizes
     for (const cat of categories) {
       const prize = cat.managerPrizes.find(p => p.leagueMemberId === m.id)
       if (prize) {
         memberTotals[m.id] += prize.amount
       }
     }
+
+    // Add indemnity totals
+    const memberIndemnities = indemnityByMember[m.id] || []
+    for (const ind of memberIndemnities) {
+      memberIndemnityTotals[m.id] += ind.indemnityAmount
+    }
+  }
+
+  // Calculate indemnity stats
+  const allIndemnities = Object.values(indemnityByMember).flat()
+  const indemnityStats = {
+    totalPlayers: allIndemnities.length,
+    totalAmount: allIndemnities.reduce((sum, p) => sum + p.indemnityAmount, 0),
+    byReason: {
+      RITIRATO: playersWithIndemnity.filter(p => p.player.exitReason === 'RITIRATO').length,
+      RETROCESSO: playersWithIndemnity.filter(p => p.player.exitReason === 'RETROCESSO').length,
+      ESTERO: allIndemnities.length,
+    },
   }
 
   return {
@@ -637,7 +753,10 @@ export async function getSessionPrizes(
         username: m.user.username,
         teamName: m.teamName,
         totalPrize: memberTotals[m.id],
+        totalIndemnity: memberIndemnityTotals[m.id],
+        indemnityPlayers: indemnityByMember[m.id] || [],
       })),
+      indemnityStats,
     },
   }
 }
