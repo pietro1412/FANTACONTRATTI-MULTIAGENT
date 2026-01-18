@@ -566,7 +566,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                                 <button
                                   type="button"
                                   className="w-6 h-6 bg-surface-400 hover:bg-surface-500 text-white rounded text-sm font-bold flex items-center justify-center transition-colors disabled:opacity-50"
-                                  onClick={() => handleIndemnityChange(player.playerId, -10)}
+                                  onClick={() => handleIndemnityChange(player.playerId, -1)}
                                   disabled={savingIndemnity === player.playerId || getIndemnityAmount(player.playerId) <= 0}
                                 >
                                   −
@@ -577,7 +577,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                                 <button
                                   type="button"
                                   className="w-6 h-6 bg-surface-400 hover:bg-surface-500 text-white rounded text-sm font-bold flex items-center justify-center transition-colors disabled:opacity-50"
-                                  onClick={() => handleIndemnityChange(player.playerId, 10)}
+                                  onClick={() => handleIndemnityChange(player.playerId, 1)}
                                   disabled={savingIndemnity === player.playerId}
                                 >
                                   +
