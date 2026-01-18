@@ -1323,6 +1323,10 @@ export const prizePhaseApi = {
   // Get custom indemnities for session
   getCustomIndemnities: (sessionId: string) =>
     request(`/api/sessions/${sessionId}/prizes/indemnities`),
+
+  // Consolidate indemnities (Admin) - makes indemnities visible in prize table
+  consolidateIndemnities: (sessionId: string) =>
+    request(`/api/sessions/${sessionId}/prizes/indemnities/consolidate`, { method: 'POST' }),
 }
 
 // History API (Storico Lega)

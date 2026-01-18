@@ -29,14 +29,16 @@ model Prize {
 // ==================== FASE PREMI (MERCATO RICORRENTE) ====================
 // Configurazione fase PREMI per sessione di mercato
 model PrizePhaseConfig {
-  id                String        @id @default(cuid())
-  marketSessionId   String        @unique
-  marketSession     MarketSession @relation(fields: [marketSessionId], references: [id], onDelete: Cascade)  // see: market-session.prisma
-  baseReincrement   Int           @default(100)  // Re-incremento base uguale per tutti
-  isFinalized       Boolean       @default(false)
-  finalizedAt       DateTime?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id                      String        @id @default(cuid())
+  marketSessionId         String        @unique
+  marketSession           MarketSession @relation(fields: [marketSessionId], references: [id], onDelete: Cascade)  // see: market-session.prisma
+  baseReincrement         Int           @default(100)  // Re-incremento base uguale per tutti
+  indemnityConsolidated   Boolean       @default(false)  // true quando admin consolida gli indennizzi
+  indemnityConsolidatedAt DateTime?     // Data/ora consolidamento indennizzi
+  isFinalized             Boolean       @default(false)
+  finalizedAt             DateTime?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
 }
 
 // Categoria premio (es. "Classifica Portieri", "Indennizzo Partenza Estero")

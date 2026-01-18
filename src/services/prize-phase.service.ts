@@ -325,6 +325,8 @@ export async function getPrizePhaseData(
       config: {
         id: config.id,
         baseReincrement: config.baseReincrement,
+        indemnityConsolidated: config.indemnityConsolidated,
+        indemnityConsolidatedAt: config.indemnityConsolidatedAt,
         isFinalized: config.isFinalized,
         finalizedAt: config.finalizedAt,
       },
@@ -898,6 +900,72 @@ export async function getCustomIndemnities(
   return {
     success: true,
     data: { customIndemnities },
+  }
+}
+
+// ==================== CONSOLIDATE INDEMNITIES ====================
+
+/**
+ * Consolida gli indennizzi - dopo questa azione gli indennizzi appaiono nei premi per manager
+ * Solo l'admin può consolidare
+ */
+export async function consolidateIndemnities(
+  sessionId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  const session = await prisma.marketSession.findUnique({
+    where: { id: sessionId },
+  })
+
+  if (!session) {
+    return { success: false, message: 'Sessione non trovata' }
+  }
+
+  // Verify admin
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: session.leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato - solo admin può consolidare gli indennizzi' }
+  }
+
+  const config = await prisma.prizePhaseConfig.findUnique({
+    where: { marketSessionId: sessionId },
+  })
+
+  if (!config) {
+    return { success: false, message: 'Fase premi non inizializzata' }
+  }
+
+  if (config.isFinalized) {
+    return { success: false, message: 'La fase premi è già stata finalizzata' }
+  }
+
+  if (config.indemnityConsolidated) {
+    return { success: false, message: 'Gli indennizzi sono già stati consolidati' }
+  }
+
+  // Update config to mark indemnities as consolidated
+  await prisma.prizePhaseConfig.update({
+    where: { id: config.id },
+    data: {
+      indemnityConsolidated: true,
+      indemnityConsolidatedAt: new Date(),
+    },
+  })
+
+  return {
+    success: true,
+    message: 'Indennizzi consolidati con successo',
+    data: {
+      consolidatedAt: new Date(),
+    },
   }
 }
 

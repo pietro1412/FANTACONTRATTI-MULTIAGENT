@@ -20,6 +20,8 @@ function TeamLogo({ team }: { team: string }) {
 interface PrizePhaseConfig {
   id: string
   baseReincrement: number
+  indemnityConsolidated: boolean
+  indemnityConsolidatedAt: string | null
   isFinalized: boolean
   finalizedAt: string | null
 }
@@ -105,6 +107,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
   // Custom indemnity amounts: { playerId: amount }
   const [customIndemnities, setCustomIndemnities] = useState<Record<string, number>>({})
   const [savingIndemnity, setSavingIndemnity] = useState<string | null>(null)
+  const [consolidatingIndemnities, setConsolidatingIndemnities] = useState(false)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -322,6 +325,26 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
     return customIndemnities[playerId] ?? 50
   }
 
+  // Handle consolidate indemnities
+  const handleConsolidateIndemnities = async () => {
+    if (!confirm('Sei sicuro di voler consolidare gli indennizzi? Una volta consolidati, gli importi verranno mostrati nella tabella premi e non potranno essere modificati.')) return
+
+    setConsolidatingIndemnities(true)
+    try {
+      const result = await prizePhaseApi.consolidateIndemnities(sessionId)
+      if (result.success) {
+        fetchData()
+        onUpdate?.()
+      } else {
+        setError(result.message || 'Errore consolidamento indennizzi')
+      }
+    } catch {
+      setError('Errore di connessione')
+    } finally {
+      setConsolidatingIndemnities(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-8 text-center">
@@ -368,6 +391,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
 
   // Calculate totals for display
   // Includes regular categories + individual indemnities (but NOT the base "Indennizzo Partenza Estero")
+  // Indemnities are only included when consolidated
   const calculateMemberTotal = (memberId: string) => {
     let total = config.baseReincrement
 
@@ -379,8 +403,10 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       }
     }
 
-    // Add individual indemnity prizes (the "Indennizzo - PlayerName" ones)
-    total += calculateMemberIndemnityTotal(memberId)
+    // Add individual indemnity prizes only if consolidated
+    if (config.indemnityConsolidated) {
+      total += calculateMemberIndemnityTotal(memberId)
+    }
 
     return total
   }
@@ -590,7 +616,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                         </td>
                         <td className="py-2 px-4 text-right">
                           {player.exitReason === 'ESTERO' ? (
-                            isAdmin && !config.isFinalized ? (
+                            isAdmin && !config.isFinalized && !config.indemnityConsolidated ? (
                               <div className="flex items-center justify-end gap-0.5">
                                 <button
                                   type="button"
@@ -641,6 +667,47 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
               </tfoot>
             </table>
           </div>
+
+          {/* Consolidate Indemnities Button - Only for admin when not yet consolidated and not finalized */}
+          {isAdmin && !config.indemnityConsolidated && !config.isFinalized && data.indemnityStats.byReason.ESTERO > 0 && (
+            <div className="p-4 border-t border-surface-50/20 bg-cyan-500/5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                    <span className="text-lg">💾</span>
+                  </div>
+                  <div>
+                    <p className="text-white font-medium text-sm">Consolida gli indennizzi</p>
+                    <p className="text-gray-500 text-xs">Conferma gli importi impostati sopra per mostrarli nella tabella premi</p>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleConsolidateIndemnities}
+                  disabled={consolidatingIndemnities}
+                  className="bg-cyan-600 hover:bg-cyan-500"
+                >
+                  {consolidatingIndemnities ? 'Consolidamento...' : 'Consolida Indennizzi'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Consolidated badge */}
+          {config.indemnityConsolidated && (
+            <div className="p-4 border-t border-surface-50/20 bg-green-500/5">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                  <span className="text-lg">✅</span>
+                </div>
+                <div>
+                  <p className="text-green-400 font-medium text-sm">Indennizzi consolidati</p>
+                  <p className="text-gray-500 text-xs">
+                    Consolidati il {config.indemnityConsolidatedAt ? new Date(config.indemnityConsolidatedAt).toLocaleString('it-IT') : '-'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Legend */}
           <div className="p-4 border-t border-surface-50/20 bg-surface-300/20">
@@ -693,8 +760,8 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                       </div>
                     </th>
                   ))}
-                  {/* Single column for total indemnities (read-only) */}
-                  {indemnityCategories.length > 0 && (
+                  {/* Single column for total indemnities (read-only) - only show when consolidated */}
+                  {indemnityCategories.length > 0 && config.indemnityConsolidated && (
                     <th className="text-center p-2 min-w-[100px] text-cyan-400">
                       <span>Indennizzi</span>
                     </th>
@@ -799,8 +866,8 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                         </td>
                       )
                     })}
-                    {/* Single column showing total indemnities (read-only, computed from individual player indemnities) */}
-                    {indemnityCategories.length > 0 && (
+                    {/* Single column showing total indemnities (read-only) - only show when consolidated */}
+                    {indemnityCategories.length > 0 && config.indemnityConsolidated && (
                       <td className="text-center py-2 px-1">
                         <span className="text-cyan-400 font-medium">
                           {calculateMemberIndemnityTotal(member.id)}M
@@ -880,8 +947,8 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                       </div>
                     )
                   })}
-                  {/* Single row for total indemnities (read-only) */}
-                  {indemnityCategories.length > 0 && (
+                  {/* Single row for total indemnities (read-only) - only show when consolidated */}
+                  {indemnityCategories.length > 0 && config.indemnityConsolidated && (
                     <div className="flex items-center justify-between pt-2 border-t border-surface-50/20">
                       <span className="text-cyan-400 text-sm font-medium">Indennizzi</span>
                       <span className="text-cyan-400 font-medium">{calculateMemberIndemnityTotal(member.id)}M</span>
