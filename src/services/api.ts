@@ -40,8 +40,9 @@ async function request<T>(
 
     const data = await response.json() as ApiResponse<T>
 
-    // Handle token refresh on 401
-    if (response.status === 401 && endpoint !== '/api/auth/refresh') {
+    // Handle token refresh on 401 (but NOT for login/register/logout - those don't need refresh)
+    const authEndpoints = ['/api/auth/login', '/api/auth/register', '/api/auth/logout', '/api/auth/refresh', '/api/auth/forgot-password', '/api/auth/reset-password']
+    if (response.status === 401 && !authEndpoints.includes(endpoint)) {
       const refreshed = await refreshAccessToken()
       if (refreshed) {
         // Retry the request
