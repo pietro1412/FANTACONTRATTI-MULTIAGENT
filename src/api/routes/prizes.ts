@@ -11,6 +11,7 @@ import {
   getPrizeHistory,
   setCustomIndemnity,
   getCustomIndemnities,
+  consolidateIndemnities,
 } from '../../services/prize-phase.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -236,6 +237,24 @@ router.get('/sessions/:sessionId/prizes/indemnities', authMiddleware, async (req
     res.json(result)
   } catch (error) {
     console.error('Get custom indemnities error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/sessions/:sessionId/prizes/indemnities/consolidate - Consolidate indemnities (Admin)
+router.post('/sessions/:sessionId/prizes/indemnities/consolidate', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const sessionId = req.params.sessionId as string
+    const result = await consolidateIndemnities(sessionId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message?.includes('Non autorizzato') ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Consolidate indemnities error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })
