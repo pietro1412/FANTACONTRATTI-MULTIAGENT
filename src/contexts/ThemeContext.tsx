@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { styleThemes, fonts, DEFAULT_THEME_ID, DEFAULT_FONT, type StyleTheme, type FontKey } from '../themes'
+import { styleThemes, fonts, themeCategories, DEFAULT_THEME_ID, DEFAULT_FONT, type StyleTheme, type FontKey } from '../themes'
 
 interface ThemeContextType {
   theme: StyleTheme
