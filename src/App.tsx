@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { AuthProvider, useAuth } from './hooks/useAuth'
+import { ThemeProvider } from './contexts/ThemeContext'
 
 // Pagine critiche - import statico (usate al primo caricamento)
 import { Login } from './pages/Login'
@@ -557,10 +558,12 @@ function AppRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-        <SpeedInsights />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppRoutes />
+          <SpeedInsights />
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   )
 }

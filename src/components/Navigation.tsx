@@ -5,6 +5,7 @@ import { Button } from './ui/Button'
 import { Notifications } from './Notifications'
 import { PendingInvites } from './PendingInvites'
 import { pusherClient } from '../services/pusher.client'
+import { ThemeSelector, ThemeButton } from './ThemeSelector'
 
 interface NavigationProps {
   currentPage: string
@@ -139,6 +140,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const [pusherConnected, setPusherConnected] = useState(false)
+  const [themeSelectorOpen, setThemeSelectorOpen] = useState(false)
   const profileDropdownRef = useRef<HTMLDivElement>(null)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
 
@@ -411,6 +413,9 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
               </a>
             )}
 
+            {/* Theme Selector Button */}
+            <ThemeButton onClick={() => setThemeSelectorOpen(true)} />
+
             {/* Pending Invites - shown globally */}
             <PendingInvites onNavigate={onNavigate} />
 
@@ -551,6 +556,9 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
       </div>
 
     </header>
+
+    {/* Theme Selector Modal */}
+    <ThemeSelector isOpen={themeSelectorOpen} onClose={() => setThemeSelectorOpen(false)} />
 
     {/* Mobile Navigation - FUORI dall'header per evitare vincoli di altezza */}
     {mobileMenuOpen && (
@@ -720,6 +728,20 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                 )}
               </>
             )}
+
+            {/* Theme Selector for Mobile */}
+            <div className="border-t my-3 pt-3 border-gray-600">
+              <button
+                onClick={() => { setThemeSelectorOpen(true); setMobileMenuOpen(false) }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-surface-300/60 hover:text-white transition-colors"
+                data-testid="mobile-theme-selector"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                </svg>
+                Personalizza Tema
+              </button>
+            </div>
 
             {/* Mobile Logout */}
             <div className="border-t my-3 pt-3 border-gray-600">
