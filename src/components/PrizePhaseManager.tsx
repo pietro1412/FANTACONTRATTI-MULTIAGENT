@@ -344,7 +344,24 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
 
   const { config, categories, members } = data
 
-  // Calculate totals for display
+  // Separate regular categories from individual indemnity categories
+  // Individual indemnity categories have names like "Indennizzo - PlayerName"
+  const regularCategories = categories.filter(cat => !cat.name.startsWith('Indennizzo - '))
+  const indemnityCategories = categories.filter(cat => cat.name.startsWith('Indennizzo - '))
+
+  // Calculate indemnity total per member (sum of all "Indennizzo - X" categories)
+  const calculateMemberIndemnityTotal = (memberId: string) => {
+    let total = 0
+    for (const cat of indemnityCategories) {
+      const prize = cat.prizes.find(p => p.memberId === memberId)
+      if (prize) {
+        total += prize.amount
+      }
+    }
+    return total
+  }
+
+  // Calculate totals for display (includes all categories)
   const calculateMemberTotal = (memberId: string) => {
     let total = config.baseReincrement
     for (const cat of categories) {
@@ -648,7 +665,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                 <tr className="bg-yellow-500/10 text-xs text-gray-400 uppercase">
                   <th className="text-left p-3">Manager / Squadra</th>
                   <th className="text-center p-2 border-l border-surface-50/20">Budget</th>
-                  {categories.map(cat => (
+                  {regularCategories.map(cat => (
                     <th key={cat.id} className="text-center p-2 min-w-[100px]">
                       <div className="flex items-center justify-center gap-1">
                         <span className="truncate">{cat.name}</span>
@@ -664,6 +681,12 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                       </div>
                     </th>
                   ))}
+                  {/* Single column for total indemnities (read-only) */}
+                  {indemnityCategories.length > 0 && (
+                    <th className="text-center p-2 min-w-[100px] text-cyan-400">
+                      <span>Indennizzi</span>
+                    </th>
+                  )}
                   <th className="text-center p-2 text-primary-400 font-bold border-l border-surface-50/20">Premio Tot.</th>
                 </tr>
               </thead>
@@ -684,7 +707,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                     <td className="p-2 text-center border-l border-surface-50/20">
                       <span className="text-accent-400 font-medium">{member.currentBudget}M</span>
                     </td>
-                    {categories.map(cat => {
+                    {regularCategories.map(cat => {
                       const prize = cat.prizes.find(p => p.memberId === member.id)
                       const savedValue = editingPrizes[cat.id]?.[member.id] ?? prize?.amount ?? 0
                       const isFocused = focusedInput?.catId === cat.id && focusedInput?.memberId === member.id
@@ -764,6 +787,14 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                         </td>
                       )
                     })}
+                    {/* Single column showing total indemnities (read-only, computed from individual player indemnities) */}
+                    {indemnityCategories.length > 0 && (
+                      <td className="text-center py-2 px-1">
+                        <span className="text-cyan-400 font-medium">
+                          {calculateMemberIndemnityTotal(member.id)}M
+                        </span>
+                      </td>
+                    )}
                     <td className="text-center p-2 border-l border-surface-50/20">
                       <span className="text-primary-400 font-bold text-lg">
                         {calculateMemberTotal(member.id)}M
@@ -802,7 +833,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
 
                 {/* Prizes */}
                 <div className="space-y-2">
-                  {categories.map(cat => {
+                  {regularCategories.map(cat => {
                     const prize = cat.prizes.find(p => p.memberId === member.id)
                     const savedValue = editingPrizes[cat.id]?.[member.id] ?? prize?.amount ?? 0
 
@@ -837,6 +868,13 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                       </div>
                     )
                   })}
+                  {/* Single row for total indemnities (read-only) */}
+                  {indemnityCategories.length > 0 && (
+                    <div className="flex items-center justify-between pt-2 border-t border-surface-50/20">
+                      <span className="text-cyan-400 text-sm font-medium">Indennizzi</span>
+                      <span className="text-cyan-400 font-medium">{calculateMemberIndemnityTotal(member.id)}M</span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
