@@ -459,6 +459,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   // Verifica se si può consolidare:
   // - Tutti i pending contracts devono avere valori validi
   // - Il numero di giocatori deve essere <= MAX_ROSTER_SIZE
+  // - Nessun contratto esistente deve avere errori di validazione (es. spalma errato)
   const canConsolidate = useMemo(() => {
     // Check roster limit
     if (effectivePlayerCount > MAX_ROSTER_SIZE) {
@@ -471,8 +472,48 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         return false
       }
     }
+    // Verifica che i contratti esistenti con modifiche non abbiano errori di validazione
+    for (const contract of contracts) {
+      if (!contract.canRenew) continue
+      const edit = localEdits[contract.id]
+      if (!edit) continue
+
+      const newSalary = parseInt(edit.newSalary) || contract.salary
+      const newDuration = parseInt(edit.newDuration) || contract.duration
+      const hasChanges = newSalary !== contract.salary || newDuration !== contract.duration
+
+      // Se ci sono modifiche e c'è un errore di validazione, blocca
+      if (hasChanges && edit.previewData?.validationError) {
+        return false
+      }
+    }
     return true
-  }, [pendingContracts, pendingEdits, effectivePlayerCount])
+  }, [pendingContracts, pendingEdits, effectivePlayerCount, contracts, localEdits])
+
+  // Messaggio per blocco consolidamento
+  const consolidateBlockReason = useMemo(() => {
+    if (effectivePlayerCount > MAX_ROSTER_SIZE) {
+      return `Devi tagliare ${requiredReleases} giocator${requiredReleases === 1 ? 'e' : 'i'} (max ${MAX_ROSTER_SIZE})`
+    }
+    for (const pending of pendingContracts) {
+      const edit = pendingEdits[pending.rosterId]
+      if (!edit || !edit.previewData?.isValid) {
+        return 'Imposta tutti i nuovi contratti'
+      }
+    }
+    for (const contract of contracts) {
+      if (!contract.canRenew) continue
+      const edit = localEdits[contract.id]
+      if (!edit) continue
+      const newSalary = parseInt(edit.newSalary) || contract.salary
+      const newDuration = parseInt(edit.newDuration) || contract.duration
+      const hasChanges = newSalary !== contract.salary || newDuration !== contract.duration
+      if (hasChanges && edit.previewData?.validationError) {
+        return `Errore di validazione: ${edit.previewData.validationError}`
+      }
+    }
+    return 'Conferma definitiva dei rinnovi'
+  }, [pendingContracts, pendingEdits, effectivePlayerCount, requiredReleases, contracts, localEdits])
 
   // Filtra e ordina contratti
   const filteredContracts = useMemo(() => {
@@ -722,11 +763,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                   size="sm"
                   onClick={handleConsolidate}
                   disabled={isConsolidating || !canConsolidate}
-                  title={
-                    requiredReleases > 0
-                      ? `Devi tagliare ${requiredReleases} giocator${requiredReleases === 1 ? 'e' : 'i'} (max ${MAX_ROSTER_SIZE})`
-                      : 'Conferma definitiva dei rinnovi'
-                  }
+                  title={consolidateBlockReason}
                 >
                   {isConsolidating ? 'Consolidando...' : 'Consolida'}
                 </Button>
@@ -744,6 +781,60 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         <div className="max-w-[1600px] mx-auto px-4 py-2">
           {error && <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-2 rounded text-sm">{error}</div>}
           {success && <div className="bg-secondary-500/20 border border-secondary-500/30 text-secondary-400 p-2 rounded text-sm">{success}</div>}
+        </div>
+      )}
+
+      {/* Box Regole Rinnovi */}
+      {inContrattiPhase && !isConsolidated && (
+        <div className="max-w-[1600px] mx-auto px-4 py-3">
+          <details className="bg-surface-200 border border-primary-500/30 rounded-lg">
+            <summary className="px-4 py-3 cursor-pointer text-primary-400 font-medium hover:bg-surface-300/30 rounded-lg flex items-center gap-2">
+              <span>📋</span> Regole Rinnovi Contratti
+            </summary>
+            <div className="px-4 pb-4 space-y-4 text-sm">
+              {/* Rinnovo Standard */}
+              <div className="bg-surface-300/30 rounded-lg p-3 border-l-4 border-secondary-500">
+                <h4 className="text-secondary-400 font-bold mb-1">Rinnovo Standard</h4>
+                <ul className="text-gray-300 space-y-1 ml-4 list-disc">
+                  <li>Puoi aumentare o mantenere l'ingaggio</li>
+                  <li>Puoi aumentare o mantenere la durata</li>
+                  <li>La clausola = Ingaggio × Moltiplicatore (4s=×11, 3s=×9, 2s=×7, 1s=×4)</li>
+                </ul>
+              </div>
+
+              {/* Spalma */}
+              <div className="bg-surface-300/30 rounded-lg p-3 border-l-4 border-warning-500">
+                <h4 className="text-warning-400 font-bold mb-1">Spalma (solo contratti 1 semestre)</h4>
+                <ul className="text-gray-300 space-y-1 ml-4 list-disc">
+                  <li>Permette di diminuire l'ingaggio allungando la durata</li>
+                  <li><span className="text-white font-medium">Regola:</span> Nuovo Ingaggio × Nuova Durata <span className="text-warning-400">≥</span> Ingaggio Iniziale</li>
+                  <li>Esempio: Contratto 10M×1s → puoi spalmarlo a 5M×2s (5×2=10 ≥ 10)</li>
+                  <li className="text-danger-400">Se la regola non è rispettata, il consolidamento sarà bloccato</li>
+                </ul>
+              </div>
+
+              {/* Taglia */}
+              <div className="bg-surface-300/30 rounded-lg p-3 border-l-4 border-danger-500">
+                <h4 className="text-danger-400 font-bold mb-1">Taglia (Rilascio Giocatore)</h4>
+                <ul className="text-gray-300 space-y-1 ml-4 list-disc">
+                  <li>Puoi liberare un giocatore pagando una penale</li>
+                  <li><span className="text-white font-medium">Costo taglio:</span> (Ingaggio × Durata residua) / 2</li>
+                  <li>Esempio: Contratto 8M×2s → costo taglio = (8×2)/2 = <span className="text-danger-400">8M</span></li>
+                  <li>Il giocatore va agli svincolati e sarà battuto all'asta</li>
+                </ul>
+              </div>
+
+              {/* Nuovi Contratti */}
+              <div className="bg-surface-300/30 rounded-lg p-3 border-l-4 border-accent-500">
+                <h4 className="text-accent-400 font-bold mb-1">Nuovi Contratti (Da Impostare)</h4>
+                <ul className="text-gray-300 space-y-1 ml-4 list-disc">
+                  <li>Giocatori acquisiti nella sessione devono avere un contratto</li>
+                  <li>Ingaggio minimo = prezzo d'acquisto</li>
+                  <li>Durata: da 1 a 4 semestri</li>
+                </ul>
+              </div>
+            </div>
+          </details>
         </div>
       )}
 
