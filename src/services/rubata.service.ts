@@ -1022,7 +1022,16 @@ export async function getRubataBoard(
             })
           })
 
-          // Record movement
+          // Record movement with contract info
+          const transferredRoster = await prisma.playerRoster.findFirst({
+            where: {
+              leagueMemberId: winningBid.bidderId,
+              playerId: auctionToClose.playerId,
+              status: RosterStatus.ACTIVE,
+            },
+            include: { contract: true },
+          })
+
           await recordMovement({
             leagueId,
             playerId: auctionToClose.playerId,
@@ -1032,6 +1041,12 @@ export async function getRubataBoard(
             price: auctionToClose.currentPrice,
             marketSessionId: activeSession.id,
             auctionId: auctionToClose.id,
+            oldSalary: transferredRoster?.contract?.salary,
+            oldDuration: transferredRoster?.contract?.duration,
+            oldClause: transferredRoster?.contract?.rescissionClause,
+            newSalary: transferredRoster?.contract?.salary,
+            newDuration: transferredRoster?.contract?.duration,
+            newClause: transferredRoster?.contract?.rescissionClause,
           })
 
           // Get seller info for pending ack
@@ -1922,7 +1937,16 @@ export async function closeCurrentRubataAuction(
     })
   })
 
-  // Record movement
+  // Record movement with contract info
+  const transferredRoster2 = await prisma.playerRoster.findFirst({
+    where: {
+      leagueMemberId: winningBid.bidderId,
+      playerId: activeAuction.playerId,
+      status: RosterStatus.ACTIVE,
+    },
+    include: { contract: true },
+  })
+
   await recordMovement({
     leagueId,
     playerId: activeAuction.playerId,
@@ -1932,6 +1956,12 @@ export async function closeCurrentRubataAuction(
     price: activeAuction.currentPrice,
     marketSessionId: activeSession.id,
     auctionId: activeAuction.id,
+    oldSalary: transferredRoster2?.contract?.salary,
+    oldDuration: transferredRoster2?.contract?.duration,
+    oldClause: transferredRoster2?.contract?.rescissionClause,
+    newSalary: transferredRoster2?.contract?.salary,
+    newDuration: transferredRoster2?.contract?.duration,
+    newClause: transferredRoster2?.contract?.rescissionClause,
   })
 
   // Get seller info for pending ack
@@ -2638,6 +2668,29 @@ export async function getRubataPendingAck(
     .filter(m => !pendingAck.acknowledgedMembers.includes(m.id))
     .map(m => ({ id: m.id, username: m.user.username }))
 
+  // Get contract info for the winner (for post-acquisition modification)
+  let contractInfo = null
+  if (pendingAck.winnerId === member.id) {
+    const roster = await prisma.playerRoster.findFirst({
+      where: {
+        leagueMemberId: member.id,
+        playerId: pendingAck.playerId,
+        status: RosterStatus.ACTIVE,
+      },
+      include: { contract: true },
+    })
+    if (roster?.contract) {
+      contractInfo = {
+        contractId: roster.contract.id,
+        rosterId: roster.id,
+        salary: roster.contract.salary,
+        duration: roster.contract.duration,
+        initialSalary: roster.contract.initialSalary,
+        rescissionClause: roster.contract.rescissionClause,
+      }
+    }
+  }
+
   return {
     success: true,
     data: {
@@ -2664,6 +2717,8 @@ export async function getRubataPendingAck(
       userAcknowledged: pendingAck.acknowledgedMembers.includes(member.id),
       allAcknowledged: pendingMembers.length === 0,
       prophecies: pendingAck.prophecies || [],
+      // Contract info for the winner to modify after acknowledging
+      winnerContractInfo: contractInfo,
     },
   }
 }
@@ -2745,6 +2800,31 @@ export async function acknowledgeRubataTransaction(
 
   const allAcknowledged = allMembers.every(m => updatedAck.acknowledgedMembers.includes(m.id))
 
+  // Get contract info for winner (for post-rubata contract modification)
+  let winnerContractInfo = null
+  if (pendingAck.winnerId === member.id) {
+    const roster = await prisma.playerRoster.findFirst({
+      where: {
+        leagueMemberId: member.id,
+        playerId: pendingAck.playerId,
+        status: RosterStatus.ACTIVE,
+      },
+      include: { contract: true },
+    })
+    if (roster?.contract) {
+      winnerContractInfo = {
+        contractId: roster.contract.id,
+        rosterId: roster.id,
+        playerId: pendingAck.playerId,
+        playerName: pendingAck.playerName,
+        salary: roster.contract.salary,
+        duration: roster.contract.duration,
+        initialSalary: roster.contract.initialSalary,
+        rescissionClause: roster.contract.rescissionClause,
+      }
+    }
+  }
+
   if (allAcknowledged) {
     // Clear pending ack and move to ready check for next player
     await prisma.marketSession.update({
@@ -2759,7 +2839,10 @@ export async function acknowledgeRubataTransaction(
     return {
       success: true,
       message: 'Tutti hanno confermato! Dichiararsi pronti per il prossimo giocatore.',
-      data: { allAcknowledged: true },
+      data: {
+        allAcknowledged: true,
+        winnerContractInfo, // For contract modification modal
+      },
     }
   }
 
@@ -2775,6 +2858,7 @@ export async function acknowledgeRubataTransaction(
       allAcknowledged: false,
       acknowledgedCount: updatedAck.acknowledgedMembers.length,
       totalMembers: allMembers.length,
+      winnerContractInfo, // For contract modification modal
     },
   }
 }
@@ -3247,7 +3331,7 @@ export async function completeRubataWithTransactions(
             })
           }
 
-          // Record movement
+          // Record movement with contract info
           await recordMovement({
             leagueId,
             playerId: player.playerId,
@@ -3257,6 +3341,12 @@ export async function completeRubataWithTransactions(
             price: bidAmount,
             marketSessionId: activeSession.id,
             auctionId: auction.id,
+            oldSalary: rosterEntry.contract?.salary,
+            oldDuration: rosterEntry.contract?.duration,
+            oldClause: rosterEntry.contract?.rescissionClause,
+            newSalary: rosterEntry.contract?.salary,
+            newDuration: rosterEntry.contract?.duration,
+            newClause: rosterEntry.contract?.rescissionClause,
           })
 
           // Update board with stolen info

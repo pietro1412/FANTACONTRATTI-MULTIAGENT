@@ -557,9 +557,36 @@ export async function acceptTrade(tradeId: string, userId: string): Promise<Serv
     })
   }
 
+  // Get full details of players received by the acceptor (receiver) for contract modification
+  const receivedPlayers = await prisma.playerRoster.findMany({
+    where: { id: { in: offeredPlayerIds } },
+    include: {
+      player: true,
+      contract: true
+    },
+  })
+
+  const receivedPlayersForModification = receivedPlayers.map(r => ({
+    rosterId: r.id,
+    contractId: r.contract?.id,
+    playerId: r.player.id,
+    playerName: r.player.name,
+    playerTeam: r.player.team,
+    playerPosition: r.player.position,
+    contract: r.contract ? {
+      salary: r.contract.salary,
+      duration: r.contract.duration,
+      initialSalary: r.contract.initialSalary,
+      rescissionClause: r.contract.rescissionClause,
+    } : null,
+  }))
+
   return {
     success: true,
     message: 'Scambio completato!',
+    data: {
+      receivedPlayers: receivedPlayersForModification,
+    },
   }
 }
 

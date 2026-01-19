@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { auctionApi, playerApi, firstMarketApi, adminApi } from '../services/api'
+import { auctionApi, playerApi, firstMarketApi, adminApi, contractApi } from '../services/api'
 import { usePusherAuction } from '../services/pusher.client'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -8,6 +8,7 @@ import { Chat } from '../components/Chat'
 import { getTeamLogo } from '../utils/teamLogos'
 import haptic from '../utils/haptics'
 import { POSITION_GRADIENTS, POSITION_FILTER_COLORS, POSITION_NAMES } from '../components/ui/PositionBadge'
+import { ContractModifierModal } from '../components/ContractModifier'
 import {
   DndContext,
   closestCenter,
@@ -97,6 +98,11 @@ interface PendingAcknowledgment {
   pendingMembers: { id: string; username: string }[]
   totalMembers: number
   totalAcknowledged: number
+  contractInfo?: {
+    salary: number
+    duration: number
+    rescissionClause: number
+  } | null
 }
 
 interface ReadyStatus {
@@ -142,6 +148,11 @@ interface RosterSlot {
   playerName: string
   playerTeam: string
   acquisitionPrice: number
+  contract?: {
+    salary: number
+    duration: number
+    rescissionClause: number
+  } | null
 }
 
 interface MyRosterSlots {
@@ -162,6 +173,11 @@ interface ManagerRosterPlayer {
   playerTeam: string
   position: string
   acquisitionPrice: number
+  contract?: {
+    salary: number
+    duration: number
+    rescissionClause: number
+  } | null
 }
 
 interface ManagerData {
@@ -305,6 +321,21 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   const [selectedManager, setSelectedManager] = useState<ManagerData | null>(null)
 
   const [appealStatus, setAppealStatus] = useState<AppealStatus | null>(null)
+
+  // Contract modification after winning auction
+  interface ContractForModification {
+    contractId: string
+    rosterId: string
+    playerId: string
+    playerName: string
+    playerTeam: string
+    playerPosition: string
+    salary: number
+    duration: number
+    initialSalary: number
+    rescissionClause: number
+  }
+  const [pendingContractModification, setPendingContractModification] = useState<ContractForModification | null>(null)
 
   // Pusher real-time updates - update state directly from Pusher data (no HTTP calls)
   const { connectionStatus, isConnected } = usePusherAuction(sessionId, {
@@ -579,7 +610,11 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
         }
 
         // Sync with backend in background (just to close the auction server-side)
-        loadCurrentAuction()
+        // Then fetch full data including contract info after a short delay
+        loadCurrentAuction().then(() => {
+          // Small delay to ensure contract is created on server
+          setTimeout(() => loadPendingAcknowledgment(), 500)
+        })
       }
     }
     updateTimer()
@@ -950,6 +985,13 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       setProphecyContent('')
       setAppealContent('')
       setIsAppealMode(false)
+
+      // Check if there's contract info for modification (winner only)
+      const data = result.data as { winnerContractInfo?: ContractForModification } | undefined
+      if (data?.winnerContractInfo) {
+        setPendingContractModification(data.winnerContractInfo)
+      }
+
       loadPendingAcknowledgment()
       loadPlayers()
       loadMyRosterSlots()
@@ -957,6 +999,25 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     } else {
       setError(result.message || 'Errore')
     }
+  }
+
+  // ========== CONTRACT MODIFICATION (Post-Primo Mercato Win) ==========
+
+  async function handleContractModification(newSalary: number, newDuration: number) {
+    if (!pendingContractModification?.contractId) return
+
+    const res = await contractApi.modify(pendingContractModification.contractId, newSalary, newDuration)
+    if (res.success) {
+      setPendingContractModification(null)
+      loadPlayers()
+      loadMyRosterSlots()
+    } else {
+      setError(res.message || 'Errore durante la modifica del contratto')
+    }
+  }
+
+  function handleSkipContractModification() {
+    setPendingContractModification(null)
   }
 
   const isMyTurn = firstMarketStatus?.isUserTurn || false
@@ -1173,35 +1234,48 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                     const slot = myRosterSlots.slots[pos]
                     const isCurrent = myRosterSlots.currentRole === pos
                     return (
-                      <div key={pos} className={`p-3 ${isCurrent ? 'bg-primary-500/10' : ''}`}>
+                      <div key={pos} className={`p-2 ${isCurrent ? 'bg-primary-500/10' : ''}`}>
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <span className={`w-7 h-7 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos]} flex items-center justify-center text-xs font-bold text-white`}>{pos}</span>
+                            <span className={`w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos]} flex items-center justify-center text-xs font-bold text-white`}>{pos}</span>
                             <span className="text-sm text-gray-300">{POSITION_NAMES[pos]}</span>
                           </div>
                           <span className={`text-sm font-bold ${slot.filled >= slot.total ? 'text-secondary-400' : 'text-gray-500'}`}>{slot.filled}/{slot.total}</span>
                         </div>
-                        {slot.players.map(p => (
-                          <div key={p.id} className="ml-9 py-1.5 flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                              <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
-                                <img
-                                  src={getTeamLogo(p.playerTeam)}
-                                  alt={p.playerTeam}
-                                  className="w-4 h-4 object-contain"
-                                />
-                              </div>
-                              <div className="min-w-0">
-                                <span className="text-gray-200 font-medium truncate block">{p.playerName}</span>
-                                <span className="text-gray-500 text-xs truncate block">{p.playerTeam}</span>
-                              </div>
-                            </div>
-                            <span className="text-accent-400 font-mono font-bold ml-2">{p.acquisitionPrice}</span>
-                          </div>
-                        ))}
-                        {Array.from({ length: slot.total - slot.filled }).map((_, i) => (
-                          <div key={i} className="ml-9 py-1 text-sm text-gray-600 italic">Slot vuoto</div>
-                        ))}
+                        {slot.players.length > 0 && (
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="text-gray-500 text-[10px] uppercase">
+                                <th className="text-left font-medium pb-1">Giocatore</th>
+                                <th className="text-center font-medium pb-1 w-12">Prezzo</th>
+                                <th className="text-center font-medium pb-1 w-10">Ing.</th>
+                                <th className="text-center font-medium pb-1 w-8">Dur.</th>
+                                <th className="text-center font-medium pb-1 w-12">Claus.</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {slot.players.map(p => (
+                                <tr key={p.id} className="border-t border-surface-50/10">
+                                  <td className="py-1.5">
+                                    <div className="flex items-center gap-1.5">
+                                      <div className="w-4 h-4 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
+                                        <img src={getTeamLogo(p.playerTeam)} alt={p.playerTeam} className="w-3 h-3 object-contain" />
+                                      </div>
+                                      <span className="text-gray-200 truncate">{p.playerName}</span>
+                                    </div>
+                                  </td>
+                                  <td className="text-center text-accent-400 font-bold">{p.acquisitionPrice}</td>
+                                  <td className="text-center text-white">{p.contract?.salary ?? '-'}</td>
+                                  <td className="text-center text-white">{p.contract?.duration ?? '-'}</td>
+                                  <td className="text-center text-primary-400">{p.contract?.rescissionClause ?? '-'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                        {slot.players.length === 0 && (
+                          <p className="text-xs text-gray-600 italic ml-8">Nessun giocatore</p>
+                        )}
                       </div>
                     )
                   })}
@@ -1953,27 +2027,39 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       </div>
                       <span className={`text-sm font-bold ${slot.filled >= slot.total ? 'text-secondary-400' : 'text-gray-500'}`}>{slot.filled}/{slot.total}</span>
                     </div>
-                    <div className="ml-8 space-y-1">
-                      {posPlayers.map(p => (
-                        <div key={p.id} className="flex items-center justify-between text-sm py-1.5">
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
-                              <img
-                                src={getTeamLogo(p.playerTeam)}
-                                alt={p.playerTeam}
-                                className="w-4 h-4 object-contain"
-                              />
-                            </div>
-                            <div className="min-w-0">
-                              <span className="text-gray-200 font-medium truncate block">{p.playerName}</span>
-                              <span className="text-gray-500 text-xs truncate block">{p.playerTeam}</span>
-                            </div>
-                          </div>
-                          <span className="text-accent-400 font-mono font-bold ml-2">{p.acquisitionPrice}</span>
-                        </div>
-                      ))}
-                      {posPlayers.length === 0 && <p className="text-gray-600 italic text-sm">Nessuno</p>}
-                    </div>
+                    {posPlayers.length > 0 ? (
+                      <table className="w-full text-xs ml-2">
+                        <thead>
+                          <tr className="text-gray-500 text-[10px] uppercase">
+                            <th className="text-left font-medium pb-1">Giocatore</th>
+                            <th className="text-center font-medium pb-1 w-14">Prezzo</th>
+                            <th className="text-center font-medium pb-1 w-12">Ing.</th>
+                            <th className="text-center font-medium pb-1 w-10">Dur.</th>
+                            <th className="text-center font-medium pb-1 w-14">Claus.</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {posPlayers.map(p => (
+                            <tr key={p.id} className="border-t border-surface-50/10">
+                              <td className="py-1.5">
+                                <div className="flex items-center gap-1.5">
+                                  <div className="w-4 h-4 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
+                                    <img src={getTeamLogo(p.playerTeam)} alt={p.playerTeam} className="w-3 h-3 object-contain" />
+                                  </div>
+                                  <span className="text-gray-200 truncate">{p.playerName}</span>
+                                </div>
+                              </td>
+                              <td className="text-center text-accent-400 font-bold">{p.acquisitionPrice}</td>
+                              <td className="text-center text-white">{p.contract?.salary ?? '-'}</td>
+                              <td className="text-center text-white">{p.contract?.duration ?? '-'}</td>
+                              <td className="text-center text-primary-400">{p.contract?.rescissionClause ?? '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <p className="text-gray-600 italic text-sm ml-8">Nessuno</p>
+                    )}
                   </div>
                 )
               })}
@@ -2008,10 +2094,28 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 </div>
               </div>
               {pendingAck.winner ? (
-                <div className="bg-primary-500/10 rounded-lg p-4 mb-4 text-center border border-primary-500/30">
-                  <p className="text-sm text-primary-400">Acquistato da</p>
-                  <p className="text-xl font-bold text-white">{pendingAck.winner.username}</p>
-                  <p className="text-3xl font-bold text-accent-400 mt-1">{pendingAck.finalPrice}</p>
+                <div className="bg-primary-500/10 rounded-lg p-4 mb-4 border border-primary-500/30">
+                  <div className="text-center mb-3">
+                    <p className="text-sm text-primary-400">Acquistato da</p>
+                    <p className="text-xl font-bold text-white">{pendingAck.winner.username}</p>
+                    <p className="text-3xl font-bold text-accent-400 mt-1">{pendingAck.finalPrice}M</p>
+                  </div>
+                  {pendingAck.contractInfo && (
+                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-primary-500/20">
+                      <div className="text-center">
+                        <p className="text-[10px] text-gray-500 uppercase">Ingaggio</p>
+                        <p className="text-sm font-bold text-white">{pendingAck.contractInfo.salary}M</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[10px] text-gray-500 uppercase">Durata</p>
+                        <p className="text-sm font-bold text-white">{pendingAck.contractInfo.duration}s</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[10px] text-gray-500 uppercase">Clausola</p>
+                        <p className="text-sm font-bold text-primary-400">{pendingAck.contractInfo.rescissionClause}M</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="bg-surface-300 rounded-lg p-4 mb-4 text-center"><p className="text-gray-400">Nessuna offerta</p></div>
@@ -2383,6 +2487,29 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             </div>
           </div>
         </div>
+      )}
+
+      {/* Contract Modification Modal after Primo Mercato Win */}
+      {pendingContractModification && (
+        <ContractModifierModal
+          isOpen={true}
+          onClose={handleSkipContractModification}
+          player={{
+            id: pendingContractModification.playerId,
+            name: pendingContractModification.playerName,
+            team: pendingContractModification.playerTeam,
+            position: pendingContractModification.playerPosition,
+          }}
+          contract={{
+            salary: pendingContractModification.salary,
+            duration: pendingContractModification.duration,
+            initialSalary: pendingContractModification.initialSalary,
+            rescissionClause: pendingContractModification.rescissionClause,
+          }}
+          onConfirm={handleContractModification}
+          title="Modifica Contratto"
+          description="Hai appena acquistato questo giocatore. Puoi modificare il suo contratto seguendo le regole del rinnovo."
+        />
       )}
     </div>
   )

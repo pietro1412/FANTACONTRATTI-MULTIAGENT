@@ -13,6 +13,7 @@ import {
   getAllConsolidationStatus,
   saveDrafts,
   simulateAllConsolidation,
+  modifyContractPostAcquisition,
 } from '../../services/contract.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -158,6 +159,36 @@ router.post('/contracts/:contractId/renew', authMiddleware, async (req: Request,
     res.json(result)
   } catch (error) {
     console.error('Renew contract error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/contracts/:contractId/modify - Modify contract post-acquisition
+router.post('/contracts/:contractId/modify', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const contractId = req.params.contractId as string
+    const { newSalary, newDuration } = req.body as { newSalary?: number; newDuration?: number }
+
+    if (!newSalary || !newDuration) {
+      res.status(400).json({ success: false, message: 'newSalary e newDuration richiesti' })
+      return
+    }
+
+    if (typeof newSalary !== 'number' || typeof newDuration !== 'number') {
+      res.status(400).json({ success: false, message: 'newSalary e newDuration devono essere numeri' })
+      return
+    }
+
+    const result = await modifyContractPostAcquisition(contractId, req.user!.userId, newSalary, newDuration)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Modify contract post-acquisition error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

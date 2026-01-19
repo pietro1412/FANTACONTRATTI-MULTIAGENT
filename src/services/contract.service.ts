@@ -1343,3 +1343,112 @@ export async function saveDrafts(
     return { success: false, message }
   }
 }
+
+// ==================== MODIFY CONTRACT POST-ACQUISITION ====================
+
+/**
+ * Modify a contract after acquisition (trade, rubata, svincolati, first market).
+ * This can be called outside of CONTRATTI phase.
+ * The modification follows renewal rules (spalma for 1s, no decrease for >1s).
+ * The cost is NOT deducted immediately - it will be counted in the "monte ingaggi" during CONTRATTI phase.
+ */
+export async function modifyContractPostAcquisition(
+  contractId: string,
+  userId: string,
+  newSalary: number,
+  newDuration: number
+): Promise<ServiceResult> {
+  // Get contract with roster and member info
+  const contract = await prisma.playerContract.findUnique({
+    where: { id: contractId },
+    include: {
+      roster: {
+        include: {
+          player: true,
+          leagueMember: {
+            include: {
+              user: { select: { id: true, username: true } },
+              league: true,
+            },
+          },
+        },
+      },
+    },
+  })
+
+  if (!contract) {
+    return { success: false, message: 'Contratto non trovato' }
+  }
+
+  // Verify ownership
+  if (contract.roster.leagueMember.user.id !== userId) {
+    return { success: false, message: 'Non sei il proprietario di questo contratto' }
+  }
+
+  // Validate using renewal rules
+  const validation = isValidRenewal(
+    contract.salary,
+    contract.duration,
+    newSalary,
+    newDuration,
+    contract.initialSalary
+  )
+
+  if (!validation.valid) {
+    return { success: false, message: validation.reason || 'Modifica non valida' }
+  }
+
+  // Check if there are actual changes
+  if (newSalary === contract.salary && newDuration === contract.duration) {
+    return { success: false, message: 'Nessuna modifica rilevata' }
+  }
+
+  // Calculate new rescission clause
+  const newRescissionClause = calculateRescissionClause(newSalary, newDuration)
+
+  // Store old values for renewal history
+  const oldValues = {
+    salary: contract.salary,
+    duration: contract.duration,
+    rescissionClause: contract.rescissionClause,
+    modifiedAt: new Date().toISOString(),
+    type: 'POST_ACQUISITION_MODIFICATION',
+  }
+
+  // Get existing renewal history or initialize empty array
+  const renewalHistory = (contract.renewalHistory as unknown[] || []) as unknown[]
+
+  // Update contract
+  const updatedContract = await prisma.playerContract.update({
+    where: { id: contractId },
+    data: {
+      salary: newSalary,
+      duration: newDuration,
+      rescissionClause: newRescissionClause,
+      renewalHistory: [...renewalHistory, oldValues],
+    },
+    include: {
+      roster: {
+        include: {
+          player: true,
+        },
+      },
+    },
+  })
+
+  return {
+    success: true,
+    message: `Contratto di ${updatedContract.roster.player.name} modificato con successo`,
+    data: {
+      contract: {
+        id: updatedContract.id,
+        salary: updatedContract.salary,
+        duration: updatedContract.duration,
+        rescissionClause: updatedContract.rescissionClause,
+        initialSalary: updatedContract.initialSalary,
+        initialDuration: updatedContract.initialDuration,
+      },
+      player: updatedContract.roster.player,
+    },
+  }
+}

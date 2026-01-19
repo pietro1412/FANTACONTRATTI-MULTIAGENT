@@ -908,13 +908,31 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
 
     if (winningBid) {
       // Assign player to winner
-      await prisma.playerRoster.create({
+      const rosterEntry = await prisma.playerRoster.create({
         data: {
           leagueMemberId: winningBid.bidderId,
           playerId: auction.playerId,
           acquisitionPrice: winningBid.amount,
           acquisitionType: AcquisitionType.FIRST_MARKET,
           status: RosterStatus.ACTIVE,
+        },
+      })
+
+      // Create contract: 10% salary (min 1, rounded to 0.5), 2 semesters
+      const rawSalary = winningBid.amount * 0.1
+      const salary = Math.max(1, Math.round(rawSalary * 2) / 2)
+      const duration = 2
+      const rescissionClause = calculateRescissionClause(salary, duration)
+
+      await prisma.playerContract.create({
+        data: {
+          rosterId: rosterEntry.id,
+          leagueMemberId: winningBid.bidderId,
+          salary,
+          duration,
+          initialSalary: salary,
+          initialDuration: duration,
+          rescissionClause,
         },
       })
 
@@ -945,6 +963,9 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
         price: winningBid.amount,
         auctionId: auction.id,
         marketSessionId: sessionId,
+        newSalary: salary,
+        newDuration: duration,
+        newClause: rescissionClause,
       })
 
       justCompleted = {
@@ -1316,14 +1337,32 @@ export async function closeAuction(
   // Assign player to winner
   const winner = winningBid.bidder
 
-  // Create roster entry (contract will be set during CONTRATTI phase)
-  await prisma.playerRoster.create({
+  // Create roster entry
+  const rosterEntry = await prisma.playerRoster.create({
     data: {
       leagueMemberId: winner.id,
       playerId: auction.playerId,
       acquisitionPrice: winningBid.amount,
       acquisitionType: AcquisitionType.FIRST_MARKET,
       status: RosterStatus.ACTIVE,
+    },
+  })
+
+  // Create contract: 10% salary (min 1, rounded to 0.5), 2 semesters
+  const rawSalary = winningBid.amount * 0.1
+  const salary = Math.max(1, Math.round(rawSalary * 2) / 2)
+  const duration = 2
+  const rescissionClause = calculateRescissionClause(salary, duration)
+
+  await prisma.playerContract.create({
+    data: {
+      rosterId: rosterEntry.id,
+      leagueMemberId: winner.id,
+      salary,
+      duration,
+      initialSalary: salary,
+      initialDuration: duration,
+      rescissionClause,
     },
   })
 
@@ -1360,6 +1399,9 @@ export async function closeAuction(
     price: winningBid.amount,
     auctionId,
     marketSessionId: session?.id,
+    newSalary: salary,
+    newDuration: duration,
+    newClause: rescissionClause,
   })
 
   // Trigger Pusher event for auction closed (fire and forget)
@@ -2233,6 +2275,33 @@ export async function acknowledgeAuction(
     }
   }
 
+  // Get contract info for winner (for post-acquisition modification)
+  let winnerContractInfo = null
+  if (auction.winnerId === member.id && auction.status === 'COMPLETED') {
+    const roster = await prisma.playerRoster.findFirst({
+      where: {
+        leagueMemberId: member.id,
+        playerId: auction.playerId,
+        status: RosterStatus.ACTIVE,
+      },
+      include: { contract: true, player: true },
+    })
+    if (roster?.contract) {
+      winnerContractInfo = {
+        contractId: roster.contract.id,
+        rosterId: roster.id,
+        playerId: auction.playerId,
+        playerName: roster.player.name,
+        playerTeam: roster.player.team,
+        playerPosition: roster.player.position,
+        salary: roster.contract.salary,
+        duration: roster.contract.duration,
+        initialSalary: roster.contract.initialSalary,
+        rescissionClause: roster.contract.rescissionClause,
+      }
+    }
+  }
+
   return {
     success: true,
     message: 'Conferma registrata',
@@ -2240,6 +2309,7 @@ export async function acknowledgeAuction(
       acknowledged: totalAcknowledged,
       total: totalMembers,
       allAcknowledged,
+      winnerContractInfo, // For contract modification modal
     },
   }
 }
@@ -2333,6 +2403,26 @@ export async function getPendingAcknowledgment(
     }
   }
 
+  // Get contract info if there's a winner
+  let contractInfo = null
+  if (recentCompletedAuction.winnerId) {
+    const winnerRoster = await prisma.playerRoster.findFirst({
+      where: {
+        leagueMemberId: recentCompletedAuction.winnerId,
+        playerId: recentCompletedAuction.playerId,
+        status: RosterStatus.ACTIVE,
+      },
+      include: { contract: true },
+    })
+    if (winnerRoster?.contract) {
+      contractInfo = {
+        salary: winnerRoster.contract.salary,
+        duration: winnerRoster.contract.duration,
+        rescissionClause: winnerRoster.contract.rescissionClause,
+      }
+    }
+  }
+
   return {
     success: true,
     data: {
@@ -2358,6 +2448,7 @@ export async function getPendingAcknowledgment(
           })),
         totalMembers: allMembers.length,
         totalAcknowledged: acknowledgedIds.size,
+        contractInfo,
       },
     },
   }
@@ -3249,7 +3340,7 @@ export async function getMyRosterSlots(
     include: {
       roster: {
         where: { status: 'ACTIVE' },
-        include: { player: true },
+        include: { player: true, contract: true },
       },
     },
   })
@@ -3266,10 +3357,10 @@ export async function getMyRosterSlots(
   }
 
   const rosterByPosition: {
-    P: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number }>
-    D: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number }>
-    C: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number }>
-    A: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number }>
+    P: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; contract?: { salary: number; duration: number; rescissionClause: number } | null }>
+    D: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; contract?: { salary: number; duration: number; rescissionClause: number } | null }>
+    C: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; contract?: { salary: number; duration: number; rescissionClause: number } | null }>
+    A: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; contract?: { salary: number; duration: number; rescissionClause: number } | null }>
   } = {
     P: [],
     D: [],
@@ -3286,6 +3377,11 @@ export async function getMyRosterSlots(
         playerName: r.player.name,
         playerTeam: r.player.team,
         acquisitionPrice: r.acquisitionPrice,
+        contract: r.contract ? {
+          salary: r.contract.salary,
+          duration: r.contract.duration,
+          rescissionClause: r.contract.rescissionClause,
+        } : null,
       })
     }
   }
@@ -3361,7 +3457,7 @@ export async function getManagersStatus(
       user: { select: { username: true } },
       roster: {
         where: { status: 'ACTIVE' },
-        include: { player: true },
+        include: { player: true, contract: true },
       },
     },
     orderBy: { firstMarketOrder: 'asc' },
@@ -3432,6 +3528,11 @@ export async function getManagersStatus(
         playerTeam: r.player.team,
         position: r.player.position,
         acquisitionPrice: r.acquisitionPrice,
+        contract: r.contract ? {
+          salary: r.contract.salary,
+          duration: r.contract.duration,
+          rescissionClause: r.contract.rescissionClause,
+        } : null,
       })),
     }
   })
