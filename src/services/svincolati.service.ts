@@ -488,7 +488,11 @@ export async function closeFreeAgentAuction(
     })
   })
 
-  // Record movement
+  // Record movement with contract values
+  const movementSalary = Math.ceil(auction.currentPrice * 0.1)
+  const movementDuration = 2
+  const movementClause = Math.round(movementSalary * movementDuration * 2)
+
   await recordMovement({
     leagueId: auction.leagueId,
     playerId: auction.playerId,
@@ -497,6 +501,9 @@ export async function closeFreeAgentAuction(
     price: auction.currentPrice,
     auctionId,
     marketSessionId: auction.marketSessionId ?? undefined,
+    newSalary: movementSalary,
+    newDuration: movementDuration,
+    newClause: movementClause,
   })
 
   return {
@@ -1535,7 +1542,11 @@ export async function closeSvincolatiAuction(
     })
   })
 
-  // Record movement
+  // Record movement with contract values
+  const movementSalary2 = Math.ceil(auction.currentPrice * 0.1)
+  const movementDuration2 = 2
+  const movementClause2 = Math.round(movementSalary2 * movementDuration2 * 2)
+
   await recordMovement({
     leagueId: auction.leagueId,
     playerId: auction.playerId,
@@ -1544,6 +1555,9 @@ export async function closeSvincolatiAuction(
     price: auction.currentPrice,
     auctionId,
     marketSessionId: auction.marketSessionId ?? undefined,
+    newSalary: movementSalary2,
+    newDuration: movementDuration2,
+    newClause: movementClause2,
   })
 
   return {

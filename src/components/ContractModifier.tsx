@@ -214,35 +214,50 @@ export function ContractModifier({
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Nuovo Ingaggio (M)
             </label>
-            <input
-              type="number"
-              min="1"
-              value={newSalary}
-              onChange={(e) => setNewSalary(e.target.value)}
-              className="w-full px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-              disabled={isLoading || isSubmitting}
-            />
+            <div className="flex items-center">
+              <button
+                type="button"
+                onClick={() => {
+                  const current = parseInt(newSalary) || contract.salary
+                  setNewSalary(String(Math.max(1, current - 1)))
+                }}
+                disabled={isLoading || isSubmitting || (parseInt(newSalary) || contract.salary) <= 1}
+                className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
+              >−</button>
+              <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
+                {parseInt(newSalary) || contract.salary}M
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const current = parseInt(newSalary) || contract.salary
+                  setNewSalary(String(current + 1))
+                }}
+                disabled={isLoading || isSubmitting}
+                className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-r-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
+              >+</button>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Nuova Durata (semestri)
             </label>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4].map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setNewDuration(d)}
-                  disabled={isLoading || isSubmitting}
-                  className={`flex-1 py-2 rounded-lg font-medium text-sm transition-all ${
-                    newDuration === d
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-surface-300 text-gray-400 hover:bg-surface-300/80 hover:text-white'
-                  }`}
-                >
-                  {d}s
-                </button>
-              ))}
+            <div className="flex items-center">
+              <button
+                type="button"
+                onClick={() => setNewDuration(Math.max(1, newDuration - 1))}
+                disabled={isLoading || isSubmitting || newDuration <= 1}
+                className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
+              >−</button>
+              <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
+                {newDuration}s
+              </div>
+              <button
+                type="button"
+                onClick={() => setNewDuration(Math.min(4, newDuration + 1))}
+                disabled={isLoading || isSubmitting || newDuration >= 4}
+                className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-r-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
+              >+</button>
             </div>
           </div>
         </div>

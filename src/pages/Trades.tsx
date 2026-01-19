@@ -185,6 +185,53 @@ function PlayerCard({ player, compact = false }: { player: Player, compact?: boo
   )
 }
 
+// Helper component to render players in table format (for offers display)
+function PlayersTable({ players }: { players: Player[] }) {
+  if (!players || players.length === 0) return null
+
+  return (
+    <table className="w-full text-xs">
+      <thead>
+        <tr className="text-gray-500 text-[10px] uppercase">
+          <th className="text-left font-medium pb-1">Giocatore</th>
+          <th className="text-center font-medium pb-1 w-10">Ruolo</th>
+          <th className="text-center font-medium pb-1 w-10">Ing.</th>
+          <th className="text-center font-medium pb-1 w-8">Dur.</th>
+          <th className="text-center font-medium pb-1 w-12">Claus.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {players.map(p => {
+          const roleStyle = getRoleStyle(p.position)
+          return (
+            <tr key={p.id} className="border-t border-surface-50/10">
+              <td className="py-1.5">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
+                    <img src={getTeamLogo(p.team)} alt={p.team} className="w-4 h-4 object-contain" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-gray-200 truncate block">{p.name}</span>
+                    <span className="text-[9px] text-gray-500 truncate block">{p.team}</span>
+                  </div>
+                </div>
+              </td>
+              <td className="text-center">
+                <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
+                  {roleStyle.label}
+                </span>
+              </td>
+              <td className="text-center text-accent-400 font-semibold">{p.contract?.salary ?? '-'}</td>
+              <td className="text-center text-white">{p.contract?.duration ?? '-'}</td>
+              <td className="text-center text-warning-400">{p.contract?.rescissionClause ?? '-'}</td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+  )
+}
+
 export function Trades({ leagueId, onNavigate }: TradesProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'received' | 'sent' | 'create' | 'history'>('create')
@@ -703,19 +750,14 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
                           </div>
                           <p className="text-sm font-semibold text-secondary-400 uppercase tracking-wide">Riceveresti</p>
                         </div>
-                        <div className="space-y-2 pl-8">
-                          {(offer.offeredPlayerDetails || offer.offeredPlayers)?.map(p => (
-                            <PlayerCard key={p.id} player={p} />
-                          ))}
+                        <div className="pl-8">
+                          <PlayersTable players={offer.offeredPlayerDetails || offer.offeredPlayers || []} />
                           {offer.offeredBudget > 0 && (
-                            <div className="flex items-center gap-3 p-3 bg-secondary-500/10 rounded-lg border border-secondary-500/30">
-                              <div className="w-10 h-10 rounded-lg bg-secondary-500/20 flex items-center justify-center">
-                                <span className="text-secondary-400 font-bold">€</span>
+                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
+                              <div className="w-6 h-6 rounded bg-secondary-500/20 flex items-center justify-center">
+                                <span className="text-secondary-400 font-bold text-xs">€</span>
                               </div>
-                              <div>
-                                <p className="text-white font-medium">{offer.offeredBudget} crediti</p>
-                                <p className="text-gray-500 text-xs">Budget aggiuntivo</p>
-                              </div>
+                              <span className="text-sm text-secondary-400 font-medium">+ {offer.offeredBudget} crediti</span>
                             </div>
                           )}
                           {(!offer.offeredPlayerDetails?.length && !offer.offeredPlayers?.length && offer.offeredBudget === 0) && (
@@ -734,19 +776,14 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
                           </div>
                           <p className="text-sm font-semibold text-danger-400 uppercase tracking-wide">Cederesti</p>
                         </div>
-                        <div className="space-y-2 pl-8">
-                          {(offer.requestedPlayerDetails || offer.requestedPlayers)?.map(p => (
-                            <PlayerCard key={p.id} player={p} />
-                          ))}
+                        <div className="pl-8">
+                          <PlayersTable players={offer.requestedPlayerDetails || offer.requestedPlayers || []} />
                           {offer.requestedBudget > 0 && (
-                            <div className="flex items-center gap-3 p-3 bg-danger-500/10 rounded-lg border border-danger-500/30">
-                              <div className="w-10 h-10 rounded-lg bg-danger-500/20 flex items-center justify-center">
-                                <span className="text-danger-400 font-bold">€</span>
+                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
+                              <div className="w-6 h-6 rounded bg-danger-500/20 flex items-center justify-center">
+                                <span className="text-danger-400 font-bold text-xs">€</span>
                               </div>
-                              <div>
-                                <p className="text-white font-medium">{offer.requestedBudget} crediti</p>
-                                <p className="text-gray-500 text-xs">Budget richiesto</p>
-                              </div>
+                              <span className="text-sm text-danger-400 font-medium">+ {offer.requestedBudget} crediti</span>
                             </div>
                           )}
                           {(!offer.requestedPlayerDetails?.length && !offer.requestedPlayers?.length && offer.requestedBudget === 0) && (
@@ -859,19 +896,14 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
                           </div>
                           <p className="text-sm font-semibold text-danger-400 uppercase tracking-wide">Offri</p>
                         </div>
-                        <div className="space-y-2 pl-8">
-                          {(offer.offeredPlayerDetails || offer.offeredPlayers)?.map(p => (
-                            <PlayerCard key={p.id} player={p} />
-                          ))}
+                        <div className="pl-8">
+                          <PlayersTable players={offer.offeredPlayerDetails || offer.offeredPlayers || []} />
                           {offer.offeredBudget > 0 && (
-                            <div className="flex items-center gap-3 p-3 bg-danger-500/10 rounded-lg border border-danger-500/30">
-                              <div className="w-10 h-10 rounded-lg bg-danger-500/20 flex items-center justify-center">
-                                <span className="text-danger-400 font-bold">€</span>
+                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
+                              <div className="w-6 h-6 rounded bg-danger-500/20 flex items-center justify-center">
+                                <span className="text-danger-400 font-bold text-xs">€</span>
                               </div>
-                              <div>
-                                <p className="text-white font-medium">{offer.offeredBudget} crediti</p>
-                                <p className="text-gray-500 text-xs">Budget offerto</p>
-                              </div>
+                              <span className="text-sm text-danger-400 font-medium">+ {offer.offeredBudget} crediti</span>
                             </div>
                           )}
                           {(!offer.offeredPlayerDetails?.length && !offer.offeredPlayers?.length && offer.offeredBudget === 0) && (
@@ -890,19 +922,14 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
                           </div>
                           <p className="text-sm font-semibold text-secondary-400 uppercase tracking-wide">Richiedi</p>
                         </div>
-                        <div className="space-y-2 pl-8">
-                          {(offer.requestedPlayerDetails || offer.requestedPlayers)?.map(p => (
-                            <PlayerCard key={p.id} player={p} />
-                          ))}
+                        <div className="pl-8">
+                          <PlayersTable players={offer.requestedPlayerDetails || offer.requestedPlayers || []} />
                           {offer.requestedBudget > 0 && (
-                            <div className="flex items-center gap-3 p-3 bg-secondary-500/10 rounded-lg border border-secondary-500/30">
-                              <div className="w-10 h-10 rounded-lg bg-secondary-500/20 flex items-center justify-center">
-                                <span className="text-secondary-400 font-bold">€</span>
+                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
+                              <div className="w-6 h-6 rounded bg-secondary-500/20 flex items-center justify-center">
+                                <span className="text-secondary-400 font-bold text-xs">€</span>
                               </div>
-                              <div>
-                                <p className="text-white font-medium">{offer.requestedBudget} crediti</p>
-                                <p className="text-gray-500 text-xs">Budget richiesto</p>
-                              </div>
+                              <span className="text-sm text-secondary-400 font-medium">+ {offer.requestedBudget} crediti</span>
                             </div>
                           )}
                           {(!offer.requestedPlayerDetails?.length && !offer.requestedPlayers?.length && offer.requestedBudget === 0) && (
@@ -1074,45 +1101,56 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
                             {selectedMemberId ? 'Nessun giocatore trovato' : 'Cerca o seleziona un DG'}
                           </p>
                         ) : (
-                          filteredOtherPlayers.map(entry => {
-                            const roleStyle = getRoleStyle(entry.player.position)
-                            return (
-                            <div
-                              key={entry.id}
-                              onClick={() => handleSelectRequestedPlayer(entry)}
-                              className={`flex items-center gap-2 p-3 cursor-pointer hover:bg-surface-200 border-b border-surface-50/20 last:border-b-0 transition-colors ${
-                                selectedRequestedPlayers.includes(entry.id) ? 'bg-primary-500/20 border-l-2 border-l-primary-500' : ''
-                              }`}
-                            >
-                              {/* Team Logo */}
-                              <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center bg-white/10 rounded p-0.5">
-                                <TeamLogo team={entry.player.team} size="sm" />
-                              </div>
-                              {/* Role Badge */}
-                              <div className={`w-8 h-8 flex-shrink-0 rounded flex items-center justify-center ${roleStyle.bg} ${roleStyle.border} border`}>
-                                <span className={`text-[10px] font-bold ${roleStyle.text}`}>{roleStyle.label}</span>
-                              </div>
-                              {/* Player Name */}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-white font-medium text-sm truncate">{entry.player.name}</p>
-                                <p className="text-[10px] text-gray-500">{entry.memberUsername}</p>
-                              </div>
-                              {/* Contract Info */}
-                              <div className="text-right flex-shrink-0">
-                                {entry.player.contract ? (
-                                  <div>
-                                    <p className="text-xs text-accent-400 font-medium">{entry.player.contract.salary}M</p>
-                                    <p className="text-[10px] text-warning-400">R: {entry.player.contract.rescissionClause || '-'}M</p>
-                                  </div>
-                                ) : (
-                                  <p className="text-[10px] text-gray-600 italic">n.d.</p>
-                                )}
-                                {selectedRequestedPlayers.includes(entry.id) && (
-                                  <span className="text-[10px] text-primary-400 font-medium">✓</span>
-                                )}
-                              </div>
-                            </div>
-                          )})
+                          <table className="w-full text-xs">
+                            <thead className="sticky top-0 bg-surface-300 z-10">
+                              <tr className="text-gray-500 text-[10px] uppercase">
+                                <th className="text-left font-medium py-2 px-2 w-6"></th>
+                                <th className="text-left font-medium py-2">Giocatore</th>
+                                <th className="text-center font-medium py-2 w-10">Ruolo</th>
+                                <th className="text-center font-medium py-2 w-10">Ing.</th>
+                                <th className="text-center font-medium py-2 w-8">Dur.</th>
+                                <th className="text-center font-medium py-2 w-12">Claus.</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {filteredOtherPlayers.map(entry => {
+                                const roleStyle = getRoleStyle(entry.player.position)
+                                const isSelected = selectedRequestedPlayers.includes(entry.id)
+                                return (
+                                  <tr
+                                    key={entry.id}
+                                    onClick={() => handleSelectRequestedPlayer(entry)}
+                                    className={`cursor-pointer hover:bg-surface-200 border-t border-surface-50/10 transition-colors ${
+                                      isSelected ? 'bg-primary-500/20' : ''
+                                    }`}
+                                  >
+                                    <td className="py-2 px-2 text-center">
+                                      {isSelected && <span className="text-primary-400 font-bold">✓</span>}
+                                    </td>
+                                    <td className="py-2">
+                                      <div className="flex items-center gap-1.5">
+                                        <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
+                                          <img src={getTeamLogo(entry.player.team)} alt={entry.player.team} className="w-4 h-4 object-contain" />
+                                        </div>
+                                        <div className="min-w-0">
+                                          <span className="text-gray-200 truncate block text-xs">{entry.player.name}</span>
+                                          <span className="text-[9px] text-gray-500 truncate block">{entry.memberUsername}</span>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="text-center">
+                                      <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
+                                        {roleStyle.label}
+                                      </span>
+                                    </td>
+                                    <td className="text-center text-accent-400 font-semibold">{entry.player.contract?.salary ?? '-'}</td>
+                                    <td className="text-center text-white">{entry.player.contract?.duration ?? '-'}</td>
+                                    <td className="text-center text-warning-400">{entry.player.contract?.rescissionClause ?? '-'}</td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
                         )}
                       </div>
 
@@ -1135,45 +1173,56 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
                         {myRoster.length === 0 ? (
                           <p className="text-gray-500 text-sm p-4 text-center">Nessun giocatore in rosa</p>
                         ) : (
-                          myRoster.map(entry => {
-                            const roleStyle = getRoleStyle(entry.player.position)
-                            return (
-                            <div
-                              key={entry.id}
-                              onClick={() => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, entry.id)}
-                              className={`flex items-center gap-2 p-3 cursor-pointer hover:bg-surface-200 border-b border-surface-50/20 last:border-b-0 transition-colors ${
-                                selectedOfferedPlayers.includes(entry.id) ? 'bg-danger-500/20 border-l-2 border-l-danger-500' : ''
-                              }`}
-                            >
-                              {/* Team Logo */}
-                              <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center bg-white/10 rounded p-0.5">
-                                <TeamLogo team={entry.player.team} size="sm" />
-                              </div>
-                              {/* Role Badge */}
-                              <div className={`w-8 h-8 flex-shrink-0 rounded flex items-center justify-center ${roleStyle.bg} ${roleStyle.border} border`}>
-                                <span className={`text-[10px] font-bold ${roleStyle.text}`}>{roleStyle.label}</span>
-                              </div>
-                              {/* Player Name */}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-white font-medium text-sm truncate">{entry.player.name}</p>
-                                <p className="text-[10px] text-gray-500">{entry.player.team}</p>
-                              </div>
-                              {/* Contract Info */}
-                              <div className="text-right flex-shrink-0">
-                                {entry.player.contract ? (
-                                  <div>
-                                    <p className="text-xs text-accent-400 font-medium">{entry.player.contract.salary}M</p>
-                                    <p className="text-[10px] text-warning-400">R: {entry.player.contract.rescissionClause || '-'}M</p>
-                                  </div>
-                                ) : (
-                                  <p className="text-[10px] text-gray-600 italic">n.d.</p>
-                                )}
-                                {selectedOfferedPlayers.includes(entry.id) && (
-                                  <span className="text-[10px] text-danger-400 font-medium">✓</span>
-                                )}
-                              </div>
-                            </div>
-                          )})
+                          <table className="w-full text-xs">
+                            <thead className="sticky top-0 bg-surface-300 z-10">
+                              <tr className="text-gray-500 text-[10px] uppercase">
+                                <th className="text-left font-medium py-2 px-2 w-6"></th>
+                                <th className="text-left font-medium py-2">Giocatore</th>
+                                <th className="text-center font-medium py-2 w-10">Ruolo</th>
+                                <th className="text-center font-medium py-2 w-10">Ing.</th>
+                                <th className="text-center font-medium py-2 w-8">Dur.</th>
+                                <th className="text-center font-medium py-2 w-12">Claus.</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {myRoster.map(entry => {
+                                const roleStyle = getRoleStyle(entry.player.position)
+                                const isSelected = selectedOfferedPlayers.includes(entry.id)
+                                return (
+                                  <tr
+                                    key={entry.id}
+                                    onClick={() => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, entry.id)}
+                                    className={`cursor-pointer hover:bg-surface-200 border-t border-surface-50/10 transition-colors ${
+                                      isSelected ? 'bg-danger-500/20' : ''
+                                    }`}
+                                  >
+                                    <td className="py-2 px-2 text-center">
+                                      {isSelected && <span className="text-danger-400 font-bold">✓</span>}
+                                    </td>
+                                    <td className="py-2">
+                                      <div className="flex items-center gap-1.5">
+                                        <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
+                                          <img src={getTeamLogo(entry.player.team)} alt={entry.player.team} className="w-4 h-4 object-contain" />
+                                        </div>
+                                        <div className="min-w-0">
+                                          <span className="text-gray-200 truncate block text-xs">{entry.player.name}</span>
+                                          <span className="text-[9px] text-gray-500 truncate block">{entry.player.team}</span>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="text-center">
+                                      <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
+                                        {roleStyle.label}
+                                      </span>
+                                    </td>
+                                    <td className="text-center text-accent-400 font-semibold">{entry.player.contract?.salary ?? '-'}</td>
+                                    <td className="text-center text-white">{entry.player.contract?.duration ?? '-'}</td>
+                                    <td className="text-center text-warning-400">{entry.player.contract?.rescissionClause ?? '-'}</td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
                         )}
                       </div>
 
@@ -1193,46 +1242,77 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
                     <form onSubmit={handleCreateOffer}>
                       <div className="grid md:grid-cols-4 gap-4 mb-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-1">
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
                             Crediti che offri (max: {myBudget})
                           </label>
-                          <input
-                            type="number"
-                            value={offeredBudget}
-                            onChange={e => setOfferedBudget(Math.max(0, Math.min(myBudget, parseInt(e.target.value) || 0)))}
-                            className="w-full px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white focus:border-primary-500 focus:outline-none"
-                            min="0"
-                            max={myBudget}
-                          />
+                          <div className="flex items-center">
+                            <button
+                              type="button"
+                              onClick={() => setOfferedBudget(Math.max(0, offeredBudget - 1))}
+                              disabled={offeredBudget <= 0}
+                              className="px-3 py-2 bg-surface-300 border border-danger-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
+                            >−</button>
+                            <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-danger-500/30 text-white text-center font-medium">
+                              {offeredBudget}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setOfferedBudget(Math.min(myBudget, offeredBudget + 1))}
+                              disabled={offeredBudget >= myBudget}
+                              className="px-3 py-2 bg-surface-300 border border-danger-500/30 rounded-r-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
+                            >+</button>
+                          </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-1">
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
                             Crediti che richiedi
                           </label>
-                          <input
-                            type="number"
-                            value={requestedBudget}
-                            onChange={e => setRequestedBudget(Math.max(0, parseInt(e.target.value) || 0))}
-                            className="w-full px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white focus:border-primary-500 focus:outline-none"
-                            min="0"
-                          />
+                          <div className="flex items-center">
+                            <button
+                              type="button"
+                              onClick={() => setRequestedBudget(Math.max(0, requestedBudget - 1))}
+                              disabled={requestedBudget <= 0}
+                              className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
+                            >−</button>
+                            <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
+                              {requestedBudget}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setRequestedBudget(requestedBudget + 1)}
+                              className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-r-lg text-white font-bold hover:bg-surface-300/80 transition-colors"
+                            >+</button>
+                          </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-1">
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
                             Durata offerta
                           </label>
-                          <select
-                            value={offerDuration}
-                            onChange={e => setOfferDuration(parseInt(e.target.value))}
-                            className="w-full px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white focus:border-primary-500 focus:outline-none"
-                          >
-                            <option value={6}>6 ore</option>
-                            <option value={12}>12 ore</option>
-                            <option value={24}>24 ore</option>
-                            <option value={48}>48 ore</option>
-                            <option value={72}>3 giorni</option>
-                            <option value={168}>1 settimana</option>
-                          </select>
+                          <div className="flex items-center">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const durations = [6, 12, 24, 48, 72, 168]
+                                const currentIndex = durations.indexOf(offerDuration)
+                                if (currentIndex > 0) setOfferDuration(durations[currentIndex - 1])
+                              }}
+                              disabled={offerDuration === 6}
+                              className="px-3 py-2 bg-surface-300 border border-accent-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
+                            >−</button>
+                            <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-accent-500/30 text-white text-center font-medium text-sm">
+                              {offerDuration < 24 ? `${offerDuration}h` : offerDuration === 24 ? '24h' : offerDuration === 48 ? '2gg' : offerDuration === 72 ? '3gg' : '7gg'}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const durations = [6, 12, 24, 48, 72, 168]
+                                const currentIndex = durations.indexOf(offerDuration)
+                                if (currentIndex < durations.length - 1) setOfferDuration(durations[currentIndex + 1])
+                              }}
+                              disabled={offerDuration === 168}
+                              className="px-3 py-2 bg-surface-300 border border-accent-500/30 rounded-r-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
+                            >+</button>
+                          </div>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -1250,43 +1330,121 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
 
                       {/* Riepilogo Offerta */}
                       {(selectedOfferedPlayers.length > 0 || selectedRequestedPlayers.length > 0 || offeredBudget > 0 || requestedBudget > 0) && (
-                        <div className="mb-4 p-3 bg-surface-300 rounded-lg border border-surface-50/30">
-                          <p className="text-sm font-medium text-white mb-2">Riepilogo Offerta:</p>
-                          <div className="grid md:grid-cols-2 gap-4">
+                        <div className="mb-4 p-4 bg-surface-300 rounded-lg border border-surface-50/30">
+                          <p className="text-sm font-medium text-white mb-3">Riepilogo Offerta:</p>
+                          <div className="grid md:grid-cols-2 gap-6">
+                            {/* OFFRI */}
                             <div>
-                              <p className="text-xs text-danger-400 font-medium mb-1">OFFRI:</p>
+                              <p className="text-xs text-danger-400 font-semibold mb-2 uppercase tracking-wide">Offri</p>
                               {selectedOfferedPlayers.length > 0 ? (
-                                <ul className="text-sm text-gray-300">
-                                  {selectedOfferedPlayers.map(id => {
-                                    const entry = myRoster.find(r => r.id === id)
-                                    return entry ? (
-                                      <li key={id}>• {entry.player.name} ({entry.player.position})</li>
-                                    ) : null
-                                  })}
-                                </ul>
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="text-gray-500 text-[10px] uppercase">
+                                      <th className="text-left font-medium pb-1">Giocatore</th>
+                                      <th className="text-center font-medium pb-1 w-10">Ruolo</th>
+                                      <th className="text-center font-medium pb-1 w-10">Ing.</th>
+                                      <th className="text-center font-medium pb-1 w-8">Dur.</th>
+                                      <th className="text-center font-medium pb-1 w-12">Claus.</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {selectedOfferedPlayers.map(id => {
+                                      const entry = myRoster.find(r => r.id === id)
+                                      if (!entry) return null
+                                      const roleStyle = getRoleStyle(entry.player.position)
+                                      return (
+                                        <tr key={id} className="border-t border-surface-50/10">
+                                          <td className="py-1.5">
+                                            <div className="flex items-center gap-1.5">
+                                              <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
+                                                <img src={getTeamLogo(entry.player.team)} alt={entry.player.team} className="w-4 h-4 object-contain" />
+                                              </div>
+                                              <div className="min-w-0">
+                                                <span className="text-gray-200 truncate block">{entry.player.name}</span>
+                                                <span className="text-[9px] text-gray-500 truncate block">{entry.player.team}</span>
+                                              </div>
+                                            </div>
+                                          </td>
+                                          <td className="text-center">
+                                            <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
+                                              {roleStyle.label}
+                                            </span>
+                                          </td>
+                                          <td className="text-center text-accent-400 font-semibold">{entry.player.contract?.salary ?? '-'}</td>
+                                          <td className="text-center text-white">{entry.player.contract?.duration ?? '-'}</td>
+                                          <td className="text-center text-warning-400">{entry.player.contract?.rescissionClause ?? '-'}</td>
+                                        </tr>
+                                      )
+                                    })}
+                                  </tbody>
+                                </table>
                               ) : (
-                                <p className="text-sm text-gray-500">Nessun giocatore</p>
+                                <p className="text-sm text-gray-500 italic">Nessun giocatore</p>
                               )}
                               {offeredBudget > 0 && (
-                                <p className="text-sm text-accent-400 mt-1">+ {offeredBudget} crediti</p>
+                                <div className="mt-2 pt-2 border-t border-surface-50/20 flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded bg-accent-500/20 flex items-center justify-center">
+                                    <span className="text-accent-400 font-bold text-xs">€</span>
+                                  </div>
+                                  <span className="text-sm text-accent-400 font-medium">+ {offeredBudget} crediti</span>
+                                </div>
                               )}
                             </div>
+                            {/* RICHIEDI */}
                             <div>
-                              <p className="text-xs text-primary-400 font-medium mb-1">RICHIEDI:</p>
+                              <p className="text-xs text-primary-400 font-semibold mb-2 uppercase tracking-wide">Richiedi</p>
                               {selectedRequestedPlayers.length > 0 ? (
-                                <ul className="text-sm text-gray-300">
-                                  {selectedRequestedPlayers.map(id => {
-                                    const entry = allOtherPlayers.find(r => r.id === id)
-                                    return entry ? (
-                                      <li key={id}>• {entry.player.name} ({entry.player.position})</li>
-                                    ) : null
-                                  })}
-                                </ul>
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="text-gray-500 text-[10px] uppercase">
+                                      <th className="text-left font-medium pb-1">Giocatore</th>
+                                      <th className="text-center font-medium pb-1 w-10">Ruolo</th>
+                                      <th className="text-center font-medium pb-1 w-10">Ing.</th>
+                                      <th className="text-center font-medium pb-1 w-8">Dur.</th>
+                                      <th className="text-center font-medium pb-1 w-12">Claus.</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {selectedRequestedPlayers.map(id => {
+                                      const entry = allOtherPlayers.find(r => r.id === id)
+                                      if (!entry) return null
+                                      const roleStyle = getRoleStyle(entry.player.position)
+                                      return (
+                                        <tr key={id} className="border-t border-surface-50/10">
+                                          <td className="py-1.5">
+                                            <div className="flex items-center gap-1.5">
+                                              <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
+                                                <img src={getTeamLogo(entry.player.team)} alt={entry.player.team} className="w-4 h-4 object-contain" />
+                                              </div>
+                                              <div className="min-w-0">
+                                                <span className="text-gray-200 truncate block">{entry.player.name}</span>
+                                                <span className="text-[9px] text-gray-500 truncate block">{entry.player.team}</span>
+                                              </div>
+                                            </div>
+                                          </td>
+                                          <td className="text-center">
+                                            <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
+                                              {roleStyle.label}
+                                            </span>
+                                          </td>
+                                          <td className="text-center text-accent-400 font-semibold">{entry.player.contract?.salary ?? '-'}</td>
+                                          <td className="text-center text-white">{entry.player.contract?.duration ?? '-'}</td>
+                                          <td className="text-center text-warning-400">{entry.player.contract?.rescissionClause ?? '-'}</td>
+                                        </tr>
+                                      )
+                                    })}
+                                  </tbody>
+                                </table>
                               ) : (
-                                <p className="text-sm text-gray-500">Nessun giocatore</p>
+                                <p className="text-sm text-gray-500 italic">Nessun giocatore</p>
                               )}
                               {requestedBudget > 0 && (
-                                <p className="text-sm text-accent-400 mt-1">+ {requestedBudget} crediti</p>
+                                <div className="mt-2 pt-2 border-t border-surface-50/20 flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded bg-accent-500/20 flex items-center justify-center">
+                                    <span className="text-accent-400 font-bold text-xs">€</span>
+                                  </div>
+                                  <span className="text-sm text-accent-400 font-medium">+ {requestedBudget} crediti</span>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -1381,13 +1539,14 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
                           </div>
                           <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Offerto da {trade.sender?.username}</p>
                         </div>
-                        <div className="space-y-2 pl-8">
-                          {trade.offeredPlayerDetails?.map(p => (
-                            <PlayerCard key={p.id} player={p} compact />
-                          ))}
+                        <div className="pl-8">
+                          <PlayersTable players={trade.offeredPlayerDetails || []} />
                           {trade.offeredBudget > 0 && (
-                            <div className="flex items-center gap-2 py-1.5">
-                              <span className="text-accent-400 font-medium">+{trade.offeredBudget} crediti</span>
+                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
+                              <div className="w-6 h-6 rounded bg-danger-500/20 flex items-center justify-center">
+                                <span className="text-danger-400 font-bold text-xs">€</span>
+                              </div>
+                              <span className="text-sm text-danger-400 font-medium">+ {trade.offeredBudget} crediti</span>
                             </div>
                           )}
                           {(!trade.offeredPlayerDetails?.length && trade.offeredBudget === 0) && (
@@ -1406,13 +1565,14 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
                           </div>
                           <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Richiesto a {trade.receiver?.username}</p>
                         </div>
-                        <div className="space-y-2 pl-8">
-                          {trade.requestedPlayerDetails?.map(p => (
-                            <PlayerCard key={p.id} player={p} compact />
-                          ))}
+                        <div className="pl-8">
+                          <PlayersTable players={trade.requestedPlayerDetails || []} />
                           {trade.requestedBudget > 0 && (
-                            <div className="flex items-center gap-2 py-1.5">
-                              <span className="text-accent-400 font-medium">+{trade.requestedBudget} crediti</span>
+                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
+                              <div className="w-6 h-6 rounded bg-secondary-500/20 flex items-center justify-center">
+                                <span className="text-secondary-400 font-bold text-xs">€</span>
+                              </div>
+                              <span className="text-sm text-secondary-400 font-medium">+ {trade.requestedBudget} crediti</span>
                             </div>
                           )}
                           {(!trade.requestedPlayerDetails?.length && trade.requestedBudget === 0) && (

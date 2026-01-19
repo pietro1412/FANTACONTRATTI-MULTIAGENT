@@ -1022,7 +1022,16 @@ export async function getRubataBoard(
             })
           })
 
-          // Record movement
+          // Record movement with contract info
+          const transferredRoster = await prisma.playerRoster.findFirst({
+            where: {
+              leagueMemberId: winningBid.bidderId,
+              playerId: auctionToClose.playerId,
+              status: RosterStatus.ACTIVE,
+            },
+            include: { contract: true },
+          })
+
           await recordMovement({
             leagueId,
             playerId: auctionToClose.playerId,
@@ -1032,6 +1041,12 @@ export async function getRubataBoard(
             price: auctionToClose.currentPrice,
             marketSessionId: activeSession.id,
             auctionId: auctionToClose.id,
+            oldSalary: transferredRoster?.contract?.salary,
+            oldDuration: transferredRoster?.contract?.duration,
+            oldClause: transferredRoster?.contract?.rescissionClause,
+            newSalary: transferredRoster?.contract?.salary,
+            newDuration: transferredRoster?.contract?.duration,
+            newClause: transferredRoster?.contract?.rescissionClause,
           })
 
           // Get seller info for pending ack
@@ -1922,7 +1937,16 @@ export async function closeCurrentRubataAuction(
     })
   })
 
-  // Record movement
+  // Record movement with contract info
+  const transferredRoster2 = await prisma.playerRoster.findFirst({
+    where: {
+      leagueMemberId: winningBid.bidderId,
+      playerId: activeAuction.playerId,
+      status: RosterStatus.ACTIVE,
+    },
+    include: { contract: true },
+  })
+
   await recordMovement({
     leagueId,
     playerId: activeAuction.playerId,
@@ -1932,6 +1956,12 @@ export async function closeCurrentRubataAuction(
     price: activeAuction.currentPrice,
     marketSessionId: activeSession.id,
     auctionId: activeAuction.id,
+    oldSalary: transferredRoster2?.contract?.salary,
+    oldDuration: transferredRoster2?.contract?.duration,
+    oldClause: transferredRoster2?.contract?.rescissionClause,
+    newSalary: transferredRoster2?.contract?.salary,
+    newDuration: transferredRoster2?.contract?.duration,
+    newClause: transferredRoster2?.contract?.rescissionClause,
   })
 
   // Get seller info for pending ack
@@ -3301,7 +3331,7 @@ export async function completeRubataWithTransactions(
             })
           }
 
-          // Record movement
+          // Record movement with contract info
           await recordMovement({
             leagueId,
             playerId: player.playerId,
@@ -3311,6 +3341,12 @@ export async function completeRubataWithTransactions(
             price: bidAmount,
             marketSessionId: activeSession.id,
             auctionId: auction.id,
+            oldSalary: rosterEntry.contract?.salary,
+            oldDuration: rosterEntry.contract?.duration,
+            oldClause: rosterEntry.contract?.rescissionClause,
+            newSalary: rosterEntry.contract?.salary,
+            newDuration: rosterEntry.contract?.duration,
+            newClause: rosterEntry.contract?.rescissionClause,
           })
 
           // Update board with stolen info
