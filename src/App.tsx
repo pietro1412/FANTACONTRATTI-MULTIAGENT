@@ -34,6 +34,7 @@ const TestStrategyFormats = lazy(() => import('./pages/TestStrategyFormats'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })))
 const ResetPassword = lazy(() => import('./pages/ResetPassword').then(m => ({ default: m.ResetPassword })))
 const InviteDetail = lazy(() => import('./pages/InviteDetail').then(m => ({ default: m.InviteDetail })))
+const Rules = lazy(() => import('./pages/Rules').then(m => ({ default: m.Rules })))
 
 // Loading component per autenticazione
 function LoadingScreen() {
@@ -393,6 +394,13 @@ function AppRoutes() {
       <Route path="/test-strategy-formats" element={
         <Suspense fallback={<PageLoader />}>
           <TestStrategyFormats />
+        </Suspense>
+      } />
+
+      {/* Public page - accessible to everyone */}
+      <Route path="/rules" element={
+        <Suspense fallback={<PageLoader />}>
+          <Rules />
         </Suspense>
       } />
 
