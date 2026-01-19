@@ -514,6 +514,13 @@ export const contractApi = {
   release: (contractId: string) =>
     request(`/api/contracts/${contractId}/release`, { method: 'POST' }),
 
+  // Modify contract post-acquisition (following renewal rules)
+  modify: (contractId: string, newSalary: number, newDuration: number) =>
+    request(`/api/contracts/${contractId}/modify`, {
+      method: 'POST',
+      body: JSON.stringify({ newSalary, newDuration }),
+    }),
+
   // Get consolidation status for current manager
   getConsolidationStatus: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/contracts/consolidation`),

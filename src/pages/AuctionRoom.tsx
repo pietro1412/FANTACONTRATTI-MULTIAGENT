@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { auctionApi, playerApi, firstMarketApi, adminApi } from '../services/api'
+import { auctionApi, playerApi, firstMarketApi, adminApi, contractApi } from '../services/api'
 import { usePusherAuction } from '../services/pusher.client'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -8,6 +8,7 @@ import { Chat } from '../components/Chat'
 import { getTeamLogo } from '../utils/teamLogos'
 import haptic from '../utils/haptics'
 import { POSITION_GRADIENTS, POSITION_FILTER_COLORS, POSITION_NAMES } from '../components/ui/PositionBadge'
+import { ContractModifierModal } from '../components/ContractModifier'
 import {
   DndContext,
   closestCenter,
@@ -305,6 +306,21 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   const [selectedManager, setSelectedManager] = useState<ManagerData | null>(null)
 
   const [appealStatus, setAppealStatus] = useState<AppealStatus | null>(null)
+
+  // Contract modification after winning auction
+  interface ContractForModification {
+    contractId: string
+    rosterId: string
+    playerId: string
+    playerName: string
+    playerTeam: string
+    playerPosition: string
+    salary: number
+    duration: number
+    initialSalary: number
+    rescissionClause: number
+  }
+  const [pendingContractModification, setPendingContractModification] = useState<ContractForModification | null>(null)
 
   // Pusher real-time updates - update state directly from Pusher data (no HTTP calls)
   const { connectionStatus, isConnected } = usePusherAuction(sessionId, {
@@ -950,6 +966,13 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       setProphecyContent('')
       setAppealContent('')
       setIsAppealMode(false)
+
+      // Check if there's contract info for modification (winner only)
+      const data = result.data as { winnerContractInfo?: ContractForModification } | undefined
+      if (data?.winnerContractInfo) {
+        setPendingContractModification(data.winnerContractInfo)
+      }
+
       loadPendingAcknowledgment()
       loadPlayers()
       loadMyRosterSlots()
@@ -957,6 +980,25 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     } else {
       setError(result.message || 'Errore')
     }
+  }
+
+  // ========== CONTRACT MODIFICATION (Post-Primo Mercato Win) ==========
+
+  async function handleContractModification(newSalary: number, newDuration: number) {
+    if (!pendingContractModification?.contractId) return
+
+    const res = await contractApi.modify(pendingContractModification.contractId, newSalary, newDuration)
+    if (res.success) {
+      setPendingContractModification(null)
+      loadPlayers()
+      loadMyRosterSlots()
+    } else {
+      setError(res.message || 'Errore durante la modifica del contratto')
+    }
+  }
+
+  function handleSkipContractModification() {
+    setPendingContractModification(null)
   }
 
   const isMyTurn = firstMarketStatus?.isUserTurn || false
@@ -2383,6 +2425,29 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             </div>
           </div>
         </div>
+      )}
+
+      {/* Contract Modification Modal after Primo Mercato Win */}
+      {pendingContractModification && (
+        <ContractModifierModal
+          isOpen={true}
+          onClose={handleSkipContractModification}
+          player={{
+            id: pendingContractModification.playerId,
+            name: pendingContractModification.playerName,
+            team: pendingContractModification.playerTeam,
+            position: pendingContractModification.playerPosition,
+          }}
+          contract={{
+            salary: pendingContractModification.salary,
+            duration: pendingContractModification.duration,
+            initialSalary: pendingContractModification.initialSalary,
+            rescissionClause: pendingContractModification.rescissionClause,
+          }}
+          onConfirm={handleContractModification}
+          title="Modifica Contratto"
+          description="Hai appena acquistato questo giocatore. Puoi modificare il suo contratto seguendo le regole del rinnovo."
+        />
       )}
     </div>
   )

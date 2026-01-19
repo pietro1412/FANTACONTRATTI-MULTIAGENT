@@ -1615,10 +1615,45 @@ export async function acknowledgeSvincolatiAuction(
   const newAcknowledged = [...pendingAck.acknowledgedMembers, member.id]
   const newPending = pendingAck.pendingMembers.filter(id => id !== member.id)
 
+  // Get contract info for winner (for post-acquisition modification)
+  let winnerContractInfo = null
+  if (pendingAck.winnerId === member.id && !pendingAck.noBids) {
+    const roster = await prisma.playerRoster.findFirst({
+      where: {
+        leagueMemberId: member.id,
+        playerId: pendingAck.playerId,
+        status: RosterStatus.ACTIVE,
+      },
+      include: { contract: true, player: true },
+    })
+    if (roster?.contract) {
+      winnerContractInfo = {
+        contractId: roster.contract.id,
+        rosterId: roster.id,
+        playerId: pendingAck.playerId,
+        playerName: pendingAck.playerName,
+        playerTeam: roster.player.team,
+        playerPosition: roster.player.position,
+        salary: roster.contract.salary,
+        duration: roster.contract.duration,
+        initialSalary: roster.contract.initialSalary,
+        rescissionClause: roster.contract.rescissionClause,
+      }
+    }
+  }
+
   // Check if all acknowledged
   if (newPending.length === 0) {
     // All acknowledged - advance to next turn
-    return await advanceSvincolatiToNextTurn(activeSession.id)
+    const result = await advanceSvincolatiToNextTurn(activeSession.id)
+    // Include winner contract info in the result
+    return {
+      ...result,
+      data: {
+        ...(result.data as object || {}),
+        winnerContractInfo,
+      },
+    }
   }
 
   // Update pending ack
@@ -1636,7 +1671,11 @@ export async function acknowledgeSvincolatiAuction(
   return {
     success: true,
     message: 'Conferma registrata',
-    data: { acknowledgedCount: newAcknowledged.length, pendingCount: newPending.length },
+    data: {
+      acknowledgedCount: newAcknowledged.length,
+      pendingCount: newPending.length,
+      winnerContractInfo, // For contract modification modal
+    },
   }
 }
 

@@ -2638,6 +2638,29 @@ export async function getRubataPendingAck(
     .filter(m => !pendingAck.acknowledgedMembers.includes(m.id))
     .map(m => ({ id: m.id, username: m.user.username }))
 
+  // Get contract info for the winner (for post-acquisition modification)
+  let contractInfo = null
+  if (pendingAck.winnerId === member.id) {
+    const roster = await prisma.playerRoster.findFirst({
+      where: {
+        leagueMemberId: member.id,
+        playerId: pendingAck.playerId,
+        status: RosterStatus.ACTIVE,
+      },
+      include: { contract: true },
+    })
+    if (roster?.contract) {
+      contractInfo = {
+        contractId: roster.contract.id,
+        rosterId: roster.id,
+        salary: roster.contract.salary,
+        duration: roster.contract.duration,
+        initialSalary: roster.contract.initialSalary,
+        rescissionClause: roster.contract.rescissionClause,
+      }
+    }
+  }
+
   return {
     success: true,
     data: {
@@ -2664,6 +2687,8 @@ export async function getRubataPendingAck(
       userAcknowledged: pendingAck.acknowledgedMembers.includes(member.id),
       allAcknowledged: pendingMembers.length === 0,
       prophecies: pendingAck.prophecies || [],
+      // Contract info for the winner to modify after acknowledging
+      winnerContractInfo: contractInfo,
     },
   }
 }
@@ -2745,6 +2770,31 @@ export async function acknowledgeRubataTransaction(
 
   const allAcknowledged = allMembers.every(m => updatedAck.acknowledgedMembers.includes(m.id))
 
+  // Get contract info for winner (for post-rubata contract modification)
+  let winnerContractInfo = null
+  if (pendingAck.winnerId === member.id) {
+    const roster = await prisma.playerRoster.findFirst({
+      where: {
+        leagueMemberId: member.id,
+        playerId: pendingAck.playerId,
+        status: RosterStatus.ACTIVE,
+      },
+      include: { contract: true },
+    })
+    if (roster?.contract) {
+      winnerContractInfo = {
+        contractId: roster.contract.id,
+        rosterId: roster.id,
+        playerId: pendingAck.playerId,
+        playerName: pendingAck.playerName,
+        salary: roster.contract.salary,
+        duration: roster.contract.duration,
+        initialSalary: roster.contract.initialSalary,
+        rescissionClause: roster.contract.rescissionClause,
+      }
+    }
+  }
+
   if (allAcknowledged) {
     // Clear pending ack and move to ready check for next player
     await prisma.marketSession.update({
@@ -2759,7 +2809,10 @@ export async function acknowledgeRubataTransaction(
     return {
       success: true,
       message: 'Tutti hanno confermato! Dichiararsi pronti per il prossimo giocatore.',
-      data: { allAcknowledged: true },
+      data: {
+        allAcknowledged: true,
+        winnerContractInfo, // For contract modification modal
+      },
     }
   }
 
@@ -2775,6 +2828,7 @@ export async function acknowledgeRubataTransaction(
       allAcknowledged: false,
       acknowledgedCount: updatedAck.acknowledgedMembers.length,
       totalMembers: allMembers.length,
+      winnerContractInfo, // For contract modification modal
     },
   }
 }

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { rubataApi, leagueApi, auctionApi } from '../services/api'
+import { rubataApi, leagueApi, auctionApi, contractApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
 import { Chat } from '../components/Chat'
 import { getTeamLogo } from '../utils/teamLogos'
 import { usePusherAuction } from '../services/pusher.client'
+import { ContractModifierModal } from '../components/ContractModifier'
 
 // Componente logo squadra
 function TeamLogo({ team }: { team: string }) {
@@ -394,6 +395,21 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   // Preview mode state
   const [previewBoard, setPreviewBoard] = useState<PreviewBoardData | null>(null)
   const [selectedPlayerForPrefs, setSelectedPlayerForPrefs] = useState<BoardPlayerWithPreference | null>(null)
+
+  // Contract modification after rubata win
+  interface ContractForModification {
+    contractId: string
+    rosterId: string
+    playerId: string
+    playerName: string
+    playerTeam?: string
+    playerPosition?: string
+    salary: number
+    duration: number
+    initialSalary: number
+    rescissionClause: number
+  }
+  const [pendingContractModification, setPendingContractModification] = useState<ContractForModification | null>(null)
 
   // Ref for current player row/card to scroll into view
   const currentPlayerRef = useRef<HTMLElement>(null)
@@ -901,6 +917,19 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     const res = await rubataApi.acknowledge(leagueId, prophecyContent.trim() || undefined)
     if (res.success) {
       setProphecyContent('')
+
+      // Check if there's contract info for modification (winner only)
+      const data = res.data as { winnerContractInfo?: ContractForModification } | undefined
+      if (data?.winnerContractInfo) {
+        // Store player info from pendingAck for the modal
+        const playerInfo = pendingAck?.player
+        setPendingContractModification({
+          ...data.winnerContractInfo,
+          playerTeam: playerInfo?.team,
+          playerPosition: playerInfo?.position,
+        })
+      }
+
       loadData()
     } else {
       setError(res.message || 'Errore')
@@ -965,6 +994,18 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
       setProphecyContent('')
       setAppealContent('')
       setIsAppealMode(false)
+
+      // Check if there's contract info for modification (winner only)
+      const data = res.data as { winnerContractInfo?: ContractForModification } | undefined
+      if (data?.winnerContractInfo) {
+        const playerInfo = pendingAck?.player
+        setPendingContractModification({
+          ...data.winnerContractInfo,
+          playerTeam: playerInfo?.team,
+          playerPosition: playerInfo?.position,
+        })
+      }
+
       loadData()
       loadAppealStatus()
     } else {
@@ -1039,6 +1080,24 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     } else {
       setError(result.message || 'Errore')
     }
+  }
+
+  // ========== Contract Modification (Post-Rubata Win) ==========
+
+  async function handleContractModification(newSalary: number, newDuration: number) {
+    if (!pendingContractModification?.contractId) return
+
+    const res = await contractApi.modify(pendingContractModification.contractId, newSalary, newDuration)
+    if (res.success) {
+      setPendingContractModification(null)
+      loadData()
+    } else {
+      setError(res.message || 'Errore durante la modifica del contratto')
+    }
+  }
+
+  function handleSkipContractModification() {
+    setPendingContractModification(null)
   }
 
   // ========== Admin Simulation ==========
@@ -2831,6 +2890,29 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
           </div>
         )}
       </main>
+
+      {/* Contract Modification Modal after Rubata Win */}
+      {pendingContractModification && (
+        <ContractModifierModal
+          isOpen={true}
+          onClose={handleSkipContractModification}
+          player={{
+            id: pendingContractModification.playerId,
+            name: pendingContractModification.playerName,
+            team: pendingContractModification.playerTeam || '',
+            position: pendingContractModification.playerPosition || '',
+          }}
+          contract={{
+            salary: pendingContractModification.salary,
+            duration: pendingContractModification.duration,
+            initialSalary: pendingContractModification.initialSalary,
+            rescissionClause: pendingContractModification.rescissionClause,
+          }}
+          onConfirm={handleContractModification}
+          title="Modifica Contratto"
+          description="Hai appena rubato questo giocatore. Puoi modificare il suo contratto seguendo le regole del rinnovo."
+        />
+      )}
     </div>
   )
 }

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { svincolatiApi, leagueApi, auctionApi } from '../services/api'
+import { svincolatiApi, leagueApi, auctionApi, contractApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { POSITION_GRADIENTS, POSITION_FILTER_COLORS } from '../components/ui/PositionBadge'
+import { ContractModifierModal } from '../components/ContractModifier'
 
 interface AppealStatus {
   auctionId: string
@@ -152,6 +153,21 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
   // Confirm finish modal
   const [showFinishConfirmModal, setShowFinishConfirmModal] = useState(false)
+
+  // Contract modification after winning auction
+  interface ContractForModification {
+    contractId: string
+    rosterId: string
+    playerId: string
+    playerName: string
+    playerTeam: string
+    playerPosition: string
+    salary: number
+    duration: number
+    initialSalary: number
+    rescissionClause: number
+  }
+  const [pendingContractModification, setPendingContractModification] = useState<ContractForModification | null>(null)
 
   // Click outside handler for team dropdown
   useEffect(() => {
@@ -550,11 +566,36 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
       setUserHasAcked(true)
       setAppealContent('')
       setIsAppealMode(false)
+
+      // Check if there's contract info for modification (winner only)
+      const data = res.data as { winnerContractInfo?: ContractForModification } | undefined
+      if (data?.winnerContractInfo) {
+        setPendingContractModification(data.winnerContractInfo)
+      }
+
       loadBoard()
       loadAppealStatus()
     } else {
       setError(res.message || 'Errore')
     }
+  }
+
+  // ========== CONTRACT MODIFICATION (Post-Svincolati Win) ==========
+
+  async function handleContractModification(newSalary: number, newDuration: number) {
+    if (!pendingContractModification?.contractId) return
+
+    const res = await contractApi.modify(pendingContractModification.contractId, newSalary, newDuration)
+    if (res.success) {
+      setPendingContractModification(null)
+      loadBoard()
+    } else {
+      setError(res.message || 'Errore durante la modifica del contratto')
+    }
+  }
+
+  function handleSkipContractModification() {
+    setPendingContractModification(null)
   }
 
   async function handleForceAck() {
@@ -2087,6 +2128,29 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Contract Modification Modal after Svincolati Win */}
+      {pendingContractModification && (
+        <ContractModifierModal
+          isOpen={true}
+          onClose={handleSkipContractModification}
+          player={{
+            id: pendingContractModification.playerId,
+            name: pendingContractModification.playerName,
+            team: pendingContractModification.playerTeam,
+            position: pendingContractModification.playerPosition,
+          }}
+          contract={{
+            salary: pendingContractModification.salary,
+            duration: pendingContractModification.duration,
+            initialSalary: pendingContractModification.initialSalary,
+            rescissionClause: pendingContractModification.rescissionClause,
+          }}
+          onConfirm={handleContractModification}
+          title="Modifica Contratto"
+          description="Hai appena acquistato questo svincolato. Puoi modificare il suo contratto seguendo le regole del rinnovo."
+        />
       )}
     </div>
   )

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { tradeApi, auctionApi, leagueApi } from '../services/api'
+import { tradeApi, auctionApi, leagueApi, contractApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
+import { ContractModifierModal, type PlayerInfo, type ContractData } from '../components/ContractModifier'
 
 interface TradesProps {
   leagueId: string
@@ -216,6 +217,25 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRole, setFilterRole] = useState('')
   const [filterManager, setFilterManager] = useState('')
+
+  // Contract modification after trade acceptance
+  interface ReceivedPlayerForModification {
+    rosterId: string
+    contractId?: string
+    playerId: string
+    playerName: string
+    playerTeam: string
+    playerPosition: string
+    contract: {
+      salary: number
+      duration: number
+      initialSalary: number
+      rescissionClause: number
+    } | null
+  }
+  const [pendingContractModifications, setPendingContractModifications] = useState<ReceivedPlayerForModification[]>([])
+  const [currentModificationIndex, setCurrentModificationIndex] = useState(0)
+  const [isModifyingContract, setIsModifyingContract] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -465,9 +485,61 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
   async function handleAccept(tradeId: string) {
     const res = await tradeApi.accept(tradeId)
     if (res.success) {
-      loadData()
+      // Check if we received players that can have their contracts modified
+      const data = res.data as { receivedPlayers?: ReceivedPlayerForModification[] } | undefined
+      const receivedPlayers = data?.receivedPlayers || []
+
+      // Filter to only players with contracts (they should all have contracts)
+      const playersWithContracts = receivedPlayers.filter(p => p.contract && p.contractId)
+
+      if (playersWithContracts.length > 0) {
+        // Start contract modification flow
+        setPendingContractModifications(playersWithContracts)
+        setCurrentModificationIndex(0)
+        setIsModifyingContract(true)
+      } else {
+        // No players to modify, just reload
+        loadData()
+      }
     } else {
       alert(res.message || 'Errore')
+    }
+  }
+
+  // Get current player for contract modification
+  const currentPlayerForModification = pendingContractModifications[currentModificationIndex]
+
+  async function handleContractModification(newSalary: number, newDuration: number) {
+    if (!currentPlayerForModification?.contractId) return
+
+    const res = await contractApi.modify(currentPlayerForModification.contractId, newSalary, newDuration)
+
+    if (res.success) {
+      // Move to next player or finish
+      if (currentModificationIndex < pendingContractModifications.length - 1) {
+        setCurrentModificationIndex(currentModificationIndex + 1)
+      } else {
+        // All done
+        setIsModifyingContract(false)
+        setPendingContractModifications([])
+        setCurrentModificationIndex(0)
+        loadData()
+      }
+    } else {
+      alert(res.message || 'Errore durante la modifica del contratto')
+    }
+  }
+
+  function handleSkipContractModification() {
+    // Move to next player or finish
+    if (currentModificationIndex < pendingContractModifications.length - 1) {
+      setCurrentModificationIndex(currentModificationIndex + 1)
+    } else {
+      // All done
+      setIsModifyingContract(false)
+      setPendingContractModifications([])
+      setCurrentModificationIndex(0)
+      loadData()
     }
   }
 
@@ -1363,6 +1435,29 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
           </div>
         )}
       </main>
+
+      {/* Contract Modification Modal after Trade Acceptance */}
+      {isModifyingContract && currentPlayerForModification && currentPlayerForModification.contract && (
+        <ContractModifierModal
+          isOpen={true}
+          onClose={handleSkipContractModification}
+          player={{
+            id: currentPlayerForModification.playerId,
+            name: currentPlayerForModification.playerName,
+            team: currentPlayerForModification.playerTeam,
+            position: currentPlayerForModification.playerPosition,
+          }}
+          contract={{
+            salary: currentPlayerForModification.contract.salary,
+            duration: currentPlayerForModification.contract.duration,
+            initialSalary: currentPlayerForModification.contract.initialSalary,
+            rescissionClause: currentPlayerForModification.contract.rescissionClause,
+          }}
+          onConfirm={handleContractModification}
+          title={`Modifica Contratto (${currentModificationIndex + 1}/${pendingContractModifications.length})`}
+          description="Hai appena ricevuto questo giocatore via scambio. Puoi modificare il suo contratto seguendo le regole del rinnovo."
+        />
+      )}
     </div>
   )
 }

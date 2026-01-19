@@ -2233,6 +2233,33 @@ export async function acknowledgeAuction(
     }
   }
 
+  // Get contract info for winner (for post-acquisition modification)
+  let winnerContractInfo = null
+  if (auction.winnerId === member.id && auction.status === 'COMPLETED') {
+    const roster = await prisma.playerRoster.findFirst({
+      where: {
+        leagueMemberId: member.id,
+        playerId: auction.playerId,
+        status: RosterStatus.ACTIVE,
+      },
+      include: { contract: true, player: true },
+    })
+    if (roster?.contract) {
+      winnerContractInfo = {
+        contractId: roster.contract.id,
+        rosterId: roster.id,
+        playerId: auction.playerId,
+        playerName: roster.player.name,
+        playerTeam: roster.player.team,
+        playerPosition: roster.player.position,
+        salary: roster.contract.salary,
+        duration: roster.contract.duration,
+        initialSalary: roster.contract.initialSalary,
+        rescissionClause: roster.contract.rescissionClause,
+      }
+    }
+  }
+
   return {
     success: true,
     message: 'Conferma registrata',
@@ -2240,6 +2267,7 @@ export async function acknowledgeAuction(
       acknowledged: totalAcknowledged,
       total: totalMembers,
       allAcknowledged,
+      winnerContractInfo, // For contract modification modal
     },
   }
 }
