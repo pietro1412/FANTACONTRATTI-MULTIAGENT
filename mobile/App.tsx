@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider } from '@/store/AuthContext';
 import { LeagueProvider } from '@/store/LeagueContext';
+import { NotificationProvider } from '@/store/NotificationContext';
 import AppNavigator from '@/navigation/AppNavigator';
 
 const DarkTheme = {
@@ -25,10 +26,12 @@ export default function App() {
     <SafeAreaProvider>
       <AuthProvider>
         <LeagueProvider>
-          <NavigationContainer theme={DarkTheme}>
-            <StatusBar style="light" />
-            <AppNavigator />
-          </NavigationContainer>
+          <NotificationProvider>
+            <NavigationContainer theme={DarkTheme}>
+              <StatusBar style="light" />
+              <AppNavigator />
+            </NavigationContainer>
+          </NotificationProvider>
         </LeagueProvider>
       </AuthProvider>
     </SafeAreaProvider>

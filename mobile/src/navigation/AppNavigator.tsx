@@ -33,6 +33,9 @@ import HistoryScreen from '@/screens/more/HistoryScreen';
 import SettingsScreen from '@/screens/more/SettingsScreen';
 import ProfileScreen from '@/screens/more/ProfileScreen';
 
+// Screen imports - Contracts
+import ContractsScreen from '@/screens/contracts/ContractsScreen';
+
 // Theme colors
 const COLORS = {
   background: '#1a1a2e',
@@ -76,6 +79,7 @@ export type MoreStackParamList = {
   History: undefined;
   Settings: undefined;
   Profile: undefined;
+  Contracts: undefined;
 };
 
 export type MainTabParamList = {
@@ -236,6 +240,11 @@ function MoreStackNavigator() {
         name="Profile"
         component={ProfileScreen}
         options={{ title: 'Profilo' }}
+      />
+      <MoreStack.Screen
+        name="Contracts"
+        component={ContractsScreen}
+        options={{ title: 'Contratti' }}
       />
     </MoreStack.Navigator>
   );

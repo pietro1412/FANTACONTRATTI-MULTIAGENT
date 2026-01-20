@@ -14,8 +14,8 @@ import * as SecureStore from 'expo-secure-store';
 // TODO: Use environment variable in production
 const API_BASE_URL = 'http://10.138.157.172:3003';
 
-const TOKEN_KEY = 'accessToken';
-const REFRESH_TOKEN_KEY = 'refreshToken';
+const TOKEN_KEY = 'fantacontratti_auth_token';
+const REFRESH_TOKEN_KEY = 'fantacontratti_refresh_token';
 
 // ============================================================================
 // Types
@@ -430,10 +430,22 @@ export const leaguesApi = {
    */
   getMyLeagues: async (): Promise<ApiResponse<League[]>> => {
     try {
-      const response = await apiClient.get<ApiResponse<League[]>>('/api/leagues');
-      return response.data;
-    } catch (error) {
-      return error as ApiResponse;
+      console.log('[API] getMyLeagues - calling /api/leagues');
+      const response = await apiClient.get('/api/leagues');
+      console.log('[API] getMyLeagues - raw response:', JSON.stringify(response.data, null, 2));
+
+      // API returns { success: true, data: [{ membership, league }] }
+      if (response.data.success && response.data.data) {
+        const leagues = response.data.data.map((item: { membership: unknown; league: League }) => item.league);
+        console.log('[API] getMyLeagues - transformed leagues:', JSON.stringify(leagues, null, 2));
+        return { success: true, data: leagues };
+      }
+
+      return { success: response.data.success, message: response.data.message };
+    } catch (error: unknown) {
+      console.error('[API] getMyLeagues - error:', error);
+      const apiError = error as ApiResponse;
+      return { success: false, message: apiError.message || 'Errore nel caricamento delle leghe' };
     }
   },
 
@@ -1083,6 +1095,117 @@ export const playersApi = {
 };
 
 // ============================================================================
+// Indemnity API
+// ============================================================================
+
+export interface AffectedPlayer {
+  playerId: string;
+  playerName: string;
+  position: string;
+  team: string;
+  exitReason: 'RITIRATO' | 'RETROCESSO' | 'ESTERO';
+  exitDate: string | null;
+  contract: {
+    id: string;
+    salary: number;
+    duration: number;
+    rescissionClause: number;
+  };
+  roster: {
+    id: string;
+    acquisitionPrice: number;
+  };
+}
+
+export interface DecisionStatus {
+  memberId: string;
+  username: string;
+  teamName: string | null;
+  affectedCount: number;
+  hasDecided: boolean;
+  decidedAt: string | null;
+}
+
+export interface IndemnityData {
+  inCalcoloIndennizziPhase: boolean;
+  hasSubmittedDecisions: boolean;
+  submittedAt: string | null;
+  currentBudget: number;
+  indennizzoEstero: number;
+  affectedPlayers: AffectedPlayer[];
+}
+
+export interface IndemnityStatusData {
+  inCalcoloIndennizziPhase: boolean;
+  managers: DecisionStatus[];
+  allDecided: boolean;
+}
+
+export type IndemnityDecision = 'KEEP' | 'RELEASE';
+
+export const indemnityApi = {
+  /**
+   * Get all affected players for the league (admin view)
+   */
+  getAffectedPlayers: async (leagueId: string): Promise<ApiResponse<AffectedPlayer[]>> => {
+    try {
+      const response = await apiClient.get<ApiResponse<AffectedPlayer[]>>(
+        `/api/leagues/${leagueId}/indemnity/affected`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Get my affected players
+   */
+  getMyAffectedPlayers: async (leagueId: string): Promise<ApiResponse<IndemnityData>> => {
+    try {
+      const response = await apiClient.get<ApiResponse<IndemnityData>>(
+        `/api/leagues/${leagueId}/indemnity/my-affected`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Submit decisions for affected players
+   */
+  submitDecisions: async (
+    leagueId: string,
+    decisions: Array<{ rosterId: string; decision: IndemnityDecision }>
+  ): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post<ApiResponse>(
+        `/api/leagues/${leagueId}/indemnity/decisions`,
+        { decisions }
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Get all decisions status (admin view)
+   */
+  getAllDecisionsStatus: async (leagueId: string): Promise<ApiResponse<IndemnityStatusData>> => {
+    try {
+      const response = await apiClient.get<ApiResponse<IndemnityStatusData>>(
+        `/api/leagues/${leagueId}/indemnity/status`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+};
+
+// ============================================================================
 // Default Export
 // ============================================================================
 
@@ -1095,4 +1218,5 @@ export default {
   auctions: auctionsApi,
   history: historyApi,
   players: playersApi,
+  indemnity: indemnityApi,
 };
