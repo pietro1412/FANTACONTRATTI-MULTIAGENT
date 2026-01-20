@@ -28,6 +28,7 @@ interface SessionCardProps {
   onToggle: () => void
   formatSessionType: (type: string) => string
   formatSemester: (semester: string) => string
+  formatSessionTitle: (type: string, season: number, semester: string) => string
 }
 
 type TabType = 'overview' | 'firstMarket' | 'trades' | 'prizes' | 'rubata' | 'svincolati'
@@ -39,6 +40,7 @@ export function SessionCard({
   onToggle,
   formatSessionType,
   formatSemester,
+  formatSessionTitle,
 }: SessionCardProps) {
   const [activeTab, setActiveTab] = useState<TabType>('overview')
   const [isLoading, setIsLoading] = useState(false)
@@ -115,13 +117,17 @@ export function SessionCard({
           </div>
           <div className="text-left">
             <h3 className="font-bold text-white text-lg">
-              {formatSessionType(session.type)} - Stagione {session.season}
+              {formatSessionTitle(session.type, session.season, session.semester)}
             </h3>
             <p className="text-sm text-gray-400">
-              {formatSemester(session.semester)}
               {session.startsAt && (
+                <span>
+                  {new Date(session.startsAt).toLocaleDateString('it-IT')}
+                </span>
+              )}
+              {session.currentPhase && (
                 <span className="ml-2">
-                  • {new Date(session.startsAt).toLocaleDateString('it-IT')}
+                  • Fase: {session.currentPhase.replace(/_/g, ' ')}
                 </span>
               )}
             </p>

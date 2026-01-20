@@ -117,7 +117,17 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
   }
 
   function formatSemester(semester: string) {
-    return semester === 'FIRST' ? '1° Semestre' : '2° Semestre'
+    return semester === 'FIRST' ? 'Primo Semestre' : 'Secondo Semestre'
+  }
+
+  function formatSessionTitle(type: string, season: number, semester: string) {
+    const typeLabel = type === 'PRIMO_MERCATO' ? 'Primo Mercato' : 'Mercato Ricorrente'
+    const semesterLabel = semester === 'FIRST' ? 'Primo Semestre' : 'Secondo Semestre'
+    // Per Primo Mercato non serve specificare il semestre (è sempre il primo)
+    if (type === 'PRIMO_MERCATO') {
+      return `${typeLabel} ${season}/${(season % 100) + 1}`
+    }
+    return `${typeLabel} ${season}/${(season % 100) + 1} ${semesterLabel}`
   }
 
   if (isLoading) {
@@ -266,6 +276,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
                 sessions={sessions}
                 formatSessionType={formatSessionType}
                 formatSemester={formatSemester}
+                formatSessionTitle={formatSessionTitle}
               />
             ) : (
               <TimelineView

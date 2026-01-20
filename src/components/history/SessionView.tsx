@@ -26,9 +26,10 @@ interface SessionViewProps {
   sessions: SessionSummary[]
   formatSessionType: (type: string) => string
   formatSemester: (semester: string) => string
+  formatSessionTitle: (type: string, season: number, semester: string) => string
 }
 
-export function SessionView({ leagueId, sessions, formatSessionType, formatSemester }: SessionViewProps) {
+export function SessionView({ leagueId, sessions, formatSessionType, formatSemester, formatSessionTitle }: SessionViewProps) {
   const [expandedSession, setExpandedSession] = useState<string | null>(null)
 
   if (sessions.length === 0) {
@@ -46,6 +47,7 @@ export function SessionView({ leagueId, sessions, formatSessionType, formatSemes
           onToggle={() => setExpandedSession(expandedSession === session.id ? null : session.id)}
           formatSessionType={formatSessionType}
           formatSemester={formatSemester}
+          formatSessionTitle={formatSessionTitle}
         />
       ))}
     </div>
