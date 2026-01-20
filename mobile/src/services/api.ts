@@ -11,7 +11,8 @@ import * as SecureStore from 'expo-secure-store';
 // Configuration
 // ============================================================================
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3003';
+// TODO: Use environment variable in production
+const API_BASE_URL = 'http://10.138.157.172:3003';
 
 const TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';

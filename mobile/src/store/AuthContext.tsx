@@ -21,7 +21,8 @@ const TOKEN_KEY = 'fantacontratti_auth_token';
 const USER_KEY = 'fantacontratti_user';
 
 // API base URL - should be configured via environment variables in production
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3003';
+// TODO: Use environment variable in production
+const API_BASE_URL = 'http://10.138.157.172:3003';
 
 // =============================================================================
 // Context Types
@@ -179,7 +180,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ email, password } as LoginCredentials),
+          body: JSON.stringify({ emailOrUsername: email, password }),
         });
 
         if (!response.ok) {
@@ -189,18 +190,31 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
           );
         }
 
-        const data: AuthResponse = await response.json();
+        const responseData = await response.json();
+        console.log('Login response:', JSON.stringify(responseData, null, 2));
+
+        // API returns { success: true, data: { user, accessToken } }
+        const authData = responseData.data;
+        const accessToken = authData?.accessToken;
+        const apiUser = authData?.user;
+
+        console.log('Token:', accessToken);
+        console.log('User:', JSON.stringify(apiUser, null, 2));
+
+        if (!accessToken || typeof accessToken !== 'string') {
+          throw new Error('Invalid token received from server');
+        }
 
         // Store token and user data
-        await storeToken(data.token);
+        await storeToken(accessToken);
 
         const userData: User = {
-          id: data.user.id,
-          email: data.user.email,
-          username: data.user.username,
-          isSuperAdmin: data.user.isSuperAdmin || false,
-          profilePhoto: data.user.profilePhoto,
-          emailVerified: data.user.emailVerified,
+          id: apiUser.id,
+          email: apiUser.email,
+          username: apiUser.username,
+          isSuperAdmin: apiUser.isSuperAdmin || false,
+          profilePhoto: apiUser.profilePhoto,
+          emailVerified: apiUser.emailVerified,
         };
 
         await storeUser(userData);
