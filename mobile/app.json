@@ -12,9 +12,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#1a1a2e"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.fantacontratti.mobile"
@@ -26,20 +24,10 @@
       },
       "package": "com.fantacontratti.mobile"
     },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/favicon.png"
-    },
-    "primaryColor": "#6366F1",
-    "backgroundColor": "#1a1a2e",
-    "androidStatusBar": {
-      "backgroundColor": "#1a1a2e",
-      "barStyle": "light-content"
-    },
-    "androidNavigationBar": {
-      "backgroundColor": "#1a1a2e",
-      "barStyle": "light-content"
+    "extra": {
+      "eas": {
+        "projectId": "fantacontratti-mobile"
+      }
     }
   }
 }
