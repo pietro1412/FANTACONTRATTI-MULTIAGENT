@@ -11,14 +11,20 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Alert,
   Share,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useLeague } from '@/store/LeagueContext';
 import { adminApi, leaguesApi, PendingRequest, LeagueMember } from '@/services/api';
 import * as Clipboard from 'expo-clipboard';
+import { DebugOverlay } from '@/components/DebugOverlay';
+import { useCustomModal } from '@/components/CustomModal';
+import type { MoreStackParamList } from '@/navigation/AppNavigator';
+
+type NavigationProp = NativeStackNavigationProp<MoreStackParamList>;
 
 // =============================================================================
 // Constants
@@ -181,7 +187,9 @@ function ActionButton({
 // =============================================================================
 
 export default function LeagueManagementScreen(): React.JSX.Element {
-  const { selectedLeague, selectedMember, refreshLeague } = useLeague();
+  const navigation = useNavigation<NavigationProp>();
+  const { selectedLeague, selectedMember, refreshLeagueData } = useLeague();
+  const { showModal, CustomModalComponent } = useCustomModal();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -199,7 +207,9 @@ export default function LeagueManagementScreen(): React.JSX.Element {
   // =============================================================================
 
   const fetchData = useCallback(async (showLoader = true) => {
+    console.log('[LeagueManagement] fetchData called - selectedLeague:', selectedLeague?.id, 'isAdmin:', isAdmin);
     if (!selectedLeague || !isAdmin) {
+      console.log('[LeagueManagement] fetchData early return - no league or not admin');
       setIsLoading(false);
       return;
     }
@@ -207,17 +217,25 @@ export default function LeagueManagementScreen(): React.JSX.Element {
     if (showLoader) setIsLoading(true);
 
     try {
+      console.log('[LeagueManagement] Fetching data for league:', selectedLeague.id);
       const [pendingRes, membersRes] = await Promise.all([
         adminApi.getPendingRequests(selectedLeague.id),
         leaguesApi.getLeagueMembers(selectedLeague.id),
       ]);
+
+      console.log('[LeagueManagement] pendingRes:', JSON.stringify(pendingRes, null, 2));
+      console.log('[LeagueManagement] membersRes:', JSON.stringify(membersRes, null, 2));
 
       if (pendingRes.success && pendingRes.data) {
         setPendingRequests(Array.isArray(pendingRes.data) ? pendingRes.data : []);
       }
 
       if (membersRes.success && membersRes.data) {
-        setMembers(Array.isArray(membersRes.data) ? membersRes.data : []);
+        const membersArray = Array.isArray(membersRes.data) ? membersRes.data : [];
+        console.log('[LeagueManagement] Members loaded:', membersArray.length, 'members');
+        setMembers(membersArray);
+      } else {
+        console.log('[LeagueManagement] membersRes failed or no data');
       }
     } catch (error) {
       console.error('[LeagueManagement] Error fetching data:', error);
@@ -243,11 +261,11 @@ export default function LeagueManagementScreen(): React.JSX.Element {
   const handleCopyInviteCode = useCallback(async () => {
     try {
       await Clipboard.setStringAsync(inviteCode);
-      Alert.alert('Copiato!', 'Codice invito copiato negli appunti');
+      showModal('Copiato!', 'Codice invito copiato negli appunti');
     } catch (error) {
-      Alert.alert('Errore', 'Impossibile copiare il codice');
+      showModal('Errore', 'Impossibile copiare il codice');
     }
-  }, [inviteCode]);
+  }, [inviteCode, showModal]);
 
   const handleShareInviteCode = useCallback(async () => {
     try {
@@ -268,22 +286,22 @@ export default function LeagueManagementScreen(): React.JSX.Element {
       const response = await adminApi.handleMemberRequest(selectedLeague.id, memberId, 'accept');
       if (response.success) {
         setPendingRequests(prev => prev.filter(r => r.id !== memberId));
-        Alert.alert('Successo', 'Richiesta approvata');
-        refreshLeague();
+        showModal('Successo', 'Richiesta approvata');
+        refreshLeagueData();
       } else {
-        Alert.alert('Errore', response.message || 'Impossibile approvare la richiesta');
+        showModal('Errore', response.message || 'Impossibile approvare la richiesta');
       }
     } catch (error) {
-      Alert.alert('Errore', 'Si è verificato un errore');
+      showModal('Errore', 'Si è verificato un errore');
     } finally {
       setProcessingId(null);
     }
-  }, [selectedLeague, refreshLeague]);
+  }, [selectedLeague, refreshLeagueData, showModal]);
 
   const handleRejectRequest = useCallback(async (memberId: string) => {
     if (!selectedLeague) return;
 
-    Alert.alert(
+    showModal(
       'Conferma rifiuto',
       'Sei sicuro di voler rifiutare questa richiesta?',
       [
@@ -297,12 +315,12 @@ export default function LeagueManagementScreen(): React.JSX.Element {
               const response = await adminApi.handleMemberRequest(selectedLeague.id, memberId, 'reject');
               if (response.success) {
                 setPendingRequests(prev => prev.filter(r => r.id !== memberId));
-                Alert.alert('Successo', 'Richiesta rifiutata');
+                showModal('Successo', 'Richiesta rifiutata');
               } else {
-                Alert.alert('Errore', response.message || 'Impossibile rifiutare la richiesta');
+                showModal('Errore', response.message || 'Impossibile rifiutare la richiesta');
               }
             } catch (error) {
-              Alert.alert('Errore', 'Si è verificato un errore');
+              showModal('Errore', 'Si è verificato un errore');
             } finally {
               setProcessingId(null);
             }
@@ -310,12 +328,12 @@ export default function LeagueManagementScreen(): React.JSX.Element {
         },
       ]
     );
-  }, [selectedLeague]);
+  }, [selectedLeague, showModal]);
 
   const handleStartMarket = useCallback(async () => {
     if (!selectedLeague) return;
 
-    Alert.alert(
+    showModal(
       'Avvia Mercato',
       'Vuoi avviare una nuova sessione di mercato?',
       [
@@ -327,13 +345,13 @@ export default function LeagueManagementScreen(): React.JSX.Element {
             try {
               const response = await adminApi.startMarket(selectedLeague.id);
               if (response.success) {
-                Alert.alert('Successo', 'Sessione di mercato avviata!');
-                refreshLeague();
+                showModal('Successo', 'Sessione di mercato avviata!');
+                refreshLeagueData();
               } else {
-                Alert.alert('Errore', response.message || 'Impossibile avviare il mercato');
+                showModal('Errore', response.message || 'Impossibile avviare il mercato');
               }
             } catch (error) {
-              Alert.alert('Errore', 'Si è verificato un errore');
+              showModal('Errore', 'Si è verificato un errore');
             } finally {
               setIsStartingMarket(false);
             }
@@ -341,7 +359,7 @@ export default function LeagueManagementScreen(): React.JSX.Element {
         },
       ]
     );
-  }, [selectedLeague, refreshLeague]);
+  }, [selectedLeague, refreshLeagueData, showModal]);
 
   const handleStartLeague = useCallback(async () => {
     if (!selectedLeague) return;
@@ -350,14 +368,14 @@ export default function LeagueManagementScreen(): React.JSX.Element {
     const currentMembers = members.filter(m => m.status === 'ACCEPTED' || m.status === 'ACTIVE').length;
 
     if (currentMembers < minParticipants) {
-      Alert.alert(
+      showModal(
         'Partecipanti insufficienti',
         `Servono almeno ${minParticipants} partecipanti per avviare la lega. Attualmente ci sono ${currentMembers} membri.`
       );
       return;
     }
 
-    Alert.alert(
+    showModal(
       'Avvia Lega',
       'Sei sicuro di voler avviare la lega? Questa azione inizierà il primo mercato.',
       [
@@ -369,13 +387,13 @@ export default function LeagueManagementScreen(): React.JSX.Element {
             try {
               const response = await adminApi.startLeague(selectedLeague.id);
               if (response.success) {
-                Alert.alert('Successo', 'Lega avviata! Il primo mercato è pronto.');
-                refreshLeague();
+                showModal('Successo', 'Lega avviata! Il primo mercato è pronto.');
+                refreshLeagueData();
               } else {
-                Alert.alert('Errore', response.message || 'Impossibile avviare la lega');
+                showModal('Errore', response.message || 'Impossibile avviare la lega');
               }
             } catch (error) {
-              Alert.alert('Errore', 'Si è verificato un errore');
+              showModal('Errore', 'Si è verificato un errore');
             } finally {
               setIsStartingMarket(false);
             }
@@ -383,7 +401,7 @@ export default function LeagueManagementScreen(): React.JSX.Element {
         },
       ]
     );
-  }, [selectedLeague, members, refreshLeague]);
+  }, [selectedLeague, members, refreshLeagueData, showModal]);
 
   // =============================================================================
   // Render
@@ -429,6 +447,9 @@ export default function LeagueManagementScreen(): React.JSX.Element {
   }
 
   const activeMembers = members.filter(m => m.status === 'ACCEPTED' || m.status === 'ACTIVE').length;
+  console.log('[LeagueManagement] Total members:', members.length, '| Active members:', activeMembers);
+  console.log('[LeagueManagement] Member statuses:', members.map(m => ({ username: m.user?.username || m.username, role: m.role, status: m.status })));
+  console.log('[LeagueManagement] selectedLeague.maxParticipants:', selectedLeague.maxParticipants);
   const isLeagueStarted = selectedLeague.status === 'ACTIVE' || selectedLeague.currentPhase;
 
   return (
@@ -443,6 +464,26 @@ export default function LeagueManagementScreen(): React.JSX.Element {
         />
       }
     >
+      {/* Debug Overlay */}
+      <DebugOverlay
+        title="Debug Info"
+        data={{
+          isAdmin,
+          selectedMemberRole: selectedMember?.role,
+          selectedMemberStatus: selectedMember?.status,
+          selectedLeagueId: selectedLeague?.id,
+          selectedLeagueMaxParticipants: selectedLeague?.maxParticipants,
+          membersCount: members.length,
+          activeMembers,
+          membersData: members.slice(0, 3).map(m => ({
+            role: m.role,
+            status: m.status,
+            userId: m.userId,
+            username: m.user?.username || m.username,
+          })),
+        }}
+      />
+
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.adminBadge}>
@@ -529,10 +570,13 @@ export default function LeagueManagementScreen(): React.JSX.Element {
         <ActionButton
           icon="settings"
           label="Impostazioni Lega"
-          onPress={() => Alert.alert('Info', 'Funzionalità in arrivo')}
+          onPress={() => navigation.navigate('LeagueSettings')}
           color={COLORS.textSecondary}
         />
       </View>
+
+      {/* Custom Modal */}
+      {CustomModalComponent}
     </ScrollView>
   );
 }

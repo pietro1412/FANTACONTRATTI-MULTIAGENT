@@ -74,13 +74,20 @@ export interface LeagueConfig {
 export interface LeagueMember {
   id: string;
   userId: string;
-  username: string;
+  username?: string;
   teamName: string | null;
-  role: 'ADMIN' | 'MEMBER';
-  status: 'ACCEPTED' | 'PENDING' | 'REJECTED';
-  budget: number;
+  role: 'ADMIN' | 'MANAGER' | 'MEMBER';
+  status: 'ACTIVE' | 'PENDING' | 'REJECTED' | 'ACCEPTED' | 'KICKED' | 'LEFT';
+  currentBudget?: number;
+  budget?: number;
   profilePhoto?: string | null;
   joinedAt: string;
+  user?: {
+    id: string;
+    username: string;
+    email: string;
+    profilePhoto?: string | null;
+  };
 }
 
 export interface Player {
@@ -457,11 +464,20 @@ export const leaguesApi = {
 
   /**
    * Get league by ID
+   * Backend returns { data: { league, userMembership, isAdmin } }
+   * We extract league to return as data directly
    */
   getLeagueById: async (id: string): Promise<ApiResponse<League>> => {
     try {
-      const response = await apiClient.get<ApiResponse<League>>(`/api/leagues/${id}`);
-      return response.data;
+      const response = await apiClient.get<ApiResponse<{ league: League; userMembership: LeagueMember | null; isAdmin: boolean }>>(`/api/leagues/${id}`);
+      // Extract league from nested structure
+      if (response.data.success && response.data.data?.league) {
+        return {
+          success: true,
+          data: response.data.data.league,
+        };
+      }
+      return response.data as unknown as ApiResponse<League>;
     } catch (error) {
       return error as ApiResponse;
     }
@@ -469,11 +485,20 @@ export const leaguesApi = {
 
   /**
    * Get league members
+   * Backend returns { data: { members, isAdmin } }
+   * We extract members array to return as data directly
    */
   getLeagueMembers: async (leagueId: string): Promise<ApiResponse<LeagueMember[]>> => {
     try {
-      const response = await apiClient.get<ApiResponse<LeagueMember[]>>(`/api/leagues/${leagueId}/members`);
-      return response.data;
+      const response = await apiClient.get<ApiResponse<{ members: LeagueMember[]; isAdmin: boolean }>>(`/api/leagues/${leagueId}/members`);
+      // Extract members array from nested structure
+      if (response.data.success && response.data.data?.members) {
+        return {
+          success: true,
+          data: response.data.data.members,
+        };
+      }
+      return response.data as unknown as ApiResponse<LeagueMember[]>;
     } catch (error) {
       return error as ApiResponse;
     }
@@ -1232,6 +1257,7 @@ export interface LeagueUpdateData {
   name?: string;
   description?: string;
   maxParticipants?: number;
+  initialBudget?: number;
 }
 
 export type MemberAction = 'accept' | 'reject' | 'kick';

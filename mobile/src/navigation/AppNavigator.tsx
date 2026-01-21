@@ -38,6 +38,7 @@ import ContractsScreen from '@/screens/contracts/ContractsScreen';
 
 // Screen imports - Admin
 import LeagueManagementScreen from '@/screens/admin/LeagueManagementScreen';
+import LeagueSettingsScreen from '@/screens/admin/LeagueSettingsScreen';
 
 // Theme colors
 const COLORS = {
@@ -84,6 +85,7 @@ export type MoreStackParamList = {
   Profile: undefined;
   Contracts: undefined;
   LeagueManagement: undefined;
+  LeagueSettings: undefined;
 };
 
 export type MainTabParamList = {
@@ -254,6 +256,11 @@ function MoreStackNavigator() {
         name="LeagueManagement"
         component={LeagueManagementScreen}
         options={{ title: 'Gestione Lega' }}
+      />
+      <MoreStack.Screen
+        name="LeagueSettings"
+        component={LeagueSettingsScreen}
+        options={{ title: 'Impostazioni Lega' }}
       />
     </MoreStack.Navigator>
   );

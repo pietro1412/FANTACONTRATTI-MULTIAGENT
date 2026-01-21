@@ -69,11 +69,12 @@ const DURATION_MULTIPLIERS: Record<number, number> = {
 // Helper Functions
 // =============================================================================
 
-const formatCurrency = (amount: number): string => {
-  if (amount >= 1000000) {
-    return `${(amount / 1000000).toFixed(1)}M`;
+const formatCurrency = (amount: number | undefined | null): string => {
+  const safeAmount = amount ?? 0;
+  if (safeAmount >= 1000000) {
+    return `${(safeAmount / 1000000).toFixed(1)}M`;
   }
-  return amount.toLocaleString('it-IT');
+  return safeAmount.toLocaleString('it-IT');
 };
 
 const getPositionColor = (position: string): string => {
@@ -380,7 +381,9 @@ export default function ContractsScreen(): React.JSX.Element {
       console.log('[ContractsScreen] Response:', response.success);
 
       if (response.success && response.data) {
-        setRoster(response.data);
+        // Ensure roster is always an array
+        const rosterData = Array.isArray(response.data) ? response.data : [];
+        setRoster(rosterData);
       }
     } catch (err) {
       console.error('[ContractsScreen] Error fetching roster:', err);
