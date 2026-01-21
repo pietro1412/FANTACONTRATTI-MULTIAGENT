@@ -203,6 +203,13 @@ export default function InitialAuctionScreen({ route, navigation }: Props): Reac
     fetchSession();
   }, [fetchSession]);
 
+  // Auto-navigate to FirstMarketRoom when session is active
+  useEffect(() => {
+    if (session && session.status === 'ACTIVE') {
+      navigation.replace('FirstMarketRoom', { leagueId: leagueId || selectedLeague?.id || '' });
+    }
+  }, [session, navigation, leagueId, selectedLeague]);
+
   // =============================================================================
   // Event Handlers
   // =============================================================================
