@@ -21,6 +21,7 @@ import AuctionDetailScreen from '@/screens/auctions/AuctionDetailScreen';
 import InitialAuctionScreen from '@/screens/auctions/InitialAuctionScreen';
 import RepairAuctionScreen from '@/screens/auctions/RepairAuctionScreen';
 import IndemnityScreen from '@/screens/auctions/IndemnityScreen';
+import FirstMarketRoomScreen from '@/screens/auctions/FirstMarketRoomScreen';
 
 // Screen imports - Scambi (Trades)
 import TradesScreen from '@/screens/trades/TradesScreen';
@@ -70,6 +71,7 @@ export type AuctionsStackParamList = {
   InitialAuction: { leagueId: string };
   RepairAuction: { leagueId: string };
   Indemnity: { leagueId: string };
+  FirstMarketRoom: { leagueId: string };
 };
 
 export type TradesStackParamList = {
@@ -195,6 +197,11 @@ function AuctionsStackNavigator() {
         name="Indemnity"
         component={IndemnityScreen}
         options={{ title: 'Indennizzi' }}
+      />
+      <AuctionsStack.Screen
+        name="FirstMarketRoom"
+        component={FirstMarketRoomScreen}
+        options={{ title: 'Asta Primo Mercato' }}
       />
     </AuctionsStack.Navigator>
   );

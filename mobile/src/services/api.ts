@@ -829,6 +829,70 @@ export const tradesApi = {
 };
 
 // ============================================================================
+// First Market Types
+// ============================================================================
+
+export interface FirstMarketMemberStatus {
+  memberId: string;
+  username: string;
+  teamName: string | null;
+  rosterByRole: { P: number; D: number; C: number; A: number };
+  slotsNeeded: { P: number; D: number; C: number; A: number };
+  isComplete: boolean;
+  isCurrentRoleComplete: boolean;
+}
+
+export interface FirstMarketStatus {
+  currentRole: 'P' | 'D' | 'C' | 'A';
+  currentTurnIndex: number;
+  currentNominator: { memberId: string; username: string; index: number } | null;
+  allCompletedCurrentRole: boolean;
+  memberStatus: FirstMarketMemberStatus[];
+  turnOrder: string[] | null;
+  roleSequence: string[];
+  isUserTurn: boolean;
+}
+
+export interface ReadyStatus {
+  hasPendingNomination: boolean;
+  nominatorConfirmed: boolean;
+  player: Player | null;
+  nominatorId: string | null;
+  nominatorUsername: string;
+  readyMembers: { id: string; username: string }[];
+  pendingMembers: { id: string; username: string }[];
+  totalMembers: number;
+  readyCount: number;
+  userIsReady: boolean;
+  userIsNominator: boolean;
+}
+
+export interface PendingAcknowledgment {
+  auctionId: string;
+  player: {
+    id: string;
+    name: string;
+    team: string;
+    position: string;
+    quotation: number;
+  };
+  winner: {
+    id: string;
+    username: string;
+    teamName: string;
+  } | null;
+  finalPrice: number | null;
+  wasUnsold: boolean;
+  acknowledgedMembers: Array<{ id: string; username: string }>;
+  pendingMembers: Array<{ id: string; username: string }>;
+  contractInfo?: {
+    salary: number;
+    duration: number;
+    rescissionClause: number;
+  };
+}
+
+// ============================================================================
 // Auctions API
 // ============================================================================
 
@@ -917,6 +981,20 @@ export const auctionsApi = {
   },
 
   /**
+   * Get pending acknowledgment for a session
+   */
+  getPendingAcknowledgment: async (sessionId: string): Promise<ApiResponse<PendingAcknowledgment | null>> => {
+    try {
+      const response = await apiClient.get<ApiResponse<PendingAcknowledgment | null>>(
+        `/api/auctions/sessions/${sessionId}/pending-acknowledgment`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
    * Mark as ready for auction
    */
   markReady: async (sessionId: string): Promise<ApiResponse> => {
@@ -929,14 +1007,69 @@ export const auctionsApi = {
   },
 
   /**
-   * Get ready status
+   * Get ready status (full version with all details)
    */
-  getReadyStatus: async (
-    sessionId: string
-  ): Promise<ApiResponse<{ allReady: boolean; readyMembers: string[] }>> => {
+  getReadyStatus: async (sessionId: string): Promise<ApiResponse<ReadyStatus>> => {
     try {
-      const response = await apiClient.get<ApiResponse<{ allReady: boolean; readyMembers: string[] }>>(
+      const response = await apiClient.get<ApiResponse<ReadyStatus>>(
         `/api/auctions/sessions/${sessionId}/ready-status`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Get first market status (turn order, current nominator, etc.)
+   */
+  getFirstMarketStatus: async (sessionId: string): Promise<ApiResponse<FirstMarketStatus>> => {
+    try {
+      const response = await apiClient.get<ApiResponse<FirstMarketStatus>>(
+        `/api/auctions/sessions/${sessionId}/first-market-status`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Set pending nomination (select player before confirming)
+   */
+  setPendingNomination: async (sessionId: string, playerId: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post<ApiResponse>(
+        `/api/auctions/sessions/${sessionId}/nominate-pending`,
+        { playerId }
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Confirm nomination (start the auction)
+   */
+  confirmNomination: async (sessionId: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post<ApiResponse>(
+        `/api/auctions/sessions/${sessionId}/confirm-nomination`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Cancel nomination
+   */
+  cancelNomination: async (sessionId: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.delete<ApiResponse>(
+        `/api/auctions/sessions/${sessionId}/nomination`
       );
       return response.data;
     } catch (error) {
@@ -1402,6 +1535,62 @@ export const adminApi = {
         return { success: true, data: { inviteCode: response.data.data.inviteCode } };
       }
       return response.data as ApiResponse;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Close an auction manually (admin only)
+   */
+  closeAuction: async (auctionId: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.put<ApiResponse>(
+        `/api/auctions/${auctionId}/close`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Advance to next turn (admin only)
+   */
+  advanceTurn: async (sessionId: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.put<ApiResponse>(
+        `/api/auctions/sessions/${sessionId}/advance-turn`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Advance to next role (admin only)
+   */
+  advanceRole: async (sessionId: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.put<ApiResponse>(
+        `/api/auctions/sessions/${sessionId}/advance-role`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Force all managers to acknowledge (admin only)
+   */
+  forceAcknowledgeAll: async (sessionId: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post<ApiResponse>(
+        `/api/auctions/sessions/${sessionId}/force-acknowledge-all`
+      );
+      return response.data;
     } catch (error) {
       return error as ApiResponse;
     }
