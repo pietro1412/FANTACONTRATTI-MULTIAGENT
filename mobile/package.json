@@ -8,7 +8,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "build:android": "eas build -p android",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
@@ -26,6 +29,7 @@
     "expo-secure-store": "~14.0.0",
     "expo-splash-screen": "~0.29.18",
     "expo-status-bar": "~2.0.0",
+    "@react-native-community/netinfo": "11.4.1",
     "pusher-js": "^8.4.0",
     "react": "18.3.1",
     "react-native": "0.76.9",
