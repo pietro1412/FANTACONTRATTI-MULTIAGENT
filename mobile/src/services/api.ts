@@ -11,7 +11,13 @@ import * as SecureStore from 'expo-secure-store';
 // Configuration
 // ============================================================================
 
-// TODO: Use environment variable in production
+// API Configuration
+// For local development:
+//   - Android Emulator: http://10.0.2.2:3003
+//   - iOS Simulator: http://localhost:3003
+//   - Real device: http://<YOUR_PC_IP>:3003
+// For production: https://fantacontratti-multiagent.vercel.app
+// Dispositivo fisico Android sulla stessa rete WiFi del PC
 const API_BASE_URL = 'http://10.138.157.172:3003';
 
 const TOKEN_KEY = 'fantacontratti_auth_token';
@@ -1206,6 +1212,177 @@ export const indemnityApi = {
 };
 
 // ============================================================================
+// Admin API (League Management)
+// ============================================================================
+
+export interface PendingRequest {
+  id: string;
+  userId: string;
+  username: string;
+  teamName: string | null;
+  status: 'PENDING';
+  createdAt: string;
+  user?: {
+    email: string;
+    profilePhoto?: string | null;
+  };
+}
+
+export interface LeagueUpdateData {
+  name?: string;
+  description?: string;
+  maxParticipants?: number;
+}
+
+export type MemberAction = 'accept' | 'reject' | 'kick';
+
+export const adminApi = {
+  /**
+   * Get pending join requests for a league (admin only)
+   */
+  getPendingRequests: async (leagueId: string): Promise<ApiResponse<PendingRequest[]>> => {
+    try {
+      const response = await apiClient.get<ApiResponse<PendingRequest[]>>(
+        `/api/leagues/${leagueId}/pending-requests`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Handle member request (accept/reject/kick) - admin only
+   */
+  handleMemberRequest: async (
+    leagueId: string,
+    memberId: string,
+    action: MemberAction
+  ): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.put<ApiResponse>(
+        `/api/leagues/${leagueId}/members/${memberId}`,
+        { action }
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Start a new market/auction session (admin only)
+   */
+  startMarket: async (
+    leagueId: string,
+    isRegularMarket: boolean = false
+  ): Promise<ApiResponse<AuctionSession>> => {
+    try {
+      const response = await apiClient.post<ApiResponse<AuctionSession>>(
+        `/api/leagues/${leagueId}/auctions`,
+        { isRegularMarket }
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Start the league (initiate first market) - admin only
+   */
+  startLeague: async (leagueId: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post<ApiResponse>(
+        `/api/leagues/${leagueId}/start`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Update league settings (admin only)
+   */
+  updateLeague: async (
+    leagueId: string,
+    data: LeagueUpdateData
+  ): Promise<ApiResponse<League>> => {
+    try {
+      const response = await apiClient.put<ApiResponse<League>>(
+        `/api/leagues/${leagueId}`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Set market phase (admin only)
+   */
+  setMarketPhase: async (sessionId: string, phase: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.put<ApiResponse>(
+        `/api/auctions/sessions/${sessionId}/phase`,
+        { phase }
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Close market session (admin only)
+   */
+  closeMarketSession: async (sessionId: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.put<ApiResponse>(
+        `/api/auctions/sessions/${sessionId}/close`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Set turn order for first market (admin only)
+   */
+  setTurnOrder: async (sessionId: string, memberOrder: string[]): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.put<ApiResponse>(
+        `/api/auctions/sessions/${sessionId}/turn-order`,
+        { memberOrder }
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Get league invite code info
+   */
+  getInviteCode: async (leagueId: string): Promise<ApiResponse<{ inviteCode: string }>> => {
+    try {
+      const response = await apiClient.get<ApiResponse<League>>(
+        `/api/leagues/${leagueId}`
+      );
+      if (response.data.success && response.data.data) {
+        return { success: true, data: { inviteCode: response.data.data.inviteCode } };
+      }
+      return response.data as ApiResponse;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+};
+
+// ============================================================================
 // Default Export
 // ============================================================================
 
@@ -1219,4 +1396,5 @@ export default {
   history: historyApi,
   players: playersApi,
   indemnity: indemnityApi,
+  admin: adminApi,
 };
