@@ -494,9 +494,10 @@ function NominationPanel({ currentRole, leagueId, onNominate, isNominating }: No
 
   const renderPlayer = ({ item }: { item: Player }) => (
     <TouchableOpacity
-      style={styles.playerSelectItem}
+      style={[styles.playerSelectItem, isNominating && styles.playerSelectItemDisabled]}
       onPress={() => onNominate(item)}
       disabled={isNominating}
+      activeOpacity={0.7}
     >
       <View style={[styles.playerSelectPosition, { backgroundColor: roleColor }]}>
         <Text style={styles.playerSelectPositionText}>{item.position}</Text>
@@ -506,9 +507,12 @@ function NominationPanel({ currentRole, leagueId, onNominate, isNominating }: No
         <Text style={styles.playerSelectTeam}>{item.team}</Text>
       </View>
       <View style={styles.playerSelectQuotation}>
+        <Text style={styles.playerSelectQuotationLabel}>Quot.</Text>
         <Text style={styles.playerSelectQuotationValue}>{item.quotation}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
+      <View style={styles.nominateButton}>
+        <Text style={styles.nominateButtonText}>NOMINA</Text>
+      </View>
     </TouchableOpacity>
   );
 
@@ -523,8 +527,17 @@ function NominationPanel({ currentRole, leagueId, onNominate, isNominating }: No
 
   return (
     <View style={styles.nominationPanelContainer}>
+      {/* Banner "È IL TUO TURNO" */}
+      <View style={styles.yourTurnBanner}>
+        <Ionicons name="hand-right" size={24} color="#FFFFFF" />
+        <Text style={styles.yourTurnText}>È IL TUO TURNO!</Text>
+      </View>
+
       <Text style={styles.nominationPanelTitle}>
         Seleziona un {POSITION_LABELS[currentRole]}
+      </Text>
+      <Text style={styles.nominationPanelSubtitle}>
+        Tocca un giocatore per nominarlo all'asta
       </Text>
 
       <View style={styles.searchContainer}>
@@ -2442,11 +2455,32 @@ const styles = StyleSheet.create({
   nominationPanelContainer: {
     flex: 1,
   },
+  yourTurnBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.success,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 10,
+  },
+  yourTurnText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
   nominationPanelTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: 12,
+    marginBottom: 4,
+  },
+  nominationPanelSubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginBottom: 16,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -2507,10 +2541,28 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
   },
+  playerSelectQuotationLabel: {
+    fontSize: 10,
+    color: COLORS.textMuted,
+  },
   playerSelectQuotationValue: {
     fontSize: 14,
     fontWeight: '700',
     color: COLORS.warning,
+  },
+  playerSelectItemDisabled: {
+    opacity: 0.5,
+  },
+  nominateButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  nominateButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   noPlayersText: {
     fontSize: 14,
