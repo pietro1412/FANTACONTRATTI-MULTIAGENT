@@ -15,8 +15,8 @@ import {
   TextInput,
   Alert,
   FlatList,
+  Image,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuctionsStackParamList } from '@/navigation/AppNavigator';
@@ -500,6 +500,11 @@ function NominationPanel({ currentRole, leagueId, onNominate, isNominating }: No
     const logoUrl = getTeamLogo(item.team);
     const hasImageError = imageErrors[item.id];
 
+    // Debug logging
+    if (!logoUrl) {
+      console.log(`[TeamLogo] No logo URL for team: "${item.team}"`);
+    }
+
     return (
       <TouchableOpacity
         style={[styles.playerSelectItem, isNominating && styles.playerSelectItemDisabled]}
@@ -513,15 +518,14 @@ function NominationPanel({ currentRole, leagueId, onNominate, isNominating }: No
         <View style={styles.teamLogoContainer}>
           {logoUrl && !hasImageError ? (
             <Image
-              source={logoUrl}
+              source={{ uri: logoUrl }}
               style={styles.playerTeamLogo}
-              contentFit="contain"
-              transition={200}
+              resizeMode="contain"
               onError={(e) => {
-                console.log(`[TeamLogo] Error loading logo for ${item.team}:`, e.error, 'URL:', logoUrl);
+                console.log(`[TeamLogo] Error loading logo for ${item.team}:`, e.nativeEvent?.error, 'URL:', logoUrl);
                 setImageErrors(prev => ({ ...prev, [item.id]: true }));
               }}
-              onLoad={() => console.log(`[TeamLogo] Loaded logo for ${item.team}`)}
+              onLoad={() => console.log(`[TeamLogo] Loaded logo for ${item.team}`, logoUrl)}
             />
           ) : (
             <Text style={styles.teamLogoFallback}>{item.team?.charAt(0) || '?'}</Text>
