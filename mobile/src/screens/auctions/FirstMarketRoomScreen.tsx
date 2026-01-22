@@ -494,8 +494,12 @@ function NominationPanel({ currentRole, leagueId, onNominate, isNominating }: No
 
   const roleColor = POSITION_COLORS[currentRole];
 
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
   const renderPlayer = ({ item }: { item: Player }) => {
     const logoUrl = getTeamLogo(item.team);
+    const hasImageError = imageErrors[item.id];
+
     return (
       <TouchableOpacity
         style={[styles.playerSelectItem, isNominating && styles.playerSelectItemDisabled]}
@@ -507,14 +511,19 @@ function NominationPanel({ currentRole, leagueId, onNominate, isNominating }: No
           <Text style={styles.playerSelectPositionText}>{item.position}</Text>
         </View>
         <View style={styles.teamLogoContainer}>
-          {logoUrl ? (
+          {logoUrl && !hasImageError ? (
             <Image
               source={{ uri: logoUrl }}
               style={styles.playerTeamLogo}
               resizeMode="contain"
+              onError={(e) => {
+                console.log(`[TeamLogo] Error loading logo for ${item.team}:`, e.nativeEvent.error, 'URL:', logoUrl);
+                setImageErrors(prev => ({ ...prev, [item.id]: true }));
+              }}
+              onLoad={() => console.log(`[TeamLogo] Loaded logo for ${item.team}`)}
             />
           ) : (
-            <Text style={styles.teamLogoFallback}>?</Text>
+            <Text style={styles.teamLogoFallback}>{item.team?.charAt(0) || '?'}</Text>
           )}
         </View>
         <View style={styles.playerSelectInfo}>
@@ -578,7 +587,8 @@ function NominationPanel({ currentRole, leagueId, onNominate, isNominating }: No
         keyExtractor={(item) => item.id}
         style={styles.playersList}
         contentContainerStyle={styles.playersListContent}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
+        nestedScrollEnabled={true}
         ListEmptyComponent={
           <Text style={styles.noPlayersText}>Nessun giocatore disponibile</Text>
         }
@@ -2790,7 +2800,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   playersList: {
-    flex: 1,
+    maxHeight: 400,
     minHeight: 200,
   },
   playersListContent: {
