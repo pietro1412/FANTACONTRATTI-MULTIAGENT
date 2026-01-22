@@ -15,6 +15,7 @@ import {
   TextInput,
   Alert,
   FlatList,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -43,6 +44,7 @@ import {
   ConnectionStatus,
 } from '@/services/pusher';
 import type { AuctionBid, Position } from '@/types';
+import { getTeamLogo } from '@/utils/teamLogos';
 
 // =============================================================================
 // Constants
@@ -502,6 +504,11 @@ function NominationPanel({ currentRole, leagueId, onNominate, isNominating }: No
       <View style={[styles.playerSelectPosition, { backgroundColor: roleColor }]}>
         <Text style={styles.playerSelectPositionText}>{item.position}</Text>
       </View>
+      <Image
+        source={{ uri: getTeamLogo(item.team) }}
+        style={styles.playerTeamLogo}
+        resizeMode="contain"
+      />
       <View style={styles.playerSelectInfo}>
         <Text style={styles.playerSelectName}>{item.name}</Text>
         <Text style={styles.playerSelectTeam}>{item.team}</Text>
@@ -2774,10 +2781,12 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   playersList: {
-    maxHeight: 400,
+    flex: 1,
+    minHeight: 200,
   },
   playersListContent: {
     gap: 8,
+    paddingBottom: 20,
   },
   playerSelectItem: {
     flexDirection: 'row',
@@ -2798,6 +2807,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: COLORS.text,
+  },
+  playerTeamLogo: {
+    width: 32,
+    height: 32,
+    borderRadius: 4,
   },
   playerSelectInfo: {
     flex: 1,
