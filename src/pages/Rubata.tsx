@@ -129,8 +129,8 @@ interface PreviewBoardData {
 
 interface ReadyStatus {
   rubataState: string | null
-  readyMembers: Array<{ id: string; username: string }>
-  pendingMembers: Array<{ id: string; username: string }>
+  readyMembers: Array<{ id: string; username: string; isConnected?: boolean }>
+  pendingMembers: Array<{ id: string; username: string; isConnected?: boolean }>
   totalMembers: number
   readyCount: number
   allReady: boolean
@@ -671,6 +671,28 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
     return () => clearInterval(interval)
   }, [loadBoardOnly, loadFast, loadAckOnly, boardData?.rubataState, isPusherConnected])
+
+  // Send heartbeat every 3 seconds to track connection status
+  useEffect(() => {
+    const myId = boardData?.myMemberId || readyStatus?.myMemberId
+    if (!myId) return
+
+    const sendHeartbeat = async () => {
+      try {
+        await rubataApi.sendHeartbeat(leagueId, myId)
+      } catch (e) {
+        // Ignore heartbeat errors
+        console.error('[Rubata] Heartbeat error:', e)
+      }
+    }
+
+    // Send immediately on mount
+    sendHeartbeat()
+
+    // Then every 3 seconds
+    const interval = setInterval(sendHeartbeat, 3000)
+    return () => clearInterval(interval)
+  }, [leagueId, boardData?.myMemberId, readyStatus?.myMemberId])
 
   // ========== Admin Actions ==========
 
@@ -1823,13 +1845,29 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
                 {readyStatus.readyMembers.map((member) => (
                   <div key={member.id} className="flex items-center gap-2 p-2 rounded-lg bg-secondary-500/20 text-sm">
-                    <span className="text-secondary-400">✓</span>
+                    <div className="relative flex-shrink-0">
+                      <span className="text-secondary-400">✓</span>
+                      <span
+                        className={`absolute -bottom-1 -right-1 w-2 h-2 rounded-full border border-surface-200 ${
+                          member.isConnected === true ? 'bg-green-500' : member.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
+                        }`}
+                        title={member.isConnected ? 'Online' : 'Offline'}
+                      />
+                    </div>
                     <span className="text-white truncate">{member.username}</span>
                   </div>
                 ))}
                 {readyStatus.pendingMembers.map((member) => (
                   <div key={member.id} className="flex items-center gap-2 p-2 rounded-lg bg-white/5 text-sm">
-                    <span className="text-gray-500">○</span>
+                    <div className="relative flex-shrink-0">
+                      <span className="text-gray-500">○</span>
+                      <span
+                        className={`absolute -bottom-1 -right-1 w-2 h-2 rounded-full border border-surface-200 ${
+                          member.isConnected === true ? 'bg-green-500' : member.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
+                        }`}
+                        title={member.isConnected ? 'Online' : 'Offline'}
+                      />
+                    </div>
                     <span className="text-gray-400 truncate">{member.username}</span>
                   </div>
                 ))}
@@ -2393,7 +2431,13 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   <div className="flex items-center gap-2 flex-wrap text-sm">
                     <span className="text-gray-500">In attesa:</span>
                     {readyStatus.pendingMembers.map((member, idx) => (
-                      <span key={member.id} className="px-2 py-0.5 bg-warning-500/20 text-warning-400 rounded text-xs">
+                      <span key={member.id} className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-warning-500/20 text-warning-400 rounded text-xs">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            member.isConnected === true ? 'bg-green-500' : member.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
+                          }`}
+                          title={member.isConnected ? 'Online' : 'Offline'}
+                        />
                         {member.username}
                       </span>
                     ))}
@@ -2457,7 +2501,13 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     <div className="flex items-center gap-2 flex-wrap text-sm">
                       <span className="text-gray-500">In attesa:</span>
                       {readyStatus.pendingMembers.map((member, idx) => (
-                        <span key={member.id} className="px-2 py-0.5 bg-warning-500/20 text-warning-400 rounded text-xs">
+                        <span key={member.id} className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-warning-500/20 text-warning-400 rounded text-xs">
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              member.isConnected === true ? 'bg-green-500' : member.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
+                            }`}
+                            title={member.isConnected ? 'Online' : 'Offline'}
+                          />
                           {member.username}
                         </span>
                       ))}

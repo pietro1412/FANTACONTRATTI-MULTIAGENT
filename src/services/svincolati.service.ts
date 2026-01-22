@@ -9,6 +9,37 @@ export interface ServiceResult {
   data?: unknown
 }
 
+// ==================== HEARTBEAT / CONNECTION STATUS ====================
+
+// In-memory storage for heartbeats (leagueId -> memberId -> timestamp)
+const svincolatiHeartbeats = new Map<string, Map<string, number>>()
+
+// Heartbeat timeout in milliseconds (10 seconds)
+const SVINCOLATI_HEARTBEAT_TIMEOUT = 10000
+
+export function registerSvincolatiHeartbeat(leagueId: string, memberId: string): void {
+  if (!svincolatiHeartbeats.has(leagueId)) {
+    svincolatiHeartbeats.set(leagueId, new Map())
+  }
+  svincolatiHeartbeats.get(leagueId)!.set(memberId, Date.now())
+}
+
+export function getSvincolatiConnectionStatus(leagueId: string): Map<string, boolean> {
+  const leagueHeartbeats = svincolatiHeartbeats.get(leagueId) || new Map()
+  const now = Date.now()
+  const status = new Map<string, boolean>()
+
+  leagueHeartbeats.forEach((timestamp, memberId) => {
+    status.set(memberId, now - timestamp < SVINCOLATI_HEARTBEAT_TIMEOUT)
+  })
+
+  return status
+}
+
+export function clearSvincolatiHeartbeats(leagueId: string): void {
+  svincolatiHeartbeats.delete(leagueId)
+}
+
 // ==================== PHASE CHECK ====================
 
 async function isInSvincolatiPhase(leagueId: string): Promise<boolean> {
@@ -849,6 +880,9 @@ export async function getSvincolatiBoard(
     pendingMembers: string[]
   } | null
 
+  // Get connection status for all managers
+  const connectionStatus = getSvincolatiConnectionStatus(leagueId)
+
   return {
     success: true,
     data: {
@@ -859,6 +893,7 @@ export async function getSvincolatiBoard(
         username: m!.user.username,
         budget: m!.currentBudget,
         hasPassed: ((activeSession.svincolatiPassedMembers as string[] | null) || []).includes(m!.id),
+        isConnected: connectionStatus.get(m!.id) ?? false,
       })),
       currentTurnIndex,
       currentTurnMemberId,

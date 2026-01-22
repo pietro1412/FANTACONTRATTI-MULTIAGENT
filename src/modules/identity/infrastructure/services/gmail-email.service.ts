@@ -572,6 +572,93 @@ export class GmailEmailService implements IEmailService {
     `
   }
 
+  async sendMemberExpelledEmail(
+    managerEmail: string,
+    leagueName: string
+  ): Promise<void> {
+    // If no credentials, log to console (development mode)
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+      console.log('[GmailService] === MEMBER EXPELLED EMAIL ===')
+      console.log(`[GmailService] To: ${managerEmail}`)
+      console.log(`[GmailService] League: ${leagueName}`)
+      console.log('[GmailService] ==============================')
+      return
+    }
+
+    try {
+      await this.transporter.sendMail({
+        from: `"Fantacontratti" <${process.env.GMAIL_USER}>`,
+        to: managerEmail,
+        subject: `🚫 Sei stato rimosso da "${leagueName}" - Fantacontratti`,
+        html: this.getMemberExpelledTemplate(leagueName),
+      })
+      console.log(`[GmailService] Member expelled email sent to ${managerEmail}`)
+    } catch (error) {
+      console.error('[GmailService] Failed to send member expelled email:', error)
+    }
+  }
+
+  /**
+   * Generate member expelled email template
+   */
+  private getMemberExpelledTemplate(leagueName: string): string {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #0a0a0b; font-family: 'Segoe UI', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0a0a0b;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 500px; background-color: #1a1c20; border-radius: 16px; border: 1px solid #2d3139;">
+          <!-- Header -->
+          <tr>
+            <td align="center" style="padding: 40px 40px 20px;">
+              <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 50%; display: inline-block; line-height: 70px; font-size: 36px; text-align: center;">
+                🚫
+              </div>
+              <h1 style="color: #ffffff; font-size: 28px; font-weight: bold; margin: 20px 0 0;">
+                Fantacontratti
+              </h1>
+            </td>
+          </tr>
+          <!-- Contenuto -->
+          <tr>
+            <td style="padding: 20px 40px 30px;">
+              <h2 style="color: #f3f4f6; font-size: 20px; font-weight: 600; margin: 0 0 15px; text-align: center;">
+                Sei stato rimosso dalla lega
+              </h2>
+              <p style="color: #9ca3af; font-size: 15px; line-height: 1.6; margin: 0 0 10px; text-align: center;">
+                L'amministratore ti ha rimosso dalla lega
+              </p>
+              <p style="color: #fbbf24; font-size: 22px; font-weight: bold; margin: 0 0 25px; text-align: center;">
+                🏆 ${leagueName}
+              </p>
+              <p style="color: #9ca3af; font-size: 15px; line-height: 1.6; margin: 0 0 25px; text-align: center;">
+                Se ritieni che questo sia un errore, contatta l'amministratore della lega.
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 40px 30px; border-top: 1px solid #2d3139;">
+              <p style="color: #6b7280; font-size: 12px; text-align: center; margin: 0;">
+                © ${new Date().getFullYear()} Fantacontratti. Tutti i diritti riservati.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `
+  }
+
   /**
    * Generate invite response notification email template
    */

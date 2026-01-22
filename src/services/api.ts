@@ -263,8 +263,11 @@ export const inviteApi = {
     }>(`/api/invites/${token}/details`),
 
   // Accept invite
-  accept: (token: string) =>
-    request(`/api/invites/${token}/accept`, { method: 'POST' }),
+  accept: (token: string, teamName: string) =>
+    request(`/api/invites/${token}/accept`, {
+      method: 'POST',
+      body: JSON.stringify({ teamName }),
+    }),
 
   // Reject invite
   reject: (token: string) =>
@@ -860,6 +863,13 @@ export const rubataApi = {
       sessionId: string | null
       totalPlayers: number
     }>(`/api/leagues/${leagueId}/rubata/svincolati-strategies`),
+
+  // Connection tracking - send heartbeat
+  sendHeartbeat: (leagueId: string, memberId: string) =>
+    request(`/api/leagues/${leagueId}/rubata/heartbeat`, {
+      method: 'POST',
+      body: JSON.stringify({ memberId }),
+    }),
 }
 
 // Svincolati (Free Agents) API
@@ -1008,6 +1018,13 @@ export const svincolatiApi = {
   // Force all managers as finished (Admin)
   forceAllFinished: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/svincolati/force-all-finished`, { method: 'POST' }),
+
+  // Connection tracking - send heartbeat
+  sendHeartbeat: (leagueId: string, memberId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/heartbeat`, {
+      method: 'POST',
+      body: JSON.stringify({ memberId }),
+    }),
 }
 
 // Admin API

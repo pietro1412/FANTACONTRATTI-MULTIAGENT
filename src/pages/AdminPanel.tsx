@@ -207,7 +207,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
           onNavigate('svincolati', { leagueId: data.leagueId })
           return
         } else if (data.sessionId) {
-          onNavigate('auction-room', { sessionId: data.sessionId })
+          onNavigate('auction', { sessionId: data.sessionId })
           return
         }
       }
@@ -644,7 +644,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
             >
               <span>{tab.icon}</span>
               {tab.label}
-              {tab.id === 'members' && <span className="bg-surface-300 px-2 py-0.5 rounded-full text-xs">{members.length}</span>}
+              {tab.id === 'members' && <span className="bg-surface-300 px-2 py-0.5 rounded-full text-xs">{activeMembers.length}</span>}
               {tab.id === 'invites' && invites.length > 0 && <span className="bg-accent-500/20 text-accent-400 px-2 py-0.5 rounded-full text-xs">{invites.length}</span>}
             </button>
           ))}

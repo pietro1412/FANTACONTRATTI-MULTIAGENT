@@ -46,6 +46,7 @@ interface TurnMember {
   username: string
   budget: number
   hasPassed: boolean
+  isConnected?: boolean
 }
 
 interface ActiveAuction {
@@ -219,6 +220,27 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     const interval = setInterval(loadBoard, 3000)
     return () => clearInterval(interval)
   }, [loadBoard])
+
+  // Send heartbeat every 3 seconds to track connection status
+  useEffect(() => {
+    if (!board?.myMemberId) return
+
+    const sendHeartbeat = async () => {
+      try {
+        await svincolatiApi.sendHeartbeat(leagueId, board.myMemberId)
+      } catch (e) {
+        // Ignore heartbeat errors
+        console.error('[Svincolati] Heartbeat error:', e)
+      }
+    }
+
+    // Send immediately on mount
+    sendHeartbeat()
+
+    // Then every 3 seconds
+    const interval = setInterval(sendHeartbeat, 3000)
+    return () => clearInterval(interval)
+  }, [leagueId, board?.myMemberId])
 
   // Timer countdown
   useEffect(() => {
@@ -1668,14 +1690,24 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                          isCurrent
-                            ? 'bg-accent-500 text-white'
-                            : isPassed || hasFinished
-                            ? 'bg-surface-400 text-gray-500'
-                            : 'bg-surface-300 text-gray-400'
-                        }`}>
-                          {index + 1}
+                        {/* Turn Order Badge + Connection Indicator */}
+                        <div className="relative flex-shrink-0">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                            isCurrent
+                              ? 'bg-accent-500 text-white'
+                              : isPassed || hasFinished
+                              ? 'bg-surface-400 text-gray-500'
+                              : 'bg-surface-300 text-gray-400'
+                          }`}>
+                            {index + 1}
+                          </div>
+                          {/* Connection status dot */}
+                          <span
+                            className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-surface-200 ${
+                              member.isConnected === true ? 'bg-green-500' : member.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
+                            }`}
+                            title={member.isConnected ? 'Online' : 'Offline'}
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className={`font-medium truncate ${isCurrent ? 'text-white' : 'text-gray-300'}`}>

@@ -161,7 +161,8 @@ export async function createEmailInvite(
 
 export async function acceptInvite(
   token: string,
-  userId: string
+  userId: string,
+  teamName: string
 ): Promise<ServiceResult> {
   // Trova l'invito
   const invite = await prisma.leagueInvite.findUnique({
@@ -239,6 +240,7 @@ export async function acceptInvite(
       status: MemberStatus.ACTIVE,
       joinType: JoinType.INVITE,
       currentBudget: invite.league.initialBudget,
+      teamName,
     },
   })
 

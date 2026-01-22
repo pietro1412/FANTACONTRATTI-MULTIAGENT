@@ -512,7 +512,7 @@ export async function updateMemberStatus(
       data: { status: MemberStatus.LEFT },
     })
 
-    // Send email notification for rejection (#52)
+    // Send email notification for rejection (#126)
     if (action === 'reject' && member.user?.email) {
       try {
         const emailSvc = await getEmailService()
@@ -525,6 +525,21 @@ export async function updateMemberStatus(
         }
       } catch (error) {
         console.error('[LeagueService] Failed to send rejection email:', error)
+      }
+    }
+
+    // Send email notification for kick/expulsion (#125)
+    if (action === 'kick' && member.user?.email) {
+      try {
+        const emailSvc = await getEmailService()
+        if (emailSvc) {
+          await emailSvc.sendMemberExpelledEmail(
+            member.user.email,
+            member.league.name
+          )
+        }
+      } catch (error) {
+        console.error('[LeagueService] Failed to send expulsion email:', error)
       }
     }
 
