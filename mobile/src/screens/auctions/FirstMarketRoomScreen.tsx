@@ -449,9 +449,13 @@ interface NominationPanelProps {
   leagueId: string;
   onNominate: (player: Player) => void;
   isNominating: boolean;
+  headerComponent?: React.ReactNode;
+  footerComponent?: React.ReactNode;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-function NominationPanel({ currentRole, leagueId, onNominate, isNominating }: NominationPanelProps): React.JSX.Element {
+function NominationPanel({ currentRole, leagueId, onNominate, isNominating, headerComponent, footerComponent, onRefresh, isRefreshing }: NominationPanelProps): React.JSX.Element {
   const [players, setPlayers] = useState<Player[]>([]);
   const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -546,17 +550,9 @@ function NominationPanel({ currentRole, leagueId, onNominate, isNominating }: No
     );
   };
 
-  if (isLoadingPlayers) {
-    return (
-      <View style={styles.nominationPanelContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Caricamento giocatori...</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.nominationPanelContainer}>
+  const listHeader = (
+    <>
+      {headerComponent}
       {/* Banner "È IL TUO TURNO" */}
       <View style={styles.yourTurnBanner}>
         <Ionicons name="hand-right" size={24} color="#FFFFFF" />
@@ -586,19 +582,41 @@ function NominationPanel({ currentRole, leagueId, onNominate, isNominating }: No
         )}
       </View>
 
-      <FlatList
-        data={filteredPlayers}
-        renderItem={renderPlayer}
-        keyExtractor={(item) => item.id}
-        style={styles.playersList}
-        contentContainerStyle={styles.playersListContent}
-        showsVerticalScrollIndicator={true}
-        nestedScrollEnabled={true}
-        ListEmptyComponent={
+      {isLoadingPlayers && (
+        <View style={styles.loadingPlayersContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Caricamento giocatori...</Text>
+        </View>
+      )}
+    </>
+  );
+
+  return (
+    <FlatList
+      data={isLoadingPlayers ? [] : filteredPlayers}
+      renderItem={renderPlayer}
+      keyExtractor={(item) => item.id}
+      style={styles.container}
+      contentContainerStyle={styles.nominationListContent}
+      showsVerticalScrollIndicator={true}
+      ListHeaderComponent={listHeader}
+      ListFooterComponent={footerComponent ? <>{footerComponent}</> : null}
+      ListEmptyComponent={
+        !isLoadingPlayers ? (
           <Text style={styles.noPlayersText}>Nessun giocatore disponibile</Text>
-        }
-      />
-    </View>
+        ) : null
+      }
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl
+            refreshing={isRefreshing || false}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        ) : undefined
+      }
+    />
   );
 }
 
@@ -2178,6 +2196,66 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
 
   if (!hasValidAuction && hasTurnOrder && !hasPendingNomination) {
     // No auction active, no pending nomination - show nomination panel or waiting
+
+    // When it's user's turn, use NominationPanel with FlatList (no ScrollView wrapper)
+    if (isMyTurn && currentRole) {
+      const nominationHeader = (
+        <>
+          <ConnectionIndicator status={connectionStatus} />
+          <SessionHeader session={session} currentRole={currentRole} />
+          {currentRole && (
+            <RoleProgressBar
+              currentRole={currentRole}
+              roleSequence={firstMarketStatus?.roleSequence || ['P', 'D', 'C', 'A']}
+            />
+          )}
+          {firstMarketStatus && hasTurnOrder && (
+            <ManagersList
+              memberStatus={firstMarketStatus.memberStatus}
+              turnOrder={firstMarketStatus.turnOrder!}
+              currentTurnIndex={firstMarketStatus.currentTurnIndex}
+              currentRole={currentRole || 'P'}
+            />
+          )}
+          <TurnBanner
+            isMyTurn={isMyTurn}
+            nominatorName={firstMarketStatus?.currentNominator?.username || 'Manager'}
+          />
+        </>
+      );
+
+      const nominationFooter = isAdmin ? (
+        <AdminControlsPanel
+          session={session}
+          currentAuction={currentAuction}
+          pendingAck={pendingAck}
+          onCloseAuction={handleAdminCloseAuction}
+          onAdvanceTurn={handleAdvanceTurn}
+          onAdvanceRole={handleAdvanceRole}
+          onForceAcknowledge={handleForceAcknowledge}
+          onForceAllReady={handleForceAllReady}
+          onBotNominate={handleBotNominate}
+          onBotConfirmNomination={handleBotConfirmNomination}
+          onBotBid={handleBotBid}
+          isLoading={isAdminAction}
+        />
+      ) : undefined;
+
+      return (
+        <NominationPanel
+          currentRole={currentRole}
+          leagueId={effectiveLeagueId}
+          onNominate={handleNominate}
+          isNominating={isNominating}
+          headerComponent={nominationHeader}
+          footerComponent={nominationFooter}
+          onRefresh={handleRefresh}
+          isRefreshing={isRefreshing}
+        />
+      );
+    }
+
+    // When waiting for another player's nomination, use ScrollView (no FlatList here)
     return (
       <ScrollView
         style={styles.container}
@@ -2215,21 +2293,12 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
           nominatorName={firstMarketStatus?.currentNominator?.username || 'Manager'}
         />
 
-        {isMyTurn && currentRole ? (
-          <NominationPanel
-            currentRole={currentRole}
-            leagueId={effectiveLeagueId}
-            onNominate={handleNominate}
-            isNominating={isNominating}
-          />
-        ) : (
-          <View style={styles.waitingForNominationContainer}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-            <Text style={styles.waitingForNominationText}>
-              In attesa della nomina...
-            </Text>
-          </View>
-        )}
+        <View style={styles.waitingForNominationContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.waitingForNominationText}>
+            In attesa della nomina...
+          </Text>
+        </View>
 
         {isAdmin && (
           <AdminControlsPanel
@@ -2811,6 +2880,16 @@ const styles = StyleSheet.create({
   playersListContent: {
     gap: 8,
     paddingBottom: 20,
+  },
+  nominationListContent: {
+    padding: 16,
+    gap: 8,
+    paddingBottom: 40,
+  },
+  loadingPlayersContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   playerSelectItem: {
     flexDirection: 'row',
