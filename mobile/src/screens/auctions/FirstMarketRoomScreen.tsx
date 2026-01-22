@@ -471,6 +471,16 @@ function NominationPanel({ currentRole, leagueId, onNominate, isNominating, head
           leagueId: leagueId,
         });
         if (response.success && response.data) {
+          // Debug: Log first 5 players' team names to verify data
+          const firstFive = response.data.slice(0, 5);
+          console.log('[NominationPanel] First 5 players teams:', firstFive.map(p => ({ name: p.name, team: p.team })));
+
+          // Also log what getTeamLogo returns for each
+          firstFive.forEach(p => {
+            const url = getTeamLogo(p.team);
+            console.log(`[NominationPanel] Team "${p.team}" -> URL: ${url ? url.substring(0, 50) + '...' : 'NULL'}`);
+          });
+
           setPlayers(response.data);
           setFilteredPlayers(response.data);
         }
