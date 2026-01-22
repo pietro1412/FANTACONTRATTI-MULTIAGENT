@@ -15,6 +15,9 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { AuctionsStackParamList } from '@/navigation/AppNavigator';
 
 import { useLeague } from '@/store/LeagueContext';
 import { auctionsApi, AuctionSession, Auction } from '@/services/api';
@@ -331,8 +334,11 @@ function CurrentAuctionCard({ auction, onBid, isProcessing, userBudget }: Curren
 // Main Component
 // =============================================================================
 
+type NavigationProp = NativeStackNavigationProp<AuctionsStackParamList>;
+
 export default function AuctionsScreen(): React.JSX.Element {
   const { selectedLeague, selectedMember } = useLeague();
+  const navigation = useNavigation<NavigationProp>();
 
   const [session, setSession] = useState<AuctionSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -381,6 +387,13 @@ export default function AuctionsScreen(): React.JSX.Element {
 
     return () => clearInterval(interval);
   }, [fetchAuction, session?.status, session?.currentAuction?.status]);
+
+  // Auto-navigate to FirstMarketRoom when first market is active
+  useEffect(() => {
+    if (session?.isFirstMarket && session?.status === 'ACTIVE' && selectedLeague) {
+      navigation.replace('FirstMarketRoom', { leagueId: selectedLeague.id });
+    }
+  }, [session?.isFirstMarket, session?.status, selectedLeague, navigation]);
 
   // =============================================================================
   // Event Handlers
