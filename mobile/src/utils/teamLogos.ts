@@ -30,15 +30,16 @@ const TEAM_LOGOS: Record<string, string> = {
   'Hellas Verona': 'https://assets.football-logos.cc/logos/italy/128x128/verona.ebe7a1c1.png',
 };
 
-// Fallback SVG data URI for unknown teams
-const FALLBACK_LOGO = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" rx="12" fill="%236b7280"/%3E%3Ctext x="50" y="58" font-family="Arial,sans-serif" font-size="28" font-weight="bold" fill="%23ffffff" text-anchor="middle"%3E?%3C/text%3E%3C/svg%3E';
+// Fallback logo - null indicates to use placeholder component
+// React Native Image doesn't support SVG data URIs
+const FALLBACK_LOGO: string | null = null;
 
 /**
  * Get logo URL for a team
  * @param teamName - The team name as stored in database
- * @returns Logo URL
+ * @returns Logo URL or null if no logo found
  */
-export function getTeamLogo(teamName: string): string {
+export function getTeamLogo(teamName: string): string | null {
   if (!teamName) return FALLBACK_LOGO;
 
   // Try exact match first

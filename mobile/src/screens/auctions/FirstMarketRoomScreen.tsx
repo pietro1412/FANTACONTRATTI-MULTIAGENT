@@ -494,34 +494,43 @@ function NominationPanel({ currentRole, leagueId, onNominate, isNominating }: No
 
   const roleColor = POSITION_COLORS[currentRole];
 
-  const renderPlayer = ({ item }: { item: Player }) => (
-    <TouchableOpacity
-      style={[styles.playerSelectItem, isNominating && styles.playerSelectItemDisabled]}
-      onPress={() => onNominate(item)}
-      disabled={isNominating}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.playerSelectPosition, { backgroundColor: roleColor }]}>
-        <Text style={styles.playerSelectPositionText}>{item.position}</Text>
-      </View>
-      <Image
-        source={{ uri: getTeamLogo(item.team) }}
-        style={styles.playerTeamLogo}
-        resizeMode="contain"
-      />
-      <View style={styles.playerSelectInfo}>
-        <Text style={styles.playerSelectName}>{item.name}</Text>
-        <Text style={styles.playerSelectTeam}>{item.team}</Text>
-      </View>
-      <View style={styles.playerSelectQuotation}>
-        <Text style={styles.playerSelectQuotationLabel}>Quot.</Text>
-        <Text style={styles.playerSelectQuotationValue}>{item.quotation}</Text>
-      </View>
-      <View style={styles.nominateButton}>
-        <Text style={styles.nominateButtonText}>NOMINA</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderPlayer = ({ item }: { item: Player }) => {
+    const logoUrl = getTeamLogo(item.team);
+    return (
+      <TouchableOpacity
+        style={[styles.playerSelectItem, isNominating && styles.playerSelectItemDisabled]}
+        onPress={() => onNominate(item)}
+        disabled={isNominating}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.playerSelectPosition, { backgroundColor: roleColor }]}>
+          <Text style={styles.playerSelectPositionText}>{item.position}</Text>
+        </View>
+        <View style={styles.teamLogoContainer}>
+          {logoUrl ? (
+            <Image
+              source={{ uri: logoUrl }}
+              style={styles.playerTeamLogo}
+              resizeMode="contain"
+            />
+          ) : (
+            <Text style={styles.teamLogoFallback}>?</Text>
+          )}
+        </View>
+        <View style={styles.playerSelectInfo}>
+          <Text style={styles.playerSelectName}>{item.name}</Text>
+          <Text style={styles.playerSelectTeam}>{item.team}</Text>
+        </View>
+        <View style={styles.playerSelectQuotation}>
+          <Text style={styles.playerSelectQuotationLabel}>Quot.</Text>
+          <Text style={styles.playerSelectQuotationValue}>{item.quotation}</Text>
+        </View>
+        <View style={styles.nominateButton}>
+          <Text style={styles.nominateButtonText}>NOMINA</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   if (isLoadingPlayers) {
     return (
@@ -2808,10 +2817,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text,
   },
+  teamLogoContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 2,
+  },
   playerTeamLogo: {
-    width: 32,
-    height: 32,
-    borderRadius: 4,
+    width: 28,
+    height: 28,
+  },
+  teamLogoFallback: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textMuted,
   },
   playerSelectInfo: {
     flex: 1,
