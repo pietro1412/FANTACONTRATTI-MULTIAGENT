@@ -15,8 +15,8 @@ import {
   TextInput,
   Alert,
   FlatList,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuctionsStackParamList } from '@/navigation/AppNavigator';
@@ -513,11 +513,12 @@ function NominationPanel({ currentRole, leagueId, onNominate, isNominating }: No
         <View style={styles.teamLogoContainer}>
           {logoUrl && !hasImageError ? (
             <Image
-              source={{ uri: logoUrl }}
+              source={logoUrl}
               style={styles.playerTeamLogo}
-              resizeMode="contain"
+              contentFit="contain"
+              transition={200}
               onError={(e) => {
-                console.log(`[TeamLogo] Error loading logo for ${item.team}:`, e.nativeEvent.error, 'URL:', logoUrl);
+                console.log(`[TeamLogo] Error loading logo for ${item.team}:`, e.error, 'URL:', logoUrl);
                 setImageErrors(prev => ({ ...prev, [item.id]: true }));
               }}
               onLoad={() => console.log(`[TeamLogo] Loaded logo for ${item.team}`)}
