@@ -10,8 +10,36 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { User, AuthState, LoginCredentials, AuthResponse } from '../types';
+
+// =============================================================================
+// Storage Abstraction (SecureStore for native, localStorage for web)
+// =============================================================================
+
+const storage = {
+  async getItem(key: string): Promise<string | null> {
+    if (Platform.OS === 'web') {
+      return localStorage.getItem(key);
+    }
+    return SecureStore.getItemAsync(key);
+  },
+  async setItem(key: string, value: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      localStorage.setItem(key, value);
+      return;
+    }
+    return SecureStore.setItemAsync(key, value);
+  },
+  async deleteItem(key: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      localStorage.removeItem(key);
+      return;
+    }
+    return SecureStore.deleteItemAsync(key);
+  },
+};
 
 // =============================================================================
 // Constants
@@ -22,7 +50,7 @@ const USER_KEY = 'fantacontratti_user';
 
 // API base URL - should be configured via environment variables in production
 // TODO: Use environment variable in production
-const API_BASE_URL = 'http://10.138.157.172:3003';
+const API_BASE_URL = 'http://10.93.249.172:3003';
 
 // =============================================================================
 // Context Types
@@ -48,35 +76,35 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  * Store authentication token securely
  */
 async function storeToken(token: string): Promise<void> {
-  await SecureStore.setItemAsync(TOKEN_KEY, token);
+  await storage.setItem(TOKEN_KEY, token);
 }
 
 /**
  * Retrieve authentication token from secure storage
  */
 async function getToken(): Promise<string | null> {
-  return await SecureStore.getItemAsync(TOKEN_KEY);
+  return await storage.getItem(TOKEN_KEY);
 }
 
 /**
  * Remove authentication token from secure storage
  */
 async function removeToken(): Promise<void> {
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
+  await storage.deleteItem(TOKEN_KEY);
 }
 
 /**
  * Store user data securely
  */
 async function storeUser(user: User): Promise<void> {
-  await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
+  await storage.setItem(USER_KEY, JSON.stringify(user));
 }
 
 /**
  * Retrieve user data from secure storage
  */
 async function getStoredUser(): Promise<User | null> {
-  const userJson = await SecureStore.getItemAsync(USER_KEY);
+  const userJson = await storage.getItem(USER_KEY);
   if (userJson) {
     try {
       return JSON.parse(userJson) as User;
@@ -91,7 +119,7 @@ async function getStoredUser(): Promise<User | null> {
  * Remove user data from secure storage
  */
 async function removeUser(): Promise<void> {
-  await SecureStore.deleteItemAsync(USER_KEY);
+  await storage.deleteItem(USER_KEY);
 }
 
 // =============================================================================
@@ -112,11 +140,14 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
    * Validates the stored token with the server
    */
   const checkAuth = useCallback(async (): Promise<void> => {
+    console.log('[AuthContext] checkAuth - starting');
     setIsLoading(true);
     try {
       const token = await getToken();
+      console.log('[AuthContext] checkAuth - token:', token ? 'exists' : 'null');
 
       if (!token) {
+        console.log('[AuthContext] checkAuth - no token, setting unauthenticated');
         setUser(null);
         setIsAuthenticated(false);
         setIsLoading(false);
@@ -124,6 +155,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
       }
 
       // Validate token with server
+      console.log('[AuthContext] checkAuth - validating token with server...');
       const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         method: 'GET',
         headers: {
@@ -132,8 +164,11 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         },
       });
 
+      console.log('[AuthContext] checkAuth - server response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('[AuthContext] checkAuth - user data received:', data.username);
         const userData: User = {
           id: data.id,
           email: data.email,
@@ -145,18 +180,21 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         setUser(userData);
         setIsAuthenticated(true);
         await storeUser(userData);
+        console.log('[AuthContext] checkAuth - authenticated successfully');
       } else {
         // Token is invalid, clear storage
+        console.log('[AuthContext] checkAuth - token invalid, clearing');
         await removeToken();
         await removeUser();
         setUser(null);
         setIsAuthenticated(false);
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error('[AuthContext] checkAuth - error:', error);
       // On network error, try to use cached user data
       const cachedUser = await getStoredUser();
       if (cachedUser) {
+        console.log('[AuthContext] checkAuth - using cached user');
         setUser(cachedUser);
         setIsAuthenticated(true);
       } else {
@@ -164,6 +202,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         setIsAuthenticated(false);
       }
     } finally {
+      console.log('[AuthContext] checkAuth - done, setting isLoading false');
       setIsLoading(false);
     }
   }, []);
@@ -173,8 +212,11 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
    */
   const login = useCallback(
     async (email: string, password: string): Promise<void> => {
+      console.log('[AuthContext] login called with email:', email);
+      console.log('[AuthContext] API_BASE_URL:', API_BASE_URL);
       setIsLoading(true);
       try {
+        console.log('[AuthContext] fetching:', `${API_BASE_URL}/api/auth/login`);
         const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
           method: 'POST',
           headers: {
@@ -182,9 +224,11 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
           },
           body: JSON.stringify({ emailOrUsername: email, password }),
         });
+        console.log('[AuthContext] response status:', response.status);
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
+          console.log('[AuthContext] error data:', errorData);
           throw new Error(
             errorData.error || errorData.message || 'Login failed'
           );
@@ -221,6 +265,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         setUser(userData);
         setIsAuthenticated(true);
       } catch (error) {
+        console.log('[AuthContext] login error:', error);
         // Re-throw the error so the calling component can handle it
         throw error;
       } finally {

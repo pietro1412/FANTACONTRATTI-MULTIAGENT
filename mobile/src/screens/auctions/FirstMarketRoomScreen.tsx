@@ -597,6 +597,9 @@ function ReadyCheckPanel({
   const readyCount = readyStatus.readyCount;
   const totalMembers = readyStatus.totalMembers;
   const progressPercent = totalMembers > 0 ? (readyCount / totalMembers) * 100 : 0;
+  // Null safety for member arrays
+  const readyMembers = readyStatus.readyMembers || [];
+  const statusPendingMembers = readyStatus.pendingMembers || [];
 
   return (
     <View style={styles.readyCheckContainer}>
@@ -637,13 +640,13 @@ function ReadyCheckPanel({
       {/* Ready Members List */}
       <View style={styles.readyMembersList}>
         <View style={styles.readyMembersRow}>
-          {readyStatus.readyMembers.map((member) => (
+          {readyMembers.map((member) => (
             <View key={member.id} style={styles.readyMemberBadge}>
               <Ionicons name="checkmark-circle" size={14} color={COLORS.success} />
               <Text style={styles.readyMemberName}>{member.username}</Text>
             </View>
           ))}
-          {readyStatus.pendingMembers.map((member) => (
+          {statusPendingMembers.map((member) => (
             <View key={member.id} style={[styles.readyMemberBadge, styles.pendingMemberBadge]}>
               <Ionicons name="time-outline" size={14} color={COLORS.textMuted} />
               <Text style={[styles.readyMemberName, styles.pendingMemberName]}>{member.username}</Text>
@@ -730,8 +733,11 @@ function PendingAcknowledgmentPanel({
   hasAcknowledged,
   currentUserId,
 }: PendingAcknowledgmentPanelProps): React.JSX.Element {
-  const totalMembers = pendingAck.acknowledgedMembers.length + pendingAck.pendingMembers.length;
-  const progress = totalMembers > 0 ? pendingAck.acknowledgedMembers.length / totalMembers : 0;
+  // Null safety for arrays
+  const acknowledgedMembers = pendingAck.acknowledgedMembers || [];
+  const pendingMembers = pendingAck.pendingMembers || [];
+  const totalMembers = acknowledgedMembers.length + pendingMembers.length;
+  const progress = totalMembers > 0 ? acknowledgedMembers.length / totalMembers : 0;
   const positionColor = pendingAck.player?.position
     ? POSITION_COLORS[pendingAck.player.position as Position]
     : COLORS.primary;
@@ -808,7 +814,7 @@ function PendingAcknowledgmentPanel({
         <View style={styles.ackProgressHeader}>
           <Text style={styles.ackProgressTitle}>Conferme</Text>
           <Text style={styles.ackProgressCount}>
-            {pendingAck.acknowledgedMembers.length}/{totalMembers}
+            {acknowledgedMembers.length}/{totalMembers}
           </Text>
         </View>
         <View style={styles.ackProgressBarBg}>
@@ -818,13 +824,13 @@ function PendingAcknowledgmentPanel({
 
       {/* Lista confermati/non confermati */}
       <View style={styles.ackMemberLists}>
-        {pendingAck.acknowledgedMembers.map((m) => (
+        {acknowledgedMembers.map((m) => (
           <View key={m.id} style={styles.ackMemberRow}>
             <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
             <Text style={styles.ackMemberNameConfirmed}>{m.username}</Text>
           </View>
         ))}
-        {pendingAck.pendingMembers.map((m) => (
+        {pendingMembers.map((m) => (
           <View key={m.id} style={styles.ackMemberRow}>
             <Ionicons name="time-outline" size={18} color={COLORS.warning} />
             <Text style={styles.ackMemberNamePending}>{m.username}</Text>
@@ -888,6 +894,11 @@ interface AdminControlsPanelProps {
   onAdvanceTurn: () => void;
   onAdvanceRole: () => void;
   onForceAcknowledge: () => void;
+  // Test utilities
+  onForceAllReady: () => void;
+  onBotNominate: () => void;
+  onBotConfirmNomination: () => void;
+  onBotBid: () => void;
   isLoading: boolean;
 }
 
@@ -899,6 +910,10 @@ function AdminControlsPanel({
   onAdvanceTurn,
   onAdvanceRole,
   onForceAcknowledge,
+  onForceAllReady,
+  onBotNominate,
+  onBotConfirmNomination,
+  onBotBid,
   isLoading,
 }: AdminControlsPanelProps): React.JSX.Element {
   return (
@@ -948,6 +963,54 @@ function AdminControlsPanel({
             <Text style={styles.adminButtonText}>Forza Conferme</Text>
           </TouchableOpacity>
         )}
+      </View>
+
+      {/* Test Utilities Section */}
+      <View style={styles.testUtilitiesSection}>
+        <View style={styles.testUtilitiesHeader}>
+          <Ionicons name="construct" size={16} color={COLORS.info} />
+          <Text style={styles.testUtilitiesTitle}>Test Utilities</Text>
+        </View>
+
+        <View style={styles.adminButtons}>
+          <TouchableOpacity
+            style={[styles.adminButton, styles.testButton, isLoading && styles.adminButtonDisabled]}
+            onPress={onBotNominate}
+            disabled={isLoading}
+          >
+            <Text style={styles.testButtonEmoji}>🎯</Text>
+            <Text style={styles.testButtonText}>Simula Scelta</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.adminButton, styles.testButton, isLoading && styles.adminButtonDisabled]}
+            onPress={onBotConfirmNomination}
+            disabled={isLoading}
+          >
+            <Text style={styles.testButtonEmoji}>✅</Text>
+            <Text style={styles.testButtonText}>Conferma Scelta</Text>
+          </TouchableOpacity>
+
+          {currentAuction && (
+            <TouchableOpacity
+              style={[styles.adminButton, styles.testButton, isLoading && styles.adminButtonDisabled]}
+              onPress={onBotBid}
+              disabled={isLoading}
+            >
+              <Text style={styles.testButtonEmoji}>💰</Text>
+              <Text style={styles.testButtonText}>Simula Offerta</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={[styles.adminButton, styles.testButton, isLoading && styles.adminButtonDisabled]}
+            onPress={onForceAllReady}
+            disabled={isLoading}
+          >
+            <Ionicons name="people" size={18} color={COLORS.success} />
+            <Text style={styles.testButtonText}>Forza Tutti Pronti</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -1212,12 +1275,22 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
   // =============================================================================
 
   const fetchAuctionData = useCallback(async (showLoader: boolean = true) => {
+    console.log('[FirstMarketRoomScreen] fetchAuctionData called', { showLoader, effectiveLeagueId });
     if (showLoader) {
       setIsLoading(true);
     }
 
     try {
+      console.log('[FirstMarketRoomScreen] Calling getCurrentAuction...');
       const response = await auctionsApi.getCurrentAuction(effectiveLeagueId);
+      console.log('[FirstMarketRoomScreen] getCurrentAuction response:', {
+        success: response.success,
+        hasData: !!response.data,
+        isFirstMarket: response.data?.isFirstMarket,
+        sessionId: response.data?.id,
+        sessionStatus: response.data?.status,
+        message: response.message,
+      });
 
       if (response.success && response.data && response.data.isFirstMarket) {
         setSession(response.data);
@@ -1225,13 +1298,33 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
         setCurrentAuction(auction || null);
 
         // Fetch first market status
+        console.log('[FirstMarketRoomScreen] Calling getFirstMarketStatus...');
         const statusResponse = await auctionsApi.getFirstMarketStatus(response.data.id);
+        console.log('[FirstMarketRoomScreen] getFirstMarketStatus response:', {
+          success: statusResponse.success,
+          isUserTurn: statusResponse.data?.isUserTurn,
+          currentRole: statusResponse.data?.currentRole,
+          currentTurnIndex: statusResponse.data?.currentTurnIndex,
+          turnOrderLength: statusResponse.data?.turnOrder?.length,
+          pendingNomination: statusResponse.data?.pendingNomination,
+          hasMemberStatus: !!statusResponse.data?.memberStatus,
+        });
         if (statusResponse.success && statusResponse.data) {
           setFirstMarketStatus(statusResponse.data);
         }
 
         // Fetch ready status
+        console.log('[FirstMarketRoomScreen] Calling getReadyStatus...');
         const readyResponse = await auctionsApi.getReadyStatus(response.data.id);
+        console.log('[FirstMarketRoomScreen] getReadyStatus response:', {
+          success: readyResponse.success,
+          allReady: readyResponse.data?.allReady,
+          hasPendingNomination: readyResponse.data?.hasPendingNomination,
+          userIsReady: readyResponse.data?.userIsReady,
+          userIsNominator: readyResponse.data?.userIsNominator,
+          readyMembersCount: readyResponse.data?.readyMembers?.length,
+          pendingMembersCount: readyResponse.data?.pendingMembers?.length,
+        });
         if (readyResponse.success && readyResponse.data) {
           setReadyStatus(readyResponse.data);
         }
@@ -1239,10 +1332,12 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
         // Check for pending acknowledgment when no active auction
         if (!auction) {
           const ackResponse = await auctionsApi.getPendingAcknowledgment(response.data.id);
-          if (ackResponse.success && ackResponse.data) {
+          // Only set pendingAck if we have valid data with required arrays
+          if (ackResponse.success && ackResponse.data && ackResponse.data.auctionId) {
             setPendingAck(ackResponse.data);
-            // Check if current user has already acknowledged
-            const alreadyAcked = ackResponse.data.acknowledgedMembers.some(
+            // Check if current user has already acknowledged (with null safety)
+            const acknowledgedMembers = ackResponse.data.acknowledgedMembers || [];
+            const alreadyAcked = acknowledgedMembers.some(
               (m) => m.id === selectedMember?.id
             );
             setHasAcknowledged(alreadyAcked);
@@ -1504,14 +1599,26 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
   }, [session, fetchAuctionData]);
 
   const handleNominate = useCallback(async (player: Player) => {
-    if (!session) return;
+    console.log('[FirstMarketRoomScreen] handleNominate called', {
+      sessionId: session?.id,
+      playerId: player.id,
+      playerName: player.name,
+      playerPosition: player.position,
+    });
+    if (!session) {
+      console.warn('[FirstMarketRoomScreen] handleNominate: no session!');
+      return;
+    }
 
     setIsNominating(true);
     try {
+      console.log('[FirstMarketRoomScreen] Calling setPendingNomination...');
       const response = await auctionsApi.setPendingNomination(session.id, player.id);
+      console.log('[FirstMarketRoomScreen] setPendingNomination response:', response);
       if (response.success) {
         await fetchAuctionData(false);
       } else {
+        console.warn('[FirstMarketRoomScreen] setPendingNomination failed:', response.message);
         Alert.alert('Errore', response.message || 'Impossibile nominare il giocatore');
       }
     } catch (err) {
@@ -1523,14 +1630,21 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
   }, [session, fetchAuctionData]);
 
   const handleConfirmNomination = useCallback(async () => {
-    if (!session) return;
+    console.log('[FirstMarketRoomScreen] handleConfirmNomination called', { sessionId: session?.id });
+    if (!session) {
+      console.warn('[FirstMarketRoomScreen] handleConfirmNomination: no session!');
+      return;
+    }
 
     setIsConfirmingNomination(true);
     try {
+      console.log('[FirstMarketRoomScreen] Calling confirmNomination...');
       const response = await auctionsApi.confirmNomination(session.id);
+      console.log('[FirstMarketRoomScreen] confirmNomination response:', response);
       if (response.success) {
         await fetchAuctionData(false);
       } else {
+        console.warn('[FirstMarketRoomScreen] confirmNomination failed:', response.message);
         Alert.alert('Errore', response.message || 'Impossibile confermare la nomina');
       }
     } catch (err) {
@@ -1558,14 +1672,21 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
   }, [session, fetchAuctionData]);
 
   const handleMarkReady = useCallback(async () => {
-    if (!session) return;
+    console.log('[FirstMarketRoomScreen] handleMarkReady called', { sessionId: session?.id });
+    if (!session) {
+      console.warn('[FirstMarketRoomScreen] handleMarkReady: no session!');
+      return;
+    }
 
     setIsMarkingReady(true);
     try {
+      console.log('[FirstMarketRoomScreen] Calling markReady...');
       const response = await auctionsApi.markReady(session.id);
+      console.log('[FirstMarketRoomScreen] markReady response:', response);
       if (response.success) {
         await fetchAuctionData(false);
       } else {
+        console.warn('[FirstMarketRoomScreen] markReady failed:', response.message);
         Alert.alert('Errore', response.message || 'Impossibile confermare la prontezza');
       }
     } catch (err) {
@@ -1766,8 +1887,147 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
   }, [session, fetchAuctionData]);
 
   // =============================================================================
+  // Admin Test Handlers (for testing/simulation purposes)
+  // =============================================================================
+
+  const handleForceAllReady = useCallback(async () => {
+    if (!session) return;
+
+    setIsAdminAction(true);
+    try {
+      const response = await auctionsApi.forceAllReady(session.id);
+      if (response.success) {
+        Alert.alert('Successo', 'Tutti i manager sono stati impostati come pronti!');
+        await fetchAuctionData(false);
+      } else {
+        Alert.alert('Errore', response.message || 'Impossibile forzare tutti pronti');
+      }
+    } catch (err) {
+      console.error('[FirstMarketRoomScreen] Error forcing all ready:', err);
+      Alert.alert('Errore', 'Si è verificato un errore');
+    } finally {
+      setIsAdminAction(false);
+    }
+  }, [session, fetchAuctionData]);
+
+  const handleBotNominate = useCallback(async () => {
+    if (!session) return;
+
+    setIsAdminAction(true);
+    try {
+      const response = await auctionsApi.botNominate(session.id);
+      if (response.success) {
+        const data = response.data as { player?: { name: string } };
+        Alert.alert('Successo', `Bot ha scelto ${data.player?.name || 'un giocatore'}`);
+        await fetchAuctionData(false);
+      } else {
+        Alert.alert('Errore', response.message || 'Impossibile simulare scelta giocatore');
+      }
+    } catch (err) {
+      console.error('[FirstMarketRoomScreen] Error bot nominate:', err);
+      Alert.alert('Errore', 'Si è verificato un errore');
+    } finally {
+      setIsAdminAction(false);
+    }
+  }, [session, fetchAuctionData]);
+
+  const handleBotConfirmNomination = useCallback(async () => {
+    if (!session) return;
+
+    setIsAdminAction(true);
+    try {
+      const response = await auctionsApi.botConfirmNomination(session.id);
+      if (response.success) {
+        const data = response.data as { player?: { name: string } };
+        Alert.alert('Successo', `Scelta confermata: ${data.player?.name || 'giocatore'}`);
+        await fetchAuctionData(false);
+      } else {
+        Alert.alert('Errore', response.message || 'Impossibile confermare scelta');
+      }
+    } catch (err) {
+      console.error('[FirstMarketRoomScreen] Error bot confirm nomination:', err);
+      Alert.alert('Errore', 'Si è verificato un errore');
+    } finally {
+      setIsAdminAction(false);
+    }
+  }, [session, fetchAuctionData]);
+
+  const handleBotBid = useCallback(async () => {
+    if (!currentAuction) return;
+
+    setIsAdminAction(true);
+    try {
+      const response = await auctionsApi.triggerBotBid(currentAuction.id);
+      if (response.success) {
+        const data = response.data as { hasBotBid: boolean; winningBot: string | null; newCurrentPrice: number };
+        if (data.hasBotBid) {
+          Alert.alert('Successo', `${data.winningBot} ha offerto ${data.newCurrentPrice}!`);
+        } else {
+          Alert.alert('Info', 'Nessun bot ha fatto offerte');
+        }
+        await fetchAuctionData(false);
+      } else {
+        Alert.alert('Errore', response.message || 'Impossibile simulare offerta bot');
+      }
+    } catch (err) {
+      console.error('[FirstMarketRoomScreen] Error bot bid:', err);
+      Alert.alert('Errore', 'Si è verificato un errore');
+    } finally {
+      setIsAdminAction(false);
+    }
+  }, [currentAuction, fetchAuctionData]);
+
+  // =============================================================================
   // Render Logic
   // =============================================================================
+
+  // Compute hasPendingNomination here for logging (also used later)
+  const hasPendingNominationForLog = readyStatus?.hasPendingNomination ?? false;
+
+  // Debug logging for render state
+  console.log('[FirstMarketRoomScreen] === RENDER STATE ===', {
+    isLoading,
+    hasSession: !!session,
+    sessionId: session?.id,
+    sessionStatus: session?.status,
+    hasTurnOrder,
+    hasPendingNomination: hasPendingNominationForLog,
+    hasCurrentAuction: !!currentAuction,
+    currentAuctionId: currentAuction?.id,
+    hasPendingAck: !!pendingAck,
+    isMyTurn,
+    currentRole,
+    isAdmin,
+    userBudget,
+    selectedMemberId: selectedMember?.id,
+    firstMarketStatus: firstMarketStatus ? {
+      isUserTurn: firstMarketStatus.isUserTurn,
+      currentTurnIndex: firstMarketStatus.currentTurnIndex,
+      turnOrderLength: firstMarketStatus.turnOrder?.length,
+      currentNominatorId: firstMarketStatus.currentNominator?.id,
+      pendingNomination: firstMarketStatus.pendingNomination,
+    } : null,
+    readyStatus: readyStatus ? {
+      allReady: readyStatus.allReady,
+      userIsReady: readyStatus.userIsReady,
+      userIsNominator: readyStatus.userIsNominator,
+      readyCount: readyStatus.readyMembers?.length,
+      pendingCount: readyStatus.pendingMembers?.length,
+    } : null,
+  });
+
+  // Log which render path will be taken
+  // IMPORTANT: Check currentAuction?.id to ensure it's a valid auction, not an empty object
+  const hasValidAuction = !!(currentAuction && currentAuction.id);
+  let renderPath = 'unknown';
+  if (isLoading) renderPath = 'LOADING';
+  else if (!session) renderPath = 'NO_SESSION';
+  else if (!hasTurnOrder && firstMarketStatus?.memberStatus) renderPath = 'TURN_ORDER_SETUP';
+  else if (pendingAck && !hasValidAuction) renderPath = 'PENDING_ACKNOWLEDGMENT';
+  else if (!hasValidAuction && hasTurnOrder && !hasPendingNominationForLog) renderPath = 'NOMINATION_PHASE';
+  else if (!hasValidAuction && hasTurnOrder && hasPendingNominationForLog) renderPath = 'READY_CHECK_PHASE';
+  else if (hasValidAuction) renderPath = 'ACTIVE_AUCTION';
+  console.log('[FirstMarketRoomScreen] RENDER PATH:', renderPath, '(hasValidAuction:', hasValidAuction, ')');
 
   if (isLoading) {
     return (
@@ -1831,7 +2091,7 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
   const hasPendingNomination = readyStatus?.hasPendingNomination ?? false;
 
   // Pending Acknowledgment - highest priority after loading (except for active auction)
-  if (pendingAck && !currentAuction) {
+  if (pendingAck && !hasValidAuction) {
     return (
       <ScrollView
         style={styles.container}
@@ -1874,6 +2134,10 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
             onAdvanceTurn={handleAdvanceTurn}
             onAdvanceRole={handleAdvanceRole}
             onForceAcknowledge={handleForceAcknowledge}
+            onForceAllReady={handleForceAllReady}
+            onBotNominate={handleBotNominate}
+            onBotConfirmNomination={handleBotConfirmNomination}
+            onBotBid={handleBotBid}
             isLoading={isAdminAction}
           />
         )}
@@ -1881,7 +2145,7 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
     );
   }
 
-  if (!currentAuction && hasTurnOrder && !hasPendingNomination) {
+  if (!hasValidAuction && hasTurnOrder && !hasPendingNomination) {
     // No auction active, no pending nomination - show nomination panel or waiting
     return (
       <ScrollView
@@ -1945,6 +2209,10 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
             onAdvanceTurn={handleAdvanceTurn}
             onAdvanceRole={handleAdvanceRole}
             onForceAcknowledge={handleForceAcknowledge}
+            onForceAllReady={handleForceAllReady}
+            onBotNominate={handleBotNominate}
+            onBotConfirmNomination={handleBotConfirmNomination}
+            onBotBid={handleBotBid}
             isLoading={isAdminAction}
           />
         )}
@@ -1953,7 +2221,7 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
   }
 
   // Pending nomination - show ready check panel
-  if (hasPendingNomination && readyStatus && !currentAuction) {
+  if (hasPendingNomination && readyStatus && !hasValidAuction) {
     return (
       <ScrollView
         style={styles.container}
@@ -1995,6 +2263,10 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
             onAdvanceTurn={handleAdvanceTurn}
             onAdvanceRole={handleAdvanceRole}
             onForceAcknowledge={handleForceAcknowledge}
+            onForceAllReady={handleForceAllReady}
+            onBotNominate={handleBotNominate}
+            onBotConfirmNomination={handleBotConfirmNomination}
+            onBotBid={handleBotBid}
             isLoading={isAdminAction}
           />
         )}
@@ -2003,7 +2275,7 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
   }
 
   // Active auction - show bidding UI
-  if (currentAuction) {
+  if (hasValidAuction) {
     return (
       <ScrollView
         style={styles.container}
@@ -2057,6 +2329,10 @@ export default function FirstMarketRoomScreen({ route, navigation }: Props): Rea
             onAdvanceTurn={handleAdvanceTurn}
             onAdvanceRole={handleAdvanceRole}
             onForceAcknowledge={handleForceAcknowledge}
+            onForceAllReady={handleForceAllReady}
+            onBotNominate={handleBotNominate}
+            onBotConfirmNomination={handleBotConfirmNomination}
+            onBotBid={handleBotBid}
             isLoading={isAdminAction}
           />
         )}
@@ -3337,6 +3613,37 @@ const styles = StyleSheet.create({
   },
   adminButtonText: {
     fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.text,
+  },
+
+  // Test Utilities Section
+  testUtilitiesSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.info + '30',
+  },
+  testUtilitiesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 6,
+  },
+  testUtilitiesTitle: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.info,
+  },
+  testButton: {
+    borderWidth: 1,
+    borderColor: COLORS.info + '40',
+  },
+  testButtonEmoji: {
+    fontSize: 14,
+  },
+  testButtonText: {
+    fontSize: 11,
     fontWeight: '500',
     color: COLORS.text,
   },

@@ -5,7 +5,35 @@
  */
 
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+
+// ============================================================================
+// Storage Abstraction (SecureStore for native, localStorage for web)
+// ============================================================================
+
+const storage = {
+  async getItem(key: string): Promise<string | null> {
+    if (Platform.OS === 'web') {
+      return localStorage.getItem(key);
+    }
+    return SecureStore.getItemAsync(key);
+  },
+  async setItem(key: string, value: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      localStorage.setItem(key, value);
+      return;
+    }
+    return SecureStore.setItemAsync(key, value);
+  },
+  async deleteItem(key: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      localStorage.removeItem(key);
+      return;
+    }
+    return SecureStore.deleteItemAsync(key);
+  },
+};
 
 // ============================================================================
 // Configuration
@@ -18,7 +46,7 @@ import * as SecureStore from 'expo-secure-store';
 //   - Real device: http://<YOUR_PC_IP>:3003
 // For production: https://fantacontratti-multiagent.vercel.app
 // Dispositivo fisico Android sulla stessa rete WiFi del PC
-const API_BASE_URL = 'http://10.138.157.172:3003';
+const API_BASE_URL = 'http://10.93.249.172:3003';
 
 const TOKEN_KEY = 'fantacontratti_auth_token';
 const REFRESH_TOKEN_KEY = 'fantacontratti_refresh_token';
@@ -238,21 +266,42 @@ const processQueue = (error: Error | null, token: string | null = null) => {
 // Request interceptor - Add JWT token to requests
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    const token = await SecureStore.getItemAsync(TOKEN_KEY);
+    const token = await storage.getItem(TOKEN_KEY);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Extended logging for debugging
+    console.log(`[API REQUEST] ${config.method?.toUpperCase()} ${config.url}`, {
+      hasToken: !!token,
+      params: config.params,
+      dataKeys: config.data ? Object.keys(config.data) : null,
+    });
     return config;
   },
   (error) => {
+    console.error('[API REQUEST ERROR]', error);
     return Promise.reject(error);
   }
 );
 
 // Response interceptor - Handle errors and token refresh
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Extended logging for debugging
+    console.log(`[API RESPONSE] ${response.config.method?.toUpperCase()} ${response.config.url}`, {
+      status: response.status,
+      success: response.data?.success,
+      hasData: !!response.data?.data,
+      message: response.data?.message,
+    });
+    return response;
+  },
   async (error: AxiosError<ApiResponse>) => {
+    console.error(`[API ERROR] ${error.config?.method?.toUpperCase()} ${error.config?.url}`, {
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message,
+      code: error.code,
+    });
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
     // Don't try to refresh for auth endpoints
@@ -314,24 +363,24 @@ apiClient.interceptors.response.use(
 // ============================================================================
 
 export async function setAccessToken(token: string): Promise<void> {
-  await SecureStore.setItemAsync(TOKEN_KEY, token);
+  await storage.setItem(TOKEN_KEY, token);
 }
 
 export async function getAccessToken(): Promise<string | null> {
-  return await SecureStore.getItemAsync(TOKEN_KEY);
+  return await storage.getItem(TOKEN_KEY);
 }
 
 export async function setRefreshToken(token: string): Promise<void> {
-  await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token);
+  await storage.setItem(REFRESH_TOKEN_KEY, token);
 }
 
 export async function getRefreshToken(): Promise<string | null> {
-  return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+  return await storage.getItem(REFRESH_TOKEN_KEY);
 }
 
 export async function clearTokens(): Promise<void> {
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
-  await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+  await storage.deleteItem(TOKEN_KEY);
+  await storage.deleteItem(REFRESH_TOKEN_KEY);
 }
 
 async function refreshAccessToken(): Promise<string | null> {
@@ -920,11 +969,19 @@ export const auctionsApi = {
         `/api/auctions/sessions/${activeSession.id}/current`
       );
 
+      // Calculate isFirstMarket from session type
+      const isFirstMarket = activeSession.type === 'PRIMO_MERCATO';
+
+      // Ensure currentAuction is null if empty or has no id
+      const auctionData = auctionResponse.data.data;
+      const currentAuction = auctionData && auctionData.id ? auctionData : null;
+
       return {
         success: true,
         data: {
           ...activeSession,
-          currentAuction: auctionResponse.data.data,
+          isFirstMarket,
+          currentAuction,
         },
       };
     } catch (error) {
@@ -1070,6 +1127,76 @@ export const auctionsApi = {
     try {
       const response = await apiClient.delete<ApiResponse>(
         `/api/auctions/sessions/${sessionId}/nomination`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Force all managers to be ready (admin only - test utility)
+   */
+  forceAllReady: async (sessionId: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post<ApiResponse>(
+        `/api/auctions/sessions/${sessionId}/force-all-ready`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Simulate bot nomination (admin only - test utility)
+   */
+  botNominate: async (sessionId: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post<ApiResponse>(
+        `/api/auctions/sessions/${sessionId}/bot-nominate`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Simulate bot confirm nomination (admin only - test utility)
+   */
+  botConfirmNomination: async (sessionId: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post<ApiResponse>(
+        `/api/auctions/sessions/${sessionId}/bot-confirm-nomination`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Trigger bot bid (admin only - test utility)
+   */
+  triggerBotBid: async (auctionId: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post<ApiResponse>(
+        `/api/auctions/${auctionId}/bot-bid`
+      );
+      return response.data;
+    } catch (error) {
+      return error as ApiResponse;
+    }
+  },
+
+  /**
+   * Force all managers to acknowledge (admin only)
+   */
+  forceAcknowledgeAll: async (sessionId: string): Promise<ApiResponse> => {
+    try {
+      const response = await apiClient.post<ApiResponse>(
+        `/api/auctions/sessions/${sessionId}/force-acknowledge-all`
       );
       return response.data;
     } catch (error) {
@@ -1582,19 +1709,6 @@ export const adminApi = {
     }
   },
 
-  /**
-   * Force all managers to acknowledge (admin only)
-   */
-  forceAcknowledgeAll: async (sessionId: string): Promise<ApiResponse> => {
-    try {
-      const response = await apiClient.post<ApiResponse>(
-        `/api/auctions/sessions/${sessionId}/force-acknowledge-all`
-      );
-      return response.data;
-    } catch (error) {
-      return error as ApiResponse;
-    }
-  },
 };
 
 // ============================================================================
