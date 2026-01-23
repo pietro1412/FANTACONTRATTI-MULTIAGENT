@@ -420,24 +420,50 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     try {
       const res = await auctionApi.getMemberRoster(leagueId, member.id)
       if (res.success && res.data) {
-        const rosterData = res.data as ManagerRosterPlayer[]
-
-        // Calculate slots by position
-        const slotsByPosition = {
-          P: { filled: rosterData.filter(r => r.position === 'P').length, total: 3 },
-          D: { filled: rosterData.filter(r => r.position === 'D').length, total: 8 },
-          C: { filled: rosterData.filter(r => r.position === 'C').length, total: 8 },
-          A: { filled: rosterData.filter(r => r.position === 'A').length, total: 6 },
+        // API returns { member, roster: { P: [...], D: [...], C: [...], A: [...] }, totals, slots }
+        type RosterItem = { player: { id: string; name: string; team: string; position: string }; contract?: { salary: number; duration: number; rescissionClause: number } | null; acquisitionPrice: number }
+        const apiData = res.data as {
+          member: { teamName?: string; user?: { username: string } }
+          roster: { P: RosterItem[]; D: RosterItem[]; C: RosterItem[]; A: RosterItem[] }
+          totals: { P: number; D: number; C: number; A: number; total: number }
+          slots: { P: number; D: number; C: number; A: number }
         }
+
+        // Flatten roster from grouped by position to array
+        const allPlayers = [...(apiData.roster.P || []), ...(apiData.roster.D || []), ...(apiData.roster.C || []), ...(apiData.roster.A || [])]
+        const rosterData: ManagerRosterPlayer[] = allPlayers.map(r => ({
+          id: r.player.id,
+          playerId: r.player.id,
+          playerName: r.player.name,
+          playerTeam: r.player.team,
+          position: r.player.position,
+          acquisitionPrice: r.acquisitionPrice || 0,
+          contract: r.contract ? {
+            salary: r.contract.salary,
+            duration: r.contract.duration,
+            rescissionClause: r.contract.rescissionClause,
+          } : null,
+        }))
+
+        // Use slots from API
+        const slotsByPosition = {
+          P: { filled: apiData.totals.P, total: apiData.slots.P },
+          D: { filled: apiData.totals.D, total: apiData.slots.D },
+          C: { filled: apiData.totals.C, total: apiData.slots.C },
+          A: { filled: apiData.totals.A, total: apiData.slots.A },
+        }
+
+        const totalSlots = apiData.slots.P + apiData.slots.D + apiData.slots.C + apiData.slots.A
 
         setSelectedManager({
           id: member.id,
           username: member.username,
+          teamName: apiData.member?.teamName,
           currentBudget: member.budget,
           roster: rosterData,
           slotsByPosition,
-          slotsFilled: rosterData.length,
-          totalSlots: 25,
+          slotsFilled: apiData.totals.total,
+          totalSlots,
         })
       }
     } catch (err) {
