@@ -1278,6 +1278,48 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     return map
   }, [previewBoard?.board])
 
+  // Calculate progress stats for rubata (memoized)
+  const progressStats = useMemo(() => {
+    const board = boardData?.board
+    if (!board || boardData?.currentIndex === null || boardData?.currentIndex === undefined) {
+      return null
+    }
+
+    const currentIndex = boardData.currentIndex
+    const totalPlayers = board.length
+    const remaining = totalPlayers - currentIndex - 1
+
+    // Find current manager's players
+    const currentPlayer = boardData.currentPlayer
+    const currentManagerId = currentPlayer?.memberId
+    if (!currentManagerId) {
+      return { currentIndex, totalPlayers, remaining, managerProgress: null }
+    }
+
+    // Get all players for current manager
+    const managerPlayers = board.filter(p => p.memberId === currentManagerId)
+    const managerTotal = managerPlayers.length
+
+    // Count how many of current manager's players have been processed
+    let managerProcessed = 0
+    for (let i = 0; i <= currentIndex; i++) {
+      if (board[i].memberId === currentManagerId) {
+        managerProcessed++
+      }
+    }
+
+    return {
+      currentIndex,
+      totalPlayers,
+      remaining,
+      managerProgress: {
+        processed: managerProcessed,
+        total: managerTotal,
+        username: currentPlayer.ownerUsername
+      }
+    }
+  }, [boardData?.board, boardData?.currentIndex, boardData?.currentPlayer])
+
   // ========== Drag & Drop ==========
 
   function moveInOrder(index: number, direction: 'up' | 'down') {
@@ -1361,47 +1403,6 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
   // Get preference for current player
   const currentPlayerPreference = currentPlayer ? preferencesMap.get(currentPlayer.playerId) : null
-
-  // Calculate progress stats for rubata
-  const progressStats = useMemo(() => {
-    if (!board || boardData?.currentIndex === null || boardData?.currentIndex === undefined) {
-      return null
-    }
-
-    const currentIndex = boardData.currentIndex
-    const totalPlayers = board.length
-    const remaining = totalPlayers - currentIndex - 1
-
-    // Find current manager's players
-    const currentManagerId = currentPlayer?.memberId
-    if (!currentManagerId) {
-      return { currentIndex, totalPlayers, remaining, managerProgress: null }
-    }
-
-    // Get all players for current manager
-    const managerPlayers = board.filter(p => p.memberId === currentManagerId)
-    const managerTotal = managerPlayers.length
-
-    // Count how many of current manager's players have been processed (index < currentIndex)
-    // Plus 1 for the current player being processed
-    let managerProcessed = 0
-    for (let i = 0; i <= currentIndex; i++) {
-      if (board[i].memberId === currentManagerId) {
-        managerProcessed++
-      }
-    }
-
-    return {
-      currentIndex,
-      totalPlayers,
-      remaining,
-      managerProgress: {
-        processed: managerProcessed,
-        total: managerTotal,
-        username: currentPlayer.ownerUsername
-      }
-    }
-  }, [board, boardData?.currentIndex, currentPlayer?.memberId, currentPlayer?.ownerUsername])
 
   // Check if preferences can be edited (before auction starts or when paused)
   // Allowed: null (before start), WAITING, PREVIEW, READY_CHECK, PAUSED, AUCTION_READY_CHECK
