@@ -1057,6 +1057,13 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
               const isMarkedForRelease = localReleases.has(contract.id)
               const releaseCost = Math.ceil((contract.salary * contract.duration) / 2)
 
+              // Calcola il minimo ingaggio consentito
+              // - Se spalma e durata aumentata: min = ceil(initialSalary / newDuration)
+              // - Altrimenti: non può diminuire sotto il salary attuale
+              const minSalaryAllowed = contract.canSpalmare && newDuration > 1
+                ? Math.ceil(contract.initialSalary / newDuration)
+                : contract.salary
+
               return (
                 <div key={contract.id} className={`bg-surface-200 rounded-lg border p-3 ${
                   isMarkedForRelease ? 'border-danger-500/50 bg-danger-500/10' : 'border-surface-50/20'
@@ -1112,8 +1119,14 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                         <span>Spalma disponibile</span>
                       </div>
                       <p className="text-gray-400 text-[11px]">
-                        Puoi ridurre l'ingaggio allungando la durata. <br/>
-                        <span className="text-white">Regola:</span> Nuovo Ing. × Nuova Dur. ≥ <span className="text-warning-400 font-bold">{contract.initialSalary}M</span>
+                        {newDuration <= 1 ? (
+                          <>Aumenta la durata per sbloccare la riduzione ingaggio.</>
+                        ) : (
+                          <>
+                            Min. ingaggio con {newDuration}s: <span className="text-secondary-400 font-bold">{minSalaryAllowed}M</span>
+                            <span className="text-gray-500"> ({contract.initialSalary} ÷ {newDuration} = {minSalaryAllowed})</span>
+                          </>
+                        )}
                       </p>
                     </div>
                   )}
@@ -1126,9 +1139,10 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                           <label className="text-[10px] text-gray-500 uppercase block mb-1">Nuovo Ing.</label>
                           <div className="flex items-center">
                             <button
-                              onClick={() => updateLocalEdit(contract.id, 'newSalary', String(Math.max(1, newSalary - 1)))}
-                              disabled={newSalary <= 1}
+                              onClick={() => updateLocalEdit(contract.id, 'newSalary', String(Math.max(minSalaryAllowed, newSalary - 1)))}
+                              disabled={newSalary <= minSalaryAllowed}
                               className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
+                              title={contract.canSpalmare && newDuration <= 1 ? 'Aumenta prima la durata per ridurre l\'ingaggio' : undefined}
                             >−</button>
                             <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
                               {newSalary}M
@@ -1228,6 +1242,11 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     const isMarkedForRelease = localReleases.has(contract.id)
                     const releaseCost = Math.ceil((contract.salary * contract.duration) / 2)
 
+                    // Calcola il minimo ingaggio consentito (spalma logic)
+                    const minSalaryAllowed = contract.canSpalmare && newDuration > 1
+                      ? Math.ceil(contract.initialSalary / newDuration)
+                      : contract.salary
+
                     return (
                       <tr key={contract.id} className={`border-t border-surface-50/10 hover:bg-surface-300/30 ${
                         isMarkedForRelease ? 'bg-danger-500/20 opacity-70' : hasChanges ? 'bg-primary-500/5' : ''
@@ -1263,9 +1282,10 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                           {contract.canRenew && inContrattiPhase && !isConsolidated ? (
                             <div className="flex items-center justify-center gap-1">
                               <button
-                                onClick={() => updateLocalEdit(contract.id, 'newSalary', String(Math.max(1, newSalary - 1)))}
-                                disabled={newSalary <= 1}
+                                onClick={() => updateLocalEdit(contract.id, 'newSalary', String(Math.max(minSalaryAllowed, newSalary - 1)))}
+                                disabled={newSalary <= minSalaryAllowed}
                                 className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm disabled:opacity-30"
+                                title={contract.canSpalmare && newDuration <= 1 ? 'Aumenta prima la durata' : undefined}
                               >−</button>
                               <span className="w-10 text-white text-center font-medium">{newSalary}M</span>
                               <button
