@@ -1362,6 +1362,47 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   // Get preference for current player
   const currentPlayerPreference = currentPlayer ? preferencesMap.get(currentPlayer.playerId) : null
 
+  // Calculate progress stats for rubata
+  const progressStats = useMemo(() => {
+    if (!board || boardData?.currentIndex === null || boardData?.currentIndex === undefined) {
+      return null
+    }
+
+    const currentIndex = boardData.currentIndex
+    const totalPlayers = board.length
+    const remaining = totalPlayers - currentIndex - 1
+
+    // Find current manager's players
+    const currentManagerId = currentPlayer?.memberId
+    if (!currentManagerId) {
+      return { currentIndex, totalPlayers, remaining, managerProgress: null }
+    }
+
+    // Get all players for current manager
+    const managerPlayers = board.filter(p => p.memberId === currentManagerId)
+    const managerTotal = managerPlayers.length
+
+    // Count how many of current manager's players have been processed (index < currentIndex)
+    // Plus 1 for the current player being processed
+    let managerProcessed = 0
+    for (let i = 0; i <= currentIndex; i++) {
+      if (board[i].memberId === currentManagerId) {
+        managerProcessed++
+      }
+    }
+
+    return {
+      currentIndex,
+      totalPlayers,
+      remaining,
+      managerProgress: {
+        processed: managerProcessed,
+        total: managerTotal,
+        username: currentPlayer.ownerUsername
+      }
+    }
+  }, [board, boardData?.currentIndex, currentPlayer?.memberId, currentPlayer?.ownerUsername])
+
   // Check if preferences can be edited (before auction starts or when paused)
   // Allowed: null (before start), WAITING, PREVIEW, READY_CHECK, PAUSED, AUCTION_READY_CHECK
   const canEditPreferences = !rubataState ||
@@ -2325,9 +2366,22 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                          rubataState === 'COMPLETED' ? '✅ COMPLETATA' :
                          'SCONOSCIUTO'}
                       </span>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {boardData?.currentIndex !== null ? `${(boardData.currentIndex || 0) + 1} / ${boardData?.totalPlayers}` : ''}
-                      </p>
+                      {/* Progress counters */}
+                      {progressStats && (
+                        <div className="flex flex-wrap gap-2 mt-2 text-xs">
+                          {progressStats.managerProgress && (
+                            <span className="px-2 py-0.5 bg-primary-500/20 rounded text-primary-400">
+                              👤 {progressStats.managerProgress.username}: {progressStats.managerProgress.processed}/{progressStats.managerProgress.total}
+                            </span>
+                          )}
+                          <span className="px-2 py-0.5 bg-accent-500/20 rounded text-accent-400">
+                            📊 Totale: {progressStats.currentIndex + 1}/{progressStats.totalPlayers}
+                          </span>
+                          <span className="px-2 py-0.5 bg-warning-500/20 rounded text-warning-400">
+                            ⏳ Rimangono: {progressStats.remaining}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
