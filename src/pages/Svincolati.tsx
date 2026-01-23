@@ -170,6 +170,33 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
   }
   const [pendingContractModification, setPendingContractModification] = useState<ContractForModification | null>(null)
 
+  // Manager roster modal
+  interface ManagerRosterPlayer {
+    id: string
+    playerId: string
+    playerName: string
+    playerTeam: string
+    position: string
+    acquisitionPrice: number
+    contract: {
+      salary: number
+      duration: number
+      rescissionClause: number
+    } | null
+  }
+  interface SelectedManagerData {
+    id: string
+    username: string
+    teamName?: string
+    currentBudget: number
+    roster: ManagerRosterPlayer[]
+    slotsByPosition: { P: { filled: number; total: number }; D: { filled: number; total: number }; C: { filled: number; total: number }; A: { filled: number; total: number } }
+    slotsFilled: number
+    totalSlots: number
+  }
+  const [selectedManager, setSelectedManager] = useState<SelectedManagerData | null>(null)
+  const [loadingManager, setLoadingManager] = useState(false)
+
   // Click outside handler for team dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -382,6 +409,42 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
       setError(res.message || 'Errore')
     }
     setIsSubmitting(false)
+  }
+
+  // ========== MANAGER ROSTER MODAL ==========
+
+  async function handleViewManagerRoster(member: TurnMember) {
+    setLoadingManager(true)
+    setSelectedManager(null)
+
+    try {
+      const res = await leagueApi.getMemberRoster(leagueId, member.id)
+      if (res.success && res.data) {
+        const rosterData = res.data as ManagerRosterPlayer[]
+
+        // Calculate slots by position
+        const slotsByPosition = {
+          P: { filled: rosterData.filter(r => r.position === 'P').length, total: 3 },
+          D: { filled: rosterData.filter(r => r.position === 'D').length, total: 8 },
+          C: { filled: rosterData.filter(r => r.position === 'C').length, total: 8 },
+          A: { filled: rosterData.filter(r => r.position === 'A').length, total: 6 },
+        }
+
+        setSelectedManager({
+          id: member.id,
+          username: member.username,
+          currentBudget: member.budget,
+          roster: rosterData,
+          slotsByPosition,
+          slotsFilled: rosterData.length,
+          totalSlots: 25,
+        })
+      }
+    } catch (err) {
+      console.error('Error loading manager roster:', err)
+    } finally {
+      setLoadingManager(false)
+    }
   }
 
   // ========== NOMINATION ==========
@@ -1710,10 +1773,14 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`font-medium truncate ${isCurrent ? 'text-white' : 'text-gray-300'}`}>
+                          <button
+                            onClick={() => handleViewManagerRoster(member)}
+                            className={`font-medium truncate hover:underline cursor-pointer text-left ${isCurrent ? 'text-white' : 'text-gray-300'}`}
+                            title="Clicca per vedere la rosa"
+                          >
                             {member.username}
                             {isMe && <span className="text-primary-400 ml-1">(tu)</span>}
-                          </p>
+                          </button>
                           <div className="flex items-center gap-2 text-xs">
                             <span className="text-accent-400 font-mono">{member.budget}</span>
                             {isPassed && <span className="text-warning-400 font-bold">PASS</span>}
@@ -2183,6 +2250,88 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
           title="Modifica Contratto"
           description="Hai appena acquistato questo svincolato. Puoi modificare il suo contratto seguendo le regole del rinnovo."
         />
+      )}
+
+      {/* Manager Roster Modal */}
+      {(selectedManager || loadingManager) && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setSelectedManager(null)}>
+          <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20" onClick={e => e.stopPropagation()}>
+            {loadingManager ? (
+              <div className="p-6 flex items-center justify-center">
+                <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
+              </div>
+            ) : selectedManager && (
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-white">{selectedManager.username}</h2>
+                    {selectedManager.teamName && <p className="text-gray-400">{selectedManager.teamName}</p>}
+                  </div>
+                  <button onClick={() => setSelectedManager(null)} className="text-gray-400 hover:text-white text-2xl">×</button>
+                </div>
+                <div className="flex gap-4 mb-6">
+                  <div className="bg-surface-300 rounded-lg px-4 py-3 flex-1 text-center">
+                    <p className="text-xs text-gray-400 uppercase">Budget</p>
+                    <p className="text-2xl font-bold text-accent-400">{selectedManager.currentBudget}</p>
+                  </div>
+                  <div className="bg-surface-300 rounded-lg px-4 py-3 flex-1 text-center">
+                    <p className="text-xs text-gray-400 uppercase">Rosa</p>
+                    <p className="text-2xl font-bold text-white">{selectedManager.slotsFilled}/{selectedManager.totalSlots}</p>
+                  </div>
+                </div>
+                {(['P', 'D', 'C', 'A'] as const).map(pos => {
+                  const slot = selectedManager.slotsByPosition[pos]
+                  const posPlayers = selectedManager.roster.filter(r => r.position === pos)
+                  const POSITION_NAMES: Record<string, string> = { P: 'Portieri', D: 'Difensori', C: 'Centrocampisti', A: 'Attaccanti' }
+                  return (
+                    <div key={pos} className="mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${POSITION_COLORS[pos]}`}>{pos}</span>
+                          <span className="text-gray-300">{POSITION_NAMES[pos]}</span>
+                        </div>
+                        <span className={`text-sm font-bold ${slot.filled >= slot.total ? 'text-secondary-400' : 'text-gray-500'}`}>{slot.filled}/{slot.total}</span>
+                      </div>
+                      {posPlayers.length > 0 ? (
+                        <table className="w-full text-xs ml-2">
+                          <thead>
+                            <tr className="text-gray-500 text-[10px] uppercase">
+                              <th className="text-left font-medium pb-1">Giocatore</th>
+                              <th className="text-center font-medium pb-1 w-14">Prezzo</th>
+                              <th className="text-center font-medium pb-1 w-12">Ing.</th>
+                              <th className="text-center font-medium pb-1 w-10">Dur.</th>
+                              <th className="text-center font-medium pb-1 w-14">Claus.</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {posPlayers.map(p => (
+                              <tr key={p.id} className="border-t border-surface-50/10">
+                                <td className="py-1.5">
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="w-4 h-4 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
+                                      <img src={getTeamLogo(p.playerTeam)} alt={p.playerTeam} className="w-3 h-3 object-contain" />
+                                    </div>
+                                    <span className="text-gray-200 truncate">{p.playerName}</span>
+                                  </div>
+                                </td>
+                                <td className="text-center text-accent-400 font-bold">{p.acquisitionPrice}</td>
+                                <td className="text-center text-white">{p.contract?.salary ?? '-'}</td>
+                                <td className="text-center text-white">{p.contract?.duration ?? '-'}</td>
+                                <td className="text-center text-primary-400">{p.contract?.rescissionClause ?? '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <p className="text-gray-600 italic text-sm ml-8">Nessuno</p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )
