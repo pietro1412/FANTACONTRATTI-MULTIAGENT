@@ -767,6 +767,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                     </th>
                   )}
                   <th className="text-center p-2 text-primary-400 font-bold border-l border-surface-50/20">Premio Tot.</th>
+                  <th className="text-center p-2 text-emerald-400 font-bold border-l border-surface-50/20">Budget Tot.</th>
                 </tr>
               </thead>
               <tbody>
@@ -820,13 +821,13 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                       }
 
                       const handleIncrement = () => {
-                        const newValue = savedValue + 5
+                        const newValue = savedValue + 1
                         handlePrizeChange(cat.id, member.id, newValue)
                         handleSavePrize(cat.id, member.id, newValue)
                       }
 
                       const handleDecrement = () => {
-                        const newValue = Math.max(0, savedValue - 5)
+                        const newValue = Math.max(0, savedValue - 1)
                         handlePrizeChange(cat.id, member.id, newValue)
                         handleSavePrize(cat.id, member.id, newValue)
                       }
@@ -879,6 +880,11 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                         {calculateMemberTotal(member.id)}M
                       </span>
                     </td>
+                    <td className="text-center p-2 border-l border-surface-50/20">
+                      <span className="text-emerald-400 font-bold text-lg">
+                        {member.currentBudget + calculateMemberTotal(member.id)}M
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -905,9 +911,13 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                 </div>
 
                 {/* Budget */}
-                <div className="flex items-center justify-between mb-3 text-sm">
+                <div className="flex items-center justify-between mb-2 text-sm">
                   <span className="text-gray-400">Budget attuale:</span>
                   <span className="text-accent-400 font-medium">{member.currentBudget}M</span>
+                </div>
+                <div className="flex items-center justify-between mb-3 text-sm">
+                  <span className="text-gray-400">Budget totale:</span>
+                  <span className="text-emerald-400 font-bold">{member.currentBudget + calculateMemberTotal(member.id)}M</span>
                 </div>
 
                 {/* Prizes */}
@@ -925,7 +935,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => {
-                                const newValue = Math.max(0, savedValue - 5)
+                                const newValue = Math.max(0, savedValue - 1)
                                 handlePrizeChange(cat.id, member.id, newValue)
                                 handleSavePrize(cat.id, member.id, newValue)
                               }}
@@ -935,7 +945,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                             <span className="w-14 text-center text-white font-medium">{savedValue}M</span>
                             <button
                               onClick={() => {
-                                const newValue = savedValue + 5
+                                const newValue = savedValue + 1
                                 handlePrizeChange(cat.id, member.id, newValue)
                                 handleSavePrize(cat.id, member.id, newValue)
                               }}

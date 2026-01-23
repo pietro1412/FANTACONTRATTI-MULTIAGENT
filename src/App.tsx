@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -169,7 +169,13 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'allRosters':
       case 'rosters': navigate(`/leagues/${lid}/rose`); break
       case 'contracts': navigate(`/leagues/${lid}/contracts`); break
-      case 'trades': navigate(`/leagues/${lid}/trades`); break
+      case 'trades':
+        if (params?.highlight) {
+          navigate(`/leagues/${lid}/trades`, { state: { highlight: params.highlight } })
+        } else {
+          navigate(`/leagues/${lid}/trades`)
+        }
+        break
       case 'rubata': navigate(`/leagues/${lid}/rubata`); break
       case 'strategie-rubata': navigate(`/leagues/${lid}/strategie-rubata`); break
       case 'svincolati': navigate(`/leagues/${lid}/svincolati`); break
@@ -240,11 +246,15 @@ function IndemnityWrapper() {
 
 function TradesWrapper() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { leagueId } = useParams<{ leagueId: string }>()
   const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
 
+  // Extract highlight parameter from location state
+  const highlightOfferId = (location.state as { highlight?: string } | null)?.highlight
+
   if (!leagueId) return <Navigate to="/dashboard" replace />
-  return <Trades leagueId={leagueId} onNavigate={onNavigate} />
+  return <Trades leagueId={leagueId} onNavigate={onNavigate} highlightOfferId={highlightOfferId} />
 }
 
 function RubataWrapper() {

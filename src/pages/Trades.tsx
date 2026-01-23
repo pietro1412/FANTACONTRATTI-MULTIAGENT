@@ -9,6 +9,7 @@ import { ContractModifierModal, type PlayerInfo, type ContractData } from '../co
 interface TradesProps {
   leagueId: string
   onNavigate: (page: string, params?: Record<string, string>) => void
+  highlightOfferId?: string
 }
 
 interface PlayerContract {
@@ -232,9 +233,11 @@ function PlayersTable({ players }: { players: Player[] }) {
   )
 }
 
-export function Trades({ leagueId, onNavigate }: TradesProps) {
+export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) {
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'received' | 'sent' | 'create' | 'history'>('create')
+  // If we have a highlighted offer, start on 'received' tab
+  const [activeTab, setActiveTab] = useState<'received' | 'sent' | 'create' | 'history'>(highlightOfferId ? 'received' : 'create')
+  const [highlightedOfferId, setHighlightedOfferId] = useState<string | undefined>(highlightOfferId)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
 
   // Data
@@ -287,6 +290,21 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
   useEffect(() => {
     loadData()
   }, [leagueId])
+
+  // Scroll to highlighted offer and clear highlight after a few seconds
+  useEffect(() => {
+    if (highlightedOfferId && !isLoading) {
+      const element = document.getElementById(`offer-${highlightedOfferId}`)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+      // Clear highlight after 5 seconds
+      const timer = setTimeout(() => {
+        setHighlightedOfferId(undefined)
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [highlightedOfferId, isLoading])
 
   async function loadData() {
     setIsLoading(true)
@@ -532,22 +550,10 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
   async function handleAccept(tradeId: string) {
     const res = await tradeApi.accept(tradeId)
     if (res.success) {
-      // Check if we received players that can have their contracts modified
-      const data = res.data as { receivedPlayers?: ReceivedPlayerForModification[] } | undefined
-      const receivedPlayers = data?.receivedPlayers || []
-
-      // Filter to only players with contracts (they should all have contracts)
-      const playersWithContracts = receivedPlayers.filter(p => p.contract && p.contractId)
-
-      if (playersWithContracts.length > 0) {
-        // Start contract modification flow
-        setPendingContractModifications(playersWithContracts)
-        setCurrentModificationIndex(0)
-        setIsModifyingContract(true)
-      } else {
-        // No players to modify, just reload
-        loadData()
-      }
+      // #135: I contratti dei giocatori ricevuti NON vengono modificati
+      // Il contratto rimane quello originale - la modifica avverrà nella fase CONTRATTI
+      setSuccess('Scambio accettato! I contratti dei giocatori ricevuti saranno modificabili nella fase di rinnovo contratti.')
+      loadData()
     } else {
       alert(res.message || 'Errore')
     }
@@ -700,8 +706,13 @@ export function Trades({ leagueId, onNavigate }: TradesProps) {
             ) : (
               receivedOffers.map(offer => {
                 const timeRemaining = getTimeRemaining(offer.expiresAt)
+                const isHighlighted = offer.id === highlightedOfferId
                 return (
-                <Card key={offer.id} className="overflow-hidden border-l-4 border-l-accent-500">
+                <Card
+                  key={offer.id}
+                  id={`offer-${offer.id}`}
+                  className={`overflow-hidden border-l-4 ${isHighlighted ? 'border-l-primary-500 ring-2 ring-primary-500/50 bg-primary-500/5' : 'border-l-accent-500'}`}
+                >
                   {/* Header */}
                   <div className="bg-gradient-to-r from-surface-200 to-transparent px-5 py-4 flex justify-between items-center">
                     <div className="flex items-center gap-3">
