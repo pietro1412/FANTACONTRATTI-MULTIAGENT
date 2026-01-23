@@ -414,6 +414,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   // Ref for current player row/card to scroll into view
   const currentPlayerRef = useRef<HTMLElement>(null)
 
+  // Track if current player is visible in viewport (for "scroll to current" button)
+  const [isCurrentPlayerVisible, setIsCurrentPlayerVisible] = useState(true)
+
   // Track if timers have been initialized (to avoid overwriting user changes)
   const timersInitialized = useRef(false)
 
@@ -443,6 +446,35 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
       currentPlayerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   }, [boardData?.currentIndex])
+
+  // IntersectionObserver to track if current player is visible
+  useEffect(() => {
+    const currentEl = currentPlayerRef.current
+    if (!currentEl) {
+      setIsCurrentPlayerVisible(true)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsCurrentPlayerVisible(entry.isIntersecting)
+      },
+      { threshold: 0.1 } // Consider visible if at least 10% is showing
+    )
+
+    observer.observe(currentEl)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [boardData?.currentIndex, boardData?.board])
+
+  // Function to scroll to current player (for floating button)
+  const scrollToCurrentPlayer = () => {
+    if (currentPlayerRef.current) {
+      currentPlayerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }
 
   // Track auction ID to avoid showing duplicate modals (keeping for future use)
   useEffect(() => {
@@ -2928,6 +2960,25 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
           </div>
         )}
 
+
+        {/* Floating "Scroll to Current Player" Button - Bottom Left */}
+        {isRubataPhase && isOrderSet && !isCurrentPlayerVisible && currentPlayer && (
+          <button
+            onClick={scrollToCurrentPlayer}
+            className="fixed bottom-4 left-4 z-50 flex items-center gap-2 px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-full shadow-lg transition-all animate-pulse hover:animate-none"
+            title={`Torna a ${currentPlayer.playerName}`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+            </svg>
+            <span className="text-sm font-medium hidden sm:inline">
+              Torna a {currentPlayer.playerName.split(' ').pop()}
+            </span>
+            <span className="text-sm font-medium sm:hidden">
+              ↑ Player
+            </span>
+          </button>
+        )}
 
         {/* Floating Chat - Bottom Right */}
         {isRubataPhase && isOrderSet && sessionId && (
