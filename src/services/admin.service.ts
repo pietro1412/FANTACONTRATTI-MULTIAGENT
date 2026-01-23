@@ -1,4 +1,5 @@
 import { PrismaClient, MemberStatus, ProphecyRole, Prisma } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -665,5 +666,118 @@ export async function getMembersForPrizes(
       username: m.user.username,
       currentBudget: m.currentBudget,
     })),
+  }
+}
+
+// ==================== COMPLETE LEAGUE WITH TEST USERS ====================
+
+export async function completeLeagueWithTestUsers(
+  leagueId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  // Verify admin
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  // Get league info
+  const league = await prisma.league.findUnique({
+    where: { id: leagueId },
+  })
+
+  if (!league) {
+    return { success: false, message: 'Lega non trovata' }
+  }
+
+  // Count current active members
+  const currentMembers = await prisma.leagueMember.count({
+    where: {
+      leagueId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  const targetMembers = 8
+  const membersNeeded = targetMembers - currentMembers
+
+  if (membersNeeded <= 0) {
+    return { success: false, message: 'La lega ha già 8 o più manager' }
+  }
+
+  // Hash password
+  const passwordHash = await bcrypt.hash('Password123!', 10)
+
+  const addedUsers: string[] = []
+
+  for (let i = 1; addedUsers.length < membersNeeded && i <= 20; i++) {
+    const email = `test${i}@test.com`
+    const username = `test${i}`
+
+    // Check if user already exists
+    let user = await prisma.user.findUnique({
+      where: { email },
+    })
+
+    if (!user) {
+      // Create user
+      user = await prisma.user.create({
+        data: {
+          email,
+          username,
+          passwordHash,
+          emailVerified: true,
+        },
+      })
+    }
+
+    // Check if user is already a member of this league
+    const existingMembership = await prisma.leagueMember.findFirst({
+      where: {
+        leagueId,
+        userId: user.id,
+      },
+    })
+
+    if (existingMembership) {
+      // User is already in this league, skip
+      continue
+    }
+
+    // Add user to league
+    await prisma.leagueMember.create({
+      data: {
+        leagueId,
+        userId: user.id,
+        role: 'MANAGER',
+        status: MemberStatus.ACTIVE,
+        currentBudget: league.initialBudget,
+        teamName: `Team ${username}`,
+      },
+    })
+
+    addedUsers.push(username)
+  }
+
+  if (addedUsers.length === 0) {
+    return { success: false, message: 'Nessun utente test disponibile da aggiungere' }
+  }
+
+  return {
+    success: true,
+    message: `Aggiunti ${addedUsers.length} manager di test: ${addedUsers.join(', ')}`,
+    data: {
+      addedCount: addedUsers.length,
+      addedUsers,
+      totalMembers: currentMembers + addedUsers.length,
+    },
   }
 }

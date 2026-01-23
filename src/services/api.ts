@@ -1065,6 +1065,12 @@ export const adminApi = {
       method: 'POST',
       body: JSON.stringify({ memberId, amount, reason }),
     }),
+
+  // Complete league with test users (Admin)
+  completeWithTestUsers: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/admin/complete-with-test-users`, {
+      method: 'POST',
+    }),
 }
 
 // Movement API (Storico Movimenti)

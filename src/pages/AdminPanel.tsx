@@ -423,6 +423,21 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     setIsSubmitting(false)
   }
 
+  async function handleCompleteWithTestUsers() {
+    setError('')
+    setSuccess('')
+    setIsSubmitting(true)
+
+    const res = await adminApi.completeWithTestUsers(leagueId)
+    if (res.success) {
+      setSuccess(res.message || 'Manager di test aggiunti!')
+      loadData()
+    } else {
+      setError(res.message || 'Errore nell\'aggiunta dei manager di test')
+    }
+    setIsSubmitting(false)
+  }
+
   function exportToExcel() {
     const headers = ['Username', 'Team', 'Ruolo', 'Stato', 'Budget']
     const rows = members.map(m => [
@@ -971,8 +986,19 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
             )}
 
             <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
-              <div className="p-5 border-b border-surface-50/20">
+              <div className="p-5 border-b border-surface-50/20 flex items-center justify-between">
                 <h3 className="text-xl font-bold text-white">Membri Attivi ({activeMembers.length})</h3>
+                {activeMembers.length < 8 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCompleteWithTestUsers}
+                    disabled={isSubmitting}
+                    className="border-purple-500/50 text-purple-400"
+                  >
+                    {isSubmitting ? 'Aggiungendo...' : `Completa a 8 manager (+${8 - activeMembers.length} test)`}
+                  </Button>
+                )}
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
