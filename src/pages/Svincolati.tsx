@@ -418,7 +418,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     setSelectedManager(null)
 
     try {
-      const res = await leagueApi.getMemberRoster(leagueId, member.id)
+      const res = await auctionApi.getMemberRoster(leagueId, member.id)
       if (res.success && res.data) {
         const rosterData = res.data as ManagerRosterPlayer[]
 
