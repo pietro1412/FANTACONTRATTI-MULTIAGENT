@@ -1072,6 +1072,14 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     <span className={`font-medium flex-1 text-sm sm:text-base leading-tight ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-white'}`}>
                       {contract.roster.player.name}
                     </span>
+                    {contract.canSpalmare && !isMarkedForRelease && (
+                      <span
+                        className="px-1.5 py-0.5 bg-warning-500/20 border border-warning-500/40 rounded text-warning-400 text-[10px] font-bold"
+                        title={`Spalma disponibile: Nuovo Ing. × Nuova Dur. ≥ ${contract.initialSalary}M`}
+                      >
+                        SPALMA
+                      </span>
+                    )}
                     {isMarkedForRelease && (
                       <span className="text-danger-400 text-[10px] font-bold">DA TAGLIARE</span>
                     )}
@@ -1095,6 +1103,20 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                       </div>
                     </div>
                   </div>
+
+                  {/* Spalma info box (mobile) */}
+                  {contract.canSpalmare && contract.canRenew && inContrattiPhase && !isConsolidated && !isMarkedForRelease && (
+                    <div className="bg-warning-500/10 border border-warning-500/30 rounded-lg p-2 mb-3">
+                      <div className="flex items-center gap-2 text-warning-400 text-xs font-medium mb-1">
+                        <span>💡</span>
+                        <span>Spalma disponibile</span>
+                      </div>
+                      <p className="text-gray-400 text-[11px]">
+                        Puoi ridurre l'ingaggio allungando la durata. <br/>
+                        <span className="text-white">Regola:</span> Nuovo Ing. × Nuova Dur. ≥ <span className="text-warning-400 font-bold">{contract.initialSalary}M</span>
+                      </p>
+                    </div>
+                  )}
 
                   {/* Renewal inputs (only if can renew) */}
                   {contract.canRenew && inContrattiPhase && !isConsolidated && (
@@ -1221,6 +1243,14 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                             <span className={`font-medium text-sm leading-tight ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-white'}`}>
                               {contract.roster.player.name}
                             </span>
+                            {contract.canSpalmare && !isMarkedForRelease && (
+                              <span
+                                className="px-1.5 py-0.5 bg-warning-500/20 border border-warning-500/40 rounded text-warning-400 text-[10px] font-bold cursor-help"
+                                title={`Spalma disponibile: Nuovo Ing. × Nuova Dur. ≥ ${contract.initialSalary}M`}
+                              >
+                                SPALMA
+                              </span>
+                            )}
                             {isMarkedForRelease && (
                               <span className="text-danger-400 text-xs font-medium">DA TAGLIARE</span>
                             )}
