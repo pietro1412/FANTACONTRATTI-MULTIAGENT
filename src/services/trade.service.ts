@@ -453,7 +453,10 @@ export async function acceptTrade(tradeId: string, userId: string): Promise<Serv
     for (const rosterId of offeredPlayerIds) {
       await tx.playerRoster.update({
         where: { id: rosterId },
-        data: { leagueMemberId: receiverMember.id },
+        data: {
+          leagueMemberId: receiverMember.id,
+          acquisitionType: 'TRADE', // Mark as acquired via trade - contract cannot be modified
+        },
       })
       // Update contract ownership
       await tx.playerContract.updateMany({
@@ -466,7 +469,10 @@ export async function acceptTrade(tradeId: string, userId: string): Promise<Serv
     for (const rosterId of requestedPlayerIds) {
       await tx.playerRoster.update({
         where: { id: rosterId },
-        data: { leagueMemberId: senderMember.id },
+        data: {
+          leagueMemberId: senderMember.id,
+          acquisitionType: 'TRADE', // Mark as acquired via trade - contract cannot be modified
+        },
       })
       // Update contract ownership
       await tx.playerContract.updateMany({

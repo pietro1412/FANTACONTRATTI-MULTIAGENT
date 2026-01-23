@@ -354,6 +354,11 @@ export async function renewContract(
     return { success: false, message: 'Non sei il proprietario di questo contratto' }
   }
 
+  // Block contract modification for players acquired via trade
+  if (contract.roster.acquisitionType === 'TRADE') {
+    return { success: false, message: 'Non puoi modificare il contratto di un giocatore acquisito tramite scambio' }
+  }
+
   // Check if in CONTRATTI phase
   const inContrattiPhase = await isInContrattiPhase(contract.roster.leagueMember.leagueId)
   if (!inContrattiPhase) {
