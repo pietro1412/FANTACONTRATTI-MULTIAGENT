@@ -1080,12 +1080,21 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                       {contract.roster.player.name}
                     </span>
                     {contract.canSpalmare && !isMarkedForRelease && (
-                      <span
-                        className="px-1.5 py-0.5 bg-warning-500/20 border border-warning-500/40 rounded text-warning-400 text-[10px] font-bold"
-                        title={`Spalma disponibile: Nuovo Ing. × Nuova Dur. ≥ ${contract.initialSalary}M`}
-                      >
-                        SPALMA
-                      </span>
+                      newSalary < contract.salary ? (
+                        <span
+                          className="px-1.5 py-0.5 bg-secondary-500/20 border border-secondary-500/40 rounded text-secondary-400 text-[10px] font-bold"
+                          title={`Spalma applicato: ${newSalary}M × ${newDuration}s = ${newSalary * newDuration} ≥ ${contract.initialSalary}`}
+                        >
+                          SPALMATO
+                        </span>
+                      ) : (
+                        <span
+                          className="px-1.5 py-0.5 bg-warning-500/20 border border-warning-500/40 rounded text-warning-400 text-[10px] font-bold"
+                          title={`Spalma disponibile: Nuovo Ing. × Nuova Dur. ≥ ${contract.initialSalary}M`}
+                        >
+                          SPALMABILE
+                        </span>
+                      )
                     )}
                     {isMarkedForRelease && (
                       <span className="text-danger-400 text-[10px] font-bold">DA TAGLIARE</span>
@@ -1263,12 +1272,21 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                               {contract.roster.player.name}
                             </span>
                             {contract.canSpalmare && !isMarkedForRelease && (
-                              <span
-                                className="px-1.5 py-0.5 bg-warning-500/20 border border-warning-500/40 rounded text-warning-400 text-[10px] font-bold cursor-help"
-                                title={`Spalma disponibile: Nuovo Ing. × Nuova Dur. ≥ ${contract.initialSalary}M`}
-                              >
-                                SPALMA
-                              </span>
+                              newSalary < contract.salary ? (
+                                <span
+                                  className="px-1.5 py-0.5 bg-secondary-500/20 border border-secondary-500/40 rounded text-secondary-400 text-[10px] font-bold cursor-help"
+                                  title={`Spalma applicato: ${newSalary}M × ${newDuration}s = ${newSalary * newDuration} ≥ ${contract.initialSalary}`}
+                                >
+                                  SPALMATO
+                                </span>
+                              ) : (
+                                <span
+                                  className="px-1.5 py-0.5 bg-warning-500/20 border border-warning-500/40 rounded text-warning-400 text-[10px] font-bold cursor-help"
+                                  title={`Spalma disponibile: Nuovo Ing. × Nuova Dur. ≥ ${contract.initialSalary}M`}
+                                >
+                                  SPALMABILE
+                                </span>
+                              )
                             )}
                             {isMarkedForRelease && (
                               <span className="text-danger-400 text-xs font-medium">DA TAGLIARE</span>
