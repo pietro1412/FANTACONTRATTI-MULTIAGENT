@@ -201,7 +201,7 @@ export const PUSHER_EVENTS = {
  * Generic trigger function with error handling
  * Logs errors but doesn't throw to prevent breaking the main flow
  */
-async function triggerEvent<T>(
+async function triggerEvent<T extends object>(
   sessionId: string,
   event: string,
   data: T
@@ -213,7 +213,12 @@ async function triggerEvent<T>(
 
   try {
     const channel = getAuctionChannel(sessionId)
-    await pusher.trigger(channel, event, data)
+    // Enrich all events with serverTimestamp for client clock synchronization
+    const enrichedData = {
+      ...data,
+      serverTimestamp: Date.now()
+    }
+    await pusher.trigger(channel, event, enrichedData)
     console.log(`[Pusher] Event '${event}' triggered on channel '${channel}'`)
     return true
   } catch (error) {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { auctionApi, playerApi, firstMarketApi, adminApi, contractApi } from '../services/api'
 import { usePusherAuction } from '../services/pusher.client'
+import { useServerTime } from '../hooks/useServerTime'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Navigation } from '../components/Navigation'
@@ -303,6 +304,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
   const [timerSetting, setTimerSetting] = useState(30)
 
+  // Server time synchronization for accurate timer display
+  const { getRemainingSeconds, isCalibrating: isTimeSyncing, error: timeSyncError, offset: serverTimeOffset } = useServerTime()
+
   const [firstMarketStatus, setFirstMarketStatus] = useState<FirstMarketStatus | null>(null)
   const [turnOrderDraft, setTurnOrderDraft] = useState<string[]>([])
 
@@ -567,8 +571,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     let hasTriggeredZero = false
     let lastWarningAt: number | null = null
     const updateTimer = () => {
-      const expiresAt = new Date(auction.timerExpiresAt!).getTime()
-      const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000))
+      // Use server-synchronized time for accurate countdown
+      const remaining = getRemainingSeconds(auction.timerExpiresAt)
       setTimeLeft(remaining)
 
       // Haptic feedback for timer warnings (only trigger once per threshold)
@@ -620,7 +624,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     updateTimer()
     const interval = setInterval(updateTimer, 1000)
     return () => clearInterval(interval)
-  }, [auction?.timerExpiresAt, loadCurrentAuction, loadPendingAcknowledgment])
+  }, [auction?.timerExpiresAt, loadCurrentAuction, loadPendingAcknowledgment, getRemainingSeconds])
 
   useEffect(() => {
     loadCurrentAuction()
@@ -630,7 +634,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     loadMyRosterSlots()
     loadManagersStatus()
     loadTeams()
-    // Polling at 10s as fallback - real-time updates come from Pusher
+    // Polling at 3s as fallback - real-time updates come from Pusher
     const interval = setInterval(() => {
       loadCurrentAuction()
       loadFirstMarketStatus()
@@ -638,15 +642,15 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       loadReadyStatus()
       loadMyRosterSlots()
       loadManagersStatus()
-    }, 10000)
+    }, 3000)
     return () => clearInterval(interval)
   }, [loadCurrentAuction, loadFirstMarketStatus, loadPendingAcknowledgment, loadReadyStatus, loadMyRosterSlots, loadManagersStatus, loadTeams])
 
   // Carica stato ricorso quando cambia pendingAck
   useEffect(() => {
     loadAppealStatus()
-    // Polling at 10s as fallback - real-time updates come from Pusher
-    const interval = setInterval(loadAppealStatus, 10000)
+    // Polling at 3s as fallback - real-time updates come from Pusher
+    const interval = setInterval(loadAppealStatus, 3000)
     return () => clearInterval(interval)
   }, [loadAppealStatus])
 
