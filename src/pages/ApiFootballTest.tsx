@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 
 // API-Football v3 endpoints configuration
 const API_BASE_URL = 'https://v3.football.api-sports.io'
@@ -481,12 +481,95 @@ interface ApiResult {
   responseTime?: number
 }
 
+type ViewMode = 'json' | 'table'
+
+// Helper to flatten nested objects for table display
+function flattenObject(obj: unknown, prefix = ''): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+
+  if (obj === null || obj === undefined) {
+    return { [prefix || 'value']: obj }
+  }
+
+  if (typeof obj !== 'object') {
+    return { [prefix || 'value']: obj }
+  }
+
+  if (Array.isArray(obj)) {
+    return { [prefix || 'value']: `[Array(${obj.length})]` }
+  }
+
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    const newKey = prefix ? `${prefix}.${key}` : key
+
+    if (value === null || value === undefined) {
+      result[newKey] = value
+    } else if (typeof value === 'object' && !Array.isArray(value)) {
+      // Flatten one level deep
+      const nested = value as Record<string, unknown>
+      for (const [nestedKey, nestedValue] of Object.entries(nested)) {
+        if (typeof nestedValue === 'object' && nestedValue !== null) {
+          if (Array.isArray(nestedValue)) {
+            result[`${newKey}.${nestedKey}`] = `[Array(${nestedValue.length})]`
+          } else {
+            result[`${newKey}.${nestedKey}`] = '{...}'
+          }
+        } else {
+          result[`${newKey}.${nestedKey}`] = nestedValue
+        }
+      }
+    } else if (Array.isArray(value)) {
+      result[newKey] = `[Array(${value.length})]`
+    } else {
+      result[newKey] = value
+    }
+  }
+
+  return result
+}
+
+// Extract table data from API response
+function extractTableData(data: unknown): { headers: string[]; rows: Record<string, unknown>[] } | null {
+  if (!data || typeof data !== 'object') return null
+
+  const apiResponse = data as { response?: unknown }
+
+  // API-Football responses have a "response" array
+  if (apiResponse.response && Array.isArray(apiResponse.response)) {
+    const responseArray = apiResponse.response as unknown[]
+    if (responseArray.length === 0) return { headers: [], rows: [] }
+
+    // Flatten each item
+    const flattenedRows = responseArray.map(item => flattenObject(item))
+
+    // Get all unique headers
+    const headersSet = new Set<string>()
+    flattenedRows.forEach(row => {
+      Object.keys(row).forEach(key => headersSet.add(key))
+    })
+
+    const headers = Array.from(headersSet).sort()
+    return { headers, rows: flattenedRows }
+  }
+
+  // If it's a single object response (like team statistics)
+  if (apiResponse.response && typeof apiResponse.response === 'object' && !Array.isArray(apiResponse.response)) {
+    const flattened = flattenObject(apiResponse.response)
+    const headers = Object.keys(flattened).sort()
+    return { headers, rows: [flattened] }
+  }
+
+  return null
+}
+
 export default function ApiFootballTest() {
   const [apiKey, setApiKey] = useState('')
   const [selectedEndpoint, setSelectedEndpoint] = useState<ApiEndpoint | null>(null)
   const [paramValues, setParamValues] = useState<Record<string, string>>({})
   const [results, setResults] = useState<ApiResult[]>([])
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(CATEGORIES))
+  const [viewMode, setViewMode] = useState<ViewMode>('table')
+  const [expandedResults, setExpandedResults] = useState<Set<number>>(new Set([0]))
 
   const toggleCategory = (category: string) => {
     setExpandedCategories(prev => {
@@ -495,6 +578,18 @@ export default function ApiFootballTest() {
         next.delete(category)
       } else {
         next.add(category)
+      }
+      return next
+    })
+  }
+
+  const toggleResultExpanded = (index: number) => {
+    setExpandedResults(prev => {
+      const next = new Set(prev)
+      if (next.has(index)) {
+        next.delete(index)
+      } else {
+        next.add(index)
       }
       return next
     })
@@ -534,6 +629,7 @@ export default function ApiFootballTest() {
       data: null
     }
     setResults(prev => [newResult, ...prev])
+    setExpandedResults(prev => new Set([0, ...Array.from(prev).map(i => i + 1)]))
 
     try {
       const response = await fetch(url, {
@@ -574,7 +670,10 @@ export default function ApiFootballTest() {
     }
   }, [selectedEndpoint, apiKey, paramValues])
 
-  const clearResults = () => setResults([])
+  const clearResults = () => {
+    setResults([])
+    setExpandedResults(new Set([0]))
+  }
 
   const renderValue = (value: unknown, depth = 0): JSX.Element => {
     if (value === null) return <span className="text-gray-500">null</span>
@@ -616,6 +715,83 @@ export default function ApiFootballTest() {
 
     return <span>{String(value)}</span>
   }
+
+  const renderCellValue = (value: unknown): string => {
+    if (value === null) return 'null'
+    if (value === undefined) return '-'
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+    if (typeof value === 'object') return JSON.stringify(value)
+    return String(value)
+  }
+
+  const TableView = useMemo(() => {
+    return ({ data }: { data: unknown }) => {
+      const tableData = extractTableData(data)
+
+      if (!tableData) {
+        return <div className="text-gray-500 text-sm">Unable to display as table</div>
+      }
+
+      if (tableData.rows.length === 0) {
+        return <div className="text-gray-500 text-sm">No data in response</div>
+      }
+
+      // API info from response
+      const apiResponse = data as { results?: number; paging?: { current: number; total: number } }
+
+      return (
+        <div>
+          {/* Response meta info */}
+          <div className="flex items-center gap-4 mb-2 text-xs text-gray-400">
+            {apiResponse.results !== undefined && (
+              <span>Results: <span className="text-green-400">{apiResponse.results}</span></span>
+            )}
+            {apiResponse.paging && (
+              <span>Page: <span className="text-green-400">{apiResponse.paging.current}/{apiResponse.paging.total}</span></span>
+            )}
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto max-h-96">
+            <table className="min-w-full text-xs">
+              <thead className="bg-gray-800 sticky top-0">
+                <tr>
+                  <th className="px-2 py-1 text-left text-gray-400 font-medium border-b border-gray-700">#</th>
+                  {tableData.headers.map(header => (
+                    <th
+                      key={header}
+                      className="px-2 py-1 text-left text-gray-400 font-medium border-b border-gray-700 whitespace-nowrap"
+                    >
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {tableData.rows.map((row, rowIndex) => (
+                  <tr
+                    key={rowIndex}
+                    className={rowIndex % 2 === 0 ? 'bg-gray-900/50' : 'bg-gray-800/30'}
+                  >
+                    <td className="px-2 py-1 text-gray-500 border-b border-gray-800">{rowIndex + 1}</td>
+                    {tableData.headers.map(header => (
+                      <td
+                        key={header}
+                        className="px-2 py-1 text-gray-300 border-b border-gray-800 max-w-xs truncate"
+                        title={renderCellValue(row[header])}
+                      >
+                        {renderCellValue(row[header])}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -700,7 +876,7 @@ export default function ApiFootballTest() {
                 {selectedEndpoint.params.length === 0 ? (
                   <p className="text-gray-500 text-sm">No parameters required</p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-3 max-h-[45vh] overflow-y-auto">
                     {selectedEndpoint.params.map(param => (
                       <div key={param.name}>
                         <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -737,14 +913,35 @@ export default function ApiFootballTest() {
           <div className="bg-gray-800 rounded-lg p-4 max-h-[70vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-gray-200">Results</h2>
-              {results.length > 0 && (
-                <button
-                  onClick={clearResults}
-                  className="text-xs text-red-400 hover:text-red-300"
-                >
-                  Clear All
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {/* View Mode Toggle */}
+                <div className="flex bg-gray-700 rounded overflow-hidden">
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`px-3 py-1 text-xs font-medium transition-colors ${
+                      viewMode === 'table' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Table
+                  </button>
+                  <button
+                    onClick={() => setViewMode('json')}
+                    className={`px-3 py-1 text-xs font-medium transition-colors ${
+                      viewMode === 'json' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    JSON
+                  </button>
+                </div>
+                {results.length > 0 && (
+                  <button
+                    onClick={clearResults}
+                    className="text-xs text-red-400 hover:text-red-300"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
 
             {results.length === 0 ? (
@@ -754,34 +951,54 @@ export default function ApiFootballTest() {
                 {results.map((result, index) => (
                   <div
                     key={index}
-                    className={`p-3 rounded border ${
+                    className={`rounded border ${
                       result.status === 'loading' ? 'border-yellow-500 bg-yellow-900/20' :
                       result.status === 'success' ? 'border-green-500 bg-green-900/20' :
                       result.status === 'error' ? 'border-red-500 bg-red-900/20' :
                       'border-gray-600 bg-gray-700/50'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-mono text-gray-400 truncate max-w-[80%]">
+                    {/* Result Header - Clickable */}
+                    <button
+                      onClick={() => toggleResultExpanded(index)}
+                      className="w-full flex items-center justify-between p-3 text-left"
+                    >
+                      <span className="text-xs font-mono text-gray-400 truncate max-w-[70%]">
                         {result.endpoint}
                       </span>
-                      <span className={`text-xs font-medium ${
-                        result.status === 'loading' ? 'text-yellow-400' :
-                        result.status === 'success' ? 'text-green-400' :
-                        'text-red-400'
-                      }`}>
-                        {result.status === 'loading' ? 'Loading...' :
-                         result.responseTime ? `${result.responseTime}ms` : ''}
-                      </span>
-                    </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-medium ${
+                          result.status === 'loading' ? 'text-yellow-400' :
+                          result.status === 'success' ? 'text-green-400' :
+                          'text-red-400'
+                        }`}>
+                          {result.status === 'loading' ? 'Loading...' :
+                          result.responseTime ? `${result.responseTime}ms` : ''}
+                        </span>
+                        <span className="text-gray-500">
+                          {expandedResults.has(index) ? '▼' : '▶'}
+                        </span>
+                      </div>
+                    </button>
 
-                    {result.error && (
-                      <div className="text-red-400 text-sm mb-2">{result.error}</div>
-                    )}
+                    {/* Result Content - Expandable */}
+                    {expandedResults.has(index) && (
+                      <div className="px-3 pb-3 border-t border-gray-700/50">
+                        {result.error && (
+                          <div className="text-red-400 text-sm mt-2">{result.error}</div>
+                        )}
 
-                    {result.data && (
-                      <div className="text-xs font-mono bg-gray-900 rounded p-2 max-h-60 overflow-auto">
-                        {renderValue(result.data)}
+                        {result.data && (
+                          <div className="mt-2">
+                            {viewMode === 'table' ? (
+                              <TableView data={result.data} />
+                            ) : (
+                              <div className="text-xs font-mono bg-gray-900 rounded p-2 max-h-60 overflow-auto">
+                                {renderValue(result.data)}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
