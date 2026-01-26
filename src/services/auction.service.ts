@@ -1129,6 +1129,17 @@ export async function placeBid(
     return { success: false, message: 'Asta non attiva' }
   }
 
+  // Verifica timer non scaduto (controllo server-side autoritativo)
+  const serverNow = new Date()
+  if (auction.timerExpiresAt && serverNow > auction.timerExpiresAt) {
+    console.log(`[PLACEBID] Bid rifiutata: timer scaduto. Server: ${serverNow.toISOString()}, Expiry: ${auction.timerExpiresAt.toISOString()}`)
+    return {
+      success: false,
+      message: 'Tempo scaduto - asta chiusa',
+      data: { reason: 'TIMER_EXPIRED' }
+    }
+  }
+
   // Get member
   const t2 = Date.now()
   const member = await prisma.leagueMember.findFirst({
@@ -1239,6 +1250,8 @@ export async function placeBid(
       playerId: auction.playerId,
       playerName: auction.player.name,
       timestamp: new Date().toISOString(),
+      timerExpiresAt: newTimerExpires.toISOString(),
+      timerSeconds: timerSeconds,
     })
   }
   console.log(`[PLACEBID-TIMING] Pusher trigger (fire&forget): ${Date.now() - tPusher}ms`)

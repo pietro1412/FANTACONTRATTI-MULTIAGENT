@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { auctionApi, playerApi, firstMarketApi, adminApi, contractApi } from '../services/api'
 import { usePusherAuction } from '../services/pusher.client'
+import { useServerTime } from '../hooks/useServerTime'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Navigation } from '../components/Navigation'
@@ -9,6 +10,27 @@ import { getTeamLogo } from '../utils/teamLogos'
 import haptic from '../utils/haptics'
 import { POSITION_GRADIENTS, POSITION_FILTER_COLORS, POSITION_NAMES } from '../components/ui/PositionBadge'
 import { ContractModifierModal } from '../components/ContractModifier'
+/**
+ * NUOVO COMPONENTE TIMER v2 - 24/01/2026
+ * Per rollback: rimuovere questo import e ripristinare il vecchio timer inline
+ * (cercare "OLD_TIMER_START" e "OLD_TIMER_END" nei commenti)
+ */
+import { AuctionTimer } from '../components/AuctionTimer'
+/**
+ * LAYOUT ASTA v2 - Layouts alternativi - 24/01/2026
+ * Per rollback: rimuovere questi import e il selettore, mantenere solo layout classic
+ */
+import {
+  AuctionLayoutSelector,
+  useAuctionLayout,
+  LayoutA,
+  LayoutB,
+  LayoutC,
+  LayoutD,
+  LayoutE,
+  LayoutF
+} from '../components/auction'
+import type { AuctionLayout, ManagerData as LayoutManagerData } from '../components/auction/types'
 import {
   DndContext,
   closestCenter,
@@ -303,6 +325,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
   const [timerSetting, setTimerSetting] = useState(30)
 
+  // Server time synchronization for accurate timer display
+  const { getRemainingSeconds, isCalibrating: isTimeSyncing, error: timeSyncError, offset: serverTimeOffset } = useServerTime()
+
   const [firstMarketStatus, setFirstMarketStatus] = useState<FirstMarketStatus | null>(null)
   const [turnOrderDraft, setTurnOrderDraft] = useState<string[]>([])
 
@@ -321,6 +346,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   const [selectedManager, setSelectedManager] = useState<ManagerData | null>(null)
 
   const [appealStatus, setAppealStatus] = useState<AppealStatus | null>(null)
+
+  // Layout asta - Nuovo selettore layout 24/01/2026
+  const [auctionLayout, setAuctionLayout] = useAuctionLayout()
 
   // Contract modification after winning auction
   interface ContractForModification {
@@ -358,11 +386,14 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
         return {
           ...prev,
           currentPrice: data.amount,
-          bids: [newBid, ...prev.bids]
+          bids: [newBid, ...prev.bids],
+          // Update timer immediately from Pusher data - NO DELAY!
+          timerExpiresAt: data.timerExpiresAt,
+          timerSeconds: data.timerSeconds
         }
       })
-      // Update managers status for budget display
-      loadManagersStatus()
+      // Note: loadManagersStatus() removed - polling handles budget updates
+      // This eliminates API call delay after each bid
     },
     onNominationPending: (data) => {
       console.log('[Pusher] Nomination pending:', data)
@@ -567,8 +598,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     let hasTriggeredZero = false
     let lastWarningAt: number | null = null
     const updateTimer = () => {
-      const expiresAt = new Date(auction.timerExpiresAt!).getTime()
-      const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000))
+      // Use server-synchronized time for accurate countdown
+      const remaining = getRemainingSeconds(auction.timerExpiresAt)
       setTimeLeft(remaining)
 
       // Haptic feedback for timer warnings (only trigger once per threshold)
@@ -620,7 +651,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     updateTimer()
     const interval = setInterval(updateTimer, 1000)
     return () => clearInterval(interval)
-  }, [auction?.timerExpiresAt, loadCurrentAuction, loadPendingAcknowledgment])
+  }, [auction?.timerExpiresAt, loadCurrentAuction, loadPendingAcknowledgment, getRemainingSeconds])
 
   useEffect(() => {
     loadCurrentAuction()
@@ -630,7 +661,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     loadMyRosterSlots()
     loadManagersStatus()
     loadTeams()
-    // Polling at 10s as fallback - real-time updates come from Pusher
+    // Polling at 1.5s as fallback - real-time updates come from Pusher
+    // Reduced from 3s for faster sync when Pusher events are missed
     const interval = setInterval(() => {
       loadCurrentAuction()
       loadFirstMarketStatus()
@@ -638,15 +670,15 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       loadReadyStatus()
       loadMyRosterSlots()
       loadManagersStatus()
-    }, 10000)
+    }, 1500)
     return () => clearInterval(interval)
   }, [loadCurrentAuction, loadFirstMarketStatus, loadPendingAcknowledgment, loadReadyStatus, loadMyRosterSlots, loadManagersStatus, loadTeams])
 
   // Carica stato ricorso quando cambia pendingAck
   useEffect(() => {
     loadAppealStatus()
-    // Polling at 10s as fallback - real-time updates come from Pusher
-    const interval = setInterval(loadAppealStatus, 10000)
+    // Polling at 1.5s as fallback - real-time updates come from Pusher
+    const interval = setInterval(loadAppealStatus, 1500)
     return () => clearInterval(interval)
   }, [loadAppealStatus])
 
@@ -1155,9 +1187,17 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 </div>
               </div>
             </div>
-            <div className="text-right bg-surface-200 rounded-xl px-5 py-3 border border-surface-50/20">
-              <p className="text-xs text-gray-400 uppercase tracking-wider">Budget</p>
-              <p className="text-3xl font-bold gradient-text-gold">{membership?.currentBudget || 0}</p>
+            <div className="flex items-center gap-3">
+              {/* Layout Selector Compatto - Sempre visibile per permettere cambio layout */}
+              <AuctionLayoutSelector
+                currentLayout={auctionLayout}
+                onLayoutChange={setAuctionLayout}
+                compact={true}
+              />
+              <div className="text-right bg-surface-200 rounded-xl px-5 py-3 border border-surface-50/20">
+                <p className="text-xs text-gray-400 uppercase tracking-wider">Budget</p>
+                <p className="text-3xl font-bold gradient-text-gold">{membership?.currentBudget || 0}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -1219,8 +1259,254 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           )}
         </div>
 
-        {/* Mobile-first grid layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/*
+         * =======================================================
+         * LAYOUT SELECTOR v2 - Layout alternativi asta - 24/01/2026
+         * =======================================================
+         * Per ROLLBACK: rimuovere questo blocco e il wrapper condizionale,
+         * lasciare solo il grid classico sotto
+         * =======================================================
+         */}
+        {/* Layout F (Pro) - Sempre visibile, gestisce internamente gli stati */}
+        {auctionLayout === 'F' && (
+          <div className="mb-4">
+            <LayoutF
+              auction={auction}
+              timeLeft={timeLeft}
+              timerSetting={timerSetting}
+              isTimerExpired={isTimerExpired}
+              membership={membership}
+              isAdmin={isAdmin}
+              isMyTurn={isMyTurn}
+              isUserWinning={isUserWinning}
+              currentUsername={currentUsername}
+              managersStatus={managersStatus as any}
+              currentTurnManager={currentTurnManager}
+              myRosterSlots={myRosterSlots as any}
+              marketProgress={marketProgress}
+              bidAmount={bidAmount}
+              setBidAmount={setBidAmount}
+              onPlaceBid={handlePlaceBid}
+              isConnected={isConnected}
+              connectionStatus={connectionStatus}
+              onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
+              onCloseAuction={handleCloseAuction}
+              sessionId={sessionId}
+              players={players}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onNominatePlayer={handleNominatePlayer}
+              readyStatus={readyStatus as any}
+              onMarkReady={handleMarkReady}
+              markingReady={markingReady}
+              pendingAck={pendingAck as any}
+              onAcknowledge={() => handleAcknowledge(false)}
+              ackSubmitting={ackSubmitting}
+              onUpdateTimer={handleUpdateTimer}
+              onBotNominate={handleBotNominate}
+              onBotConfirmNomination={handleBotConfirmNomination}
+              onBotBid={handleBotBid}
+              onForceAllReady={handleForceAllReady}
+              onForceAcknowledgeAll={handleForceAcknowledgeAll}
+              onCompleteAllSlots={handleCompleteAllSlots}
+              onResetFirstMarket={handleResetFirstMarket}
+            />
+          </div>
+        )}
+
+        {/* Altri Layout (A-E) - Sempre visibili, gestiscono internamente lo stato */}
+        {auctionLayout !== 'classic' && auctionLayout !== 'F' && (
+          <div className="mb-4">
+            {auctionLayout === 'A' && (
+              <LayoutA
+                auction={auction}
+                timeLeft={timeLeft}
+                timerSetting={timerSetting}
+                isTimerExpired={isTimerExpired}
+                membership={membership}
+                isAdmin={isAdmin}
+                isMyTurn={isMyTurn}
+                isUserWinning={isUserWinning}
+                currentUsername={currentUsername}
+                managersStatus={managersStatus as any}
+                currentTurnManager={currentTurnManager}
+                myRosterSlots={myRosterSlots as any}
+                marketProgress={marketProgress}
+                bidAmount={bidAmount}
+                setBidAmount={setBidAmount}
+                onPlaceBid={handlePlaceBid}
+                isConnected={isConnected}
+                connectionStatus={connectionStatus}
+                onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
+                onCloseAuction={handleCloseAuction}
+                sessionId={sessionId}
+                players={players}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onNominatePlayer={handleNominatePlayer}
+                onUpdateTimer={handleUpdateTimer}
+                onBotNominate={handleBotNominate}
+                onBotConfirmNomination={handleBotConfirmNomination}
+                onBotBid={handleBotBid}
+                onForceAllReady={handleForceAllReady}
+                onForceAcknowledgeAll={handleForceAcknowledgeAll}
+                onCompleteAllSlots={handleCompleteAllSlots}
+                onResetFirstMarket={handleResetFirstMarket}
+              />
+            )}
+            {auctionLayout === 'B' && (
+              <LayoutB
+                auction={auction}
+                timeLeft={timeLeft}
+                timerSetting={timerSetting}
+                isTimerExpired={isTimerExpired}
+                membership={membership}
+                isAdmin={isAdmin}
+                isMyTurn={isMyTurn}
+                isUserWinning={isUserWinning}
+                currentUsername={currentUsername}
+                managersStatus={managersStatus as any}
+                currentTurnManager={currentTurnManager}
+                myRosterSlots={myRosterSlots as any}
+                marketProgress={marketProgress}
+                bidAmount={bidAmount}
+                setBidAmount={setBidAmount}
+                onPlaceBid={handlePlaceBid}
+                isConnected={isConnected}
+                connectionStatus={connectionStatus}
+                onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
+                onCloseAuction={handleCloseAuction}
+                sessionId={sessionId}
+                players={players}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onNominatePlayer={handleNominatePlayer}
+                onUpdateTimer={handleUpdateTimer}
+                onBotNominate={handleBotNominate}
+                onBotConfirmNomination={handleBotConfirmNomination}
+                onBotBid={handleBotBid}
+                onForceAllReady={handleForceAllReady}
+                onForceAcknowledgeAll={handleForceAcknowledgeAll}
+                onCompleteAllSlots={handleCompleteAllSlots}
+                onResetFirstMarket={handleResetFirstMarket}
+              />
+            )}
+            {auctionLayout === 'C' && (
+              <LayoutC
+                auction={auction}
+                timeLeft={timeLeft}
+                timerSetting={timerSetting}
+                isTimerExpired={isTimerExpired}
+                membership={membership}
+                isAdmin={isAdmin}
+                isMyTurn={isMyTurn}
+                isUserWinning={isUserWinning}
+                currentUsername={currentUsername}
+                managersStatus={managersStatus as any}
+                currentTurnManager={currentTurnManager}
+                myRosterSlots={myRosterSlots as any}
+                marketProgress={marketProgress}
+                bidAmount={bidAmount}
+                setBidAmount={setBidAmount}
+                onPlaceBid={handlePlaceBid}
+                isConnected={isConnected}
+                connectionStatus={connectionStatus}
+                onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
+                onCloseAuction={handleCloseAuction}
+                sessionId={sessionId}
+                players={players}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onNominatePlayer={handleNominatePlayer}
+                onUpdateTimer={handleUpdateTimer}
+                onBotNominate={handleBotNominate}
+                onBotConfirmNomination={handleBotConfirmNomination}
+                onBotBid={handleBotBid}
+                onForceAllReady={handleForceAllReady}
+                onForceAcknowledgeAll={handleForceAcknowledgeAll}
+                onCompleteAllSlots={handleCompleteAllSlots}
+                onResetFirstMarket={handleResetFirstMarket}
+              />
+            )}
+            {auctionLayout === 'D' && (
+              <LayoutD
+                auction={auction}
+                timeLeft={timeLeft}
+                timerSetting={timerSetting}
+                isTimerExpired={isTimerExpired}
+                membership={membership}
+                isAdmin={isAdmin}
+                isMyTurn={isMyTurn}
+                isUserWinning={isUserWinning}
+                currentUsername={currentUsername}
+                managersStatus={managersStatus as any}
+                currentTurnManager={currentTurnManager}
+                myRosterSlots={myRosterSlots as any}
+                marketProgress={marketProgress}
+                bidAmount={bidAmount}
+                setBidAmount={setBidAmount}
+                onPlaceBid={handlePlaceBid}
+                isConnected={isConnected}
+                connectionStatus={connectionStatus}
+                onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
+                onCloseAuction={handleCloseAuction}
+                sessionId={sessionId}
+                players={players}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onNominatePlayer={handleNominatePlayer}
+                onUpdateTimer={handleUpdateTimer}
+                onBotNominate={handleBotNominate}
+                onBotConfirmNomination={handleBotConfirmNomination}
+                onBotBid={handleBotBid}
+                onForceAllReady={handleForceAllReady}
+                onForceAcknowledgeAll={handleForceAcknowledgeAll}
+                onCompleteAllSlots={handleCompleteAllSlots}
+                onResetFirstMarket={handleResetFirstMarket}
+              />
+            )}
+            {auctionLayout === 'E' && (
+              <LayoutE
+                auction={auction}
+                timeLeft={timeLeft}
+                timerSetting={timerSetting}
+                isTimerExpired={isTimerExpired}
+                membership={membership}
+                isAdmin={isAdmin}
+                isMyTurn={isMyTurn}
+                isUserWinning={isUserWinning}
+                currentUsername={currentUsername}
+                managersStatus={managersStatus as any}
+                currentTurnManager={currentTurnManager}
+                myRosterSlots={myRosterSlots as any}
+                marketProgress={marketProgress}
+                bidAmount={bidAmount}
+                setBidAmount={setBidAmount}
+                onPlaceBid={handlePlaceBid}
+                isConnected={isConnected}
+                connectionStatus={connectionStatus}
+                onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
+                onCloseAuction={handleCloseAuction}
+                sessionId={sessionId}
+                players={players}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onNominatePlayer={handleNominatePlayer}
+                onUpdateTimer={handleUpdateTimer}
+                onBotNominate={handleBotNominate}
+                onBotConfirmNomination={handleBotConfirmNomination}
+                onBotBid={handleBotBid}
+                onForceAllReady={handleForceAllReady}
+                onForceAcknowledgeAll={handleForceAcknowledgeAll}
+                onCompleteAllSlots={handleCompleteAllSlots}
+                onResetFirstMarket={handleResetFirstMarket}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Mobile-first grid layout - Classic Layout (nascosto quando LayoutF è selezionato) */}
+        <div className={`grid grid-cols-1 lg:grid-cols-12 gap-4 ${auctionLayout === 'F' || (auctionLayout !== 'classic' && auction) ? 'hidden' : ''}`}>
           {/* LEFT: My Roster - Hidden on mobile during active auction, collapsible */}
           <div className={`lg:col-span-3 space-y-4 ${auction ? 'hidden lg:block' : ''}`}>
             <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
@@ -1499,7 +1785,30 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
               <div className="p-4 lg:p-6">
                 {auction ? (
                   <div className="space-y-4">
-                    {/* Enhanced Timer Section - sticky on mobile for visibility */}
+                    {/*
+                     * =======================================================
+                     * NUOVO TIMER v2 con Progress Bar - 24/01/2026
+                     * =======================================================
+                     * Per ROLLBACK alla versione precedente:
+                     * 1. Commentare/rimuovere il blocco AuctionTimer qui sotto
+                     * 2. Scommentare il blocco "OLD_TIMER_START" ... "OLD_TIMER_END"
+                     * 3. Rimuovere l'import di AuctionTimer in cima al file
+                     * =======================================================
+                     */}
+                    {auction.timerExpiresAt && (
+                      <div className="relative sticky top-16 z-30 lg:relative lg:top-0">
+                        <AuctionTimer
+                          timeLeft={timeLeft}
+                          totalSeconds={timerSetting}
+                          className="w-full"
+                        />
+                      </div>
+                    )}
+
+                    {/*
+                     * OLD_TIMER_START - VERSIONE PRECEDENTE (commentata per rollback)
+                     * Scommentare questo blocco se si vuole tornare al vecchio timer
+                     *
                     {auction.timerExpiresAt && (
                       <div className={`${getTimerContainerClass()} relative sticky top-16 z-30 lg:relative lg:top-0`}>
                         {timeLeft !== null && timeLeft <= 5 && (
@@ -1515,8 +1824,73 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                         )}
                       </div>
                     )}
+                     * OLD_TIMER_END
+                     */}
 
-                    {/* Enhanced Player Display */}
+                    {/*
+                     * ENHANCED PLAYER DISPLAY v2 - Card Giocatore Stile Asta - 24/01/2026
+                     * Per ROLLBACK: sostituire con il blocco OLD_PLAYER commentato sotto
+                     */}
+                    <div className="relative overflow-hidden rounded-2xl">
+                      {/* Sfondo con gradient posizione */}
+                      <div className={`absolute inset-0 opacity-30 ${POSITION_GRADIENTS[auction.player.position] || 'bg-gradient-to-br from-gray-600 to-gray-800'}`} />
+
+                      {/* Pattern decorativo */}
+                      <div className="absolute inset-0 opacity-5">
+                        <div className="absolute inset-0" style={{
+                          backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)'
+                        }} />
+                      </div>
+
+                      <div className="relative text-center p-6 bg-gradient-to-br from-surface-300/90 to-surface-200/90 backdrop-blur-sm">
+                        {/* Badge "ALL'ASTA" */}
+                        <div className="absolute -top-1 left-1/2 transform -translate-x-1/2">
+                          <span className="px-4 py-1 bg-accent-500 text-dark-900 text-xs font-black uppercase tracking-wider rounded-b-lg shadow-lg">
+                            🔨 All'Asta
+                          </span>
+                        </div>
+
+                        {/* Logo squadra grande con cornice */}
+                        <div className="relative inline-block mt-4 mb-4">
+                          <div className="absolute inset-0 bg-white rounded-2xl transform rotate-3 opacity-20" />
+                          <div className="relative w-20 h-20 bg-white rounded-2xl flex items-center justify-center p-2 shadow-2xl border-4 border-white/30">
+                            <img
+                              src={getTeamLogo(auction.player.team)}
+                              alt={auction.player.team}
+                              className="w-16 h-16 object-contain"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Nome giocatore con effetto */}
+                        <h2 className="text-3xl lg:text-4xl font-black text-white mb-2 tracking-tight">
+                          {auction.player.name}
+                        </h2>
+
+                        {/* Team e posizione in riga */}
+                        <div className="flex items-center justify-center gap-3 mb-4">
+                          <span className="text-gray-400 font-medium">{auction.player.team}</span>
+                          <span className="text-gray-600">•</span>
+                          <span className={`px-3 py-1 rounded-full text-sm font-bold ${POSITION_BG[auction.player.position]}`}>
+                            {POSITION_NAMES[auction.player.position]}
+                          </span>
+                        </div>
+
+                        {/* Quotazione con stile enfatizzato */}
+                        {auction.player.quotation && (
+                          <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-gradient-to-r from-accent-500/20 via-accent-400/10 to-accent-500/20 rounded-xl border border-accent-500/30">
+                            <div className="text-center">
+                              <span className="text-xs text-gray-400 block uppercase tracking-wider">Quotazione Ufficiale</span>
+                              <span className="text-2xl font-black text-accent-400">{auction.player.quotation}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/*
+                     * OLD_PLAYER_START - Versione precedente per rollback
+                     *
                     <div className="text-center p-5 bg-gradient-to-br from-surface-300 to-surface-200 rounded-xl border border-surface-50/20">
                       <div className="flex items-center justify-center gap-4 mb-3">
                         <span className={`px-4 py-1.5 rounded-full text-sm font-bold border ${POSITION_BG[auction.player.position]}`}>
@@ -1539,8 +1913,82 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                         </div>
                       )}
                     </div>
+                     * OLD_PLAYER_END
+                     */}
 
-                    {/* Enhanced Current Price */}
+                    {/*
+                     * ENHANCED CURRENT PRICE v2 - Design Asta Enfatizzato - 24/01/2026
+                     * Per ROLLBACK: sostituire con il blocco OLD_PRICE commentato sotto
+                     */}
+                    <div className="relative">
+                      {/* Effetto sfondo animato */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary-600/20 via-primary-500/10 to-primary-600/20 rounded-xl animate-pulse" />
+
+                      <div className="relative rounded-xl p-6 text-center border-2 border-primary-500/30 bg-gradient-to-br from-surface-300 via-surface-200 to-surface-300 overflow-hidden">
+                        {/* Decorazione angoli stile asta */}
+                        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-primary-500/50 rounded-tl-xl" />
+                        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-primary-500/50 rounded-tr-xl" />
+                        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-primary-500/50 rounded-bl-xl" />
+                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-primary-500/50 rounded-br-xl" />
+
+                        {/* Label con icona martelletto */}
+                        <div className="flex items-center justify-center gap-2 mb-3">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-primary-400">
+                            <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 000-1.5h-3.75V6z" clipRule="evenodd" />
+                          </svg>
+                          <p className="text-sm text-primary-400 uppercase tracking-wider font-bold">
+                            Offerta Corrente
+                          </p>
+                        </div>
+
+                        {/* Prezzo grande con effetto glow */}
+                        <div className="relative">
+                          <p
+                            className="text-6xl lg:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary-400 via-white to-primary-400 mb-2"
+                            style={{
+                              textShadow: '0 0 40px rgba(99, 102, 241, 0.5)',
+                              animation: auction.bids.length > 0 ? 'none' : undefined
+                            }}
+                          >
+                            {auction.currentPrice}
+                          </p>
+                          {/* Indicatore crediti */}
+                          <span className="absolute -top-2 -right-2 lg:right-1/4 text-lg text-primary-300">€</span>
+                        </div>
+
+                        {/* Info offerente con badge */}
+                        {auction.bids.length > 0 && auction.bids[0] && (
+                          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full mt-2 ${
+                            auction.bids[0].bidder.user.username === currentUsername
+                              ? 'bg-green-500/20 border border-green-500/50'
+                              : 'bg-primary-500/20 border border-primary-500/30'
+                          }`}>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-4 h-4 ${auction.bids[0].bidder.user.username === currentUsername ? 'text-green-400' : 'text-primary-400'}`}>
+                              <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd" />
+                            </svg>
+                            <span className={`font-bold ${auction.bids[0].bidder.user.username === currentUsername ? 'text-green-400' : 'text-primary-300'}`}>
+                              {auction.bids[0].bidder.user.username}
+                              {auction.bids[0].bidder.user.username === currentUsername && ' (SEI TU!)'}
+                            </span>
+                          </div>
+                        )}
+                        {auction.bids.length === 0 && (
+                          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface-400/50 mt-2">
+                            <span className="text-gray-400">Base d'asta:</span>
+                            <span className="text-white font-bold">{auction.basePrice}</span>
+                          </div>
+                        )}
+
+                        {/* Contatore offerte */}
+                        <div className="mt-4 text-xs text-gray-500">
+                          {auction.bids.length} {auction.bids.length === 1 ? 'offerta' : 'offerte'} ricevute
+                        </div>
+                      </div>
+                    </div>
+
+                    {/*
+                     * OLD_PRICE_START - Versione precedente per rollback
+                     *
                     <div className="current-price-container rounded-xl p-5 text-center">
                       <p className="text-sm text-primary-400 mb-2 uppercase tracking-wider">Offerta Attuale</p>
                       <p className="text-5xl lg:text-6xl font-bold text-white text-glow mb-2">{auction.currentPrice}</p>
@@ -1554,6 +2002,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                         <p className="text-gray-500">Base d'asta: {auction.basePrice}</p>
                       )}
                     </div>
+                     * OLD_PRICE_END
+                     */}
 
                     {/* Enhanced Bid Controls */}
                     <div className="space-y-3 bg-surface-300/50 rounded-xl p-4">
@@ -1785,7 +2235,165 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
 
           {/* RIGHT: DGs + Chat - Collapsible on mobile */}
           <div className={`lg:col-span-4 space-y-4 ${auction ? 'hidden lg:block' : ''}`}>
-            {/* DG List - Compact */}
+            {/*
+             * MANAGERS TABLE v2 - Formato Tabellare con Budget Speso e Slot - 24/01/2026
+             * Per ROLLBACK: sostituire con OLD_MANAGERS_LIST commentato sotto
+             */}
+            <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
+              <div className="p-2 border-b border-surface-50/20 bg-surface-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span>👔</span>
+                    <h3 className="font-bold text-white text-sm">Direttori Generali</h3>
+                  </div>
+                  {managersStatus?.allConnected === false && (
+                    <span className="text-xs text-red-400 flex items-center gap-1">
+                      <span className="connection-dot connection-dot-offline"></span>
+                      Offline
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Tabella Manager */}
+              <div className="overflow-x-auto">
+                {!managersStatus && (
+                  <div className="p-3 text-center">
+                    <div className="w-6 h-6 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto"></div>
+                  </div>
+                )}
+                {managersStatus?.managers && (
+                  <table className="w-full text-xs">
+                    {/* Header */}
+                    <thead className="bg-surface-300/50">
+                      <tr>
+                        <th className="px-2 py-1.5 text-left text-gray-400 font-medium">#</th>
+                        <th className="px-2 py-1.5 text-left text-gray-400 font-medium">Manager</th>
+                        <th className="px-2 py-1.5 text-center text-gray-400 font-medium" title="Budget Disponibile">Disp.</th>
+                        <th className="px-2 py-1.5 text-center text-gray-400 font-medium" title="Budget Speso">Speso</th>
+                        <th className="px-2 py-1.5 text-center text-yellow-400 font-medium" title="Portieri">P</th>
+                        <th className="px-2 py-1.5 text-center text-green-400 font-medium" title="Difensori">D</th>
+                        <th className="px-2 py-1.5 text-center text-blue-400 font-medium" title="Centrocampisti">C</th>
+                        <th className="px-2 py-1.5 text-center text-red-400 font-medium" title="Attaccanti">A</th>
+                      </tr>
+                    </thead>
+                    {/* Body */}
+                    <tbody className="divide-y divide-surface-50/10">
+                      {(() => {
+                        const sortedManagers = [...managersStatus.managers].sort((a, b) => {
+                          if (!firstMarketStatus?.turnOrder) return 0
+                          const aIndex = firstMarketStatus.turnOrder.indexOf(a.id)
+                          const bIndex = firstMarketStatus.turnOrder.indexOf(b.id)
+                          return aIndex - bIndex
+                        })
+                        return sortedManagers.map(m => {
+                          const turnIndex = firstMarketStatus?.turnOrder?.indexOf(m.id) ?? -1
+                          const isCurrent = m.isCurrentTurn
+                          const isMe = m.id === managersStatus.myId
+                          const budgetPercent = getBudgetPercentage(m.currentBudget)
+                          // Calcola budget speso sommando i prezzi di acquisizione
+                          const budgetSpent = m.roster.reduce((sum, r) => sum + (r.acquisitionPrice || 0), 0)
+
+                          return (
+                            <tr
+                              key={m.id}
+                              onClick={() => setSelectedManager(m)}
+                              className={`cursor-pointer hover:bg-surface-300/50 transition-colors ${
+                                isCurrent ? 'bg-accent-500/10' : ''
+                              } ${isMe && !isCurrent ? 'bg-primary-500/5' : ''}`}
+                            >
+                              {/* Turno + Connessione */}
+                              <td className="px-2 py-2">
+                                <div className="relative inline-flex">
+                                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                                    isCurrent
+                                      ? 'bg-accent-500 text-dark-900'
+                                      : 'bg-surface-300 text-gray-400'
+                                  }`}>
+                                    {turnIndex >= 0 ? turnIndex + 1 : '-'}
+                                  </span>
+                                  <span
+                                    className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-surface-200 ${
+                                      m.isConnected === true ? 'bg-green-500' : m.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
+                                    }`}
+                                  />
+                                </div>
+                              </td>
+
+                              {/* Nome Manager */}
+                              <td className="px-2 py-2">
+                                <div className={`truncate max-w-[80px] font-medium ${
+                                  isMe ? 'text-primary-400' : isCurrent ? 'text-accent-400' : 'text-gray-200'
+                                }`}>
+                                  {m.username}
+                                  {isMe && <span className="text-primary-300 ml-0.5">•</span>}
+                                </div>
+                              </td>
+
+                              {/* Budget Disponibile */}
+                              <td className="px-2 py-2 text-center">
+                                <span className={`font-mono font-bold ${
+                                  budgetPercent <= 20 ? 'text-red-400' : budgetPercent <= 40 ? 'text-amber-400' : 'text-green-400'
+                                }`}>
+                                  {m.currentBudget}
+                                </span>
+                              </td>
+
+                              {/* Budget Speso */}
+                              <td className="px-2 py-2 text-center">
+                                <span className="font-mono text-gray-400">
+                                  {budgetSpent}
+                                </span>
+                              </td>
+
+                              {/* Slot Portieri */}
+                              <td className="px-2 py-2 text-center">
+                                <span className={`font-mono ${
+                                  m.slotsByPosition.P.filled >= m.slotsByPosition.P.total ? 'text-yellow-400' : 'text-gray-500'
+                                }`}>
+                                  {m.slotsByPosition.P.filled}/{m.slotsByPosition.P.total}
+                                </span>
+                              </td>
+
+                              {/* Slot Difensori */}
+                              <td className="px-2 py-2 text-center">
+                                <span className={`font-mono ${
+                                  m.slotsByPosition.D.filled >= m.slotsByPosition.D.total ? 'text-green-400' : 'text-gray-500'
+                                }`}>
+                                  {m.slotsByPosition.D.filled}/{m.slotsByPosition.D.total}
+                                </span>
+                              </td>
+
+                              {/* Slot Centrocampisti */}
+                              <td className="px-2 py-2 text-center">
+                                <span className={`font-mono ${
+                                  m.slotsByPosition.C.filled >= m.slotsByPosition.C.total ? 'text-blue-400' : 'text-gray-500'
+                                }`}>
+                                  {m.slotsByPosition.C.filled}/{m.slotsByPosition.C.total}
+                                </span>
+                              </td>
+
+                              {/* Slot Attaccanti */}
+                              <td className="px-2 py-2 text-center">
+                                <span className={`font-mono ${
+                                  m.slotsByPosition.A.filled >= m.slotsByPosition.A.total ? 'text-red-400' : 'text-gray-500'
+                                }`}>
+                                  {m.slotsByPosition.A.filled}/{m.slotsByPosition.A.total}
+                                </span>
+                              </td>
+                            </tr>
+                          )
+                        })
+                      })()}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+
+            {/*
+             * OLD_MANAGERS_LIST_START - Versione precedente per rollback
+             *
             <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
               <div className="p-2 border-b border-surface-50/20 bg-surface-200">
                 <div className="flex items-center justify-between">
@@ -1819,7 +2427,6 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                     const isCurrent = m.isCurrentTurn
                     const isMe = m.id === managersStatus.myId
                     const budgetPercent = getBudgetPercentage(m.currentBudget)
-
                     return (
                       <button
                         key={m.id}
@@ -1829,23 +2436,14 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                         } ${isMe && !isCurrent ? 'border-l-2 border-primary-500 bg-primary-500/5' : ''}`}
                       >
                         <div className="flex items-center gap-2">
-                          {/* Turn Order Badge + Connection */}
                           <div className="relative flex-shrink-0">
                             <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                              isCurrent
-                                ? 'bg-accent-500 text-dark-900'
-                                : 'bg-surface-300 text-gray-400'
-                            }`}>
-                              {turnIndex >= 0 ? turnIndex + 1 : '-'}
-                            </span>
-                            <span
-                              className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-surface-200 ${
-                                m.isConnected === true ? 'bg-green-500' : m.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
-                              }`}
-                            />
+                              isCurrent ? 'bg-accent-500 text-dark-900' : 'bg-surface-300 text-gray-400'
+                            }`}>{turnIndex >= 0 ? turnIndex + 1 : '-'}</span>
+                            <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-surface-200 ${
+                              m.isConnected === true ? 'bg-green-500' : m.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
+                            }`}/>
                           </div>
-
-                          {/* Username */}
                           <span className={`flex-1 text-sm truncate ${
                             isMe ? 'text-primary-400 font-medium' : isCurrent ? 'text-accent-400 font-bold' : 'text-gray-200'
                           }`}>
@@ -1853,18 +2451,10 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                             {isMe && <span className="text-xs text-primary-300 ml-1">(tu)</span>}
                             {isCurrent && <span className="text-xs text-accent-400 ml-1">TURNO</span>}
                           </span>
-
-                          {/* Budget */}
                           <span className={`text-sm font-mono font-bold ${
                             budgetPercent <= 20 ? 'text-red-400' : budgetPercent <= 40 ? 'text-amber-400' : 'text-green-400'
-                          }`}>
-                            {m.currentBudget}M
-                          </span>
-
-                          {/* Slots compact */}
-                          <span className="text-xs text-gray-500">
-                            {m.slotsFilled}/{m.totalSlots}
-                          </span>
+                          }`}>{m.currentBudget}M</span>
+                          <span className="text-xs text-gray-500">{m.slotsFilled}/{m.totalSlots}</span>
                         </div>
                       </button>
                     )
@@ -1872,6 +2462,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 })()}
               </div>
             </div>
+             * OLD_MANAGERS_LIST_END
+             */}
 
             {/* Chat - Below DGs, taller */}
             <div className="hidden lg:block">
@@ -1889,7 +2481,35 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       {auction && (
         <div className="bid-controls-sticky lg:hidden">
           <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-3 shadow-lg">
+            {/*
+             * NUOVO TIMER MOBILE v2 con Progress Bar Circolare - 24/01/2026
+             * Per ROLLBACK: scommentare il blocco OLD_MOBILE_TIMER sotto
+             */}
             {/* Timer + Current Price Row */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                {auction.timerExpiresAt && (
+                  <AuctionTimer
+                    timeLeft={timeLeft}
+                    totalSeconds={timerSetting}
+                    compact={true}
+                  />
+                )}
+                <div>
+                  <p className="text-xs text-gray-400">{auction.player.name}</p>
+                  <p className="text-lg font-bold text-white">{auction.currentPrice}</p>
+                </div>
+              </div>
+              {isUserWinning && (
+                <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">
+                  Vincendo
+                </span>
+              )}
+            </div>
+
+            {/*
+             * OLD_MOBILE_TIMER_START - Per rollback scommentare questo blocco
+             *
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 {auction.timerExpiresAt && (
@@ -1918,6 +2538,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 </span>
               )}
             </div>
+             * OLD_MOBILE_TIMER_END
+             */}
 
             {/* Quick Bid Buttons */}
             <div className="grid grid-cols-5 gap-1.5 mb-2">

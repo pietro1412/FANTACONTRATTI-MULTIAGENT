@@ -467,6 +467,21 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
         if (fileInputRef.current) {
           fileInputRef.current.value = ''
         }
+        // Check if there are players needing classification and open modal automatically
+        const classificationResult = await superadminApi.getPlayersNeedingClassification()
+        const playersData = classificationResult.success && classificationResult.data
+          ? (classificationResult.data as { players: ExitedPlayerInfo[] }).players
+          : []
+        if (playersData.length > 0) {
+          setPlayersNeedingClassification(playersData)
+          // Initialize classifications with default value
+          const initialClassifications: Record<string, ExitReason> = {}
+          for (const player of playersData) {
+            initialClassifications[player.playerId] = 'ESTERO' // Default to ESTERO
+          }
+          setClassifications(initialClassifications)
+          openClassificationModal()
+        }
       }
     } catch (error) {
       setImportResult({ success: false, message: 'Errore durante l\'upload' })

@@ -21,6 +21,8 @@ import chatRoutes from './routes/chat'
 import prizeRoutes from './routes/prizes'
 import historyRoutes from './routes/history'
 import indemnityRoutes from './routes/indemnity'
+import timeRoutes from './routes/time'
+import objectivesRoutes from './routes/objectives'
 
 const app = express()
 const PORT = process.env.API_PORT || 3003
@@ -119,6 +121,8 @@ app.use('/api', chatRoutes) // Chat routes include /sessions/:id/chat
 app.use('/api', prizeRoutes) // Prize phase routes include /sessions/:id/prizes/*
 app.use('/api', historyRoutes) // History routes include /leagues/:id/history/*
 app.use('/api', indemnityRoutes) // Indemnity phase routes include /leagues/:id/indemnity/*
+app.use('/api/time', timeRoutes) // Time sync endpoint for client clock calibration
+app.use('/api', objectivesRoutes) // Objectives routes for pre-auction targets
 
 // 404 handler
 app.use((_req, res) => {

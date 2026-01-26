@@ -1,7 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, waitFor, within, act, type RenderOptions } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Navigation } from '../components/Navigation'
+import { ThemeProvider } from '../contexts/ThemeContext'
+import type { ReactNode, ReactElement } from 'react'
+
+// Wrapper component for tests that require ThemeProvider
+const TestWrapper = ({ children }: { children: ReactNode }) => (
+  <ThemeProvider>{children}</ThemeProvider>
+)
+
+// Custom render that wraps components in ThemeProvider
+const render = (ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>) =>
+  rtlRender(ui, { wrapper: TestWrapper, ...options })
 
 // Mock the useAuth hook
 const mockLogout = vi.fn()
@@ -16,13 +27,19 @@ vi.mock('../hooks/useAuth', () => ({
   }),
 }))
 
-// Mock the superadminApi
+// Mock the APIs
 vi.mock('../services/api', () => ({
   superadminApi: {
     getStatus: vi.fn().mockResolvedValue({ success: true, data: { isSuperAdmin: false } }),
   },
   tradeApi: {
     getReceived: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  },
+  userApi: {
+    getMyPendingInvites: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  },
+  leagueApi: {
+    getPendingRequests: vi.fn().mockResolvedValue({ success: true, data: [] }),
   },
 }))
 

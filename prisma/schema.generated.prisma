@@ -153,6 +153,13 @@ enum AppealStatus {
   REJECTED   // Respinto - esito confermato
 }
 
+enum ObjectiveStatus {
+  ACTIVE     // Obiettivo ancora valido
+  ACQUIRED   // Giocatore acquistato
+  MISSED     // Giocatore perso ad altri
+  REMOVED    // Rimosso manualmente
+}
+
 // ==================== TRADE ENUMS ====================
 enum TradeStatus {
   PENDING
@@ -333,6 +340,42 @@ model AuctionAcknowledgment {
   acknowledgedAt DateTime @default(now())
 
   @@unique([auctionId, memberId])
+}
+
+// Obiettivi pre-asta dei manager
+// Permette di salvare giocatori target con priorità
+model AuctionObjective {
+  id          String   @id @default(cuid())
+
+  // Sessione di mercato a cui si riferisce l'obiettivo
+  sessionId   String
+  session     MarketSession @relation(fields: [sessionId], references: [id])  // see: market-session.prisma
+
+  // Manager che ha creato l'obiettivo
+  memberId    String
+  member      LeagueMember @relation(fields: [memberId], references: [id])  // see: league.prisma
+
+  // Giocatore target
+  playerId    String
+  player      SerieAPlayer @relation(fields: [playerId], references: [id])  // see: player.prisma
+
+  // Priorità (1 = alta, 2 = media, 3 = bassa)
+  priority    Int      @default(2)
+
+  // Note personali sul giocatore
+  notes       String?
+
+  // Prezzo massimo che si è disposti a pagare
+  maxPrice    Int?
+
+  // Stato: ACTIVE, ACQUIRED (giocatore acquistato), MISSED (perso ad altri)
+  status      ObjectiveStatus @default(ACTIVE)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([sessionId, memberId, playerId])
+  @@index([memberId, sessionId, status])
 }
 
 // Ricorsi su aste concluse
@@ -526,6 +569,7 @@ model LeagueMember {
   chatMessages   ChatMessage[]               // see: chat.prisma
   sessionPrizes  SessionPrize[]              // see: prize.prisma
   rubataPreferences RubataPreference[]       // see: rubata.prisma
+  auctionObjectives AuctionObjective[]       // see: auction.prisma
 
   @@unique([userId, leagueId])
   @@index([leagueId, status])
@@ -679,6 +723,7 @@ model MarketSession {
   prizePhaseConfig PrizePhaseConfig? // see: prize.prisma
   prizeCategories  PrizeCategory[]   // see: prize.prisma
   rubataPreferences RubataPreference[] // see: rubata.prisma
+  auctionObjectives AuctionObjective[] // see: auction.prisma
 
   // Indice per velocizzare ricerca sessioni attive per lega
   @@index([leagueId, status])
@@ -849,6 +894,7 @@ model SerieAPlayer {
   prophecies   Prophecy[]           // see: movement.prisma
   pendingNominations MarketSession[] @relation("PendingNomination")  // see: market-session.prisma
   rubataPreferences RubataPreference[] // see: rubata.prisma
+  auctionObjectives AuctionObjective[] // see: auction.prisma
 }
 
 model QuotazioniUpload {
@@ -905,14 +951,16 @@ model Prize {
 // ==================== FASE PREMI (MERCATO RICORRENTE) ====================
 // Configurazione fase PREMI per sessione di mercato
 model PrizePhaseConfig {
-  id                String        @id @default(cuid())
-  marketSessionId   String        @unique
-  marketSession     MarketSession @relation(fields: [marketSessionId], references: [id], onDelete: Cascade)  // see: market-session.prisma
-  baseReincrement   Int           @default(100)  // Re-incremento base uguale per tutti
-  isFinalized       Boolean       @default(false)
-  finalizedAt       DateTime?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id                      String        @id @default(cuid())
+  marketSessionId         String        @unique
+  marketSession           MarketSession @relation(fields: [marketSessionId], references: [id], onDelete: Cascade)  // see: market-session.prisma
+  baseReincrement         Int           @default(100)  // Re-incremento base uguale per tutti
+  indemnityConsolidated   Boolean       @default(false)  // true quando admin consolida gli indennizzi
+  indemnityConsolidatedAt DateTime?     // Data/ora consolidamento indennizzi
+  isFinalized             Boolean       @default(false)
+  finalizedAt             DateTime?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
 }
 
 // Categoria premio (es. "Classifica Portieri", "Indennizzo Partenza Estero")
