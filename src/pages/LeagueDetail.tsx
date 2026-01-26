@@ -116,7 +116,9 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
   async function handleConfirmCreateSession() {
     setError('')
     setIsCreatingSession(true)
-    const result = await auctionApi.createSession(leagueId)
+    // Se il primo mercato è completato, crea un mercato ricorrente
+    const isRegularMarket = isFirstMarketCompleted()
+    const result = await auctionApi.createSession(leagueId, isRegularMarket)
     if (result.success) {
       setShowAuctionConfirm(false)
       loadSessions()
