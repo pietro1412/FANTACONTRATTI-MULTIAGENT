@@ -288,17 +288,19 @@ export async function createAuctionSession(
       }
 
       // Check if PRIMO_MERCATO already exists (can only have one ever)
-      if (!isRegularMarket) {
-        const existingPrimoMercato = await tx.marketSession.findFirst({
-          where: {
-            leagueId,
-            type: 'PRIMO_MERCATO',
-          },
-        })
+      // Auto-correct: if frontend sends isRegularMarket=false but PRIMO_MERCATO exists,
+      // automatically treat it as a regular market
+      let effectiveIsRegularMarket = isRegularMarket
+      const existingPrimoMercato = await tx.marketSession.findFirst({
+        where: {
+          leagueId,
+          type: 'PRIMO_MERCATO',
+        },
+      })
 
-        if (existingPrimoMercato) {
-          return { success: false, message: 'Il Primo Mercato è già stato effettuato. Usa "Mercato Ricorrente" per le sessioni successive.' }
-        }
+      if (existingPrimoMercato) {
+        // Force regular market if first market already exists
+        effectiveIsRegularMarket = true
       }
 
       // Count existing market sessions to determine semester
@@ -307,7 +309,7 @@ export async function createAuctionSession(
       })
 
       // Determine market type and semester
-      const marketType = isRegularMarket ? 'MERCATO_RICORRENTE' : 'PRIMO_MERCATO'
+      const marketType = effectiveIsRegularMarket ? 'MERCATO_RICORRENTE' : 'PRIMO_MERCATO'
       const semester = sessionCount + 1
 
       // Create market session
@@ -319,7 +321,7 @@ export async function createAuctionSession(
           season: league.currentSeason,
           semester,
           status: 'ACTIVE',
-          currentPhase: isRegularMarket ? 'OFFERTE_PRE_RINNOVO' : 'ASTA_LIBERA',
+          currentPhase: effectiveIsRegularMarket ? 'OFFERTE_PRE_RINNOVO' : 'ASTA_LIBERA',
           startsAt: now,
           phaseStartedAt: now,
         },
@@ -334,12 +336,14 @@ export async function createAuctionSession(
     }
 
     // For regular markets, decrement all contract durations (fuori dalla transazione)
+    // Use marketType from transaction result to determine if it's a regular market
+    const isEffectivelyRegularMarket = result.marketType === 'MERCATO_RICORRENTE'
     let decrementResult = { decremented: 0, released: [] as string[] }
-    if (isRegularMarket) {
+    if (isEffectivelyRegularMarket) {
       decrementResult = await decrementContractDurations(leagueId)
     }
 
-    const message = isRegularMarket
+    const message = isEffectivelyRegularMarket
       ? `Mercato regolare aperto. Contratti decrementati: ${decrementResult.decremented}, Giocatori svincolati: ${decrementResult.released.length}`
       : 'Sessione PRIMO MERCATO creata'
 
@@ -348,7 +352,7 @@ export async function createAuctionSession(
       message,
       data: {
         session: result.session,
-        ...(isRegularMarket && {
+        ...(isEffectivelyRegularMarket && {
           contractsDecremented: decrementResult.decremented,
           playersReleased: decrementResult.released,
         }),
