@@ -119,6 +119,7 @@ model MarketSession {
   prizePhaseConfig PrizePhaseConfig? // see: prize.prisma
   prizeCategories  PrizeCategory[]   // see: prize.prisma
   rubataPreferences RubataPreference[] // see: rubata.prisma
+  auctionObjectives AuctionObjective[] // see: auction.prisma
 
   // Indice per velocizzare ricerca sessioni attive per lega
   @@index([leagueId, status])

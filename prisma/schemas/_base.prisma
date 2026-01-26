@@ -113,6 +113,13 @@ enum AppealStatus {
   REJECTED   // Respinto - esito confermato
 }
 
+enum ObjectiveStatus {
+  ACTIVE     // Obiettivo ancora valido
+  ACQUIRED   // Giocatore acquistato
+  MISSED     // Giocatore perso ad altri
+  REMOVED    // Rimosso manualmente
+}
+
 // ==================== TRADE ENUMS ====================
 enum TradeStatus {
   PENDING
