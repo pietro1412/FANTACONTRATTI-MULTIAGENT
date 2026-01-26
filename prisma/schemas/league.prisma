@@ -91,6 +91,7 @@ model LeagueMember {
   chatMessages   ChatMessage[]               // see: chat.prisma
   sessionPrizes  SessionPrize[]              // see: prize.prisma
   rubataPreferences RubataPreference[]       // see: rubata.prisma
+  auctionObjectives AuctionObjective[]       // see: auction.prisma
 
   @@unique([userId, leagueId])
   @@index([leagueId, status])

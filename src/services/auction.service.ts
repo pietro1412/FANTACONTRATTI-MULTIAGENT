@@ -1250,6 +1250,8 @@ export async function placeBid(
       playerId: auction.playerId,
       playerName: auction.player.name,
       timestamp: new Date().toISOString(),
+      timerExpiresAt: newTimerExpires.toISOString(),
+      timerSeconds: timerSeconds,
     })
   }
   console.log(`[PLACEBID-TIMING] Pusher trigger (fire&forget): ${Date.now() - tPusher}ms`)

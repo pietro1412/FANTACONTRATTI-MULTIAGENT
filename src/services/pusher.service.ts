@@ -15,6 +15,8 @@ export interface BidPlacedData {
   playerId: string
   playerName: string
   timestamp: string
+  timerExpiresAt: string // ISO string - new timer after bid
+  timerSeconds: number   // Timer duration setting
 }
 
 export interface NominationPendingData {

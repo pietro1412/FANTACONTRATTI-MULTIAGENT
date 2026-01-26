@@ -153,13 +153,28 @@ export function useServerTime() {
 
   /**
    * Calcola i secondi rimanenti a una scadenza usando il tempo server
-   * @param expiresAt - Timestamp di scadenza (Date o numero)
+   * @param expiresAt - Timestamp di scadenza (Date, numero o stringa ISO)
    * @returns Secondi rimanenti (minimo 0)
    */
-  const getRemainingSeconds = useCallback((expiresAt: Date | number | null | undefined): number => {
+  const getRemainingSeconds = useCallback((expiresAt: Date | number | string | null | undefined): number => {
     if (!expiresAt) return 0
 
-    const expiresAtMs = expiresAt instanceof Date ? expiresAt.getTime() : expiresAt
+    let expiresAtMs: number
+    if (expiresAt instanceof Date) {
+      expiresAtMs = expiresAt.getTime()
+    } else if (typeof expiresAt === 'string') {
+      // Gestisce stringhe ISO date (es. "2026-01-24T16:00:00.000Z")
+      expiresAtMs = new Date(expiresAt).getTime()
+    } else {
+      expiresAtMs = expiresAt
+    }
+
+    // Verifica che il valore sia valido
+    if (isNaN(expiresAtMs)) {
+      console.warn('[useServerTime] expiresAt non valido:', expiresAt)
+      return 0
+    }
+
     const serverNow = getServerTime()
     const remainingMs = expiresAtMs - serverNow
 
@@ -169,10 +184,23 @@ export function useServerTime() {
   /**
    * Verifica se un timestamp è scaduto secondo il tempo server
    */
-  const isExpired = useCallback((expiresAt: Date | number | null | undefined): boolean => {
+  const isExpired = useCallback((expiresAt: Date | number | string | null | undefined): boolean => {
     if (!expiresAt) return true
 
-    const expiresAtMs = expiresAt instanceof Date ? expiresAt.getTime() : expiresAt
+    let expiresAtMs: number
+    if (expiresAt instanceof Date) {
+      expiresAtMs = expiresAt.getTime()
+    } else if (typeof expiresAt === 'string') {
+      expiresAtMs = new Date(expiresAt).getTime()
+    } else {
+      expiresAtMs = expiresAt
+    }
+
+    if (isNaN(expiresAtMs)) {
+      console.warn('[useServerTime] isExpired: expiresAt non valido:', expiresAt)
+      return true
+    }
+
     const serverNow = getServerTime()
 
     return serverNow >= expiresAtMs

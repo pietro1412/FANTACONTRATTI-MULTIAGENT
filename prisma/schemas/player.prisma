@@ -33,6 +33,7 @@ model SerieAPlayer {
   prophecies   Prophecy[]           // see: movement.prisma
   pendingNominations MarketSession[] @relation("PendingNomination")  // see: market-session.prisma
   rubataPreferences RubataPreference[] // see: rubata.prisma
+  auctionObjectives AuctionObjective[] // see: auction.prisma
 }
 
 model QuotazioniUpload {

@@ -104,6 +104,42 @@ model AuctionAcknowledgment {
   @@unique([auctionId, memberId])
 }
 
+// Obiettivi pre-asta dei manager
+// Permette di salvare giocatori target con priorità
+model AuctionObjective {
+  id          String   @id @default(cuid())
+
+  // Sessione di mercato a cui si riferisce l'obiettivo
+  sessionId   String
+  session     MarketSession @relation(fields: [sessionId], references: [id])  // see: market-session.prisma
+
+  // Manager che ha creato l'obiettivo
+  memberId    String
+  member      LeagueMember @relation(fields: [memberId], references: [id])  // see: league.prisma
+
+  // Giocatore target
+  playerId    String
+  player      SerieAPlayer @relation(fields: [playerId], references: [id])  // see: player.prisma
+
+  // Priorità (1 = alta, 2 = media, 3 = bassa)
+  priority    Int      @default(2)
+
+  // Note personali sul giocatore
+  notes       String?
+
+  // Prezzo massimo che si è disposti a pagare
+  maxPrice    Int?
+
+  // Stato: ACTIVE, ACQUIRED (giocatore acquistato), MISSED (perso ad altri)
+  status      ObjectiveStatus @default(ACTIVE)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([sessionId, memberId, playerId])
+  @@index([memberId, sessionId, status])
+}
+
 // Ricorsi su aste concluse
 model AuctionAppeal {
   id          String   @id @default(cuid())
