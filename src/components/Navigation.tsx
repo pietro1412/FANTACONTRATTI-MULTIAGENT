@@ -135,6 +135,7 @@ function getPageDisplayName(page: string): string {
     trades: 'Scambi',
     rubata: 'Rubata',
     'strategie-rubata': 'Strategie Rubata',
+    indemnity: 'Indennizzi',
   }
   return pageNames[page] || page
 }

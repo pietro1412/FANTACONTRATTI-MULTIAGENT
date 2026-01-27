@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import * as XLSX from 'xlsx'
-import { leagueApi, auctionApi, adminApi, inviteApi, contractApi, chatApi } from '../services/api'
+import { leagueApi, auctionApi, adminApi, inviteApi, contractApi, chatApi, indemnityApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { NumberStepper } from '../components/ui/NumberStepper'
@@ -137,6 +137,11 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   const [success, setSuccess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [consolidationStatus, setConsolidationStatus] = useState<ConsolidationStatus | null>(null)
+  const [indemnityStatus, setIndemnityStatus] = useState<{
+    allDecided: boolean
+    hasAffectedPlayers: boolean
+    members: Array<{ memberId: string; username: string; decided: boolean; affectedCount: number }>
+  } | null>(null)
 
   // Prize state
   const [selectedPrizeMemberId, setSelectedPrizeMemberId] = useState('')
@@ -266,12 +271,13 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   async function loadData() {
     setIsLoading(true)
 
-    const [leagueRes, membersRes, sessionsRes, invitesRes, consolidationRes] = await Promise.all([
+    const [leagueRes, membersRes, sessionsRes, invitesRes, consolidationRes, indemnityRes] = await Promise.all([
       leagueApi.getById(leagueId),
       leagueApi.getMembers(leagueId),
       auctionApi.getSessions(leagueId),
       inviteApi.getPending(leagueId),
       contractApi.getAllConsolidationStatus(leagueId),
+      indemnityApi.getAllDecisionsStatus(leagueId),
     ])
 
     if (leagueRes.success && leagueRes.data) {
@@ -295,6 +301,24 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
 
     if (consolidationRes.success && consolidationRes.data) {
       setConsolidationStatus(consolidationRes.data as ConsolidationStatus)
+    }
+
+    if (indemnityRes.success && indemnityRes.data) {
+      const indData = indemnityRes.data as {
+        inCalcoloIndennizziPhase: boolean
+        managers: Array<{ memberId: string; username: string; affectedCount: number; hasDecided: boolean }>
+        allDecided: boolean
+      }
+      setIndemnityStatus({
+        allDecided: indData.allDecided,
+        hasAffectedPlayers: indData.managers.length > 0,
+        members: indData.managers.map(m => ({
+          memberId: m.memberId,
+          username: m.username,
+          decided: m.hasDecided,
+          affectedCount: m.affectedCount,
+        })),
+      })
     }
 
     setIsLoading(false)
@@ -711,6 +735,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                 consolidated: m.isConsolidated
               }))
             } : null}
+            indemnityStatus={indemnityStatus}
             isSubmitting={isSubmitting}
             onSetPhase={handleSetPhase}
             onCloseSession={handleCloseSession}

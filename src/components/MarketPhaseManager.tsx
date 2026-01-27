@@ -47,6 +47,20 @@ const PRIMO_MERCATO_PHASES: PhaseConfig[] = [
 
 const MERCATO_RICORRENTE_PHASES: PhaseConfig[] = [
   {
+    id: 'CALCOLO_INDENNIZZI',
+    label: 'Calcolo Indennizzi',
+    icon: '⚖️',
+    description: 'Gestione giocatori usciti dalla Serie A. I manager decidono se tenere o rilasciare i giocatori con contratto che hanno lasciato il campionato (ritirati, retrocessi, trasferiti all\'estero).',
+    actions: [
+      'I giocatori ritirati vengono rilasciati automaticamente',
+      'Per giocatori retrocessi: il manager sceglie se tenere (continua a pagare) o rilasciare',
+      'Per giocatori trasferiti all\'estero: il manager sceglie se tenere o rilasciare (con indennizzo)',
+      'Avanza alla fase successiva quando tutti i manager hanno deciso'
+    ],
+    exitCondition: 'Tutti i manager con giocatori affetti devono inviare le decisioni',
+    onlyRecurrent: true
+  },
+  {
     id: 'OFFERTE_PRE_RINNOVO',
     label: 'Scambi Pre-Rinnovo',
     icon: '🔄',
@@ -126,9 +140,21 @@ const MERCATO_RICORRENTE_PHASES: PhaseConfig[] = [
   }
 ]
 
+interface IndemnityStatus {
+  allDecided: boolean
+  hasAffectedPlayers: boolean
+  members: Array<{
+    memberId: string
+    username: string
+    decided: boolean
+    affectedCount: number
+  }>
+}
+
 interface MarketPhaseManagerProps {
   session: MarketSession | null
   consolidationStatus: ConsolidationStatus | null
+  indemnityStatus: IndemnityStatus | null
   isSubmitting: boolean
   onSetPhase: (sessionId: string, phase: string) => void
   onCloseSession: (sessionId: string) => void
@@ -140,6 +166,7 @@ interface MarketPhaseManagerProps {
 export function MarketPhaseManager({
   session,
   consolidationStatus,
+  indemnityStatus,
   isSubmitting,
   onSetPhase,
   onCloseSession,
@@ -166,6 +193,12 @@ export function MarketPhaseManager({
     if (currentPhase.id === 'ASTA_LIBERA') {
       // Per ora sempre true, il backend validerà
       return true
+    }
+
+    if (currentPhase.id === 'CALCOLO_INDENNIZZI') {
+      // Se non ci sono giocatori affetti, si puo avanzare subito
+      if (!indemnityStatus?.hasAffectedPlayers) return true
+      return indemnityStatus?.allDecided === true
     }
 
     if (currentPhase.id === 'CONTRATTI') {
@@ -324,6 +357,35 @@ export function MarketPhaseManager({
                       }`}>
                         <span>{canAdvance() ? '✓' : '⚠️'}</span>
                         <span>{phase.exitCondition}</span>
+                      </div>
+                    )}
+
+                    {/* Stato decisioni indennizzi per fase CALCOLO_INDENNIZZI */}
+                    {isCurrentPhase && phase.id === 'CALCOLO_INDENNIZZI' && indemnityStatus && (
+                      <div className="mt-3 bg-surface-300 rounded-lg p-3">
+                        {!indemnityStatus.hasAffectedPlayers ? (
+                          <p className="text-sm text-green-400">
+                            Nessun giocatore uscito dalla lista. Puoi avanzare alla fase successiva.
+                          </p>
+                        ) : (
+                          <>
+                            <p className="text-xs font-semibold text-gray-400 uppercase mb-2">
+                              Stato Decisioni ({indemnityStatus.members.filter(m => m.decided).length}/{indemnityStatus.members.length})
+                            </p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {indemnityStatus.members.map(m => (
+                                <div key={m.memberId} className="flex items-center gap-2 text-sm">
+                                  <span className={m.decided ? 'text-green-400' : 'text-gray-500'}>
+                                    {m.decided ? '✓' : '○'}
+                                  </span>
+                                  <span className={m.decided ? 'text-green-400' : 'text-gray-400'}>
+                                    {m.username} ({m.affectedCount} giocatori)
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
 

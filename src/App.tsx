@@ -180,6 +180,7 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'rubata': navigate(`/leagues/${lid}/rubata`); break
       case 'strategie-rubata': navigate(`/leagues/${lid}/strategie-rubata`); break
       case 'svincolati': navigate(`/leagues/${lid}/svincolati`); break
+      case 'indemnity': navigate(`/leagues/${lid}/indemnity`); break
       case 'prizes': navigate(`/leagues/${lid}/prizes`); break
       case 'allPlayers': navigate(`/leagues/${lid}/players`); break
       case 'manager-dashboard': navigate(`/leagues/${lid}/manager`); break

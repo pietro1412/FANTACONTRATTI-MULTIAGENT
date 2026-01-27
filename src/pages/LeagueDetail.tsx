@@ -42,6 +42,7 @@ interface Session {
 
 // Mapping fasi a nomi user-friendly
 const PHASE_LABELS: Record<string, string> = {
+  CALCOLO_INDENNIZZI: 'Calcolo Indennizzi',
   ASTA_LIBERA: 'Asta Primo Mercato',
   PREMI: 'Assegnazione Premi Budget',
   OFFERTE_PRE_RINNOVO: 'Scambi e Offerte',
@@ -257,6 +258,13 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
         {activeSession && (() => {
           const isFirstMarket = activeSession.type === 'PRIMO_MERCATO'
           const phaseConfig: Record<string, { icon: string; title: string; description: string; buttonText: string; color: string; adminOnly?: boolean }> = {
+            CALCOLO_INDENNIZZI: {
+              icon: '⚖️',
+              title: 'Calcolo Indennizzi',
+              description: 'Gestisci i giocatori usciti dalla Serie A: ritirati, retrocessi o trasferiti all\'estero.',
+              buttonText: 'Gestisci Indennizzi',
+              color: 'warning'
+            },
             ASTA_LIBERA: {
               icon: '🔨',
               title: isFirstMarket ? 'Asta Primo Mercato' : 'Asta Libera',
@@ -294,6 +302,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           // Determine navigation target based on phase
           const getNavTarget = () => {
             switch (phase) {
+              case 'CALCOLO_INDENNIZZI': return () => onNavigate('indemnity', { leagueId })
               case 'ASTA_LIBERA': return () => onNavigate('auction', { sessionId: activeSession.id, leagueId })
               case 'PREMI': return () => onNavigate('prizes', { leagueId })
               case 'OFFERTE_PRE_RINNOVO':
@@ -513,6 +522,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
                     onClick={() => {
                       const phase = activeSession.currentPhase
                       switch (phase) {
+                        case 'CALCOLO_INDENNIZZI': onNavigate('indemnity', { leagueId }); break
                         case 'ASTA_LIBERA': onNavigate('auction', { sessionId: activeSession.id, leagueId }); break
                         case 'PREMI': onNavigate('prizes', { leagueId }); break
                         case 'OFFERTE_PRE_RINNOVO':

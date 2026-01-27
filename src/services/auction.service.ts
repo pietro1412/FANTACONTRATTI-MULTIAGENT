@@ -1,6 +1,6 @@
 import { PrismaClient, AuctionStatus, AuctionType, MemberRole, MemberStatus, AcquisitionType, RosterStatus, Position, SessionStatus, Prisma } from '@prisma/client'
 import { calculateRescissionClause, canAdvanceFromContratti } from './contract.service'
-import { canAdvanceFromCalcoloIndennizzi, autoProcessExitedPlayers } from './indemnity-phase.service'
+import { canAdvanceFromCalcoloIndennizzi } from './indemnity-phase.service'
 import { recordMovement } from './movement.service'
 import {
   triggerBidPlaced,
@@ -321,7 +321,7 @@ export async function createAuctionSession(
           season: league.currentSeason,
           semester,
           status: 'ACTIVE',
-          currentPhase: effectiveIsRegularMarket ? 'OFFERTE_PRE_RINNOVO' : 'ASTA_LIBERA',
+          currentPhase: effectiveIsRegularMarket ? 'CALCOLO_INDENNIZZI' : 'ASTA_LIBERA',
           startsAt: now,
           phaseStartedAt: now,
         },
@@ -343,20 +343,8 @@ export async function createAuctionSession(
       decrementResult = await decrementContractDurations(leagueId)
     }
 
-    // Auto-process exited players (NOT_IN_LIST with exitReason classified)
-    let exitedPlayersResult = null
-    if (isEffectivelyRegularMarket) {
-      try {
-        exitedPlayersResult = await autoProcessExitedPlayers(leagueId, result.session.id)
-      } catch (error) {
-        console.error('Error auto-processing exited players:', error)
-        // Non-blocking: session is already created, log the error
-      }
-    }
-
-    const exitedCount = exitedPlayersResult?.totalProcessed || 0
     const message = isEffectivelyRegularMarket
-      ? `Mercato regolare aperto. Contratti decrementati: ${decrementResult.decremented}, Giocatori svincolati per scadenza: ${decrementResult.released.length}${exitedCount > 0 ? `, Giocatori usciti dalla lista rilasciati: ${exitedCount}` : ''}`
+      ? `Mercato regolare aperto (fase: Calcolo Indennizzi). Contratti decrementati: ${decrementResult.decremented}, Giocatori svincolati per scadenza: ${decrementResult.released.length}`
       : 'Sessione PRIMO MERCATO creata'
 
     return {
@@ -367,9 +355,6 @@ export async function createAuctionSession(
         ...(isEffectivelyRegularMarket && {
           contractsDecremented: decrementResult.decremented,
           playersReleased: decrementResult.released,
-          ...(exitedPlayersResult && exitedPlayersResult.totalProcessed > 0 && {
-            exitedPlayersAutoProcessed: exitedPlayersResult,
-          }),
         }),
       },
     }
@@ -441,9 +426,9 @@ export async function setMarketPhase(
 
   // Validate phase based on market type
   // PRIMO_MERCATO: solo ASTA_LIBERA
-  // MERCATO_RICORRENTE: PREMI, OFFERTE_PRE_RINNOVO, CONTRATTI, CALCOLO_INDENNIZZI, RUBATA, ASTA_SVINCOLATI, OFFERTE_POST_ASTA_SVINCOLATI
+  // MERCATO_RICORRENTE: CALCOLO_INDENNIZZI, OFFERTE_PRE_RINNOVO, PREMI, CONTRATTI, RUBATA, ASTA_SVINCOLATI, OFFERTE_POST_ASTA_SVINCOLATI
   const primoMercatoPhases = ['ASTA_LIBERA']
-  const mercatoRicorrentePhases = ['PREMI', 'OFFERTE_PRE_RINNOVO', 'CONTRATTI', 'CALCOLO_INDENNIZZI', 'RUBATA', 'ASTA_SVINCOLATI', 'OFFERTE_POST_ASTA_SVINCOLATI']
+  const mercatoRicorrentePhases = ['CALCOLO_INDENNIZZI', 'OFFERTE_PRE_RINNOVO', 'PREMI', 'CONTRATTI', 'RUBATA', 'ASTA_SVINCOLATI', 'OFFERTE_POST_ASTA_SVINCOLATI']
 
   const validPhases = session.type === 'PRIMO_MERCATO' ? primoMercatoPhases : mercatoRicorrentePhases
 
