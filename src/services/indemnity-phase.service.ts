@@ -744,3 +744,239 @@ export async function canAdvanceFromCalcoloIndennizzi(
 
   return { canAdvance: true }
 }
+
+// ==================== AUTO-PROCESS EXITED PLAYERS ====================
+
+export interface AutoProcessResult {
+  totalProcessed: number
+  byExitReason: {
+    ritirato: { count: number; players: string[] }
+    retrocesso: { count: number; players: string[] }
+    estero: { count: number; players: string[]; totalCompensation: number }
+  }
+  memberResults: Array<{
+    memberId: string
+    memberUsername: string
+    playersReleased: number
+    compensationReceived: number
+  }>
+}
+
+/**
+ * Auto-process all exited players when creating a MERCATO_RICORRENTE.
+ * Automatically releases all players with listStatus=NOT_IN_LIST and a classified exitReason.
+ * - RITIRATO: released, no compensation
+ * - RETROCESSO: released, no compensation
+ * - ESTERO: released, compensation = MIN(rescissionClause, indennizzoEstero)
+ */
+export async function autoProcessExitedPlayers(
+  leagueId: string,
+  sessionId: string
+): Promise<AutoProcessResult> {
+  const emptyResult: AutoProcessResult = {
+    totalProcessed: 0,
+    byExitReason: {
+      ritirato: { count: 0, players: [] },
+      retrocesso: { count: 0, players: [] },
+      estero: { count: 0, players: [], totalCompensation: 0 },
+    },
+    memberResults: [],
+  }
+
+  // Find all members with affected roster entries
+  const members = await prisma.leagueMember.findMany({
+    where: {
+      leagueId,
+      status: MemberStatus.ACTIVE,
+    },
+    include: {
+      user: { select: { username: true } },
+      roster: {
+        where: {
+          status: RosterStatus.ACTIVE,
+          player: {
+            listStatus: 'NOT_IN_LIST',
+            exitReason: { not: null },
+          },
+        },
+        include: {
+          player: true,
+          contract: true,
+        },
+      },
+    },
+  })
+
+  // Filter to members who have affected players with contracts
+  const membersWithAffected = members.filter(m =>
+    m.roster.some(r => r.contract)
+  )
+
+  if (membersWithAffected.length === 0) {
+    return emptyResult
+  }
+
+  // Get indennizzoEstero from the most recent completed session's prize config
+  let defaultIndennizzoEstero = 50
+  const previousSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      id: { not: sessionId },
+      status: 'COMPLETED',
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  const indennizzoMap = new Map<string, number>()
+  if (previousSession) {
+    const prevCategory = await prisma.prizeCategory.findFirst({
+      where: {
+        marketSessionId: previousSession.id,
+        name: 'Indennizzo Partenza Estero',
+        isSystemPrize: true,
+      },
+      include: { managerPrizes: true },
+    })
+    if (prevCategory) {
+      for (const prize of prevCategory.managerPrizes) {
+        indennizzoMap.set(prize.leagueMemberId, prize.amount)
+      }
+      // Use the first non-zero value as default if available
+      const values = prevCategory.managerPrizes.map(p => p.amount).filter(a => a > 0)
+      if (values.length > 0) {
+        defaultIndennizzoEstero = values[0]
+      }
+    }
+  }
+
+  // Collect data for movements (to record AFTER transaction)
+  const movementsToRecord: Array<{
+    playerId: string
+    movementType: 'RETIREMENT' | 'RELEGATION_RELEASE' | 'ABROAD_COMPENSATION'
+    fromMemberId: string
+    price: number
+  }> = []
+
+  const byExitReason = {
+    ritirato: { count: 0, players: [] as string[] },
+    retrocesso: { count: 0, players: [] as string[] },
+    estero: { count: 0, players: [] as string[], totalCompensation: 0 },
+  }
+
+  // Process all in a single transaction
+  const memberResults = await prisma.$transaction(async (tx) => {
+    const results: AutoProcessResult['memberResults'] = []
+
+    for (const member of membersWithAffected) {
+      const affectedRosters = member.roster.filter(r => r.contract)
+      let memberCompensation = 0
+
+      for (const roster of affectedRosters) {
+        const exitReason = roster.player.exitReason!
+        let compensation = 0
+
+        // Delete contract
+        await tx.playerContract.delete({
+          where: { id: roster.contract!.id },
+        })
+
+        // Release from roster
+        await tx.playerRoster.update({
+          where: { id: roster.id },
+          data: {
+            status: RosterStatus.RELEASED,
+            releasedAt: new Date(),
+          },
+        })
+
+        if (exitReason === 'ESTERO') {
+          const memberIndennizzo = indennizzoMap.get(member.id) ?? defaultIndennizzoEstero
+          compensation = Math.min(roster.contract!.rescissionClause, memberIndennizzo)
+
+          await tx.leagueMember.update({
+            where: { id: member.id },
+            data: { currentBudget: { increment: compensation } },
+          })
+
+          byExitReason.estero.count++
+          byExitReason.estero.players.push(roster.player.name)
+          byExitReason.estero.totalCompensation += compensation
+
+          movementsToRecord.push({
+            playerId: roster.playerId,
+            movementType: 'ABROAD_COMPENSATION',
+            fromMemberId: member.id,
+            price: compensation,
+          })
+        } else if (exitReason === 'RITIRATO') {
+          byExitReason.ritirato.count++
+          byExitReason.ritirato.players.push(roster.player.name)
+
+          movementsToRecord.push({
+            playerId: roster.playerId,
+            movementType: 'RETIREMENT',
+            fromMemberId: member.id,
+            price: 0,
+          })
+        } else if (exitReason === 'RETROCESSO') {
+          byExitReason.retrocesso.count++
+          byExitReason.retrocesso.players.push(roster.player.name)
+
+          movementsToRecord.push({
+            playerId: roster.playerId,
+            movementType: 'RELEGATION_RELEASE',
+            fromMemberId: member.id,
+            price: 0,
+          })
+        }
+
+        memberCompensation += compensation
+      }
+
+      // Create IndemnityDecision record for tracking
+      await tx.indemnityDecision.create({
+        data: {
+          sessionId,
+          memberId: member.id,
+          decisions: affectedRosters.map(r => ({
+            rosterId: r.id,
+            playerId: r.playerId,
+            playerName: r.player.name,
+            exitReason: r.player.exitReason,
+            decision: 'RELEASE',
+            auto: true,
+          })) as unknown as Prisma.InputJsonValue,
+        },
+      })
+
+      results.push({
+        memberId: member.id,
+        memberUsername: member.user.username,
+        playersReleased: affectedRosters.length,
+        compensationReceived: memberCompensation,
+      })
+    }
+
+    return results
+  })
+
+  // Record movements OUTSIDE transaction (following existing pattern)
+  for (const movement of movementsToRecord) {
+    await recordMovement({
+      leagueId,
+      playerId: movement.playerId,
+      movementType: movement.movementType,
+      fromMemberId: movement.fromMemberId,
+      price: movement.price,
+      marketSessionId: sessionId,
+    })
+  }
+
+  const totalProcessed = byExitReason.ritirato.count + byExitReason.retrocesso.count + byExitReason.estero.count
+
+  return {
+    totalProcessed,
+    byExitReason,
+    memberResults,
+  }
+}

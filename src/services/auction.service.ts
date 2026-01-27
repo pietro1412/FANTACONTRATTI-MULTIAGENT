@@ -1,6 +1,6 @@
 import { PrismaClient, AuctionStatus, AuctionType, MemberRole, MemberStatus, AcquisitionType, RosterStatus, Position, SessionStatus, Prisma } from '@prisma/client'
 import { calculateRescissionClause, canAdvanceFromContratti } from './contract.service'
-import { canAdvanceFromCalcoloIndennizzi } from './indemnity-phase.service'
+import { canAdvanceFromCalcoloIndennizzi, autoProcessExitedPlayers } from './indemnity-phase.service'
 import { recordMovement } from './movement.service'
 import {
   triggerBidPlaced,
@@ -343,8 +343,20 @@ export async function createAuctionSession(
       decrementResult = await decrementContractDurations(leagueId)
     }
 
+    // Auto-process exited players (NOT_IN_LIST with exitReason classified)
+    let exitedPlayersResult = null
+    if (isEffectivelyRegularMarket) {
+      try {
+        exitedPlayersResult = await autoProcessExitedPlayers(leagueId, result.session.id)
+      } catch (error) {
+        console.error('Error auto-processing exited players:', error)
+        // Non-blocking: session is already created, log the error
+      }
+    }
+
+    const exitedCount = exitedPlayersResult?.totalProcessed || 0
     const message = isEffectivelyRegularMarket
-      ? `Mercato regolare aperto. Contratti decrementati: ${decrementResult.decremented}, Giocatori svincolati: ${decrementResult.released.length}`
+      ? `Mercato regolare aperto. Contratti decrementati: ${decrementResult.decremented}, Giocatori svincolati per scadenza: ${decrementResult.released.length}${exitedCount > 0 ? `, Giocatori usciti dalla lista rilasciati: ${exitedCount}` : ''}`
       : 'Sessione PRIMO MERCATO creata'
 
     return {
@@ -355,6 +367,9 @@ export async function createAuctionSession(
         ...(isEffectivelyRegularMarket && {
           contractsDecremented: decrementResult.decremented,
           playersReleased: decrementResult.released,
+          ...(exitedPlayersResult && exitedPlayersResult.totalProcessed > 0 && {
+            exitedPlayersAutoProcessed: exitedPlayersResult,
+          }),
         }),
       },
     }
