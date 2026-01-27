@@ -15,6 +15,8 @@ interface Player {
   name: string
   team: string
   position: string
+  listStatus?: string
+  exitReason?: string
 }
 
 interface Contract {
@@ -30,6 +32,10 @@ interface Contract {
   draftSalary: number | null
   draftDuration: number | null
   draftReleased: boolean  // Marcato per taglio
+  // Exited player info
+  isExitedPlayer?: boolean
+  exitReason?: string | null
+  indemnityCompensation?: number
   roster: {
     id: string
     player: Player
@@ -425,24 +431,39 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   // I rinnovi NON costano budget (si paga solo l'ingaggio semestrale)
   // Rimosso totalRenewalCost - non serve più
 
-  // Calcola costo totale tagli
+  // Calcola costo totale tagli (esclusi giocatori usciti dalla lista - costo 0)
   const totalReleaseCost = useMemo(() => {
     let total = 0
 
     contracts.forEach(contract => {
       if (localReleases.has(contract.id)) {
-        // Costo taglio = (ingaggio × durata) / 2
-        total += Math.ceil((contract.salary * contract.duration) / 2)
+        if (contract.isExitedPlayer) {
+          // Giocatori usciti: nessun costo taglio
+        } else {
+          // Costo taglio = (ingaggio × durata) / 2
+          total += Math.ceil((contract.salary * contract.duration) / 2)
+        }
       }
     })
 
     return total
   }, [contracts, localReleases])
 
-  // Residuo = Budget Iniziale - Ingaggi - Tagli
+  // Calcola totale indennizzi in entrata (ESTERO rilasciati)
+  const totalIndemnityIncome = useMemo(() => {
+    let total = 0
+    contracts.forEach(contract => {
+      if (localReleases.has(contract.id) && contract.exitReason === 'ESTERO') {
+        total += contract.indemnityCompensation || 0
+      }
+    })
+    return total
+  }, [contracts, localReleases])
+
+  // Residuo = Budget - Ingaggi - Tagli + Indennizzi
   const residuoContratti = useMemo(() => {
-    return memberBudget - projectedSalaries - totalReleaseCost
-  }, [memberBudget, projectedSalaries, totalReleaseCost])
+    return memberBudget - projectedSalaries - totalReleaseCost + totalIndemnityIncome
+  }, [memberBudget, projectedSalaries, totalReleaseCost, totalIndemnityIncome])
 
   // Calcola numero giocatori effettivo dopo i tagli
   const effectivePlayerCount = useMemo(() => {
@@ -516,8 +537,13 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   }, [pendingContracts, pendingEdits, effectivePlayerCount, requiredReleases, contracts, localEdits])
 
   // Filtra e ordina contratti
+  // Separate exited players from normal contracts
+  const exitedContracts = useMemo(() =>
+    contracts.filter(c => c.isExitedPlayer),
+  [contracts])
+
   const filteredContracts = useMemo(() => {
-    let items = [...contracts]
+    let items = contracts.filter(c => !c.isExitedPlayer)
     if (filterRole) items = items.filter(c => c.roster.player.position === filterRole)
     if (searchQuery) items = items.filter(c =>
       c.roster.player.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -1032,6 +1058,104 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Giocatori Usciti dalla Serie A */}
+        {exitedContracts.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">⚖️</span>
+              <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-wide">
+                Giocatori Usciti dalla Serie A ({exitedContracts.length})
+              </h2>
+            </div>
+            <p className="text-xs text-gray-400 mb-3">
+              Decidi se tenere o rilasciare i giocatori che hanno lasciato il campionato. Il rilascio non ha costo. Per i giocatori trasferiti all'estero, riceverai un indennizzo.
+            </p>
+            <div className="space-y-3">
+              {exitedContracts.map(contract => {
+                const isReleased = localReleases.has(contract.id)
+                const roleStyle = getRoleStyle(contract.roster.player.position)
+                const exitConfig: Record<string, { bg: string; text: string; label: string }> = {
+                  RETROCESSO: { bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'Retrocesso' },
+                  ESTERO: { bg: 'bg-cyan-500/20', text: 'text-cyan-400', label: 'Estero' },
+                }
+                const config = exitConfig[contract.exitReason || ''] || exitConfig.RETROCESSO
+
+                return (
+                  <div key={contract.id} className={`rounded-xl border p-4 transition-all ${
+                    isReleased
+                      ? 'bg-danger-500/10 border-danger-500/30'
+                      : 'bg-surface-200 border-surface-50/20'
+                  }`}>
+                    <div className="flex items-center justify-between gap-4">
+                      {/* Player info */}
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className={`w-8 h-8 rounded-lg ${roleStyle.bg} flex items-center justify-center text-white text-xs font-bold`}>
+                          {contract.roster.player.position}
+                        </div>
+                        <TeamLogo team={contract.roster.player.team} />
+                        <div className="min-w-0">
+                          <p className="text-white font-medium truncate">{contract.roster.player.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${config.bg} ${config.text}`}>
+                              {config.label}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {contract.salary}M / {contract.duration}sem
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Indemnity info */}
+                      <div className="text-right shrink-0">
+                        {contract.exitReason === 'ESTERO' && (
+                          <p className={`text-sm font-bold ${isReleased ? 'text-green-400' : 'text-gray-500'}`}>
+                            {isReleased ? `+${contract.indemnityCompensation}M` : `Indennizzo: ${contract.indemnityCompensation}M`}
+                          </p>
+                        )}
+                        {contract.exitReason === 'RETROCESSO' && isReleased && (
+                          <p className="text-sm text-gray-400">Senza costo</p>
+                        )}
+                        {!isReleased && (
+                          <p className="text-xs text-gray-500">Paghi {contract.salary}M/sem</p>
+                        )}
+                      </div>
+
+                      {/* Toggle button */}
+                      {inContrattiPhase && !isConsolidated && (
+                        <button
+                          onClick={() => {
+                            const newSet = new Set(localReleases)
+                            if (isReleased) newSet.delete(contract.id)
+                            else newSet.add(contract.id)
+                            setLocalReleases(newSet)
+                          }}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${
+                            isReleased
+                              ? 'bg-danger-500/20 text-danger-400 border border-danger-500/40 hover:bg-danger-500/30'
+                              : 'bg-surface-300 text-gray-300 border border-surface-50/30 hover:bg-surface-300/80'
+                          }`}
+                        >
+                          {isReleased ? 'Rilascia' : 'Tieni'}
+                        </button>
+                      )}
+                      {isConsolidated && (
+                        <span className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
+                          contract.draftReleased
+                            ? 'bg-danger-500/20 text-danger-400'
+                            : 'bg-green-500/20 text-green-400'
+                        }`}>
+                          {contract.draftReleased ? 'Rilasciato' : 'Mantenuto'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
@@ -1553,7 +1677,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 <span className="text-warning-400 text-xs font-medium">Modifiche non salvate - ricorda di salvare!</span>
               </div>
             )}
-            <div className="grid grid-cols-4 gap-2 text-center">
+            <div className={`grid gap-2 text-center ${totalIndemnityIncome > 0 ? 'grid-cols-5' : 'grid-cols-4'}`}>
               <div className="bg-surface-300/50 rounded-lg p-2">
                 <div className="text-[9px] text-gray-500 uppercase tracking-wide">Budget</div>
                 <div className="text-accent-400 font-bold text-lg">{memberBudget}M</div>
@@ -1566,6 +1690,12 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 <div className="text-[9px] text-gray-500 uppercase tracking-wide">Tagli</div>
                 <div className="text-danger-400 font-bold text-lg">{totalReleaseCost}M</div>
               </div>
+              {totalIndemnityIncome > 0 && (
+                <div className="bg-surface-300/50 rounded-lg p-2">
+                  <div className="text-[9px] text-gray-500 uppercase tracking-wide">Indennizzi</div>
+                  <div className="text-secondary-400 font-bold text-lg">+{totalIndemnityIncome}M</div>
+                </div>
+              )}
               <div className={`rounded-lg p-2 ${residuoContratti < 0 ? 'bg-danger-500/30' : 'bg-secondary-500/30'}`}>
                 <div className="text-[9px] text-white uppercase tracking-wide font-medium">Residuo</div>
                 <div className={`font-bold text-lg ${residuoContratti < 0 ? 'text-danger-300' : 'text-secondary-300'}`}>
@@ -1592,6 +1722,15 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 <span className="text-sm text-gray-400">Tagli</span>
                 <span className="text-danger-400 font-bold text-xl">{totalReleaseCost}M</span>
               </div>
+              {totalIndemnityIncome > 0 && (
+                <>
+                  <span className="text-gray-500 text-xl">+</span>
+                  <div className="flex items-center gap-3 bg-surface-300/50 px-4 py-2 rounded-lg">
+                    <span className="text-sm text-gray-400">Indennizzi</span>
+                    <span className="text-secondary-400 font-bold text-xl">+{totalIndemnityIncome}M</span>
+                  </div>
+                </>
+              )}
               <span className="text-gray-500 text-xl">=</span>
               <div className={`flex items-center gap-3 px-5 py-2 rounded-lg ${
                 residuoContratti < 0 ? 'bg-danger-500/30 border border-danger-500/50' : 'bg-secondary-500/30 border border-secondary-500/50'
