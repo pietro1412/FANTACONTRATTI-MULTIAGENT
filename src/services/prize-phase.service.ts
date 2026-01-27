@@ -58,30 +58,34 @@ export async function initializePrizePhase(
     },
   })
 
-  // Create config and default category "Indennizzo Partenza Estero"
-  const [config, indennizzoCategory] = await prisma.$transaction([
-    prisma.prizePhaseConfig.create({
+  // Create config, default category and prizes in a single transaction
+  // This ensures atomicity - if any operation fails, all are rolled back
+  const { config, indennizzoCategory } = await prisma.$transaction(async (tx) => {
+    const config = await tx.prizePhaseConfig.create({
       data: {
         marketSessionId: sessionId,
         baseReincrement: 100,
       },
-    }),
-    prisma.prizeCategory.create({
+    })
+
+    const indennizzoCategory = await tx.prizeCategory.create({
       data: {
         marketSessionId: sessionId,
         name: 'Indennizzo Partenza Estero',
         isSystemPrize: true,
       },
-    }),
-  ])
+    })
 
-  // Create default 50M prizes for each member in Indennizzo category
-  await prisma.sessionPrize.createMany({
-    data: members.map(m => ({
-      prizeCategoryId: indennizzoCategory.id,
-      leagueMemberId: m.id,
-      amount: 50,
-    })),
+    // Create default 50M prizes for each member in Indennizzo category
+    await tx.sessionPrize.createMany({
+      data: members.map(m => ({
+        prizeCategoryId: indennizzoCategory.id,
+        leagueMemberId: m.id,
+        amount: 50,
+      })),
+    })
+
+    return { config, indennizzoCategory }
   })
 
   return {

@@ -74,4 +74,14 @@ export interface IEmailService {
     accepted: boolean,
     leagueUrl: string
   ): Promise<void>
+
+  /**
+   * Send notification to manager when they are expelled (kicked) from a league
+   * @param managerEmail - Manager's email address
+   * @param leagueName - Name of the league
+   */
+  sendMemberExpelledEmail(
+    managerEmail: string,
+    leagueName: string
+  ): Promise<void>
 }

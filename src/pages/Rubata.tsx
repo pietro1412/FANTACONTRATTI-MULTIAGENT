@@ -129,8 +129,8 @@ interface PreviewBoardData {
 
 interface ReadyStatus {
   rubataState: string | null
-  readyMembers: Array<{ id: string; username: string }>
-  pendingMembers: Array<{ id: string; username: string }>
+  readyMembers: Array<{ id: string; username: string; isConnected?: boolean }>
+  pendingMembers: Array<{ id: string; username: string; isConnected?: boolean }>
   totalMembers: number
   readyCount: number
   allReady: boolean
@@ -414,6 +414,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   // Ref for current player row/card to scroll into view
   const currentPlayerRef = useRef<HTMLElement>(null)
 
+  // Track if current player is visible in viewport (for "scroll to current" button)
+  const [isCurrentPlayerVisible, setIsCurrentPlayerVisible] = useState(true)
+
   // Track if timers have been initialized (to avoid overwriting user changes)
   const timersInitialized = useRef(false)
 
@@ -443,6 +446,35 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
       currentPlayerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   }, [boardData?.currentIndex])
+
+  // IntersectionObserver to track if current player is visible
+  useEffect(() => {
+    const currentEl = currentPlayerRef.current
+    if (!currentEl) {
+      setIsCurrentPlayerVisible(true)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsCurrentPlayerVisible(entry.isIntersecting)
+      },
+      { threshold: 0.1 } // Consider visible if at least 10% is showing
+    )
+
+    observer.observe(currentEl)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [boardData?.currentIndex, boardData?.board])
+
+  // Function to scroll to current player (for floating button)
+  const scrollToCurrentPlayer = () => {
+    if (currentPlayerRef.current) {
+      currentPlayerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }
 
   // Track auction ID to avoid showing duplicate modals (keeping for future use)
   useEffect(() => {
@@ -671,6 +703,28 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
     return () => clearInterval(interval)
   }, [loadBoardOnly, loadFast, loadAckOnly, boardData?.rubataState, isPusherConnected])
+
+  // Send heartbeat every 3 seconds to track connection status
+  useEffect(() => {
+    const myId = boardData?.myMemberId || readyStatus?.myMemberId
+    if (!myId) return
+
+    const sendHeartbeat = async () => {
+      try {
+        await rubataApi.sendHeartbeat(leagueId, myId)
+      } catch (e) {
+        // Ignore heartbeat errors
+        console.error('[Rubata] Heartbeat error:', e)
+      }
+    }
+
+    // Send immediately on mount
+    sendHeartbeat()
+
+    // Then every 3 seconds
+    const interval = setInterval(sendHeartbeat, 3000)
+    return () => clearInterval(interval)
+  }, [leagueId, boardData?.myMemberId, readyStatus?.myMemberId])
 
   // ========== Admin Actions ==========
 
@@ -1223,6 +1277,48 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     }
     return map
   }, [previewBoard?.board])
+
+  // Calculate progress stats for rubata (memoized)
+  const progressStats = useMemo(() => {
+    const board = boardData?.board
+    if (!board || boardData?.currentIndex === null || boardData?.currentIndex === undefined) {
+      return null
+    }
+
+    const currentIndex = boardData.currentIndex
+    const totalPlayers = board.length
+    const remaining = totalPlayers - currentIndex - 1
+
+    // Find current manager's players
+    const currentPlayer = boardData.currentPlayer
+    const currentManagerId = currentPlayer?.memberId
+    if (!currentManagerId) {
+      return { currentIndex, totalPlayers, remaining, managerProgress: null }
+    }
+
+    // Get all players for current manager
+    const managerPlayers = board.filter(p => p.memberId === currentManagerId)
+    const managerTotal = managerPlayers.length
+
+    // Count how many of current manager's players have been processed
+    let managerProcessed = 0
+    for (let i = 0; i <= currentIndex; i++) {
+      if (board[i].memberId === currentManagerId) {
+        managerProcessed++
+      }
+    }
+
+    return {
+      currentIndex,
+      totalPlayers,
+      remaining,
+      managerProgress: {
+        processed: managerProcessed,
+        total: managerTotal,
+        username: currentPlayer.ownerUsername
+      }
+    }
+  }, [boardData?.board, boardData?.currentIndex, boardData?.currentPlayer])
 
   // ========== Drag & Drop ==========
 
@@ -1823,13 +1919,29 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
                 {readyStatus.readyMembers.map((member) => (
                   <div key={member.id} className="flex items-center gap-2 p-2 rounded-lg bg-secondary-500/20 text-sm">
-                    <span className="text-secondary-400">✓</span>
+                    <div className="relative flex-shrink-0">
+                      <span className="text-secondary-400">✓</span>
+                      <span
+                        className={`absolute -bottom-1 -right-1 w-2 h-2 rounded-full border border-surface-200 ${
+                          member.isConnected === true ? 'bg-green-500' : member.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
+                        }`}
+                        title={member.isConnected ? 'Online' : 'Offline'}
+                      />
+                    </div>
                     <span className="text-white truncate">{member.username}</span>
                   </div>
                 ))}
                 {readyStatus.pendingMembers.map((member) => (
                   <div key={member.id} className="flex items-center gap-2 p-2 rounded-lg bg-white/5 text-sm">
-                    <span className="text-gray-500">○</span>
+                    <div className="relative flex-shrink-0">
+                      <span className="text-gray-500">○</span>
+                      <span
+                        className={`absolute -bottom-1 -right-1 w-2 h-2 rounded-full border border-surface-200 ${
+                          member.isConnected === true ? 'bg-green-500' : member.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
+                        }`}
+                        title={member.isConnected ? 'Online' : 'Offline'}
+                      />
+                    </div>
                     <span className="text-gray-400 truncate">{member.username}</span>
                   </div>
                 ))}
@@ -2255,9 +2367,22 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                          rubataState === 'COMPLETED' ? '✅ COMPLETATA' :
                          'SCONOSCIUTO'}
                       </span>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {boardData?.currentIndex !== null ? `${(boardData.currentIndex || 0) + 1} / ${boardData?.totalPlayers}` : ''}
-                      </p>
+                      {/* Progress counters */}
+                      {progressStats && (
+                        <div className="flex flex-wrap gap-2 mt-2 text-xs">
+                          {progressStats.managerProgress && (
+                            <span className="px-2 py-0.5 bg-primary-500/20 rounded text-primary-400">
+                              👤 {progressStats.managerProgress.username}: {progressStats.managerProgress.processed}/{progressStats.managerProgress.total}
+                            </span>
+                          )}
+                          <span className="px-2 py-0.5 bg-accent-500/20 rounded text-accent-400">
+                            📊 Totale: {progressStats.currentIndex + 1}/{progressStats.totalPlayers}
+                          </span>
+                          <span className="px-2 py-0.5 bg-warning-500/20 rounded text-warning-400">
+                            ⏳ Rimangono: {progressStats.remaining}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2393,7 +2518,13 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   <div className="flex items-center gap-2 flex-wrap text-sm">
                     <span className="text-gray-500">In attesa:</span>
                     {readyStatus.pendingMembers.map((member, idx) => (
-                      <span key={member.id} className="px-2 py-0.5 bg-warning-500/20 text-warning-400 rounded text-xs">
+                      <span key={member.id} className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-warning-500/20 text-warning-400 rounded text-xs">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            member.isConnected === true ? 'bg-green-500' : member.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
+                          }`}
+                          title={member.isConnected ? 'Online' : 'Offline'}
+                        />
                         {member.username}
                       </span>
                     ))}
@@ -2457,7 +2588,13 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     <div className="flex items-center gap-2 flex-wrap text-sm">
                       <span className="text-gray-500">In attesa:</span>
                       {readyStatus.pendingMembers.map((member, idx) => (
-                        <span key={member.id} className="px-2 py-0.5 bg-warning-500/20 text-warning-400 rounded text-xs">
+                        <span key={member.id} className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-warning-500/20 text-warning-400 rounded text-xs">
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              member.isConnected === true ? 'bg-green-500' : member.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
+                            }`}
+                            title={member.isConnected ? 'Online' : 'Offline'}
+                          />
                           {member.username}
                         </span>
                       ))}
@@ -2878,6 +3015,25 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
           </div>
         )}
 
+
+        {/* Floating "Scroll to Current Player" Button - Bottom Left */}
+        {isRubataPhase && isOrderSet && !isCurrentPlayerVisible && currentPlayer && (
+          <button
+            onClick={scrollToCurrentPlayer}
+            className="fixed bottom-4 left-4 z-50 flex items-center gap-2 px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-full shadow-lg transition-all animate-pulse hover:animate-none"
+            title={`Torna a ${currentPlayer.playerName}`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+            </svg>
+            <span className="text-sm font-medium hidden sm:inline">
+              Torna a {currentPlayer.playerName.split(' ').pop()}
+            </span>
+            <span className="text-sm font-medium sm:hidden">
+              ↑ Player
+            </span>
+          </button>
+        )}
 
         {/* Floating Chat - Bottom Right */}
         {isRubataPhase && isOrderSet && sessionId && (

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { inviteApi } from '../services/api'
 import { Button } from '../components/ui/Button'
+import { Input } from '../components/ui/Input'
 import { Navigation } from '../components/Navigation'
 
 interface InviteDetailProps {
@@ -81,6 +82,8 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<'accept' | 'reject' | null>(null)
+  const [teamName, setTeamName] = useState('')
+  const [teamNameError, setTeamNameError] = useState<string | null>(null)
 
   useEffect(() => {
     loadInvite()
@@ -104,8 +107,15 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
   async function handleAccept() {
     if (!invite) return
 
+    // Validate team name
+    if (teamName.trim().length < 2) {
+      setTeamNameError('Il nome squadra deve avere almeno 2 caratteri')
+      return
+    }
+
+    setTeamNameError(null)
     setActionLoading('accept')
-    const res = await inviteApi.accept(token)
+    const res = await inviteApi.accept(token, teamName.trim())
 
     if (res.success) {
       onNavigate('leagueDetail', { leagueId: invite.league.id })
@@ -366,13 +376,36 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
                 </p>
               </div>
 
+              {/* Team Name Input */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-300 mb-2">
+                  Nome della tua squadra
+                </label>
+                <Input
+                  type="text"
+                  value={teamName}
+                  onChange={(e) => {
+                    setTeamName(e.target.value)
+                    if (teamNameError) setTeamNameError(null)
+                  }}
+                  placeholder="Es. FC Campioni, Inter Stars..."
+                  className={teamNameError ? 'border-danger-500' : ''}
+                />
+                {teamNameError && (
+                  <p className="text-xs text-danger-400 mt-1">{teamNameError}</p>
+                )}
+                <p className="text-xs text-gray-500 mt-2">
+                  Scegli un nome unico per la tua squadra nella lega
+                </p>
+              </div>
+
               {/* Actions */}
               <div className="space-y-3">
                 <Button
                   size="lg"
                   className="w-full"
                   onClick={handleAccept}
-                  disabled={actionLoading !== null}
+                  disabled={actionLoading !== null || teamName.trim().length < 2}
                 >
                   {actionLoading === 'accept' ? (
                     <div className="flex items-center justify-center gap-2">

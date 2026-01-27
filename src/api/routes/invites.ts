@@ -116,7 +116,14 @@ router.get('/invites/:token/details', authMiddleware, async (req: Request, res: 
 router.post('/invites/:token/accept', authMiddleware, async (req: Request, res: Response) => {
   try {
     const token = req.params.token as string
-    const result = await acceptInvite(token, req.user!.userId)
+    const { teamName } = req.body as { teamName?: string }
+
+    if (!teamName || teamName.trim().length < 2) {
+      res.status(400).json({ success: false, message: 'Il nome squadra deve avere almeno 2 caratteri' })
+      return
+    }
+
+    const result = await acceptInvite(token, req.user!.userId, teamName.trim())
 
     if (!result.success) {
       res.status(400).json(result)

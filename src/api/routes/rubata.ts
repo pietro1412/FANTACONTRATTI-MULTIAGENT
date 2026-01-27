@@ -42,6 +42,8 @@ import {
   // Year-round strategies
   getAllPlayersForStrategies,
   getAllSvincolatiForStrategies,
+  // Connection tracking
+  registerRubataHeartbeat,
 } from '../../services/rubata.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -777,6 +779,28 @@ router.get('/leagues/:leagueId/rubata/svincolati-strategies', authMiddleware, as
     res.json(result)
   } catch (error) {
     console.error('Get all svincolati for strategies error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== HEARTBEAT / CONNECTION STATUS ====================
+
+// POST /api/leagues/:leagueId/rubata/heartbeat - Register heartbeat for connection tracking
+router.post('/leagues/:leagueId/rubata/heartbeat', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const { memberId } = req.body as { memberId?: string }
+
+    if (!memberId) {
+      res.status(400).json({ success: false, message: 'memberId richiesto' })
+      return
+    }
+
+    registerRubataHeartbeat(leagueId, memberId)
+
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Rubata heartbeat error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

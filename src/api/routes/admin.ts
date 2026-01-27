@@ -9,6 +9,7 @@ import {
   assignPrize,
   getMembersForPrizes,
   getPrizeHistory,
+  completeLeagueWithTestUsers,
 } from '../../services/admin.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -187,6 +188,26 @@ router.post('/leagues/:leagueId/admin/prizes', authMiddleware, async (req: Reque
     res.json(result)
   } catch (error) {
     console.error('Assign prize error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== COMPLETE LEAGUE WITH TEST USERS ====================
+
+// POST /api/leagues/:leagueId/admin/complete-with-test-users - Complete league to 8 managers with test users
+router.post('/leagues/:leagueId/admin/complete-with-test-users', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await completeLeagueWithTestUsers(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Complete league with test users error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

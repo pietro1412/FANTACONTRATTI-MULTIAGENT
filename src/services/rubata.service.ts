@@ -10,6 +10,37 @@ export interface ServiceResult {
   data?: unknown
 }
 
+// ==================== HEARTBEAT / CONNECTION STATUS ====================
+
+// In-memory storage for heartbeats (leagueId -> memberId -> timestamp)
+const rubataHeartbeats = new Map<string, Map<string, number>>()
+
+// Heartbeat timeout in milliseconds (10 seconds)
+const RUBATA_HEARTBEAT_TIMEOUT = 10000
+
+export function registerRubataHeartbeat(leagueId: string, memberId: string): void {
+  if (!rubataHeartbeats.has(leagueId)) {
+    rubataHeartbeats.set(leagueId, new Map())
+  }
+  rubataHeartbeats.get(leagueId)!.set(memberId, Date.now())
+}
+
+export function getRubataConnectionStatus(leagueId: string): Map<string, boolean> {
+  const leagueHeartbeats = rubataHeartbeats.get(leagueId) || new Map()
+  const now = Date.now()
+  const status = new Map<string, boolean>()
+
+  leagueHeartbeats.forEach((timestamp, memberId) => {
+    status.set(memberId, now - timestamp < RUBATA_HEARTBEAT_TIMEOUT)
+  })
+
+  return status
+}
+
+export function clearRubataHeartbeats(leagueId: string): void {
+  rubataHeartbeats.delete(leagueId)
+}
+
 // ==================== PHASE CHECK ====================
 
 async function isInRubataPhase(leagueId: string): Promise<boolean> {
@@ -2309,13 +2340,16 @@ export async function getRubataReadyStatus(
   const allMembers = activeSession.league.members
   const rubataReadyMembers = (activeSession.rubataReadyMembers as string[]) || []
 
+  // Get connection status for all managers
+  const connectionStatus = getRubataConnectionStatus(leagueId)
+
   const readyMembers = allMembers
     .filter(m => rubataReadyMembers.includes(m.id))
-    .map(m => ({ id: m.id, username: m.user.username }))
+    .map(m => ({ id: m.id, username: m.user.username, isConnected: connectionStatus.get(m.id) ?? false }))
 
   const pendingMembers = allMembers
     .filter(m => !rubataReadyMembers.includes(m.id))
-    .map(m => ({ id: m.id, username: m.user.username }))
+    .map(m => ({ id: m.id, username: m.user.username, isConnected: connectionStatus.get(m.id) ?? false }))
 
   return {
     success: true,

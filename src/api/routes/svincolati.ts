@@ -30,6 +30,8 @@ import {
   declareSvincolatiFinished,
   undoSvincolatiFinished,
   forceAllSvincolatiFinished,
+  // Connection tracking
+  registerSvincolatiHeartbeat,
 } from '../../services/svincolati.service'
 import { simulateBotBidding, getBotMembers } from '../../services/bot.service'
 import { authMiddleware } from '../middleware/auth'
@@ -598,6 +600,28 @@ router.post('/leagues/:leagueId/svincolati/force-all-finished', authMiddleware, 
     res.json(result)
   } catch (error) {
     console.error('Force all finished error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== HEARTBEAT / CONNECTION STATUS ====================
+
+// POST /api/leagues/:leagueId/svincolati/heartbeat - Register heartbeat for connection tracking
+router.post('/leagues/:leagueId/svincolati/heartbeat', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const { memberId } = req.body as { memberId?: string }
+
+    if (!memberId) {
+      res.status(400).json({ success: false, message: 'memberId richiesto' })
+      return
+    }
+
+    registerSvincolatiHeartbeat(leagueId, memberId)
+
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Svincolati heartbeat error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })
