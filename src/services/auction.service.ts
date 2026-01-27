@@ -1,6 +1,6 @@
 import { PrismaClient, AuctionStatus, AuctionType, MemberRole, MemberStatus, AcquisitionType, RosterStatus, Position, SessionStatus, Prisma } from '@prisma/client'
 import { calculateRescissionClause, canAdvanceFromContratti } from './contract.service'
-import { canAdvanceFromCalcoloIndennizzi, autoProcessExitedPlayers } from './indemnity-phase.service'
+import { autoReleaseRitiratiPlayers } from './indemnity-phase.service'
 import { recordMovement } from './movement.service'
 import {
   triggerBidPlaced,
@@ -343,20 +343,18 @@ export async function createAuctionSession(
       decrementResult = await decrementContractDurations(leagueId)
     }
 
-    // Auto-process exited players (NOT_IN_LIST with exitReason classified)
-    let exitedPlayersResult = null
+    // Auto-release RITIRATO players (RETROCESSO/ESTERO handled in CONTRATTI phase)
+    let ritiratiResult = { released: 0, players: [] as string[] }
     if (isEffectivelyRegularMarket) {
       try {
-        exitedPlayersResult = await autoProcessExitedPlayers(leagueId, result.session.id)
+        ritiratiResult = await autoReleaseRitiratiPlayers(leagueId, result.session.id)
       } catch (error) {
-        console.error('Error auto-processing exited players:', error)
-        // Non-blocking: session is already created, log the error
+        console.error('Error auto-releasing ritirato players:', error)
       }
     }
 
-    const exitedCount = exitedPlayersResult?.totalProcessed || 0
     const message = isEffectivelyRegularMarket
-      ? `Mercato regolare aperto. Contratti decrementati: ${decrementResult.decremented}, Giocatori svincolati per scadenza: ${decrementResult.released.length}${exitedCount > 0 ? `, Giocatori usciti dalla lista rilasciati: ${exitedCount}` : ''}`
+      ? `Mercato regolare aperto (fase: Scambi Pre-Rinnovo). Contratti decrementati: ${decrementResult.decremented}, Svincolati per scadenza: ${decrementResult.released.length}${ritiratiResult.released > 0 ? `, Ritirati auto-rilasciati: ${ritiratiResult.released}` : ''}`
       : 'Sessione PRIMO MERCATO creata'
 
     return {
@@ -367,8 +365,8 @@ export async function createAuctionSession(
         ...(isEffectivelyRegularMarket && {
           contractsDecremented: decrementResult.decremented,
           playersReleased: decrementResult.released,
-          ...(exitedPlayersResult && exitedPlayersResult.totalProcessed > 0 && {
-            exitedPlayersAutoProcessed: exitedPlayersResult,
+          ...(ritiratiResult.released > 0 && {
+            ritiratiAutoReleased: ritiratiResult,
           }),
         }),
       },
@@ -441,9 +439,9 @@ export async function setMarketPhase(
 
   // Validate phase based on market type
   // PRIMO_MERCATO: solo ASTA_LIBERA
-  // MERCATO_RICORRENTE: PREMI, OFFERTE_PRE_RINNOVO, CONTRATTI, CALCOLO_INDENNIZZI, RUBATA, ASTA_SVINCOLATI, OFFERTE_POST_ASTA_SVINCOLATI
+  // MERCATO_RICORRENTE: OFFERTE_PRE_RINNOVO, PREMI, CONTRATTI, RUBATA, ASTA_SVINCOLATI, OFFERTE_POST_ASTA_SVINCOLATI
   const primoMercatoPhases = ['ASTA_LIBERA']
-  const mercatoRicorrentePhases = ['PREMI', 'OFFERTE_PRE_RINNOVO', 'CONTRATTI', 'CALCOLO_INDENNIZZI', 'RUBATA', 'ASTA_SVINCOLATI', 'OFFERTE_POST_ASTA_SVINCOLATI']
+  const mercatoRicorrentePhases = ['OFFERTE_PRE_RINNOVO', 'PREMI', 'CONTRATTI', 'RUBATA', 'ASTA_SVINCOLATI', 'OFFERTE_POST_ASTA_SVINCOLATI']
 
   const validPhases = session.type === 'PRIMO_MERCATO' ? primoMercatoPhases : mercatoRicorrentePhases
 
@@ -484,19 +482,11 @@ export async function setMarketPhase(
     }
   }
 
-  // Check indemnity decisions when leaving CALCOLO_INDENNIZZI phase
-  if (session.currentPhase === 'CALCOLO_INDENNIZZI' && phase !== 'CALCOLO_INDENNIZZI') {
-    const indemnityCheck = await canAdvanceFromCalcoloIndennizzi(sessionId)
-    if (!indemnityCheck.canAdvance) {
-      return { success: false, message: indemnityCheck.reason || 'Non tutti i manager hanno inviato le decisioni sugli indennizzi' }
-    }
-  }
-
   // Update session phase
   const updatedSession = await prisma.marketSession.update({
     where: { id: sessionId },
     data: {
-      currentPhase: phase as 'ASTA_LIBERA' | 'PREMI' | 'OFFERTE_PRE_RINNOVO' | 'CONTRATTI' | 'CALCOLO_INDENNIZZI' | 'RUBATA' | 'ASTA_SVINCOLATI' | 'OFFERTE_POST_ASTA_SVINCOLATI',
+      currentPhase: phase as 'ASTA_LIBERA' | 'PREMI' | 'OFFERTE_PRE_RINNOVO' | 'CONTRATTI' | 'RUBATA' | 'ASTA_SVINCOLATI' | 'OFFERTE_POST_ASTA_SVINCOLATI',
       phaseStartedAt: new Date(),
     },
   })

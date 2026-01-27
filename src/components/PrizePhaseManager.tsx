@@ -516,6 +516,9 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                   <p className="text-sm text-gray-400">
                     {data.indemnityStats.totalPlayers} giocatori con contratti attivi
                   </p>
+                  <p className="text-xs text-cyan-400 mt-0.5">
+                    Importi potenziali — pagati al consolidamento contratti se il manager rilascia il giocatore
+                  </p>
                 </div>
               </div>
               {/* Stats badges */}
