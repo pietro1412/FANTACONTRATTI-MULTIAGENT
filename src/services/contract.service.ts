@@ -117,26 +117,45 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
     },
   })
 
-  // Fetch indemnity amount for ESTERO players
-  let indennizzoEsteroAmount = 50 // default
+  // Fetch indemnity amounts for ESTERO players from individual "Indennizzo - PlayerName" categories
   const activeSession = await prisma.marketSession.findFirst({
     where: { leagueId, status: 'ACTIVE' },
   })
+  // Map: playerName -> indemnity amount (from consolidated individual categories)
+  const playerIndemnityAmounts: Record<string, number> = {}
+  let indennizzoEsteroDefault = 50 // fallback if no individual category exists
   if (activeSession) {
-    const indemnityCategory = await prisma.prizeCategory.findFirst({
+    // Get base amount from "Indennizzo Partenza Estero"
+    const baseCategory = await prisma.prizeCategory.findFirst({
       where: {
         marketSessionId: activeSession.id,
         name: 'Indennizzo Partenza Estero',
         isSystemPrize: true,
       },
       include: {
-        managerPrizes: {
-          where: { leagueMemberId: member.id },
-        },
+        managerPrizes: { where: { leagueMemberId: member.id } },
       },
     })
-    if (indemnityCategory?.managerPrizes[0]) {
-      indennizzoEsteroAmount = indemnityCategory.managerPrizes[0].amount
+    if (baseCategory?.managerPrizes[0]) {
+      indennizzoEsteroDefault = baseCategory.managerPrizes[0].amount
+    }
+
+    // Get individual "Indennizzo - PlayerName" categories (created at consolidation)
+    const individualCategories = await prisma.prizeCategory.findMany({
+      where: {
+        marketSessionId: activeSession.id,
+        name: { startsWith: 'Indennizzo - ' },
+        isSystemPrize: true,
+      },
+      include: {
+        managerPrizes: { where: { leagueMemberId: member.id } },
+      },
+    })
+    for (const cat of individualCategories) {
+      const playerName = cat.name.replace('Indennizzo - ', '')
+      if (cat.managerPrizes[0]) {
+        playerIndemnityAmounts[playerName] = cat.managerPrizes[0].amount
+      }
     }
   }
 
@@ -167,7 +186,7 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
       isExitedPlayer,
       exitReason,
       indemnityCompensation: (isExitedPlayer && exitReason === 'ESTERO')
-        ? Math.min(rescissionClause, indennizzoEsteroAmount)
+        ? (playerIndemnityAmounts[r.player.name] ?? indennizzoEsteroDefault)
         : 0,
       roster: {
         id: r.id,
@@ -199,7 +218,7 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
       pendingContracts,
       memberBudget: member.currentBudget,
       inContrattiPhase,
-      indennizzoEsteroAmount,
+      indennizzoEsteroAmount: indennizzoEsteroDefault,
     },
   }
 }
@@ -931,9 +950,9 @@ export async function consolidateContracts(
         },
       })
 
-      // Fetch indemnity amount for ESTERO players
-      let indennizzoEsteroAmount = 50
-      const indemnityCategory = await tx.prizeCategory.findFirst({
+      // Fetch indemnity amounts for ESTERO players from individual categories
+      let indennizzoEsteroDefault = 50
+      const baseIndemnityCategory = await tx.prizeCategory.findFirst({
         where: {
           marketSessionId: activeSession.id,
           name: 'Indennizzo Partenza Estero',
@@ -943,8 +962,27 @@ export async function consolidateContracts(
           managerPrizes: { where: { leagueMemberId: member.id } },
         },
       })
-      if (indemnityCategory?.managerPrizes[0]) {
-        indennizzoEsteroAmount = indemnityCategory.managerPrizes[0].amount
+      if (baseIndemnityCategory?.managerPrizes[0]) {
+        indennizzoEsteroDefault = baseIndemnityCategory.managerPrizes[0].amount
+      }
+
+      // Get individual "Indennizzo - PlayerName" categories for precise amounts
+      const individualIndemnityCategories = await tx.prizeCategory.findMany({
+        where: {
+          marketSessionId: activeSession.id,
+          name: { startsWith: 'Indennizzo - ' },
+          isSystemPrize: true,
+        },
+        include: {
+          managerPrizes: { where: { leagueMemberId: member.id } },
+        },
+      })
+      const playerIndemnityMap: Record<string, number> = {}
+      for (const cat of individualIndemnityCategories) {
+        const playerName = cat.name.replace('Indennizzo - ', '')
+        if (cat.managerPrizes[0]) {
+          playerIndemnityMap[playerName] = cat.managerPrizes[0].amount
+        }
       }
 
       for (const contract of contractsToRelease) {
@@ -954,8 +992,8 @@ export async function consolidateContracts(
         if (isExitedPlayer) {
           // EXITED PLAYER RELEASE: no release cost
           if (player.exitReason === 'ESTERO') {
-            // ESTERO: receive indemnity compensation
-            const compensation = Math.min(contract.rescissionClause, indennizzoEsteroAmount)
+            // ESTERO: receive indemnity compensation from individual category or default
+            const compensation = playerIndemnityMap[player.name] ?? indennizzoEsteroDefault
             await tx.leagueMember.update({
               where: { id: member.id },
               data: { currentBudget: { increment: compensation } },
