@@ -962,6 +962,81 @@ export async function consolidateIndemnities(
     return { success: false, message: 'Gli indennizzi sono già stati consolidati' }
   }
 
+  // Get all ESTERO players with active contracts in this league
+  const esteroPlayers = await prisma.playerRoster.findMany({
+    where: {
+      leagueMember: {
+        leagueId: session.leagueId,
+        status: MemberStatus.ACTIVE,
+      },
+      status: 'ACTIVE',
+      player: {
+        listStatus: 'NOT_IN_LIST',
+        exitReason: 'ESTERO',
+      },
+      contract: { isNot: null },
+    },
+    include: {
+      player: { select: { id: true, name: true } },
+      leagueMember: { select: { id: true } },
+      contract: { select: { rescissionClause: true } },
+    },
+  })
+
+  // Get the base "Indennizzo Partenza Estero" category to read per-member default amounts
+  const baseCategory = await prisma.prizeCategory.findFirst({
+    where: { marketSessionId: sessionId, name: 'Indennizzo Partenza Estero', isSystemPrize: true },
+    include: { managerPrizes: true },
+  })
+  const baseMemberAmounts: Record<string, number> = {}
+  if (baseCategory) {
+    for (const prize of baseCategory.managerPrizes) {
+      baseMemberAmounts[prize.leagueMemberId] = prize.amount
+    }
+  }
+
+  // Get existing custom indemnity categories (already created via manual edits)
+  const existingCategories = await prisma.prizeCategory.findMany({
+    where: { marketSessionId: sessionId, name: { startsWith: 'Indennizzo - ' } },
+    include: { managerPrizes: true },
+  })
+  const existingByName: Record<string, { categoryId: string; amount: number | null }> = {}
+  for (const cat of existingCategories) {
+    const prize = cat.managerPrizes[0]
+    existingByName[cat.name] = { categoryId: cat.id, amount: prize?.amount ?? null }
+  }
+
+  // Create individual "Indennizzo - PlayerName" categories for ESTERO players that don't have one yet
+  let createdCount = 0
+  for (const roster of esteroPlayers) {
+    const categoryName = `Indennizzo - ${roster.player.name}`
+    const baseAmount = baseMemberAmounts[roster.leagueMember.id] ?? 50
+    const indemnityAmount = Math.min(roster.contract!.rescissionClause, baseAmount)
+
+    if (existingByName[categoryName]) {
+      // Already exists (admin customized it) — skip
+      continue
+    }
+
+    // Create category + prize
+    const category = await prisma.prizeCategory.create({
+      data: {
+        marketSessionId: sessionId,
+        name: categoryName,
+        isSystemPrize: true,
+      },
+    })
+
+    await prisma.sessionPrize.create({
+      data: {
+        prizeCategoryId: category.id,
+        leagueMemberId: roster.leagueMember.id,
+        amount: indemnityAmount,
+      },
+    })
+    createdCount++
+  }
+
   // Update config to mark indemnities as consolidated
   await prisma.prizePhaseConfig.update({
     where: { id: config.id },
@@ -973,9 +1048,11 @@ export async function consolidateIndemnities(
 
   return {
     success: true,
-    message: 'Indennizzi consolidati con successo',
+    message: `Indennizzi consolidati con successo (${createdCount + Object.keys(existingByName).length} giocatori)`,
     data: {
       consolidatedAt: new Date(),
+      playersProcessed: esteroPlayers.length,
+      categoriesCreated: createdCount,
     },
   }
 }
