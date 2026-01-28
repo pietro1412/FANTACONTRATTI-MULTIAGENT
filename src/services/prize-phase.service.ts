@@ -979,7 +979,6 @@ export async function consolidateIndemnities(
     include: {
       player: { select: { id: true, name: true } },
       leagueMember: { select: { id: true } },
-      contract: { select: { rescissionClause: true } },
     },
   })
 
@@ -1010,8 +1009,7 @@ export async function consolidateIndemnities(
   let createdCount = 0
   for (const roster of esteroPlayers) {
     const categoryName = `Indennizzo - ${roster.player.name}`
-    const baseAmount = baseMemberAmounts[roster.leagueMember.id] ?? 50
-    const indemnityAmount = Math.min(roster.contract!.rescissionClause, baseAmount)
+    const indemnityAmount = baseMemberAmounts[roster.leagueMember.id] ?? 50
 
     if (existingByName[categoryName]) {
       // Already exists (admin customized it) — skip
