@@ -53,6 +53,7 @@ model PlayerContract {
   draftSalary     Int?     // Nuovo ingaggio proposto
   draftDuration   Int?     // Nuova durata proposta
   draftReleased   Boolean  @default(false)  // Marcato per taglio (pending)
+  draftExitDecision String?  // null=INDECISO, "KEEP"=tieni, "RELEASE"=rilascia (solo giocatori usciti)
 
   signedAt        DateTime @default(now())
   expiresAt       DateTime?

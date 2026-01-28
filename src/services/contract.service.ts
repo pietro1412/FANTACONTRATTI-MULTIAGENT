@@ -182,6 +182,7 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
       draftSalary: r.contract!.draftSalary,
       draftDuration: r.contract!.draftDuration,
       draftReleased: r.contract!.draftReleased,  // Marcato per taglio
+      draftExitDecision: r.contract!.draftExitDecision,  // null=INDECISO, "KEEP", "RELEASE"
       // Exited player info
       isExitedPlayer,
       exitReason,
@@ -939,6 +940,29 @@ export async function consolidateContracts(
         }
       }
 
+      // 2.5 Validate: all exited players must have an explicit decision (KEEP or RELEASE)
+      const undecidedExited = await tx.playerContract.findMany({
+        where: {
+          leagueMemberId: member.id,
+          draftExitDecision: null,
+          roster: {
+            status: RosterStatus.ACTIVE,
+            player: {
+              listStatus: 'NOT_IN_LIST',
+              exitReason: { in: ['RETROCESSO', 'ESTERO'] },
+            },
+          },
+        },
+        include: {
+          roster: { include: { player: { select: { name: true } } } },
+        },
+      })
+
+      if (undecidedExited.length > 0) {
+        const names = undecidedExited.map(c => c.roster.player.name).join(', ')
+        throw new Error(`Devi decidere per tutti i giocatori usciti: ${names}`)
+      }
+
       // 3. Process draft releases (players marked for release)
       const contractsToRelease = await tx.playerContract.findMany({
         where: {
@@ -1359,7 +1383,8 @@ export async function saveDrafts(
   userId: string,
   renewals: { contractId: string; salary: number; duration: number }[],
   newContracts: { rosterId: string; salary: number; duration: number }[],
-  releases: string[] = []  // Contract IDs to mark for release
+  releases: string[] = [],  // Contract IDs to mark for release
+  exitDecisions: { contractId: string; decision: 'KEEP' | 'RELEASE' }[] = []  // Exited player decisions
 ): Promise<ServiceResult> {
   const member = await prisma.leagueMember.findFirst({
     where: {
@@ -1473,9 +1498,15 @@ export async function saveDrafts(
       }
 
       // 3. Mark contracts for release using batch updates
-      // Reset all to not released, then mark the ones that should be released
+      // Get IDs of exited player contracts so we don't overwrite their draftReleased
+      const exitDecisionContractIds = exitDecisions.map(ed => ed.contractId)
+
+      // Reset draftReleased only for NON-exited player contracts
       await tx.playerContract.updateMany({
-        where: { leagueMemberId: member.id },
+        where: {
+          leagueMemberId: member.id,
+          ...(exitDecisionContractIds.length > 0 ? { id: { notIn: exitDecisionContractIds } } : {}),
+        },
         data: { draftReleased: false },
       })
 
@@ -1487,6 +1518,25 @@ export async function saveDrafts(
           },
           data: { draftReleased: true },
         })
+      }
+
+      // 4. Save exit decisions for exited players
+      // Reset all draftExitDecision first
+      await tx.playerContract.updateMany({
+        where: { leagueMemberId: member.id },
+        data: { draftExitDecision: null },
+      })
+
+      if (exitDecisions.length > 0) {
+        for (const ed of exitDecisions) {
+          await tx.playerContract.update({
+            where: { id: ed.contractId },
+            data: {
+              draftExitDecision: ed.decision,
+              draftReleased: ed.decision === 'RELEASE',
+            },
+          })
+        }
       }
     }, {
       timeout: 30000, // 30 seconds timeout
