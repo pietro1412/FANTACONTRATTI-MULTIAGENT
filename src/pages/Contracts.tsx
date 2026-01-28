@@ -32,6 +32,7 @@ interface Contract {
   draftSalary: number | null
   draftDuration: number | null
   draftReleased: boolean  // Marcato per taglio
+  draftExitDecision?: string | null  // null=INDECISO, "KEEP", "RELEASE"
   // Exited player info
   isExitedPlayer?: boolean
   exitReason?: string | null
@@ -118,6 +119,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   const [pendingEdits, setPendingEdits] = useState<Record<string, LocalEdit>>({})
   // Stato per tagli locali (contract IDs marcati per release)
   const [localReleases, setLocalReleases] = useState<Set<string>>(new Set())
+  // Stato per decisioni giocatori usciti (KEEP o RELEASE)
+  const [exitDecisions, setExitDecisions] = useState<Map<string, 'KEEP' | 'RELEASE'>>(new Map())
 
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -197,10 +200,19 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       })
       setPendingEdits(pEdits)
 
-      // Inizializza tagli da draft salvati
+      // Inizializza exitDecisions da dati caricati
+      const exitDec = new Map<string, 'KEEP' | 'RELEASE'>()
+      data.contracts.forEach(c => {
+        if (c.isExitedPlayer && c.draftExitDecision) {
+          exitDec.set(c.id, c.draftExitDecision as 'KEEP' | 'RELEASE')
+        }
+      })
+      setExitDecisions(exitDec)
+
+      // Inizializza tagli da draft salvati (solo contratti NON usciti)
       const releases = new Set<string>()
       data.contracts.forEach(c => {
-        if (c.draftReleased) {
+        if (c.draftReleased && !c.isExitedPlayer) {
           releases.add(c.id)
         }
       })
@@ -343,7 +355,11 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       }
     })
 
-    const result = await contractApi.saveDrafts(leagueId, renewals, newContracts, Array.from(localReleases))
+    const exitDecisionsArray = Array.from(exitDecisions.entries()).map(([contractId, decision]) => ({
+      contractId,
+      decision,
+    }))
+    const result = await contractApi.saveDrafts(leagueId, renewals, newContracts, Array.from(localReleases), exitDecisionsArray)
     if (result.success) {
       setSuccess('Bozze salvate! Puoi tornare a modificarle in qualsiasi momento.')
       await loadContracts() // Ricarica per aggiornare i draft
@@ -408,9 +424,10 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   const projectedSalaries = useMemo(() => {
     let total = 0
 
-    // Contratti esistenti (escludi quelli marcati per taglio)
+    // Contratti esistenti (escludi quelli marcati per taglio e usciti non KEEP)
     contracts.forEach(contract => {
-      if (localReleases.has(contract.id)) return // Skip released
+      if (localReleases.has(contract.id)) return // Skip released normal
+      if (contract.isExitedPlayer && exitDecisions.get(contract.id) !== 'KEEP') return // Skip exited unless KEEP
       const edit = localEdits[contract.id]
       const salary = parseInt(edit?.newSalary || '') || contract.salary
       total += salary
@@ -426,7 +443,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     })
 
     return total
-  }, [contracts, pendingContracts, localEdits, pendingEdits, localReleases])
+  }, [contracts, pendingContracts, localEdits, pendingEdits, localReleases, exitDecisions])
 
   // I rinnovi NON costano budget (si paga solo l'ingaggio semestrale)
   // Rimosso totalRenewalCost - non serve più
@@ -449,28 +466,29 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     return total
   }, [contracts, localReleases])
 
-  // Calcola totale indennizzi in entrata (ESTERO rilasciati)
+  // Calcola totale indennizzi in entrata (ESTERO rilasciati tramite exitDecisions)
   const totalIndemnityIncome = useMemo(() => {
     let total = 0
     contracts.forEach(contract => {
-      if (localReleases.has(contract.id) && contract.exitReason === 'ESTERO') {
+      if (exitDecisions.get(contract.id) === 'RELEASE' && contract.exitReason === 'ESTERO') {
         total += contract.indemnityCompensation || 0
       }
     })
     return total
-  }, [contracts, localReleases])
+  }, [contracts, exitDecisions])
 
   // Residuo = Budget - Ingaggi - Tagli + Indennizzi
   const residuoContratti = useMemo(() => {
     return memberBudget - projectedSalaries - totalReleaseCost + totalIndemnityIncome
   }, [memberBudget, projectedSalaries, totalReleaseCost, totalIndemnityIncome])
 
-  // Calcola numero giocatori effettivo dopo i tagli
+  // Calcola numero giocatori effettivo dopo i tagli e le decisioni usciti
   const effectivePlayerCount = useMemo(() => {
     const totalPlayers = contracts.length + pendingContracts.length
     const releasedCount = localReleases.size
-    return totalPlayers - releasedCount
-  }, [contracts.length, pendingContracts.length, localReleases.size])
+    const exitReleasedCount = Array.from(exitDecisions.values()).filter(d => d === 'RELEASE').length
+    return totalPlayers - releasedCount - exitReleasedCount
+  }, [contracts.length, pendingContracts.length, localReleases.size, exitDecisions])
 
   // Quanti tagli sono necessari per rispettare il limite
   const requiredReleases = useMemo(() => {
@@ -482,6 +500,9 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   // - Il numero di giocatori deve essere <= MAX_ROSTER_SIZE
   // - Nessun contratto esistente deve avere errori di validazione (es. spalma errato)
   const canConsolidate = useMemo(() => {
+    // Check: all exited players must have a decision
+    const undecidedExited = contracts.filter(c => c.isExitedPlayer && !exitDecisions.has(c.id))
+    if (undecidedExited.length > 0) return false
     // Check roster limit
     if (effectivePlayerCount > MAX_ROSTER_SIZE) {
       return false
@@ -509,10 +530,14 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       }
     }
     return true
-  }, [pendingContracts, pendingEdits, effectivePlayerCount, contracts, localEdits])
+  }, [pendingContracts, pendingEdits, effectivePlayerCount, contracts, localEdits, exitDecisions])
 
   // Messaggio per blocco consolidamento
   const consolidateBlockReason = useMemo(() => {
+    const undecidedExitedCount = contracts.filter(c => c.isExitedPlayer && !exitDecisions.has(c.id)).length
+    if (undecidedExitedCount > 0) {
+      return `Decidi per ${undecidedExitedCount} giocator${undecidedExitedCount === 1 ? 'e uscito' : 'i usciti'}`
+    }
     if (effectivePlayerCount > MAX_ROSTER_SIZE) {
       return `Devi tagliare ${requiredReleases} giocator${requiredReleases === 1 ? 'e' : 'i'} (max ${MAX_ROSTER_SIZE})`
     }
@@ -534,16 +559,17 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       }
     }
     return 'Conferma definitiva dei rinnovi'
-  }, [pendingContracts, pendingEdits, effectivePlayerCount, requiredReleases, contracts, localEdits])
+  }, [pendingContracts, pendingEdits, effectivePlayerCount, requiredReleases, contracts, localEdits, exitDecisions])
 
   // Filtra e ordina contratti
   // Separate exited players from normal contracts
   const exitedContracts = useMemo(() =>
-    contracts.filter(c => c.isExitedPlayer),
-  [contracts])
+    contracts.filter(c => c.isExitedPlayer && !exitDecisions.has(c.id)),
+  [contracts, exitDecisions])
 
   const filteredContracts = useMemo(() => {
-    let items = contracts.filter(c => !c.isExitedPlayer)
+    // Include normal contracts + exited players with KEEP decision
+    let items = contracts.filter(c => !c.isExitedPlayer || exitDecisions.get(c.id) === 'KEEP')
     if (filterRole) items = items.filter(c => c.roster.player.position === filterRole)
     if (searchQuery) items = items.filter(c =>
       c.roster.player.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -555,7 +581,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       if (ra !== rb) return ra - rb
       return a.roster.player.name.localeCompare(b.roster.player.name)
     })
-  }, [contracts, filterRole, searchQuery])
+  }, [contracts, exitDecisions, filterRole, searchQuery])
 
   const filteredPending = useMemo(() => {
     let items = [...pendingContracts]
@@ -578,29 +604,29 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   const roleDistribution = useMemo(() => {
     const dist = { P: 0, D: 0, C: 0, A: 0 }
     contracts.forEach(c => {
-      if (!localReleases.has(c.id)) {
-        const role = c.roster.player.position as keyof typeof dist
-        if (role in dist) dist[role]++
-      }
+      if (localReleases.has(c.id)) return
+      if (c.isExitedPlayer && exitDecisions.get(c.id) !== 'KEEP') return
+      const role = c.roster.player.position as keyof typeof dist
+      if (role in dist) dist[role]++
     })
     pendingContracts.forEach(p => {
       const role = p.player.position as keyof typeof dist
       if (role in dist) dist[role]++
     })
     return dist
-  }, [contracts, pendingContracts, localReleases])
+  }, [contracts, pendingContracts, localReleases, exitDecisions])
 
   // Distribuzione per durata contratto
   // Usa sempre la "nuova durata" (che di default = durata attuale)
   const durationDistribution = useMemo(() => {
     const dist = { 1: 0, 2: 0, 3: 0, 4: 0 }
     contracts.forEach(c => {
-      if (!localReleases.has(c.id)) {
-        const edit = localEdits[c.id]
-        // Usa newDuration da localEdits (default = c.duration)
-        const dur = parseInt(edit?.newDuration || '') || c.duration
-        if (dur >= 1 && dur <= 4) dist[dur as keyof typeof dist]++
-      }
+      if (localReleases.has(c.id)) return
+      if (c.isExitedPlayer && exitDecisions.get(c.id) !== 'KEEP') return
+      const edit = localEdits[c.id]
+      // Usa newDuration da localEdits (default = c.duration)
+      const dur = parseInt(edit?.newDuration || '') || c.duration
+      if (dur >= 1 && dur <= 4) dist[dur as keyof typeof dist]++
     })
     pendingContracts.forEach(p => {
       const edit = pendingEdits[p.rosterId]
@@ -609,7 +635,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       if (dur >= 1 && dur <= 4) dist[dur as keyof typeof dist]++
     })
     return dist
-  }, [contracts, pendingContracts, localEdits, pendingEdits, localReleases])
+  }, [contracts, pendingContracts, localEdits, pendingEdits, localReleases, exitDecisions])
 
   // Verifica se ci sono modifiche non salvate
   const hasUnsavedChanges = useMemo(() => {
@@ -643,8 +669,9 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       }
     }
 
-    // Controlla se localReleases differiscono dai draftReleased salvati
+    // Controlla se localReleases differiscono dai draftReleased salvati (solo non-usciti)
     for (const contract of contracts) {
+      if (contract.isExitedPlayer) continue
       const isLocallyReleased = localReleases.has(contract.id)
       const wasDraftReleased = contract.draftReleased
       if (isLocallyReleased !== wasDraftReleased) {
@@ -652,8 +679,18 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       }
     }
 
+    // Controlla se exitDecisions differiscono dai draftExitDecision salvati
+    for (const contract of contracts) {
+      if (!contract.isExitedPlayer) continue
+      const currentDecision = exitDecisions.get(contract.id) || null
+      const savedDecision = contract.draftExitDecision || null
+      if (currentDecision !== savedDecision) {
+        return true
+      }
+    }
+
     return false
-  }, [contracts, pendingContracts, localEdits, pendingEdits, localReleases])
+  }, [contracts, pendingContracts, localEdits, pendingEdits, localReleases, exitDecisions])
 
   // Warning prima di chiudere la pagina se ci sono modifiche non salvate
   useEffect(() => {
@@ -672,10 +709,10 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   const salaryStats = useMemo(() => {
     const salaries: number[] = []
     contracts.forEach(c => {
-      if (!localReleases.has(c.id)) {
-        const edit = localEdits[c.id]
-        salaries.push(parseInt(edit?.newSalary || '') || c.salary)
-      }
+      if (localReleases.has(c.id)) return
+      if (c.isExitedPlayer && exitDecisions.get(c.id) !== 'KEEP') return
+      const edit = localEdits[c.id]
+      salaries.push(parseInt(edit?.newSalary || '') || c.salary)
     })
     pendingContracts.forEach(p => {
       const edit = pendingEdits[p.rosterId]
@@ -689,7 +726,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       avg: Math.round(total / salaries.length * 10) / 10,
       total
     }
-  }, [contracts, pendingContracts, localEdits, pendingEdits, localReleases])
+  }, [contracts, pendingContracts, localEdits, pendingEdits, localReleases, exitDecisions])
 
   if (isLoading) {
     return (
@@ -1062,21 +1099,20 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
           </div>
         )}
 
-        {/* Giocatori Usciti dalla Serie A */}
+        {/* Giocatori Usciti dalla Serie A - Solo INDECISI */}
         {exitedContracts.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-lg">⚖️</span>
               <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-wide">
-                Giocatori Usciti dalla Serie A ({exitedContracts.length})
+                Giocatori Usciti dalla Serie A ({exitedContracts.length} da decidere)
               </h2>
             </div>
             <p className="text-xs text-gray-400 mb-3">
-              Decidi se tenere o rilasciare i giocatori che hanno lasciato il campionato. Il rilascio non ha costo. Per i giocatori trasferiti all'estero, riceverai un indennizzo.
+              Decidi per ogni giocatore: <span className="text-green-400 font-medium">Tieni</span> (entra nei rinnovi) o <span className="text-danger-400 font-medium">Rilascia</span> (scompare). Il consolidamento è bloccato fino a quando non decidi per tutti.
             </p>
             <div className="space-y-3">
               {exitedContracts.map(contract => {
-                const isReleased = localReleases.has(contract.id)
                 const roleStyle = getRoleStyle(contract.roster.player.position)
                 const exitConfig: Record<string, { bg: string; text: string; label: string }> = {
                   RETROCESSO: { bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'Retrocesso' },
@@ -1085,11 +1121,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 const config = exitConfig[contract.exitReason || ''] || exitConfig.RETROCESSO
 
                 return (
-                  <div key={contract.id} className={`rounded-xl border p-4 transition-all ${
-                    isReleased
-                      ? 'bg-danger-500/10 border-danger-500/30'
-                      : 'bg-surface-200 border-surface-50/20'
-                  }`}>
+                  <div key={contract.id} className="rounded-xl border p-4 bg-surface-200 border-cyan-500/30">
                     <div className="flex items-center justify-between gap-4">
                       {/* Player info */}
                       <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -1113,44 +1145,44 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                       {/* Indemnity info */}
                       <div className="text-right shrink-0">
                         {contract.exitReason === 'ESTERO' && (
-                          <p className={`text-sm font-bold ${isReleased ? 'text-green-400' : 'text-gray-500'}`}>
-                            {isReleased ? `+${contract.indemnityCompensation}M` : `Indennizzo: ${contract.indemnityCompensation}M`}
+                          <p className="text-sm text-cyan-400 font-medium">
+                            Indennizzo: {contract.indemnityCompensation}M
                           </p>
                         )}
-                        {contract.exitReason === 'RETROCESSO' && isReleased && (
-                          <p className="text-sm text-gray-400">Senza costo</p>
+                        {contract.exitReason === 'RETROCESSO' && (
+                          <p className="text-sm text-gray-400">Rilascio gratuito</p>
                         )}
-                        {!isReleased && (
-                          <p className="text-xs text-gray-500">Paghi {contract.salary}M/sem</p>
-                        )}
+                        <p className="text-xs text-gray-500">Costo se tieni: {contract.salary}M/sem</p>
                       </div>
 
-                      {/* Toggle button */}
+                      {/* Two separate buttons: Tieni / Rilascia */}
                       {inContrattiPhase && !isConsolidated && (
-                        <button
-                          onClick={() => {
-                            const newSet = new Set(localReleases)
-                            if (isReleased) newSet.delete(contract.id)
-                            else newSet.add(contract.id)
-                            setLocalReleases(newSet)
-                          }}
-                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all shrink-0 ${
-                            isReleased
-                              ? 'bg-danger-500/20 text-danger-400 border border-danger-500/40 hover:bg-danger-500/30'
-                              : 'bg-surface-300 text-gray-300 border border-surface-50/30 hover:bg-surface-300/80'
-                          }`}
-                        >
-                          {isReleased ? 'Rilascia' : 'Tieni'}
-                        </button>
-                      )}
-                      {isConsolidated && (
-                        <span className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
-                          contract.draftReleased
-                            ? 'bg-danger-500/20 text-danger-400'
-                            : 'bg-green-500/20 text-green-400'
-                        }`}>
-                          {contract.draftReleased ? 'Rilasciato' : 'Mantenuto'}
-                        </span>
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            onClick={() => {
+                              setExitDecisions(prev => {
+                                const next = new Map(prev)
+                                next.set(contract.id, 'KEEP')
+                                return next
+                              })
+                            }}
+                            className="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-green-500/20 text-green-400 border border-green-500/40 hover:bg-green-500/30"
+                          >
+                            Tieni
+                          </button>
+                          <button
+                            onClick={() => {
+                              setExitDecisions(prev => {
+                                const next = new Map(prev)
+                                next.set(contract.id, 'RELEASE')
+                                return next
+                              })
+                            }}
+                            className="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-danger-500/20 text-danger-400 border border-danger-500/40 hover:bg-danger-500/30"
+                          >
+                            Rilascia
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1180,6 +1212,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
               const hasChanges = newSalary !== contract.salary || newDuration !== contract.duration
               const isMarkedForRelease = localReleases.has(contract.id)
               const releaseCost = Math.ceil((contract.salary * contract.duration) / 2)
+              const isKeptExited = contract.isExitedPlayer && exitDecisions.get(contract.id) === 'KEEP'
 
               // Calcola il minimo ingaggio consentito
               // - Se spalma e durata aumentata: min = ceil(initialSalary / newDuration)
@@ -1222,6 +1255,11 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     )}
                     {isMarkedForRelease && (
                       <span className="text-danger-400 text-[10px] font-bold">DA TAGLIARE</span>
+                    )}
+                    {isKeptExited && (
+                      <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 rounded text-green-400 text-[10px] font-bold">
+                        MANTENUTO
+                      </span>
                     )}
                   </div>
 
@@ -1327,18 +1365,33 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     </>
                   )}
 
-                  {/* Release button */}
+                  {/* Release / Undo button */}
                   {inContrattiPhase && !isConsolidated && (
-                    <button
-                      onClick={() => toggleRelease(contract.id)}
-                      className={`w-full py-2 rounded text-sm font-medium transition-colors ${
-                        isMarkedForRelease
-                          ? 'bg-danger-500/30 text-danger-300'
-                          : 'bg-surface-300 text-danger-400'
-                      }`}
-                    >
-                      {isMarkedForRelease ? 'Annulla Taglio' : `Taglia (${releaseCost}M)`}
-                    </button>
+                    isKeptExited ? (
+                      <button
+                        onClick={() => {
+                          setExitDecisions(prev => {
+                            const next = new Map(prev)
+                            next.delete(contract.id)
+                            return next
+                          })
+                        }}
+                        className="w-full py-2 rounded text-sm font-medium transition-colors bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
+                      >
+                        Rimetti tra Usciti
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => toggleRelease(contract.id)}
+                        className={`w-full py-2 rounded text-sm font-medium transition-colors ${
+                          isMarkedForRelease
+                            ? 'bg-danger-500/30 text-danger-300'
+                            : 'bg-surface-300 text-danger-400'
+                        }`}
+                      >
+                        {isMarkedForRelease ? 'Annulla Taglio' : `Taglia (${releaseCost}M)`}
+                      </button>
+                    )
                   )}
                 </div>
               )
@@ -1381,6 +1434,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     const hasChanges = newSalary !== contract.salary || newDuration !== contract.duration
                     const isMarkedForRelease = localReleases.has(contract.id)
                     const releaseCost = Math.ceil((contract.salary * contract.duration) / 2)
+                    const isKeptExited = contract.isExitedPlayer && exitDecisions.get(contract.id) === 'KEEP'
 
                     // Calcola il minimo ingaggio consentito (spalma logic)
                     const minSalaryAllowed = contract.canSpalmare && newDuration > 1
@@ -1389,7 +1443,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
                     return (
                       <tr key={contract.id} className={`border-t border-surface-50/10 hover:bg-surface-300/30 ${
-                        isMarkedForRelease ? 'bg-danger-500/20 opacity-70' : hasChanges ? 'bg-primary-500/5' : ''
+                        isKeptExited ? 'bg-green-500/5' : isMarkedForRelease ? 'bg-danger-500/20 opacity-70' : hasChanges ? 'bg-primary-500/5' : ''
                       }`}>
                         <td className="p-2">
                           <div className="flex items-center gap-2">
@@ -1424,6 +1478,12 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                             )}
                             {isMarkedForRelease && (
                               <span className="text-danger-400 text-xs font-medium">DA TAGLIARE</span>
+                            )}
+                            {isKeptExited && (
+                              <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 rounded text-green-400 text-[10px] font-bold cursor-help"
+                                title="Giocatore uscito mantenuto in rosa">
+                                MANTENUTO
+                              </span>
                             )}
                           </div>
                         </td>
@@ -1483,17 +1543,33 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                         </td>
                         <td className="text-center p-2">
                           {inContrattiPhase && !isConsolidated && (
-                            <button
-                              onClick={() => toggleRelease(contract.id)}
-                              className={`text-xs px-2 py-1 rounded transition-colors ${
-                                isMarkedForRelease
-                                  ? 'bg-danger-500/30 text-danger-300 hover:bg-danger-500/50'
-                                  : 'bg-surface-300 text-danger-400 hover:bg-danger-500/20'
-                              }`}
-                              title={isMarkedForRelease ? 'Annulla taglio' : `Taglia giocatore (costo: ${releaseCost}M = ${contract.salary}×${contract.duration}/2)`}
-                            >
-                              {isMarkedForRelease ? 'Annulla' : `Taglia ${releaseCost}M`}
-                            </button>
+                            isKeptExited ? (
+                              <button
+                                onClick={() => {
+                                  setExitDecisions(prev => {
+                                    const next = new Map(prev)
+                                    next.delete(contract.id)
+                                    return next
+                                  })
+                                }}
+                                className="text-xs px-2 py-1 rounded transition-colors bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30"
+                                title="Rimetti nella sezione giocatori usciti"
+                              >
+                                Rimetti
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => toggleRelease(contract.id)}
+                                className={`text-xs px-2 py-1 rounded transition-colors ${
+                                  isMarkedForRelease
+                                    ? 'bg-danger-500/30 text-danger-300 hover:bg-danger-500/50'
+                                    : 'bg-surface-300 text-danger-400 hover:bg-danger-500/20'
+                                }`}
+                                title={isMarkedForRelease ? 'Annulla taglio' : `Taglia giocatore (costo: ${releaseCost}M = ${contract.salary}×${contract.duration}/2)`}
+                              >
+                                {isMarkedForRelease ? 'Annulla' : `Taglia ${releaseCost}M`}
+                              </button>
+                            )
                           )}
                         </td>
                       </tr>

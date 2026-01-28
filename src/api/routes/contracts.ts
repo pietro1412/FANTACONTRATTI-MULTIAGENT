@@ -235,10 +235,11 @@ router.get('/leagues/:leagueId/contracts/consolidation', authMiddleware, async (
 router.post('/leagues/:leagueId/contracts/save-drafts', authMiddleware, async (req: Request, res: Response) => {
   try {
     const leagueId = req.params.leagueId as string
-    const { renewals, newContracts, releases } = req.body as {
+    const { renewals, newContracts, releases, exitDecisions } = req.body as {
       renewals?: { contractId: string; salary: number; duration: number }[]
       newContracts?: { rosterId: string; salary: number; duration: number }[]
       releases?: string[]  // Contract IDs to mark for release
+      exitDecisions?: { contractId: string; decision: 'KEEP' | 'RELEASE' }[]
     }
 
     const result = await saveDrafts(
@@ -246,7 +247,8 @@ router.post('/leagues/:leagueId/contracts/save-drafts', authMiddleware, async (r
       req.user!.userId,
       renewals || [],
       newContracts || [],
-      releases || []
+      releases || [],
+      exitDecisions || []
     )
 
     if (!result.success) {

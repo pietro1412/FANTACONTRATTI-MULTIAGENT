@@ -533,11 +533,12 @@ export const contractApi = {
     leagueId: string,
     renewals: { contractId: string; salary: number; duration: number }[],
     newContracts: { rosterId: string; salary: number; duration: number }[],
-    releases: string[] = []  // Contract IDs to mark for release
+    releases: string[] = [],  // Contract IDs to mark for release
+    exitDecisions: { contractId: string; decision: 'KEEP' | 'RELEASE' }[] = []
   ) =>
     request(`/api/leagues/${leagueId}/contracts/save-drafts`, {
       method: 'POST',
-      body: JSON.stringify({ renewals, newContracts, releases }),
+      body: JSON.stringify({ renewals, newContracts, releases, exitDecisions }),
     }),
 
   // Consolidate all contracts at once (renewals + new contracts)
