@@ -1277,6 +1277,45 @@ export const superadminApi = {
       method: 'POST',
       body: JSON.stringify({ classifications }),
     }),
+
+  // ==================== API-FOOTBALL STATS ====================
+
+  // Get API-Football sync status
+  getApiFootballStatus: () =>
+    request<{
+      totalPlayers: number
+      matched: number
+      unmatched: number
+      withStats: number
+      withoutStats: number
+      lastSync: string | null
+    }>('/api/superadmin/api-football/status'),
+
+  // Auto-match players to API-Football IDs
+  matchApiFootballPlayers: () =>
+    request<{
+      matched: number
+      unmatched: Array<{ id: string; name: string; team: string }>
+      ambiguous: Array<{ player: { id: string; name: string; team: string }; candidates: Array<{ apiId: number; name: string }> }>
+      alreadyMatched: number
+      apiCallsUsed: number
+    }>('/api/superadmin/api-football/match-players', { method: 'POST' }),
+
+  // Manually match a player to an API-Football ID
+  manualMatchPlayer: (playerId: string, apiFootballId: number) =>
+    request('/api/superadmin/api-football/manual-match', {
+      method: 'POST',
+      body: JSON.stringify({ playerId, apiFootballId }),
+    }),
+
+  // Sync stats from API-Football
+  syncApiFootballStats: () =>
+    request<{
+      synced: number
+      notFound: number
+      noApiId: number
+      apiCallsUsed: number
+    }>('/api/superadmin/api-football/sync-stats', { method: 'POST' }),
 }
 
 // Chat API
