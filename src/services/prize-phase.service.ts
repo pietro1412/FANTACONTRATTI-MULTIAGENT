@@ -649,21 +649,28 @@ export async function finalizePrizePhase(
     },
   })
 
-  // Get all prizes
+  // Get all prizes (include category to check isSystemPrize)
   const prizes = await prisma.sessionPrize.findMany({
     where: {
       prizeCategory: { marketSessionId: sessionId },
     },
+    include: {
+      prizeCategory: { select: { isSystemPrize: true } },
+    },
   })
 
   // Calculate totals per member
+  // System prizes (indemnity) are excluded - they are potential only,
+  // paid out during CONTRATTI phase when manager releases the player
   const memberTotals: Record<string, number> = {}
   for (const m of members) {
     memberTotals[m.id] = config.baseReincrement
   }
   for (const prize of prizes) {
     if (memberTotals[prize.leagueMemberId] !== undefined) {
-      memberTotals[prize.leagueMemberId] += prize.amount
+      if (!prize.prizeCategory.isSystemPrize) {
+        memberTotals[prize.leagueMemberId] += prize.amount
+      }
     }
   }
 

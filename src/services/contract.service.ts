@@ -117,31 +117,66 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
     },
   })
 
+  // Fetch indemnity amount for ESTERO players
+  let indennizzoEsteroAmount = 50 // default
+  const activeSession = await prisma.marketSession.findFirst({
+    where: { leagueId, status: 'ACTIVE' },
+  })
+  if (activeSession) {
+    const indemnityCategory = await prisma.prizeCategory.findFirst({
+      where: {
+        marketSessionId: activeSession.id,
+        name: 'Indennizzo Partenza Estero',
+        isSystemPrize: true,
+      },
+      include: {
+        managerPrizes: {
+          where: { leagueMemberId: member.id },
+        },
+      },
+    })
+    if (indemnityCategory?.managerPrizes[0]) {
+      indennizzoEsteroAmount = indemnityCategory.managerPrizes[0].amount
+    }
+  }
+
   // Separate players with and without contracts
   const playersWithContract = roster.filter(r => r.contract)
   const playersWithoutContract = roster.filter(r => !r.contract)
 
   // Add calculated fields for contracts (including draft values)
-  const contracts = playersWithContract.map(r => ({
-    id: r.contract!.id,
-    salary: r.contract!.salary,
-    duration: r.contract!.duration,
-    initialSalary: r.contract!.initialSalary,
-    initialDuration: r.contract!.initialDuration,
-    rescissionClause: calculateRescissionClause(r.contract!.salary, r.contract!.duration),
-    canRenew: r.contract!.duration < MAX_DURATION,
-    canSpalmare: r.contract!.duration === 1,
-    // Draft values (if any saved)
-    draftSalary: r.contract!.draftSalary,
-    draftDuration: r.contract!.draftDuration,
-    draftReleased: r.contract!.draftReleased,  // Marcato per taglio
-    roster: {
-      id: r.id,
-      player: r.player,
-      acquisitionPrice: r.acquisitionPrice,
-      acquisitionType: r.acquisitionType,
-    },
-  }))
+  const contracts = playersWithContract.map(r => {
+    const rescissionClause = calculateRescissionClause(r.contract!.salary, r.contract!.duration)
+    const isExitedPlayer = r.player.listStatus === 'NOT_IN_LIST' && r.player.exitReason != null && r.player.exitReason !== 'RITIRATO'
+    const exitReason = r.player.exitReason
+
+    return {
+      id: r.contract!.id,
+      salary: r.contract!.salary,
+      duration: r.contract!.duration,
+      initialSalary: r.contract!.initialSalary,
+      initialDuration: r.contract!.initialDuration,
+      rescissionClause,
+      canRenew: r.contract!.duration < MAX_DURATION,
+      canSpalmare: r.contract!.duration === 1,
+      // Draft values (if any saved)
+      draftSalary: r.contract!.draftSalary,
+      draftDuration: r.contract!.draftDuration,
+      draftReleased: r.contract!.draftReleased,  // Marcato per taglio
+      // Exited player info
+      isExitedPlayer,
+      exitReason,
+      indemnityCompensation: (isExitedPlayer && exitReason === 'ESTERO')
+        ? Math.min(rescissionClause, indennizzoEsteroAmount)
+        : 0,
+      roster: {
+        id: r.id,
+        player: r.player,
+        acquisitionPrice: r.acquisitionPrice,
+        acquisitionType: r.acquisitionType,
+      },
+    }
+  })
 
   // Players needing contract setup (include any saved draft values)
   const pendingContracts = playersWithoutContract.map(r => ({
@@ -164,6 +199,7 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
       pendingContracts,
       memberBudget: member.currentBudget,
       inContrattiPhase,
+      indennizzoEsteroAmount,
     },
   }
 }
@@ -895,26 +931,73 @@ export async function consolidateContracts(
         },
       })
 
+      // Fetch indemnity amount for ESTERO players
+      let indennizzoEsteroAmount = 50
+      const indemnityCategory = await tx.prizeCategory.findFirst({
+        where: {
+          marketSessionId: activeSession.id,
+          name: 'Indennizzo Partenza Estero',
+          isSystemPrize: true,
+        },
+        include: {
+          managerPrizes: { where: { leagueMemberId: member.id } },
+        },
+      })
+      if (indemnityCategory?.managerPrizes[0]) {
+        indennizzoEsteroAmount = indemnityCategory.managerPrizes[0].amount
+      }
+
       for (const contract of contractsToRelease) {
-        // Costo taglio = (ingaggio × durata) / 2
-        const releaseCost = calculateReleaseCost(contract.salary, contract.duration)
+        const player = contract.roster.player
+        const isExitedPlayer = player.listStatus === 'NOT_IN_LIST' && player.exitReason != null
 
-        // Deduct release cost from budget
-        await tx.leagueMember.update({
-          where: { id: member.id },
-          data: { currentBudget: { decrement: releaseCost } },
-        })
-
-        // Record the movement
-        await recordMovement(tx, {
-          leagueId,
-          sessionId: activeSession.id,
-          playerId: contract.roster.playerId,
-          fromMemberId: member.id,
-          toMemberId: null,
-          type: 'RELEASE',
-          amount: releaseCost,
-        })
+        if (isExitedPlayer) {
+          // EXITED PLAYER RELEASE: no release cost
+          if (player.exitReason === 'ESTERO') {
+            // ESTERO: receive indemnity compensation
+            const compensation = Math.min(contract.rescissionClause, indennizzoEsteroAmount)
+            await tx.leagueMember.update({
+              where: { id: member.id },
+              data: { currentBudget: { increment: compensation } },
+            })
+            await recordMovement(tx, {
+              leagueId,
+              sessionId: activeSession.id,
+              playerId: player.id,
+              fromMemberId: member.id,
+              toMemberId: null,
+              type: 'ABROAD_COMPENSATION',
+              amount: compensation,
+            })
+          } else {
+            // RETROCESSO: free release, no compensation
+            await recordMovement(tx, {
+              leagueId,
+              sessionId: activeSession.id,
+              playerId: player.id,
+              fromMemberId: member.id,
+              toMemberId: null,
+              type: 'RELEGATION_RELEASE',
+              amount: 0,
+            })
+          }
+        } else {
+          // NORMAL RELEASE: standard release cost
+          const releaseCost = calculateReleaseCost(contract.salary, contract.duration)
+          await tx.leagueMember.update({
+            where: { id: member.id },
+            data: { currentBudget: { decrement: releaseCost } },
+          })
+          await recordMovement(tx, {
+            leagueId,
+            sessionId: activeSession.id,
+            playerId: contract.roster.playerId,
+            fromMemberId: member.id,
+            toMemberId: null,
+            type: 'RELEASE',
+            amount: releaseCost,
+          })
+        }
 
         // Delete the contract
         await tx.playerContract.delete({
@@ -928,6 +1011,38 @@ export async function consolidateContracts(
             status: RosterStatus.RELEASED,
             releasedAt: new Date(),
           },
+        })
+      }
+
+      // Record KEEP movements for exited players NOT released
+      const keptExitedPlayers = await tx.playerContract.findMany({
+        where: {
+          leagueMemberId: member.id,
+          draftReleased: false,
+          roster: {
+            status: RosterStatus.ACTIVE,
+            player: {
+              listStatus: 'NOT_IN_LIST',
+              exitReason: { in: ['RETROCESSO', 'ESTERO'] },
+            },
+          },
+        },
+        include: {
+          roster: { include: { player: { select: { id: true, exitReason: true } } } },
+        },
+      })
+
+      for (const contract of keptExitedPlayers) {
+        const movementType = contract.roster.player.exitReason === 'ESTERO'
+          ? 'ABROAD_KEEP' : 'RELEGATION_KEEP'
+        await recordMovement(tx, {
+          leagueId,
+          sessionId: activeSession.id,
+          playerId: contract.roster.player.id,
+          fromMemberId: null,
+          toMemberId: member.id,
+          type: movementType,
+          amount: 0,
         })
       }
 
