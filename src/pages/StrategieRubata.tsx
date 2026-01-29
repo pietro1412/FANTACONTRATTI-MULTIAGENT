@@ -75,6 +75,33 @@ interface SvincolatiData {
 }
 
 type ViewMode = 'myRoster' | 'owned' | 'svincolati' | 'all'
+type DataViewMode = 'contracts' | 'stats' | 'merge'
+
+// Stats column definitions for stats/merge views
+interface StatsColumn {
+  key: string
+  label: string
+  shortLabel: string
+  getValue: (stats: PlayerStats | null | undefined) => number | string | null
+  format?: (val: number | null) => string
+  colorClass?: string
+}
+
+const STATS_COLUMNS: StatsColumn[] = [
+  { key: 'appearances', label: 'Presenze', shortLabel: 'Pres', getValue: s => s?.games?.appearences ?? null },
+  { key: 'rating', label: 'Rating', shortLabel: 'Rat', getValue: s => s?.games?.rating ?? null, format: v => v?.toFixed(2) ?? '-' },
+  { key: 'goals', label: 'Gol', shortLabel: 'Gol', getValue: s => s?.goals?.total ?? null, colorClass: 'text-secondary-400' },
+  { key: 'assists', label: 'Assist', shortLabel: 'Ass', getValue: s => s?.goals?.assists ?? null, colorClass: 'text-primary-400' },
+  { key: 'minutes', label: 'Minuti', shortLabel: 'Min', getValue: s => s?.games?.minutes ?? null },
+  { key: 'shotsOn', label: 'Tiri Porta', shortLabel: 'TiP', getValue: s => s?.shots?.on ?? null },
+  { key: 'passKey', label: 'Key Pass', shortLabel: 'KeyP', getValue: s => s?.passes?.key ?? null },
+  { key: 'tackles', label: 'Contrasti', shortLabel: 'Tckl', getValue: s => s?.tackles?.total ?? null },
+  { key: 'interceptions', label: 'Intercetti', shortLabel: 'Int', getValue: s => s?.tackles?.interceptions ?? null },
+  { key: 'yellowCards', label: 'Amm.', shortLabel: 'Amm', getValue: s => s?.cards?.yellow ?? null, colorClass: 'text-warning-400' },
+]
+
+// Essential stats for merge view
+const MERGE_STATS_KEYS = ['rating', 'goals', 'assists']
 
 // Team logo component
 function TeamLogo({ team }: { team: string }) {
@@ -121,11 +148,15 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   // View mode: my roster, owned players, svincolati, or all
   const [viewMode, setViewMode] = useState<ViewMode>('myRoster')
 
+  // Data view mode: contracts, stats, or merge
+  const [dataViewMode, setDataViewMode] = useState<DataViewMode>('contracts')
+
   // Filter state
   const [positionFilter, setPositionFilter] = useState<string>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [showOnlyWithStrategy, setShowOnlyWithStrategy] = useState(false)
   const [ownerFilter, setOwnerFilter] = useState<string>('ALL')
+  const [teamFilter, setTeamFilter] = useState<string>('ALL')
 
   // Sort state
   const [sortMode, setSortMode] = useState<SortMode>('role')
@@ -240,6 +271,18 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       .map(([username, teamName]) => ({ username, teamName }))
       .sort((a, b) => a.teamName.localeCompare(b.teamName))
   }, [strategiesData?.players, myMemberId])
+
+  // Get unique Serie A teams for filter
+  const uniqueTeams = useMemo(() => {
+    const teams = new Set<string>()
+    if (strategiesData?.players) {
+      strategiesData.players.forEach(p => teams.add(p.playerTeam))
+    }
+    if (svincolatiData?.players) {
+      svincolatiData.players.forEach(p => teams.add(p.playerTeam))
+    }
+    return Array.from(teams).sort()
+  }, [strategiesData?.players, svincolatiData?.players])
 
   // Get local strategy or create empty
   const getLocalStrategy = useCallback((playerId: string): LocalStrategy => {
@@ -376,6 +419,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         // Position filter
         if (positionFilter !== 'ALL' && player.playerPosition !== positionFilter) return
 
+        // Team filter (Serie A team)
+        if (teamFilter !== 'ALL' && player.playerTeam !== teamFilter) return
+
         // Search filter
         if (searchQuery) {
           const query = searchQuery.toLowerCase()
@@ -383,6 +429,12 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
               !player.playerTeam.toLowerCase().includes(query)) {
             return
           }
+        }
+
+        // Strategy filter
+        if (showOnlyWithStrategy) {
+          const local = getLocalStrategy(player.playerId)
+          if (!local.maxBid && !local.priority && !local.notes) return
         }
 
         result.push({ ...player, type: 'myRoster' })
@@ -397,6 +449,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
         // Position filter
         if (positionFilter !== 'ALL' && player.playerPosition !== positionFilter) return
+
+        // Team filter (Serie A team)
+        if (teamFilter !== 'ALL' && player.playerTeam !== teamFilter) return
 
         // Owner filter (only for owned)
         if (ownerFilter !== 'ALL' && player.ownerUsername !== ownerFilter) return
@@ -427,6 +482,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       svincolatiData.players.forEach(player => {
         // Position filter
         if (positionFilter !== 'ALL' && player.playerPosition !== positionFilter) return
+
+        // Team filter (Serie A team)
+        if (teamFilter !== 'ALL' && player.playerTeam !== teamFilter) return
 
         // Owner filter doesn't apply to svincolati, skip them if a specific owner is selected
         if (viewMode === 'all' && ownerFilter !== 'ALL') return
@@ -504,7 +562,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     })
 
     return result
-  }, [strategiesData?.players, svincolatiData?.players, myMemberId, viewMode, positionFilter, ownerFilter, searchQuery, showOnlyWithStrategy, sortMode, getLocalStrategy])
+  }, [strategiesData?.players, svincolatiData?.players, myMemberId, viewMode, positionFilter, teamFilter, ownerFilter, searchQuery, showOnlyWithStrategy, sortMode, getLocalStrategy])
 
   // My strategies count (for footer) - includes both owned and svincolati
   const myStrategiesCount = useMemo(() => {
@@ -727,18 +785,65 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     className="flex-1 min-w-[100px] px-2 py-1 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
                   />
 
-                  {/* Strategy filter - hide for myRoster */}
-                  {viewMode !== 'myRoster' && (
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={showOnlyWithStrategy}
-                        onChange={(e) => setShowOnlyWithStrategy(e.target.checked)}
-                        className="w-3.5 h-3.5 rounded bg-surface-300 border-surface-50/50 text-indigo-500 focus:ring-indigo-500"
-                      />
-                      <span className="text-xs text-gray-400 whitespace-nowrap">Con strategia</span>
-                    </label>
-                  )}
+                  {/* Strategy filter */}
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showOnlyWithStrategy}
+                      onChange={(e) => setShowOnlyWithStrategy(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded bg-surface-300 border-surface-50/50 text-indigo-500 focus:ring-indigo-500"
+                    />
+                    <span className="text-xs text-gray-400 whitespace-nowrap">Con strategia</span>
+                  </label>
+
+                  {/* Serie A Team Filter */}
+                  <select
+                    value={teamFilter}
+                    onChange={(e) => setTeamFilter(e.target.value)}
+                    className="px-2 py-1 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
+                  >
+                    <option value="ALL">Tutte le squadre</option>
+                    {uniqueTeams.map(team => (
+                      <option key={team} value={team}>{team}</option>
+                    ))}
+                  </select>
+
+                  {/* Data View Mode Toggle */}
+                  <div className="flex gap-1 bg-surface-300/50 rounded-lg p-0.5">
+                    <button
+                      onClick={() => setDataViewMode('contracts')}
+                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                        dataViewMode === 'contracts'
+                          ? 'bg-accent-500 text-white'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                      title="Vista contratti"
+                    >
+                      📋 Contratti
+                    </button>
+                    <button
+                      onClick={() => setDataViewMode('stats')}
+                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                        dataViewMode === 'stats'
+                          ? 'bg-cyan-500 text-white'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                      title="Vista statistiche"
+                    >
+                      📊 Stats
+                    </button>
+                    <button
+                      onClick={() => setDataViewMode('merge')}
+                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                        dataViewMode === 'merge'
+                          ? 'bg-violet-500 text-white'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                      title="Vista mista"
+                    >
+                      🔀 Merge
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -871,31 +976,52 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   <thead className="bg-surface-300/50">
                     {/* Group headers */}
                     <tr className="text-[10px] text-gray-500 uppercase border-b border-surface-50/20">
-                      <th colSpan={viewMode === 'myRoster' ? 7 : 7} className="text-left py-1 px-3 bg-surface-300/30">
-                        Dati Giocatore
+                      <th colSpan={3} className="text-left py-1 px-3 bg-surface-300/30">
+                        Giocatore
                       </th>
-                      {viewMode !== 'myRoster' && (
-                        <th colSpan={3} className="text-center py-1 px-3 bg-indigo-500/10 border-l-2 border-indigo-500/30">
-                          La Mia Strategia
+                      {(dataViewMode === 'contracts' || dataViewMode === 'merge') && (
+                        <th colSpan={4} className="text-center py-1 px-3 bg-accent-500/10 border-l border-surface-50/20">
+                          Contratto
                         </th>
                       )}
+                      {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
+                        <th colSpan={dataViewMode === 'stats' ? STATS_COLUMNS.length : MERGE_STATS_KEYS.length} className="text-center py-1 px-3 bg-cyan-500/10 border-l border-surface-50/20">
+                          Statistiche
+                        </th>
+                      )}
+                      <th colSpan={3} className="text-center py-1 px-3 bg-indigo-500/10 border-l border-surface-50/20">
+                        Strategia
+                      </th>
                     </tr>
                     {/* Column headers */}
                     <tr className="text-xs text-gray-400 uppercase">
                       <SortableHeader field="position" label="R" className="w-10 p-2 text-center" />
                       <SortableHeader field="name" label="Giocatore" className="text-left p-2" />
-                      <SortableHeader field="owner" label="Proprietario" className="text-left p-2" />
-                      <th className="text-center p-2 text-accent-400">Ing.</th>
-                      <th className="text-center p-2">Dur.</th>
-                      <th className="text-center p-2 text-orange-400">Cls</th>
-                      <SortableHeader field="rubata" label="Rubata" className="text-center p-2" />
-                      {viewMode !== 'myRoster' && (
+                      <SortableHeader field="owner" label="Prop." className="text-left p-2" />
+                      {/* Contract columns */}
+                      {(dataViewMode === 'contracts' || dataViewMode === 'merge') && (
                         <>
-                          <th className="text-center p-2 bg-indigo-500/5 border-l-2 border-indigo-500/30">Offerta Max</th>
-                          <th className="text-center p-2 bg-indigo-500/5">Priorità</th>
-                          <th className="text-left p-2 bg-indigo-500/5">Note</th>
+                          <th className="text-center p-2 text-accent-400 border-l border-surface-50/20">Ing.</th>
+                          <th className="text-center p-2">Dur.</th>
+                          <th className="text-center p-2 text-orange-400">Cls</th>
+                          <SortableHeader field="rubata" label="Rub." className="text-center p-2" />
                         </>
                       )}
+                      {/* Stats columns */}
+                      {dataViewMode === 'stats' && STATS_COLUMNS.map((col, idx) => (
+                        <th key={col.key} className={`text-center p-2 ${col.colorClass || ''} ${idx === 0 ? 'border-l border-surface-50/20' : ''}`} title={col.label}>
+                          {col.shortLabel}
+                        </th>
+                      ))}
+                      {dataViewMode === 'merge' && STATS_COLUMNS.filter(c => MERGE_STATS_KEYS.includes(c.key)).map((col, idx) => (
+                        <th key={col.key} className={`text-center p-2 ${col.colorClass || ''} ${idx === 0 ? 'border-l border-surface-50/20' : ''}`} title={col.label}>
+                          {col.shortLabel}
+                        </th>
+                      ))}
+                      {/* Strategy columns */}
+                      <th className="text-center p-2 bg-indigo-500/5 border-l border-surface-50/20">Max</th>
+                      <th className="text-center p-2 bg-indigo-500/5">★</th>
+                      <th className="text-left p-2 bg-indigo-500/5">Note</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -995,129 +1121,140 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             )}
                           </td>
 
-                          {/* Ingaggio */}
-                          <td className="p-2 text-center">
-                            {isSvincolato ? (
-                              <span className="text-gray-600">-</span>
-                            ) : (
-                              <span className="text-accent-400 font-medium text-xs">{player.contractSalary}M</span>
-                            )}
-                          </td>
-
-                          {/* Durata */}
-                          <td className="p-2 text-center">
-                            {isSvincolato ? (
-                              <span className="text-gray-600">-</span>
-                            ) : (
-                              <span className="text-white text-xs">{player.contractDuration}</span>
-                            )}
-                          </td>
-
-                          {/* Clausola */}
-                          <td className="p-2 text-center">
-                            {isSvincolato ? (
-                              <span className="text-gray-600">-</span>
-                            ) : (
-                              <span className="text-orange-400 font-medium">{player.contractClause}M</span>
-                            )}
-                          </td>
-
-                          {/* Rubata Price */}
-                          <td className="p-2 text-center">
-                            {isSvincolato ? (
-                              <span className="text-gray-600">-</span>
-                            ) : (
-                              <span className="text-warning-400 font-bold">{player.rubataPrice}M</span>
-                            )}
-                          </td>
-
-                          {/* === STRATEGY SECTION - only show when not in myRoster view === */}
-                          {viewMode !== 'myRoster' && (
+                          {/* Contract columns - only for contracts and merge views */}
+                          {(dataViewMode === 'contracts' || dataViewMode === 'merge') && (
                             <>
-                              {/* Offerta Max */}
-                              <td className="p-2 text-center bg-indigo-500/5 border-l-2 border-indigo-500/30">
-                                {isMyRoster ? (
-                                  <span className="text-gray-600 text-xs">-</span>
+                              {/* Ingaggio */}
+                              <td className="p-2 text-center border-l border-surface-50/10">
+                                {isSvincolato ? (
+                                  <span className="text-gray-600">-</span>
                                 ) : (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const current = parseInt(local.maxBid) || 0
-                                        updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, current - 1).toString())
-                                      }}
-                                      className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-100 text-sm font-bold flex items-center justify-center transition-colors"
-                                    >
-                                      −
-                                    </button>
-                                    <input
-                                      type="number"
-                                      value={local.maxBid}
-                                      onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)}
-                                      placeholder="-"
-                                      className={`w-12 px-1 py-1 bg-surface-300/50 border rounded text-white text-center text-sm font-medium focus:border-blue-500 focus:outline-none placeholder:text-gray-600 ${
-                                        isSaving ? 'border-blue-500/50' : local.isDirty ? 'border-yellow-500/50' : 'border-surface-50/30'
-                                      }`}
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const current = parseInt(local.maxBid) || 0
-                                        updateLocalStrategy(player.playerId, 'maxBid', (current + 1).toString())
-                                      }}
-                                      className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-100 text-sm font-bold flex items-center justify-center transition-colors"
-                                    >
-                                      +
-                                    </button>
-                                  </div>
+                                  <span className="text-accent-400 font-medium text-xs">{player.contractSalary}M</span>
                                 )}
                               </td>
 
-                              {/* Priority */}
-                              <td className="p-2 text-center bg-indigo-500/5">
-                                {isMyRoster ? (
-                                  <span className="text-gray-600 text-xs">-</span>
+                              {/* Durata */}
+                              <td className="p-2 text-center">
+                                {isSvincolato ? (
+                                  <span className="text-gray-600">-</span>
                                 ) : (
-                                  <div className="flex items-center justify-center gap-0.5">
-                                    {[1, 2, 3, 4, 5].map(star => (
-                                      <button
-                                        key={star}
-                                        type="button"
-                                        onClick={() => {
-                                          const newPrio = local.priority === star ? 0 : star
-                                          updateLocalStrategy(player.playerId, 'priority', newPrio)
-                                        }}
-                                        className={`w-5 h-5 text-sm transition-colors ${
-                                          local.priority >= star
-                                            ? 'text-purple-400 hover:text-purple-300'
-                                            : 'text-gray-600 hover:text-gray-400'
-                                        }`}
-                                      >
-                                        ★
-                                      </button>
-                                    ))}
-                                  </div>
+                                  <span className="text-white text-xs">{player.contractDuration}</span>
                                 )}
                               </td>
 
-                              {/* Notes */}
-                              <td className="p-2 bg-indigo-500/5">
-                                {isMyRoster ? (
-                                  <span className="text-gray-600 text-xs">-</span>
+                              {/* Clausola */}
+                              <td className="p-2 text-center">
+                                {isSvincolato ? (
+                                  <span className="text-gray-600">-</span>
                                 ) : (
-                                  <input
-                                    type="text"
-                                    value={local.notes}
-                                    onChange={(e) => updateLocalStrategy(player.playerId, 'notes', e.target.value)}
-                                    placeholder="Note..."
-                                    className={`w-full min-w-[80px] px-2 py-1 bg-surface-300/50 border rounded text-white text-sm focus:border-blue-500 focus:outline-none placeholder:text-gray-600 ${
-                                      isSaving ? 'border-blue-500/50' : local.isDirty ? 'border-yellow-500/50' : 'border-surface-50/30'
-                                    }`}
-                                  />
+                                  <span className="text-orange-400 font-medium">{player.contractClause}M</span>
+                                )}
+                              </td>
+
+                              {/* Rubata Price */}
+                              <td className="p-2 text-center">
+                                {isSvincolato ? (
+                                  <span className="text-gray-600">-</span>
+                                ) : (
+                                  <span className="text-warning-400 font-bold">{player.rubataPrice}M</span>
                                 )}
                               </td>
                             </>
                           )}
+
+                          {/* Stats columns - full set for stats view */}
+                          {dataViewMode === 'stats' && STATS_COLUMNS.map((col, idx) => {
+                            const value = col.getValue(player.playerApiFootballStats)
+                            const formatted = col.format ? col.format(typeof value === 'number' ? value : null) : (value ?? '-')
+                            return (
+                              <td key={col.key} className={`p-2 text-center text-xs ${col.colorClass || 'text-gray-300'} ${idx === 0 ? 'border-l border-surface-50/10' : ''}`}>
+                                {formatted}
+                              </td>
+                            )
+                          })}
+
+                          {/* Stats columns - essential only for merge view */}
+                          {dataViewMode === 'merge' && STATS_COLUMNS.filter(c => MERGE_STATS_KEYS.includes(c.key)).map((col, idx) => {
+                            const value = col.getValue(player.playerApiFootballStats)
+                            const formatted = col.format ? col.format(typeof value === 'number' ? value : null) : (value ?? '-')
+                            return (
+                              <td key={col.key} className={`p-2 text-center text-xs ${col.colorClass || 'text-gray-300'} ${idx === 0 ? 'border-l border-surface-50/10' : ''}`}>
+                                {formatted}
+                              </td>
+                            )
+                          })}
+
+                          {/* === STRATEGY SECTION === */}
+                          {/* Offerta Max */}
+                          <td className="p-2 text-center bg-indigo-500/5 border-l border-surface-50/10">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const current = parseInt(local.maxBid) || 0
+                                  updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, current - 1).toString())
+                                }}
+                                className="w-5 h-5 rounded bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-100 text-xs font-bold flex items-center justify-center transition-colors"
+                              >
+                                −
+                              </button>
+                              <input
+                                type="number"
+                                value={local.maxBid}
+                                onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)}
+                                placeholder="-"
+                                className={`w-10 px-1 py-0.5 bg-surface-300/50 border rounded text-white text-center text-xs font-medium focus:border-blue-500 focus:outline-none placeholder:text-gray-600 ${
+                                  isSaving ? 'border-blue-500/50' : local.isDirty ? 'border-yellow-500/50' : 'border-surface-50/30'
+                                }`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const current = parseInt(local.maxBid) || 0
+                                  updateLocalStrategy(player.playerId, 'maxBid', (current + 1).toString())
+                                }}
+                                className="w-5 h-5 rounded bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-100 text-xs font-bold flex items-center justify-center transition-colors"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </td>
+
+                          {/* Priority */}
+                          <td className="p-2 text-center bg-indigo-500/5">
+                            <div className="flex items-center justify-center gap-0.5">
+                              {[1, 2, 3, 4, 5].map(star => (
+                                <button
+                                  key={star}
+                                  type="button"
+                                  onClick={() => {
+                                    const newPrio = local.priority === star ? 0 : star
+                                    updateLocalStrategy(player.playerId, 'priority', newPrio)
+                                  }}
+                                  className={`w-4 h-4 text-xs transition-colors ${
+                                    local.priority >= star
+                                      ? 'text-purple-400 hover:text-purple-300'
+                                      : 'text-gray-600 hover:text-gray-400'
+                                  }`}
+                                >
+                                  ★
+                                </button>
+                              ))}
+                            </div>
+                          </td>
+
+                          {/* Notes */}
+                          <td className="p-2 bg-indigo-500/5">
+                            <input
+                              type="text"
+                              value={local.notes}
+                              onChange={(e) => updateLocalStrategy(player.playerId, 'notes', e.target.value)}
+                              placeholder="Note..."
+                              className={`w-full min-w-[60px] px-1 py-0.5 bg-surface-300/50 border rounded text-white text-xs focus:border-blue-500 focus:outline-none placeholder:text-gray-600 ${
+                                isSaving ? 'border-blue-500/50' : local.isDirty ? 'border-yellow-500/50' : 'border-surface-50/30'
+                              }`}
+                            />
+                          </td>
                         </tr>
                       )
                     })}
