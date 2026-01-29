@@ -947,7 +947,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           <div className="bg-cyan-500/10 rounded p-1.5 border border-cyan-500/20">
                             <div className="text-gray-500 text-[10px] uppercase">Rating</div>
                             <div className="text-cyan-400 font-semibold">
-                              {player.playerApiFootballStats?.games?.rating?.toFixed(1) ?? '-'}
+                              {player.playerApiFootballStats?.games?.rating != null
+                                ? Number(player.playerApiFootballStats.games.rating).toFixed(1)
+                                : '-'}
                             </div>
                           </div>
                           <div className="bg-secondary-500/10 rounded p-1.5 border border-secondary-500/20">
