@@ -16,6 +16,7 @@ import {
   cancelJoinRequest,
   getAllRosters,
   searchLeagues,
+  getLeagueFinancials,
 } from '../../services/league.service'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth'
 
@@ -297,6 +298,24 @@ router.post('/:id/cancel-request', authMiddleware, async (req: Request, res: Res
     res.json(result)
   } catch (error) {
     console.error('Cancel join request error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:id/financials - Get financial dashboard data (#190)
+router.get('/:id/financials', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const result = await getLeagueFinancials(id, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non sei membro di questa lega' ? 403 : 404).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get league financials error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

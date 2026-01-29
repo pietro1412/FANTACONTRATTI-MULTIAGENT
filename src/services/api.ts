@@ -194,6 +194,48 @@ export const leagueApi = {
       adminUsername: string
       createdAt: string
     }>>(`/api/leagues/search?q=${encodeURIComponent(query)}`),
+
+  // Get financial dashboard data (#190)
+  getFinancials: (leagueId: string) =>
+    request<{
+      leagueName: string
+      maxSlots: number
+      teams: Array<{
+        memberId: string
+        teamName: string
+        username: string
+        budget: number
+        annualContractCost: number
+        totalContractCost: number
+        slotCount: number
+        slotsFree: number
+        maxSlots: number
+        ageDistribution: {
+          under20: number
+          under25: number
+          under30: number
+          over30: number
+          unknown: number
+        }
+        positionDistribution: {
+          P: number
+          D: number
+          C: number
+          A: number
+        }
+        players: Array<{
+          id: string
+          name: string
+          team: string
+          position: string
+          quotation: number
+          age: number | null
+          salary: number
+          duration: number
+          clause: number
+        }>
+      }>
+    }>(`/api/leagues/${leagueId}/financials`),
 }
 
 // Invite API

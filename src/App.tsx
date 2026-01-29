@@ -28,6 +28,7 @@ const Movements = lazy(() => import('./pages/Movements').then(m => ({ default: m
 const History = lazy(() => import('./pages/History').then(m => ({ default: m.History })))
 const Prophecies = lazy(() => import('./pages/Prophecies').then(m => ({ default: m.Prophecies })))
 const PlayerStats = lazy(() => import('./pages/PlayerStats'))
+const LeagueFinancials = lazy(() => import('./pages/LeagueFinancials'))
 const SuperAdmin = lazy(() => import('./pages/SuperAdmin').then(m => ({ default: m.SuperAdmin })))
 const PrizePhasePage = lazy(() => import('./pages/PrizePhasePage').then(m => ({ default: m.PrizePhasePage })))
 const LatencyTest = lazy(() => import('./pages/LatencyTest'))
@@ -561,6 +562,13 @@ function AppRoutes() {
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
             <PlayerStatsWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/financials" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <LeagueFinancials />
           </Suspense>
         </ProtectedRoute>
       } />

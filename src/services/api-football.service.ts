@@ -46,13 +46,13 @@ interface ApiPlayerStats {
     team: { id: number; name: string }
     league: { id: number; name: string; season: number }
     games: { appearences: number | null; minutes: number | null; rating: string | null }
-    goals: { total: number | null; assists: number | null }
+    goals: { total: number | null; assists: number | null; conceded: number | null; saves: number | null }
     shots: { total: number | null; on: number | null }
     passes: { total: number | null; key: number | null; accuracy: number | null }
     tackles: { total: number | null; interceptions: number | null }
     dribbles: { attempts: number | null; success: number | null }
     cards: { yellow: number | null; red: number | null }
-    penalty: { scored: number | null; missed: number | null }
+    penalty: { scored: number | null; missed: number | null; saved: number | null }
   }>
 }
 
@@ -526,6 +526,8 @@ export async function syncStats(userId: string): Promise<SyncResult> {
           goals: {
             total: serieAStats.goals.total,
             assists: serieAStats.goals.assists,
+            conceded: serieAStats.goals.conceded,  // Goalkeeper: goals conceded
+            saves: serieAStats.goals.saves,        // Goalkeeper: saves
           },
           shots: {
             total: serieAStats.shots.total,
@@ -551,6 +553,7 @@ export async function syncStats(userId: string): Promise<SyncResult> {
           penalty: {
             scored: serieAStats.penalty.scored,
             missed: serieAStats.penalty.missed,
+            saved: serieAStats.penalty.saved,      // Goalkeeper: penalties saved
           },
         }
 

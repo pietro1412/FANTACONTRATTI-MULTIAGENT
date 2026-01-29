@@ -1475,48 +1475,106 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                 })}
               </div>
 
-              {/* Radar Charts */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                {/* Offensive Stats Radar */}
-                <div className="bg-surface-300/50 rounded-xl p-4">
-                  <h3 className="text-center text-white font-semibold mb-4">Statistiche Offensive</h3>
-                  <RadarChart
-                    size={280}
-                    players={playersToCompare.map((p, i) => ({
-                      name: p.playerName,
-                      color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
-                    }))}
-                    data={[
-                      { label: 'Gol', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.total ?? 0) },
-                      { label: 'Assist', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.assists ?? 0) },
-                      { label: 'Tiri', values: playersToCompare.map(p => p.playerApiFootballStats?.shots?.total ?? 0) },
-                      { label: 'Tiri Porta', values: playersToCompare.map(p => p.playerApiFootballStats?.shots?.on ?? 0) },
-                      { label: 'Dribbling', values: playersToCompare.map(p => p.playerApiFootballStats?.dribbles?.success ?? 0) },
-                      { label: 'Pass Chiave', values: playersToCompare.map(p => p.playerApiFootballStats?.passes?.key ?? 0) },
-                    ]}
-                  />
-                </div>
+              {/* Radar Charts - different for goalkeepers vs outfield players */}
+              {(() => {
+                const allGoalkeepers = playersToCompare.every(p => p.playerPosition === 'P')
+                const hasGoalkeepers = playersToCompare.some(p => p.playerPosition === 'P')
 
-                {/* Defensive/General Stats Radar */}
-                <div className="bg-surface-300/50 rounded-xl p-4">
-                  <h3 className="text-center text-white font-semibold mb-4">Statistiche Difensive</h3>
-                  <RadarChart
-                    size={280}
-                    players={playersToCompare.map((p, i) => ({
-                      name: p.playerName,
-                      color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
-                    }))}
-                    data={[
-                      { label: 'Contrasti', values: playersToCompare.map(p => p.playerApiFootballStats?.tackles?.total ?? 0) },
-                      { label: 'Intercetti', values: playersToCompare.map(p => p.playerApiFootballStats?.tackles?.interceptions ?? 0) },
-                      { label: 'Passaggi', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.passes?.total ?? 0) / 10)) },
-                      { label: 'Presenze', values: playersToCompare.map(p => p.playerApiFootballStats?.games?.appearences ?? 0) },
-                      { label: 'Rating', values: playersToCompare.map(p => Math.round((Number(p.playerApiFootballStats?.games?.rating) || 0) * 10)) },
-                      { label: 'Minuti', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.games?.minutes ?? 0) / 100)) },
-                    ]}
-                  />
-                </div>
-              </div>
+                if (allGoalkeepers) {
+                  // All goalkeepers - show goalkeeper-specific radar charts
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                      {/* Goalkeeper Performance Radar */}
+                      <div className="bg-yellow-500/10 rounded-xl p-4 border border-yellow-500/20">
+                        <h3 className="text-center text-yellow-400 font-semibold mb-4">🧤 Performance Portiere</h3>
+                        <RadarChart
+                          size={280}
+                          players={playersToCompare.map((p, i) => ({
+                            name: p.playerName,
+                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                          }))}
+                          data={[
+                            { label: 'Parate', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.saves ?? 0) },
+                            { label: 'Rig. Parati', values: playersToCompare.map(p => (p.playerApiFootballStats?.penalty?.saved ?? 0) * 10) },
+                            { label: 'Rating', values: playersToCompare.map(p => Math.round((Number(p.playerApiFootballStats?.games?.rating) || 0) * 10)) },
+                            { label: 'Presenze', values: playersToCompare.map(p => p.playerApiFootballStats?.games?.appearences ?? 0) },
+                            { label: 'Minuti', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.games?.minutes ?? 0) / 100)) },
+                            { label: 'Passaggi', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.passes?.total ?? 0) / 10)) },
+                          ]}
+                        />
+                      </div>
+
+                      {/* Goalkeeper Goals Conceded Radar */}
+                      <div className="bg-yellow-500/10 rounded-xl p-4 border border-yellow-500/20">
+                        <h3 className="text-center text-yellow-400 font-semibold mb-4">🧤 Gol Subiti (meno è meglio)</h3>
+                        <RadarChart
+                          size={280}
+                          players={playersToCompare.map((p, i) => ({
+                            name: p.playerName,
+                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                          }))}
+                          data={[
+                            { label: 'Gol Subiti', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.conceded ?? 0) },
+                            { label: 'Prec. Pass', values: playersToCompare.map(p => p.playerApiFootballStats?.passes?.accuracy ?? 0) },
+                            { label: 'Gialli', values: playersToCompare.map(p => (p.playerApiFootballStats?.cards?.yellow ?? 0) * 5) },
+                            { label: 'Rossi', values: playersToCompare.map(p => (p.playerApiFootballStats?.cards?.red ?? 0) * 20) },
+                          ]}
+                        />
+                      </div>
+                    </div>
+                  )
+                }
+
+                // Mixed or outfield players - show standard radar charts
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    {hasGoalkeepers && (
+                      <div className="col-span-full text-center text-sm text-yellow-400 bg-yellow-500/10 rounded-lg p-2 mb-2">
+                        ⚠️ Confronto misto portieri/giocatori - alcune statistiche potrebbero non essere comparabili
+                      </div>
+                    )}
+                    {/* Offensive Stats Radar */}
+                    <div className="bg-surface-300/50 rounded-xl p-4">
+                      <h3 className="text-center text-white font-semibold mb-4">Statistiche Offensive</h3>
+                      <RadarChart
+                        size={280}
+                        players={playersToCompare.map((p, i) => ({
+                          name: p.playerName,
+                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                        }))}
+                        data={[
+                          { label: 'Gol', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.total ?? 0) },
+                          { label: 'Assist', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.assists ?? 0) },
+                          { label: 'Tiri', values: playersToCompare.map(p => p.playerApiFootballStats?.shots?.total ?? 0) },
+                          { label: 'Tiri Porta', values: playersToCompare.map(p => p.playerApiFootballStats?.shots?.on ?? 0) },
+                          { label: 'Dribbling', values: playersToCompare.map(p => p.playerApiFootballStats?.dribbles?.success ?? 0) },
+                          { label: 'Pass Chiave', values: playersToCompare.map(p => p.playerApiFootballStats?.passes?.key ?? 0) },
+                        ]}
+                      />
+                    </div>
+
+                    {/* Defensive/General Stats Radar */}
+                    <div className="bg-surface-300/50 rounded-xl p-4">
+                      <h3 className="text-center text-white font-semibold mb-4">Statistiche Difensive</h3>
+                      <RadarChart
+                        size={280}
+                        players={playersToCompare.map((p, i) => ({
+                          name: p.playerName,
+                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                        }))}
+                        data={[
+                          { label: 'Contrasti', values: playersToCompare.map(p => p.playerApiFootballStats?.tackles?.total ?? 0) },
+                          { label: 'Intercetti', values: playersToCompare.map(p => p.playerApiFootballStats?.tackles?.interceptions ?? 0) },
+                          { label: 'Passaggi', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.passes?.total ?? 0) / 10)) },
+                          { label: 'Presenze', values: playersToCompare.map(p => p.playerApiFootballStats?.games?.appearences ?? 0) },
+                          { label: 'Rating', values: playersToCompare.map(p => Math.round((Number(p.playerApiFootballStats?.games?.rating) || 0) * 10)) },
+                          { label: 'Minuti', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.games?.minutes ?? 0) / 100)) },
+                        ]}
+                      />
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* Detailed Stats Table */}
               <div className="bg-surface-300/30 rounded-xl overflow-hidden">
@@ -1585,11 +1643,16 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           </tr>
                         </>
                       )}
-                      {/* Stats */}
+                      {/* Stats - includes goalkeeper-specific stats */}
                       {[
                         { label: 'Presenze', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.appearences },
                         { label: 'Minuti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.minutes },
                         { label: 'Rating', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.rating, format: (v: number | null) => v != null ? Number(v).toFixed(2) : '-' },
+                        // Goalkeeper-specific stats
+                        { label: '🧤 Parate', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.goals?.saves : null, colorClass: 'text-yellow-400', goalkeeperOnly: true },
+                        { label: '🧤 Gol Subiti', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.goals?.conceded : null, colorClass: 'text-yellow-400', goalkeeperOnly: true, lowerIsBetter: true },
+                        { label: '🧤 Rigori Parati', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.penalty?.saved : null, colorClass: 'text-yellow-400', goalkeeperOnly: true },
+                        // Outfield stats
                         { label: 'Gol', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.goals?.total, colorClass: 'text-secondary-400' },
                         { label: 'Assist', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.goals?.assists, colorClass: 'text-primary-400' },
                         { label: 'Tiri Totali', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.shots?.total },
@@ -1601,7 +1664,13 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         { label: 'Dribbling Riusciti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.dribbles?.success },
                         { label: 'Ammonizioni', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.cards?.yellow, colorClass: 'text-warning-400' },
                         { label: 'Espulsioni', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.cards?.red, colorClass: 'text-danger-400' },
-                      ].map(row => {
+                      ].filter(row => {
+                        // Hide goalkeeper-only rows if no goalkeepers in comparison
+                        if ((row as { goalkeeperOnly?: boolean }).goalkeeperOnly) {
+                          return playersToCompare.some(p => p.playerPosition === 'P')
+                        }
+                        return true
+                      }).map(row => {
                         const values = playersToCompare.map(p => {
                           const val = row.getValue(p)
                           return val != null ? Number(val) : 0
