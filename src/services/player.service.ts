@@ -109,9 +109,15 @@ export async function getPlayersWithStats(filters: PlayerStatsFilters = {}) {
     limit = 50,
   } = filters
 
+  // Debug: check how many players have stats
+  const withStatsCount = await prisma.serieAPlayer.count({
+    where: { apiFootballStats: { not: { equals: null } } }
+  })
+  console.log(`[PlayerStats] Players with apiFootballStats: ${withStatsCount}`)
+
   const where: Record<string, unknown> = {
     isActive: true,
-    apiFootballStats: { not: null }, // Only players with stats
+    apiFootballStats: { not: { equals: null } }, // Only players with stats (Prisma JSON syntax)
   }
 
   if (position) {
