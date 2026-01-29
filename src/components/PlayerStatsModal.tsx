@@ -1,4 +1,13 @@
 import { Modal, ModalHeader, ModalBody } from './ui/Modal'
+import { getPlayerPhotoUrl, getTeamLogoUrl } from '../utils/player-images'
+
+// Position colors
+const POSITION_COLORS: Record<string, string> = {
+  P: 'from-yellow-500 to-yellow-600',
+  D: 'from-green-500 to-green-600',
+  C: 'from-blue-500 to-blue-600',
+  A: 'from-red-500 to-red-600',
+}
 
 // Stats structure from API-Football
 export interface PlayerStats {
@@ -43,6 +52,7 @@ export interface PlayerInfo {
   team: string
   position: string
   quotation?: number
+  apiFootballId?: number | null
   apiFootballStats?: PlayerStats | null
   statsSyncedAt?: string | null
 }
@@ -88,18 +98,66 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
     A: 'Attaccante',
   }
 
+  const playerPhotoUrl = getPlayerPhotoUrl(player.apiFootballId)
+  const teamLogoUrl = getTeamLogoUrl(player.team)
+
+  // Debug: log player data to verify apiFootballId is present
+  console.log('PlayerStatsModal player:', player.name, 'apiFootballId:', player.apiFootballId, 'photoUrl:', playerPhotoUrl)
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalHeader>
-        <div className="flex items-center gap-3">
-          <span className="text-2xl font-bold">{player.name}</span>
-          <span className="px-2 py-0.5 rounded text-xs font-medium bg-primary-500/20 text-primary-400">
-            {positionLabels[player.position] || player.position}
-          </span>
-        </div>
-        <div className="text-sm text-gray-400 mt-1">
-          {player.team}
-          {player.quotation && <span className="ml-2">- Quotazione: {player.quotation}M</span>}
+        <div className="flex items-center gap-4">
+          {/* Player photo with position badge */}
+          <div className="relative flex-shrink-0">
+            {playerPhotoUrl ? (
+              <img
+                src={playerPhotoUrl}
+                alt={player.name}
+                className="w-16 h-16 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none'
+                }}
+              />
+            ) : (
+              <div
+                className={`w-16 h-16 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xl`}
+              >
+                {player.position}
+              </div>
+            )}
+            <span
+              className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xs border-2 border-surface-200`}
+            >
+              {player.position}
+            </span>
+          </div>
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl font-bold">{player.name}</span>
+              <span className="px-2 py-0.5 rounded text-xs font-medium bg-primary-500/20 text-primary-400">
+                {positionLabels[player.position] || player.position}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-400 mt-1">
+              {teamLogoUrl && (
+                <img
+                  src={teamLogoUrl}
+                  alt={player.team}
+                  className="w-5 h-5 object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none'
+                  }}
+                />
+              )}
+              {player.team}
+              {player.quotation && (
+                <span className="ml-2 px-2 py-0.5 rounded bg-primary-500/20 text-primary-400 font-medium">
+                  {player.quotation}M
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </ModalHeader>
 

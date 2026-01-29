@@ -27,6 +27,7 @@ const AdminPanel = lazy(() => import('./pages/AdminPanel').then(m => ({ default:
 const Movements = lazy(() => import('./pages/Movements').then(m => ({ default: m.Movements })))
 const History = lazy(() => import('./pages/History').then(m => ({ default: m.History })))
 const Prophecies = lazy(() => import('./pages/Prophecies').then(m => ({ default: m.Prophecies })))
+const PlayerStats = lazy(() => import('./pages/PlayerStats'))
 const SuperAdmin = lazy(() => import('./pages/SuperAdmin').then(m => ({ default: m.SuperAdmin })))
 const PrizePhasePage = lazy(() => import('./pages/PrizePhasePage').then(m => ({ default: m.PrizePhasePage })))
 const LatencyTest = lazy(() => import('./pages/LatencyTest'))
@@ -191,6 +192,7 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'movements': navigate(`/leagues/${lid}/movements`); break
       case 'history': navigate(`/leagues/${lid}/history`); break
       case 'prophecies': navigate(`/leagues/${lid}/prophecies`); break
+      case 'playerStats': navigate(`/leagues/${lid}/stats`); break
       case 'superadmin':
         if (params?.tab) navigate(`/superadmin?tab=${params.tab}`)
         else navigate('/superadmin')
@@ -348,6 +350,15 @@ function PropheciesWrapper() {
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
   return <Prophecies leagueId={leagueId} onNavigate={onNavigate} />
+}
+
+function PlayerStatsWrapper() {
+  const navigate = useNavigate()
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
+
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <PlayerStats leagueId={leagueId} onNavigate={onNavigate} />
 }
 
 function SuperAdminWrapper() {
@@ -543,6 +554,13 @@ function AppRoutes() {
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
             <PropheciesWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/stats" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <PlayerStatsWrapper />
           </Suspense>
         </ProtectedRoute>
       } />

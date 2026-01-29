@@ -85,3 +85,128 @@ export async function getTeams() {
     playerCount: t._count,
   }))
 }
+
+// ==================== PLAYER STATS ====================
+
+export interface PlayerStatsFilters {
+  position?: Position
+  team?: string
+  search?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+  page?: number
+  limit?: number
+}
+
+export async function getPlayersWithStats(filters: PlayerStatsFilters = {}) {
+  const {
+    position,
+    team,
+    search,
+    sortBy = 'name',
+    sortOrder = 'asc',
+    page = 1,
+    limit = 50,
+  } = filters
+
+  // Debug: check how many players have stats
+  const withStatsCount = await prisma.serieAPlayer.count({
+    where: { apiFootballStats: { not: { equals: null } } }
+  })
+  console.log(`[PlayerStats] Players with apiFootballStats: ${withStatsCount}`)
+
+  const where: Record<string, unknown> = {
+    isActive: true,
+    apiFootballStats: { not: { equals: null } }, // Only players with stats (Prisma JSON syntax)
+  }
+
+  if (position) {
+    where.position = position
+  }
+
+  if (team) {
+    where.team = team
+  }
+
+  if (search) {
+    where.name = {
+      contains: search,
+      mode: 'insensitive',
+    }
+  }
+
+  // Build orderBy based on sortBy
+  const orderByMap: Record<string, object[]> = {
+    name: [{ name: sortOrder }],
+    team: [{ team: sortOrder }, { name: 'asc' }],
+    position: [{ position: sortOrder }, { name: 'asc' }],
+    quotation: [{ quotation: sortOrder }, { name: 'asc' }],
+  }
+  const orderBy = orderByMap[sortBy] || [{ name: 'asc' }]
+
+  // Get total count for pagination
+  const total = await prisma.serieAPlayer.count({ where })
+
+  // Get players with stats
+  const players = await prisma.serieAPlayer.findMany({
+    where,
+    orderBy,
+    skip: (page - 1) * limit,
+    take: limit,
+    select: {
+      id: true,
+      name: true,
+      team: true,
+      position: true,
+      quotation: true,
+      apiFootballId: true,
+      apiFootballStats: true,
+      statsSyncedAt: true,
+    },
+  })
+
+  // Transform stats for frontend
+  const transformedPlayers = players.map(player => {
+    const stats = player.apiFootballStats as Record<string, unknown> | null
+
+    return {
+      id: player.id,
+      name: player.name,
+      team: player.team,
+      position: player.position,
+      quotation: player.quotation,
+      apiFootballId: player.apiFootballId,
+      statsSyncedAt: player.statsSyncedAt,
+      stats: stats ? {
+        appearances: (stats.games as Record<string, unknown>)?.appearences ?? 0,
+        minutes: (stats.games as Record<string, unknown>)?.minutes ?? 0,
+        rating: (stats.games as Record<string, unknown>)?.rating ?? null,
+        goals: (stats.goals as Record<string, unknown>)?.total ?? 0,
+        assists: (stats.goals as Record<string, unknown>)?.assists ?? 0,
+        yellowCards: (stats.cards as Record<string, unknown>)?.yellow ?? 0,
+        redCards: (stats.cards as Record<string, unknown>)?.red ?? 0,
+        passesTotal: (stats.passes as Record<string, unknown>)?.total ?? 0,
+        passesKey: (stats.passes as Record<string, unknown>)?.key ?? 0,
+        passAccuracy: (stats.passes as Record<string, unknown>)?.accuracy ?? null,
+        shotsTotal: (stats.shots as Record<string, unknown>)?.total ?? 0,
+        shotsOn: (stats.shots as Record<string, unknown>)?.on ?? 0,
+        tacklesTotal: (stats.tackles as Record<string, unknown>)?.total ?? 0,
+        interceptions: (stats.tackles as Record<string, unknown>)?.interceptions ?? 0,
+        dribblesAttempts: (stats.dribbles as Record<string, unknown>)?.attempts ?? 0,
+        dribblesSuccess: (stats.dribbles as Record<string, unknown>)?.success ?? 0,
+        penaltyScored: (stats.penalty as Record<string, unknown>)?.scored ?? 0,
+        penaltyMissed: (stats.penalty as Record<string, unknown>)?.missed ?? 0,
+      } : null,
+    }
+  })
+
+  return {
+    players: transformedPlayers,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  }
+}

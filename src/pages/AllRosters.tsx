@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Navigation } from '../components/Navigation'
 import { leagueApi } from '../services/api'
 import { getTeamLogo } from '../utils/teamLogos'
+import { getPlayerPhotoUrl } from '../utils/player-images'
 
 interface AllRostersProps {
   leagueId: string
@@ -14,6 +15,7 @@ interface Player {
   team: string
   position: 'P' | 'D' | 'C' | 'A'
   quotation: number
+  apiFootballId?: number | null
 }
 
 interface RosterEntry {
@@ -72,21 +74,52 @@ function getDurationStyle(duration: number) {
   }
 }
 
+// Position colors for photo badges
+const POSITION_COLORS: Record<string, string> = {
+  P: 'from-yellow-500 to-yellow-600',
+  D: 'from-green-500 to-green-600',
+  C: 'from-blue-500 to-blue-600',
+  A: 'from-red-500 to-red-600',
+}
+
 // Componente card giocatore (stesso stile di Roster.tsx)
 function PlayerCard({ entry }: { entry: RosterEntry }) {
   const roleStyle = getRoleStyle(entry.player.position)
   const durStyle = entry.contract ? getDurationStyle(entry.contract.duration) : null
+  const playerPhotoUrl = getPlayerPhotoUrl(entry.player.apiFootballId)
 
   return (
     <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-surface-200 rounded-lg border border-surface-50/20 hover:border-surface-50/40 transition-colors">
-      {/* Team Logo con sfondo bianco */}
-      <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-white rounded-lg p-0.5 sm:p-1 flex-shrink-0">
-        <img
-          src={getTeamLogo(entry.player.team)}
-          alt={entry.player.team}
-          className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-        />
+      {/* Player Photo with Team Logo */}
+      <div className="relative flex-shrink-0">
+        {playerPhotoUrl ? (
+          <img
+            src={playerPhotoUrl}
+            alt={entry.player.name}
+            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none'
+              const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+              if (fallback) fallback.style.display = 'flex'
+            }}
+          />
+        ) : null}
+        <div
+          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br ${POSITION_COLORS[entry.player.position]} items-center justify-center text-white font-bold text-sm ${playerPhotoUrl ? 'hidden' : 'flex'}`}
+        >
+          {entry.player.position}
+        </div>
+        {/* Team logo badge */}
+        <div className="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white p-0.5 border border-surface-50/20">
+          <img
+            src={getTeamLogo(entry.player.team)}
+            alt={entry.player.team}
+            className="w-full h-full object-contain"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none'
+            }}
+          />
+        </div>
       </div>
 
       {/* Role Badge */}

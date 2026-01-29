@@ -16,6 +16,7 @@ interface Player {
   team: string
   position: 'P' | 'D' | 'C' | 'A'
   quotation: number
+  apiFootballId?: number | null
   apiFootballStats?: PlayerStats | null
   statsSyncedAt?: string | null
 }
@@ -414,6 +415,7 @@ export function Rose({ onNavigate }: RoseProps) {
                               team: entry.player.team,
                               position: entry.player.position,
                               quotation: entry.player.quotation,
+                              apiFootballId: entry.player.apiFootballId,
                               apiFootballStats: entry.player.apiFootballStats,
                               statsSyncedAt: entry.player.statsSyncedAt,
                             })}
@@ -516,6 +518,7 @@ export function Rose({ onNavigate }: RoseProps) {
                                 team: entry.player.team,
                                 position: entry.player.position,
                                 quotation: entry.player.quotation,
+                                apiFootballId: entry.player.apiFootballId,
                                 apiFootballStats: entry.player.apiFootballStats,
                                 statsSyncedAt: entry.player.statsSyncedAt,
                               })}
