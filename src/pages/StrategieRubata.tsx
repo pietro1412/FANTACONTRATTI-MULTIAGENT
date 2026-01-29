@@ -89,7 +89,7 @@ interface StatsColumn {
 
 const STATS_COLUMNS: StatsColumn[] = [
   { key: 'appearances', label: 'Presenze', shortLabel: 'Pres', getValue: s => s?.games?.appearences ?? null },
-  { key: 'rating', label: 'Rating', shortLabel: 'Rat', getValue: s => s?.games?.rating ?? null, format: v => v?.toFixed(2) ?? '-' },
+  { key: 'rating', label: 'Rating', shortLabel: 'Rat', getValue: s => s?.games?.rating ?? null, format: v => v?.toFixed(2) ?? '-', colorClass: 'text-cyan-400 font-semibold' },
   { key: 'goals', label: 'Gol', shortLabel: 'Gol', getValue: s => s?.goals?.total ?? null, colorClass: 'text-secondary-400' },
   { key: 'assists', label: 'Assist', shortLabel: 'Ass', getValue: s => s?.goals?.assists ?? null, colorClass: 'text-primary-400' },
   { key: 'minutes', label: 'Minuti', shortLabel: 'Min', getValue: s => s?.games?.minutes ?? null },
@@ -685,9 +685,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           ? 'bg-violet-500 text-white shadow-md'
                           : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
                       }`}
-                      title="Vista mista"
+                      title="Vista contratti e statistiche"
                     >
-                      🔀 Merge
+                      🔀 Contratti e Stats
                     </button>
                   </div>
                   <div className="text-sm text-gray-400">
@@ -861,47 +861,6 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     <span className="text-xs text-indigo-300 whitespace-nowrap font-medium">⭐ Con strategia</span>
                   </label>
 
-                  {/* Sort Mode Toggle (right aligned) */}
-                  <div className="flex items-center gap-2 ml-auto">
-                    <span className="text-[10px] text-gray-500 uppercase font-semibold hidden sm:inline">Ordina</span>
-                    <div className="flex gap-1 bg-surface-400/50 rounded-lg p-0.5">
-                      <button
-                        onClick={() => setSortMode('role')}
-                        className={`px-2 py-1 rounded text-xs transition-colors ${
-                          sortMode === 'role'
-                            ? 'bg-primary-500 text-white'
-                            : 'text-gray-400 hover:text-white'
-                        }`}
-                        title="Ordina per Ruolo > Alfabetico"
-                      >
-                        Ruolo
-                      </button>
-                      <button
-                        onClick={() => setSortMode('manager')}
-                        className={`px-2 py-1 rounded text-xs transition-colors ${
-                          sortMode === 'manager'
-                            ? 'bg-primary-500 text-white'
-                            : 'text-gray-400 hover:text-white'
-                        }`}
-                        title="Ordina per Manager > Ruolo > Alfabetico"
-                      >
-                        Manager
-                      </button>
-                      {strategiesData?.hasRubataOrder && (
-                        <button
-                          onClick={() => setSortMode('rubata')}
-                          className={`px-2 py-1 rounded text-xs transition-colors ${
-                            sortMode === 'rubata'
-                              ? 'bg-warning-500 text-white'
-                              : 'text-warning-400 hover:text-warning-300'
-                          }`}
-                          title="Ordina per Ordine Rubata > Ruolo > Alfabetico"
-                        >
-                          Ord. Rubata
-                        </button>
-                      )}
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -1012,7 +971,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             {/* Priority */}
                             <div className="flex items-center gap-0.5 ml-auto">
                               {[1, 2, 3, 4, 5].map(star => (
-                                <button key={star} onClick={() => updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star)} className={`w-5 h-5 text-sm ${local.priority >= star ? 'text-purple-400' : 'text-gray-600'}`}>★</button>
+                                <button key={star} onClick={() => updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star)} className={`w-7 h-7 text-lg ${local.priority >= star ? 'text-purple-400' : 'text-gray-600'}`}>★</button>
                               ))}
                             </div>
                           </div>
@@ -1289,7 +1248,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                     const newPrio = local.priority === star ? 0 : star
                                     updateLocalStrategy(player.playerId, 'priority', newPrio)
                                   }}
-                                  className={`w-4 h-4 text-xs transition-colors ${
+                                  className={`w-6 h-6 text-base transition-colors ${
                                     local.priority >= star
                                       ? 'text-purple-400 hover:text-purple-300'
                                       : 'text-gray-600 hover:text-gray-400'
@@ -1326,18 +1285,36 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                 )}
               </div>
 
-              {/* Footer */}
-              <div className="p-3 border-t border-surface-50/20 bg-surface-300/20 text-xs text-gray-500 flex flex-wrap justify-between gap-2">
-                <span>
-                  {filteredPlayers.length} giocatori
-                  {viewMode === 'myRoster' && ' (la mia rosa)'}
-                  {viewMode === 'owned' && ' (altre rose)'}
-                  {viewMode === 'svincolati' && ' (svincolati)'}
-                  {viewMode === 'all' && ` (${filteredPlayers.filter(p => p.type === 'myRoster').length} miei, ${filteredPlayers.filter(p => p.type === 'owned').length} altri, ${filteredPlayers.filter(p => p.type === 'svincolato').length} svinc.)`}
-                </span>
-                {viewMode !== 'myRoster' && (
-                  <span className="text-indigo-400">{myStrategiesCount} strategie impostate</span>
-                )}
+              {/* Footer with Legend */}
+              <div className="p-3 border-t border-surface-50/20 bg-surface-300/20 text-xs text-gray-500">
+                {/* Legend */}
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2 pb-2 border-b border-surface-50/10">
+                  <span className="text-gray-400 font-semibold">Legenda:</span>
+                  <span><span className="text-accent-400">Ing</span> = Ingaggio</span>
+                  <span><span className="text-white">Dur</span> = Durata contratto</span>
+                  <span><span className="text-orange-400">Cls</span> = Clausola rescissoria</span>
+                  <span><span className="text-warning-400">Rub</span> = Prezzo Rubata</span>
+                  <span className="text-gray-400">|</span>
+                  <span><span className="text-cyan-400">Rat</span> = Rating medio</span>
+                  <span><span className="text-secondary-400">Gol</span> = Gol segnati</span>
+                  <span><span className="text-primary-400">Ass</span> = Assist</span>
+                  <span className="text-gray-400">|</span>
+                  <span><span className="text-indigo-400">Max</span> = Offerta massima</span>
+                  <span><span className="text-purple-400">★</span> = Priorità (1-5)</span>
+                </div>
+                {/* Stats */}
+                <div className="flex flex-wrap justify-between gap-2">
+                  <span>
+                    {filteredPlayers.length} giocatori
+                    {viewMode === 'myRoster' && ' (la mia rosa)'}
+                    {viewMode === 'owned' && ' (altre rose)'}
+                    {viewMode === 'svincolati' && ' (svincolati)'}
+                    {viewMode === 'all' && ` (${filteredPlayers.filter(p => p.type === 'myRoster').length} miei, ${filteredPlayers.filter(p => p.type === 'owned').length} altri, ${filteredPlayers.filter(p => p.type === 'svincolato').length} svinc.)`}
+                  </span>
+                  {viewMode !== 'myRoster' && (
+                    <span className="text-indigo-400">{myStrategiesCount} strategie impostate</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
