@@ -290,6 +290,27 @@ export const playerApi = {
   getById: (id: string) => request(`/api/players/${id}`),
 
   getTeams: () => request('/api/players/teams'),
+
+  getStats: (filters?: {
+    position?: string
+    team?: string
+    search?: string
+    sortBy?: string
+    sortOrder?: 'asc' | 'desc'
+    page?: number
+    limit?: number
+  }) => {
+    const params = new URLSearchParams()
+    if (filters?.position) params.append('position', filters.position)
+    if (filters?.team) params.append('team', filters.team)
+    if (filters?.search) params.append('search', filters.search)
+    if (filters?.sortBy) params.append('sortBy', filters.sortBy)
+    if (filters?.sortOrder) params.append('sortOrder', filters.sortOrder)
+    if (filters?.page) params.append('page', filters.page.toString())
+    if (filters?.limit) params.append('limit', filters.limit.toString())
+    const query = params.toString()
+    return request(`/api/players/stats${query ? `?${query}` : ''}`)
+  },
 }
 
 // Auction API
