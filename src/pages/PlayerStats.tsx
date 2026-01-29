@@ -247,9 +247,10 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
     try {
       const res = await leagueApi.getById(leagueId)
       if (res.success && res.data) {
-        setLeagueName(res.data.name)
-        setTeamName(res.data.myMembership?.teamName || '')
-        setIsLeagueAdmin(res.data.myMembership?.role === 'ADMIN')
+        const data = res.data as { name: string; userMembership?: { role: string; teamName?: string } }
+        setLeagueName(data.name)
+        setTeamName(data.userMembership?.teamName || '')
+        setIsLeagueAdmin(data.userMembership?.role === 'ADMIN')
       }
     } catch (err) {
       console.error('Error loading league info:', err)
