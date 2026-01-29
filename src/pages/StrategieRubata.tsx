@@ -425,11 +425,6 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     setSelectedForCompare(new Set())
   }, [])
 
-  // Players selected for comparison
-  const playersToCompare = useMemo(() => {
-    return filteredPlayers.filter(p => selectedForCompare.has(p.playerId))
-  }, [filteredPlayers, selectedForCompare])
-
   // Filtered and sorted players - supports myRoster, owned, svincolati, and all
   const filteredPlayers = useMemo((): DisplayPlayer[] => {
     const result: DisplayPlayer[] = []
@@ -594,6 +589,11 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
     return result
   }, [strategiesData?.players, svincolatiData?.players, myMemberId, viewMode, positionFilter, teamFilter, ownerFilter, searchQuery, showOnlyWithStrategy, sortMode, getLocalStrategy])
+
+  // Players selected for comparison (#187) - must be after filteredPlayers
+  const playersToCompare = useMemo(() => {
+    return filteredPlayers.filter(p => selectedForCompare.has(p.playerId))
+  }, [filteredPlayers, selectedForCompare])
 
   // My strategies count (for footer) - includes both owned and svincolati
   const myStrategiesCount = useMemo(() => {
