@@ -650,58 +650,127 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
           {/* Main Table */}
           <div className="flex-1 min-w-0">
             <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
-              {/* Filters */}
-              <div className="p-3 border-b border-surface-50/20 bg-surface-300/30">
-                <div className="flex flex-wrap gap-2 items-center">
-                  {/* View Mode Toggle */}
-                  <div className="flex gap-1 bg-surface-300/50 rounded-lg p-0.5">
+              {/* === 3-LEVEL FILTER LAYOUT === */}
+
+              {/* LEVEL 1: Data View Toggle (sticky) */}
+              <div className="sticky top-0 z-10 p-2 border-b border-surface-50/20 bg-surface-300/80 backdrop-blur-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex gap-1 bg-surface-400/50 rounded-lg p-0.5">
                     <button
-                      onClick={() => { setViewMode('myRoster'); setOwnerFilter('ALL'); }}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
-                        viewMode === 'myRoster'
-                          ? 'bg-primary-500 text-white'
-                          : 'text-gray-400 hover:text-white'
+                      onClick={() => setDataViewMode('contracts')}
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                        dataViewMode === 'contracts'
+                          ? 'bg-accent-500 text-white shadow-md'
+                          : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
                       }`}
-                      title="La mia rosa"
+                      title="Vista contratti"
                     >
-                      La Mia Rosa
+                      📋 Contratti
                     </button>
                     <button
-                      onClick={() => { setViewMode('owned'); setOwnerFilter('ALL'); }}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
-                        viewMode === 'owned'
-                          ? 'bg-blue-500 text-white'
-                          : 'text-gray-400 hover:text-white'
+                      onClick={() => setDataViewMode('stats')}
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                        dataViewMode === 'stats'
+                          ? 'bg-cyan-500 text-white shadow-md'
+                          : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
                       }`}
-                      title="Giocatori di altri manager"
+                      title="Vista statistiche"
                     >
-                      Altre Rose
+                      📊 Stats
                     </button>
                     <button
-                      onClick={() => { setViewMode('svincolati'); setOwnerFilter('ALL'); }}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
-                        viewMode === 'svincolati'
-                          ? 'bg-emerald-500 text-white'
-                          : 'text-gray-400 hover:text-white'
+                      onClick={() => setDataViewMode('merge')}
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                        dataViewMode === 'merge'
+                          ? 'bg-violet-500 text-white shadow-md'
+                          : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
                       }`}
-                      title="Giocatori svincolati"
+                      title="Vista mista"
                     >
-                      Svincolati
-                    </button>
-                    <button
-                      onClick={() => { setViewMode('all'); setOwnerFilter('ALL'); }}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
-                        viewMode === 'all'
-                          ? 'bg-purple-500 text-white'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                      title="Tutti i giocatori"
-                    >
-                      Tutti
+                      🔀 Merge
                     </button>
                   </div>
+                  <div className="text-sm text-gray-400">
+                    <span className="font-semibold text-white">{filteredPlayers.length}</span> giocatori
+                  </div>
+                </div>
+              </div>
 
-                  {/* Position Filter */}
+              {/* LEVEL 2: Scope Buttons with Count Badges */}
+              <div className="p-2 border-b border-surface-50/20 bg-surface-300/50">
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  <button
+                    onClick={() => { setViewMode('myRoster'); setOwnerFilter('ALL'); }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                      viewMode === 'myRoster'
+                        ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
+                    }`}
+                    title="La mia rosa"
+                  >
+                    <span>🏠 La Mia Rosa</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                      viewMode === 'myRoster' ? 'bg-white/20' : 'bg-primary-500/20 text-primary-400'
+                    }`}>
+                      {strategiesData?.players.filter(p => p.memberId === myMemberId).length || 0}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => { setViewMode('owned'); setOwnerFilter('ALL'); }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                      viewMode === 'owned'
+                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
+                    }`}
+                    title="Giocatori di altri manager"
+                  >
+                    <span>👥 Altre Rose</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                      viewMode === 'owned' ? 'bg-white/20' : 'bg-blue-500/20 text-blue-400'
+                    }`}>
+                      {strategiesData?.players.filter(p => p.memberId !== myMemberId).length || 0}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => { setViewMode('svincolati'); setOwnerFilter('ALL'); }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                      viewMode === 'svincolati'
+                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
+                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
+                    }`}
+                    title="Giocatori svincolati"
+                  >
+                    <span>🆓 Svincolati</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                      viewMode === 'svincolati' ? 'bg-white/20' : 'bg-emerald-500/20 text-emerald-400'
+                    }`}>
+                      {svincolatiData?.players.length || 0}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => { setViewMode('all'); setOwnerFilter('ALL'); }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                      viewMode === 'all'
+                        ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/25'
+                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
+                    }`}
+                    title="Tutti i giocatori"
+                  >
+                    <span>🌐 Tutti</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                      viewMode === 'all' ? 'bg-white/20' : 'bg-purple-500/20 text-purple-400'
+                    }`}>
+                      {(strategiesData?.players.length || 0) + (svincolatiData?.players.length || 0)}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* LEVEL 3: Filters */}
+              <div className="p-2 border-b border-surface-50/20 bg-surface-300/30">
+                {/* Row 1: Position + Dropdowns */}
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  {/* Position Filter Group */}
                   <div className="flex gap-1">
                     {['ALL', 'P', 'D', 'C', 'A'].map(pos => {
                       const colors = POSITION_COLORS[pos] ?? { bg: 'bg-white/20', text: 'text-white', border: '' }
@@ -709,7 +778,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         <button
                           key={pos}
                           onClick={() => setPositionFilter(pos)}
-                          className={`px-2 py-1 rounded-lg text-xs font-medium transition-all ${
+                          className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                             positionFilter === pos
                               ? pos === 'ALL'
                                 ? 'bg-white/20 text-white'
@@ -723,127 +792,56 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     })}
                   </div>
 
-                  {/* Sort Mode Toggle */}
-                  <div className="flex gap-1 bg-surface-300/50 rounded-lg p-0.5">
-                    <button
-                      onClick={() => setSortMode('role')}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
-                        sortMode === 'role'
-                          ? 'bg-primary-500 text-white'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                      title="Ordina per Ruolo > Alfabetico"
-                    >
-                      Ruolo
-                    </button>
-                    <button
-                      onClick={() => setSortMode('manager')}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
-                        sortMode === 'manager'
-                          ? 'bg-primary-500 text-white'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                      title="Ordina per Manager > Ruolo > Alfabetico"
-                    >
-                      Manager
-                    </button>
-                    {strategiesData?.hasRubataOrder && (
-                      <button
-                        onClick={() => setSortMode('rubata')}
-                        className={`px-2 py-1 rounded text-xs transition-colors ${
-                          sortMode === 'rubata'
-                            ? 'bg-warning-500 text-white'
-                            : 'text-warning-400 hover:text-warning-300'
-                        }`}
-                        title="Ordina per Ordine Rubata > Ruolo > Alfabetico"
-                      >
-                        Ord. Rubata
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Owner Filter - only show for owned or all views */}
+                  {/* Owner Filter - only for owned or all views */}
                   {(viewMode === 'owned' || viewMode === 'all') && (
                     <select
                       value={ownerFilter}
                       onChange={(e) => setOwnerFilter(e.target.value)}
-                      className="px-2 py-1 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
+                      className="px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
                     >
-                      <option value="ALL">Tutti i manager</option>
+                      <option value="ALL">Manager</option>
                       {uniqueOwners.map(o => (
                         <option key={o.username} value={o.username}>{o.teamName}</option>
                       ))}
                     </select>
                   )}
 
-                  {/* Search */}
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Cerca..."
-                    className="flex-1 min-w-[100px] px-2 py-1 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
-                  />
-
-                  {/* Strategy filter */}
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={showOnlyWithStrategy}
-                      onChange={(e) => setShowOnlyWithStrategy(e.target.checked)}
-                      className="w-3.5 h-3.5 rounded bg-surface-300 border-surface-50/50 text-indigo-500 focus:ring-indigo-500"
-                    />
-                    <span className="text-xs text-gray-400 whitespace-nowrap">Con strategia</span>
-                  </label>
-
-                  {/* Serie A Team Filter */}
+                  {/* Team Filter */}
                   <select
                     value={teamFilter}
                     onChange={(e) => setTeamFilter(e.target.value)}
-                    className="px-2 py-1 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
+                    className="px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
                   >
-                    <option value="ALL">Tutte le squadre</option>
+                    <option value="ALL">Squadra</option>
                     {uniqueTeams.map(team => (
                       <option key={team} value={team}>{team}</option>
                     ))}
                   </select>
+                </div>
 
-                  {/* Data View Mode Toggle */}
-                  <div className="flex gap-1 bg-surface-300/50 rounded-lg p-0.5">
-                    <button
-                      onClick={() => setDataViewMode('contracts')}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
-                        dataViewMode === 'contracts'
-                          ? 'bg-accent-500 text-white'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                      title="Vista contratti"
-                    >
-                      📋 Contratti
-                    </button>
-                    <button
-                      onClick={() => setDataViewMode('stats')}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
-                        dataViewMode === 'stats'
-                          ? 'bg-cyan-500 text-white'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                      title="Vista statistiche"
-                    >
-                      📊 Stats
-                    </button>
-                    <button
-                      onClick={() => setDataViewMode('merge')}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
-                        dataViewMode === 'merge'
-                          ? 'bg-violet-500 text-white'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                      title="Vista mista"
-                    >
-                      🔀 Merge
-                    </button>
+                {/* Row 2: Search + Strategy */}
+                <div className="flex items-center gap-2">
+                  {/* Search */}
+                  <div className="flex-1 min-w-0">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="🔍 Cerca giocatore..."
+                      className="w-full px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
+                    />
                   </div>
+
+                  {/* Strategy filter */}
+                  <label className="flex items-center gap-2 cursor-pointer px-2.5 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors flex-shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={showOnlyWithStrategy}
+                      onChange={(e) => setShowOnlyWithStrategy(e.target.checked)}
+                      className="w-4 h-4 rounded bg-surface-300 border-indigo-500/50 text-indigo-500 focus:ring-indigo-500"
+                    />
+                    <span className="text-xs text-indigo-300 whitespace-nowrap font-medium">⭐ Strategia</span>
+                  </label>
                 </div>
               </div>
 
@@ -907,7 +905,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           <div className="text-xs text-gray-500">{player.playerTeam}</div>
                         </div>
                       </div>
-                      {/* Owner + Contract */}
+                      {/* Owner */}
                       <div className="flex justify-between items-center mb-2 text-xs">
                         <span className="text-gray-400">
                           <span className="text-gray-500">Prop: </span>
@@ -919,7 +917,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             <span>{player.ownerTeamName || player.ownerUsername}</span>
                           )}
                         </span>
-                        {!isSvincolato && (
+                        {/* Contract summary - only for contracts/merge view */}
+                        {!isSvincolato && (dataViewMode === 'contracts' || dataViewMode === 'merge') && (
                           <span>
                             <span className="text-accent-400 font-medium">{player.contractSalary}M</span>
                             <span className="text-gray-500"> x </span>
@@ -927,8 +926,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           </span>
                         )}
                       </div>
-                      {/* Price info - only for owned players */}
-                      {!isSvincolato && (
+
+                      {/* Contract info - only for contracts/merge view */}
+                      {!isSvincolato && (dataViewMode === 'contracts' || dataViewMode === 'merge') && (
                         <div className="grid grid-cols-2 gap-2 text-center text-xs mb-3">
                           <div className="bg-surface-300/50 rounded p-1.5">
                             <div className="text-gray-500 text-[10px] uppercase">Clausola</div>
@@ -940,28 +940,50 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           </div>
                         </div>
                       )}
-                      {/* Strategy Section - hidden for my roster */}
-                      {!isMyRoster && (
-                        <div className="bg-indigo-500/10 rounded-lg p-2 border border-indigo-500/20">
-                          <div className="flex items-center gap-2 mb-2">
-                            {/* Max Bid */}
-                            <div className="flex items-center gap-1">
-                              <span className="text-[10px] text-gray-500 uppercase">Max:</span>
-                              <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, (parseInt(local.maxBid) || 0) - 1).toString())} className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 text-sm font-bold">−</button>
-                              <input type="number" value={local.maxBid} onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)} placeholder="-" className="w-12 px-1 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-center text-sm" />
-                              <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', ((parseInt(local.maxBid) || 0) + 1).toString())} className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 text-sm font-bold">+</button>
-                            </div>
-                            {/* Priority */}
-                            <div className="flex items-center gap-0.5 ml-auto">
-                              {[1, 2, 3, 4, 5].map(star => (
-                                <button key={star} onClick={() => updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star)} className={`w-5 h-5 text-sm ${local.priority >= star ? 'text-purple-400' : 'text-gray-600'}`}>★</button>
-                              ))}
+
+                      {/* Stats info - only for stats/merge view */}
+                      {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
+                        <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3">
+                          <div className="bg-cyan-500/10 rounded p-1.5 border border-cyan-500/20">
+                            <div className="text-gray-500 text-[10px] uppercase">Rating</div>
+                            <div className="text-cyan-400 font-semibold">
+                              {player.playerApiFootballStats?.games?.rating?.toFixed(1) ?? '-'}
                             </div>
                           </div>
-                          {/* Notes */}
-                          <input type="text" value={local.notes} onChange={(e) => updateLocalStrategy(player.playerId, 'notes', e.target.value)} placeholder="Note..." className="w-full px-2 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-sm" />
+                          <div className="bg-secondary-500/10 rounded p-1.5 border border-secondary-500/20">
+                            <div className="text-gray-500 text-[10px] uppercase">Gol</div>
+                            <div className="text-secondary-400 font-medium">
+                              {player.playerApiFootballStats?.goals?.total ?? '-'}
+                            </div>
+                          </div>
+                          <div className="bg-primary-500/10 rounded p-1.5 border border-primary-500/20">
+                            <div className="text-gray-500 text-[10px] uppercase">Assist</div>
+                            <div className="text-primary-400 font-medium">
+                              {player.playerApiFootballStats?.goals?.assists ?? '-'}
+                            </div>
+                          </div>
                         </div>
                       )}
+                      {/* Strategy Section - always visible */}
+                      <div className="bg-indigo-500/10 rounded-lg p-2 border border-indigo-500/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          {/* Max Bid */}
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-gray-500 uppercase">Max:</span>
+                            <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, (parseInt(local.maxBid) || 0) - 1).toString())} className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 text-sm font-bold">−</button>
+                            <input type="number" value={local.maxBid} onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)} placeholder="-" className="w-12 px-1 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-center text-sm" />
+                            <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', ((parseInt(local.maxBid) || 0) + 1).toString())} className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 text-sm font-bold">+</button>
+                          </div>
+                          {/* Priority */}
+                          <div className="flex items-center gap-0.5 ml-auto">
+                            {[1, 2, 3, 4, 5].map(star => (
+                              <button key={star} onClick={() => updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star)} className={`w-7 h-7 text-lg ${local.priority >= star ? 'text-purple-400' : 'text-gray-600'}`}>★</button>
+                            ))}
+                          </div>
+                        </div>
+                        {/* Notes */}
+                        <input type="text" value={local.notes} onChange={(e) => updateLocalStrategy(player.playerId, 'notes', e.target.value)} placeholder="Note..." className="w-full px-2 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-sm" />
+                      </div>
                     </div>
                   )
                 })}
