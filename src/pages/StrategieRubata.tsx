@@ -596,13 +596,13 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
               <div className="p-3 border-b border-surface-50/20 bg-surface-300/30">
                 <div className="flex flex-wrap gap-2 items-center">
                   {/* View Mode Toggle */}
-                  <div className="flex gap-1 bg-surface-300/50 rounded-lg p-0.5">
+                  <div className="flex gap-1 bg-surface-300/50 rounded-xl p-1">
                     <button
                       onClick={() => { setViewMode('myRoster'); setOwnerFilter('ALL'); }}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                         viewMode === 'myRoster'
-                          ? 'bg-primary-500 text-white'
-                          : 'text-gray-400 hover:text-white'
+                          ? 'bg-primary-500 text-white shadow-md'
+                          : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
                       }`}
                       title="La mia rosa"
                     >
@@ -610,10 +610,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     </button>
                     <button
                       onClick={() => { setViewMode('owned'); setOwnerFilter('ALL'); }}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                         viewMode === 'owned'
-                          ? 'bg-blue-500 text-white'
-                          : 'text-gray-400 hover:text-white'
+                          ? 'bg-blue-500 text-white shadow-md'
+                          : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
                       }`}
                       title="Giocatori di altri manager"
                     >
@@ -621,10 +621,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     </button>
                     <button
                       onClick={() => { setViewMode('svincolati'); setOwnerFilter('ALL'); }}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                         viewMode === 'svincolati'
-                          ? 'bg-emerald-500 text-white'
-                          : 'text-gray-400 hover:text-white'
+                          ? 'bg-emerald-500 text-white shadow-md'
+                          : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
                       }`}
                       title="Giocatori svincolati"
                     >
@@ -632,10 +632,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     </button>
                     <button
                       onClick={() => { setViewMode('all'); setOwnerFilter('ALL'); }}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                         viewMode === 'all'
-                          ? 'bg-purple-500 text-white'
-                          : 'text-gray-400 hover:text-white'
+                          ? 'bg-purple-500 text-white shadow-md'
+                          : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
                       }`}
                       title="Tutti i giocatori"
                     >
@@ -651,11 +651,11 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         <button
                           key={pos}
                           onClick={() => setPositionFilter(pos)}
-                          className={`px-2 py-1 rounded-lg text-xs font-medium transition-all ${
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                             positionFilter === pos
                               ? pos === 'ALL'
-                                ? 'bg-white/20 text-white'
-                                : `${colors.bg} ${colors.text}`
+                                ? 'bg-white/20 text-white shadow-md'
+                                : `${colors.bg} ${colors.text} shadow-md`
                               : 'bg-surface-300 text-gray-500 hover:text-gray-300'
                           }`}
                         >

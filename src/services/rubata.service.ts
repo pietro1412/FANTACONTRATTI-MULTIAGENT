@@ -3766,6 +3766,7 @@ export async function getAllPlayersForStrategies(
         select: { username: true },
       },
       roster: {
+        where: { status: 'ACTIVE' },
         include: {
           player: {
             select: {
