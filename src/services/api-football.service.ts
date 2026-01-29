@@ -233,12 +233,20 @@ function extractLastName(fullName: string): string {
   const nonInitials = parts.filter(p => p.length > 2)
 
   if (nonInitials.length > 0) {
-    // Return the longest part (most likely the surname)
-    return nonInitials.reduce((a, b) => a.length >= b.length ? a : b)
+    // Prefer the LAST part as surname (Italian/Spanish convention: "Name Surname")
+    return nonInitials[nonInitials.length - 1]
   }
 
-  // Fallback: return the longest part even if short
-  return parts.reduce((a, b) => a.length >= b.length ? a : b, '')
+  // Fallback: return the last part even if short
+  return parts.length > 0 ? parts[parts.length - 1] : ''
+}
+
+/**
+ * Get all name parts for matching (e.g., "Álvaro Morata" → ["alvaro", "morata"])
+ */
+function getNameParts(fullName: string): string[] {
+  const normalized = normalizeName(fullName)
+  return normalized.split(/\s+/).filter(p => p.length > 1)
 }
 
 // ==================== SERVICE FUNCTIONS ====================
@@ -658,7 +666,7 @@ export async function refreshApiFootballCache(userId: string): Promise<{ success
     const teams = await getSerieATeams()
     let apiCallsUsed = 1
 
-    const allPlayers: Array<{ id: number; name: string; team: string; teamId: number; position: string; photo: string }> = []
+    const allPlayers: Array<{ id: number; name: string; team: string; position: string }> = []
 
     // 2. For each team, fetch squad
     for (const team of teams) {
@@ -672,9 +680,7 @@ export async function refreshApiFootballCache(userId: string): Promise<{ success
             id: player.id,
             name: player.name,
             team: dbTeamName,
-            teamId: team.id,
             position: player.position || 'Unknown',
-            photo: player.photo,
           })
         }
       }
@@ -691,18 +697,14 @@ export async function refreshApiFootballCache(userId: string): Promise<{ success
         update: {
           name: player.name,
           team: player.team,
-          teamId: player.teamId,
           position: player.position,
-          photo: player.photo,
           cachedAt: now,
         },
         create: {
           id: player.id,
           name: player.name,
           team: player.team,
-          teamId: player.teamId,
           position: player.position,
-          photo: player.photo,
           cachedAt: now,
         },
       })
@@ -790,29 +792,49 @@ export async function getMatchProposals(userId: string): Promise<ProposalsResult
 
         const apiNorm = normalizeName(apiPlayer.name)
         const apiLastName = extractLastName(apiPlayer.name)
+        const apiParts = getNameParts(apiPlayer.name)
+        const dbParts = getNameParts(dbPlayer.name)
 
-        // HIGH confidence: exact full name match or exact last name match
+        // HIGH confidence: exact full name match
         if (apiNorm === dbFullNorm) {
           bestMatch = { player: apiPlayer, confidence: 'HIGH', method: 'exact_full_name' }
           break
         }
 
+        // HIGH confidence: exact last name match
         if (apiLastName === dbLastName && apiLastName.length >= 3) {
           if (!bestMatch || bestMatch.confidence !== 'HIGH') {
             bestMatch = { player: apiPlayer, confidence: 'HIGH', method: 'exact_last_name' }
           }
         }
 
-        // MEDIUM confidence: partial name match
-        if (!bestMatch || bestMatch.confidence === 'LOW') {
-          if (apiLastName.includes(dbLastName) || dbLastName.includes(apiLastName)) {
-            if (dbLastName.length >= 3 && apiLastName.length >= 3) {
-              bestMatch = { player: apiPlayer, confidence: 'MEDIUM', method: 'partial_name' }
+        // HIGH confidence: DB name matches ANY part of API name exactly
+        // e.g., "Morata" matches "Álvaro Morata" because "morata" is in apiParts
+        if (!bestMatch || bestMatch.confidence !== 'HIGH') {
+          for (const dbPart of dbParts) {
+            if (dbPart.length >= 3 && apiParts.includes(dbPart)) {
+              bestMatch = { player: apiPlayer, confidence: 'HIGH', method: 'name_part_match' }
+              break
             }
           }
         }
 
-        // LOW confidence: Levenshtein distance
+        // MEDIUM confidence: partial name match (one contains the other)
+        if (!bestMatch || bestMatch.confidence === 'LOW' || bestMatch.confidence === 'NONE') {
+          for (const dbPart of dbParts) {
+            for (const apiPart of apiParts) {
+              if (dbPart.length >= 3 && apiPart.length >= 3) {
+                if (apiPart.includes(dbPart) || dbPart.includes(apiPart)) {
+                  if (!bestMatch || bestMatch.confidence === 'LOW' || bestMatch.confidence === 'NONE') {
+                    bestMatch = { player: apiPlayer, confidence: 'MEDIUM', method: 'partial_name' }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // LOW confidence: Levenshtein distance on last names
         if (!bestMatch) {
           const distance = levenshteinDistance(apiLastName, dbLastName)
           const maxLen = Math.max(apiLastName.length, dbLastName.length)

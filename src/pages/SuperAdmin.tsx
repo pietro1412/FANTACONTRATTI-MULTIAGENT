@@ -254,6 +254,9 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
   }
   const [matchProposals, setMatchProposals] = useState<MatchProposal[]>([])
   const [proposalsLoading, setProposalsLoading] = useState(false)
+  const [proposalsError, setProposalsError] = useState<string | null>(null)
+  const [cacheRefreshing, setCacheRefreshing] = useState(false)
+  const [cacheStatus, setCacheStatus] = useState<{ count: number; refreshed: boolean } | null>(null)
   const [searchModalOpen, setSearchModalOpen] = useState(false)
   const [searchModalPlayer, setSearchModalPlayer] = useState<MatchProposal['dbPlayer'] | null>(null)
   const [apiSearchQuery, setApiSearchQuery] = useState('')
@@ -344,15 +347,39 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
 
   async function loadMatchProposals() {
     setProposalsLoading(true)
+    setProposalsError(null)
     try {
       const res = await superadminApi.getMatchProposals()
       if (res.success && res.data) {
         setMatchProposals(res.data.proposals)
+        setCacheStatus({ count: res.data.proposals.length, refreshed: res.data.cacheRefreshed })
+      } else {
+        setProposalsError(res.message || 'Errore nel caricamento delle proposte')
       }
     } catch (err) {
       console.error('Error loading match proposals:', err)
+      setProposalsError('Errore di rete nel caricamento delle proposte')
     } finally {
       setProposalsLoading(false)
+    }
+  }
+
+  async function handleRefreshCache() {
+    setCacheRefreshing(true)
+    setProposalsError(null)
+    try {
+      const res = await superadminApi.refreshApiFootballCache()
+      if (res.success) {
+        // After cache refresh, reload proposals
+        await loadMatchProposals()
+      } else {
+        setProposalsError(res.message || 'Errore nel refresh della cache')
+      }
+    } catch (err) {
+      console.error('Error refreshing cache:', err)
+      setProposalsError('Errore di rete nel refresh della cache')
+    } finally {
+      setCacheRefreshing(false)
     }
   }
 
@@ -1686,15 +1713,40 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     Rivedi le proposte di associazione e conferma o cerca manualmente
                   </p>
                 </div>
-                <Button
-                  onClick={loadMatchProposals}
-                  disabled={proposalsLoading}
-                  variant="outline"
-                  size="sm"
-                >
-                  {proposalsLoading ? 'Aggiornamento...' : 'Aggiorna Proposte'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleRefreshCache}
+                    disabled={cacheRefreshing || proposalsLoading}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    {cacheRefreshing ? 'Aggiornando Cache...' : 'Aggiorna Cache API'}
+                  </Button>
+                  <Button
+                    onClick={loadMatchProposals}
+                    disabled={proposalsLoading || cacheRefreshing}
+                    variant="outline"
+                    size="sm"
+                  >
+                    {proposalsLoading ? 'Caricamento...' : 'Genera Proposte'}
+                  </Button>
+                </div>
               </div>
+
+              {/* Error message */}
+              {proposalsError && (
+                <div className="mb-4 p-4 bg-danger-500/20 border border-danger-500/40 rounded-lg">
+                  <p className="text-danger-400 text-sm">{proposalsError}</p>
+                </div>
+              )}
+
+              {/* Cache status */}
+              {cacheStatus && (
+                <div className="mb-4 p-3 bg-surface-300 rounded-lg text-sm text-gray-400">
+                  {cacheStatus.refreshed && <span className="text-secondary-400 mr-2">Cache aggiornata!</span>}
+                  Trovate {cacheStatus.count} proposte di matching
+                </div>
+              )}
 
               {/* Proposals Table */}
               {matchProposals.length > 0 && (

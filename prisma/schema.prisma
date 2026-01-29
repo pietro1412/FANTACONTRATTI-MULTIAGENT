@@ -1270,7 +1270,9 @@ model ApiFootballPlayerCache {
   id        Int      @id  // API-Football player ID (not auto-generated)
   name      String
   team      String
+  teamId    Int?           // API-Football team ID for logo URLs
   position  String
+  photo     String?        // Player photo URL from API-Football
   cachedAt  DateTime @default(now())
 
   @@index([name])
