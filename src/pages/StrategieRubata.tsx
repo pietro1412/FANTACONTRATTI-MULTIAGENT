@@ -650,172 +650,18 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
           {/* Main Table */}
           <div className="flex-1 min-w-0">
             <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
-              {/* Filters */}
-              <div className="p-3 border-b border-surface-50/20 bg-surface-300/30">
-                <div className="flex flex-wrap gap-2 items-center">
-                  {/* View Mode Toggle */}
-                  <div className="flex gap-1 bg-surface-300/50 rounded-lg p-0.5">
-                    <button
-                      onClick={() => { setViewMode('myRoster'); setOwnerFilter('ALL'); }}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
-                        viewMode === 'myRoster'
-                          ? 'bg-primary-500 text-white'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                      title="La mia rosa"
-                    >
-                      La Mia Rosa
-                    </button>
-                    <button
-                      onClick={() => { setViewMode('owned'); setOwnerFilter('ALL'); }}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
-                        viewMode === 'owned'
-                          ? 'bg-blue-500 text-white'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                      title="Giocatori di altri manager"
-                    >
-                      Altre Rose
-                    </button>
-                    <button
-                      onClick={() => { setViewMode('svincolati'); setOwnerFilter('ALL'); }}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
-                        viewMode === 'svincolati'
-                          ? 'bg-emerald-500 text-white'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                      title="Giocatori svincolati"
-                    >
-                      Svincolati
-                    </button>
-                    <button
-                      onClick={() => { setViewMode('all'); setOwnerFilter('ALL'); }}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
-                        viewMode === 'all'
-                          ? 'bg-purple-500 text-white'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                      title="Tutti i giocatori"
-                    >
-                      Tutti
-                    </button>
-                  </div>
+              {/* === 3-LEVEL FILTER LAYOUT === */}
 
-                  {/* Position Filter */}
-                  <div className="flex gap-1">
-                    {['ALL', 'P', 'D', 'C', 'A'].map(pos => {
-                      const colors = POSITION_COLORS[pos] ?? { bg: 'bg-white/20', text: 'text-white', border: '' }
-                      return (
-                        <button
-                          key={pos}
-                          onClick={() => setPositionFilter(pos)}
-                          className={`px-2 py-1 rounded-lg text-xs font-medium transition-all ${
-                            positionFilter === pos
-                              ? pos === 'ALL'
-                                ? 'bg-white/20 text-white'
-                                : `${colors.bg} ${colors.text}`
-                              : 'bg-surface-300 text-gray-500 hover:text-gray-300'
-                          }`}
-                        >
-                          {pos === 'ALL' ? 'Tutti' : pos}
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  {/* Sort Mode Toggle */}
-                  <div className="flex gap-1 bg-surface-300/50 rounded-lg p-0.5">
-                    <button
-                      onClick={() => setSortMode('role')}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
-                        sortMode === 'role'
-                          ? 'bg-primary-500 text-white'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                      title="Ordina per Ruolo > Alfabetico"
-                    >
-                      Ruolo
-                    </button>
-                    <button
-                      onClick={() => setSortMode('manager')}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
-                        sortMode === 'manager'
-                          ? 'bg-primary-500 text-white'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                      title="Ordina per Manager > Ruolo > Alfabetico"
-                    >
-                      Manager
-                    </button>
-                    {strategiesData?.hasRubataOrder && (
-                      <button
-                        onClick={() => setSortMode('rubata')}
-                        className={`px-2 py-1 rounded text-xs transition-colors ${
-                          sortMode === 'rubata'
-                            ? 'bg-warning-500 text-white'
-                            : 'text-warning-400 hover:text-warning-300'
-                        }`}
-                        title="Ordina per Ordine Rubata > Ruolo > Alfabetico"
-                      >
-                        Ord. Rubata
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Owner Filter - only show for owned or all views */}
-                  {(viewMode === 'owned' || viewMode === 'all') && (
-                    <select
-                      value={ownerFilter}
-                      onChange={(e) => setOwnerFilter(e.target.value)}
-                      className="px-2 py-1 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
-                    >
-                      <option value="ALL">Tutti i manager</option>
-                      {uniqueOwners.map(o => (
-                        <option key={o.username} value={o.username}>{o.teamName}</option>
-                      ))}
-                    </select>
-                  )}
-
-                  {/* Search */}
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Cerca..."
-                    className="flex-1 min-w-[100px] px-2 py-1 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
-                  />
-
-                  {/* Strategy filter */}
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={showOnlyWithStrategy}
-                      onChange={(e) => setShowOnlyWithStrategy(e.target.checked)}
-                      className="w-3.5 h-3.5 rounded bg-surface-300 border-surface-50/50 text-indigo-500 focus:ring-indigo-500"
-                    />
-                    <span className="text-xs text-gray-400 whitespace-nowrap">Con strategia</span>
-                  </label>
-
-                  {/* Serie A Team Filter */}
-                  <select
-                    value={teamFilter}
-                    onChange={(e) => setTeamFilter(e.target.value)}
-                    className="px-2 py-1 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
-                  >
-                    <option value="ALL">Tutte le squadre</option>
-                    {uniqueTeams.map(team => (
-                      <option key={team} value={team}>{team}</option>
-                    ))}
-                  </select>
-
-                  {/* Data View Mode Toggle */}
-                  <div className="flex gap-1 bg-surface-300/50 rounded-lg p-0.5">
+              {/* LEVEL 1: Data View Toggle (sticky) */}
+              <div className="sticky top-0 z-10 p-2 border-b border-surface-50/20 bg-surface-300/80 backdrop-blur-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex gap-1 bg-surface-400/50 rounded-lg p-0.5">
                     <button
                       onClick={() => setDataViewMode('contracts')}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                         dataViewMode === 'contracts'
-                          ? 'bg-accent-500 text-white'
-                          : 'text-gray-400 hover:text-white'
+                          ? 'bg-accent-500 text-white shadow-md'
+                          : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
                       }`}
                       title="Vista contratti"
                     >
@@ -823,10 +669,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     </button>
                     <button
                       onClick={() => setDataViewMode('stats')}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                         dataViewMode === 'stats'
-                          ? 'bg-cyan-500 text-white'
-                          : 'text-gray-400 hover:text-white'
+                          ? 'bg-cyan-500 text-white shadow-md'
+                          : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
                       }`}
                       title="Vista statistiche"
                     >
@@ -834,15 +680,227 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     </button>
                     <button
                       onClick={() => setDataViewMode('merge')}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                         dataViewMode === 'merge'
-                          ? 'bg-violet-500 text-white'
-                          : 'text-gray-400 hover:text-white'
+                          ? 'bg-violet-500 text-white shadow-md'
+                          : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
                       }`}
                       title="Vista mista"
                     >
                       🔀 Merge
                     </button>
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    <span className="font-semibold text-white">{filteredPlayers.length}</span> giocatori
+                  </div>
+                </div>
+              </div>
+
+              {/* LEVEL 2: Scope Buttons with Count Badges */}
+              <div className="p-2 border-b border-surface-50/20 bg-surface-300/50">
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  <button
+                    onClick={() => { setViewMode('myRoster'); setOwnerFilter('ALL'); }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                      viewMode === 'myRoster'
+                        ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
+                    }`}
+                    title="La mia rosa"
+                  >
+                    <span>🏠 La Mia Rosa</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                      viewMode === 'myRoster' ? 'bg-white/20' : 'bg-primary-500/20 text-primary-400'
+                    }`}>
+                      {strategiesData?.players.filter(p => p.memberId === myMemberId).length || 0}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => { setViewMode('owned'); setOwnerFilter('ALL'); }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                      viewMode === 'owned'
+                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
+                    }`}
+                    title="Giocatori di altri manager"
+                  >
+                    <span>👥 Altre Rose</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                      viewMode === 'owned' ? 'bg-white/20' : 'bg-blue-500/20 text-blue-400'
+                    }`}>
+                      {strategiesData?.players.filter(p => p.memberId !== myMemberId).length || 0}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => { setViewMode('svincolati'); setOwnerFilter('ALL'); }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                      viewMode === 'svincolati'
+                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
+                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
+                    }`}
+                    title="Giocatori svincolati"
+                  >
+                    <span>🆓 Svincolati</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                      viewMode === 'svincolati' ? 'bg-white/20' : 'bg-emerald-500/20 text-emerald-400'
+                    }`}>
+                      {svincolatiData?.players.length || 0}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => { setViewMode('all'); setOwnerFilter('ALL'); }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                      viewMode === 'all'
+                        ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/25'
+                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
+                    }`}
+                    title="Tutti i giocatori"
+                  >
+                    <span>🌐 Tutti</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                      viewMode === 'all' ? 'bg-white/20' : 'bg-purple-500/20 text-purple-400'
+                    }`}>
+                      {(strategiesData?.players.length || 0) + (svincolatiData?.players.length || 0)}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* LEVEL 3: Filters (collapsible on mobile) */}
+              <div className="p-2 border-b border-surface-50/20 bg-surface-300/30">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  {/* Position Filter Group */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-gray-500 uppercase font-semibold hidden sm:inline">Ruolo</span>
+                    <div className="flex gap-1">
+                      {['ALL', 'P', 'D', 'C', 'A'].map(pos => {
+                        const colors = POSITION_COLORS[pos] ?? { bg: 'bg-white/20', text: 'text-white', border: '' }
+                        return (
+                          <button
+                            key={pos}
+                            onClick={() => setPositionFilter(pos)}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                              positionFilter === pos
+                                ? pos === 'ALL'
+                                  ? 'bg-white/20 text-white'
+                                  : `${colors.bg} ${colors.text}`
+                                : 'bg-surface-300 text-gray-500 hover:text-gray-300'
+                            }`}
+                          >
+                            {pos === 'ALL' ? 'Tutti' : pos}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Separator */}
+                  <div className="hidden sm:block w-px h-6 bg-surface-50/20"></div>
+
+                  {/* Owner Filter - only for owned or all views */}
+                  {(viewMode === 'owned' || viewMode === 'all') && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-gray-500 uppercase font-semibold hidden sm:inline">Manager</span>
+                        <select
+                          value={ownerFilter}
+                          onChange={(e) => setOwnerFilter(e.target.value)}
+                          className="px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
+                        >
+                          <option value="ALL">Tutti i manager</option>
+                          {uniqueOwners.map(o => (
+                            <option key={o.username} value={o.username}>{o.teamName}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="hidden sm:block w-px h-6 bg-surface-50/20"></div>
+                    </>
+                  )}
+
+                  {/* Team Filter */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-gray-500 uppercase font-semibold hidden sm:inline">Squadra</span>
+                    <select
+                      value={teamFilter}
+                      onChange={(e) => setTeamFilter(e.target.value)}
+                      className="px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
+                    >
+                      <option value="ALL">Tutte le squadre</option>
+                      {uniqueTeams.map(team => (
+                        <option key={team} value={team}>{team}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Separator */}
+                  <div className="hidden sm:block w-px h-6 bg-surface-50/20"></div>
+
+                  {/* Search */}
+                  <div className="flex items-center gap-2 flex-1 min-w-[120px]">
+                    <span className="text-[10px] text-gray-500 uppercase font-semibold hidden sm:inline">🔍</span>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Cerca giocatore..."
+                      className="flex-1 px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
+                    />
+                  </div>
+
+                  {/* Separator */}
+                  <div className="hidden sm:block w-px h-6 bg-surface-50/20"></div>
+
+                  {/* Strategy filter with highlighted styling */}
+                  <label className="flex items-center gap-2 cursor-pointer px-2.5 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={showOnlyWithStrategy}
+                      onChange={(e) => setShowOnlyWithStrategy(e.target.checked)}
+                      className="w-4 h-4 rounded bg-surface-300 border-indigo-500/50 text-indigo-500 focus:ring-indigo-500"
+                    />
+                    <span className="text-xs text-indigo-300 whitespace-nowrap font-medium">⭐ Con strategia</span>
+                  </label>
+
+                  {/* Sort Mode Toggle (right aligned) */}
+                  <div className="flex items-center gap-2 ml-auto">
+                    <span className="text-[10px] text-gray-500 uppercase font-semibold hidden sm:inline">Ordina</span>
+                    <div className="flex gap-1 bg-surface-400/50 rounded-lg p-0.5">
+                      <button
+                        onClick={() => setSortMode('role')}
+                        className={`px-2 py-1 rounded text-xs transition-colors ${
+                          sortMode === 'role'
+                            ? 'bg-primary-500 text-white'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
+                        title="Ordina per Ruolo > Alfabetico"
+                      >
+                        Ruolo
+                      </button>
+                      <button
+                        onClick={() => setSortMode('manager')}
+                        className={`px-2 py-1 rounded text-xs transition-colors ${
+                          sortMode === 'manager'
+                            ? 'bg-primary-500 text-white'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
+                        title="Ordina per Manager > Ruolo > Alfabetico"
+                      >
+                        Manager
+                      </button>
+                      {strategiesData?.hasRubataOrder && (
+                        <button
+                          onClick={() => setSortMode('rubata')}
+                          className={`px-2 py-1 rounded text-xs transition-colors ${
+                            sortMode === 'rubata'
+                              ? 'bg-warning-500 text-white'
+                              : 'text-warning-400 hover:text-warning-300'
+                          }`}
+                          title="Ordina per Ordine Rubata > Ruolo > Alfabetico"
+                        >
+                          Ord. Rubata
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
