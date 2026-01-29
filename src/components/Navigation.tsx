@@ -119,7 +119,6 @@ const LEAGUE_MENU_ITEMS = [
   { key: 'leagueDetail', label: 'Dashboard', adminOnly: false, icon: 'dashboard' },
   { key: 'adminPanel', label: 'Admin', adminOnly: true, icon: 'admin' },
   { key: 'rose', label: 'Rose', adminOnly: false, icon: 'roster' },
-  { key: 'playerStats', label: 'Statistiche', adminOnly: false, icon: 'players' },
   { key: 'strategie-rubata', label: 'Strategie', adminOnly: false, icon: 'strategy' },
   { key: 'svincolati', label: 'Svincolati', adminOnly: false, icon: 'svincolati' },
   { key: 'playerStats', label: 'Statistiche', adminOnly: false, icon: 'stats' },

@@ -166,7 +166,11 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
           <div className="text-center py-8">
             <div className="text-gray-400 mb-2">Statistiche non disponibili</div>
             <div className="text-sm text-gray-500">
-              Il super admin deve sincronizzare le statistiche da API-Football
+              {!player.apiFootballId ? (
+                'Giocatore non ancora associato ad API-Football'
+              ) : (
+                'Nessuna statistica Serie A disponibile per questo giocatore nella stagione corrente'
+              )}
             </div>
           </div>
         ) : (
