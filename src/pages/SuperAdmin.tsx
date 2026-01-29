@@ -8,7 +8,7 @@ import { getTeamLogo } from '../utils/teamLogos'
 
 interface SuperAdminProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
-  initialTab?: 'upload' | 'players' | 'leagues' | 'users'
+  initialTab?: 'upload' | 'players' | 'leagues' | 'users' | 'stats'
 }
 
 interface PlayersStats {
@@ -186,7 +186,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
   const [historyLoading, setHistoryLoading] = useState(false)
 
   // Tab state - use initialTab if provided
-  const [activeTab, setActiveTab] = useState<'upload' | 'players' | 'leagues' | 'users'>(initialTab || 'upload')
+  const [activeTab, setActiveTab] = useState<'upload' | 'players' | 'leagues' | 'users' | 'stats'>(initialTab || 'upload')
 
   // Players list state
   const [playersData, setPlayersData] = useState<PlayersListData | null>(null)
@@ -221,6 +221,29 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
   // Classification state
   const [playersNeedingClassification, setPlayersNeedingClassification] = useState<ExitedPlayerInfo[]>([])
   const [classificationLoading, setClassificationLoading] = useState(false)
+
+  // API-Football state
+  const [apiFootballStatus, setApiFootballStatus] = useState<{
+    totalPlayers: number
+    matched: number
+    unmatched: number
+    withStats: number
+    withoutStats: number
+    lastSync: string | null
+  } | null>(null)
+  const [apiFootballLoading, setApiFootballLoading] = useState(false)
+  const [matchingResult, setMatchingResult] = useState<{
+    matched: number
+    unmatched: Array<{ id: string; name: string; team: string }>
+    ambiguous: Array<{ player: { id: string; name: string; team: string }; candidates: Array<{ apiId: number; name: string }> }>
+  } | null>(null)
+  const [syncResult, setSyncResult] = useState<{
+    synced: number
+    notFound: number
+    apiCallsUsed: number
+  } | null>(null)
+  const [manualMatchPlayerId, setManualMatchPlayerId] = useState<string>('')
+  const [manualMatchApiId, setManualMatchApiId] = useState<string>('')
   const [showClassificationModal, setShowClassificationModal] = useState(false)
   const [classifications, setClassifications] = useState<Record<string, ExitReason>>({})
   const [classifyingPlayers, setClassifyingPlayers] = useState(false)
@@ -264,8 +287,23 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
       }
       if (activeTab === 'leagues') loadLeagues()
       if (activeTab === 'users') loadUsers()
+      if (activeTab === 'stats') loadApiFootballStatus()
     }
   }, [isSuperAdmin, activeTab, filters, leagueSearch])
+
+  async function loadApiFootballStatus() {
+    setApiFootballLoading(true)
+    try {
+      const res = await superadminApi.getApiFootballStatus()
+      if (res.success && res.data) {
+        setApiFootballStatus(res.data)
+      }
+    } catch (err) {
+      console.error('Error loading API-Football status:', err)
+    } finally {
+      setApiFootballLoading(false)
+    }
+  }
 
   async function loadStatus() {
     setIsLoading(true)
@@ -1253,6 +1291,242 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
               </div>
             )}
           </Card>
+        )}
+
+        {/* STATS TAB */}
+        {activeTab === 'stats' && (
+          <div className="space-y-6">
+            {/* Status Card */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-lg font-bold text-white">Stato Sync API-Football</h2>
+                  <p className="text-sm text-gray-400">Statistiche giocatori da API-Football v3</p>
+                </div>
+                <Button
+                  onClick={async () => {
+                    setApiFootballLoading(true)
+                    try {
+                      const res = await superadminApi.getApiFootballStatus()
+                      if (res.success && res.data) {
+                        setApiFootballStatus(res.data)
+                      }
+                    } catch (err) {
+                      console.error('Error loading status:', err)
+                    } finally {
+                      setApiFootballLoading(false)
+                    }
+                  }}
+                  variant="secondary"
+                  size="sm"
+                  disabled={apiFootballLoading}
+                >
+                  {apiFootballLoading ? 'Caricamento...' : 'Aggiorna Stato'}
+                </Button>
+              </div>
+
+              {apiFootballStatus ? (
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="bg-surface-300 rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-white">{apiFootballStatus.totalPlayers}</p>
+                    <p className="text-xs text-gray-400">Giocatori Totali</p>
+                  </div>
+                  <div className="bg-surface-300 rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-secondary-400">{apiFootballStatus.matched}</p>
+                    <p className="text-xs text-gray-400">Matchati</p>
+                  </div>
+                  <div className="bg-surface-300 rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-warning-400">{apiFootballStatus.unmatched}</p>
+                    <p className="text-xs text-gray-400">Non Matchati</p>
+                  </div>
+                  <div className="bg-surface-300 rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-primary-400">{apiFootballStatus.withStats}</p>
+                    <p className="text-xs text-gray-400">Con Stats</p>
+                  </div>
+                  <div className="bg-surface-300 rounded-lg p-4 text-center">
+                    <p className="text-2xl font-bold text-danger-400">{apiFootballStatus.withoutStats}</p>
+                    <p className="text-xs text-gray-400">Senza Stats</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-400 text-center py-4">Clicca "Aggiorna Stato" per caricare i dati</p>
+              )}
+
+              {apiFootballStatus?.lastSync && (
+                <p className="text-xs text-gray-500 text-center mt-4">
+                  Ultimo sync: {new Date(apiFootballStatus.lastSync).toLocaleDateString('it-IT', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </p>
+              )}
+            </Card>
+
+            {/* Actions */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Match Players */}
+              <Card className="p-6">
+                <h3 className="text-lg font-bold text-white mb-2">1. Match Giocatori</h3>
+                <p className="text-sm text-gray-400 mb-4">
+                  Associa automaticamente i giocatori nel DB ai loro ID API-Football tramite nome e squadra.
+                  Circa 20 chiamate API.
+                </p>
+                <Button
+                  onClick={async () => {
+                    setApiFootballLoading(true)
+                    setMatchingResult(null)
+                    try {
+                      const res = await superadminApi.matchApiFootballPlayers()
+                      if (res.success && res.data) {
+                        setMatchingResult(res.data)
+                        // Refresh status
+                        const status = await superadminApi.getApiFootballStatus()
+                        if (status.success && status.data) setApiFootballStatus(status.data)
+                      }
+                    } catch (err) {
+                      console.error('Error matching:', err)
+                    } finally {
+                      setApiFootballLoading(false)
+                    }
+                  }}
+                  disabled={apiFootballLoading}
+                  className="w-full"
+                >
+                  {apiFootballLoading ? 'Matching in corso...' : 'Avvia Matching Automatico'}
+                </Button>
+
+                {matchingResult && (
+                  <div className="mt-4 p-4 bg-surface-300 rounded-lg">
+                    <p className="text-secondary-400 font-medium">{matchingResult.matched} giocatori matchati</p>
+                    {matchingResult.unmatched.length > 0 && (
+                      <p className="text-warning-400 text-sm mt-1">{matchingResult.unmatched.length} non trovati</p>
+                    )}
+                    {matchingResult.ambiguous.length > 0 && (
+                      <p className="text-primary-400 text-sm mt-1">{matchingResult.ambiguous.length} ambigui (match multiplo)</p>
+                    )}
+                  </div>
+                )}
+              </Card>
+
+              {/* Sync Stats */}
+              <Card className="p-6">
+                <h3 className="text-lg font-bold text-white mb-2">2. Sync Statistiche</h3>
+                <p className="text-sm text-gray-400 mb-4">
+                  Scarica le statistiche Serie A per tutti i giocatori matchati.
+                  Circa 25 chiamate API.
+                </p>
+                <Button
+                  onClick={async () => {
+                    setApiFootballLoading(true)
+                    setSyncResult(null)
+                    try {
+                      const res = await superadminApi.syncApiFootballStats()
+                      if (res.success && res.data) {
+                        setSyncResult(res.data)
+                        // Refresh status
+                        const status = await superadminApi.getApiFootballStatus()
+                        if (status.success && status.data) setApiFootballStatus(status.data)
+                      }
+                    } catch (err) {
+                      console.error('Error syncing:', err)
+                    } finally {
+                      setApiFootballLoading(false)
+                    }
+                  }}
+                  disabled={apiFootballLoading}
+                  variant="secondary"
+                  className="w-full"
+                >
+                  {apiFootballLoading ? 'Sync in corso...' : 'Avvia Sync Statistiche'}
+                </Button>
+
+                {syncResult && (
+                  <div className="mt-4 p-4 bg-surface-300 rounded-lg">
+                    <p className="text-secondary-400 font-medium">{syncResult.synced} giocatori aggiornati</p>
+                    {syncResult.notFound > 0 && (
+                      <p className="text-warning-400 text-sm mt-1">{syncResult.notFound} senza stats Serie A</p>
+                    )}
+                    <p className="text-gray-500 text-xs mt-2">{syncResult.apiCallsUsed} chiamate API usate</p>
+                  </div>
+                )}
+              </Card>
+            </div>
+
+            {/* Manual Match */}
+            <Card className="p-6">
+              <h3 className="text-lg font-bold text-white mb-2">Match Manuale</h3>
+              <p className="text-sm text-gray-400 mb-4">
+                Per i giocatori non matchati automaticamente, inserisci manualmente l'ID API-Football.
+              </p>
+              <div className="flex flex-wrap gap-4 items-end">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-xs text-gray-400 mb-1">Player ID (dal DB)</label>
+                  <Input
+                    placeholder="es. clx123..."
+                    value={manualMatchPlayerId}
+                    onChange={(e) => setManualMatchPlayerId(e.target.value)}
+                  />
+                </div>
+                <div className="flex-1 min-w-[150px]">
+                  <label className="block text-xs text-gray-400 mb-1">API-Football ID</label>
+                  <Input
+                    placeholder="es. 217"
+                    value={manualMatchApiId}
+                    onChange={(e) => setManualMatchApiId(e.target.value)}
+                  />
+                </div>
+                <Button
+                  onClick={async () => {
+                    if (!manualMatchPlayerId || !manualMatchApiId) return
+                    setApiFootballLoading(true)
+                    try {
+                      const res = await superadminApi.manualMatchPlayer(manualMatchPlayerId, parseInt(manualMatchApiId))
+                      if (res.success) {
+                        setManualMatchPlayerId('')
+                        setManualMatchApiId('')
+                        // Refresh status
+                        const status = await superadminApi.getApiFootballStatus()
+                        if (status.success && status.data) setApiFootballStatus(status.data)
+                      }
+                    } catch (err) {
+                      console.error('Error manual match:', err)
+                    } finally {
+                      setApiFootballLoading(false)
+                    }
+                  }}
+                  disabled={apiFootballLoading || !manualMatchPlayerId || !manualMatchApiId}
+                >
+                  Match
+                </Button>
+              </div>
+
+              {/* Unmatched players list */}
+              {matchingResult && matchingResult.unmatched.length > 0 && (
+                <div className="mt-6">
+                  <h4 className="text-sm font-bold text-gray-400 mb-3">Giocatori Non Matchati ({matchingResult.unmatched.length})</h4>
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {matchingResult.unmatched.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between bg-surface-300 rounded p-2">
+                        <div>
+                          <span className="text-white font-medium">{p.name}</span>
+                          <span className="text-gray-400 text-sm ml-2">{p.team}</span>
+                        </div>
+                        <button
+                          onClick={() => setManualMatchPlayerId(p.id)}
+                          className="text-xs text-primary-400 hover:text-primary-300"
+                        >
+                          Seleziona
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Card>
+          </div>
         )}
       </main>
 

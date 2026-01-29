@@ -3,6 +3,7 @@ import { Navigation } from '../components/Navigation'
 import { playerApi, leagueApi } from '../services/api'
 import { Input } from '../components/ui/Input'
 import { POSITION_GRADIENTS, POSITION_FILTER_COLORS } from '../components/ui/PositionBadge'
+import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
 
 interface AllPlayersProps {
   leagueId: string
@@ -16,6 +17,8 @@ interface Player {
   position: 'P' | 'D' | 'C' | 'A'
   quotation: number
   listStatus: string
+  apiFootballStats?: PlayerStats | null
+  statsSyncedAt?: string | null
 }
 
 interface RosterInfo {
@@ -66,6 +69,7 @@ export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
   const [showOnlyRostered, setShowOnlyRostered] = useState(false)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
   const [leagueName, setLeagueName] = useState('')
+  const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
 
   // Map of playerId -> roster info
   const [rosterMap, setRosterMap] = useState<Map<string, RosterInfo>>(new Map())
@@ -209,12 +213,36 @@ export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
                           {player.position}
                         </div>
                         <div>
-                          <p className="font-medium text-white">{player.name}</p>
+                          <button
+                            onClick={() => setSelectedPlayerStats({
+                              name: player.name,
+                              team: player.team,
+                              position: player.position,
+                              quotation: player.quotation,
+                              apiFootballStats: player.apiFootballStats,
+                              statsSyncedAt: player.statsSyncedAt,
+                            })}
+                            className="font-medium text-white hover:text-primary-400 transition-colors text-left"
+                          >
+                            {player.name}
+                          </button>
                           <p className="text-sm text-gray-400">{player.team}</p>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-6">
+                        {/* Stats mini-display */}
+                        {player.apiFootballStats?.games?.appearences !== null && player.apiFootballStats?.games?.appearences !== undefined && (
+                          <div className="flex items-center gap-3 text-xs text-gray-400">
+                            <span title="Presenze">{player.apiFootballStats.games.appearences}P</span>
+                            <span title="Gol">{player.apiFootballStats?.goals?.total ?? 0}G</span>
+                            <span title="Assist">{player.apiFootballStats?.goals?.assists ?? 0}A</span>
+                            {player.apiFootballStats?.games?.rating && (
+                              <span title="Rating" className="text-primary-400">{Number(player.apiFootballStats.games.rating).toFixed(1)}</span>
+                            )}
+                          </div>
+                        )}
+
                         <div className="text-right">
                           <p className="text-xs text-gray-500">Quotazione</p>
                           <p className="font-mono text-white">{player.quotation}</p>
@@ -251,6 +279,13 @@ export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
           </div>
         )}
       </div>
+
+      {/* Stats Modal */}
+      <PlayerStatsModal
+        isOpen={!!selectedPlayerStats}
+        onClose={() => setSelectedPlayerStats(null)}
+        player={selectedPlayerStats}
+      />
     </div>
   )
 }

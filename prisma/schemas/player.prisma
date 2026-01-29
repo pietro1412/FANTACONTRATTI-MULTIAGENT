@@ -23,6 +23,11 @@ model SerieAPlayer {
   exitReason   PlayerExitReason?  // see: _base.prisma
   exitDate     DateTime?          // Data di uscita dalla lista
 
+  // API-Football integration
+  apiFootballId    Int?       @unique  // Player ID from API-Football v3
+  apiFootballStats Json?               // Stats JSON blob from API-Football
+  statsSyncedAt    DateTime?           // Last stats sync timestamp
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

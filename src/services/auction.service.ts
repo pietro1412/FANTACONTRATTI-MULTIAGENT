@@ -1573,6 +1573,9 @@ export async function getLeagueRosters(leagueId: string, userId: string): Promis
       name: r.player.name,
       position: r.player.position,
       team: r.player.team,
+      quotation: r.player.quotation,
+      apiFootballStats: r.player.apiFootballStats,
+      statsSyncedAt: r.player.statsSyncedAt,
       contract: r.contract ? {
         salary: r.contract.salary,
         duration: r.contract.duration,
