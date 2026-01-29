@@ -775,6 +775,7 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
             },
           },
           roster: {
+            where: { status: 'ACTIVE' },
             select: {
               id: true,
               playerId: true,
