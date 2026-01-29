@@ -179,7 +179,7 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
             <StatSection title="Generali">
               <StatRow label="Presenze" value={stats.games.appearences} />
               <StatRow label="Minuti" value={stats.games.minutes} />
-              <StatRow label="Rating Medio" value={stats.games.rating ? Number(stats.games.rating.toFixed(2)) : null} />
+              <StatRow label="Rating Medio" value={stats.games.rating != null ? Number(Number(stats.games.rating).toFixed(2)) : null} />
             </StatSection>
 
             {/* Attacco */}
