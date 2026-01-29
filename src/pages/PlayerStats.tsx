@@ -402,71 +402,77 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
           </div>
 
           {/* Filters */}
-          <Card className="p-4 mb-4">
-            <div className="flex flex-wrap gap-4 items-end">
-              <div className="flex-1 min-w-[200px]">
+          <Card className="p-3 md:p-4 mb-4 overflow-x-auto">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4 items-stretch sm:items-end min-w-0">
+              {/* Search */}
+              <div className="flex-1 min-w-0 sm:min-w-[180px]">
                 <label className="block text-xs text-gray-400 mb-1">Cerca giocatore</label>
                 <div className="flex gap-2">
                   <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Nome giocatore..."
+                    placeholder="Nome..."
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    className="min-w-0 flex-1"
                   />
-                  <Button onClick={handleSearch} variant="outline">
-                    Cerca
+                  <Button onClick={handleSearch} variant="outline" className="flex-shrink-0">
+                    🔍
                   </Button>
                 </div>
               </div>
 
-              <div className="w-40">
-                <label className="block text-xs text-gray-400 mb-1">Ruolo</label>
-                <select
-                  value={positionFilter}
-                  onChange={(e) => {
-                    setPositionFilter(e.target.value)
-                    setPage(1)
-                  }}
-                  className="w-full px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">Tutti</option>
-                  <option value="P">Portiere</option>
-                  <option value="D">Difensore</option>
-                  <option value="C">Centrocampista</option>
-                  <option value="A">Attaccante</option>
-                </select>
+              {/* Position + Team filters in row on mobile */}
+              <div className="flex gap-2 sm:gap-4">
+                <div className="flex-1 sm:flex-none sm:w-32">
+                  <label className="block text-xs text-gray-400 mb-1">Ruolo</label>
+                  <select
+                    value={positionFilter}
+                    onChange={(e) => {
+                      setPositionFilter(e.target.value)
+                      setPage(1)
+                    }}
+                    className="w-full px-2 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Tutti</option>
+                    <option value="P">P</option>
+                    <option value="D">D</option>
+                    <option value="C">C</option>
+                    <option value="A">A</option>
+                  </select>
+                </div>
+
+                <div className="flex-1 sm:flex-none sm:w-40">
+                  <label className="block text-xs text-gray-400 mb-1">Squadra</label>
+                  <select
+                    value={teamFilter}
+                    onChange={(e) => {
+                      setTeamFilter(e.target.value)
+                      setPage(1)
+                    }}
+                    className="w-full px-2 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Tutte</option>
+                    {teams.map((team) => (
+                      <option key={team} value={team}>
+                        {team}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div className="w-48">
-                <label className="block text-xs text-gray-400 mb-1">Squadra</label>
-                <select
-                  value={teamFilter}
-                  onChange={(e) => {
-                    setTeamFilter(e.target.value)
-                    setPage(1)
-                  }}
-                  className="w-full px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">Tutte</option>
-                  {teams.map((team) => (
-                    <option key={team} value={team}>
-                      {team}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
+              {/* Compare buttons */}
               {selectedForCompare.size > 0 && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full sm:w-auto">
                   <Button
                     onClick={() => setShowCompareModal(true)}
-                    className="btn-primary"
+                    className="btn-primary flex-1 sm:flex-none"
                     disabled={selectedForCompare.size < 2}
                   >
                     Confronta ({selectedForCompare.size})
                   </Button>
-                  <Button onClick={clearComparison} variant="outline">
-                    Annulla
+                  <Button onClick={clearComparison} variant="outline" className="flex-shrink-0">
+                    ✕
                   </Button>
                 </div>
               )}
@@ -474,40 +480,42 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
           </Card>
 
           {/* Column Selector & Presets */}
-          <Card className="p-4 mb-4">
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Preset buttons */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 mr-1">Preset:</span>
-                {Object.entries(COLUMN_PRESETS).map(([key, preset]) => (
-                  <button
-                    key={key}
-                    onClick={() => applyPreset(key)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      JSON.stringify(visibleColumns.sort()) === JSON.stringify(preset.columns.sort())
-                        ? 'bg-primary-500/30 text-primary-400 border border-primary-500/50'
-                        : 'bg-surface-300 text-gray-400 hover:text-white hover:bg-surface-50/20'
-                    }`}
-                    title={preset.label}
-                  >
-                    <span className="mr-1">{preset.emoji}</span>
-                    {preset.label}
-                  </button>
-                ))}
+          <Card className="p-3 md:p-4 mb-4 overflow-x-auto">
+            <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 min-w-0">
+              {/* Preset buttons - scrollable on mobile */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto">
+                <span className="text-xs text-gray-400 mr-1 flex-shrink-0">Preset:</span>
+                <div className="flex gap-1.5">
+                  {Object.entries(COLUMN_PRESETS).map(([key, preset]) => (
+                    <button
+                      key={key}
+                      onClick={() => applyPreset(key)}
+                      className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                        JSON.stringify(visibleColumns.sort()) === JSON.stringify(preset.columns.sort())
+                          ? 'bg-primary-500/30 text-primary-400 border border-primary-500/50'
+                          : 'bg-surface-300 text-gray-400 hover:text-white hover:bg-surface-50/20'
+                      }`}
+                      title={preset.label}
+                    >
+                      <span className="mr-1">{preset.emoji}</span>
+                      <span className="hidden sm:inline">{preset.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="w-px h-6 bg-surface-50/30 mx-2" />
+              <div className="hidden sm:block w-px h-6 bg-surface-50/30 mx-2" />
 
               {/* Custom column selector */}
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                 <button
                   onClick={() => setShowColumnSelector(!showColumnSelector)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-surface-300 hover:bg-surface-50/20 rounded-lg text-sm text-gray-300 transition-colors"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-surface-300 hover:bg-surface-50/20 rounded-lg text-sm text-gray-300 transition-colors w-full sm:w-auto justify-center sm:justify-start"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                   </svg>
-                  Personalizza Colonne ({visibleColumns.length})
+                  Personalizza ({visibleColumns.length})
                 </button>
 
                 {/* Column selector dropdown */}
@@ -577,8 +585,8 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
+                <div className="overflow-x-auto -mx-0">
+                  <table className="w-full min-w-[800px]">
                     <thead className="bg-surface-300 sticky top-0">
                       <tr>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-400 w-10">
