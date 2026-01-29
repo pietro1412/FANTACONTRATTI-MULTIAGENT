@@ -27,6 +27,7 @@ const AdminPanel = lazy(() => import('./pages/AdminPanel').then(m => ({ default:
 const Movements = lazy(() => import('./pages/Movements').then(m => ({ default: m.Movements })))
 const History = lazy(() => import('./pages/History').then(m => ({ default: m.History })))
 const Prophecies = lazy(() => import('./pages/Prophecies').then(m => ({ default: m.Prophecies })))
+const PlayerStats = lazy(() => import('./pages/PlayerStats'))
 const SuperAdmin = lazy(() => import('./pages/SuperAdmin').then(m => ({ default: m.SuperAdmin })))
 const PrizePhasePage = lazy(() => import('./pages/PrizePhasePage').then(m => ({ default: m.PrizePhasePage })))
 const LatencyTest = lazy(() => import('./pages/LatencyTest'))
@@ -180,6 +181,7 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'rubata': navigate(`/leagues/${lid}/rubata`); break
       case 'strategie-rubata': navigate(`/leagues/${lid}/strategie-rubata`); break
       case 'svincolati': navigate(`/leagues/${lid}/svincolati`); break
+      case 'playerStats': navigate(`/leagues/${lid}/player-stats`); break
       case 'prizes': navigate(`/leagues/${lid}/prizes`); break
       case 'allPlayers': navigate(`/leagues/${lid}/players`); break
       case 'manager-dashboard': navigate(`/leagues/${lid}/manager`); break
@@ -348,6 +350,15 @@ function PropheciesWrapper() {
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
   return <Prophecies leagueId={leagueId} onNavigate={onNavigate} />
+}
+
+function PlayerStatsWrapper() {
+  const navigate = useNavigate()
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
+
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <PlayerStats leagueId={leagueId} onNavigate={onNavigate} />
 }
 
 function SuperAdminWrapper() {
@@ -543,6 +554,13 @@ function AppRoutes() {
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
             <PropheciesWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/player-stats" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <PlayerStatsWrapper />
           </Suspense>
         </ProtectedRoute>
       } />
