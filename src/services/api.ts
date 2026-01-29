@@ -290,6 +290,64 @@ export const playerApi = {
   getById: (id: string) => request(`/api/players/${id}`),
 
   getTeams: () => request('/api/players/teams'),
+
+  // Get players with Serie A statistics
+  getStats: (filters?: {
+    position?: string
+    team?: string
+    search?: string
+    sortBy?: string
+    sortOrder?: 'asc' | 'desc'
+    page?: number
+    limit?: number
+  }) => {
+    const params = new URLSearchParams()
+    if (filters?.position) params.append('position', filters.position)
+    if (filters?.team) params.append('team', filters.team)
+    if (filters?.search) params.append('search', filters.search)
+    if (filters?.sortBy) params.append('sortBy', filters.sortBy)
+    if (filters?.sortOrder) params.append('sortOrder', filters.sortOrder)
+    if (filters?.page) params.append('page', String(filters.page))
+    if (filters?.limit) params.append('limit', String(filters.limit))
+    const query = params.toString()
+    return request<{
+      players: Array<{
+        id: string
+        name: string
+        team: string
+        position: string
+        quotation: number
+        apiFootballId: number | null
+        statsSyncedAt: string | null
+        stats: {
+          appearances: number
+          minutes: number
+          rating: number | null
+          goals: number
+          assists: number
+          yellowCards: number
+          redCards: number
+          passesTotal: number
+          passesKey: number
+          passAccuracy: number | null
+          shotsTotal: number
+          shotsOn: number
+          tacklesTotal: number
+          interceptions: number
+          dribblesAttempts: number
+          dribblesSuccess: number
+          penaltyScored: number
+          penaltyMissed: number
+        } | null
+      }>
+      pagination: {
+        page: number
+        limit: number
+        total: number
+        totalPages: number
+      }
+    }>(`/api/players/stats${query ? `?${query}` : ''}`)
+  },
 }
 
 // Auction API
@@ -1277,6 +1335,103 @@ export const superadminApi = {
       method: 'POST',
       body: JSON.stringify({ classifications }),
     }),
+
+  // ==================== API-FOOTBALL STATS ====================
+
+  // Get API-Football sync status
+  getApiFootballStatus: () =>
+    request<{
+      totalPlayers: number
+      matched: number
+      unmatched: number
+      withStats: number
+      withoutStats: number
+      lastSync: string | null
+    }>('/api/superadmin/api-football/status'),
+
+  // Auto-match players to API-Football IDs
+  matchApiFootballPlayers: () =>
+    request<{
+      matched: number
+      unmatched: Array<{ id: string; name: string; team: string }>
+      ambiguous: Array<{ player: { id: string; name: string; team: string }; candidates: Array<{ apiId: number; name: string }> }>
+      alreadyMatched: number
+      apiCallsUsed: number
+    }>('/api/superadmin/api-football/match-players', { method: 'POST' }),
+
+  // Manually match a player to an API-Football ID
+  manualMatchPlayer: (playerId: string, apiFootballId: number) =>
+    request('/api/superadmin/api-football/manual-match', {
+      method: 'POST',
+      body: JSON.stringify({ playerId, apiFootballId }),
+    }),
+
+  // Sync stats from API-Football
+  syncApiFootballStats: () =>
+    request<{
+      synced: number
+      notFound: number
+      noApiId: number
+      apiCallsUsed: number
+    }>('/api/superadmin/api-football/sync-stats', { method: 'POST' }),
+
+  // ==================== MATCHING ASSISTITO ====================
+
+  // Get match proposals (assisted matching)
+  getMatchProposals: () =>
+    request<{
+      proposals: Array<{
+        dbPlayer: { id: string; name: string; team: string; position: string; quotation: number }
+        apiPlayer: { id: number; name: string; team: string } | null
+        confidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'
+        method: string
+      }>
+      apiCallsUsed: number
+      cacheRefreshed: boolean
+    }>('/api/superadmin/api-football/proposals'),
+
+  // Search API-Football players in cache
+  searchApiFootballPlayers: (query: string) =>
+    request<{
+      players: Array<{ id: number; name: string; team: string; position: string }>
+    }>(`/api/superadmin/api-football/search-api?query=${encodeURIComponent(query)}`),
+
+  // Get unmatched DB players
+  getUnmatchedPlayers: (search?: string) =>
+    request<{
+      players: Array<{ id: string; name: string; team: string; position: string; quotation: number }>
+    }>(`/api/superadmin/api-football/unmatched${search ? `?search=${encodeURIComponent(search)}` : ''}`),
+
+  // Confirm a match
+  confirmMatch: (playerId: string, apiFootballId: number) =>
+    request('/api/superadmin/api-football/confirm-match', {
+      method: 'POST',
+      body: JSON.stringify({ playerId, apiFootballId }),
+    }),
+
+  // Refresh API-Football cache
+  refreshApiFootballCache: () =>
+    request<{
+      apiCallsUsed: number
+    }>('/api/superadmin/api-football/refresh-cache', { method: 'POST' }),
+
+  // Get matched players (players with apiFootballId)
+  getMatchedPlayers: (search?: string) =>
+    request<{
+      players: Array<{
+        id: string
+        name: string
+        team: string
+        position: string
+        quotation: number
+        apiFootballId: number
+        apiFootballName: string | null
+      }>
+    }>(`/api/superadmin/api-football/matched${search ? `?search=${encodeURIComponent(search)}` : ''}`),
+
+  // Remove a match (reset apiFootballId to null)
+  removeMatch: (playerId: string) =>
+    request(`/api/superadmin/api-football/match/${playerId}`, { method: 'DELETE' }),
 }
 
 // Chat API

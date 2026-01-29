@@ -12,6 +12,7 @@
 
 import { AuctionTimer } from '../AuctionTimer'
 import { getTeamLogo } from '../../utils/teamLogos'
+import { getPlayerPhotoUrl } from '../../utils/player-images'
 import {
   AuctionLayoutProps,
   POSITION_NAMES,
@@ -192,13 +193,33 @@ export function LayoutA({
         {/* CARD GIOCATORE */}
         <div className="bg-gradient-to-br from-surface-200 to-surface-300 rounded-2xl p-6 border border-surface-50/20">
           <div className="flex items-center gap-6">
-            {/* Logo squadra */}
-            <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center p-3 shadow-xl flex-shrink-0">
-              <img
-                src={getTeamLogo(auction.player.team)}
-                alt={auction.player.team}
-                className="w-full h-full object-contain"
-              />
+            {/* Player Photo */}
+            <div className="relative flex-shrink-0">
+              {auction.player.apiFootballId ? (
+                <img
+                  src={getPlayerPhotoUrl(auction.player.apiFootballId)}
+                  alt={auction.player.name}
+                  className="w-24 h-24 rounded-2xl object-cover bg-surface-300 border-2 border-surface-50/20 shadow-xl"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none'
+                    const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                    if (fallback) fallback.style.display = 'flex'
+                  }}
+                />
+              ) : null}
+              <div
+                className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${POSITION_COLORS[auction.player.position]} items-center justify-center text-white font-bold text-3xl shadow-xl ${auction.player.apiFootballId ? 'hidden' : 'flex'}`}
+              >
+                {auction.player.position}
+              </div>
+              {/* Team logo badge */}
+              <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1 shadow-lg border border-surface-50/20">
+                <img
+                  src={getTeamLogo(auction.player.team)}
+                  alt={auction.player.team}
+                  className="w-full h-full object-contain"
+                />
+              </div>
             </div>
 
             {/* Info giocatore */}

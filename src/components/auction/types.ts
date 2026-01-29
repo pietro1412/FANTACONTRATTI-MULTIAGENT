@@ -10,6 +10,7 @@ export interface Player {
   team: string
   position: string
   quotation: number
+  apiFootballId?: number | null
 }
 
 export interface Bid {
@@ -123,6 +124,7 @@ export interface NominationPlayer {
   team: string
   position: string
   quotation?: number
+  apiFootballId?: number | null
 }
 
 // Props comuni per tutti i layout

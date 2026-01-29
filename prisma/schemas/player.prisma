@@ -23,6 +23,11 @@ model SerieAPlayer {
   exitReason   PlayerExitReason?  // see: _base.prisma
   exitDate     DateTime?          // Data di uscita dalla lista
 
+  // API-Football integration
+  apiFootballId    Int?       @unique  // Player ID from API-Football v3
+  apiFootballStats Json?               // Stats JSON blob from API-Football
+  statsSyncedAt    DateTime?           // Last stats sync timestamp
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -53,4 +58,18 @@ model QuotazioniUpload {
   errors           Json?    // Array of error strings
 
   createdAt     DateTime @default(now())
+}
+
+// Cache for API-Football players to enable searching without repeated API calls
+model ApiFootballPlayerCache {
+  id        Int      @id  // API-Football player ID (not auto-generated)
+  name      String
+  team      String
+  teamId    Int?           // API-Football team ID for logo URLs
+  position  String
+  photo     String?        // Player photo URL from API-Football
+  cachedAt  DateTime @default(now())
+
+  @@index([name])
+  @@index([team])
 }

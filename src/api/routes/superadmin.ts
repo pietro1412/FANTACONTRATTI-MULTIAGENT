@@ -15,6 +15,18 @@ import {
   getPlayersNeedingClassification,
   classifyExitedPlayers,
 } from '../../services/superadmin.service'
+import {
+  matchPlayers,
+  manualMatch,
+  syncStats,
+  getSyncStatus,
+  getMatchProposals,
+  searchApiFootballPlayers,
+  getUnmatchedPlayers,
+  getMatchedPlayers,
+  removeMatch,
+  refreshApiFootballCache,
+} from '../../services/api-football.service'
 import { PlayerExitReason } from '@prisma/client'
 import { authMiddleware } from '../middleware/auth'
 
@@ -308,6 +320,226 @@ router.post('/superadmin/players/classify-exits', authMiddleware, async (req: Re
     res.json(result)
   } catch (error) {
     console.error('Classify exited players error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== API-FOOTBALL STATS ====================
+
+// GET /api/superadmin/api-football/status - Get API-Football sync status
+router.get('/superadmin/api-football/status', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const result = await getSyncStatus(req.user!.userId)
+
+    if (!result.success) {
+      res.status(403).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get API-Football status error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/superadmin/api-football/match-players - Auto-match players to API-Football IDs
+router.post('/superadmin/api-football/match-players', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const result = await matchPlayers(req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message?.includes('Non autorizzato') ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Match players error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/superadmin/api-football/manual-match - Manually match a player
+router.post('/superadmin/api-football/manual-match', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { playerId, apiFootballId } = req.body as { playerId?: string; apiFootballId?: number }
+
+    if (!playerId || !apiFootballId) {
+      res.status(400).json({ success: false, message: 'playerId e apiFootballId richiesti' })
+      return
+    }
+
+    const result = await manualMatch(req.user!.userId, playerId, apiFootballId)
+
+    if (!result.success) {
+      res.status(result.message?.includes('Non autorizzato') ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Manual match error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/superadmin/api-football/sync-stats - Sync stats from API-Football
+router.post('/superadmin/api-football/sync-stats', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const result = await syncStats(req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message?.includes('Non autorizzato') ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Sync stats error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== MATCHING ASSISTITO ====================
+
+// GET /api/superadmin/api-football/proposals - Generate match proposals
+router.get('/superadmin/api-football/proposals', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const result = await getMatchProposals(req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message?.includes('Non autorizzato') ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get match proposals error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/superadmin/api-football/search-api - Search API-Football players in cache
+router.get('/superadmin/api-football/search-api', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { query } = req.query
+    if (!query || typeof query !== 'string') {
+      res.status(400).json({ success: false, message: 'Query parameter richiesto' })
+      return
+    }
+
+    const result = await searchApiFootballPlayers(req.user!.userId, query)
+
+    if (!result.success) {
+      res.status(result.message?.includes('Non autorizzato') ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Search API-Football players error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/superadmin/api-football/unmatched - Get unmatched DB players
+router.get('/superadmin/api-football/unmatched', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { search } = req.query
+    const result = await getUnmatchedPlayers(req.user!.userId, search as string | undefined)
+
+    if (!result.success) {
+      res.status(result.message?.includes('Non autorizzato') ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get unmatched players error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/superadmin/api-football/confirm-match - Confirm a match (alias for manual-match)
+router.post('/superadmin/api-football/confirm-match', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { playerId, apiFootballId } = req.body as { playerId?: string; apiFootballId?: number }
+
+    if (!playerId || !apiFootballId) {
+      res.status(400).json({ success: false, message: 'playerId e apiFootballId richiesti' })
+      return
+    }
+
+    const result = await manualMatch(req.user!.userId, playerId, apiFootballId)
+
+    if (!result.success) {
+      res.status(result.message?.includes('Non autorizzato') ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Confirm match error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /api/superadmin/api-football/refresh-cache - Manually refresh API-Football cache
+router.post('/superadmin/api-football/refresh-cache', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const result = await refreshApiFootballCache(req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message?.includes('Non autorizzato') ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Refresh cache error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/superadmin/api-football/matched - Get matched DB players
+router.get('/superadmin/api-football/matched', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { search } = req.query
+    const result = await getMatchedPlayers(req.user!.userId, search as string | undefined)
+
+    if (!result.success) {
+      res.status(result.message?.includes('Non autorizzato') ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get matched players error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// DELETE /api/superadmin/api-football/match/:playerId - Remove a match
+router.delete('/superadmin/api-football/match/:playerId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { playerId } = req.params
+
+    if (!playerId) {
+      res.status(400).json({ success: false, message: 'playerId richiesto' })
+      return
+    }
+
+    const result = await removeMatch(req.user!.userId, playerId)
+
+    if (!result.success) {
+      res.status(result.message?.includes('Non autorizzato') ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Remove match error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

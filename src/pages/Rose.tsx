@@ -4,6 +4,7 @@ import { leagueApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
+import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
 
 interface RoseProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
@@ -15,6 +16,9 @@ interface Player {
   team: string
   position: 'P' | 'D' | 'C' | 'A'
   quotation: number
+  apiFootballId?: number | null
+  apiFootballStats?: PlayerStats | null
+  statsSyncedAt?: string | null
 }
 
 interface RosterEntry {
@@ -89,6 +93,9 @@ export function Rose({ onNavigate }: RoseProps) {
   const [positionFilter, setPositionFilter] = useState<string>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
+
+  // Stats modal
+  const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
 
   // Load data
   const loadData = useCallback(async () => {
@@ -402,10 +409,28 @@ export function Rose({ onNavigate }: RoseProps) {
                           {entry.player.position}
                         </div>
                         <div className="flex-1 min-w-0 leading-tight">
-                          <div className="font-medium text-white text-sm truncate">{entry.player.name}</div>
+                          <button
+                            onClick={() => setSelectedPlayerStats({
+                              name: entry.player.name,
+                              team: entry.player.team,
+                              position: entry.player.position,
+                              quotation: entry.player.quotation,
+                              apiFootballId: entry.player.apiFootballId,
+                              apiFootballStats: entry.player.apiFootballStats,
+                              statsSyncedAt: entry.player.statsSyncedAt,
+                            })}
+                            className="font-medium text-white text-sm truncate block hover:text-primary-400 transition-colors text-left w-full"
+                          >
+                            {entry.player.name}
+                          </button>
                           <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
                             <TeamLogo team={entry.player.team} size="sm" />
                             <span className="truncate">{entry.player.team}</span>
+                            {entry.player.apiFootballStats?.games?.appearences !== null && entry.player.apiFootballStats?.games?.appearences !== undefined && (
+                              <span className="ml-auto text-[10px] text-gray-500">
+                                {entry.player.apiFootballStats.games.appearences}P {entry.player.apiFootballStats?.goals?.total ?? 0}G {entry.player.apiFootballStats?.goals?.assists ?? 0}A
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -454,6 +479,10 @@ export function Rose({ onNavigate }: RoseProps) {
                       <th className="w-12 p-2 text-center">R</th>
                       <th className="w-auto text-left p-2">Giocatore</th>
                       <th className="w-36 text-left p-2">Squadra</th>
+                      <th className="w-10 text-center p-2" title="Presenze">Pr</th>
+                      <th className="w-10 text-center p-2" title="Gol">G</th>
+                      <th className="w-10 text-center p-2" title="Assist">A</th>
+                      <th className="w-12 text-center p-2" title="Rating">Vt</th>
                       <th className="w-16 text-center p-2 text-accent-400">Ing</th>
                       <th className="w-14 text-center p-2">Dur</th>
                       <th className="w-16 text-center p-2 text-orange-400">Cls</th>
@@ -483,7 +512,20 @@ export function Rose({ onNavigate }: RoseProps) {
 
                           {/* Player */}
                           <td className="p-2">
-                            <span className="font-medium text-white text-sm truncate block">{entry.player.name}</span>
+                            <button
+                              onClick={() => setSelectedPlayerStats({
+                                name: entry.player.name,
+                                team: entry.player.team,
+                                position: entry.player.position,
+                                quotation: entry.player.quotation,
+                                apiFootballId: entry.player.apiFootballId,
+                                apiFootballStats: entry.player.apiFootballStats,
+                                statsSyncedAt: entry.player.statsSyncedAt,
+                              })}
+                              className="font-medium text-white text-sm truncate block hover:text-primary-400 transition-colors text-left"
+                            >
+                              {entry.player.name}
+                            </button>
                           </td>
 
                           {/* Team */}
@@ -492,6 +534,24 @@ export function Rose({ onNavigate }: RoseProps) {
                               <TeamLogo team={entry.player.team} />
                               <span className="text-gray-400 text-sm truncate">{entry.player.team}</span>
                             </div>
+                          </td>
+
+                          {/* Stats columns */}
+                          <td className="p-2 text-center">
+                            <span className="text-gray-400 text-xs">{entry.player.apiFootballStats?.games?.appearences ?? '-'}</span>
+                          </td>
+                          <td className="p-2 text-center">
+                            <span className="text-gray-400 text-xs">{entry.player.apiFootballStats?.goals?.total ?? '-'}</span>
+                          </td>
+                          <td className="p-2 text-center">
+                            <span className="text-gray-400 text-xs">{entry.player.apiFootballStats?.goals?.assists ?? '-'}</span>
+                          </td>
+                          <td className="p-2 text-center">
+                            <span className="text-gray-400 text-xs">
+                              {entry.player.apiFootballStats?.games?.rating
+                                ? Number(entry.player.apiFootballStats.games.rating).toFixed(1)
+                                : '-'}
+                            </span>
                           </td>
 
                           {/* Ingaggio */}
@@ -628,6 +688,13 @@ export function Rose({ onNavigate }: RoseProps) {
           </div>
         </div>
       </main>
+
+      {/* Stats Modal */}
+      <PlayerStatsModal
+        isOpen={!!selectedPlayerStats}
+        onClose={() => setSelectedPlayerStats(null)}
+        player={selectedPlayerStats}
+      />
     </div>
   )
 }

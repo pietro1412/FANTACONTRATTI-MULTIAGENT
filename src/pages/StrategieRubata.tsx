@@ -3,7 +3,9 @@ import { useParams } from 'react-router-dom'
 import { rubataApi, leagueApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
+import { getPlayerPhotoUrl } from '../utils/player-images'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
+import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
 
 interface StrategyPlayer {
   rosterId: string
@@ -13,6 +15,8 @@ interface StrategyPlayer {
   playerPosition: string
   playerTeam: string
   playerQuotation: number
+  playerApiFootballId?: number | null
+  playerApiFootballStats?: PlayerStats | null
   ownerUsername: string
   ownerTeamName: string | null
   ownerRubataOrder: number | null
@@ -27,6 +31,8 @@ interface SvincolatoPlayer {
   playerName: string
   playerPosition: string
   playerTeam: string
+  playerApiFootballId?: number | null
+  playerApiFootballStats?: PlayerStats | null
 }
 
 interface RubataPreference {
@@ -125,6 +131,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   const [sortMode, setSortMode] = useState<SortMode>('role')
   const [sortField, setSortField] = useState<SortField>('position')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+
+  // Player stats modal
+  const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
 
   // Local edits with debounce
   const [localStrategies, setLocalStrategies] = useState<Record<string, LocalStrategy>>({})
@@ -706,14 +715,50 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
                   return (
                     <div key={player.playerId} className={`bg-surface-300/30 rounded-lg p-3 border ${hasStrategy ? 'border-indigo-500/30 bg-indigo-500/5' : isSvincolato ? 'border-emerald-500/20' : 'border-surface-50/10'}`}>
-                      {/* Header: Position + Player + Svincolato badge */}
+                      {/* Header: Photo + Player + Svincolato badge */}
                       <div className="flex items-center gap-2 mb-2">
-                        <div className={`w-8 h-8 rounded-full ${posColors.bg} ${posColors.text} flex items-center justify-center text-xs font-bold flex-shrink-0`}>
-                          {player.playerPosition}
+                        {/* Player Photo with Team Logo Badge */}
+                        <div className="relative flex-shrink-0">
+                          {(() => {
+                            const photoUrl = getPlayerPhotoUrl(player.playerApiFootballId)
+                            return photoUrl ? (
+                              <img
+                                src={photoUrl}
+                                alt={player.playerName}
+                                className="w-10 h-10 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none'
+                                  const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                                  if (fallback) fallback.style.display = 'flex'
+                                }}
+                              />
+                            ) : null
+                          })()}
+                          <div
+                            className={`w-10 h-10 rounded-full ${posColors.bg} ${posColors.text} items-center justify-center text-xs font-bold ${getPlayerPhotoUrl(player.playerApiFootballId) ? 'hidden' : 'flex'}`}
+                          >
+                            {player.playerPosition}
+                          </div>
+                          {/* Team logo badge */}
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white p-0.5 border border-surface-50/20">
+                            <TeamLogo team={player.playerTeam} />
+                          </div>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-white text-sm truncate">{player.playerName}</span>
+                            <button
+                              onClick={() => setSelectedPlayerStats({
+                                name: player.playerName,
+                                team: player.playerTeam,
+                                position: player.playerPosition,
+                                quotation: isSvincolato ? undefined : player.playerQuotation,
+                                apiFootballId: player.playerApiFootballId,
+                                apiFootballStats: player.playerApiFootballStats,
+                              })}
+                              className="font-medium text-white text-sm truncate hover:text-primary-400 transition-colors text-left"
+                            >
+                              {player.playerName}
+                            </button>
                           </div>
                           <div className="text-xs text-gray-500">{player.playerTeam}</div>
                         </div>
@@ -830,12 +875,48 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           {/* Player */}
                           <td className="p-2">
                             <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 bg-white rounded p-0.5 flex-shrink-0">
-                                <TeamLogo team={player.playerTeam} />
+                              {/* Player Photo with Team Logo Badge */}
+                              <div className="relative flex-shrink-0">
+                                {(() => {
+                                  const photoUrl = getPlayerPhotoUrl(player.playerApiFootballId)
+                                  return photoUrl ? (
+                                    <img
+                                      src={photoUrl}
+                                      alt={player.playerName}
+                                      className="w-9 h-9 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none'
+                                        const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                                        if (fallback) fallback.style.display = 'flex'
+                                      }}
+                                    />
+                                  ) : null
+                                })()}
+                                <div
+                                  className={`w-9 h-9 rounded-full ${posColors.bg} ${posColors.text} items-center justify-center font-bold text-xs ${getPlayerPhotoUrl(player.playerApiFootballId) ? 'hidden' : 'flex'}`}
+                                >
+                                  {player.playerPosition}
+                                </div>
+                                {/* Team logo badge */}
+                                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-white p-0.5 border border-surface-50/20">
+                                  <TeamLogo team={player.playerTeam} />
+                                </div>
                               </div>
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium text-white text-sm truncate">{player.playerName}</span>
+                                  <button
+                                    onClick={() => setSelectedPlayerStats({
+                                      name: player.playerName,
+                                      team: player.playerTeam,
+                                      position: player.playerPosition,
+                                      quotation: isSvincolato ? undefined : player.playerQuotation,
+                                      apiFootballId: player.playerApiFootballId,
+                                      apiFootballStats: player.playerApiFootballStats,
+                                    })}
+                                    className="font-medium text-white text-sm truncate hover:text-primary-400 transition-colors text-left"
+                                  >
+                                    {player.playerName}
+                                  </button>
                                 </div>
                                 <div className="text-xs text-gray-500">{player.playerTeam}</div>
                               </div>
@@ -995,6 +1076,13 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
           </div>
         </div>
       </main>
+
+      {/* Player Stats Modal */}
+      <PlayerStatsModal
+        isOpen={!!selectedPlayerStats}
+        onClose={() => setSelectedPlayerStats(null)}
+        player={selectedPlayerStats}
+      />
     </div>
   )
 }
