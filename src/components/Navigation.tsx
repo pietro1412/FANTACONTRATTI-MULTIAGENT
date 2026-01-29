@@ -115,12 +115,11 @@ const MenuIcons = {
 
 // League menu items configuration
 // Note: Contratti, Scambi, Rubata are phase-specific and accessible from Rose or Dashboard when active
+// Note: Rose e Svincolati sono ora integrati nella pagina Strategie (renamed to Giocatori)
 const LEAGUE_MENU_ITEMS = [
   { key: 'leagueDetail', label: 'Dashboard', adminOnly: false, icon: 'dashboard' },
   { key: 'adminPanel', label: 'Admin', adminOnly: true, icon: 'admin' },
-  { key: 'rose', label: 'Rose', adminOnly: false, icon: 'roster' },
-  { key: 'strategie-rubata', label: 'Strategie', adminOnly: false, icon: 'strategy' },
-  { key: 'svincolati', label: 'Svincolati', adminOnly: false, icon: 'svincolati' },
+  { key: 'strategie-rubata', label: 'Giocatori', adminOnly: false, icon: 'allRosters' },
   { key: 'playerStats', label: 'Statistiche', adminOnly: false, icon: 'stats' },
   { key: 'history', label: 'Storico', adminOnly: false, icon: 'history' },
   { key: 'prophecies', label: 'Profezie', adminOnly: false, icon: 'prophecy' },

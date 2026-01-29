@@ -54,8 +54,8 @@ interface SvincolatoPlayerWithPreference extends SvincolatoPlayer {
   preference?: RubataPreference | null
 }
 
-// Union type for display - can be either owned player or svincolato
-type DisplayPlayer = (StrategyPlayerWithPreference & { type: 'owned' }) | (SvincolatoPlayerWithPreference & { type: 'svincolato' })
+// Union type for display - can be my roster, owned player, or svincolato
+type DisplayPlayer = (StrategyPlayerWithPreference & { type: 'myRoster' | 'owned' }) | (SvincolatoPlayerWithPreference & { type: 'svincolato' })
 
 interface StrategiesData {
   players: StrategyPlayerWithPreference[]
@@ -74,7 +74,7 @@ interface SvincolatiData {
   totalPlayers: number
 }
 
-type ViewMode = 'owned' | 'svincolati' | 'all'
+type ViewMode = 'myRoster' | 'owned' | 'svincolati' | 'all'
 
 // Team logo component
 function TeamLogo({ team }: { team: string }) {
@@ -118,8 +118,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   const [strategiesData, setStrategiesData] = useState<StrategiesData | null>(null)
   const [svincolatiData, setSvincolatiData] = useState<SvincolatiData | null>(null)
 
-  // View mode: owned players, svincolati, or all
-  const [viewMode, setViewMode] = useState<ViewMode>('owned')
+  // View mode: my roster, owned players, svincolati, or all
+  const [viewMode, setViewMode] = useState<ViewMode>('myRoster')
 
   // Filter state
   const [positionFilter, setPositionFilter] = useState<string>('ALL')
@@ -356,7 +356,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     }
   }, [sortField])
 
-  // Filtered and sorted players - now supports both owned and svincolati
+  // Filtered and sorted players - supports myRoster, owned, svincolati, and all
   const filteredPlayers = useMemo((): DisplayPlayer[] => {
     const result: DisplayPlayer[] = []
 
@@ -367,7 +367,29 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       return order[normalized] ?? 99
     }
 
-    // Add owned players if viewMode is 'owned' or 'all'
+    // Add MY players if viewMode is 'myRoster' or 'all'
+    if ((viewMode === 'myRoster' || viewMode === 'all') && strategiesData?.players) {
+      strategiesData.players.forEach(player => {
+        // Only include own players
+        if (player.memberId !== myMemberId) return
+
+        // Position filter
+        if (positionFilter !== 'ALL' && player.playerPosition !== positionFilter) return
+
+        // Search filter
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase()
+          if (!player.playerName.toLowerCase().includes(query) &&
+              !player.playerTeam.toLowerCase().includes(query)) {
+            return
+          }
+        }
+
+        result.push({ ...player, type: 'myRoster' })
+      })
+    }
+
+    // Add OTHER owned players if viewMode is 'owned' or 'all'
     if ((viewMode === 'owned' || viewMode === 'all') && strategiesData?.players) {
       strategiesData.players.forEach(player => {
         // Exclude own players
@@ -418,7 +440,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
           }
         }
 
-        // Strategy filter
+        // Strategy filter (not for myRoster view)
         if (showOnlyWithStrategy) {
           const local = getLocalStrategy(player.playerId)
           if (!local.maxBid && !local.priority && !local.notes) return
@@ -545,12 +567,15 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         <div className="mb-4">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-              <span className="text-2xl">🎯</span>
-              Strategie Rubata
+              <span className="text-2xl">👥</span>
+              Giocatori
             </h1>
           </div>
           <p className="text-gray-400 text-sm">
-            Imposta offerta massima, priorita e note. Le modifiche vengono salvate automaticamente dopo 2 secondi.
+            {viewMode === 'myRoster'
+              ? 'Visualizza la tua rosa con contratti e valori.'
+              : 'Imposta offerta massima, priorità e note per le strategie rubata. Le modifiche vengono salvate automaticamente.'
+            }
           </p>
         </div>
 
@@ -573,6 +598,17 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   {/* View Mode Toggle */}
                   <div className="flex gap-1 bg-surface-300/50 rounded-lg p-0.5">
                     <button
+                      onClick={() => { setViewMode('myRoster'); setOwnerFilter('ALL'); }}
+                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                        viewMode === 'myRoster'
+                          ? 'bg-primary-500 text-white'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                      title="La mia rosa"
+                    >
+                      La Mia Rosa
+                    </button>
+                    <button
                       onClick={() => { setViewMode('owned'); setOwnerFilter('ALL'); }}
                       className={`px-2 py-1 rounded text-xs transition-colors ${
                         viewMode === 'owned'
@@ -581,7 +617,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       }`}
                       title="Giocatori di altri manager"
                     >
-                      Rose
+                      Altre Rose
                     </button>
                     <button
                       onClick={() => { setViewMode('svincolati'); setOwnerFilter('ALL'); }}
@@ -669,7 +705,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   </div>
 
                   {/* Owner Filter - only show for owned or all views */}
-                  {viewMode !== 'svincolati' && (
+                  {(viewMode === 'owned' || viewMode === 'all') && (
                     <select
                       value={ownerFilter}
                       onChange={(e) => setOwnerFilter(e.target.value)}
@@ -691,16 +727,18 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     className="flex-1 min-w-[100px] px-2 py-1 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
                   />
 
-                  {/* Strategy filter */}
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={showOnlyWithStrategy}
-                      onChange={(e) => setShowOnlyWithStrategy(e.target.checked)}
-                      className="w-3.5 h-3.5 rounded bg-surface-300 border-surface-50/50 text-indigo-500 focus:ring-indigo-500"
-                    />
-                    <span className="text-xs text-gray-400 whitespace-nowrap">Con strategia</span>
-                  </label>
+                  {/* Strategy filter - hide for myRoster */}
+                  {viewMode !== 'myRoster' && (
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showOnlyWithStrategy}
+                        onChange={(e) => setShowOnlyWithStrategy(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded bg-surface-300 border-surface-50/50 text-indigo-500 focus:ring-indigo-500"
+                      />
+                      <span className="text-xs text-gray-400 whitespace-nowrap">Con strategia</span>
+                    </label>
+                  )}
                 </div>
               </div>
 
@@ -712,9 +750,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   const local = getLocalStrategy(player.playerId)
                   const hasStrategy = !!(local.maxBid || local.priority || local.notes)
                   const isSvincolato = player.type === 'svincolato'
+                  const isMyRoster = player.type === 'myRoster'
 
                   return (
-                    <div key={player.playerId} className={`bg-surface-300/30 rounded-lg p-3 border ${hasStrategy ? 'border-indigo-500/30 bg-indigo-500/5' : isSvincolato ? 'border-emerald-500/20' : 'border-surface-50/10'}`}>
+                    <div key={player.playerId} className={`bg-surface-300/30 rounded-lg p-3 border ${isMyRoster ? 'border-primary-500/30 bg-primary-500/5' : hasStrategy ? 'border-indigo-500/30 bg-indigo-500/5' : isSvincolato ? 'border-emerald-500/20' : 'border-surface-50/10'}`}>
                       {/* Header: Photo + Player + Svincolato badge */}
                       <div className="flex items-center gap-2 mb-2">
                         {/* Player Photo with Team Logo Badge */}
@@ -769,6 +808,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           <span className="text-gray-500">Prop: </span>
                           {isSvincolato ? (
                             <span className="text-emerald-400">Svincolato</span>
+                          ) : isMyRoster ? (
+                            <span className="text-primary-400">La Mia Rosa</span>
                           ) : (
                             <span>{player.ownerTeamName || player.ownerUsername}</span>
                           )}
@@ -794,26 +835,28 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           </div>
                         </div>
                       )}
-                      {/* Strategy Section */}
-                      <div className="bg-indigo-500/10 rounded-lg p-2 border border-indigo-500/20">
-                        <div className="flex items-center gap-2 mb-2">
-                          {/* Max Bid */}
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] text-gray-500 uppercase">Max:</span>
-                            <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, (parseInt(local.maxBid) || 0) - 1).toString())} className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 text-sm font-bold">−</button>
-                            <input type="number" value={local.maxBid} onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)} placeholder="-" className="w-12 px-1 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-center text-sm" />
-                            <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', ((parseInt(local.maxBid) || 0) + 1).toString())} className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 text-sm font-bold">+</button>
+                      {/* Strategy Section - hidden for my roster */}
+                      {!isMyRoster && (
+                        <div className="bg-indigo-500/10 rounded-lg p-2 border border-indigo-500/20">
+                          <div className="flex items-center gap-2 mb-2">
+                            {/* Max Bid */}
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-gray-500 uppercase">Max:</span>
+                              <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, (parseInt(local.maxBid) || 0) - 1).toString())} className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 text-sm font-bold">−</button>
+                              <input type="number" value={local.maxBid} onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)} placeholder="-" className="w-12 px-1 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-center text-sm" />
+                              <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', ((parseInt(local.maxBid) || 0) + 1).toString())} className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 text-sm font-bold">+</button>
+                            </div>
+                            {/* Priority */}
+                            <div className="flex items-center gap-0.5 ml-auto">
+                              {[1, 2, 3, 4, 5].map(star => (
+                                <button key={star} onClick={() => updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star)} className={`w-5 h-5 text-sm ${local.priority >= star ? 'text-purple-400' : 'text-gray-600'}`}>★</button>
+                              ))}
+                            </div>
                           </div>
-                          {/* Priority */}
-                          <div className="flex items-center gap-0.5 ml-auto">
-                            {[1, 2, 3, 4, 5].map(star => (
-                              <button key={star} onClick={() => updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star)} className={`w-5 h-5 text-sm ${local.priority >= star ? 'text-purple-400' : 'text-gray-600'}`}>★</button>
-                            ))}
-                          </div>
+                          {/* Notes */}
+                          <input type="text" value={local.notes} onChange={(e) => updateLocalStrategy(player.playerId, 'notes', e.target.value)} placeholder="Note..." className="w-full px-2 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-sm" />
                         </div>
-                        {/* Notes */}
-                        <input type="text" value={local.notes} onChange={(e) => updateLocalStrategy(player.playerId, 'notes', e.target.value)} placeholder="Note..." className="w-full px-2 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-sm" />
-                      </div>
+                      )}
                     </div>
                   )
                 })}
@@ -828,12 +871,14 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   <thead className="bg-surface-300/50">
                     {/* Group headers */}
                     <tr className="text-[10px] text-gray-500 uppercase border-b border-surface-50/20">
-                      <th colSpan={7} className="text-left py-1 px-3 bg-surface-300/30">
+                      <th colSpan={viewMode === 'myRoster' ? 7 : 7} className="text-left py-1 px-3 bg-surface-300/30">
                         Dati Giocatore
                       </th>
-                      <th colSpan={3} className="text-center py-1 px-3 bg-indigo-500/10 border-l-2 border-indigo-500/30">
-                        La Mia Strategia
-                      </th>
+                      {viewMode !== 'myRoster' && (
+                        <th colSpan={3} className="text-center py-1 px-3 bg-indigo-500/10 border-l-2 border-indigo-500/30">
+                          La Mia Strategia
+                        </th>
+                      )}
                     </tr>
                     {/* Column headers */}
                     <tr className="text-xs text-gray-400 uppercase">
@@ -844,9 +889,13 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       <th className="text-center p-2">Dur.</th>
                       <th className="text-center p-2 text-orange-400">Cls</th>
                       <SortableHeader field="rubata" label="Rubata" className="text-center p-2" />
-                      <th className="text-center p-2 bg-indigo-500/5 border-l-2 border-indigo-500/30">Offerta Max</th>
-                      <th className="text-center p-2 bg-indigo-500/5">Priorità</th>
-                      <th className="text-left p-2 bg-indigo-500/5">Note</th>
+                      {viewMode !== 'myRoster' && (
+                        <>
+                          <th className="text-center p-2 bg-indigo-500/5 border-l-2 border-indigo-500/30">Offerta Max</th>
+                          <th className="text-center p-2 bg-indigo-500/5">Priorità</th>
+                          <th className="text-left p-2 bg-indigo-500/5">Note</th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -857,12 +906,13 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       const isSaving = savingPlayerIds.has(player.playerId)
                       const hasStrategy = !!(local.maxBid || local.priority || local.notes)
                       const isSvincolato = player.type === 'svincolato'
+                      const isMyRoster = player.type === 'myRoster'
 
                       return (
                         <tr
                           key={player.playerId}
                           className={`border-t border-surface-50/10 transition-colors ${
-                            hasStrategy ? 'bg-indigo-500/5' : isSvincolato ? 'bg-emerald-500/5' : ''
+                            isMyRoster ? 'bg-primary-500/5' : hasStrategy ? 'bg-indigo-500/5' : isSvincolato ? 'bg-emerald-500/5' : ''
                           } hover:bg-surface-300/30`}
                         >
                           {/* Position */}
@@ -923,11 +973,15 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             </div>
                           </td>
 
-                          {/* Owner / Svincolato */}
+                          {/* Owner / Svincolato / My Roster */}
                           <td className="p-2">
                             {isSvincolato ? (
                               <div className="min-w-0">
                                 <div className="font-medium text-emerald-400 text-sm">Svincolato</div>
+                              </div>
+                            ) : player.type === 'myRoster' ? (
+                              <div className="min-w-0">
+                                <div className="font-medium text-primary-400 text-sm">La Mia Rosa</div>
                               </div>
                             ) : (
                               <div className="min-w-0">
@@ -977,78 +1031,93 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             )}
                           </td>
 
-                          {/* === STRATEGY SECTION === */}
+                          {/* === STRATEGY SECTION - only show when not in myRoster view === */}
+                          {viewMode !== 'myRoster' && (
+                            <>
+                              {/* Offerta Max */}
+                              <td className="p-2 text-center bg-indigo-500/5 border-l-2 border-indigo-500/30">
+                                {isMyRoster ? (
+                                  <span className="text-gray-600 text-xs">-</span>
+                                ) : (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const current = parseInt(local.maxBid) || 0
+                                        updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, current - 1).toString())
+                                      }}
+                                      className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-100 text-sm font-bold flex items-center justify-center transition-colors"
+                                    >
+                                      −
+                                    </button>
+                                    <input
+                                      type="number"
+                                      value={local.maxBid}
+                                      onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)}
+                                      placeholder="-"
+                                      className={`w-12 px-1 py-1 bg-surface-300/50 border rounded text-white text-center text-sm font-medium focus:border-blue-500 focus:outline-none placeholder:text-gray-600 ${
+                                        isSaving ? 'border-blue-500/50' : local.isDirty ? 'border-yellow-500/50' : 'border-surface-50/30'
+                                      }`}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const current = parseInt(local.maxBid) || 0
+                                        updateLocalStrategy(player.playerId, 'maxBid', (current + 1).toString())
+                                      }}
+                                      className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-100 text-sm font-bold flex items-center justify-center transition-colors"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
 
-                          {/* Offerta Max */}
-                          <td className="p-2 text-center bg-indigo-500/5 border-l-2 border-indigo-500/30">
-                            <div className="flex items-center justify-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const current = parseInt(local.maxBid) || 0
-                                  updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, current - 1).toString())
-                                }}
-                                className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-100 text-sm font-bold flex items-center justify-center transition-colors"
-                              >
-                                −
-                              </button>
-                              <input
-                                type="number"
-                                value={local.maxBid}
-                                onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)}
-                                placeholder="-"
-                                className={`w-12 px-1 py-1 bg-surface-300/50 border rounded text-white text-center text-sm font-medium focus:border-blue-500 focus:outline-none placeholder:text-gray-600 ${
-                                  isSaving ? 'border-blue-500/50' : local.isDirty ? 'border-yellow-500/50' : 'border-surface-50/30'
-                                }`}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const current = parseInt(local.maxBid) || 0
-                                  updateLocalStrategy(player.playerId, 'maxBid', (current + 1).toString())
-                                }}
-                                className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-100 text-sm font-bold flex items-center justify-center transition-colors"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </td>
+                              {/* Priority */}
+                              <td className="p-2 text-center bg-indigo-500/5">
+                                {isMyRoster ? (
+                                  <span className="text-gray-600 text-xs">-</span>
+                                ) : (
+                                  <div className="flex items-center justify-center gap-0.5">
+                                    {[1, 2, 3, 4, 5].map(star => (
+                                      <button
+                                        key={star}
+                                        type="button"
+                                        onClick={() => {
+                                          const newPrio = local.priority === star ? 0 : star
+                                          updateLocalStrategy(player.playerId, 'priority', newPrio)
+                                        }}
+                                        className={`w-5 h-5 text-sm transition-colors ${
+                                          local.priority >= star
+                                            ? 'text-purple-400 hover:text-purple-300'
+                                            : 'text-gray-600 hover:text-gray-400'
+                                        }`}
+                                      >
+                                        ★
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </td>
 
-                          {/* Priority */}
-                          <td className="p-2 text-center bg-indigo-500/5">
-                            <div className="flex items-center justify-center gap-0.5">
-                              {[1, 2, 3, 4, 5].map(star => (
-                                <button
-                                  key={star}
-                                  type="button"
-                                  onClick={() => {
-                                    const newPrio = local.priority === star ? 0 : star
-                                    updateLocalStrategy(player.playerId, 'priority', newPrio)
-                                  }}
-                                  className={`w-5 h-5 text-sm transition-colors ${
-                                    local.priority >= star
-                                      ? 'text-purple-400 hover:text-purple-300'
-                                      : 'text-gray-600 hover:text-gray-400'
-                                  }`}
-                                >
-                                  ★
-                                </button>
-                              ))}
-                            </div>
-                          </td>
-
-                          {/* Notes */}
-                          <td className="p-2 bg-indigo-500/5">
-                            <input
-                              type="text"
-                              value={local.notes}
-                              onChange={(e) => updateLocalStrategy(player.playerId, 'notes', e.target.value)}
-                              placeholder="Note..."
-                              className={`w-full min-w-[80px] px-2 py-1 bg-surface-300/50 border rounded text-white text-sm focus:border-blue-500 focus:outline-none placeholder:text-gray-600 ${
-                                isSaving ? 'border-blue-500/50' : local.isDirty ? 'border-yellow-500/50' : 'border-surface-50/30'
-                              }`}
-                            />
-                          </td>
+                              {/* Notes */}
+                              <td className="p-2 bg-indigo-500/5">
+                                {isMyRoster ? (
+                                  <span className="text-gray-600 text-xs">-</span>
+                                ) : (
+                                  <input
+                                    type="text"
+                                    value={local.notes}
+                                    onChange={(e) => updateLocalStrategy(player.playerId, 'notes', e.target.value)}
+                                    placeholder="Note..."
+                                    className={`w-full min-w-[80px] px-2 py-1 bg-surface-300/50 border rounded text-white text-sm focus:border-blue-500 focus:outline-none placeholder:text-gray-600 ${
+                                      isSaving ? 'border-blue-500/50' : local.isDirty ? 'border-yellow-500/50' : 'border-surface-50/30'
+                                    }`}
+                                  />
+                                )}
+                              </td>
+                            </>
+                          )}
                         </tr>
                       )
                     })}
@@ -1066,11 +1135,14 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
               <div className="p-3 border-t border-surface-50/20 bg-surface-300/20 text-xs text-gray-500 flex flex-wrap justify-between gap-2">
                 <span>
                   {filteredPlayers.length} giocatori
-                  {viewMode === 'owned' && ' (rose)'}
+                  {viewMode === 'myRoster' && ' (la mia rosa)'}
+                  {viewMode === 'owned' && ' (altre rose)'}
                   {viewMode === 'svincolati' && ' (svincolati)'}
-                  {viewMode === 'all' && ` (${filteredPlayers.filter(p => p.type === 'owned').length} rose, ${filteredPlayers.filter(p => p.type === 'svincolato').length} svinc.)`}
+                  {viewMode === 'all' && ` (${filteredPlayers.filter(p => p.type === 'myRoster').length} miei, ${filteredPlayers.filter(p => p.type === 'owned').length} altri, ${filteredPlayers.filter(p => p.type === 'svincolato').length} svinc.)`}
                 </span>
-                <span className="text-indigo-400">{myStrategiesCount} strategie impostate</span>
+                {viewMode !== 'myRoster' && (
+                  <span className="text-indigo-400">{myStrategiesCount} strategie impostate</span>
+                )}
               </div>
             </div>
           </div>
