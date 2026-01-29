@@ -715,10 +715,34 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
                   return (
                     <div key={player.playerId} className={`bg-surface-300/30 rounded-lg p-3 border ${hasStrategy ? 'border-indigo-500/30 bg-indigo-500/5' : isSvincolato ? 'border-emerald-500/20' : 'border-surface-50/10'}`}>
-                      {/* Header: Position + Player + Svincolato badge */}
+                      {/* Header: Photo + Player + Svincolato badge */}
                       <div className="flex items-center gap-2 mb-2">
-                        <div className={`w-8 h-8 rounded-full ${posColors.bg} ${posColors.text} flex items-center justify-center text-xs font-bold flex-shrink-0`}>
-                          {player.playerPosition}
+                        {/* Player Photo with Team Logo Badge */}
+                        <div className="relative flex-shrink-0">
+                          {(() => {
+                            const photoUrl = getPlayerPhotoUrl(player.playerApiFootballId)
+                            return photoUrl ? (
+                              <img
+                                src={photoUrl}
+                                alt={player.playerName}
+                                className="w-10 h-10 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none'
+                                  const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                                  if (fallback) fallback.style.display = 'flex'
+                                }}
+                              />
+                            ) : null
+                          })()}
+                          <div
+                            className={`w-10 h-10 rounded-full ${posColors.bg} ${posColors.text} items-center justify-center text-xs font-bold ${getPlayerPhotoUrl(player.playerApiFootballId) ? 'hidden' : 'flex'}`}
+                          >
+                            {player.playerPosition}
+                          </div>
+                          {/* Team logo badge */}
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white p-0.5 border border-surface-50/20">
+                            <TeamLogo team={player.playerTeam} />
+                          </div>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
@@ -851,8 +875,32 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           {/* Player */}
                           <td className="p-2">
                             <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 bg-white rounded p-0.5 flex-shrink-0">
-                                <TeamLogo team={player.playerTeam} />
+                              {/* Player Photo with Team Logo Badge */}
+                              <div className="relative flex-shrink-0">
+                                {(() => {
+                                  const photoUrl = getPlayerPhotoUrl(player.playerApiFootballId)
+                                  return photoUrl ? (
+                                    <img
+                                      src={photoUrl}
+                                      alt={player.playerName}
+                                      className="w-9 h-9 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none'
+                                        const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                                        if (fallback) fallback.style.display = 'flex'
+                                      }}
+                                    />
+                                  ) : null
+                                })()}
+                                <div
+                                  className={`w-9 h-9 rounded-full ${posColors.bg} ${posColors.text} items-center justify-center font-bold text-xs ${getPlayerPhotoUrl(player.playerApiFootballId) ? 'hidden' : 'flex'}`}
+                                >
+                                  {player.playerPosition}
+                                </div>
+                                {/* Team logo badge */}
+                                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-white p-0.5 border border-surface-50/20">
+                                  <TeamLogo team={player.playerTeam} />
+                                </div>
                               </div>
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
