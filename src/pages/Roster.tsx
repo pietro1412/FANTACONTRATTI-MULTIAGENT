@@ -3,6 +3,8 @@ import { auctionApi, leagueApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
+import { getPlayerPhotoUrl } from '../utils/player-images'
+import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
 
 interface RosterProps {
   leagueId: string
@@ -21,6 +23,8 @@ interface Player {
   team: string
   position: string
   quotation: number
+  apiFootballId?: number | null
+  apiFootballStats?: PlayerStats | null
 }
 
 interface RosterEntry {
@@ -238,15 +242,51 @@ function TeamPlayersModal({
   )
 }
 
+// Position colors for photo badges
+const POSITION_COLORS: Record<string, string> = {
+  P: 'from-yellow-500 to-yellow-600',
+  D: 'from-green-500 to-green-600',
+  C: 'from-blue-500 to-blue-600',
+  A: 'from-red-500 to-red-600',
+}
+
 // Componente card giocatore
-function PlayerCard({ entry }: { entry: RosterEntry }) {
+function PlayerCard({ entry, onPlayerClick }: { entry: RosterEntry; onPlayerClick: () => void }) {
   const roleStyle = getRoleStyle(entry.player.position)
+  const playerPhotoUrl = getPlayerPhotoUrl(entry.player.apiFootballId)
 
   return (
     <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-surface-200 rounded-lg border border-surface-50/20 hover:border-surface-50/40 transition-colors">
-      {/* Team Logo con sfondo bianco */}
-      <div className="flex-shrink-0">
-        <TeamLogo team={entry.player.team} />
+      {/* Player Photo with Team Logo */}
+      <div className="relative flex-shrink-0">
+        {playerPhotoUrl ? (
+          <img
+            src={playerPhotoUrl}
+            alt={entry.player.name}
+            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none'
+              const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+              if (fallback) fallback.style.display = 'flex'
+            }}
+          />
+        ) : null}
+        <div
+          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br ${POSITION_COLORS[entry.player.position]} items-center justify-center text-white font-bold text-sm ${playerPhotoUrl ? 'hidden' : 'flex'}`}
+        >
+          {entry.player.position}
+        </div>
+        {/* Team logo badge */}
+        <div className="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white p-0.5 border border-surface-50/20">
+          <img
+            src={getTeamLogo(entry.player.team)}
+            alt={entry.player.team}
+            className="w-full h-full object-contain"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none'
+            }}
+          />
+        </div>
       </div>
 
       {/* Role Badge */}
@@ -256,7 +296,12 @@ function PlayerCard({ entry }: { entry: RosterEntry }) {
 
       {/* Player Info - nome sempre visibile */}
       <div className="flex-1 min-w-0">
-        <p className="text-white font-medium text-sm sm:text-base leading-tight">{entry.player.name}</p>
+        <button
+          onClick={onPlayerClick}
+          className="text-white font-medium text-sm sm:text-base leading-tight hover:text-primary-400 transition-colors text-left"
+        >
+          {entry.player.name}
+        </button>
         <p className="text-gray-500 text-[10px] sm:text-xs hidden sm:block">{entry.player.team}</p>
       </div>
 
@@ -318,6 +363,9 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
   // Modale giocatori per squadra
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null)
 
+  // Modale statistiche giocatore
+  const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
+
   useEffect(() => {
     loadData()
   }, [leagueId])
@@ -330,7 +378,13 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
     ])
 
     if (rosterResult.success && rosterResult.data) {
-      setRosterData(rosterResult.data as RosterData)
+      // Debug: log first player to see if apiFootballId is present
+      const data = rosterResult.data as RosterData
+      const firstPlayer = data.roster?.P?.[0] || data.roster?.D?.[0] || data.roster?.C?.[0] || data.roster?.A?.[0]
+      if (firstPlayer) {
+        console.log('Roster API response - first player:', firstPlayer.player.name, 'apiFootballId:', firstPlayer.player.apiFootballId)
+      }
+      setRosterData(data)
     }
     if (leagueResult.success && leagueResult.data) {
       const data = leagueResult.data as { isAdmin: boolean }
@@ -553,7 +607,18 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
             </div>
           ) : (
             sortedPlayers.map(entry => (
-              <PlayerCard key={entry.id} entry={entry} />
+              <PlayerCard
+                key={entry.id}
+                entry={entry}
+                onPlayerClick={() => setSelectedPlayerStats({
+                  name: entry.player.name,
+                  team: entry.player.team,
+                  position: entry.player.position,
+                  quotation: entry.player.quotation,
+                  apiFootballId: entry.player.apiFootballId,
+                  apiFootballStats: entry.player.apiFootballStats,
+                })}
+              />
             ))
           )}
         </div>
@@ -578,6 +643,13 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
           onClose={() => setSelectedTeam(null)}
         />
       )}
+
+      {/* Modale statistiche giocatore */}
+      <PlayerStatsModal
+        isOpen={!!selectedPlayerStats}
+        onClose={() => setSelectedPlayerStats(null)}
+        player={selectedPlayerStats}
+      />
     </div>
   )
 }

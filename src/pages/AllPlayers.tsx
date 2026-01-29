@@ -4,6 +4,7 @@ import { playerApi, leagueApi } from '../services/api'
 import { Input } from '../components/ui/Input'
 import { POSITION_GRADIENTS, POSITION_FILTER_COLORS } from '../components/ui/PositionBadge'
 import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
+import { getPlayerPhotoUrl } from '../utils/player-images'
 
 interface AllPlayersProps {
   leagueId: string
@@ -17,6 +18,7 @@ interface Player {
   position: 'P' | 'D' | 'C' | 'A'
   quotation: number
   listStatus: string
+  apiFootballId?: number | null
   apiFootballStats?: PlayerStats | null
   statsSyncedAt?: string | null
 }
@@ -209,8 +211,30 @@ export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-sm font-bold text-white`}>
-                          {player.position}
+                        {/* Player photo with position badge */}
+                        <div className="relative">
+                          {player.apiFootballId ? (
+                            <img
+                              src={getPlayerPhotoUrl(player.apiFootballId)}
+                              alt={player.name}
+                              className="w-10 h-10 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none'
+                                const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                                if (fallback) fallback.style.display = 'flex'
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} items-center justify-center text-sm font-bold text-white ${player.apiFootballId ? 'hidden' : 'flex'}`}
+                          >
+                            {player.position}
+                          </div>
+                          <span
+                            className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-[10px] border border-surface-200`}
+                          >
+                            {player.position}
+                          </span>
                         </div>
                         <div>
                           <button
@@ -219,6 +243,7 @@ export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
                               team: player.team,
                               position: player.position,
                               quotation: player.quotation,
+                              apiFootballId: player.apiFootballId,
                               apiFootballStats: player.apiFootballStats,
                               statsSyncedAt: player.statsSyncedAt,
                             })}

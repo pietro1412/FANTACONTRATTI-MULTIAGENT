@@ -181,7 +181,6 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'rubata': navigate(`/leagues/${lid}/rubata`); break
       case 'strategie-rubata': navigate(`/leagues/${lid}/strategie-rubata`); break
       case 'svincolati': navigate(`/leagues/${lid}/svincolati`); break
-      case 'playerStats': navigate(`/leagues/${lid}/player-stats`); break
       case 'prizes': navigate(`/leagues/${lid}/prizes`); break
       case 'allPlayers': navigate(`/leagues/${lid}/players`); break
       case 'manager-dashboard': navigate(`/leagues/${lid}/manager`); break
@@ -193,6 +192,7 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'movements': navigate(`/leagues/${lid}/movements`); break
       case 'history': navigate(`/leagues/${lid}/history`); break
       case 'prophecies': navigate(`/leagues/${lid}/prophecies`); break
+      case 'playerStats': navigate(`/leagues/${lid}/stats`); break
       case 'superadmin':
         if (params?.tab) navigate(`/superadmin?tab=${params.tab}`)
         else navigate('/superadmin')
@@ -557,7 +557,7 @@ function AppRoutes() {
           </Suspense>
         </ProtectedRoute>
       } />
-      <Route path="/leagues/:leagueId/player-stats" element={
+      <Route path="/leagues/:leagueId/stats" element={
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
             <PlayerStatsWrapper />

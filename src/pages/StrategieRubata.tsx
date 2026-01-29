@@ -3,7 +3,9 @@ import { useParams } from 'react-router-dom'
 import { rubataApi, leagueApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
+import { getPlayerPhotoUrl } from '../utils/player-images'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
+import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
 
 interface StrategyPlayer {
   rosterId: string
@@ -13,6 +15,8 @@ interface StrategyPlayer {
   playerPosition: string
   playerTeam: string
   playerQuotation: number
+  playerApiFootballId?: number | null
+  playerApiFootballStats?: PlayerStats | null
   ownerUsername: string
   ownerTeamName: string | null
   ownerRubataOrder: number | null
@@ -27,6 +31,8 @@ interface SvincolatoPlayer {
   playerName: string
   playerPosition: string
   playerTeam: string
+  playerApiFootballId?: number | null
+  playerApiFootballStats?: PlayerStats | null
 }
 
 interface RubataPreference {
@@ -125,6 +131,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   const [sortMode, setSortMode] = useState<SortMode>('role')
   const [sortField, setSortField] = useState<SortField>('position')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+
+  // Player stats modal
+  const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
 
   // Local edits with debounce
   const [localStrategies, setLocalStrategies] = useState<Record<string, LocalStrategy>>({})
@@ -713,7 +722,19 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-white text-sm truncate">{player.playerName}</span>
+                            <button
+                              onClick={() => setSelectedPlayerStats({
+                                name: player.playerName,
+                                team: player.playerTeam,
+                                position: player.playerPosition,
+                                quotation: isSvincolato ? undefined : player.playerQuotation,
+                                apiFootballId: player.playerApiFootballId,
+                                apiFootballStats: player.playerApiFootballStats,
+                              })}
+                              className="font-medium text-white text-sm truncate hover:text-primary-400 transition-colors text-left"
+                            >
+                              {player.playerName}
+                            </button>
                           </div>
                           <div className="text-xs text-gray-500">{player.playerTeam}</div>
                         </div>
@@ -835,7 +856,19 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               </div>
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium text-white text-sm truncate">{player.playerName}</span>
+                                  <button
+                                    onClick={() => setSelectedPlayerStats({
+                                      name: player.playerName,
+                                      team: player.playerTeam,
+                                      position: player.playerPosition,
+                                      quotation: isSvincolato ? undefined : player.playerQuotation,
+                                      apiFootballId: player.playerApiFootballId,
+                                      apiFootballStats: player.playerApiFootballStats,
+                                    })}
+                                    className="font-medium text-white text-sm truncate hover:text-primary-400 transition-colors text-left"
+                                  >
+                                    {player.playerName}
+                                  </button>
                                 </div>
                                 <div className="text-xs text-gray-500">{player.playerTeam}</div>
                               </div>
@@ -995,6 +1028,13 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
           </div>
         </div>
       </main>
+
+      {/* Player Stats Modal */}
+      <PlayerStatsModal
+        isOpen={!!selectedPlayerStats}
+        onClose={() => setSelectedPlayerStats(null)}
+        player={selectedPlayerStats}
+      />
     </div>
   )
 }

@@ -244,6 +244,39 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
   } | null>(null)
   const [manualMatchPlayerId, setManualMatchPlayerId] = useState<string>('')
   const [manualMatchApiId, setManualMatchApiId] = useState<string>('')
+
+  // Matching Assistito state
+  type MatchProposal = {
+    dbPlayer: { id: string; name: string; team: string; position: string; quotation: number }
+    apiPlayer: { id: number; name: string; team: string } | null
+    confidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'
+    method: string
+  }
+  const [matchProposals, setMatchProposals] = useState<MatchProposal[]>([])
+  const [proposalsLoading, setProposalsLoading] = useState(false)
+  const [searchModalOpen, setSearchModalOpen] = useState(false)
+  const [searchModalPlayer, setSearchModalPlayer] = useState<MatchProposal['dbPlayer'] | null>(null)
+  const [apiSearchQuery, setApiSearchQuery] = useState('')
+  const [apiSearchResults, setApiSearchResults] = useState<Array<{ id: number; name: string; team: string; position: string }>>([])
+  const [apiSearchLoading, setApiSearchLoading] = useState(false)
+  const [selectedApiPlayer, setSelectedApiPlayer] = useState<number | null>(null)
+  const [confirmingMatch, setConfirmingMatch] = useState(false)
+
+  // Matched players state (for viewing/editing existing matches)
+  type MatchedPlayer = {
+    id: string
+    name: string
+    team: string
+    position: string
+    quotation: number
+    apiFootballId: number
+    apiFootballName: string | null
+  }
+  const [matchedPlayers, setMatchedPlayers] = useState<MatchedPlayer[]>([])
+  const [matchedLoading, setMatchedLoading] = useState(false)
+  const [matchedSearch, setMatchedSearch] = useState('')
+  const [removingMatch, setRemovingMatch] = useState<string | null>(null)
+
   const [showClassificationModal, setShowClassificationModal] = useState(false)
   const [classifications, setClassifications] = useState<Record<string, ExitReason>>({})
   const [classifyingPlayers, setClassifyingPlayers] = useState(false)
@@ -287,7 +320,11 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
       }
       if (activeTab === 'leagues') loadLeagues()
       if (activeTab === 'users') loadUsers()
-      if (activeTab === 'stats') loadApiFootballStatus()
+      if (activeTab === 'stats') {
+        loadApiFootballStatus()
+        loadMatchProposals() // Auto-load proposals
+        loadMatchedPlayers() // Auto-load matched players
+      }
     }
   }, [isSuperAdmin, activeTab, filters, leagueSearch])
 
@@ -302,6 +339,119 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
       console.error('Error loading API-Football status:', err)
     } finally {
       setApiFootballLoading(false)
+    }
+  }
+
+  async function loadMatchProposals() {
+    setProposalsLoading(true)
+    try {
+      const res = await superadminApi.getMatchProposals()
+      if (res.success && res.data) {
+        setMatchProposals(res.data.proposals)
+      }
+    } catch (err) {
+      console.error('Error loading match proposals:', err)
+    } finally {
+      setProposalsLoading(false)
+    }
+  }
+
+  async function handleConfirmProposal(dbPlayerId: string, apiFootballId: number) {
+    setConfirmingMatch(true)
+    try {
+      const res = await superadminApi.confirmMatch(dbPlayerId, apiFootballId)
+      if (res.success) {
+        // Remove from proposals
+        setMatchProposals(prev => prev.filter(p => p.dbPlayer.id !== dbPlayerId))
+        // Refresh status
+        loadApiFootballStatus()
+      }
+    } catch (err) {
+      console.error('Error confirming match:', err)
+    } finally {
+      setConfirmingMatch(false)
+    }
+  }
+
+  async function handleApiSearch() {
+    if (apiSearchQuery.length < 2) return
+    setApiSearchLoading(true)
+    try {
+      const res = await superadminApi.searchApiFootballPlayers(apiSearchQuery)
+      if (res.success && res.data) {
+        setApiSearchResults(res.data.players)
+      }
+    } catch (err) {
+      console.error('Error searching API players:', err)
+    } finally {
+      setApiSearchLoading(false)
+    }
+  }
+
+  function openSearchModal(dbPlayer: MatchProposal['dbPlayer']) {
+    setSearchModalPlayer(dbPlayer)
+    setSearchModalOpen(true)
+    setApiSearchQuery('')
+    setApiSearchResults([])
+    setSelectedApiPlayer(null)
+  }
+
+  function closeSearchModal() {
+    setSearchModalOpen(false)
+    setSearchModalPlayer(null)
+    setApiSearchQuery('')
+    setApiSearchResults([])
+    setSelectedApiPlayer(null)
+  }
+
+  async function loadMatchedPlayers(search?: string) {
+    setMatchedLoading(true)
+    try {
+      const res = await superadminApi.getMatchedPlayers(search)
+      if (res.success && res.data) {
+        setMatchedPlayers(res.data.players)
+      }
+    } catch (err) {
+      console.error('Error loading matched players:', err)
+    } finally {
+      setMatchedLoading(false)
+    }
+  }
+
+  async function handleRemoveMatch(playerId: string) {
+    setRemovingMatch(playerId)
+    try {
+      const res = await superadminApi.removeMatch(playerId)
+      if (res.success) {
+        // Remove from matched list
+        setMatchedPlayers(prev => prev.filter(p => p.id !== playerId))
+        // Refresh proposals and status
+        loadMatchProposals()
+        loadApiFootballStatus()
+      }
+    } catch (err) {
+      console.error('Error removing match:', err)
+    } finally {
+      setRemovingMatch(null)
+    }
+  }
+
+  async function handleManualAssociation() {
+    if (!searchModalPlayer || !selectedApiPlayer) return
+    setConfirmingMatch(true)
+    try {
+      const res = await superadminApi.confirmMatch(searchModalPlayer.id, selectedApiPlayer)
+      if (res.success) {
+        // Remove from proposals
+        setMatchProposals(prev => prev.filter(p => p.dbPlayer.id !== searchModalPlayer.id))
+        closeSearchModal()
+        loadApiFootballStatus()
+        loadMatchedPlayers(matchedSearch) // Refresh matched list
+      }
+    } catch (err) {
+      console.error('Error manual association:', err)
+    } finally {
+      setConfirmingMatch(false)
     }
   }
 
@@ -1526,6 +1676,223 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                 </div>
               )}
             </Card>
+
+            {/* Matching Assistito */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-white">Matching Assistito</h3>
+                  <p className="text-sm text-gray-400">
+                    Rivedi le proposte di associazione e conferma o cerca manualmente
+                  </p>
+                </div>
+                <Button
+                  onClick={loadMatchProposals}
+                  disabled={proposalsLoading}
+                  variant="outline"
+                  size="sm"
+                >
+                  {proposalsLoading ? 'Aggiornamento...' : 'Aggiorna Proposte'}
+                </Button>
+              </div>
+
+              {/* Proposals Table */}
+              {matchProposals.length > 0 && (
+                <div className="space-y-4">
+                  {/* Summary */}
+                  <div className="grid grid-cols-4 gap-3">
+                    <div className="bg-secondary-500/20 border border-secondary-500/40 rounded-lg p-3 text-center">
+                      <p className="text-xl font-bold text-secondary-400">
+                        {matchProposals.filter(p => p.confidence === 'HIGH').length}
+                      </p>
+                      <p className="text-xs text-gray-400">Alta</p>
+                    </div>
+                    <div className="bg-primary-500/20 border border-primary-500/40 rounded-lg p-3 text-center">
+                      <p className="text-xl font-bold text-primary-400">
+                        {matchProposals.filter(p => p.confidence === 'MEDIUM').length}
+                      </p>
+                      <p className="text-xs text-gray-400">Media</p>
+                    </div>
+                    <div className="bg-warning-500/20 border border-warning-500/40 rounded-lg p-3 text-center">
+                      <p className="text-xl font-bold text-warning-400">
+                        {matchProposals.filter(p => p.confidence === 'LOW').length}
+                      </p>
+                      <p className="text-xs text-gray-400">Bassa</p>
+                    </div>
+                    <div className="bg-gray-500/20 border border-gray-500/40 rounded-lg p-3 text-center">
+                      <p className="text-xl font-bold text-gray-400">
+                        {matchProposals.filter(p => p.confidence === 'NONE').length}
+                      </p>
+                      <p className="text-xs text-gray-400">Nessuna</p>
+                    </div>
+                  </div>
+
+                  {/* Proposals List */}
+                  <div className="max-h-[500px] overflow-y-auto space-y-2">
+                    {matchProposals.map((proposal) => {
+                      const confidenceColors = {
+                        HIGH: 'bg-secondary-500/20 text-secondary-400 border-secondary-500/40',
+                        MEDIUM: 'bg-primary-500/20 text-primary-400 border-primary-500/40',
+                        LOW: 'bg-warning-500/20 text-warning-400 border-warning-500/40',
+                        NONE: 'bg-gray-500/20 text-gray-400 border-gray-500/40',
+                      }
+                      const confidenceLabels = { HIGH: 'Alta', MEDIUM: 'Media', LOW: 'Bassa', NONE: 'Nessuna' }
+
+                      return (
+                        <div key={proposal.dbPlayer.id} className="bg-surface-300 rounded-lg p-4">
+                          <div className="flex items-center justify-between flex-wrap gap-4">
+                            {/* DB Player */}
+                            <div className="flex items-center gap-3 min-w-[200px]">
+                              <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[proposal.dbPlayer.position]} flex items-center justify-center text-white font-bold text-xs`}>
+                                {proposal.dbPlayer.position}
+                              </span>
+                              <div>
+                                <p className="font-medium text-white">{proposal.dbPlayer.name}</p>
+                                <p className="text-xs text-gray-400">
+                                  {proposal.dbPlayer.team} · Quot. {proposal.dbPlayer.quotation}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Arrow */}
+                            <div className="text-gray-500">→</div>
+
+                            {/* API Player Proposal */}
+                            <div className="flex-1 min-w-[200px]">
+                              {proposal.apiPlayer ? (
+                                <div>
+                                  <p className="font-medium text-white">{proposal.apiPlayer.name}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {proposal.apiPlayer.team} · ID: {proposal.apiPlayer.id}
+                                  </p>
+                                </div>
+                              ) : (
+                                <p className="text-gray-500 italic">Nessuna proposta</p>
+                              )}
+                            </div>
+
+                            {/* Confidence Badge */}
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${confidenceColors[proposal.confidence]}`}>
+                              {confidenceLabels[proposal.confidence]}
+                            </span>
+
+                            {/* Actions */}
+                            <div className="flex gap-2">
+                              {proposal.apiPlayer && (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => handleConfirmProposal(proposal.dbPlayer.id, proposal.apiPlayer!.id)}
+                                  disabled={confirmingMatch}
+                                >
+                                  Conferma
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openSearchModal(proposal.dbPlayer)}
+                              >
+                                Cerca
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {matchProposals.length === 0 && !proposalsLoading && (
+                <div className="py-8 text-center text-gray-400">
+                  <p className="text-4xl mb-2">✅</p>
+                  <p>Tutti i giocatori sono stati associati</p>
+                  <p className="text-sm mt-1">Non ci sono proposte di matching in sospeso</p>
+                </div>
+              )}
+
+              {proposalsLoading && (
+                <div className="py-8 text-center">
+                  <div className="w-10 h-10 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-gray-400">Generazione proposte in corso...</p>
+                  <p className="text-xs text-gray-500 mt-1">Potrebbe richiedere alcuni secondi se la cache deve essere aggiornata</p>
+                </div>
+              )}
+            </Card>
+
+            {/* Existing Matches - View and Edit */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-white">Associazioni Esistenti</h3>
+                  <p className="text-sm text-gray-400">
+                    Visualizza e modifica le associazioni gia confermate ({matchedPlayers.length})
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={matchedSearch}
+                    onChange={(e) => setMatchedSearch(e.target.value)}
+                    placeholder="Cerca giocatore..."
+                    className="w-48"
+                    onKeyDown={(e) => e.key === 'Enter' && loadMatchedPlayers(matchedSearch)}
+                  />
+                  <Button
+                    onClick={() => loadMatchedPlayers(matchedSearch)}
+                    variant="outline"
+                    size="sm"
+                    disabled={matchedLoading}
+                  >
+                    {matchedLoading ? '...' : 'Cerca'}
+                  </Button>
+                </div>
+              </div>
+
+              {matchedLoading ? (
+                <div className="py-8 text-center">
+                  <div className="w-10 h-10 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto"></div>
+                </div>
+              ) : matchedPlayers.length > 0 ? (
+                <div className="max-h-[400px] overflow-y-auto space-y-2">
+                  {matchedPlayers.map((player) => (
+                    <div key={player.id} className="bg-surface-300 rounded-lg p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1">
+                        <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xs`}>
+                          {player.position}
+                        </span>
+                        <div className="min-w-[180px]">
+                          <p className="font-medium text-white">{player.name}</p>
+                          <p className="text-xs text-gray-400">{player.team}</p>
+                        </div>
+                      </div>
+
+                      <div className="text-gray-500 mx-4">↔</div>
+
+                      <div className="flex-1">
+                        <p className="font-medium text-secondary-400">{player.apiFootballName || `ID: ${player.apiFootballId}`}</p>
+                        <p className="text-xs text-gray-500">API ID: {player.apiFootballId}</p>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-danger-500/50 text-danger-400 hover:bg-danger-500/20"
+                        onClick={() => handleRemoveMatch(player.id)}
+                        disabled={removingMatch === player.id}
+                      >
+                        {removingMatch === player.id ? '...' : 'Rimuovi'}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-gray-400">
+                  <p>Nessuna associazione trovata</p>
+                  {matchedSearch && <p className="text-sm mt-1">Prova a cercare con altri termini</p>}
+                </div>
+              )}
+            </Card>
           </div>
         )}
       </main>
@@ -1769,6 +2136,119 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   Chiudi
                 </Button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Search API-Football Modal */}
+      {searchModalOpen && searchModalPlayer && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-200 rounded-xl border border-surface-50/20 max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-surface-50/20 bg-gradient-to-r from-primary-500/10 to-surface-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-primary-500/20 flex items-center justify-center">
+                    <span className="text-2xl">🔍</span>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Cerca Giocatore API-Football</h2>
+                    <p className="text-sm text-gray-400">
+                      Associa <span className="text-white font-medium">{searchModalPlayer.name}</span> ({searchModalPlayer.team})
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeSearchModal}
+                  className="w-10 h-10 rounded-lg bg-surface-300 hover:bg-surface-50/20 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto flex-1">
+              {/* Search Input */}
+              <div className="flex gap-3 mb-4">
+                <Input
+                  value={apiSearchQuery}
+                  onChange={(e) => setApiSearchQuery(e.target.value)}
+                  placeholder="Cerca per nome..."
+                  className="flex-1"
+                  onKeyDown={(e) => e.key === 'Enter' && handleApiSearch()}
+                />
+                <Button
+                  onClick={handleApiSearch}
+                  disabled={apiSearchLoading || apiSearchQuery.length < 2}
+                >
+                  {apiSearchLoading ? 'Ricerca...' : 'Cerca'}
+                </Button>
+              </div>
+
+              {/* Search Results */}
+              {apiSearchResults.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-400 mb-3">
+                    {apiSearchResults.length} risultati trovati
+                  </p>
+                  {apiSearchResults.map((player) => (
+                    <label
+                      key={player.id}
+                      className={`block bg-surface-300 rounded-lg p-3 cursor-pointer transition-colors ${
+                        selectedApiPlayer === player.id
+                          ? 'ring-2 ring-primary-500 bg-primary-500/10'
+                          : 'hover:bg-surface-50/10'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="apiPlayer"
+                          value={player.id}
+                          checked={selectedApiPlayer === player.id}
+                          onChange={() => setSelectedApiPlayer(player.id)}
+                          className="w-4 h-4 text-primary-500"
+                        />
+                        <div className="flex-1">
+                          <p className="font-medium text-white">{player.name}</p>
+                          <p className="text-xs text-gray-400">
+                            {player.team} · {player.position} · ID: {player.id}
+                          </p>
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {apiSearchResults.length === 0 && apiSearchQuery.length >= 2 && !apiSearchLoading && (
+                <div className="py-8 text-center text-gray-400">
+                  <p>Nessun giocatore trovato</p>
+                  <p className="text-sm mt-1">Prova con un altro termine di ricerca</p>
+                </div>
+              )}
+
+              {apiSearchQuery.length < 2 && (
+                <div className="py-8 text-center text-gray-400">
+                  <p>Inserisci almeno 2 caratteri per cercare</p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-surface-50/20 bg-surface-300 flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={closeSearchModal}>
+                Annulla
+              </Button>
+              <Button
+                className="flex-1 btn-primary"
+                onClick={handleManualAssociation}
+                disabled={!selectedApiPlayer || confirmingMatch}
+              >
+                {confirmingMatch ? 'Associazione...' : 'Associa'}
+              </Button>
             </div>
           </div>
         </div>

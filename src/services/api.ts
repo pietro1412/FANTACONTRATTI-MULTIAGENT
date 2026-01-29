@@ -291,6 +291,7 @@ export const playerApi = {
 
   getTeams: () => request('/api/players/teams'),
 
+  // Get players with Serie A statistics
   getStats: (filters?: {
     position?: string
     team?: string
@@ -306,10 +307,46 @@ export const playerApi = {
     if (filters?.search) params.append('search', filters.search)
     if (filters?.sortBy) params.append('sortBy', filters.sortBy)
     if (filters?.sortOrder) params.append('sortOrder', filters.sortOrder)
-    if (filters?.page) params.append('page', filters.page.toString())
-    if (filters?.limit) params.append('limit', filters.limit.toString())
+    if (filters?.page) params.append('page', String(filters.page))
+    if (filters?.limit) params.append('limit', String(filters.limit))
     const query = params.toString()
-    return request(`/api/players/stats${query ? `?${query}` : ''}`)
+    return request<{
+      players: Array<{
+        id: string
+        name: string
+        team: string
+        position: string
+        quotation: number
+        apiFootballId: number | null
+        statsSyncedAt: string | null
+        stats: {
+          appearances: number
+          minutes: number
+          rating: number | null
+          goals: number
+          assists: number
+          yellowCards: number
+          redCards: number
+          passesTotal: number
+          passesKey: number
+          passAccuracy: number | null
+          shotsTotal: number
+          shotsOn: number
+          tacklesTotal: number
+          interceptions: number
+          dribblesAttempts: number
+          dribblesSuccess: number
+          penaltyScored: number
+          penaltyMissed: number
+        } | null
+      }>
+      pagination: {
+        page: number
+        limit: number
+        total: number
+        totalPages: number
+      }
+    }>(`/api/players/stats${query ? `?${query}` : ''}`)
   },
 }
 
@@ -1337,6 +1374,64 @@ export const superadminApi = {
       noApiId: number
       apiCallsUsed: number
     }>('/api/superadmin/api-football/sync-stats', { method: 'POST' }),
+
+  // ==================== MATCHING ASSISTITO ====================
+
+  // Get match proposals (assisted matching)
+  getMatchProposals: () =>
+    request<{
+      proposals: Array<{
+        dbPlayer: { id: string; name: string; team: string; position: string; quotation: number }
+        apiPlayer: { id: number; name: string; team: string } | null
+        confidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'
+        method: string
+      }>
+      apiCallsUsed: number
+      cacheRefreshed: boolean
+    }>('/api/superadmin/api-football/proposals'),
+
+  // Search API-Football players in cache
+  searchApiFootballPlayers: (query: string) =>
+    request<{
+      players: Array<{ id: number; name: string; team: string; position: string }>
+    }>(`/api/superadmin/api-football/search-api?query=${encodeURIComponent(query)}`),
+
+  // Get unmatched DB players
+  getUnmatchedPlayers: (search?: string) =>
+    request<{
+      players: Array<{ id: string; name: string; team: string; position: string; quotation: number }>
+    }>(`/api/superadmin/api-football/unmatched${search ? `?search=${encodeURIComponent(search)}` : ''}`),
+
+  // Confirm a match
+  confirmMatch: (playerId: string, apiFootballId: number) =>
+    request('/api/superadmin/api-football/confirm-match', {
+      method: 'POST',
+      body: JSON.stringify({ playerId, apiFootballId }),
+    }),
+
+  // Refresh API-Football cache
+  refreshApiFootballCache: () =>
+    request<{
+      apiCallsUsed: number
+    }>('/api/superadmin/api-football/refresh-cache', { method: 'POST' }),
+
+  // Get matched players (players with apiFootballId)
+  getMatchedPlayers: (search?: string) =>
+    request<{
+      players: Array<{
+        id: string
+        name: string
+        team: string
+        position: string
+        quotation: number
+        apiFootballId: number
+        apiFootballName: string | null
+      }>
+    }>(`/api/superadmin/api-football/matched${search ? `?search=${encodeURIComponent(search)}` : ''}`),
+
+  // Remove a match (reset apiFootballId to null)
+  removeMatch: (playerId: string) =>
+    request(`/api/superadmin/api-football/match/${playerId}`, { method: 'DELETE' }),
 }
 
 // Chat API

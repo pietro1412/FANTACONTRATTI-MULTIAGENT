@@ -1259,3 +1259,20 @@ model TradeOffer {
   parentOffer     TradeOffer?  @relation("CounterOffers", fields: [parentOfferId], references: [id])
   counterOffers   TradeOffer[] @relation("CounterOffers")
 }
+
+
+// =============================================================================
+// API-Football Player Cache
+// =============================================================================
+
+// Cache for API-Football players to enable searching without repeated API calls
+model ApiFootballPlayerCache {
+  id        Int      @id  // API-Football player ID (not auto-generated)
+  name      String
+  team      String
+  position  String
+  cachedAt  DateTime @default(now())
+
+  @@index([name])
+  @@index([team])
+}

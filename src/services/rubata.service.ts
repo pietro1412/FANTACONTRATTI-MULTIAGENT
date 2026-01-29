@@ -3774,6 +3774,8 @@ export async function getAllPlayersForStrategies(
               team: true,
               position: true,
               quotation: true,
+              apiFootballId: true,
+              apiFootballStats: true,
             },
           },
           contract: {
@@ -3798,6 +3800,8 @@ export async function getAllPlayersForStrategies(
     playerPosition: string
     playerTeam: string
     playerQuotation: number
+    playerApiFootballId: number | null
+    playerApiFootballStats: unknown
     ownerUsername: string
     ownerTeamName: string | null
     ownerRubataOrder: number | null
@@ -3823,6 +3827,8 @@ export async function getAllPlayersForStrategies(
         playerPosition: rosterEntry.player.position,
         playerTeam: rosterEntry.player.team,
         playerQuotation: rosterEntry.player.quotation,
+        playerApiFootballId: rosterEntry.player.apiFootballId,
+        playerApiFootballStats: rosterEntry.player.apiFootballStats,
         ownerUsername: memberData.user.username,
         ownerTeamName: memberData.teamName,
         ownerRubataOrder: memberData.rubataOrder,
@@ -3950,6 +3956,8 @@ export async function getAllSvincolatiForStrategies(
       team: true,
       position: true,
       quotation: true,
+      apiFootballId: true,
+      apiFootballStats: true,
     },
     orderBy: [
       { position: 'asc' },
@@ -3963,6 +3971,8 @@ export async function getAllSvincolatiForStrategies(
     playerName: player.name,
     playerPosition: player.position,
     playerTeam: player.team,
+    playerApiFootballId: player.apiFootballId,
+    playerApiFootballStats: player.apiFootballStats,
     preference: preferencesMap.get(player.id) || null,
   }))
 

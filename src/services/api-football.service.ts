@@ -92,6 +92,55 @@ export interface SyncStatus {
   }
 }
 
+export interface MatchProposal {
+  dbPlayer: { id: string; name: string; team: string; position: string; quotation: number }
+  apiPlayer: { id: number; name: string; team: string } | null
+  confidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'
+  method: string
+}
+
+export interface ProposalsResult {
+  success: boolean
+  message?: string
+  data?: {
+    proposals: MatchProposal[]
+    apiCallsUsed: number
+    cacheRefreshed: boolean
+  }
+}
+
+export interface SearchResult {
+  success: boolean
+  message?: string
+  data?: {
+    players: Array<{ id: number; name: string; team: string; position: string }>
+  }
+}
+
+export interface UnmatchedResult {
+  success: boolean
+  message?: string
+  data?: {
+    players: Array<{ id: string; name: string; team: string; position: string; quotation: number }>
+  }
+}
+
+export interface MatchedPlayersResult {
+  success: boolean
+  message?: string
+  data?: {
+    players: Array<{
+      id: string
+      name: string
+      team: string
+      position: string
+      quotation: number
+      apiFootballId: number
+      apiFootballName: string | null
+    }>
+  }
+}
+
 // ==================== CONSTANTS ====================
 
 const API_BASE = 'https://v3.football.api-sports.io'
@@ -177,8 +226,19 @@ function normalizeTeamName(apiTeamName: string): string {
 }
 
 function extractLastName(fullName: string): string {
-  const parts = normalizeName(fullName).split(/\s+/)
-  return parts[parts.length - 1]
+  const normalized = normalizeName(fullName)
+  const parts = normalized.split(/\s+/).filter(p => p.length > 0)
+
+  // Filter out initials (single letters) and very short parts
+  const nonInitials = parts.filter(p => p.length > 2)
+
+  if (nonInitials.length > 0) {
+    // Return the longest part (most likely the surname)
+    return nonInitials.reduce((a, b) => a.length >= b.length ? a : b)
+  }
+
+  // Fallback: return the longest part even if short
+  return parts.reduce((a, b) => a.length >= b.length ? a : b, '')
 }
 
 // ==================== SERVICE FUNCTIONS ====================
@@ -235,6 +295,13 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
     const ambiguous: Array<{ player: { id: string; name: string; team: string }; candidates: Array<{ apiId: number; name: string }> }> = []
     const matchedDbIds = new Set<string>()
 
+    // Pre-load already used API IDs from database
+    const existingApiIds = await prisma.serieAPlayer.findMany({
+      where: { apiFootballId: { not: null } },
+      select: { apiFootballId: true },
+    })
+    const usedApiIds = new Set<number>(existingApiIds.map((p) => p.apiFootballId!))
+
     for (const team of teams) {
       const dbTeamName = normalizeTeamName(team.name)
       const teamPlayers = dbPlayers.filter((p) => p.team === dbTeamName)
@@ -261,8 +328,12 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
         })
 
         if (exactMatches.length === 1) {
-          matched.push({ dbId: dbPlayer.id, apiId: exactMatches[0].id, name: dbPlayer.name })
-          matchedDbIds.add(dbPlayer.id)
+          const apiId = exactMatches[0].id
+          if (!usedApiIds.has(apiId)) {
+            matched.push({ dbId: dbPlayer.id, apiId, name: dbPlayer.name })
+            matchedDbIds.add(dbPlayer.id)
+            usedApiIds.add(apiId)
+          }
         } else if (exactMatches.length > 1) {
           ambiguous.push({
             player: { id: dbPlayer.id, name: dbPlayer.name, team: dbPlayer.team },
@@ -277,8 +348,12 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
           })
 
           if (partialMatches.length === 1) {
-            matched.push({ dbId: dbPlayer.id, apiId: partialMatches[0].id, name: dbPlayer.name })
-            matchedDbIds.add(dbPlayer.id)
+            const apiId = partialMatches[0].id
+            if (!usedApiIds.has(apiId)) {
+              matched.push({ dbId: dbPlayer.id, apiId, name: dbPlayer.name })
+              matchedDbIds.add(dbPlayer.id)
+              usedApiIds.add(apiId)
+            }
           } else if (partialMatches.length > 1) {
             ambiguous.push({
               player: { id: dbPlayer.id, name: dbPlayer.name, team: dbPlayer.team },
@@ -294,11 +369,18 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
     }
 
     // 4. Save matched players to DB
+    let savedCount = 0
     for (const m of matched) {
-      await prisma.serieAPlayer.update({
-        where: { id: m.dbId },
-        data: { apiFootballId: m.apiId },
-      })
+      try {
+        await prisma.serieAPlayer.update({
+          where: { id: m.dbId },
+          data: { apiFootballId: m.apiId },
+        })
+        savedCount++
+      } catch (e) {
+        // Skip duplicates (unique constraint violations)
+        console.log(`Skipped duplicate apiFootballId ${m.apiId} for player ${m.name}`)
+      }
     }
 
     // 5. Collect unmatched
@@ -312,9 +394,9 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
 
     return {
       success: true,
-      message: `Match completato: ${matched.length} matchati, ${ambiguous.length} ambigui, ${unmatched.length} non trovati`,
+      message: `Match completato: ${savedCount} matchati, ${ambiguous.length} ambigui, ${unmatched.length} non trovati`,
       data: {
-        matched: matched.length,
+        matched: savedCount,
         unmatched,
         ambiguous,
         alreadyMatched,
@@ -529,6 +611,451 @@ export async function getSyncStatus(userId: string): Promise<SyncStatus> {
     }
   } catch (error) {
     console.error('getSyncStatus error:', error)
+    return { success: false, message: `Errore: ${(error as Error).message}` }
+  }
+}
+
+// ==================== MATCHING ASSISTITO ====================
+
+/**
+ * Levenshtein distance for fuzzy matching
+ */
+function levenshteinDistance(a: string, b: string): number {
+  const matrix: number[][] = []
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i]
+  }
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j
+  }
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1]
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        )
+      }
+    }
+  }
+  return matrix[b.length][a.length]
+}
+
+/**
+ * Refresh API-Football player cache from squad endpoints
+ */
+export async function refreshApiFootballCache(userId: string): Promise<{ success: boolean; message?: string; apiCallsUsed: number }> {
+  const { verifySuperAdmin } = await import('./superadmin.service')
+  if (!(await verifySuperAdmin(userId))) {
+    return { success: false, message: 'Non autorizzato: solo super admin', apiCallsUsed: 0 }
+  }
+
+  try {
+    // 1. Get all Serie A teams
+    const teams = await getSerieATeams()
+    let apiCallsUsed = 1
+
+    const allPlayers: Array<{ id: number; name: string; team: string; teamId: number; position: string; photo: string }> = []
+
+    // 2. For each team, fetch squad
+    for (const team of teams) {
+      const squadData = await apiFootballFetch<ApiSquad>('/players/squads', { team: String(team.id) })
+      apiCallsUsed++
+
+      if (squadData.results > 0 && squadData.response[0]) {
+        const dbTeamName = normalizeTeamName(team.name)
+        for (const player of squadData.response[0].players) {
+          allPlayers.push({
+            id: player.id,
+            name: player.name,
+            team: dbTeamName,
+            teamId: team.id,
+            position: player.position || 'Unknown',
+            photo: player.photo,
+          })
+        }
+      }
+
+      // Rate limiting
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+
+    // 3. Upsert all players into cache
+    const now = new Date()
+    for (const player of allPlayers) {
+      await prisma.apiFootballPlayerCache.upsert({
+        where: { id: player.id },
+        update: {
+          name: player.name,
+          team: player.team,
+          teamId: player.teamId,
+          position: player.position,
+          photo: player.photo,
+          cachedAt: now,
+        },
+        create: {
+          id: player.id,
+          name: player.name,
+          team: player.team,
+          teamId: player.teamId,
+          position: player.position,
+          photo: player.photo,
+          cachedAt: now,
+        },
+      })
+    }
+
+    return {
+      success: true,
+      message: `Cache aggiornata: ${allPlayers.length} giocatori da ${teams.length} squadre`,
+      apiCallsUsed,
+    }
+  } catch (error) {
+    console.error('refreshApiFootballCache error:', error)
+    return { success: false, message: `Errore: ${(error as Error).message}`, apiCallsUsed: 0 }
+  }
+}
+
+/**
+ * Generate match proposals without saving - for assisted matching
+ */
+export async function getMatchProposals(userId: string): Promise<ProposalsResult> {
+  const { verifySuperAdmin } = await import('./superadmin.service')
+  if (!(await verifySuperAdmin(userId))) {
+    return { success: false, message: 'Non autorizzato: solo super admin' }
+  }
+
+  try {
+    // Check if cache is empty or stale (older than 7 days)
+    const cacheCount = await prisma.apiFootballPlayerCache.count()
+    const oldestCache = await prisma.apiFootballPlayerCache.findFirst({
+      orderBy: { cachedAt: 'asc' },
+      select: { cachedAt: true },
+    })
+
+    let apiCallsUsed = 0
+    let cacheRefreshed = false
+
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+
+    if (cacheCount === 0 || (oldestCache && oldestCache.cachedAt < sevenDaysAgo)) {
+      // Refresh cache
+      const refreshResult = await refreshApiFootballCache(userId)
+      apiCallsUsed = refreshResult.apiCallsUsed
+      cacheRefreshed = true
+    }
+
+    // Get all unmatched DB players
+    const dbPlayers = await prisma.serieAPlayer.findMany({
+      where: { isActive: true, apiFootballId: null },
+      select: { id: true, name: true, team: true, position: true, quotation: true },
+    })
+
+    if (dbPlayers.length === 0) {
+      return {
+        success: true,
+        message: 'Tutti i giocatori sono gia matchati',
+        data: { proposals: [], apiCallsUsed, cacheRefreshed },
+      }
+    }
+
+    // Get all cached API players
+    const apiPlayers = await prisma.apiFootballPlayerCache.findMany()
+
+    // Pre-load already used API IDs
+    const existingApiIds = await prisma.serieAPlayer.findMany({
+      where: { apiFootballId: { not: null } },
+      select: { apiFootballId: true },
+    })
+    const usedApiIds = new Set<number>(existingApiIds.map((p) => p.apiFootballId!))
+
+    // Generate proposals
+    const proposals: MatchProposal[] = []
+
+    for (const dbPlayer of dbPlayers) {
+      const dbLastName = extractLastName(dbPlayer.name)
+      const dbFullNorm = normalizeName(dbPlayer.name)
+
+      // Filter API players by team first
+      const teamPlayers = apiPlayers.filter((api) => api.team === dbPlayer.team)
+
+      let bestMatch: { player: typeof apiPlayers[0]; confidence: 'HIGH' | 'MEDIUM' | 'LOW'; method: string } | null = null
+
+      for (const apiPlayer of teamPlayers) {
+        if (usedApiIds.has(apiPlayer.id)) continue
+
+        const apiNorm = normalizeName(apiPlayer.name)
+        const apiLastName = extractLastName(apiPlayer.name)
+
+        // HIGH confidence: exact full name match or exact last name match
+        if (apiNorm === dbFullNorm) {
+          bestMatch = { player: apiPlayer, confidence: 'HIGH', method: 'exact_full_name' }
+          break
+        }
+
+        if (apiLastName === dbLastName && apiLastName.length >= 3) {
+          if (!bestMatch || bestMatch.confidence !== 'HIGH') {
+            bestMatch = { player: apiPlayer, confidence: 'HIGH', method: 'exact_last_name' }
+          }
+        }
+
+        // MEDIUM confidence: partial name match
+        if (!bestMatch || bestMatch.confidence === 'LOW') {
+          if (apiLastName.includes(dbLastName) || dbLastName.includes(apiLastName)) {
+            if (dbLastName.length >= 3 && apiLastName.length >= 3) {
+              bestMatch = { player: apiPlayer, confidence: 'MEDIUM', method: 'partial_name' }
+            }
+          }
+        }
+
+        // LOW confidence: Levenshtein distance
+        if (!bestMatch) {
+          const distance = levenshteinDistance(apiLastName, dbLastName)
+          const maxLen = Math.max(apiLastName.length, dbLastName.length)
+          if (maxLen > 0 && distance / maxLen <= 0.3) {
+            bestMatch = { player: apiPlayer, confidence: 'LOW', method: 'levenshtein' }
+          }
+        }
+      }
+
+      proposals.push({
+        dbPlayer: {
+          id: dbPlayer.id,
+          name: dbPlayer.name,
+          team: dbPlayer.team,
+          position: dbPlayer.position,
+          quotation: dbPlayer.quotation,
+        },
+        apiPlayer: bestMatch ? { id: bestMatch.player.id, name: bestMatch.player.name, team: bestMatch.player.team } : null,
+        confidence: bestMatch ? bestMatch.confidence : 'NONE',
+        method: bestMatch ? bestMatch.method : 'no_match',
+      })
+    }
+
+    // Sort: HIGH first, then MEDIUM, then LOW, then NONE
+    const confidenceOrder = { HIGH: 0, MEDIUM: 1, LOW: 2, NONE: 3 }
+    proposals.sort((a, b) => confidenceOrder[a.confidence] - confidenceOrder[b.confidence])
+
+    return {
+      success: true,
+      data: { proposals, apiCallsUsed, cacheRefreshed },
+    }
+  } catch (error) {
+    console.error('getMatchProposals error:', error)
+    return { success: false, message: `Errore: ${(error as Error).message}` }
+  }
+}
+
+/**
+ * Search API-Football players in cache by name
+ * Supports partial matching and handles diacritics (e.g., "Yildiz" matches "Yıldız")
+ */
+export async function searchApiFootballPlayers(userId: string, query: string): Promise<SearchResult> {
+  const { verifySuperAdmin } = await import('./superadmin.service')
+  if (!(await verifySuperAdmin(userId))) {
+    return { success: false, message: 'Non autorizzato: solo super admin' }
+  }
+
+  if (!query || query.length < 2) {
+    return { success: false, message: 'Query deve avere almeno 2 caratteri' }
+  }
+
+  try {
+    // Normalize query for comparison
+    const normalizedQuery = normalizeName(query)
+
+    // Get all cached players (we'll filter in memory for better diacritic handling)
+    const allPlayers = await prisma.apiFootballPlayerCache.findMany({
+      orderBy: { name: 'asc' },
+    })
+
+    // Get already used API IDs
+    const existingApiIds = await prisma.serieAPlayer.findMany({
+      where: { apiFootballId: { not: null } },
+      select: { apiFootballId: true },
+    })
+    const usedApiIds = new Set<number>(existingApiIds.map((p) => p.apiFootballId!))
+
+    // Filter players: match normalized name contains normalized query
+    const matchingPlayers = allPlayers
+      .filter((p) => {
+        if (usedApiIds.has(p.id)) return false
+        const normalizedName = normalizeName(p.name)
+        return normalizedName.includes(normalizedQuery)
+      })
+      .slice(0, 50)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        team: p.team,
+        position: p.position,
+      }))
+
+    return {
+      success: true,
+      data: { players: matchingPlayers },
+    }
+  } catch (error) {
+    console.error('searchApiFootballPlayers error:', error)
+    return { success: false, message: `Errore: ${(error as Error).message}` }
+  }
+}
+
+/**
+ * Get unmatched DB players (those without apiFootballId)
+ */
+export async function getUnmatchedPlayers(userId: string, search?: string): Promise<UnmatchedResult> {
+  const { verifySuperAdmin } = await import('./superadmin.service')
+  if (!(await verifySuperAdmin(userId))) {
+    return { success: false, message: 'Non autorizzato: solo super admin' }
+  }
+
+  try {
+    const where: Parameters<typeof prisma.serieAPlayer.findMany>[0]['where'] = {
+      isActive: true,
+      apiFootballId: null,
+    }
+
+    if (search && search.length >= 2) {
+      where.name = {
+        contains: search,
+        mode: 'insensitive',
+      }
+    }
+
+    const players = await prisma.serieAPlayer.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        team: true,
+        position: true,
+        quotation: true,
+      },
+      orderBy: [{ team: 'asc' }, { name: 'asc' }],
+      take: 100,
+    })
+
+    return {
+      success: true,
+      data: {
+        players: players.map((p) => ({
+          id: p.id,
+          name: p.name,
+          team: p.team,
+          position: p.position,
+          quotation: p.quotation,
+        })),
+      },
+    }
+  } catch (error) {
+    console.error('getUnmatchedPlayers error:', error)
+    return { success: false, message: `Errore: ${(error as Error).message}` }
+  }
+}
+
+/**
+ * Get matched DB players (those with apiFootballId) with their API-Football info
+ */
+export async function getMatchedPlayers(userId: string, search?: string): Promise<MatchedPlayersResult> {
+  const { verifySuperAdmin } = await import('./superadmin.service')
+  if (!(await verifySuperAdmin(userId))) {
+    return { success: false, message: 'Non autorizzato: solo super admin' }
+  }
+
+  try {
+    const where: Parameters<typeof prisma.serieAPlayer.findMany>[0]['where'] = {
+      isActive: true,
+      apiFootballId: { not: null },
+    }
+
+    if (search && search.length >= 2) {
+      where.name = {
+        contains: search,
+        mode: 'insensitive',
+      }
+    }
+
+    const players = await prisma.serieAPlayer.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        team: true,
+        position: true,
+        quotation: true,
+        apiFootballId: true,
+      },
+      orderBy: [{ team: 'asc' }, { name: 'asc' }],
+    })
+
+    // Get API-Football names from cache
+    const apiIds = players.map((p) => p.apiFootballId!).filter(Boolean)
+    const apiPlayers = await prisma.apiFootballPlayerCache.findMany({
+      where: { id: { in: apiIds } },
+      select: { id: true, name: true },
+    })
+    const apiNameMap = new Map(apiPlayers.map((p) => [p.id, p.name]))
+
+    return {
+      success: true,
+      data: {
+        players: players.map((p) => ({
+          id: p.id,
+          name: p.name,
+          team: p.team,
+          position: p.position,
+          quotation: p.quotation,
+          apiFootballId: p.apiFootballId!,
+          apiFootballName: apiNameMap.get(p.apiFootballId!) || null,
+        })),
+      },
+    }
+  } catch (error) {
+    console.error('getMatchedPlayers error:', error)
+    return { success: false, message: `Errore: ${(error as Error).message}` }
+  }
+}
+
+/**
+ * Remove a match (reset apiFootballId to null)
+ */
+export async function removeMatch(userId: string, playerId: string): Promise<{ success: boolean; message?: string }> {
+  const { verifySuperAdmin } = await import('./superadmin.service')
+  if (!(await verifySuperAdmin(userId))) {
+    return { success: false, message: 'Non autorizzato: solo super admin' }
+  }
+
+  try {
+    const player = await prisma.serieAPlayer.findUnique({
+      where: { id: playerId },
+      select: { id: true, name: true, apiFootballId: true },
+    })
+
+    if (!player) {
+      return { success: false, message: 'Giocatore non trovato' }
+    }
+
+    if (!player.apiFootballId) {
+      return { success: false, message: 'Giocatore non ha un match da rimuovere' }
+    }
+
+    await prisma.serieAPlayer.update({
+      where: { id: playerId },
+      data: {
+        apiFootballId: null,
+        apiFootballStats: null,
+        statsSyncedAt: null,
+      },
+    })
+
+    return { success: true, message: `Match rimosso per ${player.name}` }
+  } catch (error) {
+    console.error('removeMatch error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
   }
 }

@@ -12,6 +12,7 @@
 
 import { AuctionTimer } from '../AuctionTimer'
 import { getTeamLogo } from '../../utils/teamLogos'
+import { getPlayerPhotoUrl } from '../../utils/player-images'
 import {
   AuctionLayoutProps,
   POSITION_NAMES,

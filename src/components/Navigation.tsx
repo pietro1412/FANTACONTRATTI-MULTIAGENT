@@ -122,6 +122,7 @@ const LEAGUE_MENU_ITEMS = [
   { key: 'playerStats', label: 'Statistiche', adminOnly: false, icon: 'players' },
   { key: 'strategie-rubata', label: 'Strategie', adminOnly: false, icon: 'strategy' },
   { key: 'svincolati', label: 'Svincolati', adminOnly: false, icon: 'svincolati' },
+  { key: 'playerStats', label: 'Statistiche', adminOnly: false, icon: 'stats' },
   { key: 'history', label: 'Storico', adminOnly: false, icon: 'history' },
   { key: 'prophecies', label: 'Profezie', adminOnly: false, icon: 'prophecy' },
 ]
@@ -142,6 +143,7 @@ function getPageDisplayName(page: string): string {
     trades: 'Scambi',
     rubata: 'Rubata',
     'strategie-rubata': 'Strategie Rubata',
+    playerStats: 'Statistiche Serie A',
   }
   return pageNames[page] || page
 }
