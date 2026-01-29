@@ -1188,8 +1188,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
                           {/* Stats columns - full set for stats view */}
                           {dataViewMode === 'stats' && STATS_COLUMNS.map((col, idx) => {
-                            const value = col.getValue(player.playerApiFootballStats)
-                            const formatted = col.format ? col.format(typeof value === 'number' ? value : null) : (value ?? '-')
+                            const rawValue = col.getValue(player.playerApiFootballStats)
+                            const numValue = rawValue != null && rawValue !== '' ? Number(rawValue) : null
+                            const formatted = col.format ? col.format(numValue) : (numValue ?? '-')
                             return (
                               <td key={col.key} className={`p-2 text-center text-xs ${col.colorClass || 'text-gray-300'} ${idx === 0 ? 'border-l border-surface-50/10' : ''}`}>
                                 {formatted}
@@ -1199,8 +1200,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
                           {/* Stats columns - essential only for merge view */}
                           {dataViewMode === 'merge' && STATS_COLUMNS.filter(c => MERGE_STATS_KEYS.includes(c.key)).map((col, idx) => {
-                            const value = col.getValue(player.playerApiFootballStats)
-                            const formatted = col.format ? col.format(typeof value === 'number' ? value : null) : (value ?? '-')
+                            const rawValue = col.getValue(player.playerApiFootballStats)
+                            const numValue = rawValue != null && rawValue !== '' ? Number(rawValue) : null
+                            const formatted = col.format ? col.format(numValue) : (numValue ?? '-')
                             return (
                               <td key={col.key} className={`p-2 text-center text-xs ${col.colorClass || 'text-gray-300'} ${idx === 0 ? 'border-l border-surface-50/10' : ''}`}>
                                 {formatted}
