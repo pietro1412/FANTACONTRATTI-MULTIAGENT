@@ -23,6 +23,7 @@ import historyRoutes from './routes/history'
 import indemnityRoutes from './routes/indemnity'
 import timeRoutes from './routes/time'
 import objectivesRoutes from './routes/objectives'
+import feedbackRoutes from './routes/feedback'
 
 const app = express()
 const PORT = process.env.API_PORT || 3003
@@ -123,6 +124,7 @@ app.use('/api', historyRoutes) // History routes include /leagues/:id/history/*
 app.use('/api', indemnityRoutes) // Indemnity phase routes include /leagues/:id/indemnity/*
 app.use('/api/time', timeRoutes) // Time sync endpoint for client clock calibration
 app.use('/api', objectivesRoutes) // Objectives routes for pre-auction targets
+app.use('/api/feedback', feedbackRoutes) // Feedback/segnalazioni routes
 
 // 404 handler
 app.use((_req, res) => {

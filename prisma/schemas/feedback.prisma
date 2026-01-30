@@ -1,0 +1,117 @@
+// =============================================================================
+// feedback.prisma - User Feedback & Bug Reporting System
+// =============================================================================
+//
+// This file contains models for manager feedback/segnalazioni system.
+// Allows managers to report issues and track their resolution.
+//
+// =============================================================================
+
+// ==================== FEEDBACK STATUS ENUM ====================
+enum FeedbackStatus {
+  APERTA           // Initial state - report submitted
+  IN_LAVORAZIONE   // Admin is working on it
+  RISOLTA          // Issue resolved
+}
+
+// ==================== FEEDBACK CATEGORY ENUM ====================
+enum FeedbackCategory {
+  BUG              // Software bug
+  SUGGERIMENTO     // Feature suggestion
+  DOMANDA          // Question/help needed
+  ALTRO            // Other
+}
+
+// ==================== USER FEEDBACK MODEL ====================
+model UserFeedback {
+  id              String            @id @default(cuid())
+
+  // Who submitted
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Optional league context (if feedback is league-specific)
+  leagueId        String?
+  league          League?           @relation(fields: [leagueId], references: [id], onDelete: SetNull)
+
+  // Content
+  title           String
+  description     String            @db.Text
+  category        FeedbackCategory  @default(BUG)
+
+  // Status tracking
+  status          FeedbackStatus    @default(APERTA)
+
+  // Optional: page/context where issue occurred
+  pageContext     String?           // e.g., "contracts", "auction", "rubata"
+
+  // GitHub integration
+  githubIssueId   Int?              // GitHub issue number if created
+  githubIssueUrl  String?           // Full URL to GitHub issue
+
+  // Timestamps
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  resolvedAt      DateTime?         // When status changed to RISOLTA
+
+  // Relations
+  responses       FeedbackResponse[]
+  notifications   FeedbackNotification[]
+
+  @@index([userId])
+  @@index([leagueId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ==================== FEEDBACK RESPONSE MODEL ====================
+model FeedbackResponse {
+  id              String            @id @default(cuid())
+
+  // Parent feedback
+  feedbackId      String
+  feedback        UserFeedback      @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  // Who responded (admin/superadmin)
+  adminId         String
+  admin           User              @relation("FeedbackAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+
+  // Response content
+  content         String            @db.Text
+
+  // Did this response change status?
+  statusChange    FeedbackStatus?   // null if no change, or the new status
+
+  // Timestamps
+  createdAt       DateTime          @default(now())
+
+  @@index([feedbackId])
+  @@index([adminId])
+}
+
+// ==================== FEEDBACK NOTIFICATION MODEL ====================
+model FeedbackNotification {
+  id              String            @id @default(cuid())
+
+  // Target user (the manager who submitted feedback)
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Related feedback
+  feedbackId      String
+  feedback        UserFeedback      @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  // Notification type
+  type            String            // "STATUS_CHANGE" | "NEW_RESPONSE"
+
+  // Read status
+  isRead          Boolean           @default(false)
+  readAt          DateTime?
+
+  // Timestamps
+  createdAt       DateTime          @default(now())
+
+  @@unique([userId, feedbackId, type])  // One notification per type per feedback per user
+  @@index([userId, isRead])
+  @@index([feedbackId])
+}

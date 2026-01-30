@@ -1697,3 +1697,83 @@ export const indemnityApi = {
   getAllDecisionsStatus: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/indemnity/status`),
 }
+
+// ==================== FEEDBACK/SEGNALAZIONI API ====================
+
+export const feedbackApi = {
+  // Submit new feedback
+  submit: (data: {
+    title: string
+    description: string
+    category?: 'BUG' | 'SUGGERIMENTO' | 'DOMANDA' | 'ALTRO'
+    leagueId?: string
+    pageContext?: string
+  }) =>
+    request('/api/feedback', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Get user's feedback list
+  getMyFeedback: (options?: { status?: string; page?: number; limit?: number }) => {
+    const params = new URLSearchParams()
+    if (options?.status) params.append('status', options.status)
+    if (options?.page) params.append('page', options.page.toString())
+    if (options?.limit) params.append('limit', options.limit.toString())
+    const query = params.toString()
+    return request(`/api/feedback${query ? `?${query}` : ''}`)
+  },
+
+  // Get single feedback by ID
+  getById: (id: string) => request(`/api/feedback/${id}`),
+
+  // Get all feedback (superadmin only)
+  getAll: (options?: {
+    status?: string
+    category?: string
+    search?: string
+    page?: number
+    limit?: number
+  }) => {
+    const params = new URLSearchParams()
+    if (options?.status) params.append('status', options.status)
+    if (options?.category) params.append('category', options.category)
+    if (options?.search) params.append('search', options.search)
+    if (options?.page) params.append('page', options.page.toString())
+    if (options?.limit) params.append('limit', options.limit.toString())
+    const query = params.toString()
+    return request(`/api/feedback/all${query ? `?${query}` : ''}`)
+  },
+
+  // Get feedback stats (superadmin only)
+  getStats: () => request('/api/feedback/stats'),
+
+  // Update feedback status (superadmin only)
+  updateStatus: (id: string, status: 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA') =>
+    request(`/api/feedback/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+
+  // Add response to feedback (superadmin only)
+  addResponse: (
+    id: string,
+    content: string,
+    statusChange?: 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA'
+  ) =>
+    request(`/api/feedback/${id}/response`, {
+      method: 'POST',
+      body: JSON.stringify({ content, statusChange }),
+    }),
+
+  // Get unread notifications
+  getUnreadNotifications: () => request('/api/feedback/notifications/unread'),
+
+  // Mark notification as read
+  markNotificationRead: (id: string) =>
+    request(`/api/feedback/notifications/${id}`, { method: 'PATCH' }),
+
+  // Mark all notifications as read
+  markAllNotificationsRead: () =>
+    request('/api/feedback/notifications/read-all', { method: 'PATCH' }),
+}

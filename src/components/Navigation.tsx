@@ -4,6 +4,7 @@ import { superadminApi } from '../services/api'
 import { Button } from './ui/Button'
 import { Notifications } from './Notifications'
 import { PendingInvites } from './PendingInvites'
+import { FeedbackBadge } from './FeedbackBadge'
 import { pusherClient } from '../services/pusher.client'
 import { ThemeSelector, ThemeButton } from './ThemeSelector'
 
@@ -451,6 +452,9 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
 
             {/* Pending Invites - shown globally */}
             <PendingInvites onNavigate={onNavigate} />
+
+            {/* Feedback Badge - shown globally */}
+            <FeedbackBadge onNavigate={onNavigate} />
 
             {leagueId && (
               <>

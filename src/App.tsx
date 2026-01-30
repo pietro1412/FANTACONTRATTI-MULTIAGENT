@@ -39,6 +39,7 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword').then(m => ({ de
 const InviteDetail = lazy(() => import('./pages/InviteDetail').then(m => ({ default: m.InviteDetail })))
 const Rules = lazy(() => import('./pages/Rules').then(m => ({ default: m.Rules })))
 const PatchNotes = lazy(() => import('./pages/PatchNotes').then(m => ({ default: m.PatchNotes })))
+const FeedbackHub = lazy(() => import('./pages/FeedbackHub').then(m => ({ default: m.FeedbackHub })))
 
 // Loading component per autenticazione
 function LoadingScreen() {
@@ -200,6 +201,10 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'playerStats': navigate(`/leagues/${lid}/stats`); break
       case 'financials': navigate(`/leagues/${lid}/financials`); break
       case 'patchNotes': navigate(`/leagues/${lid}/patch-notes`); break
+      case 'feedbackHub':
+        if (params?.feedbackId) navigate(`/leagues/${lid}/feedback?id=${params.feedbackId}`)
+        else navigate(`/leagues/${lid}/feedback`)
+        break
       case 'superadmin':
         if (params?.tab) navigate(`/superadmin?tab=${params.tab}`)
         else navigate('/superadmin')
@@ -386,6 +391,17 @@ function PatchNotesWrapper() {
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
   return <PatchNotes leagueId={leagueId} onNavigate={onNavigate} />
+}
+
+function FeedbackHubWrapper() {
+  const navigate = useNavigate()
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const [searchParams] = useSearchParams()
+  const feedbackId = searchParams.get('id') || undefined
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
+
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <FeedbackHub leagueId={leagueId} feedbackId={feedbackId} onNavigate={onNavigate} />
 }
 
 function SuperAdminWrapper() {
@@ -609,6 +625,13 @@ function AppRoutes() {
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
             <PatchNotesWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/feedback" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <FeedbackHubWrapper />
           </Suspense>
         </ProtectedRoute>
       } />

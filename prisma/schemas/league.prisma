@@ -43,6 +43,7 @@ model League {
   playerMovements  PlayerMovement[]   // see: movement.prisma
   prophecies       Prophecy[]         // see: movement.prisma
   prizes           Prize[]            // see: prize.prisma
+  feedback         UserFeedback[]     // see: feedback.prisma
 }
 
 model LeagueMember {

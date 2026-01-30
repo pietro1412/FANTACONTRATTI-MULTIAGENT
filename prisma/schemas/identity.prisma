@@ -29,4 +29,9 @@ model User {
   auditLogs         AuditLog[]       // see: admin.prisma
   sentInvites       LeagueInvite[]   // see: league.prisma
   quotazioniUploads QuotazioniUpload[] // see: player.prisma
+
+  // Feedback system
+  userFeedback           UserFeedback[]             // see: feedback.prisma
+  feedbackResponses      FeedbackResponse[]  @relation("FeedbackAdmin")  // see: feedback.prisma
+  feedbackNotifications  FeedbackNotification[]     // see: feedback.prisma
 }
