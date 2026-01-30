@@ -122,6 +122,11 @@ const MenuIcons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
     </svg>
   ),
+  feedbackHub: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+    </svg>
+  ),
 }
 
 // League menu items configuration
@@ -135,7 +140,7 @@ const LEAGUE_MENU_ITEMS = [
   { key: 'financials', label: 'Finanze', adminOnly: false, icon: 'financials' },
   { key: 'history', label: 'Storico', adminOnly: false, icon: 'history' },
   { key: 'prophecies', label: 'Profezie', adminOnly: false, icon: 'prophecy' },
-  { key: 'patchNotes', label: 'Patch Notes', adminOnly: false, icon: 'patchNotes' },
+  { key: 'feedbackHub', label: 'Feedback', adminOnly: false, icon: 'feedbackHub' },
 ]
 
 // Get page display name for breadcrumbs (should match menu labels)
@@ -156,6 +161,7 @@ function getPageDisplayName(page: string): string {
     'strategie-rubata': 'Giocatori',
     financials: 'Finanze',
     patchNotes: 'Patch Notes',
+    feedbackHub: 'Feedback',
   }
   return pageNames[page] || page
 }
