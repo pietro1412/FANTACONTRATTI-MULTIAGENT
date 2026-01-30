@@ -63,8 +63,14 @@ function DonutChart({ data, size = 180, innerRadius = 50 }: DonutChartProps) {
     return { ...d, path, labelX, labelY, percentage: Math.round((d.value / total) * 100) }
   })
 
+  // Responsive font sizes based on chart size
+  const isSmall = size < 160
+  const labelFontSize = isSmall ? 9 : 11
+  const centerLabelSize = isSmall ? 8 : 10
+  const centerValueSize = isSmall ? 11 : 14
+
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-2 md:gap-3">
       <svg width={size} height={size}>
         {slices.map((slice, i) => (
           <g key={i}>
@@ -75,12 +81,12 @@ function DonutChart({ data, size = 180, innerRadius = 50 }: DonutChartProps) {
               strokeWidth="1"
               className="transition-opacity hover:opacity-80"
             />
-            {slice.percentage >= 10 && (
+            {slice.percentage >= (isSmall ? 15 : 10) && (
               <text
                 x={slice.labelX}
                 y={slice.labelY}
                 fill="white"
-                fontSize="11"
+                fontSize={labelFontSize}
                 fontWeight="bold"
                 textAnchor="middle"
                 dominantBaseline="middle"
@@ -93,30 +99,30 @@ function DonutChart({ data, size = 180, innerRadius = 50 }: DonutChartProps) {
         {/* Center text */}
         <text
           x={center}
-          y={center - 8}
+          y={center - (isSmall ? 6 : 8)}
           fill="rgba(255,255,255,0.7)"
-          fontSize="10"
+          fontSize={centerLabelSize}
           textAnchor="middle"
         >
           Totale
         </text>
         <text
           x={center}
-          y={center + 8}
+          y={center + (isSmall ? 6 : 8)}
           fill="white"
-          fontSize="14"
+          fontSize={centerValueSize}
           fontWeight="bold"
           textAnchor="middle"
         >
           {total}M
         </text>
       </svg>
-      {/* Legend */}
-      <div className="flex flex-wrap justify-center gap-3 text-xs">
+      {/* Legend - compact on small charts */}
+      <div className={`flex flex-wrap justify-center gap-2 md:gap-3 ${isSmall ? 'text-[10px]' : 'text-xs'}`}>
         {slices.map((slice, i) => (
-          <div key={i} className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: slice.color }} />
-            <span className="text-gray-400">{slice.label}</span>
+          <div key={i} className="flex items-center gap-1 md:gap-1.5">
+            <div className={`${isSmall ? 'w-2 h-2' : 'w-3 h-3'} rounded`} style={{ backgroundColor: slice.color }} />
+            <span className="text-gray-400">{isSmall ? slice.label.charAt(0) : slice.label}</span>
             <span className="text-white font-medium">{slice.value}M</span>
           </div>
         ))}
@@ -819,21 +825,37 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                 </div>
                               </div>
 
-                              {/* Center: Donut chart for position distribution - hidden on mobile */}
-                              <div className="hidden md:flex bg-surface-300/30 rounded-xl p-4 border border-surface-50/10 flex-col items-center justify-center">
-                                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">
+                              {/* Center: Donut chart for position distribution */}
+                              <div className="bg-surface-300/30 rounded-xl p-3 md:p-4 border border-surface-50/10 flex flex-col items-center justify-center">
+                                <h4 className="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider mb-2 md:mb-4">
                                   Distribuzione Costi per Ruolo
                                 </h4>
-                                <DonutChart
-                                  data={(['P', 'D', 'C', 'A'] as const).map(pos => ({
-                                    label: POSITION_NAMES[pos],
-                                    // #193: Use post-renewal cost if available
-                                    value: showPrePost && team.costByPosition[pos].postRenewal !== null
-                                      ? team.costByPosition[pos].postRenewal!
-                                      : team.costByPosition[pos].preRenewal,
-                                    color: POSITION_CHART_COLORS[pos],
-                                  }))}
-                                />
+                                {/* Mobile: smaller donut */}
+                                <div className="md:hidden">
+                                  <DonutChart
+                                    size={140}
+                                    innerRadius={35}
+                                    data={(['P', 'D', 'C', 'A'] as const).map(pos => ({
+                                      label: POSITION_NAMES[pos],
+                                      value: showPrePost && team.costByPosition[pos].postRenewal !== null
+                                        ? team.costByPosition[pos].postRenewal!
+                                        : team.costByPosition[pos].preRenewal,
+                                      color: POSITION_CHART_COLORS[pos],
+                                    }))}
+                                  />
+                                </div>
+                                {/* Desktop: regular donut */}
+                                <div className="hidden md:block">
+                                  <DonutChart
+                                    data={(['P', 'D', 'C', 'A'] as const).map(pos => ({
+                                      label: POSITION_NAMES[pos],
+                                      value: showPrePost && team.costByPosition[pos].postRenewal !== null
+                                        ? team.costByPosition[pos].postRenewal!
+                                        : team.costByPosition[pos].preRenewal,
+                                      color: POSITION_CHART_COLORS[pos],
+                                    }))}
+                                  />
+                                </div>
                               </div>
 
                               {/* Right: Bar chart for budget vs contracts */}
