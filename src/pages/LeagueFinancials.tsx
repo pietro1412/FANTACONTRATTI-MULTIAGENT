@@ -193,6 +193,11 @@ interface PlayerData {
   salary: number
   duration: number
   clause: number
+  // #193: Pre/Post renewal values
+  preRenewalSalary: number
+  postRenewalSalary: number | null
+  draftDuration: number | null
+  draftReleased: boolean
 }
 
 interface TeamData {
@@ -219,6 +224,17 @@ interface TeamData {
     A: number
   }
   players: PlayerData[]
+  // #193: Pre/Post renewal aggregates
+  preRenewalContractCost: number
+  postRenewalContractCost: number | null
+  costByPosition: {
+    P: { preRenewal: number; postRenewal: number | null }
+    D: { preRenewal: number; postRenewal: number | null }
+    C: { preRenewal: number; postRenewal: number | null }
+    A: { preRenewal: number; postRenewal: number | null }
+  }
+  isConsolidated: boolean
+  consolidatedAt: string | null
 }
 
 interface FinancialsData {
@@ -226,6 +242,8 @@ interface FinancialsData {
   maxSlots: number
   teams: TeamData[]
   isAdmin: boolean
+  // #193: Phase info
+  inContrattiPhase: boolean
 }
 
 // Sort field type
@@ -368,12 +386,19 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
     })
   }, [data?.teams, sortField, sortDirection])
 
-  // Calculate league totals
+  // Calculate league totals (including pre/post renewal for #193)
   const totals = useMemo(() => {
     if (!data?.teams) return null
 
     const totalBudget = data.teams.reduce((sum, t) => sum + t.budget, 0)
     const totalContracts = data.teams.reduce((sum, t) => sum + t.annualContractCost, 0)
+
+    // #193: Pre/Post renewal totals
+    const totalPreRenewal = data.teams.reduce((sum, t) => sum + t.preRenewalContractCost, 0)
+    const hasPostRenewal = data.inContrattiPhase && data.teams.some(t => t.postRenewalContractCost !== null)
+    const totalPostRenewal = hasPostRenewal
+      ? data.teams.reduce((sum, t) => sum + (t.postRenewalContractCost ?? t.preRenewalContractCost), 0)
+      : null
 
     return {
       totalBudget,
@@ -385,8 +410,12 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
         if (allPlayers.length === 0) return 0
         return allPlayers.reduce((sum, p) => sum + (p.age || 0), 0) / allPlayers.length
       })(),
+      // #193: Pre/Post renewal
+      totalPreRenewal,
+      totalPostRenewal,
+      contractsDelta: totalPostRenewal !== null ? totalPostRenewal - totalPreRenewal : null,
     }
-  }, [data?.teams])
+  }, [data?.teams, data?.inContrattiPhase])
 
   // Sortable header component
   const SortableHeader = ({ field, label, className = '' }: { field: SortField; label: string; className?: string }) => (
@@ -464,6 +493,23 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
           <p className="text-gray-400 mt-1">Panoramica finanziaria di tutte le squadre</p>
         </div>
 
+        {/* #193: CONTRATTI Phase Banner */}
+        {data?.inContrattiPhase && (
+          <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                <span className="text-amber-400 text-lg">$</span>
+              </div>
+              <div>
+                <div className="font-medium text-amber-400">Fase Contratti in Corso</div>
+                <div className="text-sm text-amber-400/70">
+                  I valori mostrano il confronto tra costi pre-rinnovo e post-rinnovo (bozze in corso)
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* League Totals */}
         {totals && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
@@ -471,10 +517,26 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
               <div className="text-xs text-gray-500 uppercase tracking-wider">Budget Totale</div>
               <div className="text-xl font-bold text-primary-400">{totals.totalBudget}M</div>
             </div>
-            <div className="bg-surface-300/50 rounded-lg p-4 border border-surface-50/10">
-              <div className="text-xs text-gray-500 uppercase tracking-wider">Contratti</div>
-              <div className="text-xl font-bold text-accent-400">{totals.totalContracts}M</div>
-            </div>
+            {/* #193: Show pre/post renewal contracts during CONTRATTI phase */}
+            {data?.inContrattiPhase && totals.totalPostRenewal !== null ? (
+              <div className="bg-surface-300/50 rounded-lg p-4 border border-surface-50/10">
+                <div className="text-xs text-gray-500 uppercase tracking-wider">Contratti</div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-sm text-gray-500 line-through">{totals.totalPreRenewal}M</span>
+                  <span className="text-xl font-bold text-accent-400">{totals.totalPostRenewal}M</span>
+                </div>
+                {totals.contractsDelta !== null && totals.contractsDelta !== 0 && (
+                  <div className={`text-xs mt-1 ${totals.contractsDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                    {totals.contractsDelta > 0 ? '+' : ''}{totals.contractsDelta}M vs pre-rinnovo
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-surface-300/50 rounded-lg p-4 border border-surface-50/10">
+                <div className="text-xs text-gray-500 uppercase tracking-wider">Contratti</div>
+                <div className="text-xl font-bold text-accent-400">{totals.totalContracts}M</div>
+              </div>
+            )}
             <div className="bg-surface-300/50 rounded-lg p-4 border border-surface-50/10">
               <div className="text-xs text-gray-500 uppercase tracking-wider">Bilancio</div>
               <div className={`text-xl font-bold ${totals.totalBalance >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
@@ -512,6 +574,11 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                   const isExpanded = expandedTeam === team.memberId
                   const balance = team.budget - team.annualContractCost
                   const balanceLow = balance < 0
+                  // #193: Calculate delta for pre/post renewal
+                  const showPrePost = data?.inContrattiPhase && team.postRenewalContractCost !== null && !team.isConsolidated
+                  const contractDelta = showPrePost
+                    ? (team.postRenewalContractCost! - team.preRenewalContractCost)
+                    : null
 
                   return (
                     <>
@@ -525,7 +592,15 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                           <div className="flex items-center gap-2">
                             <span className={`text-gray-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
                             <div>
-                              <div className="font-medium text-white">{team.teamName}</div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-white">{team.teamName}</span>
+                                {/* #193: Consolidated badge */}
+                                {data?.inContrattiPhase && team.isConsolidated && (
+                                  <span className="px-1.5 py-0.5 text-[10px] rounded bg-green-500/20 text-green-400 font-medium">
+                                    CONSOLIDATO
+                                  </span>
+                                )}
+                              </div>
                               <div className="text-xs text-gray-500">@{team.username}</div>
                             </div>
                           </div>
@@ -536,9 +611,23 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                           {team.budget}M
                         </td>
 
-                        {/* Contracts */}
-                        <td className="px-4 py-4 text-right font-medium text-accent-400">
-                          {team.annualContractCost}M
+                        {/* #193: Contracts with pre/post renewal */}
+                        <td className="px-4 py-4 text-right">
+                          {showPrePost ? (
+                            <div className="flex flex-col items-end">
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-xs text-gray-500 line-through">{team.preRenewalContractCost}M</span>
+                                <span className="font-medium text-accent-400">{team.postRenewalContractCost}M</span>
+                              </div>
+                              {contractDelta !== null && contractDelta !== 0 && (
+                                <span className={`text-[10px] ${contractDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                  {contractDelta > 0 ? '+' : ''}{contractDelta}M
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="font-medium text-accent-400">{team.annualContractCost}M</span>
+                          )}
                         </td>
 
                         {/* Balance */}
@@ -611,6 +700,12 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                             <div className="flex items-center justify-between mb-6">
                               <div className="text-sm font-medium text-gray-400">
                                 Riepilogo finanziario di {team.teamName}
+                                {/* #193: Consolidated status */}
+                                {data?.inContrattiPhase && team.isConsolidated && (
+                                  <span className="ml-2 px-2 py-1 text-xs rounded bg-green-500/20 text-green-400">
+                                    Consolidato
+                                  </span>
+                                )}
                               </div>
                               <button
                                 onClick={(e) => {
@@ -625,17 +720,18 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                              {/* Left: Aggregated data by position */}
+                              {/* Left: Aggregated data by position with pre/post renewal (#193) */}
                               <div className="bg-surface-300/30 rounded-xl p-4 border border-surface-50/10">
                                 <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">
-                                  Rosa per Ruolo
+                                  Rosa per Ruolo {showPrePost && <span className="text-amber-400">(Pre/Post Rinnovo)</span>}
                                 </h4>
                                 <div className="space-y-3">
                                   {(['P', 'D', 'C', 'A'] as const).map(pos => {
                                     const count = team.positionDistribution[pos]
-                                    const totalSalary = team.players
-                                      .filter(p => p.position === pos)
-                                      .reduce((sum, p) => sum + p.salary, 0)
+                                    const preRenewalCost = team.costByPosition[pos].preRenewal
+                                    const postRenewalCost = team.costByPosition[pos].postRenewal
+                                    const showPosDelta = showPrePost && postRenewalCost !== null
+                                    const posDelta = showPosDelta ? postRenewalCost - preRenewalCost : null
                                     return (
                                       <div
                                         key={pos}
@@ -652,15 +748,31 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                             <div className="text-white font-medium">{count}</div>
                                             <div className="text-[10px] text-gray-500">giocatori</div>
                                           </div>
-                                          <div className="text-right min-w-[60px]">
-                                            <div className="text-accent-400 font-medium">{totalSalary}M</div>
-                                            <div className="text-[10px] text-gray-500">ingaggi</div>
+                                          <div className="text-right min-w-[80px]">
+                                            {showPosDelta ? (
+                                              <>
+                                                <div className="flex items-baseline justify-end gap-1">
+                                                  <span className="text-xs text-gray-500 line-through">{preRenewalCost}M</span>
+                                                  <span className="text-accent-400 font-medium">{postRenewalCost}M</span>
+                                                </div>
+                                                {posDelta !== null && posDelta !== 0 && (
+                                                  <div className={`text-[10px] ${posDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                                    {posDelta > 0 ? '+' : ''}{posDelta}M
+                                                  </div>
+                                                )}
+                                              </>
+                                            ) : (
+                                              <>
+                                                <div className="text-accent-400 font-medium">{preRenewalCost}M</div>
+                                                <div className="text-[10px] text-gray-500">ingaggi</div>
+                                              </>
+                                            )}
                                           </div>
                                         </div>
                                       </div>
                                     )
                                   })}
-                                  {/* Total row */}
+                                  {/* Total row with pre/post renewal (#193) */}
                                   <div className="flex items-center justify-between p-3 rounded-lg bg-surface-50/10 border-t border-surface-50/20 mt-2">
                                     <span className="text-gray-400 font-medium">Totale</span>
                                     <div className="flex items-center gap-4 text-sm">
@@ -668,9 +780,25 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                         <div className="text-white font-bold">{team.slotCount}</div>
                                         <div className="text-[10px] text-gray-500">giocatori</div>
                                       </div>
-                                      <div className="text-right min-w-[60px]">
-                                        <div className="text-accent-400 font-bold">{team.annualContractCost}M</div>
-                                        <div className="text-[10px] text-gray-500">ingaggi</div>
+                                      <div className="text-right min-w-[80px]">
+                                        {showPrePost ? (
+                                          <>
+                                            <div className="flex items-baseline justify-end gap-1">
+                                              <span className="text-xs text-gray-500 line-through">{team.preRenewalContractCost}M</span>
+                                              <span className="text-accent-400 font-bold">{team.postRenewalContractCost}M</span>
+                                            </div>
+                                            {contractDelta !== null && contractDelta !== 0 && (
+                                              <div className={`text-[10px] ${contractDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                                {contractDelta > 0 ? '+' : ''}{contractDelta}M
+                                              </div>
+                                            )}
+                                          </>
+                                        ) : (
+                                          <>
+                                            <div className="text-accent-400 font-bold">{team.annualContractCost}M</div>
+                                            <div className="text-[10px] text-gray-500">ingaggi</div>
+                                          </>
+                                        )}
                                       </div>
                                     </div>
                                   </div>
@@ -685,9 +813,10 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                 <DonutChart
                                   data={(['P', 'D', 'C', 'A'] as const).map(pos => ({
                                     label: POSITION_NAMES[pos],
-                                    value: team.players
-                                      .filter(p => p.position === pos)
-                                      .reduce((sum, p) => sum + p.salary, 0),
+                                    // #193: Use post-renewal cost if available
+                                    value: showPrePost && team.costByPosition[pos].postRenewal !== null
+                                      ? team.costByPosition[pos].postRenewal!
+                                      : team.costByPosition[pos].preRenewal,
                                     color: POSITION_CHART_COLORS[pos],
                                   }))}
                                 />
@@ -700,8 +829,30 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                 </h4>
                                 <BudgetBarChart
                                   budget={team.budget}
-                                  contracts={team.annualContractCost}
+                                  contracts={showPrePost ? team.postRenewalContractCost! : team.annualContractCost}
                                 />
+                                {/* #193: Show pre-renewal comparison */}
+                                {showPrePost && (
+                                  <div className="mt-4 pt-4 border-t border-surface-50/20">
+                                    <div className="text-xs text-gray-500 mb-2">Confronto Pre-Rinnovo</div>
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-gray-400">Contratti pre-rinnovo:</span>
+                                      <span className="text-gray-400">{team.preRenewalContractCost}M</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-gray-400">Contratti post-rinnovo:</span>
+                                      <span className="text-accent-400">{team.postRenewalContractCost}M</span>
+                                    </div>
+                                    {contractDelta !== null && contractDelta !== 0 && (
+                                      <div className="flex justify-between text-xs mt-1 pt-1 border-t border-surface-50/10">
+                                        <span className="text-gray-400">Variazione:</span>
+                                        <span className={contractDelta > 0 ? 'text-red-400' : 'text-green-400'}>
+                                          {contractDelta > 0 ? '+' : ''}{contractDelta}M
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </td>

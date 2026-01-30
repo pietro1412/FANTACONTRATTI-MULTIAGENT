@@ -195,11 +195,12 @@ export const leagueApi = {
       createdAt: string
     }>>(`/api/leagues/search?q=${encodeURIComponent(query)}`),
 
-  // Get financial dashboard data (#190)
+  // Get financial dashboard data (#190, #193)
   getFinancials: (leagueId: string) =>
     request<{
       leagueName: string
       maxSlots: number
+      inContrattiPhase: boolean // #193: true if league is in CONTRATTI phase
       teams: Array<{
         memberId: string
         teamName: string
@@ -233,7 +234,23 @@ export const leagueApi = {
           salary: number
           duration: number
           clause: number
+          // #193: Pre/Post renewal values
+          preRenewalSalary: number
+          postRenewalSalary: number | null
+          draftDuration: number | null
+          draftReleased: boolean
         }>
+        // #193: Pre/Post renewal aggregates
+        preRenewalContractCost: number
+        postRenewalContractCost: number | null
+        costByPosition: {
+          P: { preRenewal: number; postRenewal: number | null }
+          D: { preRenewal: number; postRenewal: number | null }
+          C: { preRenewal: number; postRenewal: number | null }
+          A: { preRenewal: number; postRenewal: number | null }
+        }
+        isConsolidated: boolean
+        consolidatedAt: string | null
       }>
     }>(`/api/leagues/${leagueId}/financials`),
 }
