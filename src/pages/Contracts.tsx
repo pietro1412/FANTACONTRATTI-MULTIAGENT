@@ -983,6 +983,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                           team: pending.player.team,
                           position: pending.player.position,
                           age: pending.player.age,
+                          apiFootballId: pending.player.apiFootballId,
                           apiFootballStats: pending.player.apiFootballStats,
                         })}
                         className="text-primary-400 hover:text-primary-300 font-medium flex-1 text-sm sm:text-base leading-tight text-left cursor-pointer transition-colors"
@@ -1108,6 +1109,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                                   team: pending.player.team,
                                   position: pending.player.position,
                                   age: pending.player.age,
+                                  apiFootballId: pending.player.apiFootballId,
                                   apiFootballStats: pending.player.apiFootballStats,
                                 })}
                                 className="text-primary-400 hover:text-primary-300 font-medium text-sm sm:text-base leading-tight cursor-pointer transition-colors"
@@ -1212,6 +1214,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                               team: contract.roster.player.team,
                               position: contract.roster.player.position,
                               age: contract.roster.player.age,
+                              apiFootballId: contract.roster.player.apiFootballId,
                               apiFootballStats: contract.roster.player.apiFootballStats,
                             })}
                             className="text-primary-400 hover:text-primary-300 font-medium truncate cursor-pointer transition-colors"
@@ -1339,6 +1342,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                         team: contract.roster.player.team,
                         position: contract.roster.player.position,
                         age: contract.roster.player.age,
+                        apiFootballId: contract.roster.player.apiFootballId,
                         apiFootballStats: contract.roster.player.apiFootballStats,
                       })}
                       className={`font-medium flex-1 text-sm sm:text-base leading-tight cursor-pointer transition-colors text-left ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-primary-400 hover:text-primary-300'}`}
@@ -1603,6 +1607,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                                 team: contract.roster.player.team,
                                 position: contract.roster.player.position,
                                 age: contract.roster.player.age,
+                                apiFootballId: contract.roster.player.apiFootballId,
                                 apiFootballStats: contract.roster.player.apiFootballStats,
                               })}
                               className={`font-medium text-sm leading-tight cursor-pointer transition-colors ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-primary-400 hover:text-primary-300'}`}
