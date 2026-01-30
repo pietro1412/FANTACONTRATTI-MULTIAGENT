@@ -19,6 +19,8 @@ export interface PlayerStats {
   goals: {
     total: number | null
     assists: number | null
+    conceded: number | null  // Goalkeeper: goals conceded
+    saves: number | null     // Goalkeeper: saves
   }
   shots: {
     total: number | null
@@ -44,6 +46,7 @@ export interface PlayerStats {
   penalty: {
     scored: number | null
     missed: number | null
+    saved: number | null     // Goalkeeper: penalties saved
   }
 }
 
@@ -173,7 +176,50 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
               )}
             </div>
           </div>
+        ) : player.position === 'P' ? (
+          /* ========== GOALKEEPER STATS ========== */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Generali */}
+            <StatSection title="Generali">
+              <StatRow label="Presenze" value={stats.games.appearences} />
+              <StatRow label="Minuti" value={stats.games.minutes} />
+              <StatRow label="Rating Medio" value={stats.games.rating != null ? Number(Number(stats.games.rating).toFixed(2)) : null} />
+            </StatSection>
+
+            {/* Portiere - Stats Principali */}
+            <StatSection title="🧤 Portiere">
+              <StatRow label="Parate" value={stats.goals.saves} />
+              <StatRow label="Gol Subiti" value={stats.goals.conceded} />
+              {stats.games.appearences && stats.goals.conceded != null && (
+                <StatRow
+                  label="Media Gol Subiti"
+                  value={Number((stats.goals.conceded / stats.games.appearences).toFixed(2))}
+                />
+              )}
+              {stats.games.appearences && stats.goals.conceded != null && stats.goals.conceded === 0 && (
+                <StatRow label="Clean Sheet" value={stats.games.appearences} />
+              )}
+            </StatSection>
+
+            {/* Passaggi */}
+            <StatSection title="Passaggi">
+              <StatRow label="Totali" value={stats.passes.total} />
+              <StatRow label="Precisione" value={stats.passes.accuracy} suffix="%" />
+            </StatSection>
+
+            {/* Rigori */}
+            <StatSection title="Rigori">
+              <StatRow label="Parati" value={stats.penalty.saved} />
+            </StatSection>
+
+            {/* Disciplina */}
+            <StatSection title="Disciplina">
+              <StatRow label="Cartellini Gialli" value={stats.cards.yellow} />
+              <StatRow label="Cartellini Rossi" value={stats.cards.red} />
+            </StatSection>
+          </div>
         ) : (
+          /* ========== OUTFIELD PLAYER STATS ========== */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Generali */}
             <StatSection title="Generali">
