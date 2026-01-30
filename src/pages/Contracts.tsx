@@ -5,6 +5,7 @@ import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
 import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
+import { getPlayerPhotoUrl } from '../utils/player-images'
 
 interface ContractsProps {
   leagueId: string
@@ -19,6 +20,7 @@ interface Player {
   listStatus?: string
   exitReason?: string
   age?: number | null
+  apiFootballId?: number | null
   apiFootballStats?: PlayerStats | null
 }
 
@@ -961,6 +963,14 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                   <div key={pending.rosterId} className="bg-surface-200 rounded-lg border border-warning-500/30 p-3">
                     {/* Header: Player info */}
                     <div className="flex items-center gap-2 mb-3">
+                      {pending.player.apiFootballId ? (
+                        <img
+                          src={getPlayerPhotoUrl(pending.player.apiFootballId)}
+                          alt={pending.player.name}
+                          className="w-8 h-8 rounded-full object-cover bg-surface-300 flex-shrink-0"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                        />
+                      ) : null}
                       <div className="w-8 h-8 bg-white rounded p-0.5 flex-shrink-0">
                         <TeamLogo team={pending.player.team} />
                       </div>
@@ -1078,6 +1088,14 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                         <tr key={pending.rosterId} className="border-t border-surface-50/10 hover:bg-surface-300/30">
                           <td className="p-2">
                             <div className="flex items-center gap-2">
+                              {pending.player.apiFootballId ? (
+                                <img
+                                  src={getPlayerPhotoUrl(pending.player.apiFootballId)}
+                                  alt={pending.player.name}
+                                  className="w-6 h-6 rounded-full object-cover bg-surface-300 flex-shrink-0"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                                />
+                              ) : null}
                               <div className="w-6 h-6 bg-white rounded p-0.5 flex-shrink-0">
                                 <TeamLogo team={pending.player.team} />
                               </div>
@@ -1175,6 +1193,14 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     <div className="flex items-center justify-between gap-4">
                       {/* Player info */}
                       <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {contract.roster.player.apiFootballId ? (
+                          <img
+                            src={getPlayerPhotoUrl(contract.roster.player.apiFootballId)}
+                            alt={contract.roster.player.name}
+                            className="w-8 h-8 rounded-full object-cover bg-surface-300 flex-shrink-0"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                          />
+                        ) : null}
                         <div className={`w-8 h-8 rounded-lg ${roleStyle.bg} flex items-center justify-center text-white text-xs font-bold`}>
                           {contract.roster.player.position}
                         </div>
@@ -1293,6 +1319,14 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 }`}>
                   {/* Header: Player info */}
                   <div className="flex items-center gap-2 mb-3">
+                    {contract.roster.player.apiFootballId ? (
+                      <img
+                        src={getPlayerPhotoUrl(contract.roster.player.apiFootballId)}
+                        alt={contract.roster.player.name}
+                        className="w-8 h-8 rounded-full object-cover bg-surface-300 flex-shrink-0"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                      />
+                    ) : null}
                     <div className="w-8 h-8 bg-white rounded p-0.5 flex-shrink-0">
                       <TeamLogo team={contract.roster.player.team} />
                     </div>
@@ -1549,6 +1583,14 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                       }`}>
                         <td className="p-2">
                           <div className="flex items-center gap-2">
+                            {contract.roster.player.apiFootballId ? (
+                              <img
+                                src={getPlayerPhotoUrl(contract.roster.player.apiFootballId)}
+                                alt={contract.roster.player.name}
+                                className="w-6 h-6 rounded-full object-cover bg-surface-300 flex-shrink-0"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                              />
+                            ) : null}
                             <div className="w-6 h-6 bg-white rounded p-0.5 flex-shrink-0">
                               <TeamLogo team={contract.roster.player.team} />
                             </div>
