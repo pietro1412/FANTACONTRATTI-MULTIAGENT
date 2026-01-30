@@ -55,8 +55,25 @@ export function Chat({ sessionId, currentMemberId, isAdmin }: ChatProps) {
 
   useEffect(() => {
     loadMessages()
-    const interval = setInterval(loadMessages, 2000)
-    return () => clearInterval(interval)
+    // Poll every 5 seconds for new messages (only when tab is visible)
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        loadMessages()
+      }
+    }, 5000)
+
+    // Also reload when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadMessages()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [loadMessages])
 
   useEffect(() => {

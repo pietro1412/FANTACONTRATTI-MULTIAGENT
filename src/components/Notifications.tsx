@@ -102,9 +102,25 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
 
   useEffect(() => {
     loadNotifications()
-    // Poll every 30 seconds for new notifications
-    const interval = setInterval(loadNotifications, 30000)
-    return () => clearInterval(interval)
+    // Poll every 2 minutes for new notifications (only when tab is visible)
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        loadNotifications()
+      }
+    }, 120000)
+
+    // Also reload when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadNotifications()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [leagueId, isAdmin])
 
   // Close dropdown when clicking outside

@@ -50,9 +50,25 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
 
   useEffect(() => {
     loadInvites()
-    // Poll every 60 seconds for new invites
-    const interval = setInterval(loadInvites, 60000)
-    return () => clearInterval(interval)
+    // Poll every 2 minutes for new invites (only when tab is visible)
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        loadInvites()
+      }
+    }, 120000)
+
+    // Also reload when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadInvites()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [])
 
   // Close dropdown when clicking outside
