@@ -797,6 +797,10 @@ export async function generateRubataBoard(
     playerName: string
     playerPosition: Position
     playerTeam: string
+    playerQuotation: number
+    playerAge: number | null
+    playerApiFootballId: number | null
+    playerApiFootballStats: unknown
     ownerUsername: string
     ownerTeamName: string | null
     rubataPrice: number // clausola + ingaggio
@@ -841,6 +845,10 @@ export async function generateRubataBoard(
         playerName: rosterEntry.player.name,
         playerPosition: rosterEntry.player.position,
         playerTeam: rosterEntry.player.team,
+        playerQuotation: rosterEntry.player.quotation,
+        playerAge: rosterEntry.player.age,
+        playerApiFootballId: rosterEntry.player.apiFootballId,
+        playerApiFootballStats: rosterEntry.player.apiFootballStats,
         ownerUsername: member.user.username,
         ownerTeamName: member.teamName,
         rubataPrice: contract.rescissionClause + contract.salary,

@@ -18,6 +18,7 @@ interface Player {
   position: 'P' | 'D' | 'C' | 'A'
   quotation: number
   listStatus: string
+  age?: number | null
   apiFootballId?: number | null
   apiFootballStats?: PlayerStats | null
   statsSyncedAt?: string | null
@@ -62,6 +63,16 @@ interface LeagueData {
 // Alias for backward compatibility
 const POSITION_COLORS = POSITION_GRADIENTS
 const POSITION_BG = POSITION_FILTER_COLORS
+
+// Age color function - younger is better
+function getAgeColor(age: number | null | undefined): string {
+  if (age === null || age === undefined) return 'text-gray-500'
+  if (age < 20) return 'text-emerald-400 font-bold'
+  if (age < 25) return 'text-green-400'
+  if (age < 30) return 'text-yellow-400'
+  if (age < 35) return 'text-orange-400'
+  return 'text-red-400'
+}
 
 export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
   const [players, setPlayers] = useState<PlayerWithRoster[]>([])
@@ -243,6 +254,7 @@ export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
                               team: player.team,
                               position: player.position,
                               quotation: player.quotation,
+                              age: player.age,
                               apiFootballId: player.apiFootballId,
                               apiFootballStats: player.apiFootballStats,
                               statsSyncedAt: player.statsSyncedAt,
@@ -251,7 +263,12 @@ export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
                           >
                             {player.name}
                           </button>
-                          <p className="text-sm text-gray-400">{player.team}</p>
+                          <div className="flex items-center gap-2 text-sm text-gray-400">
+                            <span>{player.team}</span>
+                            {player.age != null && (
+                              <span className={getAgeColor(player.age)}>• {player.age} anni</span>
+                            )}
+                          </div>
                         </div>
                       </div>
 

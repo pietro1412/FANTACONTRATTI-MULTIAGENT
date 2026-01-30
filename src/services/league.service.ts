@@ -935,125 +935,140 @@ export async function searchLeagues(
  * Get financial dashboard data for all teams in a league (#190)
  */
 export async function getLeagueFinancials(leagueId: string, userId: string): Promise<ServiceResult> {
-  // Verify user is a member of the league
-  const membership = await prisma.leagueMember.findFirst({
-    where: {
-      leagueId,
-      userId,
-      status: MemberStatus.ACTIVE,
-    },
-  })
-
-  if (!membership) {
-    return { success: false, message: 'Non sei membro di questa lega' }
-  }
-
-  // Get all active members with their rosters and contracts
-  const members = await prisma.leagueMember.findMany({
-    where: {
-      leagueId,
-      status: MemberStatus.ACTIVE,
-    },
-    include: {
-      user: {
-        select: { username: true },
+  try {
+    // Verify user is a member of the league
+    const membership = await prisma.leagueMember.findFirst({
+      where: {
+        leagueId,
+        userId,
+        status: MemberStatus.ACTIVE,
       },
-      roster: {
-        where: { status: 'ACTIVE' },
-        include: {
-          player: {
-            select: {
-              id: true,
-              name: true,
-              team: true,
-              position: true,
-              quotation: true,
-              age: true,
+    })
+
+    if (!membership) {
+      return { success: false, message: 'Non sei membro di questa lega' }
+    }
+
+    // Get all active members with their rosters and contracts
+    const members = await prisma.leagueMember.findMany({
+      where: {
+        leagueId,
+        status: MemberStatus.ACTIVE,
+      },
+      include: {
+        user: {
+          select: { username: true },
+        },
+        roster: {
+          where: { status: 'ACTIVE' },
+          include: {
+            player: {
+              select: {
+                id: true,
+                name: true,
+                team: true,
+                position: true,
+                quotation: true,
+                age: true,
+              },
             },
-          },
-          contract: {
-            select: {
-              salary: true,
-              duration: true,
-              rescissionClause: true,
+            contract: {
+              select: {
+                salary: true,
+                duration: true,
+                rescissionClause: true,
+              },
             },
           },
         },
       },
-    },
-    orderBy: { teamName: 'asc' },
-  })
+      orderBy: { teamName: 'asc' },
+    })
 
-  // Get league settings for slot limit
-  const league = await prisma.league.findUnique({
-    where: { id: leagueId },
-    select: { maxRosterSize: true, name: true },
-  })
+    // Get league settings for slot limit
+    const league = await prisma.league.findUnique({
+      where: { id: leagueId },
+      select: {
+        name: true,
+        goalkeeperSlots: true,
+        defenderSlots: true,
+        midfielderSlots: true,
+        forwardSlots: true,
+      },
+    })
 
-  const maxSlots = league?.maxRosterSize || 25
+    // Calculate max slots from individual position slots
+    const maxSlots = league
+      ? (league.goalkeeperSlots + league.defenderSlots + league.midfielderSlots + league.forwardSlots)
+      : 25
 
-  // Calculate financial data for each team
-  const teamsData = members.map(member => {
-    const players = member.roster.map(r => ({
-      id: r.player.id,
-      name: r.player.name,
-      team: r.player.team,
-      position: r.player.position,
-      quotation: r.player.quotation,
-      age: r.player.age,
-      salary: r.contract?.salary || 0,
-      duration: r.contract?.duration || 0,
-      clause: r.contract?.rescissionClause || 0,
-    }))
+    // Calculate financial data for each team
+    const teamsData = members.map(member => {
+      const players = member.roster.map(r => ({
+        id: r.player.id,
+        name: r.player.name,
+        team: r.player.team,
+        position: r.player.position,
+        quotation: r.player.quotation,
+        age: r.player.age,
+        salary: r.contract?.salary || 0,
+        duration: r.contract?.duration || 0,
+        clause: r.contract?.rescissionClause || 0,
+      }))
 
-    // Calculate totals
-    const annualContractCost = players.reduce((sum, p) => sum + p.salary, 0)
-    const totalContractCost = players.reduce((sum, p) => sum + (p.salary * p.duration), 0)
-    const slotCount = players.length
+      // Calculate totals
+      const annualContractCost = players.reduce((sum, p) => sum + p.salary, 0)
+      const totalContractCost = players.reduce((sum, p) => sum + (p.salary * p.duration), 0)
+      const slotCount = players.length
 
-    // Age distribution
-    const under20 = players.filter(p => p.age != null && p.age < 20).length
-    const under25 = players.filter(p => p.age != null && p.age >= 20 && p.age < 25).length
-    const under30 = players.filter(p => p.age != null && p.age >= 25 && p.age < 30).length
-    const over30 = players.filter(p => p.age != null && p.age >= 30).length
-    const ageUnknown = players.filter(p => p.age == null).length
+      // Age distribution
+      const under20 = players.filter(p => p.age != null && p.age < 20).length
+      const under25 = players.filter(p => p.age != null && p.age >= 20 && p.age < 25).length
+      const under30 = players.filter(p => p.age != null && p.age >= 25 && p.age < 30).length
+      const over30 = players.filter(p => p.age != null && p.age >= 30).length
+      const ageUnknown = players.filter(p => p.age == null).length
 
-    // Position distribution
-    const byPosition = {
-      P: players.filter(p => p.position === 'P').length,
-      D: players.filter(p => p.position === 'D').length,
-      C: players.filter(p => p.position === 'C').length,
-      A: players.filter(p => p.position === 'A').length,
-    }
+      // Position distribution
+      const byPosition = {
+        P: players.filter(p => p.position === 'P').length,
+        D: players.filter(p => p.position === 'D').length,
+        C: players.filter(p => p.position === 'C').length,
+        A: players.filter(p => p.position === 'A').length,
+      }
+
+      return {
+        memberId: member.id,
+        teamName: member.teamName || member.user.username,
+        username: member.user.username,
+        budget: member.currentBudget,
+        annualContractCost,
+        totalContractCost,
+        slotCount,
+        slotsFree: maxSlots - slotCount,
+        maxSlots,
+        ageDistribution: {
+          under20,
+          under25,
+          under30,
+          over30,
+          unknown: ageUnknown,
+        },
+        positionDistribution: byPosition,
+        players, // Include player details for drill-down
+      }
+    })
 
     return {
-      memberId: member.id,
-      teamName: member.teamName || member.user.username,
-      username: member.user.username,
-      budget: member.currentBudget,
-      annualContractCost,
-      totalContractCost,
-      slotCount,
-      slotsFree: maxSlots - slotCount,
-      maxSlots,
-      ageDistribution: {
-        under20,
-        under25,
-        under30,
-        over30,
-        unknown: ageUnknown,
+      success: true,
+      data: {
+        leagueName: league?.name,
+        maxSlots,
+        teams: teamsData,
+        isAdmin: membership.role === MemberRole.ADMIN,
       },
-      positionDistribution: byPosition,
-      players, // Include player details for drill-down
     }
-  })
-
-  return {
-    success: true,
-    data: {
-      leagueName: league?.name,
-      maxSlots,
-      teams: teamsData,
-    },
+  } catch (error) {
+    console.error('[getLeagueFinancials] Error:', error)
+    return { success: false, message: `Errore nel caricamento dati finanziari: ${(error as Error).message}` }
   }
 }

@@ -363,6 +363,15 @@ function PlayerStatsWrapper() {
   return <PlayerStats leagueId={leagueId} onNavigate={onNavigate} />
 }
 
+function LeagueFinancialsWrapper() {
+  const navigate = useNavigate()
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
+
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <LeagueFinancials leagueId={leagueId} onNavigate={onNavigate} />
+}
+
 function SuperAdminWrapper() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -569,7 +578,7 @@ function AppRoutes() {
       <Route path="/leagues/:leagueId/financials" element={
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
-            <LeagueFinancials />
+            <LeagueFinancialsWrapper />
           </Suspense>
         </ProtectedRoute>
       } />

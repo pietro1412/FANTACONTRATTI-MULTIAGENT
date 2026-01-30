@@ -125,13 +125,13 @@ const LEAGUE_MENU_ITEMS = [
   { key: 'leagueDetail', label: 'Dashboard', adminOnly: false, icon: 'dashboard' },
   { key: 'adminPanel', label: 'Admin', adminOnly: true, icon: 'admin' },
   { key: 'strategie-rubata', label: 'Giocatori', adminOnly: false, icon: 'allRosters' },
-  { key: 'playerStats', label: 'Statistiche', adminOnly: false, icon: 'stats' },
+  // { key: 'playerStats', label: 'Statistiche', adminOnly: false, icon: 'stats' },  // Temporarily hidden - route still works
   { key: 'financials', label: 'Finanze', adminOnly: false, icon: 'financials' },
   { key: 'history', label: 'Storico', adminOnly: false, icon: 'history' },
   { key: 'prophecies', label: 'Profezie', adminOnly: false, icon: 'prophecy' },
 ]
 
-// Get page display name for breadcrumbs
+// Get page display name for breadcrumbs (should match menu labels)
 function getPageDisplayName(page: string): string {
   const pageNames: Record<string, string> = {
     leagueDetail: 'Dashboard',
@@ -146,9 +146,8 @@ function getPageDisplayName(page: string): string {
     contracts: 'Contratti',
     trades: 'Scambi',
     rubata: 'Rubata',
-    'strategie-rubata': 'Strategie Rubata',
-    playerStats: 'Statistiche Serie A',
-    financials: 'Finanze Lega',
+    'strategie-rubata': 'Giocatori',
+    financials: 'Finanze',
   }
   return pageNames[page] || page
 }
@@ -327,9 +326,9 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             </div>
           </div>
 
-          {/* Breadcrumbs - shown when in league context */}
+          {/* Breadcrumbs - shown on medium screens only (hidden on lg where menu is visible) */}
           {leagueId && leagueName && (
-            <nav className="hidden md:flex items-center gap-1.5 text-xs" aria-label="Breadcrumb" data-testid="breadcrumbs">
+            <nav className="hidden md:flex lg:hidden items-center gap-1.5 text-xs" aria-label="Breadcrumb" data-testid="breadcrumbs">
               <button
                 onClick={() => onNavigate('dashboard')}
                 className="flex items-center gap-1 text-gray-400 hover:text-primary-300 transition-colors duration-200"

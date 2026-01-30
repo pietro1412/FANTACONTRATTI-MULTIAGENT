@@ -11,6 +11,25 @@ import RadarChart from '../components/ui/RadarChart'
 // Player colors for radar chart comparison
 const PLAYER_CHART_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#a855f7']
 
+// Age color coding - younger is better
+function getAgeColor(age: number | null | undefined): string {
+  if (age === null || age === undefined) return 'text-gray-500'
+  if (age < 20) return 'text-emerald-400 font-bold' // Very young - excellent
+  if (age < 25) return 'text-green-400' // Young - good
+  if (age < 30) return 'text-yellow-400' // Prime - neutral
+  if (age < 35) return 'text-orange-400' // Aging - caution
+  return 'text-red-400' // Old - warning
+}
+
+function getAgeBgColor(age: number | null | undefined): string {
+  if (age === null || age === undefined) return 'bg-gray-500/20 text-gray-400'
+  if (age < 20) return 'bg-emerald-500/20 text-emerald-400 font-bold'
+  if (age < 25) return 'bg-green-500/20 text-green-400'
+  if (age < 30) return 'bg-yellow-500/20 text-yellow-400'
+  if (age < 35) return 'bg-orange-500/20 text-orange-400'
+  return 'bg-red-500/20 text-red-400'
+}
+
 interface StrategyPlayer {
   rosterId: string
   memberId: string
@@ -19,6 +38,7 @@ interface StrategyPlayer {
   playerPosition: string
   playerTeam: string
   playerQuotation: number
+  playerAge?: number | null
   playerApiFootballId?: number | null
   playerApiFootballStats?: PlayerStats | null
   ownerUsername: string
@@ -35,6 +55,7 @@ interface SvincolatoPlayer {
   playerName: string
   playerPosition: string
   playerTeam: string
+  playerAge?: number | null
   playerApiFootballId?: number | null
   playerApiFootballStats?: PlayerStats | null
 }
@@ -948,46 +969,50 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setSelectedPlayerStats({
-                                name: player.playerName,
-                                team: player.playerTeam,
-                                position: player.playerPosition,
-                                quotation: isSvincolato ? undefined : player.playerQuotation,
-                                apiFootballId: player.playerApiFootballId,
-                                apiFootballStats: player.playerApiFootballStats,
-                              })}
-                              className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
-                            >
-                              {player.playerName}
-                            </button>
-                          </div>
-                          <div className="text-sm text-gray-500">{player.playerTeam}</div>
+                          <button
+                            onClick={() => setSelectedPlayerStats({
+                              name: player.playerName,
+                              team: player.playerTeam,
+                              position: player.playerPosition,
+                              quotation: isSvincolato ? undefined : player.playerQuotation,
+                              age: player.playerAge,
+                              apiFootballId: player.playerApiFootballId,
+                              apiFootballStats: player.playerApiFootballStats,
+                            })}
+                            className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
+                          >
+                            {player.playerName}
+                          </button>
                         </div>
                       </div>
-                      {/* Owner */}
-                      <div className="flex justify-between items-center mb-2 text-xs">
-                        <span className="text-gray-400">
+                      {/* Player details: Squadra, Età, Owner */}
+                      <div className="grid grid-cols-3 gap-2 mb-2 text-xs">
+                        <div>
+                          <span className="text-gray-500">Squadra: </span>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <div className="w-4 h-4 flex-shrink-0">
+                              <TeamLogo team={player.playerTeam} />
+                            </div>
+                            <span className="text-gray-300 truncate">{player.playerTeam}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Età: </span>
+                          <span className={`${getAgeColor(player.playerAge)}`}>
+                            {player.playerAge != null ? `${player.playerAge} anni` : '-'}
+                          </span>
+                        </div>
+                        <div>
                           <span className="text-gray-500">Prop: </span>
                           {isSvincolato ? (
                             <span className="text-emerald-400">Svincolato</span>
                           ) : isMyRoster ? (
                             <span className="text-primary-400">La Mia Rosa</span>
                           ) : (
-                            <span>{player.ownerTeamName || player.ownerUsername}</span>
+                            <span className="text-gray-300">{player.ownerTeamName || player.ownerUsername}</span>
                           )}
-                        </span>
-                        {/* Contract summary - only for contracts/merge view */}
-                        {!isSvincolato && (dataViewMode === 'contracts' || dataViewMode === 'merge') && (
-                          <span>
-                            <span className="text-accent-400 font-medium">{player.contractSalary}M</span>
-                            <span className="text-gray-500"> x </span>
-                            <span className="text-white">{player.contractDuration}s</span>
-                          </span>
-                        )}
+                        </div>
                       </div>
-
                       {/* Contract info - only for contracts/merge view */}
                       {!isSvincolato && (dataViewMode === 'contracts' || dataViewMode === 'merge') && (
                         <div className="grid grid-cols-2 gap-2 text-center text-xs mb-3">
@@ -1062,7 +1087,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     {/* Group headers */}
                     <tr className="text-[10px] text-gray-500 uppercase border-b border-surface-50/20">
                       <th className="w-10 py-1 px-2 bg-cyan-500/10">📊</th>
-                      <th colSpan={3} className="text-left py-1 px-3 bg-surface-300/30">
+                      <th colSpan={5} className="text-left py-1 px-3 bg-surface-300/30">
                         Giocatore
                       </th>
                       {(dataViewMode === 'contracts' || dataViewMode === 'merge') && (
@@ -1092,6 +1117,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       </th>
                       <SortableHeader field="position" label="R" className="w-10 p-2 text-center" />
                       <SortableHeader field="name" label="Giocatore" className="text-left p-2" />
+                      <th className="text-left p-2">Squadra</th>
+                      <th className="text-center p-2 w-12">Età</th>
                       <SortableHeader field="owner" label="Prop." className="text-left p-2" />
                       {/* Contract columns */}
                       {(dataViewMode === 'contracts' || dataViewMode === 'merge') && (
@@ -1156,7 +1183,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           {/* Player - increased sizes #186 */}
                           <td className="p-2">
                             <div className="flex items-center gap-2">
-                              {/* Player Photo with Team Logo Badge - increased size #186 */}
+                              {/* Player Photo - increased size #186 */}
                               <div className="relative flex-shrink-0">
                                 {(() => {
                                   const photoUrl = getPlayerPhotoUrl(player.playerApiFootballId)
@@ -1178,30 +1205,40 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                 >
                                   {player.playerPosition}
                                 </div>
-                                {/* Team logo badge - increased size #186 */}
-                                <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-white p-0.5 border border-surface-50/20">
-                                  <TeamLogo team={player.playerTeam} />
-                                </div>
                               </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => setSelectedPlayerStats({
-                                      name: player.playerName,
-                                      team: player.playerTeam,
-                                      position: player.playerPosition,
-                                      quotation: isSvincolato ? undefined : player.playerQuotation,
-                                      apiFootballId: player.playerApiFootballId,
-                                      apiFootballStats: player.playerApiFootballStats,
-                                    })}
-                                    className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
-                                  >
-                                    {player.playerName}
-                                  </button>
-                                </div>
-                                <div className="text-sm text-gray-500">{player.playerTeam}</div>
-                              </div>
+                              <button
+                                onClick={() => setSelectedPlayerStats({
+                                  name: player.playerName,
+                                  team: player.playerTeam,
+                                  position: player.playerPosition,
+                                  quotation: isSvincolato ? undefined : player.playerQuotation,
+                                  age: player.playerAge,
+                                  apiFootballId: player.playerApiFootballId,
+                                  apiFootballStats: player.playerApiFootballStats,
+                                })}
+                                className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
+                              >
+                                {player.playerName}
+                              </button>
                             </div>
+                          </td>
+
+                          {/* Squadra */}
+                          <td className="p-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 flex-shrink-0">
+                                <TeamLogo team={player.playerTeam} />
+                              </div>
+                              <span className="text-sm text-gray-300 truncate">{player.playerTeam}</span>
+                            </div>
+                          </td>
+
+                          {/* Età */}
+                          {/* Età */}
+                          <td className="p-2 text-center">
+                            <span className={`text-sm px-2 py-0.5 rounded ${getAgeBgColor(player.playerAge)}`}>
+                              {player.playerAge != null ? player.playerAge : '-'}
+                            </span>
                           </td>
 
                           {/* Owner / Svincolato / My Roster */}
@@ -1598,6 +1635,30 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-surface-50/10">
+                      {/* Basic info: Squadra, Età */}
+                      <tr className="hover:bg-surface-300/30">
+                        <td className="px-4 py-3 text-sm text-gray-300">Squadra</td>
+                        {playersToCompare.map(player => (
+                          <td key={player.playerId} className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="w-5 h-5 flex-shrink-0">
+                                <TeamLogo team={player.playerTeam} />
+                              </div>
+                              <span className="text-sm text-gray-300">{player.playerTeam}</span>
+                            </div>
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="hover:bg-surface-300/30">
+                        <td className="px-4 py-3 text-sm text-gray-300">Età</td>
+                        {playersToCompare.map(player => (
+                          <td key={player.playerId} className="px-4 py-3 text-center">
+                            <span className={`px-2 py-1 rounded ${getAgeBgColor(player.playerAge)}`}>
+                              {player.playerAge != null ? `${player.playerAge} anni` : '-'}
+                            </span>
+                          </td>
+                        ))}
+                      </tr>
                       {/* Contract info - only for non-svincolati */}
                       {playersToCompare.some(p => p.type !== 'svincolato') && (
                         <>

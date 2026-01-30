@@ -9,6 +9,16 @@ const POSITION_COLORS: Record<string, string> = {
   A: 'from-red-500 to-red-600',
 }
 
+// Age color function - younger is better
+function getAgeColor(age: number | null | undefined): string {
+  if (age === null || age === undefined) return 'text-gray-500'
+  if (age < 20) return 'text-emerald-400 font-bold'
+  if (age < 25) return 'text-green-400'
+  if (age < 30) return 'text-yellow-400'
+  if (age < 35) return 'text-orange-400'
+  return 'text-red-400'
+}
+
 // Stats structure from API-Football
 export interface PlayerStats {
   games: {
@@ -55,6 +65,7 @@ export interface PlayerInfo {
   team: string
   position: string
   quotation?: number
+  age?: number | null
   apiFootballId?: number | null
   apiFootballStats?: PlayerStats | null
   statsSyncedAt?: string | null
@@ -154,6 +165,9 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
                 />
               )}
               {player.team}
+              {player.age != null && (
+                <span className={`ml-2 ${getAgeColor(player.age)}`}>• {player.age} anni</span>
+              )}
               {player.quotation && (
                 <span className="ml-2 px-2 py-0.5 rounded bg-primary-500/20 text-primary-400 font-medium">
                   {player.quotation}M

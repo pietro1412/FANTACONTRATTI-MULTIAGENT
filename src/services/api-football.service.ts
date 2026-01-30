@@ -299,7 +299,7 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
     }
 
     // 3. For each team, fetch squad and try to match
-    const matched: Array<{ dbId: string; apiId: number; name: string }> = []
+    const matched: Array<{ dbId: string; apiId: number; name: string; age: number | null }> = []
     const ambiguous: Array<{ player: { id: string; name: string; team: string }; candidates: Array<{ apiId: number; name: string }> }> = []
     const matchedDbIds = new Set<string>()
 
@@ -336,11 +336,11 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
         })
 
         if (exactMatches.length === 1) {
-          const apiId = exactMatches[0].id
-          if (!usedApiIds.has(apiId)) {
-            matched.push({ dbId: dbPlayer.id, apiId, name: dbPlayer.name })
+          const apiPlayer = exactMatches[0]
+          if (!usedApiIds.has(apiPlayer.id)) {
+            matched.push({ dbId: dbPlayer.id, apiId: apiPlayer.id, name: dbPlayer.name, age: apiPlayer.age || null })
             matchedDbIds.add(dbPlayer.id)
-            usedApiIds.add(apiId)
+            usedApiIds.add(apiPlayer.id)
           }
         } else if (exactMatches.length > 1) {
           ambiguous.push({
@@ -356,11 +356,11 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
           })
 
           if (partialMatches.length === 1) {
-            const apiId = partialMatches[0].id
-            if (!usedApiIds.has(apiId)) {
-              matched.push({ dbId: dbPlayer.id, apiId, name: dbPlayer.name })
+            const apiPlayer = partialMatches[0]
+            if (!usedApiIds.has(apiPlayer.id)) {
+              matched.push({ dbId: dbPlayer.id, apiId: apiPlayer.id, name: dbPlayer.name, age: apiPlayer.age || null })
               matchedDbIds.add(dbPlayer.id)
-              usedApiIds.add(apiId)
+              usedApiIds.add(apiPlayer.id)
             }
           } else if (partialMatches.length > 1) {
             ambiguous.push({
@@ -376,13 +376,16 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
       await new Promise((resolve) => setTimeout(resolve, 100))
     }
 
-    // 4. Save matched players to DB
+    // 4. Save matched players to DB (including age)
     let savedCount = 0
     for (const m of matched) {
       try {
         await prisma.serieAPlayer.update({
           where: { id: m.dbId },
-          data: { apiFootballId: m.apiId },
+          data: {
+            apiFootballId: m.apiId,
+            age: m.age,
+          },
         })
         savedCount++
       } catch (e) {
@@ -562,6 +565,7 @@ export async function syncStats(userId: string): Promise<SyncResult> {
           data: {
             apiFootballStats: stats,
             statsSyncedAt: now,
+            age: apiPlayer.player.age || null,  // Update age from API-Football
           },
         })
 
