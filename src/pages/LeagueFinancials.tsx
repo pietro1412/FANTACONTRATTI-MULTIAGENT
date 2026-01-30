@@ -740,18 +740,15 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-                              {/* Left: Aggregated data by position with pre/post renewal (#193) */}
+                              {/* Left: Aggregated data by position - #200: only current values during CONTRATTI phase */}
                               <div className="bg-surface-300/30 rounded-xl p-3 md:p-4 border border-surface-50/10">
                                 <h4 className="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 md:mb-4">
-                                  Rosa per Ruolo {showPrePost && <span className="text-amber-400">(Pre/Post)</span>}
+                                  Rosa per Ruolo
                                 </h4>
                                 <div className="space-y-2 md:space-y-3">
                                   {(['P', 'D', 'C', 'A'] as const).map(pos => {
                                     const count = team.positionDistribution[pos]
-                                    const preRenewalCost = team.costByPosition[pos].preRenewal
-                                    const postRenewalCost = team.costByPosition[pos].postRenewal
-                                    const showPosDelta = showPrePost && postRenewalCost !== null
-                                    const posDelta = showPosDelta ? postRenewalCost - preRenewalCost : null
+                                    const positionCost = team.costByPosition[pos].preRenewal
                                     return (
                                       <div
                                         key={pos}
@@ -769,30 +766,14 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                             <div className="text-[8px] md:text-[10px] text-gray-500">gioc.</div>
                                           </div>
                                           <div className="text-right min-w-[50px] md:min-w-[80px]">
-                                            {showPosDelta ? (
-                                              <>
-                                                <div className="flex items-baseline justify-end gap-1">
-                                                  <span className="text-[10px] md:text-xs text-gray-500 line-through">{preRenewalCost}M</span>
-                                                  <span className="text-accent-400 font-medium">{postRenewalCost}M</span>
-                                                </div>
-                                                {posDelta !== null && posDelta !== 0 && (
-                                                  <div className={`text-[8px] md:text-[10px] ${posDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                                                    {posDelta > 0 ? '+' : ''}{posDelta}M
-                                                  </div>
-                                                )}
-                                              </>
-                                            ) : (
-                                              <>
-                                                <div className="text-accent-400 font-medium">{preRenewalCost}M</div>
-                                                <div className="text-[8px] md:text-[10px] text-gray-500">ingaggi</div>
-                                              </>
-                                            )}
+                                            <div className="text-accent-400 font-medium">{positionCost}M</div>
+                                            <div className="text-[8px] md:text-[10px] text-gray-500">ingaggi</div>
                                           </div>
                                         </div>
                                       </div>
                                     )
                                   })}
-                                  {/* Total row with pre/post renewal (#193) */}
+                                  {/* Total row - #200: only current values */}
                                   <div className="flex items-center justify-between p-2 md:p-3 rounded-lg bg-surface-50/10 border-t border-surface-50/20 mt-2">
                                     <span className="text-gray-400 font-medium text-xs md:text-sm">Totale</span>
                                     <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm">
@@ -801,31 +782,15 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                         <div className="text-[8px] md:text-[10px] text-gray-500">gioc.</div>
                                       </div>
                                       <div className="text-right min-w-[50px] md:min-w-[80px]">
-                                        {showPrePost ? (
-                                          <>
-                                            <div className="flex items-baseline justify-end gap-1">
-                                              <span className="text-[10px] md:text-xs text-gray-500 line-through">{team.preRenewalContractCost}M</span>
-                                              <span className="text-accent-400 font-bold">{team.postRenewalContractCost}M</span>
-                                            </div>
-                                            {contractDelta !== null && contractDelta !== 0 && (
-                                              <div className={`text-[8px] md:text-[10px] ${contractDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                                                {contractDelta > 0 ? '+' : ''}{contractDelta}M
-                                              </div>
-                                            )}
-                                          </>
-                                        ) : (
-                                          <>
-                                            <div className="text-accent-400 font-bold">{team.annualContractCost}M</div>
-                                            <div className="text-[8px] md:text-[10px] text-gray-500">ingaggi</div>
-                                          </>
-                                        )}
+                                        <div className="text-accent-400 font-bold">{team.annualContractCost}M</div>
+                                        <div className="text-[8px] md:text-[10px] text-gray-500">ingaggi</div>
                                       </div>
                                     </div>
                                   </div>
                                 </div>
                               </div>
 
-                              {/* Center: Donut chart for position distribution */}
+                              {/* Center: Donut chart for position distribution - #200: only current values */}
                               <div className="bg-surface-300/30 rounded-xl p-3 md:p-4 border border-surface-50/10 flex flex-col items-center justify-center">
                                 <h4 className="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider mb-2 md:mb-4">
                                   Distribuzione Costi per Ruolo
@@ -837,9 +802,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                     innerRadius={35}
                                     data={(['P', 'D', 'C', 'A'] as const).map(pos => ({
                                       label: POSITION_NAMES[pos],
-                                      value: showPrePost && team.costByPosition[pos].postRenewal !== null
-                                        ? team.costByPosition[pos].postRenewal!
-                                        : team.costByPosition[pos].preRenewal,
+                                      value: team.costByPosition[pos].preRenewal,
                                       color: POSITION_CHART_COLORS[pos],
                                     }))}
                                   />
@@ -849,46 +812,22 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                   <DonutChart
                                     data={(['P', 'D', 'C', 'A'] as const).map(pos => ({
                                       label: POSITION_NAMES[pos],
-                                      value: showPrePost && team.costByPosition[pos].postRenewal !== null
-                                        ? team.costByPosition[pos].postRenewal!
-                                        : team.costByPosition[pos].preRenewal,
+                                      value: team.costByPosition[pos].preRenewal,
                                       color: POSITION_CHART_COLORS[pos],
                                     }))}
                                   />
                                 </div>
                               </div>
 
-                              {/* Right: Bar chart for budget vs contracts */}
+                              {/* Right: Bar chart for budget vs contracts - #200: only current values */}
                               <div className="bg-surface-300/30 rounded-xl p-3 md:p-4 border border-surface-50/10">
                                 <h4 className="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 md:mb-4">
                                   Budget vs Contratti
                                 </h4>
                                 <BudgetBarChart
                                   budget={team.budget}
-                                  contracts={showPrePost ? team.postRenewalContractCost! : team.annualContractCost}
+                                  contracts={team.annualContractCost}
                                 />
-                                {/* #193: Show pre-renewal comparison */}
-                                {showPrePost && (
-                                  <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-surface-50/20">
-                                    <div className="text-[10px] md:text-xs text-gray-500 mb-2">Confronto Pre-Rinnovo</div>
-                                    <div className="flex justify-between text-[10px] md:text-xs">
-                                      <span className="text-gray-400">Pre-rinnovo:</span>
-                                      <span className="text-gray-400">{team.preRenewalContractCost}M</span>
-                                    </div>
-                                    <div className="flex justify-between text-[10px] md:text-xs">
-                                      <span className="text-gray-400">Post-rinnovo:</span>
-                                      <span className="text-accent-400">{team.postRenewalContractCost}M</span>
-                                    </div>
-                                    {contractDelta !== null && contractDelta !== 0 && (
-                                      <div className="flex justify-between text-[10px] md:text-xs mt-1 pt-1 border-t border-surface-50/10">
-                                        <span className="text-gray-400">Variazione:</span>
-                                        <span className={contractDelta > 0 ? 'text-red-400' : 'text-green-400'}>
-                                          {contractDelta > 0 ? '+' : ''}{contractDelta}M
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
                               </div>
                             </div>
                           </td>
