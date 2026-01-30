@@ -251,6 +251,7 @@ export const leagueApi = {
         }
         isConsolidated: boolean
         consolidatedAt: string | null
+        isOwnTeam: boolean
       }>
     }>(`/api/leagues/${leagueId}/financials`),
 }

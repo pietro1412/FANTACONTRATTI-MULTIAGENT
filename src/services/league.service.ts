@@ -1029,16 +1029,21 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
     const teamsData = members.map(member => {
       const isConsolidated = consolidationMap.has(member.id)
       const consolidatedAt = consolidationMap.get(member.id) || null
+      // #193 privacy fix: Only show draft values to the team owner, not to other managers
+      const isOwnTeam = member.userId === userId
 
       const players = member.roster.map(r => {
         // Pre-rinnovo: original salary (before any draft changes)
         const preRenewalSalary = r.contract?.salary || 0
 
-        // Post-rinnovo: use draftSalary if available and not consolidated, otherwise use salary
-        // If consolidated, the salary field already contains the final value
+        // Post-rinnovo: use draftSalary if available
+        // Privacy rule: Only show draft values if:
+        // 1. It's your own team (you can see your own drafts)
+        // 2. OR the team has consolidated (everyone sees final values - but then salary already updated)
+        // Note: After consolidation, salary field contains final value, so no draft needed
         let postRenewalSalary: number | null = null
-        if (inContrattiPhase && !isConsolidated) {
-          // During CONTRATTI phase, show draft value if present
+        if (inContrattiPhase && !isConsolidated && isOwnTeam) {
+          // During CONTRATTI phase, show draft value only to team owner
           postRenewalSalary = r.contract?.draftSalary ?? null
         }
 
@@ -1052,11 +1057,11 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
           salary: r.contract?.salary || 0,
           duration: r.contract?.duration || 0,
           clause: r.contract?.rescissionClause || 0,
-          // #193: Pre/Post renewal values
+          // #193: Pre/Post renewal values (privacy-aware)
           preRenewalSalary,
           postRenewalSalary,
-          draftDuration: inContrattiPhase && !isConsolidated ? (r.contract?.draftDuration ?? null) : null,
-          draftReleased: inContrattiPhase && !isConsolidated ? (r.contract?.draftReleased ?? false) : false,
+          draftDuration: inContrattiPhase && !isConsolidated && isOwnTeam ? (r.contract?.draftDuration ?? null) : null,
+          draftReleased: inContrattiPhase && !isConsolidated && isOwnTeam ? (r.contract?.draftReleased ?? false) : false,
         }
       })
 
@@ -1069,9 +1074,9 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
       const preRenewalContractCost = players.reduce((sum, p) => sum + p.preRenewalSalary, 0)
 
       // #193: Post-renewal cost (draft salaries where available, original otherwise)
-      // Only calculated during CONTRATTI phase
+      // Only calculated during CONTRATTI phase AND only for own team (privacy)
       let postRenewalContractCost: number | null = null
-      if (inContrattiPhase && !isConsolidated) {
+      if (inContrattiPhase && !isConsolidated && isOwnTeam) {
         postRenewalContractCost = players.reduce((sum, p) => {
           // If player is marked for release, don't count them
           if (p.draftReleased) return sum
@@ -1092,7 +1097,8 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
         const pos = p.position as 'P' | 'D' | 'C' | 'A'
         if (costByPosition[pos]) {
           costByPosition[pos].preRenewal += p.preRenewalSalary
-          if (inContrattiPhase && !isConsolidated && !p.draftReleased) {
+          // Post-renewal only for own team (privacy)
+          if (inContrattiPhase && !isConsolidated && isOwnTeam && !p.draftReleased) {
             if (costByPosition[pos].postRenewal === null) {
               costByPosition[pos].postRenewal = 0
             }
@@ -1135,12 +1141,13 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
         },
         positionDistribution: byPosition,
         players, // Include player details for drill-down
-        // #193: Pre/Post renewal data
+        // #193: Pre/Post renewal data (privacy-aware)
         preRenewalContractCost,
         postRenewalContractCost,
         costByPosition,
         isConsolidated,
         consolidatedAt,
+        isOwnTeam, // Flag to indicate if this is the current user's team
       }
     })
 
