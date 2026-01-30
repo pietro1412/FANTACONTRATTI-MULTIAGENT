@@ -194,6 +194,7 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'history': navigate(`/leagues/${lid}/history`); break
       case 'prophecies': navigate(`/leagues/${lid}/prophecies`); break
       case 'playerStats': navigate(`/leagues/${lid}/stats`); break
+      case 'financials': navigate(`/leagues/${lid}/financials`); break
       case 'superadmin':
         if (params?.tab) navigate(`/superadmin?tab=${params.tab}`)
         else navigate('/superadmin')
