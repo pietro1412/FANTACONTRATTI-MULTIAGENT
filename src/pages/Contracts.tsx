@@ -776,7 +776,45 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       {/* Header compatto */}
       <div className="bg-surface-200 border-b border-surface-50/20 sticky top-0 z-30">
         <div className="max-w-[1600px] mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
+          {/* Mobile: Azioni sempre visibili in alto */}
+          {inContrattiPhase && !isConsolidated && (
+            <div className="md:hidden flex items-center justify-between gap-2 mb-3 pb-3 border-b border-surface-50/20">
+              {/* Indicatore modifiche non salvate */}
+              {hasUnsavedChanges && (
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-warning-500/20 border border-warning-500/40 rounded-lg animate-pulse">
+                  <span className="w-2 h-2 bg-warning-400 rounded-full"></span>
+                  <span className="text-warning-400 text-xs font-medium">Da salvare</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2 ml-auto">
+                {/* Salva bozze */}
+                <Button
+                  size="sm"
+                  variant={hasUnsavedChanges ? "accent" : "secondary"}
+                  onClick={handleSaveDrafts}
+                  disabled={isSavingDrafts}
+                >
+                  {isSavingDrafts ? 'Salvando...' : 'Salva'}
+                </Button>
+                {/* Consolida (definitivo) */}
+                <Button
+                  size="sm"
+                  onClick={handleConsolidate}
+                  disabled={isConsolidating || !canConsolidate}
+                  title={consolidateBlockReason}
+                >
+                  {isConsolidating ? 'Consolidando...' : 'Consolida'}
+                </Button>
+              </div>
+            </div>
+          )}
+          {isConsolidated && (
+            <div className="md:hidden flex items-center justify-center mb-3 pb-3 border-b border-surface-50/20">
+              <span className="text-secondary-400 text-sm">✓ Consolidato</span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3">
               <span className="text-2xl">📝</span>
               <div>
@@ -832,9 +870,9 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
               </select>
             </div>
 
-            {/* Azioni */}
+            {/* Azioni - Desktop only */}
             {inContrattiPhase && !isConsolidated && (
-              <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2">
                 {/* Indicatore modifiche non salvate */}
                 {hasUnsavedChanges && (
                   <div className="flex items-center gap-1.5 px-2.5 py-1 bg-warning-500/20 border border-warning-500/40 rounded-lg animate-pulse">
@@ -863,7 +901,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
               </div>
             )}
             {isConsolidated && (
-              <span className="text-secondary-400 text-sm">✓ Consolidato</span>
+              <span className="hidden md:inline text-secondary-400 text-sm">✓ Consolidato</span>
             )}
           </div>
         </div>
