@@ -4,6 +4,7 @@ import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
+import { PlayerStatsModal, type PlayerInfo } from '../components/PlayerStatsModal'
 
 interface ContractsProps {
   leagueId: string
@@ -141,6 +142,9 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   // Filtri
   const [filterRole, setFilterRole] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+
+  // State for player stats modal
+  const [selectedPlayer, setSelectedPlayer] = useState<PlayerInfo | null>(null)
 
   useEffect(() => {
     loadData()
@@ -951,7 +955,16 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                       <div className={`w-6 h-6 flex items-center justify-center rounded ${roleStyle.bg}`}>
                         <span className={`text-xs font-bold ${roleStyle.text}`}>{pending.player.position}</span>
                       </div>
-                      <span className="text-white font-medium flex-1 text-sm sm:text-base leading-tight">{pending.player.name}</span>
+                      <button
+                        onClick={() => setSelectedPlayer({
+                          name: pending.player.name,
+                          team: pending.player.team,
+                          position: pending.player.position,
+                        })}
+                        className="text-primary-400 hover:text-primary-300 font-medium flex-1 text-sm sm:text-base leading-tight text-left cursor-pointer transition-colors"
+                      >
+                        {pending.player.name}
+                      </button>
                     </div>
 
                     {/* Info row */}
@@ -1057,7 +1070,16 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                               <div className={`w-5 h-5 flex items-center justify-center rounded ${roleStyle.bg}`}>
                                 <span className={`text-[10px] font-bold ${roleStyle.text}`}>{pending.player.position}</span>
                               </div>
-                              <span className="text-white font-medium text-sm sm:text-base leading-tight">{pending.player.name}</span>
+                              <button
+                                onClick={() => setSelectedPlayer({
+                                  name: pending.player.name,
+                                  team: pending.player.team,
+                                  position: pending.player.position,
+                                })}
+                                className="text-primary-400 hover:text-primary-300 font-medium text-sm sm:text-base leading-tight cursor-pointer transition-colors"
+                              >
+                                {pending.player.name}
+                              </button>
                             </div>
                           </td>
                           <td className="text-center p-2 text-gray-400">{pending.acquisitionPrice}M</td>
@@ -1142,7 +1164,16 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                         </div>
                         <TeamLogo team={contract.roster.player.team} />
                         <div className="min-w-0">
-                          <p className="text-white font-medium truncate">{contract.roster.player.name}</p>
+                          <button
+                            onClick={() => setSelectedPlayer({
+                              name: contract.roster.player.name,
+                              team: contract.roster.player.team,
+                              position: contract.roster.player.position,
+                            })}
+                            className="text-primary-400 hover:text-primary-300 font-medium truncate cursor-pointer transition-colors"
+                          >
+                            {contract.roster.player.name}
+                          </button>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${config.bg} ${config.text}`}>
                               {config.label}
@@ -1245,9 +1276,16 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     <div className={`w-6 h-6 flex items-center justify-center rounded ${roleStyle.bg}`}>
                       <span className={`text-xs font-bold ${roleStyle.text}`}>{contract.roster.player.position}</span>
                     </div>
-                    <span className={`font-medium flex-1 text-sm sm:text-base leading-tight ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-white'}`}>
+                    <button
+                      onClick={() => setSelectedPlayer({
+                        name: contract.roster.player.name,
+                        team: contract.roster.player.team,
+                        position: contract.roster.player.position,
+                      })}
+                      className={`font-medium flex-1 text-sm sm:text-base leading-tight cursor-pointer transition-colors text-left ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-primary-400 hover:text-primary-300'}`}
+                    >
                       {contract.roster.player.name}
-                    </span>
+                    </button>
                     {contract.canSpalmare && !isMarkedForRelease && (
                       newSalary < contract.salary ? (
                         <span
@@ -1465,9 +1503,16 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                             <div className={`w-5 h-5 flex items-center justify-center rounded ${roleStyle.bg}`}>
                               <span className={`text-[10px] font-bold ${roleStyle.text}`}>{contract.roster.player.position}</span>
                             </div>
-                            <span className={`font-medium text-sm leading-tight ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-white'}`}>
+                            <button
+                              onClick={() => setSelectedPlayer({
+                                name: contract.roster.player.name,
+                                team: contract.roster.player.team,
+                                position: contract.roster.player.position,
+                              })}
+                              className={`font-medium text-sm leading-tight cursor-pointer transition-colors ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-primary-400 hover:text-primary-300'}`}
+                            >
                               {contract.roster.player.name}
-                            </span>
+                            </button>
                             {contract.canSpalmare && !isMarkedForRelease && (
                               newSalary < contract.salary ? (
                                 <span
@@ -1848,6 +1893,13 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
           </div>
         </div>
       </div>
+
+      {/* Player Stats Modal */}
+      <PlayerStatsModal
+        isOpen={!!selectedPlayer}
+        onClose={() => setSelectedPlayer(null)}
+        player={selectedPlayer}
+      />
     </div>
   )
 }
