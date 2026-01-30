@@ -139,14 +139,14 @@ function BudgetBarChart({ budget, contracts, height = 120 }: BarChartProps) {
   const balance = budget - contracts
 
   return (
-    <div className="flex flex-col gap-3" style={{ minHeight: height }}>
+    <div className="flex flex-col gap-2 md:gap-3" style={{ minHeight: height }}>
       {/* Budget bar */}
       <div className="flex flex-col gap-1">
-        <div className="flex justify-between text-xs">
+        <div className="flex justify-between text-[10px] md:text-xs">
           <span className="text-gray-400">Budget</span>
           <span className="text-primary-400 font-medium">{budget}M</span>
         </div>
-        <div className="h-6 bg-surface-100/50 rounded-lg overflow-hidden">
+        <div className="h-5 md:h-6 bg-surface-100/50 rounded-lg overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-primary-600 to-primary-400 rounded-lg transition-all duration-500"
             style={{ width: `${budgetWidth}%` }}
@@ -156,11 +156,11 @@ function BudgetBarChart({ budget, contracts, height = 120 }: BarChartProps) {
 
       {/* Contracts bar */}
       <div className="flex flex-col gap-1">
-        <div className="flex justify-between text-xs">
+        <div className="flex justify-between text-[10px] md:text-xs">
           <span className="text-gray-400">Contratti</span>
           <span className="text-accent-400 font-medium">{contracts}M</span>
         </div>
-        <div className="h-6 bg-surface-100/50 rounded-lg overflow-hidden">
+        <div className="h-5 md:h-6 bg-surface-100/50 rounded-lg overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-accent-600 to-accent-400 rounded-lg transition-all duration-500"
             style={{ width: `${contractsWidth}%` }}
@@ -170,8 +170,8 @@ function BudgetBarChart({ budget, contracts, height = 120 }: BarChartProps) {
 
       {/* Balance indicator */}
       <div className="flex items-center justify-between pt-2 border-t border-surface-50/20">
-        <span className="text-xs text-gray-400">Bilancio</span>
-        <span className={`text-sm font-bold ${balance >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
+        <span className="text-[10px] md:text-xs text-gray-400">Bilancio</span>
+        <span className={`text-xs md:text-sm font-bold ${balance >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
           {balance >= 0 ? '+' : ''}{balance}M
         </span>
       </div>
@@ -418,9 +418,9 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
   }, [data?.teams, data?.inContrattiPhase])
 
   // Sortable header component
-  const SortableHeader = ({ field, label, className = '' }: { field: SortField; label: string; className?: string }) => (
+  const SortableHeader = ({ field, label, className = '', hideOnMobile = false }: { field: SortField; label: string; className?: string; hideOnMobile?: boolean }) => (
     <th
-      className={`px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors ${className}`}
+      className={`px-2 md:px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors ${className} ${hideOnMobile ? 'hidden md:table-cell' : ''}`}
       onClick={() => handleSort(field)}
     >
       <div className="flex items-center gap-1">
@@ -486,24 +486,24 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
         onNavigate={onNavigate}
       />
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white">Finanze Lega</h1>
-          <p className="text-gray-400 mt-1">Panoramica finanziaria di tutte le squadre</p>
+        <div className="mb-4 md:mb-6">
+          <h1 className="text-xl md:text-2xl font-bold text-white">Finanze Lega</h1>
+          <p className="text-gray-400 mt-1 text-sm md:text-base">Panoramica finanziaria di tutte le squadre</p>
         </div>
 
         {/* #193: CONTRATTI Phase Banner */}
         {data?.inContrattiPhase && (
-          <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-                <span className="text-amber-400 text-lg">$</span>
+          <div className="mb-4 md:mb-6 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-amber-400 text-base md:text-lg">$</span>
               </div>
-              <div>
-                <div className="font-medium text-amber-400">Fase Contratti in Corso</div>
-                <div className="text-sm text-amber-400/70">
-                  I valori mostrano il confronto tra costi pre-rinnovo e post-rinnovo (bozze in corso)
+              <div className="min-w-0">
+                <div className="font-medium text-amber-400 text-sm md:text-base">Fase Contratti in Corso</div>
+                <div className="text-xs md:text-sm text-amber-400/70">
+                  Confronto costi pre/post-rinnovo
                 </div>
               </div>
             </div>
@@ -512,44 +512,44 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
 
         {/* League Totals */}
         {totals && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-            <div className="bg-surface-300/50 rounded-lg p-4 border border-surface-50/10">
-              <div className="text-xs text-gray-500 uppercase tracking-wider">Budget Totale</div>
-              <div className="text-xl font-bold text-primary-400">{totals.totalBudget}M</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4 mb-4 md:mb-6">
+            <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
+              <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Budget Totale</div>
+              <div className="text-lg md:text-xl font-bold text-primary-400">{totals.totalBudget}M</div>
             </div>
             {/* #193: Show pre/post renewal contracts during CONTRATTI phase */}
             {data?.inContrattiPhase && totals.totalPostRenewal !== null ? (
-              <div className="bg-surface-300/50 rounded-lg p-4 border border-surface-50/10">
-                <div className="text-xs text-gray-500 uppercase tracking-wider">Contratti</div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-sm text-gray-500 line-through">{totals.totalPreRenewal}M</span>
-                  <span className="text-xl font-bold text-accent-400">{totals.totalPostRenewal}M</span>
+              <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
+                <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Contratti</div>
+                <div className="flex items-baseline gap-1 md:gap-2 flex-wrap">
+                  <span className="text-xs md:text-sm text-gray-500 line-through">{totals.totalPreRenewal}M</span>
+                  <span className="text-lg md:text-xl font-bold text-accent-400">{totals.totalPostRenewal}M</span>
                 </div>
                 {totals.contractsDelta !== null && totals.contractsDelta !== 0 && (
-                  <div className={`text-xs mt-1 ${totals.contractsDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                    {totals.contractsDelta > 0 ? '+' : ''}{totals.contractsDelta}M vs pre-rinnovo
+                  <div className={`text-[10px] md:text-xs mt-1 ${totals.contractsDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                    {totals.contractsDelta > 0 ? '+' : ''}{totals.contractsDelta}M
                   </div>
                 )}
               </div>
             ) : (
-              <div className="bg-surface-300/50 rounded-lg p-4 border border-surface-50/10">
-                <div className="text-xs text-gray-500 uppercase tracking-wider">Contratti</div>
-                <div className="text-xl font-bold text-accent-400">{totals.totalContracts}M</div>
+              <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
+                <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Contratti</div>
+                <div className="text-lg md:text-xl font-bold text-accent-400">{totals.totalContracts}M</div>
               </div>
             )}
-            <div className="bg-surface-300/50 rounded-lg p-4 border border-surface-50/10">
-              <div className="text-xs text-gray-500 uppercase tracking-wider">Bilancio</div>
-              <div className={`text-xl font-bold ${totals.totalBalance >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
+            <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
+              <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Bilancio</div>
+              <div className={`text-lg md:text-xl font-bold ${totals.totalBalance >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
                 {totals.totalBalance >= 0 ? '+' : ''}{totals.totalBalance}M
               </div>
             </div>
-            <div className="bg-surface-300/50 rounded-lg p-4 border border-surface-50/10">
-              <div className="text-xs text-gray-500 uppercase tracking-wider">Giocatori</div>
-              <div className="text-xl font-bold text-white">{totals.totalPlayers}</div>
+            <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
+              <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Giocatori</div>
+              <div className="text-lg md:text-xl font-bold text-white">{totals.totalPlayers}</div>
             </div>
-            <div className="bg-surface-300/50 rounded-lg p-4 border border-surface-50/10">
-              <div className="text-xs text-gray-500 uppercase tracking-wider">Età Media</div>
-              <div className="text-xl font-bold text-secondary-400">{totals.avgAge.toFixed(1)} anni</div>
+            <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10 col-span-2 sm:col-span-1">
+              <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Età Media</div>
+              <div className="text-lg md:text-xl font-bold text-secondary-400">{totals.avgAge.toFixed(1)} anni</div>
             </div>
           </div>
         )}
@@ -557,16 +557,16 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
         {/* Teams Table */}
         <div className="bg-surface-300/30 rounded-xl border border-surface-50/10 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-0">
               <thead className="bg-surface-300/50">
                 <tr>
                   <SortableHeader field="teamName" label="Squadra" />
                   <SortableHeader field="budget" label="Budget" className="text-right" />
                   <SortableHeader field="annualContractCost" label="Contratti" className="text-right" />
-                  <SortableHeader field="balance" label="Bilancio" className="text-right" />
-                  <SortableHeader field="slotCount" label="Rosa" className="text-center" />
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">Ruoli</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider" colSpan={4}>Distribuzione Età</th>
+                  <SortableHeader field="balance" label="Bilancio" className="text-right" hideOnMobile />
+                  <SortableHeader field="slotCount" label="Rosa" className="text-center" hideOnMobile />
+                  <th className="hidden lg:table-cell px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">Ruoli</th>
+                  <th className="hidden xl:table-cell px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider" colSpan={4}>Distribuzione Età</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-50/10">
@@ -588,62 +588,62 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                         className={`hover:bg-surface-300/30 transition-colors cursor-pointer ${balanceLow ? 'bg-danger-500/5' : ''} ${isExpanded ? 'bg-surface-300/20' : ''}`}
                       >
                         {/* Team name */}
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-gray-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-white">{team.teamName}</span>
+                        <td className="px-2 md:px-4 py-3 md:py-4">
+                          <div className="flex items-center gap-1.5 md:gap-2">
+                            <span className={`text-gray-500 transition-transform text-xs md:text-base ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1 md:gap-2 flex-wrap">
+                                <span className="font-medium text-white text-sm md:text-base truncate">{team.teamName}</span>
                                 {/* #193: Consolidated badge */}
                                 {data?.inContrattiPhase && team.isConsolidated && (
-                                  <span className="px-1.5 py-0.5 text-[10px] rounded bg-green-500/20 text-green-400 font-medium">
+                                  <span className="px-1 md:px-1.5 py-0.5 text-[8px] md:text-[10px] rounded bg-green-500/20 text-green-400 font-medium whitespace-nowrap">
                                     CONSOLIDATO
                                   </span>
                                 )}
                               </div>
-                              <div className="text-xs text-gray-500">@{team.username}</div>
+                              <div className="text-[10px] md:text-xs text-gray-500 truncate">@{team.username}</div>
                             </div>
                           </div>
                         </td>
 
                         {/* Budget */}
-                        <td className="px-4 py-4 text-right font-medium text-primary-400">
+                        <td className="px-2 md:px-4 py-3 md:py-4 text-right font-medium text-primary-400 text-sm md:text-base whitespace-nowrap">
                           {team.budget}M
                         </td>
 
                         {/* #193: Contracts with pre/post renewal */}
-                        <td className="px-4 py-4 text-right">
+                        <td className="px-2 md:px-4 py-3 md:py-4 text-right">
                           {showPrePost ? (
                             <div className="flex flex-col items-end">
-                              <div className="flex items-baseline gap-2">
-                                <span className="text-xs text-gray-500 line-through">{team.preRenewalContractCost}M</span>
-                                <span className="font-medium text-accent-400">{team.postRenewalContractCost}M</span>
+                              <div className="flex items-baseline gap-1 md:gap-2">
+                                <span className="text-[10px] md:text-xs text-gray-500 line-through">{team.preRenewalContractCost}M</span>
+                                <span className="font-medium text-accent-400 text-sm md:text-base">{team.postRenewalContractCost}M</span>
                               </div>
                               {contractDelta !== null && contractDelta !== 0 && (
-                                <span className={`text-[10px] ${contractDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                <span className={`text-[8px] md:text-[10px] ${contractDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
                                   {contractDelta > 0 ? '+' : ''}{contractDelta}M
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <span className="font-medium text-accent-400">{team.annualContractCost}M</span>
+                            <span className="font-medium text-accent-400 text-sm md:text-base whitespace-nowrap">{team.annualContractCost}M</span>
                           )}
                         </td>
 
-                        {/* Balance */}
-                        <td className={`px-4 py-4 text-right font-medium ${balance >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
+                        {/* Balance - hidden on mobile */}
+                        <td className={`hidden md:table-cell px-4 py-4 text-right font-medium ${balance >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
                           {balance >= 0 ? '+' : ''}{balance}M
                         </td>
 
-                        {/* Slots - just the count, no max */}
-                        <td className="px-4 py-4 text-center">
+                        {/* Slots - hidden on mobile */}
+                        <td className="hidden md:table-cell px-4 py-4 text-center">
                           <span className="font-medium text-white">
                             {team.slotCount}
                           </span>
                         </td>
 
-                        {/* Position distribution with labels */}
-                        <td className="px-4 py-4">
+                        {/* Position distribution with labels - hidden on mobile/tablet */}
+                        <td className="hidden lg:table-cell px-4 py-4">
                           <div className="flex items-center justify-center gap-2">
                             {(['P', 'D', 'C', 'A'] as const).map(pos => (
                               <div
@@ -657,8 +657,8 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                           </div>
                         </td>
 
-                        {/* Age distribution with labels */}
-                        <td className="px-2 py-4 text-center">
+                        {/* Age distribution with labels - hidden until xl */}
+                        <td className="hidden xl:table-cell px-2 py-4 text-center">
                           <div className="flex flex-col items-center">
                             <span className="text-[10px] text-gray-500 mb-0.5">&lt;20</span>
                             <span className="px-2 py-0.5 rounded bg-secondary-500/20 text-secondary-400 text-xs font-medium min-w-[24px]">
@@ -666,7 +666,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                             </span>
                           </div>
                         </td>
-                        <td className="px-2 py-4 text-center">
+                        <td className="hidden xl:table-cell px-2 py-4 text-center">
                           <div className="flex flex-col items-center">
                             <span className="text-[10px] text-gray-500 mb-0.5">20-24</span>
                             <span className="px-2 py-0.5 rounded bg-primary-500/20 text-primary-400 text-xs font-medium min-w-[24px]">
@@ -674,7 +674,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                             </span>
                           </div>
                         </td>
-                        <td className="px-2 py-4 text-center">
+                        <td className="hidden xl:table-cell px-2 py-4 text-center">
                           <div className="flex flex-col items-center">
                             <span className="text-[10px] text-gray-500 mb-0.5">25-29</span>
                             <span className="px-2 py-0.5 rounded bg-accent-500/20 text-accent-400 text-xs font-medium min-w-[24px]">
@@ -682,7 +682,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                             </span>
                           </div>
                         </td>
-                        <td className="px-2 py-4 text-center">
+                        <td className="hidden xl:table-cell px-2 py-4 text-center">
                           <div className="flex flex-col items-center">
                             <span className="text-[10px] text-gray-500 mb-0.5">30+</span>
                             <span className="px-2 py-0.5 rounded bg-warning-500/20 text-warning-400 text-xs font-medium min-w-[24px]">
@@ -695,10 +695,10 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                       {/* Expanded aggregated view with charts */}
                       {isExpanded && (
                         <tr key={`${team.memberId}-expanded`}>
-                          <td colSpan={10} className="px-4 py-6 bg-surface-100/30">
+                          <td colSpan={10} className="px-2 md:px-4 py-4 md:py-6 bg-surface-100/30">
                             {/* Header with team name and view players button */}
-                            <div className="flex items-center justify-between mb-6">
-                              <div className="text-sm font-medium text-gray-400">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
+                              <div className="text-xs md:text-sm font-medium text-gray-400">
                                 Riepilogo finanziario di {team.teamName}
                                 {/* #193: Consolidated status */}
                                 {data?.inContrattiPhase && team.isConsolidated && (
@@ -712,20 +712,34 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                   e.stopPropagation()
                                   onNavigate('allPlayers', { team: team.teamName })
                                 }}
-                                className="px-4 py-2 bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                                className="px-3 md:px-4 py-1.5 md:py-2 bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 rounded-lg text-xs md:text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
                               >
                                 <span>Vedi Giocatori</span>
                                 <span>→</span>
                               </button>
                             </div>
 
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* Mobile: summary cards for hidden columns */}
+                            <div className="md:hidden grid grid-cols-2 gap-2 mb-4">
+                              <div className="bg-surface-300/30 rounded-lg p-3 border border-surface-50/10">
+                                <div className="text-[10px] text-gray-500 uppercase">Bilancio</div>
+                                <div className={`text-lg font-bold ${balance >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
+                                  {balance >= 0 ? '+' : ''}{balance}M
+                                </div>
+                              </div>
+                              <div className="bg-surface-300/30 rounded-lg p-3 border border-surface-50/10">
+                                <div className="text-[10px] text-gray-500 uppercase">Rosa</div>
+                                <div className="text-lg font-bold text-white">{team.slotCount}</div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
                               {/* Left: Aggregated data by position with pre/post renewal (#193) */}
-                              <div className="bg-surface-300/30 rounded-xl p-4 border border-surface-50/10">
-                                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">
-                                  Rosa per Ruolo {showPrePost && <span className="text-amber-400">(Pre/Post Rinnovo)</span>}
+                              <div className="bg-surface-300/30 rounded-xl p-3 md:p-4 border border-surface-50/10">
+                                <h4 className="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 md:mb-4">
+                                  Rosa per Ruolo {showPrePost && <span className="text-amber-400">(Pre/Post)</span>}
                                 </h4>
-                                <div className="space-y-3">
+                                <div className="space-y-2 md:space-y-3">
                                   {(['P', 'D', 'C', 'A'] as const).map(pos => {
                                     const count = team.positionDistribution[pos]
                                     const preRenewalCost = team.costByPosition[pos].preRenewal
@@ -735,28 +749,28 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                     return (
                                       <div
                                         key={pos}
-                                        className="flex items-center justify-between p-3 rounded-lg bg-surface-200/50"
+                                        className="flex items-center justify-between p-2 md:p-3 rounded-lg bg-surface-200/50"
                                       >
-                                        <div className="flex items-center gap-3">
-                                          <span className={`px-2.5 py-1 rounded text-sm font-bold ${POSITION_COLORS[pos]}`}>
+                                        <div className="flex items-center gap-2 md:gap-3">
+                                          <span className={`px-2 py-0.5 md:px-2.5 md:py-1 rounded text-xs md:text-sm font-bold ${POSITION_COLORS[pos]}`}>
                                             {pos}
                                           </span>
-                                          <span className="text-gray-300">{POSITION_NAMES[pos]}</span>
+                                          <span className="text-gray-300 text-xs md:text-sm hidden sm:inline">{POSITION_NAMES[pos]}</span>
                                         </div>
-                                        <div className="flex items-center gap-4 text-sm">
+                                        <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm">
                                           <div className="text-right">
                                             <div className="text-white font-medium">{count}</div>
-                                            <div className="text-[10px] text-gray-500">giocatori</div>
+                                            <div className="text-[8px] md:text-[10px] text-gray-500">gioc.</div>
                                           </div>
-                                          <div className="text-right min-w-[80px]">
+                                          <div className="text-right min-w-[50px] md:min-w-[80px]">
                                             {showPosDelta ? (
                                               <>
                                                 <div className="flex items-baseline justify-end gap-1">
-                                                  <span className="text-xs text-gray-500 line-through">{preRenewalCost}M</span>
+                                                  <span className="text-[10px] md:text-xs text-gray-500 line-through">{preRenewalCost}M</span>
                                                   <span className="text-accent-400 font-medium">{postRenewalCost}M</span>
                                                 </div>
                                                 {posDelta !== null && posDelta !== 0 && (
-                                                  <div className={`text-[10px] ${posDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                                  <div className={`text-[8px] md:text-[10px] ${posDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
                                                     {posDelta > 0 ? '+' : ''}{posDelta}M
                                                   </div>
                                                 )}
@@ -764,7 +778,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                             ) : (
                                               <>
                                                 <div className="text-accent-400 font-medium">{preRenewalCost}M</div>
-                                                <div className="text-[10px] text-gray-500">ingaggi</div>
+                                                <div className="text-[8px] md:text-[10px] text-gray-500">ingaggi</div>
                                               </>
                                             )}
                                           </div>
@@ -773,22 +787,22 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                     )
                                   })}
                                   {/* Total row with pre/post renewal (#193) */}
-                                  <div className="flex items-center justify-between p-3 rounded-lg bg-surface-50/10 border-t border-surface-50/20 mt-2">
-                                    <span className="text-gray-400 font-medium">Totale</span>
-                                    <div className="flex items-center gap-4 text-sm">
+                                  <div className="flex items-center justify-between p-2 md:p-3 rounded-lg bg-surface-50/10 border-t border-surface-50/20 mt-2">
+                                    <span className="text-gray-400 font-medium text-xs md:text-sm">Totale</span>
+                                    <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm">
                                       <div className="text-right">
                                         <div className="text-white font-bold">{team.slotCount}</div>
-                                        <div className="text-[10px] text-gray-500">giocatori</div>
+                                        <div className="text-[8px] md:text-[10px] text-gray-500">gioc.</div>
                                       </div>
-                                      <div className="text-right min-w-[80px]">
+                                      <div className="text-right min-w-[50px] md:min-w-[80px]">
                                         {showPrePost ? (
                                           <>
                                             <div className="flex items-baseline justify-end gap-1">
-                                              <span className="text-xs text-gray-500 line-through">{team.preRenewalContractCost}M</span>
+                                              <span className="text-[10px] md:text-xs text-gray-500 line-through">{team.preRenewalContractCost}M</span>
                                               <span className="text-accent-400 font-bold">{team.postRenewalContractCost}M</span>
                                             </div>
                                             {contractDelta !== null && contractDelta !== 0 && (
-                                              <div className={`text-[10px] ${contractDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                              <div className={`text-[8px] md:text-[10px] ${contractDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
                                                 {contractDelta > 0 ? '+' : ''}{contractDelta}M
                                               </div>
                                             )}
@@ -796,7 +810,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                         ) : (
                                           <>
                                             <div className="text-accent-400 font-bold">{team.annualContractCost}M</div>
-                                            <div className="text-[10px] text-gray-500">ingaggi</div>
+                                            <div className="text-[8px] md:text-[10px] text-gray-500">ingaggi</div>
                                           </>
                                         )}
                                       </div>
@@ -805,8 +819,8 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                 </div>
                               </div>
 
-                              {/* Center: Donut chart for position distribution */}
-                              <div className="bg-surface-300/30 rounded-xl p-4 border border-surface-50/10 flex flex-col items-center justify-center">
+                              {/* Center: Donut chart for position distribution - hidden on mobile */}
+                              <div className="hidden md:flex bg-surface-300/30 rounded-xl p-4 border border-surface-50/10 flex-col items-center justify-center">
                                 <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">
                                   Distribuzione Costi per Ruolo
                                 </h4>
@@ -823,8 +837,8 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                               </div>
 
                               {/* Right: Bar chart for budget vs contracts */}
-                              <div className="bg-surface-300/30 rounded-xl p-4 border border-surface-50/10">
-                                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">
+                              <div className="bg-surface-300/30 rounded-xl p-3 md:p-4 border border-surface-50/10">
+                                <h4 className="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 md:mb-4">
                                   Budget vs Contratti
                                 </h4>
                                 <BudgetBarChart
@@ -833,18 +847,18 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                 />
                                 {/* #193: Show pre-renewal comparison */}
                                 {showPrePost && (
-                                  <div className="mt-4 pt-4 border-t border-surface-50/20">
-                                    <div className="text-xs text-gray-500 mb-2">Confronto Pre-Rinnovo</div>
-                                    <div className="flex justify-between text-xs">
-                                      <span className="text-gray-400">Contratti pre-rinnovo:</span>
+                                  <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-surface-50/20">
+                                    <div className="text-[10px] md:text-xs text-gray-500 mb-2">Confronto Pre-Rinnovo</div>
+                                    <div className="flex justify-between text-[10px] md:text-xs">
+                                      <span className="text-gray-400">Pre-rinnovo:</span>
                                       <span className="text-gray-400">{team.preRenewalContractCost}M</span>
                                     </div>
-                                    <div className="flex justify-between text-xs">
-                                      <span className="text-gray-400">Contratti post-rinnovo:</span>
+                                    <div className="flex justify-between text-[10px] md:text-xs">
+                                      <span className="text-gray-400">Post-rinnovo:</span>
                                       <span className="text-accent-400">{team.postRenewalContractCost}M</span>
                                     </div>
                                     {contractDelta !== null && contractDelta !== 0 && (
-                                      <div className="flex justify-between text-xs mt-1 pt-1 border-t border-surface-50/10">
+                                      <div className="flex justify-between text-[10px] md:text-xs mt-1 pt-1 border-t border-surface-50/10">
                                         <span className="text-gray-400">Variazione:</span>
                                         <span className={contractDelta > 0 ? 'text-red-400' : 'text-green-400'}>
                                           {contractDelta > 0 ? '+' : ''}{contractDelta}M
@@ -866,8 +880,8 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
           </div>
         </div>
 
-        {/* Legend */}
-        <div className="mt-6 bg-surface-300/30 rounded-lg p-4 border border-surface-50/10">
+        {/* Legend - hidden on mobile, shown in expanded view */}
+        <div className="hidden md:block mt-6 bg-surface-300/30 rounded-lg p-4 border border-surface-50/10">
           <h3 className="text-sm font-medium text-gray-400 mb-3">Legenda</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
             <div>
@@ -906,8 +920,13 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
             </div>
           </div>
           <div className="text-xs text-gray-500 mt-3 pt-3 border-t border-surface-50/10">
-            Clicca su una riga per espandere la rosa completa del manager
+            Clicca su una riga per espandere i dettagli della squadra
           </div>
+        </div>
+
+        {/* Mobile tip */}
+        <div className="md:hidden mt-4 text-center text-xs text-gray-500">
+          Clicca su una squadra per vedere i dettagli
         </div>
       </div>
     </div>
