@@ -2,7 +2,187 @@ import { useState, useEffect, useMemo } from 'react'
 import { Navigation } from '../components/Navigation'
 import { leagueApi } from '../services/api'
 
+// ============================================================================
+// SVG Chart Components (no external dependencies)
+// ============================================================================
+
+// Donut Chart for position distribution
+interface DonutChartProps {
+  data: { label: string; value: number; color: string }[]
+  size?: number
+  innerRadius?: number
+}
+
+function DonutChart({ data, size = 180, innerRadius = 50 }: DonutChartProps) {
+  const center = size / 2
+  const outerRadius = (size / 2) - 10
+  const total = data.reduce((sum, d) => sum + d.value, 0)
+
+  if (total === 0) {
+    return (
+      <div className="flex items-center justify-center" style={{ width: size, height: size }}>
+        <span className="text-gray-500 text-sm">Nessun dato</span>
+      </div>
+    )
+  }
+
+  let currentAngle = -Math.PI / 2 // Start from top
+
+  const slices = data.map((d) => {
+    const angle = (d.value / total) * 2 * Math.PI
+    const startAngle = currentAngle
+    const endAngle = currentAngle + angle
+    currentAngle = endAngle
+
+    // Calculate arc path
+    const x1 = center + outerRadius * Math.cos(startAngle)
+    const y1 = center + outerRadius * Math.sin(startAngle)
+    const x2 = center + outerRadius * Math.cos(endAngle)
+    const y2 = center + outerRadius * Math.sin(endAngle)
+    const x3 = center + innerRadius * Math.cos(endAngle)
+    const y3 = center + innerRadius * Math.sin(endAngle)
+    const x4 = center + innerRadius * Math.cos(startAngle)
+    const y4 = center + innerRadius * Math.sin(startAngle)
+
+    const largeArc = angle > Math.PI ? 1 : 0
+
+    const path = `
+      M ${x1} ${y1}
+      A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${x2} ${y2}
+      L ${x3} ${y3}
+      A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x4} ${y4}
+      Z
+    `
+
+    // Calculate label position (middle of arc)
+    const midAngle = startAngle + angle / 2
+    const labelRadius = (outerRadius + innerRadius) / 2
+    const labelX = center + labelRadius * Math.cos(midAngle)
+    const labelY = center + labelRadius * Math.sin(midAngle)
+
+    return { ...d, path, labelX, labelY, percentage: Math.round((d.value / total) * 100) }
+  })
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <svg width={size} height={size}>
+        {slices.map((slice, i) => (
+          <g key={i}>
+            <path
+              d={slice.path}
+              fill={slice.color}
+              stroke="rgba(0,0,0,0.3)"
+              strokeWidth="1"
+              className="transition-opacity hover:opacity-80"
+            />
+            {slice.percentage >= 10 && (
+              <text
+                x={slice.labelX}
+                y={slice.labelY}
+                fill="white"
+                fontSize="11"
+                fontWeight="bold"
+                textAnchor="middle"
+                dominantBaseline="middle"
+              >
+                {slice.percentage}%
+              </text>
+            )}
+          </g>
+        ))}
+        {/* Center text */}
+        <text
+          x={center}
+          y={center - 8}
+          fill="rgba(255,255,255,0.7)"
+          fontSize="10"
+          textAnchor="middle"
+        >
+          Totale
+        </text>
+        <text
+          x={center}
+          y={center + 8}
+          fill="white"
+          fontSize="14"
+          fontWeight="bold"
+          textAnchor="middle"
+        >
+          {total}M
+        </text>
+      </svg>
+      {/* Legend */}
+      <div className="flex flex-wrap justify-center gap-3 text-xs">
+        {slices.map((slice, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded" style={{ backgroundColor: slice.color }} />
+            <span className="text-gray-400">{slice.label}</span>
+            <span className="text-white font-medium">{slice.value}M</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Bar Chart for budget comparison
+interface BarChartProps {
+  budget: number
+  contracts: number
+  height?: number
+}
+
+function BudgetBarChart({ budget, contracts, height = 120 }: BarChartProps) {
+  const maxValue = Math.max(budget, contracts, 1)
+  const budgetWidth = (budget / maxValue) * 100
+  const contractsWidth = (contracts / maxValue) * 100
+  const balance = budget - contracts
+
+  return (
+    <div className="flex flex-col gap-3" style={{ minHeight: height }}>
+      {/* Budget bar */}
+      <div className="flex flex-col gap-1">
+        <div className="flex justify-between text-xs">
+          <span className="text-gray-400">Budget</span>
+          <span className="text-primary-400 font-medium">{budget}M</span>
+        </div>
+        <div className="h-6 bg-surface-100/50 rounded-lg overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-primary-600 to-primary-400 rounded-lg transition-all duration-500"
+            style={{ width: `${budgetWidth}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Contracts bar */}
+      <div className="flex flex-col gap-1">
+        <div className="flex justify-between text-xs">
+          <span className="text-gray-400">Contratti</span>
+          <span className="text-accent-400 font-medium">{contracts}M</span>
+        </div>
+        <div className="h-6 bg-surface-100/50 rounded-lg overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-accent-600 to-accent-400 rounded-lg transition-all duration-500"
+            style={{ width: `${contractsWidth}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Balance indicator */}
+      <div className="flex items-center justify-between pt-2 border-t border-surface-50/20">
+        <span className="text-xs text-gray-400">Bilancio</span>
+        <span className={`text-sm font-bold ${balance >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
+          {balance >= 0 ? '+' : ''}{balance}M
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
 // Types
+// ============================================================================
+
 interface PlayerData {
   id: string
   name: string
@@ -51,12 +231,28 @@ interface FinancialsData {
 // Sort field type
 type SortField = 'teamName' | 'budget' | 'annualContractCost' | 'balance' | 'slotCount' | 'under20' | 'under25' | 'under30' | 'over30'
 
-// Position colors
+// Position colors (for badges)
 const POSITION_COLORS: Record<string, string> = {
   P: 'bg-yellow-500/20 text-yellow-400',
   D: 'bg-green-500/20 text-green-400',
   C: 'bg-blue-500/20 text-blue-400',
   A: 'bg-red-500/20 text-red-400',
+}
+
+// Position colors for charts (hex values)
+const POSITION_CHART_COLORS: Record<string, string> = {
+  P: '#eab308', // yellow-500
+  D: '#22c55e', // green-500
+  C: '#3b82f6', // blue-500
+  A: '#ef4444', // red-500
+}
+
+// Position full names
+const POSITION_NAMES: Record<string, string> = {
+  P: 'Portieri',
+  D: 'Difensori',
+  C: 'Centrocampisti',
+  A: 'Attaccanti',
 }
 
 // Age color coding - younger is better
@@ -407,65 +603,106 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                         </td>
                       </tr>
 
-                      {/* Expanded player table */}
+                      {/* Expanded aggregated view with charts */}
                       {isExpanded && (
                         <tr key={`${team.memberId}-expanded`}>
-                          <td colSpan={10} className="px-4 py-4 bg-surface-100/30">
-                            <div className="text-sm font-medium text-gray-400 mb-3">Rosa di {team.teamName}</div>
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-sm">
-                                <thead>
-                                  <tr className="text-xs text-gray-500 uppercase">
-                                    <th className="px-3 py-2 text-left">Ruolo</th>
-                                    <th className="px-3 py-2 text-left">Giocatore</th>
-                                    <th className="px-3 py-2 text-left">Squadra</th>
-                                    <th className="px-3 py-2 text-center">Età</th>
-                                    <th className="px-3 py-2 text-right">Quota</th>
-                                    <th className="px-3 py-2 text-right">Ingaggio</th>
-                                    <th className="px-3 py-2 text-center">Durata</th>
-                                    <th className="px-3 py-2 text-right">Clausola</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-surface-50/10">
-                                  {team.players
-                                    .sort((a, b) => {
-                                      const posOrder = { P: 0, D: 1, C: 2, A: 3 }
-                                      return (posOrder[a.position as keyof typeof posOrder] || 99) - (posOrder[b.position as keyof typeof posOrder] || 99)
-                                    })
-                                    .map(player => (
-                                      <tr key={player.id} className="hover:bg-surface-300/20">
-                                        <td className="px-3 py-2">
-                                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${POSITION_COLORS[player.position]}`}>
-                                            {player.position}
+                          <td colSpan={10} className="px-4 py-6 bg-surface-100/30">
+                            {/* Header with team name and view players button */}
+                            <div className="flex items-center justify-between mb-6">
+                              <div className="text-sm font-medium text-gray-400">
+                                Riepilogo finanziario di {team.teamName}
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onNavigate('allPlayers', { team: team.teamName })
+                                }}
+                                className="px-4 py-2 bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                              >
+                                <span>Vedi Giocatori</span>
+                                <span>→</span>
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                              {/* Left: Aggregated data by position */}
+                              <div className="bg-surface-300/30 rounded-xl p-4 border border-surface-50/10">
+                                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">
+                                  Rosa per Ruolo
+                                </h4>
+                                <div className="space-y-3">
+                                  {(['P', 'D', 'C', 'A'] as const).map(pos => {
+                                    const count = team.positionDistribution[pos]
+                                    const totalSalary = team.players
+                                      .filter(p => p.position === pos)
+                                      .reduce((sum, p) => sum + p.salary, 0)
+                                    return (
+                                      <div
+                                        key={pos}
+                                        className="flex items-center justify-between p-3 rounded-lg bg-surface-200/50"
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          <span className={`px-2.5 py-1 rounded text-sm font-bold ${POSITION_COLORS[pos]}`}>
+                                            {pos}
                                           </span>
-                                        </td>
-                                        <td className="px-3 py-2 font-medium text-white">{player.name}</td>
-                                        <td className="px-3 py-2 text-gray-400">{player.team}</td>
-                                        <td className="px-3 py-2 text-center">
-                                          <span className={`px-2 py-0.5 rounded text-sm ${getAgeBgColor(player.age)}`}>
-                                            {player.age != null ? player.age : '-'}
-                                          </span>
-                                        </td>
-                                        <td className="px-3 py-2 text-right text-gray-400">{player.quotation}M</td>
-                                        <td className="px-3 py-2 text-right font-medium text-accent-400">{player.salary}M</td>
-                                        <td className="px-3 py-2 text-center text-gray-300">{player.duration}</td>
-                                        <td className="px-3 py-2 text-right text-warning-400">{player.clause}M</td>
-                                      </tr>
-                                    ))}
-                                </tbody>
-                                <tfoot className="border-t border-surface-50/30">
-                                  <tr className="text-xs font-medium">
-                                    <td colSpan={5} className="px-3 py-2 text-right text-gray-500">Totali:</td>
-                                    <td className="px-3 py-2 text-right text-accent-400">
-                                      {team.players.reduce((sum, p) => sum + p.salary, 0)}M
-                                    </td>
-                                    <td className="px-3 py-2"></td>
-                                    <td className="px-3 py-2 text-right text-warning-400">
-                                      {team.players.reduce((sum, p) => sum + p.clause, 0)}M
-                                    </td>
-                                  </tr>
-                                </tfoot>
-                              </table>
+                                          <span className="text-gray-300">{POSITION_NAMES[pos]}</span>
+                                        </div>
+                                        <div className="flex items-center gap-4 text-sm">
+                                          <div className="text-right">
+                                            <div className="text-white font-medium">{count}</div>
+                                            <div className="text-[10px] text-gray-500">giocatori</div>
+                                          </div>
+                                          <div className="text-right min-w-[60px]">
+                                            <div className="text-accent-400 font-medium">{totalSalary}M</div>
+                                            <div className="text-[10px] text-gray-500">ingaggi</div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
+                                  {/* Total row */}
+                                  <div className="flex items-center justify-between p-3 rounded-lg bg-surface-50/10 border-t border-surface-50/20 mt-2">
+                                    <span className="text-gray-400 font-medium">Totale</span>
+                                    <div className="flex items-center gap-4 text-sm">
+                                      <div className="text-right">
+                                        <div className="text-white font-bold">{team.slotCount}</div>
+                                        <div className="text-[10px] text-gray-500">giocatori</div>
+                                      </div>
+                                      <div className="text-right min-w-[60px]">
+                                        <div className="text-accent-400 font-bold">{team.annualContractCost}M</div>
+                                        <div className="text-[10px] text-gray-500">ingaggi</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Center: Donut chart for position distribution */}
+                              <div className="bg-surface-300/30 rounded-xl p-4 border border-surface-50/10 flex flex-col items-center justify-center">
+                                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">
+                                  Distribuzione Costi per Ruolo
+                                </h4>
+                                <DonutChart
+                                  data={(['P', 'D', 'C', 'A'] as const).map(pos => ({
+                                    label: POSITION_NAMES[pos],
+                                    value: team.players
+                                      .filter(p => p.position === pos)
+                                      .reduce((sum, p) => sum + p.salary, 0),
+                                    color: POSITION_CHART_COLORS[pos],
+                                  }))}
+                                />
+                              </div>
+
+                              {/* Right: Bar chart for budget vs contracts */}
+                              <div className="bg-surface-300/30 rounded-xl p-4 border border-surface-50/10">
+                                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-4">
+                                  Budget vs Contratti
+                                </h4>
+                                <BudgetBarChart
+                                  budget={team.budget}
+                                  contracts={team.annualContractCost}
+                                />
+                              </div>
                             </div>
                           </td>
                         </tr>

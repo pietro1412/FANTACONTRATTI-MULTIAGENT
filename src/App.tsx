@@ -183,7 +183,10 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'strategie-rubata': navigate(`/leagues/${lid}/strategie-rubata`); break
       case 'svincolati': navigate(`/leagues/${lid}/svincolati`); break
       case 'prizes': navigate(`/leagues/${lid}/prizes`); break
-      case 'allPlayers': navigate(`/leagues/${lid}/players`); break
+      case 'allPlayers':
+        if (params?.team) navigate(`/leagues/${lid}/players?team=${encodeURIComponent(params.team)}`)
+        else navigate(`/leagues/${lid}/players`)
+        break
       case 'manager-dashboard': navigate(`/leagues/${lid}/manager`); break
       case 'admin':
       case 'adminPanel':
@@ -292,10 +295,12 @@ function SvincolatiWrapper() {
 function AllPlayersWrapper() {
   const navigate = useNavigate()
   const { leagueId } = useParams<{ leagueId: string }>()
+  const [searchParams] = useSearchParams()
+  const teamFilter = searchParams.get('team') || undefined
   const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
-  return <AllPlayers leagueId={leagueId} onNavigate={onNavigate} />
+  return <AllPlayers leagueId={leagueId} onNavigate={onNavigate} initialTeamFilter={teamFilter} />
 }
 
 function ManagerDashboardWrapper() {
