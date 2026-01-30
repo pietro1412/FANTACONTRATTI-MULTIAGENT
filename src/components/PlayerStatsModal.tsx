@@ -9,6 +9,16 @@ const POSITION_COLORS: Record<string, string> = {
   A: 'from-red-500 to-red-600',
 }
 
+// Age color function - younger is better
+function getAgeColor(age: number | null | undefined): string {
+  if (age === null || age === undefined) return 'text-gray-500'
+  if (age < 20) return 'text-emerald-400 font-bold'
+  if (age < 25) return 'text-green-400'
+  if (age < 30) return 'text-yellow-400'
+  if (age < 35) return 'text-orange-400'
+  return 'text-red-400'
+}
+
 // Stats structure from API-Football
 export interface PlayerStats {
   games: {
@@ -19,6 +29,8 @@ export interface PlayerStats {
   goals: {
     total: number | null
     assists: number | null
+    conceded: number | null  // Goalkeeper: goals conceded
+    saves: number | null     // Goalkeeper: saves
   }
   shots: {
     total: number | null
@@ -44,6 +56,7 @@ export interface PlayerStats {
   penalty: {
     scored: number | null
     missed: number | null
+    saved: number | null     // Goalkeeper: penalties saved
   }
 }
 
@@ -52,6 +65,7 @@ export interface PlayerInfo {
   team: string
   position: string
   quotation?: number
+  age?: number | null
   apiFootballId?: number | null
   apiFootballStats?: PlayerStats | null
   statsSyncedAt?: string | null
@@ -151,6 +165,9 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
                 />
               )}
               {player.team}
+              {player.age != null && (
+                <span className={`ml-2 ${getAgeColor(player.age)}`}>• {player.age} anni</span>
+              )}
               {player.quotation && (
                 <span className="ml-2 px-2 py-0.5 rounded bg-primary-500/20 text-primary-400 font-medium">
                   {player.quotation}M
@@ -173,7 +190,50 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
               )}
             </div>
           </div>
+        ) : player.position === 'P' ? (
+          /* ========== GOALKEEPER STATS ========== */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Generali */}
+            <StatSection title="Generali">
+              <StatRow label="Presenze" value={stats.games.appearences} />
+              <StatRow label="Minuti" value={stats.games.minutes} />
+              <StatRow label="Rating Medio" value={stats.games.rating != null ? Number(Number(stats.games.rating).toFixed(2)) : null} />
+            </StatSection>
+
+            {/* Portiere - Stats Principali */}
+            <StatSection title="🧤 Portiere">
+              <StatRow label="Parate" value={stats.goals.saves} />
+              <StatRow label="Gol Subiti" value={stats.goals.conceded} />
+              {stats.games.appearences && stats.goals.conceded != null && (
+                <StatRow
+                  label="Media Gol Subiti"
+                  value={Number((stats.goals.conceded / stats.games.appearences).toFixed(2))}
+                />
+              )}
+              {stats.games.appearences && stats.goals.conceded != null && stats.goals.conceded === 0 && (
+                <StatRow label="Clean Sheet" value={stats.games.appearences} />
+              )}
+            </StatSection>
+
+            {/* Passaggi */}
+            <StatSection title="Passaggi">
+              <StatRow label="Totali" value={stats.passes.total} />
+              <StatRow label="Precisione" value={stats.passes.accuracy} suffix="%" />
+            </StatSection>
+
+            {/* Rigori */}
+            <StatSection title="Rigori">
+              <StatRow label="Parati" value={stats.penalty.saved} />
+            </StatSection>
+
+            {/* Disciplina */}
+            <StatSection title="Disciplina">
+              <StatRow label="Cartellini Gialli" value={stats.cards.yellow} />
+              <StatRow label="Cartellini Rossi" value={stats.cards.red} />
+            </StatSection>
+          </div>
         ) : (
+          /* ========== OUTFIELD PLAYER STATS ========== */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Generali */}
             <StatSection title="Generali">

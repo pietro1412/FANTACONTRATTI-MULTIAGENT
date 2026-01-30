@@ -930,3 +930,233 @@ export async function searchLeagues(
     data: filteredLeagues,
   }
 }
+
+/**
+ * Get financial dashboard data for all teams in a league (#190, #193)
+ * Includes pre/post renewal contract costs when in CONTRATTI phase
+ */
+export async function getLeagueFinancials(leagueId: string, userId: string): Promise<ServiceResult> {
+  try {
+    // Verify user is a member of the league
+    const membership = await prisma.leagueMember.findFirst({
+      where: {
+        leagueId,
+        userId,
+        status: MemberStatus.ACTIVE,
+      },
+    })
+
+    if (!membership) {
+      return { success: false, message: 'Non sei membro di questa lega' }
+    }
+
+    // Check if we're in CONTRATTI phase (#193)
+    const activeContrattiSession = await prisma.marketSession.findFirst({
+      where: {
+        leagueId,
+        status: 'ACTIVE',
+        currentPhase: 'CONTRATTI',
+      },
+    })
+    const inContrattiPhase = !!activeContrattiSession
+
+    // Get consolidation status for all members if in CONTRATTI phase
+    let consolidationMap = new Map<string, Date | null>()
+    if (inContrattiPhase && activeContrattiSession) {
+      const consolidations = await prisma.contractConsolidation.findMany({
+        where: { sessionId: activeContrattiSession.id },
+      })
+      consolidationMap = new Map(consolidations.map(c => [c.memberId, c.consolidatedAt]))
+    }
+
+    // Get all active members with their rosters and contracts (including draft values for #193)
+    const members = await prisma.leagueMember.findMany({
+      where: {
+        leagueId,
+        status: MemberStatus.ACTIVE,
+      },
+      include: {
+        user: {
+          select: { username: true },
+        },
+        roster: {
+          where: { status: 'ACTIVE' },
+          include: {
+            player: {
+              select: {
+                id: true,
+                name: true,
+                team: true,
+                position: true,
+                quotation: true,
+                age: true,
+              },
+            },
+            contract: {
+              select: {
+                salary: true,
+                duration: true,
+                rescissionClause: true,
+                draftSalary: true,
+                draftDuration: true,
+                draftReleased: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { teamName: 'asc' },
+    })
+
+    // Get league settings for slot limit
+    const league = await prisma.league.findUnique({
+      where: { id: leagueId },
+      select: {
+        name: true,
+        goalkeeperSlots: true,
+        defenderSlots: true,
+        midfielderSlots: true,
+        forwardSlots: true,
+      },
+    })
+
+    // Calculate max slots from individual position slots
+    const maxSlots = league
+      ? (league.goalkeeperSlots + league.defenderSlots + league.midfielderSlots + league.forwardSlots)
+      : 25
+
+    // Calculate financial data for each team
+    const teamsData = members.map(member => {
+      const isConsolidated = consolidationMap.has(member.id)
+      const consolidatedAt = consolidationMap.get(member.id) || null
+
+      const players = member.roster.map(r => {
+        // Pre-rinnovo: original salary (before any draft changes)
+        const preRenewalSalary = r.contract?.salary || 0
+
+        // Post-rinnovo: use draftSalary if available and not consolidated, otherwise use salary
+        // If consolidated, the salary field already contains the final value
+        let postRenewalSalary: number | null = null
+        if (inContrattiPhase && !isConsolidated) {
+          // During CONTRATTI phase, show draft value if present
+          postRenewalSalary = r.contract?.draftSalary ?? null
+        }
+
+        return {
+          id: r.player.id,
+          name: r.player.name,
+          team: r.player.team,
+          position: r.player.position,
+          quotation: r.player.quotation,
+          age: r.player.age,
+          salary: r.contract?.salary || 0,
+          duration: r.contract?.duration || 0,
+          clause: r.contract?.rescissionClause || 0,
+          // #193: Pre/Post renewal values
+          preRenewalSalary,
+          postRenewalSalary,
+          draftDuration: inContrattiPhase && !isConsolidated ? (r.contract?.draftDuration ?? null) : null,
+          draftReleased: inContrattiPhase && !isConsolidated ? (r.contract?.draftReleased ?? false) : false,
+        }
+      })
+
+      // Calculate totals (current values)
+      const annualContractCost = players.reduce((sum, p) => sum + p.salary, 0)
+      const totalContractCost = players.reduce((sum, p) => sum + (p.salary * p.duration), 0)
+      const slotCount = players.length
+
+      // #193: Pre-renewal cost (original salaries)
+      const preRenewalContractCost = players.reduce((sum, p) => sum + p.preRenewalSalary, 0)
+
+      // #193: Post-renewal cost (draft salaries where available, original otherwise)
+      // Only calculated during CONTRATTI phase
+      let postRenewalContractCost: number | null = null
+      if (inContrattiPhase && !isConsolidated) {
+        postRenewalContractCost = players.reduce((sum, p) => {
+          // If player is marked for release, don't count them
+          if (p.draftReleased) return sum
+          // Use draft salary if available, otherwise original
+          return sum + (p.postRenewalSalary ?? p.preRenewalSalary)
+        }, 0)
+      }
+
+      // #193: Calculate cost by position for drill-down
+      const costByPosition = {
+        P: { preRenewal: 0, postRenewal: null as number | null },
+        D: { preRenewal: 0, postRenewal: null as number | null },
+        C: { preRenewal: 0, postRenewal: null as number | null },
+        A: { preRenewal: 0, postRenewal: null as number | null },
+      }
+
+      for (const p of players) {
+        const pos = p.position as 'P' | 'D' | 'C' | 'A'
+        if (costByPosition[pos]) {
+          costByPosition[pos].preRenewal += p.preRenewalSalary
+          if (inContrattiPhase && !isConsolidated && !p.draftReleased) {
+            if (costByPosition[pos].postRenewal === null) {
+              costByPosition[pos].postRenewal = 0
+            }
+            costByPosition[pos].postRenewal! += (p.postRenewalSalary ?? p.preRenewalSalary)
+          }
+        }
+      }
+
+      // Age distribution
+      const under20 = players.filter(p => p.age != null && p.age < 20).length
+      const under25 = players.filter(p => p.age != null && p.age >= 20 && p.age < 25).length
+      const under30 = players.filter(p => p.age != null && p.age >= 25 && p.age < 30).length
+      const over30 = players.filter(p => p.age != null && p.age >= 30).length
+      const ageUnknown = players.filter(p => p.age == null).length
+
+      // Position distribution
+      const byPosition = {
+        P: players.filter(p => p.position === 'P').length,
+        D: players.filter(p => p.position === 'D').length,
+        C: players.filter(p => p.position === 'C').length,
+        A: players.filter(p => p.position === 'A').length,
+      }
+
+      return {
+        memberId: member.id,
+        teamName: member.teamName || member.user.username,
+        username: member.user.username,
+        budget: member.currentBudget,
+        annualContractCost,
+        totalContractCost,
+        slotCount,
+        slotsFree: maxSlots - slotCount,
+        maxSlots,
+        ageDistribution: {
+          under20,
+          under25,
+          under30,
+          over30,
+          unknown: ageUnknown,
+        },
+        positionDistribution: byPosition,
+        players, // Include player details for drill-down
+        // #193: Pre/Post renewal data
+        preRenewalContractCost,
+        postRenewalContractCost,
+        costByPosition,
+        isConsolidated,
+        consolidatedAt,
+      }
+    })
+
+    return {
+      success: true,
+      data: {
+        leagueName: league?.name,
+        maxSlots,
+        teams: teamsData,
+        isAdmin: membership.role === MemberRole.ADMIN,
+        // #193: Phase info
+        inContrattiPhase,
+      },
+    }
+  } catch (error) {
+    console.error('[getLeagueFinancials] Error:', error)
+    return { success: false, message: `Errore nel caricamento dati finanziari: ${(error as Error).message}` }
+  }
+}

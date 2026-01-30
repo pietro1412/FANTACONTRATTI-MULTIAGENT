@@ -6,6 +6,29 @@ import { getTeamLogo } from '../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../utils/player-images'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
 import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
+import RadarChart from '../components/ui/RadarChart'
+
+// Player colors for radar chart comparison
+const PLAYER_CHART_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#a855f7']
+
+// Age color coding - younger is better
+function getAgeColor(age: number | null | undefined): string {
+  if (age === null || age === undefined) return 'text-gray-500'
+  if (age < 20) return 'text-emerald-400 font-bold' // Very young - excellent
+  if (age < 25) return 'text-green-400' // Young - good
+  if (age < 30) return 'text-yellow-400' // Prime - neutral
+  if (age < 35) return 'text-orange-400' // Aging - caution
+  return 'text-red-400' // Old - warning
+}
+
+function getAgeBgColor(age: number | null | undefined): string {
+  if (age === null || age === undefined) return 'bg-gray-500/20 text-gray-400'
+  if (age < 20) return 'bg-emerald-500/20 text-emerald-400 font-bold'
+  if (age < 25) return 'bg-green-500/20 text-green-400'
+  if (age < 30) return 'bg-yellow-500/20 text-yellow-400'
+  if (age < 35) return 'bg-orange-500/20 text-orange-400'
+  return 'bg-red-500/20 text-red-400'
+}
 
 interface StrategyPlayer {
   rosterId: string
@@ -15,6 +38,7 @@ interface StrategyPlayer {
   playerPosition: string
   playerTeam: string
   playerQuotation: number
+  playerAge?: number | null
   playerApiFootballId?: number | null
   playerApiFootballStats?: PlayerStats | null
   ownerUsername: string
@@ -31,6 +55,7 @@ interface SvincolatoPlayer {
   playerName: string
   playerPosition: string
   playerTeam: string
+  playerAge?: number | null
   playerApiFootballId?: number | null
   playerApiFootballStats?: PlayerStats | null
 }
@@ -165,6 +190,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
   // Player stats modal
   const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
+
+  // Player comparison feature (#187)
+  const [selectedForCompare, setSelectedForCompare] = useState<Set<string>>(new Set())
+  const [showCompareModal, setShowCompareModal] = useState(false)
 
   // Local edits with debounce
   const [localStrategies, setLocalStrategies] = useState<Record<string, LocalStrategy>>({})
@@ -399,6 +428,24 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     }
   }, [sortField])
 
+  // Toggle player for comparison (#187)
+  const togglePlayerForCompare = useCallback((playerId: string) => {
+    setSelectedForCompare((prev) => {
+      const next = new Set(prev)
+      if (next.has(playerId)) {
+        next.delete(playerId)
+      } else if (next.size < 4) {
+        next.add(playerId)
+      }
+      return next
+    })
+  }, [])
+
+  // Clear comparison selection
+  const clearComparison = useCallback(() => {
+    setSelectedForCompare(new Set())
+  }, [])
+
   // Filtered and sorted players - supports myRoster, owned, svincolati, and all
   const filteredPlayers = useMemo((): DisplayPlayer[] => {
     const result: DisplayPlayer[] = []
@@ -563,6 +610,11 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
     return result
   }, [strategiesData?.players, svincolatiData?.players, myMemberId, viewMode, positionFilter, teamFilter, ownerFilter, searchQuery, showOnlyWithStrategy, sortMode, getLocalStrategy])
+
+  // Players selected for comparison (#187) - must be after filteredPlayers
+  const playersToCompare = useMemo(() => {
+    return filteredPlayers.filter(p => selectedForCompare.has(p.playerId))
+  }, [filteredPlayers, selectedForCompare])
 
   // My strategies count (for footer) - includes both owned and svincolati
   const myStrategiesCount = useMemo(() => {
@@ -842,6 +894,29 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     />
                     <span className="text-xs text-indigo-300 whitespace-nowrap font-medium">⭐ Strategia</span>
                   </label>
+
+                  {/* Compare button (#187) */}
+                  {selectedForCompare.size > 0 && (
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button
+                        onClick={() => setShowCompareModal(true)}
+                        disabled={selectedForCompare.size < 2}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          selectedForCompare.size >= 2
+                            ? 'bg-cyan-500 text-white hover:bg-cyan-600'
+                            : 'bg-cyan-500/30 text-cyan-400/50 cursor-not-allowed'
+                        }`}
+                      >
+                        📊 Confronta ({selectedForCompare.size})
+                      </button>
+                      <button
+                        onClick={clearComparison}
+                        className="w-7 h-7 rounded-lg bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-100 text-sm flex items-center justify-center transition-colors"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -856,10 +931,17 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   const isMyRoster = player.type === 'myRoster'
 
                   return (
-                    <div key={player.playerId} className={`bg-surface-300/30 rounded-lg p-3 border ${isMyRoster ? 'border-primary-500/30 bg-primary-500/5' : hasStrategy ? 'border-indigo-500/30 bg-indigo-500/5' : isSvincolato ? 'border-emerald-500/20' : 'border-surface-50/10'}`}>
-                      {/* Header: Photo + Player + Svincolato badge */}
+                    <div key={player.playerId} className={`bg-surface-300/30 rounded-lg p-3 border ${selectedForCompare.has(player.playerId) ? 'border-cyan-500/50 bg-cyan-500/10' : isMyRoster ? 'border-primary-500/30 bg-primary-500/5' : hasStrategy ? 'border-indigo-500/30 bg-indigo-500/5' : isSvincolato ? 'border-emerald-500/20' : 'border-surface-50/10'}`}>
+                      {/* Header: Checkbox + Photo + Player + Svincolato badge */}
                       <div className="flex items-center gap-2 mb-2">
-                        {/* Player Photo with Team Logo Badge */}
+                        {/* Compare checkbox (#187) */}
+                        <input
+                          type="checkbox"
+                          checked={selectedForCompare.has(player.playerId)}
+                          onChange={() => togglePlayerForCompare(player.playerId)}
+                          className="w-5 h-5 rounded bg-surface-300 border-cyan-500/50 text-cyan-500 focus:ring-cyan-500 flex-shrink-0"
+                        />
+                        {/* Player Photo with Team Logo Badge - increased size #186 */}
                         <div className="relative flex-shrink-0">
                           {(() => {
                             const photoUrl = getPlayerPhotoUrl(player.playerApiFootballId)
@@ -867,7 +949,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               <img
                                 src={photoUrl}
                                 alt={player.playerName}
-                                className="w-10 h-10 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+                                className="w-12 h-12 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).style.display = 'none'
                                   const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
@@ -877,56 +959,60 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             ) : null
                           })()}
                           <div
-                            className={`w-10 h-10 rounded-full ${posColors.bg} ${posColors.text} items-center justify-center text-xs font-bold ${getPlayerPhotoUrl(player.playerApiFootballId) ? 'hidden' : 'flex'}`}
+                            className={`w-12 h-12 rounded-full ${posColors.bg} ${posColors.text} items-center justify-center text-sm font-bold ${getPlayerPhotoUrl(player.playerApiFootballId) ? 'hidden' : 'flex'}`}
                           >
                             {player.playerPosition}
                           </div>
-                          {/* Team logo badge */}
-                          <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white p-0.5 border border-surface-50/20">
+                          {/* Team logo badge - increased size #186 */}
+                          <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white p-0.5 border border-surface-50/20">
                             <TeamLogo team={player.playerTeam} />
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setSelectedPlayerStats({
-                                name: player.playerName,
-                                team: player.playerTeam,
-                                position: player.playerPosition,
-                                quotation: isSvincolato ? undefined : player.playerQuotation,
-                                apiFootballId: player.playerApiFootballId,
-                                apiFootballStats: player.playerApiFootballStats,
-                              })}
-                              className="font-medium text-white text-sm truncate hover:text-primary-400 transition-colors text-left"
-                            >
-                              {player.playerName}
-                            </button>
-                          </div>
-                          <div className="text-xs text-gray-500">{player.playerTeam}</div>
+                          <button
+                            onClick={() => setSelectedPlayerStats({
+                              name: player.playerName,
+                              team: player.playerTeam,
+                              position: player.playerPosition,
+                              quotation: isSvincolato ? undefined : player.playerQuotation,
+                              age: player.playerAge,
+                              apiFootballId: player.playerApiFootballId,
+                              apiFootballStats: player.playerApiFootballStats,
+                            })}
+                            className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
+                          >
+                            {player.playerName}
+                          </button>
                         </div>
                       </div>
-                      {/* Owner */}
-                      <div className="flex justify-between items-center mb-2 text-xs">
-                        <span className="text-gray-400">
+                      {/* Player details: Squadra, Età, Owner */}
+                      <div className="grid grid-cols-3 gap-2 mb-2 text-xs">
+                        <div>
+                          <span className="text-gray-500">Squadra: </span>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <div className="w-4 h-4 flex-shrink-0">
+                              <TeamLogo team={player.playerTeam} />
+                            </div>
+                            <span className="text-gray-300 truncate">{player.playerTeam}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Età: </span>
+                          <span className={`${getAgeColor(player.playerAge)}`}>
+                            {player.playerAge != null ? `${player.playerAge} anni` : '-'}
+                          </span>
+                        </div>
+                        <div>
                           <span className="text-gray-500">Prop: </span>
                           {isSvincolato ? (
                             <span className="text-emerald-400">Svincolato</span>
                           ) : isMyRoster ? (
                             <span className="text-primary-400">La Mia Rosa</span>
                           ) : (
-                            <span>{player.ownerTeamName || player.ownerUsername}</span>
+                            <span className="text-gray-300">{player.ownerTeamName || player.ownerUsername}</span>
                           )}
-                        </span>
-                        {/* Contract summary - only for contracts/merge view */}
-                        {!isSvincolato && (dataViewMode === 'contracts' || dataViewMode === 'merge') && (
-                          <span>
-                            <span className="text-accent-400 font-medium">{player.contractSalary}M</span>
-                            <span className="text-gray-500"> x </span>
-                            <span className="text-white">{player.contractDuration}s</span>
-                          </span>
-                        )}
+                        </div>
                       </div>
-
                       {/* Contract info - only for contracts/merge view */}
                       {!isSvincolato && (dataViewMode === 'contracts' || dataViewMode === 'merge') && (
                         <div className="grid grid-cols-2 gap-2 text-center text-xs mb-3">
@@ -976,10 +1062,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             <input type="number" value={local.maxBid} onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)} placeholder="-" className="w-12 px-1 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-center text-sm" />
                             <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', ((parseInt(local.maxBid) || 0) + 1).toString())} className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 text-sm font-bold">+</button>
                           </div>
-                          {/* Priority */}
+                          {/* Priority - increased size #186 */}
                           <div className="flex items-center gap-0.5 ml-auto">
                             {[1, 2, 3, 4, 5].map(star => (
-                              <button key={star} onClick={() => updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star)} className={`w-7 h-7 text-lg ${local.priority >= star ? 'text-purple-400' : 'text-gray-600'}`}>★</button>
+                              <button key={star} onClick={() => updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star)} className={`w-8 h-8 text-xl ${local.priority >= star ? 'text-purple-400' : 'text-gray-600'}`}>★</button>
                             ))}
                           </div>
                         </div>
@@ -1000,7 +1086,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   <thead className="bg-surface-300/50">
                     {/* Group headers */}
                     <tr className="text-[10px] text-gray-500 uppercase border-b border-surface-50/20">
-                      <th colSpan={3} className="text-left py-1 px-3 bg-surface-300/30">
+                      <th className="w-10 py-1 px-2 bg-cyan-500/10">📊</th>
+                      <th colSpan={5} className="text-left py-1 px-3 bg-surface-300/30">
                         Giocatore
                       </th>
                       {(dataViewMode === 'contracts' || dataViewMode === 'merge') && (
@@ -1019,8 +1106,19 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     </tr>
                     {/* Column headers */}
                     <tr className="text-xs text-gray-400 uppercase">
+                      {/* Compare checkbox header (#187) */}
+                      <th className="w-10 p-2 text-center bg-cyan-500/5">
+                        <input
+                          type="checkbox"
+                          checked={selectedForCompare.size > 0}
+                          onChange={() => selectedForCompare.size > 0 ? clearComparison() : null}
+                          className="w-4 h-4 rounded bg-surface-300 border-cyan-500/50 text-cyan-500 focus:ring-cyan-500"
+                        />
+                      </th>
                       <SortableHeader field="position" label="R" className="w-10 p-2 text-center" />
                       <SortableHeader field="name" label="Giocatore" className="text-left p-2" />
+                      <th className="text-left p-2">Squadra</th>
+                      <th className="text-center p-2 w-12">Età</th>
                       <SortableHeader field="owner" label="Prop." className="text-left p-2" />
                       {/* Contract columns */}
                       {(dataViewMode === 'contracts' || dataViewMode === 'merge') && (
@@ -1062,20 +1160,30 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         <tr
                           key={player.playerId}
                           className={`border-t border-surface-50/10 transition-colors ${
-                            isMyRoster ? 'bg-primary-500/5' : hasStrategy ? 'bg-indigo-500/5' : isSvincolato ? 'bg-emerald-500/5' : ''
+                            selectedForCompare.has(player.playerId) ? 'bg-cyan-500/10' : isMyRoster ? 'bg-primary-500/5' : hasStrategy ? 'bg-indigo-500/5' : isSvincolato ? 'bg-emerald-500/5' : ''
                           } hover:bg-surface-300/30`}
                         >
+                          {/* Compare checkbox (#187) */}
+                          <td className="p-2 text-center bg-cyan-500/5">
+                            <input
+                              type="checkbox"
+                              checked={selectedForCompare.has(player.playerId)}
+                              onChange={() => togglePlayerForCompare(player.playerId)}
+                              className="w-4 h-4 rounded bg-surface-300 border-cyan-500/50 text-cyan-500 focus:ring-cyan-500"
+                            />
+                          </td>
+
                           {/* Position */}
                           <td className="p-2 text-center">
-                            <div className={`w-7 h-7 mx-auto rounded-full ${posColors.bg} ${posColors.text} flex items-center justify-center text-xs font-bold`}>
+                            <div className={`w-8 h-8 mx-auto rounded-full ${posColors.bg} ${posColors.text} flex items-center justify-center text-sm font-bold`}>
                               {player.playerPosition}
                             </div>
                           </td>
 
-                          {/* Player */}
+                          {/* Player - increased sizes #186 */}
                           <td className="p-2">
                             <div className="flex items-center gap-2">
-                              {/* Player Photo with Team Logo Badge */}
+                              {/* Player Photo - increased size #186 */}
                               <div className="relative flex-shrink-0">
                                 {(() => {
                                   const photoUrl = getPlayerPhotoUrl(player.playerApiFootballId)
@@ -1083,7 +1191,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                     <img
                                       src={photoUrl}
                                       alt={player.playerName}
-                                      className="w-9 h-9 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+                                      className="w-10 h-10 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
                                       onError={(e) => {
                                         (e.target as HTMLImageElement).style.display = 'none'
                                         const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
@@ -1093,34 +1201,44 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                   ) : null
                                 })()}
                                 <div
-                                  className={`w-9 h-9 rounded-full ${posColors.bg} ${posColors.text} items-center justify-center font-bold text-xs ${getPlayerPhotoUrl(player.playerApiFootballId) ? 'hidden' : 'flex'}`}
+                                  className={`w-10 h-10 rounded-full ${posColors.bg} ${posColors.text} items-center justify-center font-bold text-sm ${getPlayerPhotoUrl(player.playerApiFootballId) ? 'hidden' : 'flex'}`}
                                 >
                                   {player.playerPosition}
                                 </div>
-                                {/* Team logo badge */}
-                                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-white p-0.5 border border-surface-50/20">
-                                  <TeamLogo team={player.playerTeam} />
-                                </div>
                               </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => setSelectedPlayerStats({
-                                      name: player.playerName,
-                                      team: player.playerTeam,
-                                      position: player.playerPosition,
-                                      quotation: isSvincolato ? undefined : player.playerQuotation,
-                                      apiFootballId: player.playerApiFootballId,
-                                      apiFootballStats: player.playerApiFootballStats,
-                                    })}
-                                    className="font-medium text-white text-sm truncate hover:text-primary-400 transition-colors text-left"
-                                  >
-                                    {player.playerName}
-                                  </button>
-                                </div>
-                                <div className="text-xs text-gray-500">{player.playerTeam}</div>
-                              </div>
+                              <button
+                                onClick={() => setSelectedPlayerStats({
+                                  name: player.playerName,
+                                  team: player.playerTeam,
+                                  position: player.playerPosition,
+                                  quotation: isSvincolato ? undefined : player.playerQuotation,
+                                  age: player.playerAge,
+                                  apiFootballId: player.playerApiFootballId,
+                                  apiFootballStats: player.playerApiFootballStats,
+                                })}
+                                className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
+                              >
+                                {player.playerName}
+                              </button>
                             </div>
+                          </td>
+
+                          {/* Squadra */}
+                          <td className="p-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 flex-shrink-0">
+                                <TeamLogo team={player.playerTeam} />
+                              </div>
+                              <span className="text-sm text-gray-300 truncate">{player.playerTeam}</span>
+                            </div>
+                          </td>
+
+                          {/* Età */}
+                          {/* Età */}
+                          <td className="p-2 text-center">
+                            <span className={`text-sm px-2 py-0.5 rounded ${getAgeBgColor(player.playerAge)}`}>
+                              {player.playerAge != null ? player.playerAge : '-'}
+                            </span>
                           </td>
 
                           {/* Owner / Svincolato / My Roster */}
@@ -1246,7 +1364,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             </div>
                           </td>
 
-                          {/* Priority */}
+                          {/* Priority - increased size #186 */}
                           <td className="p-2 text-center bg-indigo-500/5">
                             <div className="flex items-center justify-center gap-0.5">
                               {[1, 2, 3, 4, 5].map(star => (
@@ -1257,7 +1375,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                     const newPrio = local.priority === star ? 0 : star
                                     updateLocalStrategy(player.playerId, 'priority', newPrio)
                                   }}
-                                  className={`w-4 h-4 text-xs transition-colors ${
+                                  className={`w-5 h-5 text-sm transition-colors ${
                                     local.priority >= star
                                       ? 'text-purple-400 hover:text-purple-300'
                                       : 'text-gray-600 hover:text-gray-400'
@@ -1318,6 +1436,341 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         onClose={() => setSelectedPlayerStats(null)}
         player={selectedPlayerStats}
       />
+
+      {/* Player Compare Modal (#187) */}
+      {showCompareModal && playersToCompare.length >= 2 && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-200 rounded-xl border border-surface-50/20 max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-surface-50/20 bg-gradient-to-r from-cyan-500/10 to-surface-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white">Confronto Giocatori</h2>
+                <button
+                  onClick={() => setShowCompareModal(false)}
+                  className="w-10 h-10 rounded-lg bg-surface-300 hover:bg-surface-50/20 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              {/* Player Cards Header */}
+              <div className="flex flex-wrap justify-center gap-6 mb-8">
+                {playersToCompare.map((player, idx) => {
+                  const photoUrl = getPlayerPhotoUrl(player.playerApiFootballId)
+                  const posColors = POSITION_COLORS[player.playerPosition] ?? { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white' }
+
+                  return (
+                    <div key={player.playerId} className="flex flex-col items-center gap-2">
+                      <div
+                        className="w-4 h-4 rounded-full mb-1"
+                        style={{ backgroundColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
+                      />
+                      <div className="relative">
+                        {photoUrl ? (
+                          <img
+                            src={photoUrl}
+                            alt={player.playerName}
+                            className="w-16 h-16 rounded-full object-cover bg-surface-300 border-3 border-surface-50/20"
+                            style={{ borderColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none'
+                            }}
+                          />
+                        ) : (
+                          <div
+                            className={`w-16 h-16 rounded-full ${posColors.bg} ${posColors.text} flex items-center justify-center font-bold text-xl`}
+                          >
+                            {player.playerPosition}
+                          </div>
+                        )}
+                        <span
+                          className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full ${posColors.bg} flex items-center justify-center text-white font-bold text-xs border-2 border-surface-200`}
+                        >
+                          {player.playerPosition}
+                        </span>
+                      </div>
+                      <span className="font-medium text-white">{player.playerName}</span>
+                      <div className="flex items-center gap-1">
+                        <img
+                          src={getTeamLogo(player.playerTeam)}
+                          alt={player.playerTeam}
+                          className="w-5 h-5 object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none'
+                          }}
+                        />
+                        <span className="text-sm text-gray-400">{player.playerTeam}</span>
+                      </div>
+                      {player.type !== 'svincolato' && (
+                        <span className="text-lg font-bold text-primary-400">Quot. {player.playerQuotation}</span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Radar Charts - different for goalkeepers vs outfield players */}
+              {(() => {
+                const allGoalkeepers = playersToCompare.every(p => p.playerPosition === 'P')
+                const hasGoalkeepers = playersToCompare.some(p => p.playerPosition === 'P')
+
+                if (allGoalkeepers) {
+                  // All goalkeepers - show goalkeeper-specific radar charts
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                      {/* Goalkeeper Performance Radar */}
+                      <div className="bg-yellow-500/10 rounded-xl p-4 border border-yellow-500/20">
+                        <h3 className="text-center text-yellow-400 font-semibold mb-4">🧤 Performance Portiere</h3>
+                        <RadarChart
+                          size={280}
+                          players={playersToCompare.map((p, i) => ({
+                            name: p.playerName,
+                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                          }))}
+                          data={[
+                            { label: 'Parate', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.saves ?? 0) },
+                            { label: 'Rig. Parati', values: playersToCompare.map(p => (p.playerApiFootballStats?.penalty?.saved ?? 0) * 10) },
+                            { label: 'Rating', values: playersToCompare.map(p => Math.round((Number(p.playerApiFootballStats?.games?.rating) || 0) * 10)) },
+                            { label: 'Presenze', values: playersToCompare.map(p => p.playerApiFootballStats?.games?.appearences ?? 0) },
+                            { label: 'Minuti', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.games?.minutes ?? 0) / 100)) },
+                            { label: 'Passaggi', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.passes?.total ?? 0) / 10)) },
+                          ]}
+                        />
+                      </div>
+
+                      {/* Goalkeeper Goals Conceded Radar */}
+                      <div className="bg-yellow-500/10 rounded-xl p-4 border border-yellow-500/20">
+                        <h3 className="text-center text-yellow-400 font-semibold mb-4">🧤 Gol Subiti (meno è meglio)</h3>
+                        <RadarChart
+                          size={280}
+                          players={playersToCompare.map((p, i) => ({
+                            name: p.playerName,
+                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                          }))}
+                          data={[
+                            { label: 'Gol Subiti', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.conceded ?? 0) },
+                            { label: 'Prec. Pass', values: playersToCompare.map(p => p.playerApiFootballStats?.passes?.accuracy ?? 0) },
+                            { label: 'Gialli', values: playersToCompare.map(p => (p.playerApiFootballStats?.cards?.yellow ?? 0) * 5) },
+                            { label: 'Rossi', values: playersToCompare.map(p => (p.playerApiFootballStats?.cards?.red ?? 0) * 20) },
+                          ]}
+                        />
+                      </div>
+                    </div>
+                  )
+                }
+
+                // Mixed or outfield players - show standard radar charts
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    {hasGoalkeepers && (
+                      <div className="col-span-full text-center text-sm text-yellow-400 bg-yellow-500/10 rounded-lg p-2 mb-2">
+                        ⚠️ Confronto misto portieri/giocatori - alcune statistiche potrebbero non essere comparabili
+                      </div>
+                    )}
+                    {/* Offensive Stats Radar */}
+                    <div className="bg-surface-300/50 rounded-xl p-4">
+                      <h3 className="text-center text-white font-semibold mb-4">Statistiche Offensive</h3>
+                      <RadarChart
+                        size={280}
+                        players={playersToCompare.map((p, i) => ({
+                          name: p.playerName,
+                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                        }))}
+                        data={[
+                          { label: 'Gol', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.total ?? 0) },
+                          { label: 'Assist', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.assists ?? 0) },
+                          { label: 'Tiri', values: playersToCompare.map(p => p.playerApiFootballStats?.shots?.total ?? 0) },
+                          { label: 'Tiri Porta', values: playersToCompare.map(p => p.playerApiFootballStats?.shots?.on ?? 0) },
+                          { label: 'Dribbling', values: playersToCompare.map(p => p.playerApiFootballStats?.dribbles?.success ?? 0) },
+                          { label: 'Pass Chiave', values: playersToCompare.map(p => p.playerApiFootballStats?.passes?.key ?? 0) },
+                        ]}
+                      />
+                    </div>
+
+                    {/* Defensive/General Stats Radar */}
+                    <div className="bg-surface-300/50 rounded-xl p-4">
+                      <h3 className="text-center text-white font-semibold mb-4">Statistiche Difensive</h3>
+                      <RadarChart
+                        size={280}
+                        players={playersToCompare.map((p, i) => ({
+                          name: p.playerName,
+                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                        }))}
+                        data={[
+                          { label: 'Contrasti', values: playersToCompare.map(p => p.playerApiFootballStats?.tackles?.total ?? 0) },
+                          { label: 'Intercetti', values: playersToCompare.map(p => p.playerApiFootballStats?.tackles?.interceptions ?? 0) },
+                          { label: 'Passaggi', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.passes?.total ?? 0) / 10)) },
+                          { label: 'Presenze', values: playersToCompare.map(p => p.playerApiFootballStats?.games?.appearences ?? 0) },
+                          { label: 'Rating', values: playersToCompare.map(p => Math.round((Number(p.playerApiFootballStats?.games?.rating) || 0) * 10)) },
+                          { label: 'Minuti', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.games?.minutes ?? 0) / 100)) },
+                        ]}
+                      />
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Detailed Stats Table */}
+              <div className="bg-surface-300/30 rounded-xl overflow-hidden">
+                <h3 className="text-white font-semibold p-4 border-b border-surface-50/10">Dettaglio Statistiche</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-surface-300/50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Statistica</th>
+                        {playersToCompare.map((player, idx) => (
+                          <th key={player.playerId} className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
+                              />
+                              <span className="text-sm font-medium text-white">{player.playerName}</span>
+                            </div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-surface-50/10">
+                      {/* Basic info: Squadra, Età */}
+                      <tr className="hover:bg-surface-300/30">
+                        <td className="px-4 py-3 text-sm text-gray-300">Squadra</td>
+                        {playersToCompare.map(player => (
+                          <td key={player.playerId} className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="w-5 h-5 flex-shrink-0">
+                                <TeamLogo team={player.playerTeam} />
+                              </div>
+                              <span className="text-sm text-gray-300">{player.playerTeam}</span>
+                            </div>
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className="hover:bg-surface-300/30">
+                        <td className="px-4 py-3 text-sm text-gray-300">Età</td>
+                        {playersToCompare.map(player => (
+                          <td key={player.playerId} className="px-4 py-3 text-center">
+                            <span className={`px-2 py-1 rounded ${getAgeBgColor(player.playerAge)}`}>
+                              {player.playerAge != null ? `${player.playerAge} anni` : '-'}
+                            </span>
+                          </td>
+                        ))}
+                      </tr>
+                      {/* Contract info - only for non-svincolati */}
+                      {playersToCompare.some(p => p.type !== 'svincolato') && (
+                        <>
+                          <tr className="hover:bg-surface-300/30">
+                            <td className="px-4 py-3 text-sm text-gray-300">Quotazione</td>
+                            {playersToCompare.map(player => (
+                              <td key={player.playerId} className="px-4 py-3 text-center font-medium text-white">
+                                {player.type !== 'svincolato' ? `${player.playerQuotation}M` : '-'}
+                              </td>
+                            ))}
+                          </tr>
+                          <tr className="hover:bg-surface-300/30">
+                            <td className="px-4 py-3 text-sm text-gray-300">Ingaggio</td>
+                            {playersToCompare.map(player => (
+                              <td key={player.playerId} className="px-4 py-3 text-center font-medium text-accent-400">
+                                {player.type !== 'svincolato' ? `${player.contractSalary}M` : '-'}
+                              </td>
+                            ))}
+                          </tr>
+                          <tr className="hover:bg-surface-300/30">
+                            <td className="px-4 py-3 text-sm text-gray-300">Durata</td>
+                            {playersToCompare.map(player => (
+                              <td key={player.playerId} className="px-4 py-3 text-center font-medium text-white">
+                                {player.type !== 'svincolato' ? `${player.contractDuration} stagioni` : '-'}
+                              </td>
+                            ))}
+                          </tr>
+                          <tr className="hover:bg-surface-300/30">
+                            <td className="px-4 py-3 text-sm text-gray-300">Clausola</td>
+                            {playersToCompare.map(player => (
+                              <td key={player.playerId} className="px-4 py-3 text-center font-medium text-orange-400">
+                                {player.type !== 'svincolato' ? `${player.contractClause}M` : '-'}
+                              </td>
+                            ))}
+                          </tr>
+                          <tr className="hover:bg-surface-300/30">
+                            <td className="px-4 py-3 text-sm text-gray-300">Prezzo Rubata</td>
+                            {playersToCompare.map(player => (
+                              <td key={player.playerId} className="px-4 py-3 text-center font-medium text-warning-400">
+                                {player.type !== 'svincolato' ? `${player.rubataPrice}M` : '-'}
+                              </td>
+                            ))}
+                          </tr>
+                        </>
+                      )}
+                      {/* Stats - includes goalkeeper-specific stats */}
+                      {[
+                        { label: 'Presenze', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.appearences },
+                        { label: 'Minuti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.minutes },
+                        { label: 'Rating', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.rating, format: (v: number | null) => v != null ? Number(v).toFixed(2) : '-' },
+                        // Goalkeeper-specific stats
+                        { label: '🧤 Parate', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.goals?.saves : null, colorClass: 'text-yellow-400', goalkeeperOnly: true },
+                        { label: '🧤 Gol Subiti', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.goals?.conceded : null, colorClass: 'text-yellow-400', goalkeeperOnly: true, lowerIsBetter: true },
+                        { label: '🧤 Rigori Parati', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.penalty?.saved : null, colorClass: 'text-yellow-400', goalkeeperOnly: true },
+                        // Outfield stats
+                        { label: 'Gol', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.goals?.total, colorClass: 'text-secondary-400' },
+                        { label: 'Assist', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.goals?.assists, colorClass: 'text-primary-400' },
+                        { label: 'Tiri Totali', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.shots?.total },
+                        { label: 'Tiri in Porta', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.shots?.on },
+                        { label: 'Contrasti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.tackles?.total },
+                        { label: 'Intercetti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.tackles?.interceptions },
+                        { label: 'Passaggi Chiave', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.passes?.key },
+                        { label: 'Precisione Passaggi', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.passes?.accuracy, format: (v: number | null) => v != null ? `${v}%` : '-' },
+                        { label: 'Dribbling Riusciti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.dribbles?.success },
+                        { label: 'Ammonizioni', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.cards?.yellow, colorClass: 'text-warning-400' },
+                        { label: 'Espulsioni', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.cards?.red, colorClass: 'text-danger-400' },
+                      ].filter(row => {
+                        // Hide goalkeeper-only rows if no goalkeepers in comparison
+                        if ((row as { goalkeeperOnly?: boolean }).goalkeeperOnly) {
+                          return playersToCompare.some(p => p.playerPosition === 'P')
+                        }
+                        return true
+                      }).map(row => {
+                        const values = playersToCompare.map(p => {
+                          const val = row.getValue(p)
+                          return val != null ? Number(val) : 0
+                        })
+                        const maxVal = Math.max(...values.filter(v => v > 0))
+
+                        return (
+                          <tr key={row.label} className="hover:bg-surface-300/30">
+                            <td className="px-4 py-3 text-sm text-gray-300">{row.label}</td>
+                            {playersToCompare.map((player, idx) => {
+                              const val = values[idx]
+                              const isMax = val === maxVal && maxVal > 0
+                              const formatted = row.format ? row.format(val || null) : (val || '-')
+
+                              return (
+                                <td
+                                  key={player.playerId}
+                                  className={`px-4 py-3 text-center font-medium ${
+                                    isMax ? 'text-secondary-400' : row.colorClass || 'text-white'
+                                  }`}
+                                >
+                                  {isMax && maxVal > 0 && (
+                                    <span className="inline-block w-2 h-2 rounded-full bg-secondary-400 mr-2" />
+                                  )}
+                                  {formatted}
+                                </td>
+                              )
+                            })}
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

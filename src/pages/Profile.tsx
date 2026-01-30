@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ChangeEvent } from 'react'
+import { useState, useEffect, useRef, type ChangeEvent, type FormEvent } from 'react'
 import { userApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
@@ -32,6 +32,17 @@ export function Profile({ onNavigate }: ProfileProps) {
   const [success, setSuccess] = useState('')
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Password change state
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmNewPassword: ''
+  })
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState('')
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
 
   useEffect(() => {
     loadProfile()
@@ -101,6 +112,40 @@ export function Profile({ onNavigate }: ProfileProps) {
       setError(result.message || 'Errore nella rimozione della foto')
     }
     setIsSaving(false)
+  }
+
+  async function handleChangePassword(e: FormEvent) {
+    e.preventDefault()
+    setPasswordError('')
+    setPasswordSuccess('')
+
+    // Validation
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmNewPassword) {
+      setPasswordError('Tutti i campi sono obbligatori')
+      return
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError('La nuova password deve essere di almeno 6 caratteri')
+      return
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmNewPassword) {
+      setPasswordError('Le password non corrispondono')
+      return
+    }
+
+    setIsChangingPassword(true)
+    const result = await userApi.changePassword(passwordData)
+
+    if (result.success) {
+      setPasswordSuccess('Password modificata con successo!')
+      setPasswordData({ currentPassword: '', newPassword: '', confirmNewPassword: '' })
+      setShowPasswordForm(false)
+    } else {
+      setPasswordError(result.message || 'Errore nel cambio password')
+    }
+    setIsChangingPassword(false)
   }
 
   if (isLoading) {
@@ -200,6 +245,86 @@ export function Profile({ onNavigate }: ProfileProps) {
                   <p className="text-lg font-semibold text-white">{profile?.email}</p>
                 </div>
               </div>
+            </div>
+
+            {/* Change Password */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white">Password</h3>
+                {!showPasswordForm && (
+                  <Button variant="outline" size="sm" onClick={() => setShowPasswordForm(true)}>
+                    Cambia Password
+                  </Button>
+                )}
+              </div>
+
+              {passwordError && (
+                <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg mb-4 text-sm">
+                  {passwordError}
+                </div>
+              )}
+              {passwordSuccess && (
+                <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-3 rounded-lg mb-4 text-sm">
+                  {passwordSuccess}
+                </div>
+              )}
+
+              {showPasswordForm && (
+                <form onSubmit={handleChangePassword} className="bg-surface-300 rounded-lg p-4 space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Password Attuale</label>
+                    <input
+                      type="password"
+                      value={passwordData.currentPassword}
+                      onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                      className="w-full px-3 py-2 bg-surface-400 border border-surface-50/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-500"
+                      placeholder="Inserisci la password attuale"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Nuova Password</label>
+                    <input
+                      type="password"
+                      value={passwordData.newPassword}
+                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                      className="w-full px-3 py-2 bg-surface-400 border border-surface-50/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-500"
+                      placeholder="Minimo 6 caratteri"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Conferma Nuova Password</label>
+                    <input
+                      type="password"
+                      value={passwordData.confirmNewPassword}
+                      onChange={(e) => setPasswordData({ ...passwordData, confirmNewPassword: e.target.value })}
+                      className="w-full px-3 py-2 bg-surface-400 border border-surface-50/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-500"
+                      placeholder="Ripeti la nuova password"
+                    />
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <Button type="submit" disabled={isChangingPassword}>
+                      {isChangingPassword ? 'Salvataggio...' : 'Salva Password'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowPasswordForm(false)
+                        setPasswordData({ currentPassword: '', newPassword: '', confirmNewPassword: '' })
+                        setPasswordError('')
+                      }}
+                    >
+                      Annulla
+                    </Button>
+                  </div>
+                </form>
+              )}
+
+              {!showPasswordForm && (
+                <p className="text-sm text-gray-500">
+                  Per motivi di sicurezza, ti consigliamo di cambiare la password periodicamente.
+                </p>
+              )}
             </div>
 
             {/* Team Names in Leagues */}

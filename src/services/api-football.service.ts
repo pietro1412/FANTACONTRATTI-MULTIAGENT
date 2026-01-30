@@ -46,13 +46,13 @@ interface ApiPlayerStats {
     team: { id: number; name: string }
     league: { id: number; name: string; season: number }
     games: { appearences: number | null; minutes: number | null; rating: string | null }
-    goals: { total: number | null; assists: number | null }
+    goals: { total: number | null; assists: number | null; conceded: number | null; saves: number | null }
     shots: { total: number | null; on: number | null }
     passes: { total: number | null; key: number | null; accuracy: number | null }
     tackles: { total: number | null; interceptions: number | null }
     dribbles: { attempts: number | null; success: number | null }
     cards: { yellow: number | null; red: number | null }
-    penalty: { scored: number | null; missed: number | null }
+    penalty: { scored: number | null; missed: number | null; saved: number | null }
   }>
 }
 
@@ -299,7 +299,7 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
     }
 
     // 3. For each team, fetch squad and try to match
-    const matched: Array<{ dbId: string; apiId: number; name: string }> = []
+    const matched: Array<{ dbId: string; apiId: number; name: string; age: number | null }> = []
     const ambiguous: Array<{ player: { id: string; name: string; team: string }; candidates: Array<{ apiId: number; name: string }> }> = []
     const matchedDbIds = new Set<string>()
 
@@ -336,11 +336,11 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
         })
 
         if (exactMatches.length === 1) {
-          const apiId = exactMatches[0].id
-          if (!usedApiIds.has(apiId)) {
-            matched.push({ dbId: dbPlayer.id, apiId, name: dbPlayer.name })
+          const apiPlayer = exactMatches[0]
+          if (!usedApiIds.has(apiPlayer.id)) {
+            matched.push({ dbId: dbPlayer.id, apiId: apiPlayer.id, name: dbPlayer.name, age: apiPlayer.age || null })
             matchedDbIds.add(dbPlayer.id)
-            usedApiIds.add(apiId)
+            usedApiIds.add(apiPlayer.id)
           }
         } else if (exactMatches.length > 1) {
           ambiguous.push({
@@ -356,11 +356,11 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
           })
 
           if (partialMatches.length === 1) {
-            const apiId = partialMatches[0].id
-            if (!usedApiIds.has(apiId)) {
-              matched.push({ dbId: dbPlayer.id, apiId, name: dbPlayer.name })
+            const apiPlayer = partialMatches[0]
+            if (!usedApiIds.has(apiPlayer.id)) {
+              matched.push({ dbId: dbPlayer.id, apiId: apiPlayer.id, name: dbPlayer.name, age: apiPlayer.age || null })
               matchedDbIds.add(dbPlayer.id)
-              usedApiIds.add(apiId)
+              usedApiIds.add(apiPlayer.id)
             }
           } else if (partialMatches.length > 1) {
             ambiguous.push({
@@ -376,13 +376,16 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
       await new Promise((resolve) => setTimeout(resolve, 100))
     }
 
-    // 4. Save matched players to DB
+    // 4. Save matched players to DB (including age)
     let savedCount = 0
     for (const m of matched) {
       try {
         await prisma.serieAPlayer.update({
           where: { id: m.dbId },
-          data: { apiFootballId: m.apiId },
+          data: {
+            apiFootballId: m.apiId,
+            age: m.age,
+          },
         })
         savedCount++
       } catch (e) {
@@ -526,6 +529,8 @@ export async function syncStats(userId: string): Promise<SyncResult> {
           goals: {
             total: serieAStats.goals.total,
             assists: serieAStats.goals.assists,
+            conceded: serieAStats.goals.conceded,  // Goalkeeper: goals conceded
+            saves: serieAStats.goals.saves,        // Goalkeeper: saves
           },
           shots: {
             total: serieAStats.shots.total,
@@ -551,6 +556,7 @@ export async function syncStats(userId: string): Promise<SyncResult> {
           penalty: {
             scored: serieAStats.penalty.scored,
             missed: serieAStats.penalty.missed,
+            saved: serieAStats.penalty.saved,      // Goalkeeper: penalties saved
           },
         }
 
@@ -559,6 +565,7 @@ export async function syncStats(userId: string): Promise<SyncResult> {
           data: {
             apiFootballStats: stats,
             statsSyncedAt: now,
+            age: apiPlayer.player.age || null,  // Update age from API-Football
           },
         })
 

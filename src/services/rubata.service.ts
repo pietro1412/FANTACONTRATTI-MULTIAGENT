@@ -797,6 +797,10 @@ export async function generateRubataBoard(
     playerName: string
     playerPosition: Position
     playerTeam: string
+    playerQuotation: number
+    playerAge: number | null
+    playerApiFootballId: number | null
+    playerApiFootballStats: unknown
     ownerUsername: string
     ownerTeamName: string | null
     rubataPrice: number // clausola + ingaggio
@@ -841,6 +845,10 @@ export async function generateRubataBoard(
         playerName: rosterEntry.player.name,
         playerPosition: rosterEntry.player.position,
         playerTeam: rosterEntry.player.team,
+        playerQuotation: rosterEntry.player.quotation,
+        playerAge: rosterEntry.player.age,
+        playerApiFootballId: rosterEntry.player.apiFootballId,
+        playerApiFootballStats: rosterEntry.player.apiFootballStats,
         ownerUsername: member.user.username,
         ownerTeamName: member.teamName,
         rubataPrice: contract.rescissionClause + contract.salary,
@@ -3775,6 +3783,7 @@ export async function getAllPlayersForStrategies(
               team: true,
               position: true,
               quotation: true,
+              age: true,  // #190: include age for financial dashboard
               apiFootballId: true,
               apiFootballStats: true,
             },
@@ -3801,6 +3810,7 @@ export async function getAllPlayersForStrategies(
     playerPosition: string
     playerTeam: string
     playerQuotation: number
+    playerAge: number | null  // #190: player age
     playerApiFootballId: number | null
     playerApiFootballStats: unknown
     ownerUsername: string
@@ -3828,6 +3838,7 @@ export async function getAllPlayersForStrategies(
         playerPosition: rosterEntry.player.position,
         playerTeam: rosterEntry.player.team,
         playerQuotation: rosterEntry.player.quotation,
+        playerAge: rosterEntry.player.age,  // #190: player age
         playerApiFootballId: rosterEntry.player.apiFootballId,
         playerApiFootballStats: rosterEntry.player.apiFootballStats,
         ownerUsername: memberData.user.username,
@@ -3957,6 +3968,7 @@ export async function getAllSvincolatiForStrategies(
       team: true,
       position: true,
       quotation: true,
+      age: true,  // #190: include age
       apiFootballId: true,
       apiFootballStats: true,
     },
@@ -3972,6 +3984,7 @@ export async function getAllSvincolatiForStrategies(
     playerName: player.name,
     playerPosition: player.position,
     playerTeam: player.team,
+    playerAge: player.age,  // #190: include age
     playerApiFootballId: player.apiFootballId,
     playerApiFootballStats: player.apiFootballStats,
     preference: preferencesMap.get(player.id) || null,

@@ -9,6 +9,7 @@ import { getPlayerPhotoUrl } from '../utils/player-images'
 interface AllPlayersProps {
   leagueId: string
   onNavigate: (page: string, params?: Record<string, string>) => void
+  initialTeamFilter?: string
 }
 
 interface Player {
@@ -18,6 +19,7 @@ interface Player {
   position: 'P' | 'D' | 'C' | 'A'
   quotation: number
   listStatus: string
+  age?: number | null
   apiFootballId?: number | null
   apiFootballStats?: PlayerStats | null
   statsSyncedAt?: string | null
@@ -63,15 +65,27 @@ interface LeagueData {
 const POSITION_COLORS = POSITION_GRADIENTS
 const POSITION_BG = POSITION_FILTER_COLORS
 
-export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
+// Age color function - younger is better
+function getAgeColor(age: number | null | undefined): string {
+  if (age === null || age === undefined) return 'text-gray-500'
+  if (age < 20) return 'text-emerald-400 font-bold'
+  if (age < 25) return 'text-green-400'
+  if (age < 30) return 'text-yellow-400'
+  if (age < 35) return 'text-orange-400'
+  return 'text-red-400'
+}
+
+export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlayersProps) {
   const [players, setPlayers] = useState<PlayerWithRoster[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPosition, setSelectedPosition] = useState<string>('')
-  const [showOnlyRostered, setShowOnlyRostered] = useState(false)
+  const [showOnlyRostered, setShowOnlyRostered] = useState(!!initialTeamFilter)
+  const [selectedTeamFilter, setSelectedTeamFilter] = useState<string>(initialTeamFilter || '')
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
   const [leagueName, setLeagueName] = useState('')
   const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
+  const [availableTeams, setAvailableTeams] = useState<string[]>([])
 
   // Map of playerId -> roster info
   const [rosterMap, setRosterMap] = useState<Map<string, RosterInfo>>(new Map())
@@ -86,10 +100,14 @@ export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
       setLeagueName(leagueData.name)
       setIsLeagueAdmin(leagueData.isAdmin || false)
 
-      // Build roster map
+      // Build roster map and collect available teams
       const newRosterMap = new Map<string, RosterInfo>()
+      const teams: string[] = []
       if (leagueData.members && Array.isArray(leagueData.members)) {
         for (const member of leagueData.members) {
+          if (member.teamName) {
+            teams.push(member.teamName)
+          }
           if (member.roster && Array.isArray(member.roster)) {
             for (const rosterEntry of member.roster) {
               newRosterMap.set(rosterEntry.playerId, {
@@ -104,6 +122,7 @@ export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
         }
       }
       setRosterMap(newRosterMap)
+      setAvailableTeams(teams.sort())
     }
 
     // Load all players
@@ -132,6 +151,7 @@ export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
   // Apply filters
   const filteredPlayers = enrichedPlayers.filter(player => {
     if (showOnlyRostered && !player.rosterInfo) return false
+    if (selectedTeamFilter && player.rosterInfo?.teamName !== selectedTeamFilter) return false
     return true
   })
 
@@ -179,11 +199,31 @@ export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
               <input
                 type="checkbox"
                 checked={showOnlyRostered}
-                onChange={e => setShowOnlyRostered(e.target.checked)}
+                onChange={e => {
+                  setShowOnlyRostered(e.target.checked)
+                  if (!e.target.checked) setSelectedTeamFilter('')
+                }}
                 className="w-4 h-4 rounded border-gray-600 bg-surface-300 text-primary-500 focus:ring-primary-500"
               />
               <span className="text-sm text-gray-300">Solo in rosa</span>
             </label>
+
+            {/* Team filter dropdown */}
+            {availableTeams.length > 0 && (
+              <select
+                value={selectedTeamFilter}
+                onChange={e => {
+                  setSelectedTeamFilter(e.target.value)
+                  if (e.target.value) setShowOnlyRostered(true)
+                }}
+                className="px-3 py-1.5 text-sm rounded-lg bg-surface-300 border border-surface-50/30 text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="">Tutte le squadre</option>
+                {availableTeams.map(team => (
+                  <option key={team} value={team}>{team}</option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 
@@ -243,6 +283,7 @@ export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
                               team: player.team,
                               position: player.position,
                               quotation: player.quotation,
+                              age: player.age,
                               apiFootballId: player.apiFootballId,
                               apiFootballStats: player.apiFootballStats,
                               statsSyncedAt: player.statsSyncedAt,
@@ -251,7 +292,12 @@ export function AllPlayers({ leagueId, onNavigate }: AllPlayersProps) {
                           >
                             {player.name}
                           </button>
-                          <p className="text-sm text-gray-400">{player.team}</p>
+                          <div className="flex items-center gap-2 text-sm text-gray-400">
+                            <span>{player.team}</span>
+                            {player.age != null && (
+                              <span className={getAgeColor(player.age)}>• {player.age} anni</span>
+                            )}
+                          </div>
                         </div>
                       </div>
 

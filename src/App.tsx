@@ -28,6 +28,7 @@ const Movements = lazy(() => import('./pages/Movements').then(m => ({ default: m
 const History = lazy(() => import('./pages/History').then(m => ({ default: m.History })))
 const Prophecies = lazy(() => import('./pages/Prophecies').then(m => ({ default: m.Prophecies })))
 const PlayerStats = lazy(() => import('./pages/PlayerStats'))
+const LeagueFinancials = lazy(() => import('./pages/LeagueFinancials'))
 const SuperAdmin = lazy(() => import('./pages/SuperAdmin').then(m => ({ default: m.SuperAdmin })))
 const PrizePhasePage = lazy(() => import('./pages/PrizePhasePage').then(m => ({ default: m.PrizePhasePage })))
 const LatencyTest = lazy(() => import('./pages/LatencyTest'))
@@ -182,7 +183,10 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'strategie-rubata': navigate(`/leagues/${lid}/strategie-rubata`); break
       case 'svincolati': navigate(`/leagues/${lid}/svincolati`); break
       case 'prizes': navigate(`/leagues/${lid}/prizes`); break
-      case 'allPlayers': navigate(`/leagues/${lid}/players`); break
+      case 'allPlayers':
+        if (params?.team) navigate(`/leagues/${lid}/players?team=${encodeURIComponent(params.team)}`)
+        else navigate(`/leagues/${lid}/players`)
+        break
       case 'manager-dashboard': navigate(`/leagues/${lid}/manager`); break
       case 'admin':
       case 'adminPanel':
@@ -193,6 +197,7 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'history': navigate(`/leagues/${lid}/history`); break
       case 'prophecies': navigate(`/leagues/${lid}/prophecies`); break
       case 'playerStats': navigate(`/leagues/${lid}/stats`); break
+      case 'financials': navigate(`/leagues/${lid}/financials`); break
       case 'superadmin':
         if (params?.tab) navigate(`/superadmin?tab=${params.tab}`)
         else navigate('/superadmin')
@@ -290,10 +295,12 @@ function SvincolatiWrapper() {
 function AllPlayersWrapper() {
   const navigate = useNavigate()
   const { leagueId } = useParams<{ leagueId: string }>()
+  const [searchParams] = useSearchParams()
+  const teamFilter = searchParams.get('team') || undefined
   const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
-  return <AllPlayers leagueId={leagueId} onNavigate={onNavigate} />
+  return <AllPlayers leagueId={leagueId} onNavigate={onNavigate} initialTeamFilter={teamFilter} />
 }
 
 function ManagerDashboardWrapper() {
@@ -359,6 +366,15 @@ function PlayerStatsWrapper() {
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
   return <PlayerStats leagueId={leagueId} onNavigate={onNavigate} />
+}
+
+function LeagueFinancialsWrapper() {
+  const navigate = useNavigate()
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
+
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <LeagueFinancials leagueId={leagueId} onNavigate={onNavigate} />
 }
 
 function SuperAdminWrapper() {
@@ -561,6 +577,13 @@ function AppRoutes() {
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
             <PlayerStatsWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/financials" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <LeagueFinancialsWrapper />
           </Suspense>
         </ProtectedRoute>
       } />

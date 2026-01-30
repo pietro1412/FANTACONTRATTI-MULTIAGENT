@@ -96,6 +96,11 @@ const MenuIcons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
     </svg>
   ),
+  financials: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
   chevronRight: (
     <svg className="w-3 h-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -120,12 +125,13 @@ const LEAGUE_MENU_ITEMS = [
   { key: 'leagueDetail', label: 'Dashboard', adminOnly: false, icon: 'dashboard' },
   { key: 'adminPanel', label: 'Admin', adminOnly: true, icon: 'admin' },
   { key: 'strategie-rubata', label: 'Giocatori', adminOnly: false, icon: 'allRosters' },
-  { key: 'playerStats', label: 'Statistiche', adminOnly: false, icon: 'stats' },
+  // { key: 'playerStats', label: 'Statistiche', adminOnly: false, icon: 'stats' },  // Temporarily hidden - route still works
+  { key: 'financials', label: 'Finanze', adminOnly: false, icon: 'financials' },
   { key: 'history', label: 'Storico', adminOnly: false, icon: 'history' },
   { key: 'prophecies', label: 'Profezie', adminOnly: false, icon: 'prophecy' },
 ]
 
-// Get page display name for breadcrumbs
+// Get page display name for breadcrumbs (should match menu labels)
 function getPageDisplayName(page: string): string {
   const pageNames: Record<string, string> = {
     leagueDetail: 'Dashboard',
@@ -140,8 +146,8 @@ function getPageDisplayName(page: string): string {
     contracts: 'Contratti',
     trades: 'Scambi',
     rubata: 'Rubata',
-    'strategie-rubata': 'Strategie Rubata',
-    playerStats: 'Statistiche Serie A',
+    'strategie-rubata': 'Giocatori',
+    financials: 'Finanze',
   }
   return pageNames[page] || page
 }
@@ -320,9 +326,9 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             </div>
           </div>
 
-          {/* Breadcrumbs - shown when in league context */}
+          {/* Breadcrumbs - shown on medium screens only (hidden on lg where menu is visible) */}
           {leagueId && leagueName && (
-            <nav className="hidden md:flex items-center gap-1.5 text-xs" aria-label="Breadcrumb" data-testid="breadcrumbs">
+            <nav className="hidden md:flex lg:hidden items-center gap-1.5 text-xs" aria-label="Breadcrumb" data-testid="breadcrumbs">
               <button
                 onClick={() => onNavigate('dashboard')}
                 className="flex items-center gap-1 text-gray-400 hover:text-primary-300 transition-colors duration-200"
