@@ -77,6 +77,18 @@ function getRoleStyle(position: string) {
   return colors || { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white', border: '' }
 }
 
+// Colore per durata contratto (issue #202)
+// 1s = danger (scade presto), 2s = warning, 3s = primary, 4s = green (lungo termine)
+function getDurationColor(duration: number): string {
+  switch(duration) {
+    case 1: return 'text-danger-400'
+    case 2: return 'text-warning-400'
+    case 3: return 'text-primary-400'
+    case 4: return 'text-green-400'
+    default: return 'text-gray-400'
+  }
+}
+
 // Componente logo squadra
 function TeamLogo({ team }: { team: string }) {
   return (
@@ -976,7 +988,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                             disabled={!inContrattiPhase || isConsolidated || currentDuration <= 1}
                             className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
                           >−</button>
-                          <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
+                          <div className={`flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-center font-medium ${getDurationColor(currentDuration)}`}>
                             {currentDuration}s
                           </div>
                           <button
@@ -1072,7 +1084,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                                 disabled={!inContrattiPhase || isConsolidated || currentDuration <= 1}
                                 className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm disabled:opacity-30"
                               >−</button>
-                              <span className="w-8 text-white text-center font-medium">{currentDuration}s</span>
+                              <span className={`w-8 text-center font-medium ${getDurationColor(currentDuration)}`}>{currentDuration}s</span>
                               <button
                                 onClick={() => updatePendingEdit(pending.rosterId, 'newDuration', String(Math.min(4, currentDuration + 1)))}
                                 disabled={!inContrattiPhase || isConsolidated || currentDuration >= 4}
@@ -1280,7 +1292,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                       </div>
                       <div className="text-center">
                         <span className="text-gray-500 text-[10px]">Dur.</span>
-                        <div className="text-white">{contract.duration}s</div>
+                        <div className={getDurationColor(contract.duration)}>{contract.duration}s</div>
                       </div>
                       <div className="text-center">
                         <span className="text-gray-500 text-[10px]">Rubata</span>
@@ -1339,7 +1351,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                               disabled={!contract.canSpalmare && newDuration <= contract.duration || newDuration <= 1}
                               className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
                             >−</button>
-                            <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
+                            <div className={`flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-center font-medium ${getDurationColor(newDuration)}`}>
                               {newDuration}s
                             </div>
                             <button
@@ -1488,7 +1500,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                           </div>
                         </td>
                         <td className="text-center p-2 text-accent-400 font-medium">{contract.salary}M</td>
-                        <td className="text-center p-2 text-gray-400">{contract.duration}s</td>
+                        <td className={`text-center p-2 ${getDurationColor(contract.duration)}`}>{contract.duration}s</td>
                         <td className="text-center p-2 text-warning-400 font-medium">{currentRubata}M</td>
                         <td className="text-center p-2 border-l border-surface-50/20">
                           {contract.canRenew && inContrattiPhase && !isConsolidated ? (
@@ -1517,7 +1529,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                                 disabled={!contract.canSpalmare && newDuration <= contract.duration || newDuration <= 1}
                                 className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm disabled:opacity-30"
                               >−</button>
-                              <span className="w-8 text-white text-center font-medium">{newDuration}s</span>
+                              <span className={`w-8 text-center font-medium ${getDurationColor(newDuration)}`}>{newDuration}s</span>
                               <button
                                 onClick={() => updateLocalEdit(contract.id, 'newDuration', String(newDuration + 1))}
                                 disabled={newDuration >= 4}
