@@ -1282,6 +1282,11 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 ? Math.ceil(contract.initialSalary / newDuration)
                 : contract.salary
 
+              // Issue #207: Cannot increase duration unless salary is also increased
+              // Exception: canSpalmare=true cases (spalma allows duration extension without salary increase)
+              const hasSalaryIncrease = newSalary > contract.salary
+              const canIncreaseDuration = contract.canSpalmare || hasSalaryIncrease
+
               return (
                 <div key={contract.id} className={`bg-surface-200 rounded-lg border p-3 ${
                   isMarkedForRelease ? 'border-danger-500/50 bg-danger-500/10' : 'border-surface-50/20'
@@ -1432,8 +1437,9 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                             </div>
                             <button
                               onClick={() => updateLocalEdit(contract.id, 'newDuration', String(newDuration + 1))}
-                              disabled={newDuration >= 4}
+                              disabled={newDuration >= 4 || !canIncreaseDuration}
                               className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold disabled:opacity-30"
+                              title={!canIncreaseDuration ? 'Aumenta prima l\'ingaggio per estendere la durata' : undefined}
                             >+</button>
                           </div>
                         </div>
@@ -1531,6 +1537,11 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     const minSalaryAllowed = contract.canSpalmare && newDuration > 1
                       ? Math.ceil(contract.initialSalary / newDuration)
                       : contract.salary
+
+                    // Issue #207: Cannot increase duration unless salary is also increased
+                    // Exception: canSpalmare=true cases (spalma allows duration extension without salary increase)
+                    const hasSalaryIncrease = newSalary > contract.salary
+                    const canIncreaseDuration = contract.canSpalmare || hasSalaryIncrease
 
                     return (
                       <tr key={contract.id} className={`border-t border-surface-50/10 hover:bg-surface-300/30 ${
@@ -1630,8 +1641,9 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                               <span className={`w-8 text-center font-medium ${getDurationColor(newDuration)}`}>{newDuration}s</span>
                               <button
                                 onClick={() => updateLocalEdit(contract.id, 'newDuration', String(newDuration + 1))}
-                                disabled={newDuration >= 4}
+                                disabled={newDuration >= 4 || !canIncreaseDuration}
                                 className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm disabled:opacity-30"
+                                title={!canIncreaseDuration ? 'Aumenta prima l\'ingaggio per estendere la durata' : undefined}
                               >+</button>
                             </div>
                           ) : (
