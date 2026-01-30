@@ -580,17 +580,27 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                     ? (team.postRenewalContractCost! - team.preRenewalContractCost)
                     : null
 
+                  // Dim other rows when one is expanded
+                  const isOtherExpanded = expandedTeam !== null && !isExpanded
+
                   return (
                     <>
                       <tr
                         key={team.memberId}
                         onClick={() => setExpandedTeam(isExpanded ? null : team.memberId)}
-                        className={`hover:bg-surface-300/30 transition-colors cursor-pointer ${balanceLow ? 'bg-danger-500/5' : ''} ${isExpanded ? 'bg-surface-300/20' : ''}`}
+                        className={`
+                          transition-all cursor-pointer
+                          ${balanceLow ? 'bg-danger-500/5' : ''}
+                          ${isExpanded
+                            ? 'bg-primary-500/15 border-l-4 border-l-primary-500 shadow-lg shadow-primary-500/10'
+                            : 'hover:bg-surface-300/30 border-l-4 border-l-transparent'}
+                          ${isOtherExpanded ? 'opacity-50' : 'opacity-100'}
+                        `}
                       >
                         {/* Team name */}
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-2">
-                            <span className={`text-gray-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
+                            <span className={`transition-transform ${isExpanded ? 'rotate-90 text-primary-400' : 'text-gray-500'}`}>▶</span>
                             <div>
                               <div className="flex items-center gap-2">
                                 <span className="font-medium text-white">{team.teamName}</span>
@@ -695,7 +705,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                       {/* Expanded aggregated view with charts */}
                       {isExpanded && (
                         <tr key={`${team.memberId}-expanded`}>
-                          <td colSpan={10} className="px-4 py-6 bg-surface-100/30">
+                          <td colSpan={10} className="px-4 py-6 bg-primary-500/5 border-l-4 border-l-primary-500">
                             {/* Header with team name and view players button */}
                             <div className="flex items-center justify-between mb-6">
                               <div className="text-sm font-medium text-gray-400">
