@@ -491,10 +491,10 @@ export async function closeFreeAgentAuction(
       },
     })
 
-    // Create contract automatically: 10% salary, 2 semesters (same as first market)
+    // Create contract automatically: 10% salary, 3 semesters (svincolati default)
     const salary = Math.ceil(auction.currentPrice * 0.1)
-    const duration = 2
-    const rescissionClause = Math.round(salary * duration * 2)
+    const duration = 3
+    const rescissionClause = salary * 9 // multiplier for 3 semesters
 
     await tx.playerContract.create({
       data: {
@@ -521,8 +521,8 @@ export async function closeFreeAgentAuction(
 
   // Record movement with contract values
   const movementSalary = Math.ceil(auction.currentPrice * 0.1)
-  const movementDuration = 2
-  const movementClause = Math.round(movementSalary * movementDuration * 2)
+  const movementDuration = 3
+  const movementClause = movementSalary * 9 // multiplier for 3 semesters
 
   await recordMovement({
     leagueId: auction.leagueId,
@@ -1530,10 +1530,10 @@ export async function closeSvincolatiAuction(
       },
     })
 
-    // Create contract automatically: 10% salary, 2 semesters (same as first market)
+    // Create contract automatically: 10% salary, 3 semesters (svincolati default)
     const salary = Math.ceil(auction.currentPrice * 0.1)
-    const duration = 2
-    const rescissionClause = Math.round(salary * duration * 2)
+    const duration = 3
+    const rescissionClause = salary * 9 // multiplier for 3 semesters
 
     await tx.playerContract.create({
       data: {
@@ -1579,8 +1579,8 @@ export async function closeSvincolatiAuction(
 
   // Record movement with contract values
   const movementSalary2 = Math.ceil(auction.currentPrice * 0.1)
-  const movementDuration2 = 2
-  const movementClause2 = Math.round(movementSalary2 * movementDuration2 * 2)
+  const movementDuration2 = 3
+  const movementClause2 = movementSalary2 * 9 // multiplier for 3 semesters
 
   await recordMovement({
     leagueId: auction.leagueId,

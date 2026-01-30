@@ -20,7 +20,8 @@ function isValidModification(
   currentDuration: number,
   newSalary: number,
   newDuration: number,
-  initialSalary: number
+  initialSalary: number,
+  isSvincolatiMode: boolean = false
 ): { valid: boolean; reason?: string } {
   // Max duration check
   if (newDuration > 4) {
@@ -31,6 +32,21 @@ function isValidModification(
   if (newSalary < 1) {
     return { valid: false, reason: 'Ingaggio minimo: 1' }
   }
+
+  // Svincolati mode: minimum duration is 3, salary can only increase
+  if (isSvincolatiMode) {
+    if (newDuration < 3) {
+      return { valid: false, reason: 'Durata minima per svincolati: 3 semestri' }
+    }
+    if (newSalary < currentSalary) {
+      return { valid: false, reason: `Ingaggio non può diminuire: ${newSalary} < ${currentSalary}` }
+    }
+    if (newDuration < currentDuration) {
+      return { valid: false, reason: `Durata non può diminuire: ${newDuration} < ${currentDuration}` }
+    }
+    return { valid: true }
+  }
+
   if (newDuration < 1) {
     return { valid: false, reason: 'Durata minima: 1 semestre' }
   }
@@ -86,6 +102,8 @@ interface ContractModifierProps {
   title?: string
   /** Description text */
   description?: string
+  /** Svincolati mode: minimum duration is 3, salary can only increase */
+  isSvincolatiMode?: boolean
 }
 
 export function ContractModifier({
@@ -96,11 +114,15 @@ export function ContractModifier({
   isLoading = false,
   title = 'Modifica Contratto',
   description = 'Puoi modificare il contratto del giocatore appena acquisito seguendo le regole del rinnovo.',
+  isSvincolatiMode = false,
 }: ContractModifierProps) {
   const [newSalary, setNewSalary] = useState(contract.salary.toString())
   const [newDuration, setNewDuration] = useState(contract.duration)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Calculate minimum duration based on mode
+  const minDuration = isSvincolatiMode ? 3 : 1
 
   // Reset when contract changes
   useEffect(() => {
@@ -119,7 +141,8 @@ export function ContractModifier({
       contract.duration,
       salary,
       duration,
-      contract.initialSalary
+      contract.initialSalary,
+      isSvincolatiMode
     )
 
     const newClause = calculateRescissionClause(salary, duration)
@@ -133,10 +156,10 @@ export function ContractModifier({
       validationError: validation.reason,
       hasChanges,
     }
-  }, [newSalary, newDuration, contract])
+  }, [newSalary, newDuration, contract, isSvincolatiMode])
 
-  // Check if spalma is available
-  const canSpalma = contract.duration === 1
+  // Check if spalma is available (not in svincolati mode)
+  const canSpalma = !isSvincolatiMode && contract.duration === 1
 
   async function handleConfirm() {
     if (!preview.isValid || !preview.hasChanges) return
@@ -219,9 +242,10 @@ export function ContractModifier({
                 type="button"
                 onClick={() => {
                   const current = parseInt(newSalary) || contract.salary
-                  setNewSalary(String(Math.max(1, current - 1)))
+                  const minSalary = isSvincolatiMode ? contract.salary : 1
+                  setNewSalary(String(Math.max(minSalary, current - 1)))
                 }}
-                disabled={isLoading || isSubmitting || (parseInt(newSalary) || contract.salary) <= 1}
+                disabled={isLoading || isSubmitting || (parseInt(newSalary) || contract.salary) <= (isSvincolatiMode ? contract.salary : 1)}
                 className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
               >−</button>
               <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
@@ -245,8 +269,8 @@ export function ContractModifier({
             <div className="flex items-center">
               <button
                 type="button"
-                onClick={() => setNewDuration(Math.max(1, newDuration - 1))}
-                disabled={isLoading || isSubmitting || newDuration <= 1}
+                onClick={() => setNewDuration(Math.max(minDuration, newDuration - 1))}
+                disabled={isLoading || isSubmitting || newDuration <= minDuration}
                 className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
               >−</button>
               <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">

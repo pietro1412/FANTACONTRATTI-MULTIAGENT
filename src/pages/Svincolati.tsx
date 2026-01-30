@@ -2274,7 +2274,8 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
           }}
           onConfirm={handleContractModification}
           title="Modifica Contratto"
-          description="Hai appena acquistato questo svincolato. Puoi modificare il suo contratto seguendo le regole del rinnovo."
+          description="Hai appena acquistato questo svincolato. Puoi solo aumentare ingaggio (minimo attuale) e durata (minimo 3, massimo 4 semestri)."
+          isSvincolatiMode={true}
         />
       )}
 
