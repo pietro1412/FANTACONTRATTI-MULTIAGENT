@@ -38,6 +38,7 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword').then(m => ({ 
 const ResetPassword = lazy(() => import('./pages/ResetPassword').then(m => ({ default: m.ResetPassword })))
 const InviteDetail = lazy(() => import('./pages/InviteDetail').then(m => ({ default: m.InviteDetail })))
 const Rules = lazy(() => import('./pages/Rules').then(m => ({ default: m.Rules })))
+const PatchNotes = lazy(() => import('./pages/PatchNotes').then(m => ({ default: m.PatchNotes })))
 
 // Loading component per autenticazione
 function LoadingScreen() {
@@ -198,6 +199,7 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
       case 'prophecies': navigate(`/leagues/${lid}/prophecies`); break
       case 'playerStats': navigate(`/leagues/${lid}/stats`); break
       case 'financials': navigate(`/leagues/${lid}/financials`); break
+      case 'patchNotes': navigate(`/leagues/${lid}/patch-notes`); break
       case 'superadmin':
         if (params?.tab) navigate(`/superadmin?tab=${params.tab}`)
         else navigate('/superadmin')
@@ -375,6 +377,15 @@ function LeagueFinancialsWrapper() {
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
   return <LeagueFinancials leagueId={leagueId} onNavigate={onNavigate} />
+}
+
+function PatchNotesWrapper() {
+  const navigate = useNavigate()
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
+
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <PatchNotes leagueId={leagueId} onNavigate={onNavigate} />
 }
 
 function SuperAdminWrapper() {
@@ -591,6 +602,13 @@ function AppRoutes() {
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
             <PrizePhasePageWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/patch-notes" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <PatchNotesWrapper />
           </Suspense>
         </ProtectedRoute>
       } />
