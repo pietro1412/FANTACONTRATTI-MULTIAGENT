@@ -20,6 +20,15 @@ interface PatchNotesProps {
 // Hardcoded patch notes - in the future this could come from an API
 const PATCH_NOTES: PatchNote[] = [
   {
+    id: '0',
+    version: '1.x',
+    date: '2026-01-30',
+    title: 'Foto giocatori nella pagina Contratti',
+    description: 'Aggiunte le foto dei giocatori nella pagina Contratti/Rinnovi, come già presenti nella pagina Giocatori.',
+    type: 'feature',
+    issueNumber: 214,
+  },
+  {
     id: '1',
     version: '1.x',
     date: '2026-01-30',
