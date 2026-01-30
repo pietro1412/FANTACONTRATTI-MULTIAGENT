@@ -4,7 +4,7 @@ import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
-import { PlayerStatsModal, type PlayerInfo } from '../components/PlayerStatsModal'
+import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
 
 interface ContractsProps {
   leagueId: string
@@ -18,6 +18,8 @@ interface Player {
   position: string
   listStatus?: string
   exitReason?: string
+  age?: number | null
+  apiFootballStats?: PlayerStats | null
 }
 
 interface Contract {
@@ -88,6 +90,16 @@ function getDurationColor(duration: number): string {
     case 4: return 'text-green-400'
     default: return 'text-gray-400'
   }
+}
+
+// Age color function - younger is better (issue #206)
+function getAgeColor(age: number | null | undefined): string {
+  if (age === null || age === undefined) return 'text-gray-500'
+  if (age < 20) return 'text-emerald-400 font-bold'
+  if (age < 25) return 'text-green-400'
+  if (age < 30) return 'text-yellow-400'
+  if (age < 35) return 'text-orange-400'
+  return 'text-red-400'
 }
 
 // Componente logo squadra
@@ -960,6 +972,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                           name: pending.player.name,
                           team: pending.player.team,
                           position: pending.player.position,
+                          age: pending.player.age,
+                          apiFootballStats: pending.player.apiFootballStats,
                         })}
                         className="text-primary-400 hover:text-primary-300 font-medium flex-1 text-sm sm:text-base leading-tight text-left cursor-pointer transition-colors"
                       >
@@ -1075,6 +1089,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                                   name: pending.player.name,
                                   team: pending.player.team,
                                   position: pending.player.position,
+                                  age: pending.player.age,
+                                  apiFootballStats: pending.player.apiFootballStats,
                                 })}
                                 className="text-primary-400 hover:text-primary-300 font-medium text-sm sm:text-base leading-tight cursor-pointer transition-colors"
                               >
@@ -1169,6 +1185,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                               name: contract.roster.player.name,
                               team: contract.roster.player.team,
                               position: contract.roster.player.position,
+                              age: contract.roster.player.age,
+                              apiFootballStats: contract.roster.player.apiFootballStats,
                             })}
                             className="text-primary-400 hover:text-primary-300 font-medium truncate cursor-pointer transition-colors"
                           >
@@ -1281,6 +1299,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                         name: contract.roster.player.name,
                         team: contract.roster.player.team,
                         position: contract.roster.player.position,
+                        age: contract.roster.player.age,
+                        apiFootballStats: contract.roster.player.apiFootballStats,
                       })}
                       className={`font-medium flex-1 text-sm sm:text-base leading-tight cursor-pointer transition-colors text-left ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-primary-400 hover:text-primary-300'}`}
                     >
@@ -1311,6 +1331,24 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                         MANTENUTO
                       </span>
                     )}
+                  </div>
+
+                  {/* Player info: Age & Rating */}
+                  <div className="flex items-center gap-4 mb-2 text-xs">
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-500">Eta:</span>
+                      <span className={getAgeColor(contract.roster.player.age)}>
+                        {contract.roster.player.age != null ? contract.roster.player.age : '-'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-500">Voto:</span>
+                      {contract.roster.player.apiFootballStats?.games?.rating != null ? (
+                        <span className="text-primary-400">{Number(contract.roster.player.apiFootballStats.games.rating).toFixed(2)}</span>
+                      ) : (
+                        <span className="text-gray-500">-</span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Trade info badge */}
@@ -1455,12 +1493,15 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 <thead>
                   <tr className="bg-surface-300/50 text-xs text-gray-400 uppercase">
                     <th className="text-left p-2">Giocatore</th>
+                    <th className="text-center p-2" colSpan={2}>Info</th>
                     <th className="text-center p-2 bg-surface-300/30" colSpan={3}>Contratto Attuale</th>
                     <th className="text-center p-2 bg-primary-500/10 border-l border-surface-50/20" colSpan={4}>Rinnovo</th>
                     <th className="text-center p-2 w-28">Taglio</th>
                   </tr>
                   <tr className="bg-surface-300/30 text-[10px] text-gray-500 uppercase">
                     <th className="p-1"></th>
+                    <th className="text-center p-1">Eta</th>
+                    <th className="text-center p-1">Voto</th>
                     <th className="text-center p-1">Ing.</th>
                     <th className="text-center p-1">Dur.</th>
                     <th className="text-center p-1">Rubata</th>
@@ -1508,6 +1549,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                                 name: contract.roster.player.name,
                                 team: contract.roster.player.team,
                                 position: contract.roster.player.position,
+                                age: contract.roster.player.age,
+                                apiFootballStats: contract.roster.player.apiFootballStats,
                               })}
                               className={`font-medium text-sm leading-tight cursor-pointer transition-colors ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-primary-400 hover:text-primary-300'}`}
                             >
@@ -1543,6 +1586,16 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                               </span>
                             )}
                           </div>
+                        </td>
+                        <td className={`text-center p-2 ${getAgeColor(contract.roster.player.age)}`}>
+                          {contract.roster.player.age != null ? contract.roster.player.age : '-'}
+                        </td>
+                        <td className="text-center p-2">
+                          {contract.roster.player.apiFootballStats?.games?.rating != null ? (
+                            <span className="text-primary-400">{Number(contract.roster.player.apiFootballStats.games.rating).toFixed(2)}</span>
+                          ) : (
+                            <span className="text-gray-500">-</span>
+                          )}
                         </td>
                         <td className="text-center p-2 text-accent-400 font-medium">{contract.salary}M</td>
                         <td className={`text-center p-2 ${getDurationColor(contract.duration)}`}>{contract.duration}s</td>
