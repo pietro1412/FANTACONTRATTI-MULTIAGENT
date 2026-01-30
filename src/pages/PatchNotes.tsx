@@ -23,12 +23,21 @@ const PATCH_NOTES: PatchNote[] = [
     id: '0',
     version: '1.x',
     date: '2026-01-30',
+    title: 'Rimossa voce Indennizzi dalla formula budget',
+    description: 'La formula nella pagina Contratti ora mostra correttamente: Budget Iniziale - Ingaggi - Tagli = Residuo (es: 196M - 158M - 0M = 38M). La voce "+Indennizzi" e\' stata rimossa perche\' gia\' inclusa nel budget.',
+    type: 'fix',
+    issueNumber: 217,
+  },
+  {
+    id: '1',
+    version: '1.x',
+    date: '2026-01-30',
     title: 'Pulsanti Salva/Consolida visibili su mobile',
     description: 'I pulsanti Salva e Consolida nella pagina Contratti/Rinnovi sono ora sempre visibili su mobile, posizionati in alto sopra la tabella.',
     type: 'fix',
   },
   {
-    id: '1',
+    id: '2',
     version: '1.x',
     date: '2026-01-30',
     title: 'Foto giocatore nella modale statistiche',
@@ -36,7 +45,7 @@ const PATCH_NOTES: PatchNote[] = [
     type: 'fix',
   },
   {
-    id: '2',
+    id: '3',
     version: '1.x',
     date: '2026-01-30',
     title: 'Foto giocatori nella pagina Contratti',
@@ -45,7 +54,7 @@ const PATCH_NOTES: PatchNote[] = [
     issueNumber: 214,
   },
   {
-    id: '3',
+    id: '4',
     version: '1.x',
     date: '2026-01-30',
     title: 'Pagina Patch Notes',
@@ -54,7 +63,7 @@ const PATCH_NOTES: PatchNote[] = [
     issueNumber: 208,
   },
   {
-    id: '4',
+    id: '5',
     version: '1.x',
     date: '2026-01-29',
     title: 'Richiesta aumento ingaggio prima di estendere durata',
@@ -63,7 +72,7 @@ const PATCH_NOTES: PatchNote[] = [
     issueNumber: 207,
   },
   {
-    id: '5',
+    id: '6',
     version: '1.x',
     date: '2026-01-28',
     title: 'Eta e rating in tabella Contratti',
@@ -72,7 +81,7 @@ const PATCH_NOTES: PatchNote[] = [
     issueNumber: 206,
   },
   {
-    id: '6',
+    id: '7',
     version: '1.x',
     date: '2026-01-27',
     title: 'Modale statistiche giocatore nei Contratti',
@@ -81,7 +90,7 @@ const PATCH_NOTES: PatchNote[] = [
     issueNumber: 205,
   },
   {
-    id: '7',
+    id: '8',
     version: '1.x',
     date: '2026-01-26',
     title: 'Integrazione statistiche API-Football',
@@ -90,7 +99,7 @@ const PATCH_NOTES: PatchNote[] = [
     issueNumber: 159,
   },
   {
-    id: '8',
+    id: '9',
     version: '1.x',
     date: '2026-01-25',
     title: 'Sistema KEEP/RELEASE per giocatori usciti',

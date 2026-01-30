@@ -496,21 +496,12 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     return total
   }, [contracts, localReleases])
 
-  // Calcola totale indennizzi in entrata (ESTERO rilasciati tramite exitDecisions)
-  const totalIndemnityIncome = useMemo(() => {
-    let total = 0
-    contracts.forEach(contract => {
-      if (exitDecisions.get(contract.id) === 'RELEASE' && contract.exitReason === 'ESTERO') {
-        total += contract.indemnityCompensation || 0
-      }
-    })
-    return total
-  }, [contracts, exitDecisions])
-
-  // Residuo = Budget - Ingaggi - Tagli + Indennizzi
+  // Residuo = Budget - Ingaggi - Tagli
+  // Gli indennizzi sono già inclusi nel budget (se il manager ha scelto RELEASE)
+  // o verranno aggiunti al consolidamento
   const residuoContratti = useMemo(() => {
-    return memberBudget - projectedSalaries - totalReleaseCost + totalIndemnityIncome
-  }, [memberBudget, projectedSalaries, totalReleaseCost, totalIndemnityIncome])
+    return memberBudget - projectedSalaries - totalReleaseCost
+  }, [memberBudget, projectedSalaries, totalReleaseCost])
 
   // Calcola numero giocatori effettivo dopo i tagli e le decisioni usciti
   const effectivePlayerCount = useMemo(() => {
@@ -1960,7 +1951,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 <span className="text-warning-400 text-xs font-medium">Modifiche non salvate - ricorda di salvare!</span>
               </div>
             )}
-            <div className={`grid gap-2 text-center ${totalIndemnityIncome > 0 ? 'grid-cols-5' : 'grid-cols-4'}`}>
+            <div className="grid gap-2 text-center grid-cols-4">
               <div className="bg-surface-300/50 rounded-lg p-2">
                 <div className="text-[9px] text-gray-500 uppercase tracking-wide">Budget</div>
                 <div className="text-accent-400 font-bold text-lg">{memberBudget}M</div>
@@ -1973,12 +1964,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 <div className="text-[9px] text-gray-500 uppercase tracking-wide">Tagli</div>
                 <div className="text-danger-400 font-bold text-lg">{totalReleaseCost}M</div>
               </div>
-              {totalIndemnityIncome > 0 && (
-                <div className="bg-surface-300/50 rounded-lg p-2">
-                  <div className="text-[9px] text-gray-500 uppercase tracking-wide">Indennizzi</div>
-                  <div className="text-secondary-400 font-bold text-lg">+{totalIndemnityIncome}M</div>
-                </div>
-              )}
               <div className={`rounded-lg p-2 ${residuoContratti < 0 ? 'bg-danger-500/30' : 'bg-secondary-500/30'}`}>
                 <div className="text-[9px] text-white uppercase tracking-wide font-medium">Residuo</div>
                 <div className={`font-bold text-lg ${residuoContratti < 0 ? 'text-danger-300' : 'text-secondary-300'}`}>
@@ -2005,15 +1990,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 <span className="text-sm text-gray-400">Tagli</span>
                 <span className="text-danger-400 font-bold text-xl">{totalReleaseCost}M</span>
               </div>
-              {totalIndemnityIncome > 0 && (
-                <>
-                  <span className="text-gray-500 text-xl">+</span>
-                  <div className="flex items-center gap-3 bg-surface-300/50 px-4 py-2 rounded-lg">
-                    <span className="text-sm text-gray-400">Indennizzi</span>
-                    <span className="text-secondary-400 font-bold text-xl">+{totalIndemnityIncome}M</span>
-                  </div>
-                </>
-              )}
               <span className="text-gray-500 text-xl">=</span>
               <div className={`flex items-center gap-3 px-5 py-2 rounded-lg ${
                 residuoContratti < 0 ? 'bg-danger-500/30 border border-danger-500/50' : 'bg-secondary-500/30 border border-secondary-500/50'
