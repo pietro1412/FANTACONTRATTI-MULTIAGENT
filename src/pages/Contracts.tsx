@@ -1263,10 +1263,10 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     )}
                   </div>
 
-                  {/* Trade lock badge */}
+                  {/* Trade info badge */}
                   {contract.roster.acquisitionType === 'TRADE' && (
                     <div className="bg-purple-500/20 border border-purple-500/50 rounded px-2 py-1 mb-2 text-center">
-                      <span className="text-purple-400 text-xs font-bold">🔒 SCAMBIO - Contratto non modificabile</span>
+                      <span className="text-purple-400 text-xs font-bold">↔️ SCAMBIO</span>
                     </div>
                   )}
 
@@ -1290,7 +1290,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                   </div>
 
                   {/* Spalma info box (mobile) */}
-                  {contract.canSpalmare && contract.canRenew && inContrattiPhase && !isConsolidated && !isMarkedForRelease && contract.roster.acquisitionType !== 'TRADE' && (
+                  {contract.canSpalmare && contract.canRenew && inContrattiPhase && !isConsolidated && !isMarkedForRelease && (
                     <div className="bg-warning-500/10 border border-warning-500/30 rounded-lg p-2 mb-3">
                       <div className="flex items-center gap-2 text-warning-400 text-xs font-medium mb-1">
                         <span>💡</span>
@@ -1309,8 +1309,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     </div>
                   )}
 
-                  {/* Renewal inputs (only if can renew and not acquired via trade) */}
-                  {contract.canRenew && inContrattiPhase && !isConsolidated && contract.roster.acquisitionType !== 'TRADE' && (
+                  {/* Renewal inputs (only if can renew) */}
+                  {contract.canRenew && inContrattiPhase && !isConsolidated && (
                     <>
                       <div className="flex gap-3 mb-3">
                         <div className="flex-1">
@@ -1456,7 +1456,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                             <span className={`font-medium text-sm leading-tight ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-white'}`}>
                               {contract.roster.player.name}
                             </span>
-                            {contract.canSpalmare && !isMarkedForRelease && contract.roster.acquisitionType !== 'TRADE' && (
+                            {contract.canSpalmare && !isMarkedForRelease && (
                               newSalary < contract.salary ? (
                                 <span
                                   className="px-1.5 py-0.5 bg-secondary-500/20 border border-secondary-500/40 rounded text-secondary-400 text-[10px] font-bold cursor-help"
@@ -1474,7 +1474,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                               )
                             )}
                             {contract.roster.acquisitionType === 'TRADE' && (
-                              <span className="text-purple-400 text-[10px] font-bold px-1 py-0.5 bg-purple-500/20 rounded">🔒 SCAMBIO</span>
+                              <span className="text-purple-400 text-[10px] font-bold px-1 py-0.5 bg-purple-500/20 rounded">↔️ SCAMBIO</span>
                             )}
                             {isMarkedForRelease && (
                               <span className="text-danger-400 text-xs font-medium">DA TAGLIARE</span>
@@ -1491,7 +1491,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                         <td className="text-center p-2 text-gray-400">{contract.duration}s</td>
                         <td className="text-center p-2 text-warning-400 font-medium">{currentRubata}M</td>
                         <td className="text-center p-2 border-l border-surface-50/20">
-                          {contract.canRenew && inContrattiPhase && !isConsolidated && contract.roster.acquisitionType !== 'TRADE' ? (
+                          {contract.canRenew && inContrattiPhase && !isConsolidated ? (
                             <div className="flex items-center justify-center gap-1">
                               <button
                                 onClick={() => updateLocalEdit(contract.id, 'newSalary', String(Math.max(minSalaryAllowed, newSalary - 1)))}
@@ -1510,7 +1510,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                           )}
                         </td>
                         <td className="text-center p-2">
-                          {contract.canRenew && inContrattiPhase && !isConsolidated && contract.roster.acquisitionType !== 'TRADE' ? (
+                          {contract.canRenew && inContrattiPhase && !isConsolidated ? (
                             <div className="flex items-center justify-center gap-1">
                               <button
                                 onClick={() => updateLocalEdit(contract.id, 'newDuration', String(newDuration - 1))}
