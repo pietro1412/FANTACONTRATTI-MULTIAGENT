@@ -1339,6 +1339,13 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
               const hasSalaryIncrease = newSalary > contract.salary
               const canIncreaseDuration = contract.canSpalmare || hasSalaryIncrease
 
+              // Issue #221/#222: Cannot decrease salary if it would invalidate the duration increase
+              // If duration was increased (newDuration > contract.duration) and we're not in spalma mode,
+              // decreasing salary to or below the original would make the duration increase invalid
+              const canDecreaseSalary = contract.canSpalmare
+                ? newSalary > minSalaryAllowed  // Spalma: can decrease as long as above minSalaryAllowed
+                : newDuration <= contract.duration || newSalary > contract.salary + 1  // Normal: can decrease if duration not increased OR salary has room
+
               return (
                 <div key={contract.id} className={`bg-surface-200 rounded-lg border p-3 ${
                   isMarkedForRelease ? 'border-danger-500/50 bg-danger-500/10' : 'border-surface-50/20'
@@ -1472,9 +1479,9 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                           <div className="flex items-center">
                             <button
                               onClick={() => updateLocalEdit(contract.id, 'newSalary', String(Math.max(minSalaryAllowed, newSalary - 1)))}
-                              disabled={newSalary <= minSalaryAllowed}
+                              disabled={!canDecreaseSalary}
                               className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
-                              title={contract.canSpalmare && newDuration <= 1 ? 'Aumenta prima la durata per ridurre l\'ingaggio' : undefined}
+                              title={!canDecreaseSalary ? (contract.canSpalmare ? 'Ingaggio minimo raggiunto' : 'Riduci prima la durata per diminuire l\'ingaggio') : undefined}
                             >−</button>
                             <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
                               {newSalary}M
@@ -1615,6 +1622,11 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     const hasSalaryIncrease = newSalary > contract.salary
                     const canIncreaseDuration = contract.canSpalmare || hasSalaryIncrease
 
+                    // Cannot decrease salary if it would invalidate the duration increase
+                    const canDecreaseSalary = contract.canSpalmare
+                      ? newSalary > minSalaryAllowed
+                      : newDuration <= contract.duration || newSalary > contract.salary + 1
+
                     return (
                       <tr key={contract.id} className={`border-t border-surface-50/10 hover:bg-surface-300/30 ${
                         isKeptExited ? 'bg-green-500/5' : isMarkedForRelease ? 'bg-danger-500/20 opacity-70' : hasChanges ? 'bg-primary-500/5' : ''
@@ -1697,9 +1709,9 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                             <div className="flex items-center justify-center gap-1">
                               <button
                                 onClick={() => updateLocalEdit(contract.id, 'newSalary', String(Math.max(minSalaryAllowed, newSalary - 1)))}
-                                disabled={newSalary <= minSalaryAllowed}
+                                disabled={!canDecreaseSalary}
                                 className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm disabled:opacity-30"
-                                title={contract.canSpalmare && newDuration <= 1 ? 'Aumenta prima la durata' : undefined}
+                                title={!canDecreaseSalary ? (contract.canSpalmare ? 'Min raggiunto' : 'Riduci durata') : undefined}
                               >−</button>
                               <span className="w-10 text-white text-center font-medium">{newSalary}M</span>
                               <button
