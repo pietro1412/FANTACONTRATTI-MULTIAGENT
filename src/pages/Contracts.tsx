@@ -394,8 +394,15 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       const newSalary = parseInt(edit.newSalary)
       const newDuration = parseInt(edit.newDuration)
 
-      // Salva se i valori sono diversi da quelli attuali
-      if (newSalary !== contract.salary || newDuration !== contract.duration) {
+      // Skip if values are invalid
+      if (isNaN(newSalary) || isNaN(newDuration) || newSalary <= 0 || newDuration <= 0) return
+
+      // Confronta con i valori salvati (draft se esiste, altrimenti base)
+      const savedSalary = contract.draftSalary ?? contract.salary
+      const savedDuration = contract.draftDuration ?? contract.duration
+
+      // Salva se i valori sono diversi da quelli salvati
+      if (newSalary !== savedSalary || newDuration !== savedDuration) {
         renewals.push({ contractId, salary: newSalary, duration: newDuration })
       }
     })
