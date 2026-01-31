@@ -25,6 +25,14 @@ interface FeedbackHubProps {
 // Hardcoded patch notes
 const PATCH_NOTES: PatchNote[] = [
   {
+    id: 'data-fix-3',
+    version: '1.x',
+    date: '2026-01-31',
+    title: 'Correzione contratto: Esposito F.P.',
+    description: 'Corretto stipendio di Esposito F.P. (Montsegur): da 10 a 3.',
+    type: 'fix',
+  },
+  {
     id: 'data-fix-2',
     version: '1.x',
     date: '2026-01-31',
