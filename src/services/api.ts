@@ -1889,3 +1889,20 @@ export const watchlistApi = {
       body: JSON.stringify({ categoryId }),
     }),
 }
+
+// News API - Player news from Google News
+export interface NewsArticle {
+  id: string
+  playerName: string
+  title: string
+  link: string
+  source: string
+  timeAgo: string
+  pubDate: string
+}
+
+export const newsApi = {
+  // Get news for specified players
+  getPlayerNews: (playerNames: string[]): Promise<{ success: boolean; data?: NewsArticle[]; count?: number; message?: string }> =>
+    request(`/api/news?players=${encodeURIComponent(playerNames.join(','))}`),
+}

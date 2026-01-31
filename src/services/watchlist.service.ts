@@ -9,40 +9,41 @@ export interface ServiceResult {
 }
 
 // Default categories to create for each league
+// Colors must match frontend CATEGORY_COLORS keys: red, orange, yellow, green, blue, purple, pink, cyan, gray
 const DEFAULT_CATEGORIES = [
   {
-    name: 'Da Rubare',
-    description: 'Giocatori da puntare alla prossima Rubata',
+    name: 'Target',
+    description: 'Giocatori da puntare assolutamente',
     icon: '🎯',
-    color: '#ef4444',
+    color: 'red',
     sortOrder: 1,
   },
   {
-    name: 'Sotto Osservazione',
+    name: 'Osservati',
     description: 'Giocatori da monitorare',
     icon: '👁️',
-    color: '#f59e0b',
+    color: 'yellow',
     sortOrder: 2,
   },
   {
-    name: 'Potenziali Acquisti',
-    description: 'Per mercato svincolati',
+    name: 'Affari',
+    description: 'Potenziali buoni acquisti',
     icon: '💰',
-    color: '#22c55e',
+    color: 'green',
     sortOrder: 3,
   },
   {
-    name: 'Scambi Possibili',
-    description: 'Giocatori per cui proporre scambi',
+    name: 'Scambi',
+    description: 'Giocatori per proporre scambi',
     icon: '🔄',
-    color: '#3b82f6',
+    color: 'blue',
     sortOrder: 4,
   },
   {
-    name: 'Da Vendere',
+    name: 'Da Cedere',
     description: 'Giocatori propri da cedere',
     icon: '📤',
-    color: '#6b7280',
+    color: 'gray',
     sortOrder: 5,
   },
 ]
@@ -114,19 +115,44 @@ export async function getCategories(
     }
 
     // Get categories with entry counts for this member
-    const categories = await prisma.watchlistCategory.findMany({
+    // Prisma's _count doesn't support nested where, so we get entries and count manually
+    let categories = await prisma.watchlistCategory.findMany({
       where: { leagueId },
       include: {
-        _count: {
-          select: {
-            entries: {
-              where: { memberId },
-            },
-          },
+        entries: {
+          where: { memberId },
+          select: { id: true },
         },
       },
       orderBy: { sortOrder: 'asc' },
     })
+
+    // Auto-create default categories if none exist
+    if (categories.length === 0) {
+      console.log(`[Watchlist] Auto-creating default categories for league ${leagueId}`)
+      await prisma.watchlistCategory.createMany({
+        data: DEFAULT_CATEGORIES.map(cat => ({
+          leagueId,
+          name: cat.name,
+          description: cat.description,
+          icon: cat.icon,
+          color: cat.color,
+          sortOrder: cat.sortOrder,
+          isSystemDefault: true,
+        })),
+      })
+      // Fetch again after creation
+      categories = await prisma.watchlistCategory.findMany({
+        where: { leagueId },
+        include: {
+          entries: {
+            where: { memberId },
+            select: { id: true },
+          },
+        },
+        orderBy: { sortOrder: 'asc' },
+      })
+    }
 
     return {
       success: true,
@@ -138,7 +164,7 @@ export async function getCategories(
         color: cat.color,
         isSystemDefault: cat.isSystemDefault,
         sortOrder: cat.sortOrder,
-        entryCount: cat._count.entries,
+        entryCount: cat.entries.length,
       })),
     }
   } catch (error) {
