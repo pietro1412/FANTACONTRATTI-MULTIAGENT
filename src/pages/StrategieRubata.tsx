@@ -1,15 +1,22 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { rubataApi, leagueApi } from '../services/api'
+import { rubataApi, leagueApi, watchlistApi, type WatchlistCategory, type WatchlistEntry } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../utils/player-images'
-import { POSITION_COLORS } from '../components/ui/PositionBadge'
+import { POSITION_COLORS, POSITIONS } from '../components/ui/PositionBadge'
+
+// Local Position type for POSITION_COLORS access
+type Position = typeof POSITIONS[number]
 import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
 import RadarChart from '../components/ui/RadarChart'
+import { PlayerFormBadge, getFormRating, calculateFormTrend } from '../components/PlayerFormBadge'
+// WatchlistCategoryDropdown removed - categories now managed only via modal
+import { WatchlistOverview } from '../components/WatchlistOverview'
+import { PlayerStrategyPanel } from '../components/PlayerStrategyPanel'
 
 // Player colors for radar chart comparison
-const PLAYER_CHART_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#a855f7']
+const PLAYER_CHART_COLORS: readonly string[] = ['#3b82f6', '#ef4444', '#22c55e', '#a855f7']
 
 // Age color coding - younger is better
 function getAgeColor(age: number | null | undefined): string {
@@ -101,6 +108,7 @@ interface SvincolatiData {
 
 type ViewMode = 'myRoster' | 'owned' | 'svincolati' | 'all'
 type DataViewMode = 'contracts' | 'stats' | 'merge'
+type MainTab = 'dashboard' | 'myRoster' | 'market'
 
 // Stats column definitions for stats/merge views
 interface StatsColumn {
@@ -176,15 +184,24 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   // Data view mode: contracts, stats, or merge
   const [dataViewMode, setDataViewMode] = useState<DataViewMode>('contracts')
 
+  // Main tab: dashboard, myRoster, or market (#219 Sprint 4 → 3-tab layout)
+  const [activeTab, setActiveTab] = useState<MainTab>('dashboard')
+
   // Filter state
   const [positionFilter, setPositionFilter] = useState<string>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [showOnlyWithStrategy, setShowOnlyWithStrategy] = useState(false)
   const [ownerFilter, setOwnerFilter] = useState<string>('ALL')
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
+
+  // Watchlist categories and entries (#219)
+  const [watchlistCategories, setWatchlistCategories] = useState<WatchlistCategory[]>([])
+  const [watchlistEntries, setWatchlistEntries] = useState<WatchlistEntry[]>([])
+  const [savingCategoryPlayerIds, setSavingCategoryPlayerIds] = useState<Set<string>>(new Set())
 
   // Sort state
-  const [sortMode, setSortMode] = useState<SortMode>('role')
+  const [sortMode, _setSortMode] = useState<SortMode>('role')
   const [sortField, setSortField] = useState<SortField>('position')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
 
@@ -195,9 +212,14 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   const [selectedForCompare, setSelectedForCompare] = useState<Set<string>>(new Set())
   const [showCompareModal, setShowCompareModal] = useState(false)
 
-  // Local edits with debounce
+  // Strategy panel (#219 UX improvements)
+  const [strategyPanelPlayer, setStrategyPanelPlayer] = useState<DisplayPlayer | null>(null)
+
+  // Current user budget (for budget simulator)
+  const [currentBudget, setCurrentBudget] = useState<number>(0)
+
+  // Local edits (manual save only, no auto-save)
   const [localStrategies, setLocalStrategies] = useState<Record<string, LocalStrategy>>({})
-  const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({})
 
   const myMemberId = strategiesData?.myMemberId
 
@@ -207,18 +229,34 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     setLoading(true)
 
     try {
-      // Fetch league info for admin status
+      // Fetch league info for admin status and budget
       const leagueResponse = await leagueApi.getById(leagueId)
       if (leagueResponse.success && leagueResponse.data) {
-        const data = leagueResponse.data as { userMembership?: { role: string } }
+        const data = leagueResponse.data as { userMembership?: { role: string; currentBudget?: number } }
         setIsLeagueAdmin(data.userMembership?.role === 'ADMIN')
+        setCurrentBudget(data.userMembership?.currentBudget || 0)
       }
 
-      // Fetch both owned players and svincolati in parallel
-      const [ownedRes, svincolatiRes] = await Promise.all([
+      // Fetch players, svincolati, and watchlist data in parallel
+      const [ownedRes, svincolatiRes, categoriesRes, entriesRes] = await Promise.all([
         rubataApi.getAllPlayersForStrategies(leagueId),
         rubataApi.getAllSvincolatiForStrategies(leagueId),
+        watchlistApi.getCategories(leagueId),
+        watchlistApi.getEntries(leagueId),
       ])
+
+      // Set watchlist data
+      console.log('[Strategie] Categories API response:', categoriesRes)
+      console.log('[Strategie] Entries API response:', entriesRes)
+      if (categoriesRes.success && categoriesRes.data) {
+        console.log('[Strategie] Setting categories:', categoriesRes.data)
+        setWatchlistCategories(categoriesRes.data)
+      } else {
+        console.warn('[Strategie] Categories failed:', categoriesRes.message)
+      }
+      if (entriesRes.success && entriesRes.data) {
+        setWatchlistEntries(entriesRes.data)
+      }
 
       // Initialize local strategies
       const locals: Record<string, LocalStrategy> = {}
@@ -264,13 +302,6 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   useEffect(() => {
     loadData()
   }, [loadData])
-
-  // Cleanup debounce timers
-  useEffect(() => {
-    return () => {
-      Object.values(debounceTimers.current).forEach(timer => clearTimeout(timer))
-    }
-  }, [])
 
   // Clear messages
   useEffect(() => {
@@ -318,7 +349,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     return localStrategies[playerId] || { maxBid: '', priority: 0, notes: '', isDirty: false }
   }, [localStrategies])
 
-  // Update local strategy with debounced save
+  // Update local strategy (no auto-save, manual save required)
   const updateLocalStrategy = useCallback((
     playerId: string,
     field: keyof Omit<LocalStrategy, 'isDirty'>,
@@ -335,16 +366,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         }
       }
     })
-
-    // Clear existing timer for this player
-    if (debounceTimers.current[playerId]) {
-      clearTimeout(debounceTimers.current[playerId])
-    }
-
-    // Set new debounce timer (2 seconds)
-    debounceTimers.current[playerId] = setTimeout(() => {
-      saveStrategy(playerId)
-    }, 2000)
+    // No auto-save - user must click Save button
   }, [])
 
   // Save strategy to server
@@ -372,13 +394,17 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
       if (res.success) {
         // Mark as not dirty
-        setLocalStrategies(prev => ({
-          ...prev,
-          [playerId]: {
-            ...prev[playerId],
-            isDirty: false,
+        setLocalStrategies(prev => {
+          const existing = prev[playerId]
+          if (!existing) return prev
+          return {
+            ...prev,
+            [playerId]: {
+              ...existing,
+              isDirty: false,
+            }
           }
-        }))
+        })
 
         // Update server data optimistically
         setStrategiesData(prev => {
@@ -418,6 +444,25 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     }
   }, [leagueId, localStrategies])
 
+  // Cancel/discard changes for a player (restore from server data)
+  const cancelStrategyChanges = useCallback((playerId: string) => {
+    // Find the player's server-side preference data
+    const playerData = strategiesData?.players.find(p => p.playerId === playerId)
+    const svincolatoData = svincolatiData?.players.find(p => p.playerId === playerId)
+    const preference = playerData?.preference || svincolatoData?.preference
+
+    // Reset to server state
+    setLocalStrategies(prev => ({
+      ...prev,
+      [playerId]: {
+        maxBid: preference?.maxBid?.toString() || '',
+        priority: preference?.priority || 0,
+        notes: preference?.notes || '',
+        isDirty: false,
+      }
+    }))
+  }, [strategiesData?.players, svincolatiData?.players])
+
   // Handle column sort
   const handleSort = useCallback((field: SortField) => {
     if (sortField === field) {
@@ -446,6 +491,48 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     setSelectedForCompare(new Set())
   }, [])
 
+  // Get player's watchlist category (#219)
+  const getPlayerCategory = useCallback((playerId: string): string | null => {
+    const entry = watchlistEntries.find(e => e.playerId === playerId)
+    return entry?.categoryId || null
+  }, [watchlistEntries])
+
+  // Handle watchlist category change (#219)
+  const handleCategoryChange = useCallback(async (playerId: string, categoryId: string | null) => {
+    if (!leagueId) return
+
+    setSavingCategoryPlayerIds(prev => new Set(prev).add(playerId))
+
+    try {
+      const res = await watchlistApi.setPlayerCategory(leagueId, playerId, categoryId)
+
+      if (res.success) {
+        // Update local state
+        setWatchlistEntries(prev => {
+          // Remove existing entry for this player
+          const filtered = prev.filter(e => e.playerId !== playerId)
+
+          // Add new entry if categoryId is not null
+          if (categoryId && res.data) {
+            return [...filtered, res.data]
+          }
+
+          return filtered
+        })
+      } else {
+        setError(res.message || 'Errore nel salvataggio categoria')
+      }
+    } catch {
+      setError('Errore nel salvataggio categoria')
+    } finally {
+      setSavingCategoryPlayerIds(prev => {
+        const next = new Set(prev)
+        next.delete(playerId)
+        return next
+      })
+    }
+  }, [leagueId])
+
   // Filtered and sorted players - supports myRoster, owned, svincolati, and all
   const filteredPlayers = useMemo((): DisplayPlayer[] => {
     const result: DisplayPlayer[] = []
@@ -457,8 +544,18 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       return order[normalized] ?? 99
     }
 
-    // Add MY players if viewMode is 'myRoster' or 'all'
-    if ((viewMode === 'myRoster' || viewMode === 'all') && strategiesData?.players) {
+    // Determine effective view mode based on active tab
+    const effectiveViewMode = activeTab === 'myRoster' ? 'myRoster' :
+                              activeTab === 'market' ? (viewMode === 'myRoster' ? 'all' : viewMode) :
+                              viewMode // dashboard uses original viewMode
+
+    // For market tab, exclude myRoster players unless explicitly viewing all
+    const includeMyRoster = activeTab === 'myRoster' || (activeTab === 'dashboard' && (viewMode === 'myRoster' || viewMode === 'all'))
+    const includeOwned = activeTab === 'market' || (activeTab === 'dashboard' && (viewMode === 'owned' || viewMode === 'all'))
+    const includeSvincolati = activeTab === 'market' || (activeTab === 'dashboard' && (viewMode === 'svincolati' || viewMode === 'all'))
+
+    // Add MY players if applicable
+    if (includeMyRoster && strategiesData?.players) {
       strategiesData.players.forEach(player => {
         // Only include own players
         if (player.memberId !== myMemberId) return
@@ -484,12 +581,22 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
           if (!local.maxBid && !local.priority && !local.notes) return
         }
 
+        // Category filter (#219)
+        if (categoryFilter !== 'ALL') {
+          const playerCatId = getPlayerCategory(player.playerId)
+          if (categoryFilter === 'NONE') {
+            if (playerCatId) return // Has category, skip
+          } else {
+            if (playerCatId !== categoryFilter) return
+          }
+        }
+
         result.push({ ...player, type: 'myRoster' })
       })
     }
 
-    // Add OTHER owned players if viewMode is 'owned' or 'all'
-    if ((viewMode === 'owned' || viewMode === 'all') && strategiesData?.players) {
+    // Add OTHER owned players if applicable
+    if (includeOwned && strategiesData?.players) {
       strategiesData.players.forEach(player => {
         // Exclude own players
         if (player.memberId === myMemberId) return
@@ -520,12 +627,23 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
           if (!local.maxBid && !local.priority && !local.notes) return
         }
 
+        // Category filter (#219)
+        if (categoryFilter !== 'ALL') {
+          const playerCatId = getPlayerCategory(player.playerId)
+          if (categoryFilter === 'NONE') {
+            if (playerCatId) return // Has category, skip
+          } else {
+            if (playerCatId !== categoryFilter) return
+          }
+        }
+
         result.push({ ...player, type: 'owned' })
       })
     }
 
     // Add svincolati if viewMode is 'svincolati' or 'all'
-    if ((viewMode === 'svincolati' || viewMode === 'all') && svincolatiData?.players) {
+    // Add svincolati if applicable
+    if (includeSvincolati && svincolatiData?.players) {
       svincolatiData.players.forEach(player => {
         // Position filter
         if (positionFilter !== 'ALL' && player.playerPosition !== positionFilter) return
@@ -534,7 +652,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         if (teamFilter !== 'ALL' && player.playerTeam !== teamFilter) return
 
         // Owner filter doesn't apply to svincolati, skip them if a specific owner is selected
-        if (viewMode === 'all' && ownerFilter !== 'ALL') return
+        if (effectiveViewMode === 'all' && ownerFilter !== 'ALL') return
 
         // Search filter
         if (searchQuery) {
@@ -549,6 +667,16 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         if (showOnlyWithStrategy) {
           const local = getLocalStrategy(player.playerId)
           if (!local.maxBid && !local.priority && !local.notes) return
+        }
+
+        // Category filter (#219)
+        if (categoryFilter !== 'ALL') {
+          const playerCatId = getPlayerCategory(player.playerId)
+          if (categoryFilter === 'NONE') {
+            if (playerCatId) return // Has category, skip
+          } else {
+            if (playerCatId !== categoryFilter) return
+          }
         }
 
         result.push({ ...player, type: 'svincolato' })
@@ -609,7 +737,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     })
 
     return result
-  }, [strategiesData?.players, svincolatiData?.players, myMemberId, viewMode, positionFilter, teamFilter, ownerFilter, searchQuery, showOnlyWithStrategy, sortMode, getLocalStrategy])
+  }, [strategiesData?.players, svincolatiData?.players, myMemberId, viewMode, activeTab, positionFilter, teamFilter, ownerFilter, searchQuery, showOnlyWithStrategy, sortMode, getLocalStrategy, categoryFilter, getPlayerCategory])
 
   // Players selected for comparison (#187) - must be after filteredPlayers
   const playersToCompare = useMemo(() => {
@@ -639,6 +767,65 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
     return count
   }, [strategiesData?.players, svincolatiData?.players, myMemberId, getLocalStrategy])
+
+  // Total of all max bids for budget simulator
+  const totalTargetBids = useMemo(() => {
+    let total = 0
+    Object.values(localStrategies).forEach(strat => {
+      if (strat.maxBid) {
+        total += parseInt(strat.maxBid) || 0
+      }
+    })
+    return total
+  }, [localStrategies])
+
+  // KPI calculations for "La Mia Rosa" dashboard
+  const rosterKPIs = useMemo(() => {
+    if (!strategiesData?.players || !myMemberId) {
+      return {
+        avgAge: null,
+        avgRating: null,
+        totalValue: 0,
+        totalSalary: 0,
+        playerCounts: { P: 0, D: 0, C: 0, A: 0 },
+        totalPlayers: 0,
+      }
+    }
+
+    const myPlayers = strategiesData.players.filter(p => p.memberId === myMemberId)
+
+    // Calculate age stats
+    const ages = myPlayers.map(p => p.playerAge).filter((a): a is number => a !== null && a !== undefined)
+    const avgAge = ages.length > 0 ? ages.reduce((sum, a) => sum + a, 0) / ages.length : null
+
+    // Calculate rating stats
+    const ratings = myPlayers
+      .map(p => p.playerApiFootballStats?.games?.rating)
+      .filter((r): r is number => r !== null && r !== undefined && !isNaN(r))
+    const avgRating = ratings.length > 0 ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length : null
+
+    // Calculate totals
+    const totalValue = myPlayers.reduce((sum, p) => sum + (p.playerQuotation || 0), 0)
+    const totalSalary = myPlayers.reduce((sum, p) => sum + (p.contractSalary || 0), 0)
+
+    // Count by position
+    const playerCounts = { P: 0, D: 0, C: 0, A: 0 }
+    myPlayers.forEach(p => {
+      const pos = (p.playerPosition || '').toUpperCase() as keyof typeof playerCounts
+      if (pos in playerCounts) {
+        playerCounts[pos]++
+      }
+    })
+
+    return {
+      avgAge,
+      avgRating,
+      totalValue,
+      totalSalary,
+      playerCounts,
+      totalPlayers: myPlayers.length,
+    }
+  }, [strategiesData?.players, myMemberId])
 
   // Sortable column header component
   const SortableHeader = ({ field, label, className = '' }: { field: SortField; label: string; className?: string }) => (
@@ -683,8 +870,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
           </div>
           <p className="text-gray-400 text-sm">
             {viewMode === 'myRoster'
-              ? 'Visualizza la tua rosa con contratti e valori.'
-              : 'Imposta offerta massima, priorità e note per le strategie rubata. Le modifiche vengono salvate automaticamente.'
+              ? 'Visualizza la tua rosa con contratti e valori. Clicca "🎯 Strategia" per organizzare i giocatori.'
+              : 'Clicca "🎯 Strategia" su un giocatore per aprire il pannello completo: categoria, offerta max, priorità e note. Salvataggio automatico!'
             }
           </p>
         </div>
@@ -697,7 +884,186 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
           <div className="bg-secondary-500/20 border border-secondary-500/30 text-secondary-400 p-3 rounded-lg mb-4 text-sm">{success}</div>
         )}
 
-        {/* Main content: Table + Sidebar */}
+        {/* Main Tab Navigation - 3 sections (#219 reorganization) */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              activeTab === 'dashboard'
+                ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-purple-500/25'
+                : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
+            }`}
+          >
+            <span className="text-base">📊</span>
+            Dashboard
+          </button>
+          <button
+            onClick={() => setActiveTab('myRoster')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              activeTab === 'myRoster'
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/25'
+                : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
+            }`}
+          >
+            <span className="text-base">🏠</span>
+            La Mia Rosa
+          </button>
+          <button
+            onClick={() => setActiveTab('market')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              activeTab === 'market'
+                ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/25'
+                : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
+            }`}
+          >
+            <span className="text-base">🎯</span>
+            Mercato
+          </button>
+        </div>
+
+        {/* Main content: Dashboard, My Roster, or Market */}
+        {activeTab === 'dashboard' && (
+          /* Dashboard Tab Content - Overview with KPIs */
+          <div className="space-y-4">
+            {/* Rosa KPI Section */}
+            <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-4">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <span>🏠</span> La Mia Rosa - KPI
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                {/* Age KPI Card */}
+                <div className="bg-surface-300/50 rounded-xl p-3 border border-transparent hover:border-surface-50/30 transition-all">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xl">🎂</span>
+                    <span className="text-xs text-gray-400 uppercase tracking-wide">Eta Media</span>
+                  </div>
+                  <div className={`text-2xl font-bold ${
+                    rosterKPIs.avgAge === null ? 'text-gray-500' :
+                    rosterKPIs.avgAge < 27 ? 'text-emerald-400' :
+                    rosterKPIs.avgAge <= 30 ? 'text-yellow-400' : 'text-red-400'
+                  }`}>
+                    {rosterKPIs.avgAge !== null ? rosterKPIs.avgAge.toFixed(1) : '-'}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {rosterKPIs.avgAge !== null && (
+                      rosterKPIs.avgAge < 27 ? 'Rosa giovane' :
+                      rosterKPIs.avgAge <= 30 ? 'Rosa nel prime' : 'Rosa esperta'
+                    )}
+                  </div>
+                </div>
+
+                {/* Rating KPI Card */}
+                <div className="bg-surface-300/50 rounded-xl p-3 border border-transparent hover:border-surface-50/30 transition-all">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xl">⭐</span>
+                    <span className="text-xs text-gray-400 uppercase tracking-wide">Rating Medio</span>
+                  </div>
+                  <div className={`text-2xl font-bold ${
+                    rosterKPIs.avgRating === null ? 'text-gray-500' :
+                    rosterKPIs.avgRating >= 7 ? 'text-emerald-400' :
+                    rosterKPIs.avgRating >= 6.5 ? 'text-yellow-400' : 'text-red-400'
+                  }`}>
+                    {rosterKPIs.avgRating !== null ? rosterKPIs.avgRating.toFixed(2) : '-'}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {rosterKPIs.avgRating !== null && (
+                      rosterKPIs.avgRating >= 7 ? 'Eccellente' :
+                      rosterKPIs.avgRating >= 6.5 ? 'Buono' : 'Da migliorare'
+                    )}
+                  </div>
+                </div>
+
+                {/* Total Value KPI Card */}
+                <div className="bg-surface-300/50 rounded-xl p-3 border border-transparent hover:border-surface-50/30 transition-all">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xl">💰</span>
+                    <span className="text-xs text-gray-400 uppercase tracking-wide">Valore Totale</span>
+                  </div>
+                  <div className="text-2xl font-bold text-primary-400">
+                    {rosterKPIs.totalValue.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Somma quotazioni
+                  </div>
+                </div>
+
+                {/* Total Salary KPI Card */}
+                <div className="bg-surface-300/50 rounded-xl p-3 border border-transparent hover:border-surface-50/30 transition-all">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xl">💸</span>
+                    <span className="text-xs text-gray-400 uppercase tracking-wide">Stipendi Totali</span>
+                  </div>
+                  <div className={`text-2xl font-bold ${
+                    rosterKPIs.totalSalary > currentBudget * 0.8 ? 'text-red-400' :
+                    rosterKPIs.totalSalary > currentBudget * 0.5 ? 'text-yellow-400' : 'text-emerald-400'
+                  }`}>
+                    {rosterKPIs.totalSalary.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Spesa annuale
+                  </div>
+                </div>
+
+                {/* Player Count by Role KPI Card */}
+                <div className="bg-surface-300/50 rounded-xl p-3 border border-transparent hover:border-surface-50/30 transition-all col-span-2 md:col-span-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xl">👥</span>
+                    <span className="text-xs text-gray-400 uppercase tracking-wide">Rosa ({rosterKPIs.totalPlayers})</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1">
+                      <span className="w-6 h-6 rounded-md bg-yellow-500/20 text-yellow-400 text-xs font-bold flex items-center justify-center">P</span>
+                      <span className="text-white font-semibold">{rosterKPIs.playerCounts.P}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="w-6 h-6 rounded-md bg-green-500/20 text-green-400 text-xs font-bold flex items-center justify-center">D</span>
+                      <span className="text-white font-semibold">{rosterKPIs.playerCounts.D}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="w-6 h-6 rounded-md bg-blue-500/20 text-blue-400 text-xs font-bold flex items-center justify-center">C</span>
+                      <span className="text-white font-semibold">{rosterKPIs.playerCounts.C}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="w-6 h-6 rounded-md bg-red-500/20 text-red-400 text-xs font-bold flex items-center justify-center">A</span>
+                      <span className="text-white font-semibold">{rosterKPIs.playerCounts.A}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Watchlist Overview */}
+            <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
+              <WatchlistOverview
+              categories={watchlistCategories}
+              entries={watchlistEntries}
+              players={filteredPlayers}
+              localStrategies={localStrategies}
+              onCategoryClick={(categoryId) => {
+                setCategoryFilter(categoryId)
+                setActiveTab('market')
+              }}
+              onPlayerClick={(player) => {
+                setSelectedPlayerStats({
+                  name: player.playerName,
+                  team: player.playerTeam,
+                  position: player.playerPosition,
+                  quotation: player.type !== 'svincolato' ? player.playerQuotation : undefined,
+                  age: player.playerAge,
+                  apiFootballId: player.playerApiFootballId,
+                  apiFootballStats: player.playerApiFootballStats,
+                })
+              }}
+              onOpenStrategy={(player) => setStrategyPanelPlayer(player as DisplayPlayer)}
+              currentBudget={currentBudget}
+              totalTargetBids={totalTargetBids}
+            />
+            </div>
+          </div>
+        )}
+
+        {(activeTab === 'myRoster' || activeTab === 'market') && (
+        /* Players Tab Content - filtered by tab */
         <div className="flex flex-col xl:flex-row gap-4">
           {/* Main Table */}
           <div className="flex-1 min-w-0">
@@ -748,75 +1114,81 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                 </div>
               </div>
 
-              {/* LEVEL 2: Scope Buttons with Count Badges */}
-              <div className="p-2 border-b border-surface-50/20 bg-surface-300/50">
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  <button
-                    onClick={() => { setViewMode('myRoster'); setOwnerFilter('ALL'); }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                      viewMode === 'myRoster'
-                        ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
-                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
-                    }`}
-                    title="La mia rosa"
-                  >
-                    <span>🏠 La Mia Rosa</span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                      viewMode === 'myRoster' ? 'bg-white/20' : 'bg-primary-500/20 text-primary-400'
-                    }`}>
-                      {strategiesData?.players.filter(p => p.memberId === myMemberId).length || 0}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => { setViewMode('owned'); setOwnerFilter('ALL'); }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                      viewMode === 'owned'
-                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
-                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
-                    }`}
-                    title="Giocatori di altri manager"
-                  >
-                    <span>👥 Altre Rose</span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                      viewMode === 'owned' ? 'bg-white/20' : 'bg-blue-500/20 text-blue-400'
-                    }`}>
-                      {strategiesData?.players.filter(p => p.memberId !== myMemberId).length || 0}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => { setViewMode('svincolati'); setOwnerFilter('ALL'); }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                      viewMode === 'svincolati'
-                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
-                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
-                    }`}
-                    title="Giocatori svincolati"
-                  >
-                    <span>🆓 Svincolati</span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                      viewMode === 'svincolati' ? 'bg-white/20' : 'bg-emerald-500/20 text-emerald-400'
-                    }`}>
-                      {svincolatiData?.players.length || 0}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => { setViewMode('all'); setOwnerFilter('ALL'); }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                      viewMode === 'all'
-                        ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/25'
-                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
-                    }`}
-                    title="Tutti i giocatori"
-                  >
-                    <span>🌐 Tutti</span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                      viewMode === 'all' ? 'bg-white/20' : 'bg-purple-500/20 text-purple-400'
-                    }`}>
-                      {(strategiesData?.players.length || 0) + (svincolatiData?.players.length || 0)}
-                    </span>
-                  </button>
+              {/* LEVEL 2: Tab-specific scope filter */}
+              {activeTab === 'myRoster' ? (
+                /* My Roster: Show tab description instead of scope buttons */
+                <div className="p-3 border-b border-surface-50/20 bg-emerald-500/5">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🏠</span>
+                    <div>
+                      <h3 className="font-semibold text-white">Gestisci la Tua Rosa</h3>
+                      <p className="text-xs text-gray-400">
+                        Imposta tag di gestione per pianificare cessioni, scambi e uscite
+                      </p>
+                    </div>
+                    <div className="ml-auto text-right">
+                      <span className="text-2xl font-bold text-emerald-400">
+                        {strategiesData?.players.filter(p => p.memberId === myMemberId).length || 0}
+                      </span>
+                      <span className="text-xs text-gray-500 block">giocatori</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : activeTab === 'market' ? (
+                /* Market: Show Rubata / Svincolati toggle */
+                <div className="p-2 border-b border-surface-50/20 bg-surface-300/50">
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    <button
+                      onClick={() => { setViewMode('owned'); setOwnerFilter('ALL'); }}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                        viewMode === 'owned'
+                          ? 'bg-red-500 text-white shadow-lg shadow-red-500/25'
+                          : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
+                      }`}
+                      title="Giocatori da rubare"
+                    >
+                      <span>🔴 Rubata</span>
+                      <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                        viewMode === 'owned' ? 'bg-white/20' : 'bg-red-500/20 text-red-400'
+                      }`}>
+                        {strategiesData?.players.filter(p => p.memberId !== myMemberId).length || 0}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => { setViewMode('svincolati'); setOwnerFilter('ALL'); }}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                        viewMode === 'svincolati'
+                          ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
+                          : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
+                      }`}
+                      title="Giocatori svincolati"
+                    >
+                      <span>🟢 Svincolati</span>
+                      <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                        viewMode === 'svincolati' ? 'bg-white/20' : 'bg-emerald-500/20 text-emerald-400'
+                      }`}>
+                        {svincolatiData?.players.length || 0}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => { setViewMode('all'); setOwnerFilter('ALL'); }}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                        viewMode === 'all'
+                          ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/25'
+                          : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
+                      }`}
+                      title="Tutti i giocatori sul mercato"
+                    >
+                      <span>🌐 Tutti</span>
+                      <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                        viewMode === 'all' ? 'bg-white/20' : 'bg-purple-500/20 text-purple-400'
+                      }`}>
+                        {(strategiesData?.players.filter(p => p.memberId !== myMemberId).length || 0) + (svincolatiData?.players.length || 0)}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              ) : null}
 
               {/* LEVEL 3: Filters */}
               <div className="p-2 border-b border-surface-50/20 bg-surface-300/30">
@@ -825,7 +1197,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   {/* Position Filter Group */}
                   <div className="flex gap-1">
                     {['ALL', 'P', 'D', 'C', 'A'].map(pos => {
-                      const colors = POSITION_COLORS[pos] ?? { bg: 'bg-white/20', text: 'text-white', border: '' }
+                      const colors = POSITION_COLORS[pos as Position] ?? { bg: 'bg-white/20', text: 'text-white', border: '' }
                       return (
                         <button
                           key={pos}
@@ -844,8 +1216,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     })}
                   </div>
 
-                  {/* Owner Filter - only for owned or all views */}
-                  {(viewMode === 'owned' || viewMode === 'all') && (
+                  {/* Owner Filter - only for market tab with owned or all views */}
+                  {activeTab === 'market' && (viewMode === 'owned' || viewMode === 'all') && (
                     <select
                       value={ownerFilter}
                       onChange={(e) => setOwnerFilter(e.target.value)}
@@ -869,6 +1241,21 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       <option key={team} value={team}>{team}</option>
                     ))}
                   </select>
+
+                  {/* Category Filter (#219) */}
+                  {watchlistCategories.length > 0 && (
+                    <select
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      className="px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
+                    >
+                      <option value="ALL">Categoria</option>
+                      <option value="NONE">Senza categoria</option>
+                      {watchlistCategories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 {/* Row 2: Search + Strategy */}
@@ -924,7 +1311,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
               <div className="md:hidden space-y-3 p-3">
                 {filteredPlayers.map(player => {
                   const defaultColors = { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white', border: '' }
-                  const posColors = POSITION_COLORS[player.playerPosition] ?? defaultColors
+                  const posColors = POSITION_COLORS[player.playerPosition as Position] ?? defaultColors
                   const local = getLocalStrategy(player.playerId)
                   const hasStrategy = !!(local.maxBid || local.priority || local.notes)
                   const isSvincolato = player.type === 'svincolato'
@@ -1029,7 +1416,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
                       {/* Stats info - only for stats/merge view */}
                       {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
-                        <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3">
+                        <div className="grid grid-cols-4 gap-2 text-center text-xs mb-3">
                           <div className="bg-cyan-500/10 rounded p-1.5 border border-cyan-500/20">
                             <div className="text-gray-500 text-[10px] uppercase">Rating</div>
                             <div className="text-cyan-400 font-semibold">
@@ -1050,28 +1437,41 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               {player.playerApiFootballStats?.goals?.assists ?? '-'}
                             </div>
                           </div>
+                          {/* Form badge (#219) */}
+                          <div className="bg-teal-500/10 rounded p-1.5 border border-teal-500/20">
+                            <div className="text-gray-500 text-[10px] uppercase">Form</div>
+                            <div className="flex justify-center">
+                              <PlayerFormBadge
+                                rating={getFormRating(player.playerApiFootballStats)}
+                                trend={calculateFormTrend(
+                                  getFormRating(player.playerApiFootballStats),
+                                  getFormRating(player.playerApiFootballStats)
+                                )}
+                                size="sm"
+                              />
+                            </div>
+                          </div>
                         </div>
                       )}
-                      {/* Strategy Section - always visible */}
-                      <div className="bg-indigo-500/10 rounded-lg p-2 border border-indigo-500/20">
-                        <div className="flex items-center gap-2 mb-2">
-                          {/* Max Bid */}
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] text-gray-500 uppercase">Max:</span>
-                            <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, (parseInt(local.maxBid) || 0) - 1).toString())} className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 text-sm font-bold">−</button>
-                            <input type="number" value={local.maxBid} onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)} placeholder="-" className="w-12 px-1 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-center text-sm" />
-                            <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', ((parseInt(local.maxBid) || 0) + 1).toString())} className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 text-sm font-bold">+</button>
-                          </div>
-                          {/* Priority - increased size #186 */}
-                          <div className="flex items-center gap-0.5 ml-auto">
-                            {[1, 2, 3, 4, 5].map(star => (
-                              <button key={star} onClick={() => updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star)} className={`w-8 h-8 text-xl ${local.priority >= star ? 'text-purple-400' : 'text-gray-600'}`}>★</button>
-                            ))}
-                          </div>
-                        </div>
-                        {/* Notes */}
-                        <input type="text" value={local.notes} onChange={(e) => updateLocalStrategy(player.playerId, 'notes', e.target.value)} placeholder="Note..." className="w-full px-2 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-sm" />
-                      </div>
+
+                      {/* Strategy Button - opens modal */}
+                      <button
+                        onClick={() => setStrategyPanelPlayer(player)}
+                        className={`w-full py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                          (local.maxBid || local.priority || local.notes)
+                            ? 'bg-gradient-to-r from-purple-500/20 to-indigo-500/20 text-purple-300 border border-purple-500/40 hover:border-purple-400'
+                            : 'bg-surface-300/50 text-gray-400 border border-surface-50/30 hover:bg-purple-500/10 hover:text-purple-300 hover:border-purple-500/30'
+                        }`}
+                      >
+                        <span className="text-lg">🎯</span>
+                        <span>{(local.maxBid || local.priority || local.notes) ? 'Modifica Strategia' : 'Aggiungi Strategia'}</span>
+                        {(local.maxBid || local.priority) && (
+                          <span className="ml-2 flex items-center gap-1 text-xs opacity-70">
+                            {local.maxBid && <span className="text-green-400">💰{local.maxBid}M</span>}
+                            {local.priority > 0 && <span className="text-yellow-400">{'★'.repeat(local.priority)}</span>}
+                          </span>
+                        )}
+                      </button>
                     </div>
                   )
                 })}
@@ -1096,11 +1496,11 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         </th>
                       )}
                       {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
-                        <th colSpan={dataViewMode === 'stats' ? STATS_COLUMNS.length : MERGE_STATS_KEYS.length} className="text-center py-1 px-3 bg-cyan-500/10 border-l border-surface-50/20">
+                        <th colSpan={(dataViewMode === 'stats' ? STATS_COLUMNS.length : MERGE_STATS_KEYS.length) + 1} className="text-center py-1 px-3 bg-cyan-500/10 border-l border-surface-50/20">
                           Statistiche
                         </th>
                       )}
-                      <th colSpan={3} className="text-center py-1 px-3 bg-indigo-500/10 border-l border-surface-50/20">
+                      <th colSpan={4} className="text-center py-1 px-3 bg-indigo-500/10 border-l border-surface-50/20">
                         Strategia
                       </th>
                     </tr>
@@ -1140,18 +1540,26 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           {col.shortLabel}
                         </th>
                       ))}
-                      {/* Strategy columns */}
-                      <th className="text-center p-2 bg-indigo-500/5 border-l border-surface-50/20">Max</th>
-                      <th className="text-center p-2 bg-indigo-500/5">★</th>
-                      <th className="text-left p-2 bg-indigo-500/5">Note</th>
+                      {/* Form column (#219) - after stats */}
+                      {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
+                        <th className="text-center p-2 text-teal-400" title="Form (ultimi risultati)">
+                          Form
+                        </th>
+                      )}
+                      {/* Strategy column - single button */}
+                      <th className="text-center p-2 bg-indigo-500/5 border-l border-surface-50/20" title="🎯 Apri pannello strategia">
+                        <span className="flex flex-col items-center">
+                          <span className="text-base">🎯</span>
+                          <span className="text-[9px] text-gray-500 font-normal">Strategia</span>
+                        </span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredPlayers.map(player => {
                       const defaultColors = { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white', border: '' }
-                      const posColors = POSITION_COLORS[player.playerPosition] ?? defaultColors
+                      const posColors = POSITION_COLORS[player.playerPosition as Position] ?? defaultColors
                       const local = getLocalStrategy(player.playerId)
-                      const isSaving = savingPlayerIds.has(player.playerId)
                       const hasStrategy = !!(local.maxBid || local.priority || local.notes)
                       const isSvincolato = player.type === 'svincolato'
                       const isMyRoster = player.type === 'myRoster'
@@ -1206,20 +1614,22 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                   {player.playerPosition}
                                 </div>
                               </div>
-                              <button
-                                onClick={() => setSelectedPlayerStats({
-                                  name: player.playerName,
-                                  team: player.playerTeam,
-                                  position: player.playerPosition,
-                                  quotation: isSvincolato ? undefined : player.playerQuotation,
-                                  age: player.playerAge,
-                                  apiFootballId: player.playerApiFootballId,
-                                  apiFootballStats: player.playerApiFootballStats,
-                                })}
-                                className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
-                              >
-                                {player.playerName}
-                              </button>
+                              <div className="flex flex-col min-w-0">
+                                <button
+                                  onClick={() => setSelectedPlayerStats({
+                                    name: player.playerName,
+                                    team: player.playerTeam,
+                                    position: player.playerPosition,
+                                    quotation: isSvincolato ? undefined : player.playerQuotation,
+                                    age: player.playerAge,
+                                    apiFootballId: player.playerApiFootballId,
+                                    apiFootballStats: player.playerApiFootballStats,
+                                  })}
+                                  className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
+                                >
+                                  {player.playerName}
+                                </button>
+                              </div>
                             </div>
                           </td>
 
@@ -1328,76 +1738,34 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             )
                           })}
 
-                          {/* === STRATEGY SECTION === */}
-                          {/* Offerta Max */}
-                          <td className="p-2 text-center bg-indigo-500/5 border-l border-surface-50/10">
-                            <div className="flex items-center justify-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const current = parseInt(local.maxBid) || 0
-                                  updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, current - 1).toString())
-                                }}
-                                className="w-5 h-5 rounded bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-100 text-xs font-bold flex items-center justify-center transition-colors"
-                              >
-                                −
-                              </button>
-                              <input
-                                type="number"
-                                value={local.maxBid}
-                                onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)}
-                                placeholder="-"
-                                className={`w-10 px-1 py-0.5 bg-surface-300/50 border rounded text-white text-center text-xs font-medium focus:border-blue-500 focus:outline-none placeholder:text-gray-600 ${
-                                  isSaving ? 'border-blue-500/50' : local.isDirty ? 'border-yellow-500/50' : 'border-surface-50/30'
-                                }`}
+                          {/* Form column (#219) - after stats */}
+                          {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
+                            <td className="p-2">
+                              <PlayerFormBadge
+                                rating={getFormRating(player.playerApiFootballStats)}
+                                trend={calculateFormTrend(
+                                  getFormRating(player.playerApiFootballStats),
+                                  getFormRating(player.playerApiFootballStats) // Using same as baseline since we don't have last 5 games data
+                                )}
+                                size="sm"
                               />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const current = parseInt(local.maxBid) || 0
-                                  updateLocalStrategy(player.playerId, 'maxBid', (current + 1).toString())
-                                }}
-                                className="w-5 h-5 rounded bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-100 text-xs font-bold flex items-center justify-center transition-colors"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </td>
+                            </td>
+                          )}
 
-                          {/* Priority - increased size #186 */}
-                          <td className="p-2 text-center bg-indigo-500/5">
-                            <div className="flex items-center justify-center gap-0.5">
-                              {[1, 2, 3, 4, 5].map(star => (
-                                <button
-                                  key={star}
-                                  type="button"
-                                  onClick={() => {
-                                    const newPrio = local.priority === star ? 0 : star
-                                    updateLocalStrategy(player.playerId, 'priority', newPrio)
-                                  }}
-                                  className={`w-5 h-5 text-sm transition-colors ${
-                                    local.priority >= star
-                                      ? 'text-purple-400 hover:text-purple-300'
-                                      : 'text-gray-600 hover:text-gray-400'
-                                  }`}
-                                >
-                                  ★
-                                </button>
-                              ))}
-                            </div>
-                          </td>
-
-                          {/* Notes */}
-                          <td className="p-2 bg-indigo-500/5">
-                            <input
-                              type="text"
-                              value={local.notes}
-                              onChange={(e) => updateLocalStrategy(player.playerId, 'notes', e.target.value)}
-                              placeholder="Note..."
-                              className={`w-full min-w-[60px] px-1 py-0.5 bg-surface-300/50 border rounded text-white text-xs focus:border-blue-500 focus:outline-none placeholder:text-gray-600 ${
-                                isSaving ? 'border-blue-500/50' : local.isDirty ? 'border-yellow-500/50' : 'border-surface-50/30'
+                          {/* === STRATEGY BUTTON === */}
+                          <td className="p-2 text-center bg-indigo-500/5 border-l border-surface-50/10">
+                            <button
+                              onClick={() => setStrategyPanelPlayer(player)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 mx-auto ${
+                                (local.maxBid || local.priority || local.notes)
+                                  ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50 hover:bg-purple-500/40'
+                                  : 'bg-surface-300/50 text-gray-400 border border-surface-50/30 hover:bg-purple-500/20 hover:text-purple-300 hover:border-purple-500/40'
                               }`}
-                            />
+                              title="Apri pannello strategia"
+                            >
+                              <span>🎯</span>
+                              <span>{(local.maxBid || local.priority || local.notes) ? 'Modifica' : 'Aggiungi'}</span>
+                            </button>
                           </td>
                         </tr>
                       )
@@ -1428,6 +1796,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
             </div>
           </div>
         </div>
+        )}
       </main>
 
       {/* Player Stats Modal */}
@@ -1435,6 +1804,40 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         isOpen={!!selectedPlayerStats}
         onClose={() => setSelectedPlayerStats(null)}
         player={selectedPlayerStats}
+      />
+
+      {/* Player Strategy Panel (#219 UX) */}
+      <PlayerStrategyPanel
+        isOpen={!!strategyPanelPlayer}
+        onClose={() => setStrategyPanelPlayer(null)}
+        player={strategyPanelPlayer}
+        categories={watchlistCategories}
+        currentCategoryId={strategyPanelPlayer ? getPlayerCategory(strategyPanelPlayer.playerId) : null}
+        localStrategy={strategyPanelPlayer ? getLocalStrategy(strategyPanelPlayer.playerId) : { maxBid: '', priority: 0, notes: '', isDirty: false }}
+        onCategoryChange={(categoryId) => {
+          if (strategyPanelPlayer) {
+            handleCategoryChange(strategyPanelPlayer.playerId, categoryId)
+          }
+        }}
+        onStrategyChange={(field, value) => {
+          if (strategyPanelPlayer) {
+            updateLocalStrategy(strategyPanelPlayer.playerId, field, value)
+          }
+        }}
+        onSave={() => {
+          if (strategyPanelPlayer) {
+            saveStrategy(strategyPanelPlayer.playerId)
+          }
+        }}
+        onCancel={() => {
+          if (strategyPanelPlayer) {
+            cancelStrategyChanges(strategyPanelPlayer.playerId)
+          }
+        }}
+        currentBudget={currentBudget}
+        totalTargetBids={totalTargetBids}
+        savingCategory={strategyPanelPlayer ? savingCategoryPlayerIds.has(strategyPanelPlayer.playerId) : false}
+        savingStrategy={strategyPanelPlayer ? savingPlayerIds.has(strategyPanelPlayer.playerId) : false}
       />
 
       {/* Player Compare Modal (#187) */}
@@ -1460,7 +1863,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
               <div className="flex flex-wrap justify-center gap-6 mb-8">
                 {playersToCompare.map((player, idx) => {
                   const photoUrl = getPlayerPhotoUrl(player.playerApiFootballId)
-                  const posColors = POSITION_COLORS[player.playerPosition] ?? { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white' }
+                  const posColors = POSITION_COLORS[player.playerPosition as Position] ?? { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white' }
 
                   return (
                     <div key={player.playerId} className="flex flex-col items-center gap-2">
@@ -1528,7 +1931,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           size={280}
                           players={playersToCompare.map((p, i) => ({
                             name: p.playerName,
-                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#3b82f6'
                           }))}
                           data={[
                             { label: 'Parate', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.saves ?? 0) },
@@ -1548,7 +1951,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           size={280}
                           players={playersToCompare.map((p, i) => ({
                             name: p.playerName,
-                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#3b82f6'
                           }))}
                           data={[
                             { label: 'Gol Subiti', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.conceded ?? 0) },
@@ -1577,7 +1980,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         size={280}
                         players={playersToCompare.map((p, i) => ({
                           name: p.playerName,
-                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#3b82f6'
                         }))}
                         data={[
                           { label: 'Gol', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.total ?? 0) },
@@ -1597,7 +2000,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         size={280}
                         players={playersToCompare.map((p, i) => ({
                           name: p.playerName,
-                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#3b82f6'
                         }))}
                         data={[
                           { label: 'Contrasti', values: playersToCompare.map(p => p.playerApiFootballStats?.tackles?.total ?? 0) },

@@ -44,6 +44,7 @@ model League {
   prophecies       Prophecy[]         // see: movement.prisma
   prizes           Prize[]            // see: prize.prisma
   feedback         UserFeedback[]     // see: feedback.prisma
+  watchlistCategories WatchlistCategory[] // see: watchlist.prisma
 }
 
 model LeagueMember {
@@ -93,6 +94,7 @@ model LeagueMember {
   sessionPrizes  SessionPrize[]              // see: prize.prisma
   rubataPreferences RubataPreference[]       // see: rubata.prisma
   auctionObjectives AuctionObjective[]       // see: auction.prisma
+  watchlistEntries  WatchlistEntry[]         // see: watchlist.prisma
 
   @@unique([userId, leagueId])
   @@index([leagueId, status])

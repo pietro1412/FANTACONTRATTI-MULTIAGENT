@@ -24,6 +24,7 @@ import indemnityRoutes from './routes/indemnity'
 import timeRoutes from './routes/time'
 import objectivesRoutes from './routes/objectives'
 import feedbackRoutes from './routes/feedback'
+import watchlistRoutes from './routes/watchlist'
 
 const app = express()
 
@@ -388,6 +389,7 @@ app.use('/api', indemnityRoutes)
 app.use('/api/time', timeRoutes)
 app.use('/api', objectivesRoutes)
 app.use('/api/feedback', feedbackRoutes)
+app.use('/api', watchlistRoutes)
 
 // 404 handler
 app.use((_req, res) => {

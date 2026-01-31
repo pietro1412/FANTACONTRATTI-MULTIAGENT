@@ -25,6 +25,22 @@ interface FeedbackHubProps {
 // Hardcoded patch notes
 const PATCH_NOTES: PatchNote[] = [
   {
+    id: 'data-fix-2',
+    version: '1.x',
+    date: '2026-01-31',
+    title: 'Correzione rosa: Esposito F.P. e Esposito Se.',
+    description: 'Corretta assegnazione giocatori: Esposito F.P. (Inter) ora in Montsegur, Esposito Se. (Cagliari) ora in Dinamo Birretta. I contratti esistenti sono stati mantenuti.',
+    type: 'fix',
+  },
+  {
+    id: 'data-fix-1',
+    version: '1.x',
+    date: '2026-01-31',
+    title: 'Correzione rosa: Paz N.',
+    description: 'Corretta assegnazione di Paz N. (Como) a Montsegur. Il contratto esistente (Stipendio=10, Durata=3, Clausola=90) e\' stato mantenuto.',
+    type: 'fix',
+  },
+  {
     id: '0',
     version: '1.x',
     date: '2026-01-30',
