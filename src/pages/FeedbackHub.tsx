@@ -25,6 +25,14 @@ interface FeedbackHubProps {
 // Hardcoded patch notes
 const PATCH_NOTES: PatchNote[] = [
   {
+    id: 'data-fix-4',
+    version: '1.x',
+    date: '2026-01-31',
+    title: 'Correzione clausole rescissione (75 contratti)',
+    description: 'Corrette le clausole di 75 contratti applicando la formula ufficiale: Clausola = Ingaggio x Moltiplicatore (1s=x4, 2s=x7, 3s=x9, 4s=x11). Le clausole erano state calcolate con moltiplicatore errato. Aggiornato anche il valore Rubata di conseguenza.',
+    type: 'fix',
+  },
+  {
     id: 'data-fix-3',
     version: '1.x',
     date: '2026-01-31',
