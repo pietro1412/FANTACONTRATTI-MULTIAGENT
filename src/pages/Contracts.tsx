@@ -789,8 +789,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     <div className="min-h-screen bg-dark-300 pb-20">
       <Navigation currentPage="contracts" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
-      {/* Header compatto */}
-      <div className="bg-surface-200 border-b border-surface-50/20 sticky top-0 z-30">
+      {/* Header compatto - sticky sotto la Navigation su desktop */}
+      <div className="bg-surface-200 border-b border-surface-50/20 sticky top-0 md:top-14 z-30">
         <div className="max-w-[1600px] mx-auto px-4 py-3">
           {/* Mobile: stato consolidato (pulsanti azione sono nel footer sticky) */}
           {isConsolidated && (
