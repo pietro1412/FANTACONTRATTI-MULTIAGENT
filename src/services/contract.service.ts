@@ -871,10 +871,10 @@ export async function consolidateContracts(
         for (const renewal of renewals) {
           const contract = await tx.playerContract.findUnique({
             where: { id: renewal.contractId },
-            include: { roster: { include: { leagueMember: true } } },
           })
 
-          if (!contract || contract.roster.leagueMember.id !== member.id) {
+          // Usa leagueMemberId diretto per validazione più robusta
+          if (!contract || contract.leagueMemberId !== member.id) {
             throw new Error(`Contratto ${renewal.contractId} non valido`)
           }
 
