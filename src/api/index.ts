@@ -8,6 +8,7 @@ import authRoutes from './routes/auth'
 import userRoutes from './routes/users'
 import leagueRoutes from './routes/leagues'
 import playerRoutes from './routes/players'
+import playerFormRoutes from './routes/player-form'
 import auctionRoutes from './routes/auctions'
 import contractRoutes from './routes/contracts'
 import tradeRoutes from './routes/trades'
@@ -109,6 +110,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/leagues', leagueRoutes)
 app.use('/api/players', playerRoutes)
+app.use('/api/players', playerFormRoutes) // Player form routes for form/trend data
 app.use('/api', auctionRoutes) // Auction routes include /leagues/:id/auctions and /auctions/*
 app.use('/api', contractRoutes) // Contract routes
 app.use('/api', tradeRoutes) // Trade routes include /leagues/:id/trades/* and /trades/*

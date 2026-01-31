@@ -40,6 +40,7 @@ model SerieAPlayer {
   rubataPreferences RubataPreference[] // see: rubata.prisma
   auctionObjectives AuctionObjective[] // see: auction.prisma
   watchlistEntries  WatchlistEntry[]   // see: watchlist.prisma
+  formHistory  PlayerFormHistory[]  // Storico performance partite
 }
 
 model QuotazioniUpload {
@@ -73,4 +74,44 @@ model ApiFootballPlayerCache {
 
   @@index([name])
   @@index([team])
+}
+
+// =============================================================================
+// PlayerFormHistory - Storico performance per partita (per calcolare "form")
+// =============================================================================
+model PlayerFormHistory {
+  id           String   @id @default(cuid())
+
+  playerId     String
+  player       SerieAPlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  // Dati partita da API-Football
+  fixtureId    Int               // API-Football fixture ID
+  matchDate    DateTime
+  opponent     String            // Nome squadra avversaria
+  isHome       Boolean           // Casa (true) o trasferta (false)
+  competition  String?           // Es: "Serie A", "Coppa Italia"
+
+  // Performance
+  minutesPlayed Int?
+  rating       Float?            // Rating API-Football (0-10)
+  goals        Int      @default(0)
+  assists      Int      @default(0)
+  started      Boolean  @default(false)  // Titolare o subentrato
+
+  // Dettagli extra (opzionali)
+  yellowCards  Int      @default(0)
+  redCards     Int      @default(0)
+  shots        Int?              // Tiri totali
+  shotsOnTarget Int?             // Tiri in porta
+  passes       Int?              // Passaggi totali
+  passAccuracy Float?            // % accuratezza passaggi
+  dribbles     Int?              // Dribbling riusciti
+  tackles      Int?              // Contrasti vinti
+
+  createdAt    DateTime @default(now())
+
+  @@unique([playerId, fixtureId])
+  @@index([playerId, matchDate])
+  @@index([matchDate])
 }

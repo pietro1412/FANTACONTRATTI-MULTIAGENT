@@ -407,6 +407,80 @@ export const playerApi = {
       }
     }>(`/api/players/stats${query ? `?${query}` : ''}`)
   },
+
+  // Player Form - recent performance data
+  getFormSummary: (playerId: string) =>
+    request<{
+      playerId: string
+      playerName: string
+      recentMatches: Array<{
+        fixtureId: number
+        matchDate: string
+        opponent: string
+        isHome: boolean
+        competition: string | null
+        minutesPlayed: number | null
+        rating: number | null
+        goals: number
+        assists: number
+        started: boolean
+        yellowCards: number
+        redCards: number
+      }>
+      formIndex: number | null
+      formTrend: 'up' | 'down' | 'stable' | null
+      totalMinutes: number
+      minutesPercentage: number
+      goalsRecent: number
+      assistsRecent: number
+      starterPercentage: number
+    }>(`/api/players/${playerId}/form`),
+
+  getFormHistory: (playerId: string, limit: number = 10) =>
+    request<Array<{
+      fixtureId: number
+      matchDate: string
+      opponent: string
+      isHome: boolean
+      competition: string | null
+      minutesPlayed: number | null
+      rating: number | null
+      goals: number
+      assists: number
+      started: boolean
+      yellowCards: number
+      redCards: number
+    }>>(`/api/players/${playerId}/form/history?limit=${limit}`),
+
+  getFormBatch: (playerIds: string[]) =>
+    request<Record<string, {
+      playerId: string
+      playerName: string
+      recentMatches: Array<{
+        fixtureId: number
+        matchDate: string
+        opponent: string
+        isHome: boolean
+        competition: string | null
+        minutesPlayed: number | null
+        rating: number | null
+        goals: number
+        assists: number
+        started: boolean
+        yellowCards: number
+        redCards: number
+      }>
+      formIndex: number | null
+      formTrend: 'up' | 'down' | 'stable' | null
+      totalMinutes: number
+      minutesPercentage: number
+      goalsRecent: number
+      assistsRecent: number
+      starterPercentage: number
+    }>>('/api/players/form/batch', {
+      method: 'POST',
+      body: JSON.stringify({ playerIds }),
+    }),
 }
 
 // Auction API
