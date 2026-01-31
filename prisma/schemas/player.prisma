@@ -39,6 +39,7 @@ model SerieAPlayer {
   pendingNominations MarketSession[] @relation("PendingNomination")  // see: market-session.prisma
   rubataPreferences RubataPreference[] // see: rubata.prisma
   auctionObjectives AuctionObjective[] // see: auction.prisma
+  watchlistEntries  WatchlistEntry[]   // see: watchlist.prisma
 }
 
 model QuotazioniUpload {

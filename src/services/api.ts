@@ -1777,3 +1777,115 @@ export const feedbackApi = {
   markAllNotificationsRead: () =>
     request('/api/feedback/notifications/read-all', { method: 'PATCH' }),
 }
+
+// ==================== WATCHLIST API ====================
+
+export interface WatchlistCategory {
+  id: string
+  name: string
+  description: string | null
+  icon: string | null
+  color: string | null
+  isSystemDefault: boolean
+  sortOrder: number
+  entryCount?: number
+}
+
+export interface WatchlistEntry {
+  id: string
+  playerId: string
+  categoryId: string
+  category?: {
+    id: string
+    name: string
+    icon: string | null
+    color: string | null
+  }
+  player?: {
+    id: string
+    name: string
+    team: string
+    position: string
+    quotation: number
+  }
+  maxBid: number | null
+  targetPrice: number | null
+  priority: number | null
+  notes: string | null
+  addedAt: string
+  updatedAt?: string
+}
+
+export interface CreateWatchlistEntryData {
+  playerId: string
+  categoryId: string
+}
+
+export interface CreateWatchlistCategoryData {
+  name: string
+  color: string
+  icon: string
+}
+
+export const watchlistApi = {
+  // Get all categories for the current user in a league
+  getCategories: (leagueId: string) =>
+    request<WatchlistCategory[]>(`/api/leagues/${leagueId}/watchlist/categories`),
+
+  // Create a new category
+  createCategory: (leagueId: string, data: CreateWatchlistCategoryData) =>
+    request<WatchlistCategory>(`/api/leagues/${leagueId}/watchlist/categories`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Update a category
+  updateCategory: (leagueId: string, categoryId: string, data: Partial<CreateWatchlistCategoryData>) =>
+    request<WatchlistCategory>(`/api/leagues/${leagueId}/watchlist/categories/${categoryId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  // Delete a category
+  deleteCategory: (leagueId: string, categoryId: string) =>
+    request(`/api/leagues/${leagueId}/watchlist/categories/${categoryId}`, {
+      method: 'DELETE',
+    }),
+
+  // Get all entries for the current user in a league
+  getEntries: (leagueId: string) =>
+    request<WatchlistEntry[]>(`/api/leagues/${leagueId}/watchlist/entries`),
+
+  // Add a player to a category
+  addEntry: (leagueId: string, data: CreateWatchlistEntryData) =>
+    request<WatchlistEntry>(`/api/leagues/${leagueId}/watchlist/entries`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Remove a player from watchlist
+  removeEntry: (leagueId: string, entryId: string) =>
+    request(`/api/leagues/${leagueId}/watchlist/entries/${entryId}`, {
+      method: 'DELETE',
+    }),
+
+  // Move an entry to a different category
+  moveEntry: (leagueId: string, entryId: string, categoryId: string) =>
+    request<WatchlistEntry>(`/api/leagues/${leagueId}/watchlist/entries/${entryId}/move`, {
+      method: 'POST',
+      body: JSON.stringify({ categoryId }),
+    }),
+
+  // Remove player from watchlist by playerId (convenience method)
+  removeByPlayerId: (leagueId: string, playerId: string) =>
+    request(`/api/leagues/${leagueId}/watchlist/entries/player/${playerId}`, {
+      method: 'DELETE',
+    }),
+
+  // Set player category (add if not exists, move if exists, remove if categoryId is null)
+  setPlayerCategory: (leagueId: string, playerId: string, categoryId: string | null) =>
+    request<WatchlistEntry | null>(`/api/leagues/${leagueId}/watchlist/entries/player/${playerId}/category`, {
+      method: 'PUT',
+      body: JSON.stringify({ categoryId }),
+    }),
+}

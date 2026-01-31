@@ -41,6 +41,13 @@ vi.mock('../services/api', () => ({
   leagueApi: {
     getPendingRequests: vi.fn().mockResolvedValue({ success: true, data: [] }),
   },
+  feedbackApi: {
+    getNotifications: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  },
+  watchlistApi: {
+    getCategories: vi.fn().mockResolvedValue({ success: true, data: [] }),
+    getEntries: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  },
 }))
 
 // Import the mocked api to control behavior in tests

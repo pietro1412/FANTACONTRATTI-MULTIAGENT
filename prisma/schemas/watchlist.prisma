@@ -1,0 +1,56 @@
+// =============================================================================
+// watchlist.prisma - WatchlistCategory, WatchlistEntry
+// =============================================================================
+//
+// This file contains models for player watchlist management with categories.
+// Allows managers to organize players they're interested in into categories
+// like "Da Rubare", "Sotto Osservazione", etc.
+//
+// =============================================================================
+
+// Categorie watchlist per lega
+model WatchlistCategory {
+  id              String   @id @default(cuid())
+  leagueId        String
+  league          League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+
+  name            String
+  description     String?
+  icon            String?         // emoji
+  color           String?         // hex color
+  isSystemDefault Boolean @default(false)
+  sortOrder       Int     @default(0)
+
+  createdAt       DateTime @default(now())
+
+  entries         WatchlistEntry[]
+
+  @@unique([leagueId, name])
+  @@index([leagueId])
+}
+
+// Entry watchlist (giocatore in categoria per un membro)
+model WatchlistEntry {
+  id              String   @id @default(cuid())
+
+  categoryId      String
+  category        WatchlistCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  memberId        String
+  member          LeagueMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  playerId        String
+  player          SerieAPlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  maxBid          Int?
+  targetPrice     Int?
+  priority        Int?            // 1-5 stelle
+  notes           String?
+
+  addedAt         DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([categoryId, memberId, playerId])
+  @@index([memberId])
+  @@index([playerId])
+}
