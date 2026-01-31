@@ -792,38 +792,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       {/* Header compatto */}
       <div className="bg-surface-200 border-b border-surface-50/20 sticky top-0 z-30">
         <div className="max-w-[1600px] mx-auto px-4 py-3">
-          {/* Mobile: Azioni sempre visibili in alto */}
-          {inContrattiPhase && !isConsolidated && (
-            <div className="md:hidden flex items-center justify-between gap-2 mb-3 pb-3 border-b border-surface-50/20">
-              {/* Indicatore modifiche non salvate */}
-              {hasUnsavedChanges && (
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-warning-500/20 border border-warning-500/40 rounded-lg animate-pulse">
-                  <span className="w-2 h-2 bg-warning-400 rounded-full"></span>
-                  <span className="text-warning-400 text-xs font-medium">Da salvare</span>
-                </div>
-              )}
-              <div className="flex items-center gap-2 ml-auto">
-                {/* Salva bozze */}
-                <Button
-                  size="sm"
-                  variant={hasUnsavedChanges ? "accent" : "secondary"}
-                  onClick={handleSaveDrafts}
-                  disabled={isSavingDrafts}
-                >
-                  {isSavingDrafts ? 'Salvando...' : 'Salva'}
-                </Button>
-                {/* Consolida (definitivo) */}
-                <Button
-                  size="sm"
-                  onClick={handleConsolidate}
-                  disabled={isConsolidating || !canConsolidate}
-                  title={consolidateBlockReason}
-                >
-                  {isConsolidating ? 'Consolidando...' : 'Consolida'}
-                </Button>
-              </div>
-            </div>
-          )}
+          {/* Mobile: stato consolidato (pulsanti azione sono nel footer sticky) */}
           {isConsolidated && (
             <div className="md:hidden flex items-center justify-center mb-3 pb-3 border-b border-surface-50/20">
               <span className="text-secondary-400 text-sm">✓ Consolidato</span>
@@ -1990,31 +1959,65 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       {/* Sticky Budget Bar - Prominente */}
       <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-surface-200 via-surface-200 to-surface-200 border-t-2 border-primary-500/50 z-40 shadow-lg shadow-black/30">
         <div className="max-w-[1600px] mx-auto px-4 py-3">
-          {/* Mobile: layout a griglia */}
+          {/* Mobile: layout con pulsanti azione fissi */}
           <div className="md:hidden">
-            {/* Indicatore modifiche non salvate - Mobile */}
-            {hasUnsavedChanges && inContrattiPhase && !isConsolidated && (
-              <div className="flex items-center justify-center gap-2 mb-2 px-3 py-1.5 bg-warning-500/20 border border-warning-500/40 rounded-lg">
-                <span className="w-2 h-2 bg-warning-400 rounded-full animate-pulse"></span>
-                <span className="text-warning-400 text-xs font-medium">Modifiche non salvate - ricorda di salvare!</span>
+            {/* Riga pulsanti Salva/Consolida - sempre visibili su mobile */}
+            {inContrattiPhase && !isConsolidated && (
+              <div className="flex items-center justify-between gap-2 mb-2">
+                {/* Indicatore stato */}
+                {hasUnsavedChanges ? (
+                  <div className="flex items-center gap-1.5 px-2 py-1 bg-warning-500/20 border border-warning-500/40 rounded-lg">
+                    <span className="w-2 h-2 bg-warning-400 rounded-full animate-pulse"></span>
+                    <span className="text-warning-400 text-[10px] font-medium">Da salvare</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-2 py-1 bg-secondary-500/20 border border-secondary-500/40 rounded-lg">
+                    <span className="text-secondary-400 text-[10px] font-medium">✓ Salvato</span>
+                  </div>
+                )}
+                {/* Pulsanti azione */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant={hasUnsavedChanges ? "accent" : "secondary"}
+                    onClick={handleSaveDrafts}
+                    disabled={isSavingDrafts}
+                  >
+                    {isSavingDrafts ? 'Salvando...' : 'Salva'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleConsolidate}
+                    disabled={isConsolidating || !canConsolidate}
+                    title={consolidateBlockReason}
+                  >
+                    {isConsolidating ? '...' : 'Consolida'}
+                  </Button>
+                </div>
               </div>
             )}
-            <div className="grid gap-2 text-center grid-cols-4">
-              <div className="bg-surface-300/50 rounded-lg p-2">
-                <div className="text-[9px] text-gray-500 uppercase tracking-wide">Budget</div>
-                <div className="text-accent-400 font-bold text-lg">{memberBudget}M</div>
+            {isConsolidated && (
+              <div className="flex items-center justify-center mb-2 px-3 py-1.5 bg-secondary-500/20 border border-secondary-500/40 rounded-lg">
+                <span className="text-secondary-400 text-xs font-medium">✓ Consolidato</span>
               </div>
-              <div className="bg-surface-300/50 rounded-lg p-2">
-                <div className="text-[9px] text-gray-500 uppercase tracking-wide">Ingaggi</div>
-                <div className="text-warning-400 font-bold text-lg">{projectedSalaries}M</div>
+            )}
+            {/* Griglia budget compatta */}
+            <div className="grid gap-1.5 text-center grid-cols-4">
+              <div className="bg-surface-300/50 rounded p-1.5">
+                <div className="text-[8px] text-gray-500 uppercase">Budget</div>
+                <div className="text-accent-400 font-bold text-sm">{memberBudget}M</div>
               </div>
-              <div className="bg-surface-300/50 rounded-lg p-2">
-                <div className="text-[9px] text-gray-500 uppercase tracking-wide">Tagli</div>
-                <div className="text-danger-400 font-bold text-lg">{totalReleaseCost}M</div>
+              <div className="bg-surface-300/50 rounded p-1.5">
+                <div className="text-[8px] text-gray-500 uppercase">Ingaggi</div>
+                <div className="text-warning-400 font-bold text-sm">{projectedSalaries}M</div>
               </div>
-              <div className={`rounded-lg p-2 ${residuoContratti < 0 ? 'bg-danger-500/30' : 'bg-secondary-500/30'}`}>
-                <div className="text-[9px] text-white uppercase tracking-wide font-medium">Residuo</div>
-                <div className={`font-bold text-lg ${residuoContratti < 0 ? 'text-danger-300' : 'text-secondary-300'}`}>
+              <div className="bg-surface-300/50 rounded p-1.5">
+                <div className="text-[8px] text-gray-500 uppercase">Tagli</div>
+                <div className="text-danger-400 font-bold text-sm">{totalReleaseCost}M</div>
+              </div>
+              <div className={`rounded p-1.5 ${residuoContratti < 0 ? 'bg-danger-500/30' : 'bg-secondary-500/30'}`}>
+                <div className="text-[8px] text-white uppercase font-medium">Residuo</div>
+                <div className={`font-bold text-sm ${residuoContratti < 0 ? 'text-danger-300' : 'text-secondary-300'}`}>
                   {residuoContratti}M
                 </div>
               </div>
