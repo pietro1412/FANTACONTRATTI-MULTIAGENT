@@ -1029,6 +1029,9 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
     const teamsData = members.map(member => {
       const isConsolidated = consolidationMap.has(member.id)
       const consolidatedAt = consolidationMap.get(member.id) || null
+      // FIX: Only show draft values to the owner during CONTRATTI phase
+      const isOwnTeam = member.id === membership.id
+      const canSeeDraft = inContrattiPhase && !isConsolidated && isOwnTeam
 
       const players = member.roster.map(r => {
         // Pre-rinnovo: original salary (before any draft changes)
@@ -1036,9 +1039,10 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
 
         // Post-rinnovo: use draftSalary if available and not consolidated, otherwise use salary
         // If consolidated, the salary field already contains the final value
+        // FIX: Only show draft values to the owner, not to other managers
         let postRenewalSalary: number | null = null
-        if (inContrattiPhase && !isConsolidated) {
-          // During CONTRATTI phase, show draft value if present
+        if (canSeeDraft) {
+          // During CONTRATTI phase, show draft value only to owner
           postRenewalSalary = r.contract?.draftSalary ?? null
         }
 
@@ -1055,8 +1059,8 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
           // #193: Pre/Post renewal values
           preRenewalSalary,
           postRenewalSalary,
-          draftDuration: inContrattiPhase && !isConsolidated ? (r.contract?.draftDuration ?? null) : null,
-          draftReleased: inContrattiPhase && !isConsolidated ? (r.contract?.draftReleased ?? false) : false,
+          draftDuration: canSeeDraft ? (r.contract?.draftDuration ?? null) : null,
+          draftReleased: canSeeDraft ? (r.contract?.draftReleased ?? false) : false,
         }
       })
 
@@ -1069,9 +1073,9 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
       const preRenewalContractCost = players.reduce((sum, p) => sum + p.preRenewalSalary, 0)
 
       // #193: Post-renewal cost (draft salaries where available, original otherwise)
-      // Only calculated during CONTRATTI phase
+      // Only calculated during CONTRATTI phase and only visible to owner
       let postRenewalContractCost: number | null = null
-      if (inContrattiPhase && !isConsolidated) {
+      if (canSeeDraft) {
         postRenewalContractCost = players.reduce((sum, p) => {
           // If player is marked for release, don't count them
           if (p.draftReleased) return sum
@@ -1092,7 +1096,8 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
         const pos = p.position as 'P' | 'D' | 'C' | 'A'
         if (costByPosition[pos]) {
           costByPosition[pos].preRenewal += p.preRenewalSalary
-          if (inContrattiPhase && !isConsolidated && !p.draftReleased) {
+          // FIX: Only show post-renewal cost to owner
+          if (canSeeDraft && !p.draftReleased) {
             if (costByPosition[pos].postRenewal === null) {
               costByPosition[pos].postRenewal = 0
             }
