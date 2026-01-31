@@ -1525,16 +1525,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                         </div>
                       </div>
 
-                      {/* Reset button - only show when there are unsaved changes */}
-                      {hasChanges && (
-                        <button
-                          onClick={() => resetContractToBase(contract)}
-                          className="w-full py-2 rounded text-sm font-medium transition-colors bg-gray-500/20 text-gray-300 border border-gray-500/30 hover:bg-gray-500/30 mb-3"
-                          title="Annulla modifiche e torna ai valori iniziali"
-                        >
-                          ↩️ Reset Modifica
-                        </button>
-                      )}
                     </>
                   )}
 
@@ -1758,16 +1748,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                         </td>
                         <td className="text-center p-2">
                           <div className="flex items-center justify-center gap-1">
-                            {/* Reset button - only show when there are unsaved changes */}
-                            {inContrattiPhase && !isConsolidated && contract.canRenew && hasChanges && (
-                              <button
-                                onClick={() => resetContractToBase(contract)}
-                                className="text-xs px-2 py-1 rounded transition-colors bg-gray-500/20 text-gray-300 hover:bg-gray-500/30"
-                                title="Annulla modifiche e torna ai valori iniziali"
-                              >
-                                Reset
-                              </button>
-                            )}
                             {inContrattiPhase && !isConsolidated && (
                               isKeptExited ? (
                                 <button
