@@ -20,6 +20,10 @@ import superadminRoutes from './routes/superadmin'
 import chatRoutes from './routes/chat'
 import prizeRoutes from './routes/prizes'
 import historyRoutes from './routes/history'
+import indemnityRoutes from './routes/indemnity'
+import timeRoutes from './routes/time'
+import objectivesRoutes from './routes/objectives'
+import feedbackRoutes from './routes/feedback'
 
 const app = express()
 
@@ -380,6 +384,10 @@ app.use('/api', superadminRoutes)
 app.use('/api', chatRoutes)
 app.use('/api', prizeRoutes)
 app.use('/api', historyRoutes)
+app.use('/api', indemnityRoutes)
+app.use('/api/time', timeRoutes)
+app.use('/api', objectivesRoutes)
+app.use('/api/feedback', feedbackRoutes)
 
 // 404 handler
 app.use((_req, res) => {

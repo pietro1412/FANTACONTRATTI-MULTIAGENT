@@ -197,7 +197,13 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
   // Local edits with debounce
   const [localStrategies, setLocalStrategies] = useState<Record<string, LocalStrategy>>({})
+  const localStrategiesRef = useRef<Record<string, LocalStrategy>>({})
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({})
+
+  // Keep ref in sync with state (for stale closure fix)
+  useEffect(() => {
+    localStrategiesRef.current = localStrategies
+  }, [localStrategies])
 
   const myMemberId = strategiesData?.myMemberId
 
@@ -224,6 +230,14 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       const locals: Record<string, LocalStrategy> = {}
 
       if (ownedRes.success && ownedRes.data) {
+        // DEBUG: Check what API returns
+        const withPrefs = ownedRes.data.players.filter(p => p.preference)
+        console.log('[Strategie DEBUG]', {
+          totalPlayers: ownedRes.data.players.length,
+          withPreferences: withPrefs.length,
+          samplePrefs: withPrefs.slice(0, 3).map(p => ({ name: p.playerName, pref: p.preference }))
+        })
+
         setStrategiesData(ownedRes.data)
         ownedRes.data.players.forEach(p => {
           if (p.preference) {
@@ -318,41 +332,16 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     return localStrategies[playerId] || { maxBid: '', priority: 0, notes: '', isDirty: false }
   }, [localStrategies])
 
-  // Update local strategy with debounced save
-  const updateLocalStrategy = useCallback((
-    playerId: string,
-    field: keyof Omit<LocalStrategy, 'isDirty'>,
-    value: string | number
-  ) => {
-    setLocalStrategies(prev => {
-      const current = prev[playerId] || { maxBid: '', priority: 0, notes: '', isDirty: false }
-      return {
-        ...prev,
-        [playerId]: {
-          ...current,
-          [field]: value,
-          isDirty: true,
-        }
-      }
-    })
-
-    // Clear existing timer for this player
-    if (debounceTimers.current[playerId]) {
-      clearTimeout(debounceTimers.current[playerId])
-    }
-
-    // Set new debounce timer (2 seconds)
-    debounceTimers.current[playerId] = setTimeout(() => {
-      saveStrategy(playerId)
-    }, 2000)
-  }, [])
-
-  // Save strategy to server
+  // Save strategy to server (defined before updateLocalStrategy to avoid reference error)
   const saveStrategy = useCallback(async (playerId: string) => {
     if (!leagueId) return
 
-    const local = localStrategies[playerId]
-    if (!local || !local.isDirty) return
+    // Use ref to get current value (avoids stale closure)
+    const local = localStrategiesRef.current[playerId]
+    if (!local || !local.isDirty) {
+      console.log('[Strategie SAVE skipped]', { playerId, local, isDirty: local?.isDirty })
+      return
+    }
 
     setSavingPlayerIds(prev => new Set(prev).add(playerId))
 
@@ -362,6 +351,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     const hasStrategy = maxBid !== null || priority !== null || !!notes
 
     try {
+      console.log('[Strategie SAVE]', { playerId, maxBid, priority, notes, hasStrategy })
       const res = await rubataApi.setPreference(leagueId, playerId, {
         maxBid,
         priority,
@@ -369,6 +359,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         isWatchlist: hasStrategy,
         isAutoPass: false,
       })
+      console.log('[Strategie SAVE result]', res)
 
       if (res.success) {
         // Mark as not dirty
@@ -416,7 +407,38 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         return next
       })
     }
-  }, [leagueId, localStrategies])
+  }, [leagueId])
+
+  // Update local strategy with debounced save
+  const updateLocalStrategy = useCallback((
+    playerId: string,
+    field: keyof Omit<LocalStrategy, 'isDirty'>,
+    value: string | number
+  ) => {
+    console.log('[Strategie UPDATE]', { playerId, field, value })
+    setLocalStrategies(prev => {
+      const current = prev[playerId] || { maxBid: '', priority: 0, notes: '', isDirty: false }
+      return {
+        ...prev,
+        [playerId]: {
+          ...current,
+          [field]: value,
+          isDirty: true,
+        }
+      }
+    })
+
+    // Clear existing timer for this player
+    if (debounceTimers.current[playerId]) {
+      clearTimeout(debounceTimers.current[playerId])
+    }
+
+    // Set new debounce timer (2 seconds)
+    debounceTimers.current[playerId] = setTimeout(() => {
+      console.log('[Strategie DEBOUNCE fired]', playerId)
+      saveStrategy(playerId)
+    }, 2000)
+  }, [saveStrategy])
 
   // Handle column sort
   const handleSort = useCallback((field: SortField) => {
