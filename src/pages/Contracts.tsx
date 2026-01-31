@@ -263,6 +263,31 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     }))
   }
 
+  // Reset contratto ai valori base (annulla modifiche non consolidate)
+  function resetContractToBase(contract: Contract) {
+    setLocalEdits(prev => ({
+      ...prev,
+      [contract.id]: {
+        newSalary: String(contract.salary),
+        newDuration: String(contract.duration),
+        isModified: true, // Marked as modified to trigger preview recalc
+        previewData: null,
+        isSaving: false,
+      }
+    }))
+    // Trigger preview calculation after reset
+    setTimeout(() => calculatePreview(contract.id), 100)
+  }
+
+  // Check if a specific contract has changes different from saved base values
+  function contractHasUnsavedChanges(contract: Contract): boolean {
+    const edit = localEdits[contract.id]
+    if (!edit) return false
+    const currentSalary = parseInt(edit.newSalary) || 0
+    const currentDuration = parseInt(edit.newDuration) || 0
+    return currentSalary !== contract.salary || currentDuration !== contract.duration
+  }
+
   // Aggiorna valori locali per un pending contract
   function updatePendingEdit(rosterId: string, field: 'newSalary' | 'newDuration', value: string) {
     setPendingEdits(prev => ({
@@ -1523,6 +1548,17 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                           <div className={hasChanges ? 'text-warning-400 font-bold' : 'text-gray-400'}>{newRubata}M</div>
                         </div>
                       </div>
+
+                      {/* Reset button - only show when there are unsaved changes */}
+                      {hasChanges && (
+                        <button
+                          onClick={() => resetContractToBase(contract)}
+                          className="w-full py-2 rounded text-sm font-medium transition-colors bg-gray-500/20 text-gray-300 border border-gray-500/30 hover:bg-gray-500/30 mb-3"
+                          title="Annulla modifiche e torna ai valori iniziali"
+                        >
+                          ↩️ Reset Modifica
+                        </button>
+                      )}
                     </>
                   )}
 
@@ -1740,35 +1776,47 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                           </span>
                         </td>
                         <td className="text-center p-2">
-                          {inContrattiPhase && !isConsolidated && (
-                            isKeptExited ? (
+                          <div className="flex items-center justify-center gap-1">
+                            {/* Reset button - only show when there are unsaved changes */}
+                            {inContrattiPhase && !isConsolidated && contract.canRenew && hasChanges && (
                               <button
-                                onClick={() => {
-                                  setExitDecisions(prev => {
-                                    const next = new Map(prev)
-                                    next.delete(contract.id)
-                                    return next
-                                  })
-                                }}
-                                className="text-xs px-2 py-1 rounded transition-colors bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30"
-                                title="Rimetti nella sezione giocatori usciti"
+                                onClick={() => resetContractToBase(contract)}
+                                className="text-xs px-2 py-1 rounded transition-colors bg-gray-500/20 text-gray-300 hover:bg-gray-500/30"
+                                title="Annulla modifiche e torna ai valori iniziali"
                               >
-                                Rimetti
+                                Reset
                               </button>
-                            ) : (
-                              <button
-                                onClick={() => toggleRelease(contract.id)}
-                                className={`text-xs px-2 py-1 rounded transition-colors ${
-                                  isMarkedForRelease
-                                    ? 'bg-danger-500/30 text-danger-300 hover:bg-danger-500/50'
-                                    : 'bg-surface-300 text-danger-400 hover:bg-danger-500/20'
-                                }`}
-                                title={isMarkedForRelease ? 'Annulla taglio' : `Taglia giocatore (costo: ${releaseCost}M = ${contract.salary}×${contract.duration}/2)`}
-                              >
-                                {isMarkedForRelease ? 'Annulla' : `Taglia ${releaseCost}M`}
-                              </button>
-                            )
-                          )}
+                            )}
+                            {inContrattiPhase && !isConsolidated && (
+                              isKeptExited ? (
+                                <button
+                                  onClick={() => {
+                                    setExitDecisions(prev => {
+                                      const next = new Map(prev)
+                                      next.delete(contract.id)
+                                      return next
+                                    })
+                                  }}
+                                  className="text-xs px-2 py-1 rounded transition-colors bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30"
+                                  title="Rimetti nella sezione giocatori usciti"
+                                >
+                                  Rimetti
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => toggleRelease(contract.id)}
+                                  className={`text-xs px-2 py-1 rounded transition-colors ${
+                                    isMarkedForRelease
+                                      ? 'bg-danger-500/30 text-danger-300 hover:bg-danger-500/50'
+                                      : 'bg-surface-300 text-danger-400 hover:bg-danger-500/20'
+                                  }`}
+                                  title={isMarkedForRelease ? 'Annulla taglio' : `Taglia giocatore (costo: ${releaseCost}M = ${contract.salary}×${contract.duration}/2)`}
+                                >
+                                  {isMarkedForRelease ? 'Annulla' : `Taglia ${releaseCost}M`}
+                                </button>
+                              )
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )
