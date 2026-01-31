@@ -25,6 +25,14 @@ interface FeedbackHubProps {
 // Hardcoded patch notes
 const PATCH_NOTES: PatchNote[] = [
   {
+    id: 'fix-rinnovi-regole',
+    version: '1.x',
+    date: '2026-01-31',
+    title: '🚨 FIX IMPORTANTE: Regole Rinnovo Contratti',
+    description: 'Corretto bug nelle regole di rinnovo contratti. ORA FUNZIONA COSÌ: l\'ingaggio può sempre essere aumentato, ma la DURATA può essere estesa SOLO SE prima si aumenta l\'ingaggio. Esempio: da (4M, 3s) NON si può andare a (4M, 4s), ma SI può andare a (5M, 3s) o (5M, 4s). Aggiunto anche pulsante "Reset Modifica" per annullare le modifiche e ricominciare.',
+    type: 'fix',
+  },
+  {
     id: '0',
     version: '1.x',
     date: '2026-01-30',
