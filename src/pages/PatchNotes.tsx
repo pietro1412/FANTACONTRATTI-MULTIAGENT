@@ -20,6 +20,22 @@ interface PatchNotesProps {
 // Hardcoded patch notes - in the future this could come from an API
 const PATCH_NOTES: PatchNote[] = [
   {
+    id: 'fix-strategie-save',
+    version: '1.x',
+    date: '2026-01-31',
+    title: 'Fix salvataggio strategie Rubata',
+    description: 'Risolto un bug che impediva il corretto salvataggio delle strategie (priorita\', max bid, note) nella pagina Strategie Rubata. Ora i dati vengono salvati automaticamente dopo 2 secondi e persistono al refresh della pagina.',
+    type: 'fix',
+  },
+  {
+    id: 'feedback-system',
+    version: '1.x',
+    date: '2026-01-31',
+    title: 'Sistema Feedback e Segnalazioni',
+    description: 'Attivato il sistema di feedback e segnalazioni. I manager possono ora inviare bug report, suggerimenti e domande direttamente dall\'app tramite il menu Segnalazioni.',
+    type: 'feature',
+  },
+  {
     id: '0',
     version: '1.x',
     date: '2026-01-30',
