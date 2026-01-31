@@ -47,6 +47,10 @@ async function isInContrattiPhase(leagueId: string): Promise<boolean> {
 }
 
 // Validazione rinnovo secondo le regole di business
+// Regole:
+// - L'ingaggio può essere aumentato liberamente (ma non diminuito)
+// - La durata può essere aumentata SOLO se l'ingaggio viene aumentato
+// - Caso speciale SPALMA: se durata=1, può ridistribuire ingaggio su più semestri
 export function isValidRenewal(
   currentSalary: number,
   currentDuration: number,
@@ -69,12 +73,24 @@ export function isValidRenewal(
     }
   }
 
-  // Caso normale: no ribasso
+  // Caso normale: validazione rinnovo
+  // 1. Ingaggio non può diminuire sotto il valore corrente
   if (newSalary < currentSalary) {
     return { valid: false, reason: `Ingaggio non può diminuire: ${newSalary} < ${currentSalary}` }
   }
+
+  // 2. Durata non può diminuire sotto il valore corrente
   if (newDuration < currentDuration) {
     return { valid: false, reason: `Durata non può diminuire: ${newDuration} < ${currentDuration}` }
+  }
+
+  // 3. REGOLA CHIAVE: La durata può aumentare SOLO se l'ingaggio aumenta
+  // Se la durata aumenta ma l'ingaggio rimane uguale → NON valido
+  if (newDuration > currentDuration && newSalary <= currentSalary) {
+    return {
+      valid: false,
+      reason: `Per aumentare la durata da ${currentDuration} a ${newDuration}, devi prima aumentare l'ingaggio (attuale: ${currentSalary}M)`
+    }
   }
 
   return { valid: true }
