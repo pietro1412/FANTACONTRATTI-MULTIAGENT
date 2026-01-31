@@ -50,12 +50,13 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
 
   useEffect(() => {
     loadInvites()
-    // Poll every 2 minutes for new invites (only when tab is visible)
+    // Poll every 5 minutes for new invites (only when tab is visible)
+    // Increased from 2 min to reduce Vercel function invocations
     const interval = setInterval(() => {
       if (!document.hidden) {
         loadInvites()
       }
-    }, 120000)
+    }, 300000)
 
     // Also reload when tab becomes visible again
     const handleVisibilityChange = () => {

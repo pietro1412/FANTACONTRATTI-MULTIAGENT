@@ -29,12 +29,13 @@ export function FeedbackBadge({ onNavigate }: FeedbackBadgeProps) {
 
   useEffect(() => {
     loadNotifications()
-    // Poll every 2 minutes for new notifications (only when tab is visible)
+    // Poll every 5 minutes for new notifications (only when tab is visible)
+    // Increased from 2 min to reduce Vercel function invocations
     const interval = setInterval(() => {
       if (!document.hidden) {
         loadNotifications()
       }
-    }, 120000)
+    }, 300000)
 
     // Also reload when tab becomes visible again
     const handleVisibilityChange = () => {

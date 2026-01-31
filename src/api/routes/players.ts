@@ -3,6 +3,7 @@ import type { Request, Response } from 'express'
 import { Position, PrismaClient } from '@prisma/client'
 import { getPlayers, getPlayerById, getTeams } from '../../services/player.service'
 import { authMiddleware } from '../middleware/auth'
+import { cacheControl } from '../middleware/cache'
 
 const router = Router()
 const prisma = new PrismaClient()
@@ -49,8 +50,8 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
   }
 })
 
-// GET /api/players/teams - Get all teams
-router.get('/teams', authMiddleware, async (_req: Request, res: Response) => {
+// GET /api/players/teams - Get all teams (cached 1 hour - data rarely changes)
+router.get('/teams', authMiddleware, cacheControl(3600), async (_req: Request, res: Response) => {
   try {
     const teams = await getTeams()
 

@@ -55,12 +55,13 @@ export function Chat({ sessionId, currentMemberId, isAdmin }: ChatProps) {
 
   useEffect(() => {
     loadMessages()
-    // Poll every 5 seconds for new messages (only when tab is visible)
+    // Poll every 15 seconds for new messages (only when tab is visible)
+    // Increased from 5s to reduce Vercel function invocations
     const interval = setInterval(() => {
       if (!document.hidden) {
         loadMessages()
       }
-    }, 5000)
+    }, 15000)
 
     // Also reload when tab becomes visible again
     const handleVisibilityChange = () => {

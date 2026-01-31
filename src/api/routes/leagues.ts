@@ -19,6 +19,7 @@ import {
   getLeagueFinancials,
 } from '../../services/league.service'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth'
+import { cacheControl } from '../middleware/cache'
 
 const router = Router()
 
@@ -163,8 +164,8 @@ router.post('/:id/join', authMiddleware, async (req: Request, res: Response) => 
   }
 })
 
-// GET /api/leagues/:id/members - Get league members
-router.get('/:id/members', authMiddleware, async (req: Request, res: Response) => {
+// GET /api/leagues/:id/members - Get league members (cached 5 min)
+router.get('/:id/members', authMiddleware, cacheControl(300), async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string
     const result = await getLeagueMembers(id, req.user!.userId)

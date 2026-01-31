@@ -21,7 +21,7 @@ interface TimeSample {
 }
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3003'
-const SYNC_INTERVAL_MS = 60000  // Risincronizza ogni 60 secondi
+const SYNC_INTERVAL_MS = 180000  // Risincronizza ogni 3 minuti (ridotto da 60s per ottimizzazione Vercel)
 const SAMPLES_COUNT = 3        // Numero di campioni per calibrazione
 const MAX_ACCEPTABLE_LATENCY = 5000 // Ignora campioni con latenza > 5s
 
