@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { rubataApi, leagueApi, watchlistApi, type WatchlistCategory, type WatchlistEntry } from '../services/api'
+import { rubataApi, leagueApi, watchlistApi, playerApi, type WatchlistCategory, type WatchlistEntry } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../utils/player-images'
@@ -10,7 +10,7 @@ import { POSITION_COLORS, POSITIONS } from '../components/ui/PositionBadge'
 type Position = typeof POSITIONS[number]
 import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
 import RadarChart from '../components/ui/RadarChart'
-import { PlayerFormBadge, getFormRating, calculateFormTrend } from '../components/PlayerFormBadge'
+import { PlayerFormBadge, getFormRating } from '../components/PlayerFormBadge'
 // WatchlistCategoryDropdown removed - categories now managed only via modal
 import { WatchlistOverview } from '../components/WatchlistOverview'
 import { PlayerStrategyPanel } from '../components/PlayerStrategyPanel'
@@ -104,6 +104,17 @@ interface SvincolatiData {
   myMemberId: string
   sessionId: string | null
   totalPlayers: number
+}
+
+// Player Form data from PlayerFormHistory
+interface PlayerFormData {
+  formIndex: number | null
+  formTrend: 'up' | 'down' | 'stable' | null
+  totalMinutes: number
+  minutesPercentage: number
+  goalsRecent: number
+  assistsRecent: number
+  starterPercentage: number
 }
 
 type ViewMode = 'myRoster' | 'owned' | 'svincolati' | 'all'
@@ -200,6 +211,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   const [watchlistEntries, setWatchlistEntries] = useState<WatchlistEntry[]>([])
   const [savingCategoryPlayerIds, setSavingCategoryPlayerIds] = useState<Set<string>>(new Set())
 
+  // Player form data (recent performance from PlayerFormHistory)
+  const [playerFormData, setPlayerFormData] = useState<Record<string, PlayerFormData>>({})
+
   // Sort state
   const [sortMode, _setSortMode] = useState<SortMode>('role')
   const [sortField, setSortField] = useState<SortField>('position')
@@ -292,6 +306,34 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       }
 
       setLocalStrategies(locals)
+
+      // Load player form data (recent performance from last 5 matches)
+      const allPlayerIds: string[] = []
+      if (ownedRes.success && ownedRes.data) {
+        ownedRes.data.players.forEach(p => allPlayerIds.push(p.playerId))
+      }
+      if (svincolatiRes.success && svincolatiRes.data) {
+        svincolatiRes.data.players.forEach(p => allPlayerIds.push(p.playerId))
+      }
+
+      if (allPlayerIds.length > 0) {
+        const formRes = await playerApi.getFormBatch(allPlayerIds)
+        if (formRes.success && formRes.data) {
+          const formMap: Record<string, PlayerFormData> = {}
+          for (const [playerId, data] of Object.entries(formRes.data)) {
+            formMap[playerId] = {
+              formIndex: data.formIndex,
+              formTrend: data.formTrend,
+              totalMinutes: data.totalMinutes,
+              minutesPercentage: data.minutesPercentage,
+              goalsRecent: data.goalsRecent,
+              assistsRecent: data.assistsRecent,
+              starterPercentage: data.starterPercentage,
+            }
+          }
+          setPlayerFormData(formMap)
+        }
+      }
     } catch (err) {
       setError('Errore nel caricamento')
     } finally {
@@ -1437,16 +1479,13 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               {player.playerApiFootballStats?.goals?.assists ?? '-'}
                             </div>
                           </div>
-                          {/* Form badge (#219) */}
+                          {/* Form badge - uses real data from PlayerFormHistory */}
                           <div className="bg-teal-500/10 rounded p-1.5 border border-teal-500/20">
                             <div className="text-gray-500 text-[10px] uppercase">Form</div>
                             <div className="flex justify-center">
                               <PlayerFormBadge
-                                rating={getFormRating(player.playerApiFootballStats)}
-                                trend={calculateFormTrend(
-                                  getFormRating(player.playerApiFootballStats),
-                                  getFormRating(player.playerApiFootballStats)
-                                )}
+                                rating={playerFormData[player.playerId]?.formIndex ?? getFormRating(player.playerApiFootballStats)}
+                                trend={playerFormData[player.playerId]?.formTrend ?? null}
                                 size="sm"
                               />
                             </div>
@@ -1738,15 +1777,12 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             )
                           })}
 
-                          {/* Form column (#219) - after stats */}
+                          {/* Form column - uses real data from PlayerFormHistory */}
                           {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
                             <td className="p-2">
                               <PlayerFormBadge
-                                rating={getFormRating(player.playerApiFootballStats)}
-                                trend={calculateFormTrend(
-                                  getFormRating(player.playerApiFootballStats),
-                                  getFormRating(player.playerApiFootballStats) // Using same as baseline since we don't have last 5 games data
-                                )}
+                                rating={playerFormData[player.playerId]?.formIndex ?? getFormRating(player.playerApiFootballStats)}
+                                trend={playerFormData[player.playerId]?.formTrend ?? null}
                                 size="sm"
                               />
                             </td>

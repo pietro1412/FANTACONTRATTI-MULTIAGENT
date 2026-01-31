@@ -131,3 +131,36 @@ npx prisma studio --schema=prisma/schema.generated.prisma
 ```bash
 npm run build
 ```
+
+---
+
+## Verifiche Post-Modifiche Manuali
+
+Quando si effettuano **modifiche manuali al database** (script, query dirette, fix dati), eseguire SEMPRE queste verifiche:
+
+### 1. Consistenza Roster/Contract
+Se si spostano giocatori tra manager, verificare che `PlayerRoster.leagueMemberId` e `PlayerContract.leagueMemberId` siano allineati:
+```bash
+node scripts/check-contract-mismatch.cjs        # verifica
+node scripts/check-contract-mismatch.cjs --fix  # corregge
+```
+
+### 2. Verifica E2E
+Dopo fix di dati critici, verificare che le funzionalità correlate funzionino:
+- Salvataggio rinnovi contratti
+- Consolidamento contratti
+- Scambi tra manager
+
+### Regola d'oro
+Quando si modifica `PlayerRoster.leagueMemberId`, aggiornare SEMPRE anche `PlayerContract.leagueMemberId`:
+```javascript
+// Aggiorna roster
+await prisma.playerRoster.update({
+  where: { id: rosterId },
+  data: { leagueMemberId: newMemberId }
+})
+// ANCHE il contratto!
+await prisma.playerContract.updateMany({
+  where: { rosterId },
+  data: { leagueMemberId: newMemberId }
+})
