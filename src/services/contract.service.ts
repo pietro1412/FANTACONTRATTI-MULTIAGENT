@@ -1676,3 +1676,134 @@ export async function modifyContractPostAcquisition(
     },
   }
 }
+
+// Get consolidation receipt data for PDF generation
+export async function getConsolidationReceiptData(
+  leagueId: string,
+  memberId: string
+): Promise<{
+  success: boolean
+  data?: {
+    managerName: string
+    managerEmail: string
+    teamName: string
+    leagueName: string
+    consolidationDate: Date
+    transactionId: string
+    renewals: Array<{
+      playerName: string
+      position: string
+      realTeam: string
+      oldSalary: number
+      newSalary: number
+      oldDuration: number
+      newDuration: number
+      rescissionClause: number
+    }>
+    releasedPlayers: Array<{
+      playerName: string
+      position: string
+      releaseCost: number
+    }>
+    totalSalary: number
+    remainingBudget: number
+  }
+  message?: string
+}> {
+  const member = await prisma.leagueMember.findUnique({
+    where: { id: memberId },
+    include: {
+      user: { select: { username: true, email: true } },
+      league: { select: { name: true } },
+      roster: {
+        where: { status: RosterStatus.ACTIVE },
+        include: {
+          player: true,
+          contract: true,
+        },
+      },
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Membro non trovato' }
+  }
+
+  // Get the most recent consolidation for this member
+  const consolidation = await prisma.contractConsolidation.findFirst({
+    where: { memberId },
+    orderBy: { consolidatedAt: 'desc' },
+  })
+
+  if (!consolidation) {
+    return { success: false, message: 'Nessun consolidamento trovato' }
+  }
+
+  // Get all contracts with their renewal history
+  const contracts = await prisma.playerContract.findMany({
+    where: {
+      leagueMemberId: memberId,
+    },
+    include: {
+      roster: {
+        include: {
+          player: true,
+        },
+      },
+    },
+  })
+
+  // Build renewals list - contracts that have been modified (salary or duration changed from initial)
+  const renewals = contracts
+    .filter(c => c.salary !== c.initialSalary || c.duration !== c.initialDuration)
+    .map(c => ({
+      playerName: c.roster.player.name,
+      position: c.roster.player.position,
+      realTeam: c.roster.player.team,
+      oldSalary: c.initialSalary,
+      newSalary: c.salary,
+      oldDuration: c.initialDuration,
+      newDuration: c.duration,
+      rescissionClause: c.rescissionClause,
+    }))
+
+  // Get recently released players from movements
+  const recentReleases = await prisma.playerMovement.findMany({
+    where: {
+      leagueId,
+      fromMemberId: memberId,
+      movementType: 'RELEASE',
+      createdAt: {
+        gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
+      },
+    },
+    include: {
+      player: true,
+    },
+  })
+
+  const releasedPlayers = recentReleases.map(m => ({
+    playerName: m.player.name,
+    position: m.player.position,
+    releaseCost: m.price || 0,
+  }))
+
+  // Calculate total salary
+  const totalSalary = contracts.reduce((sum, c) => sum + c.salary, 0)
+
+  return {
+    success: true,
+    data: {
+      managerName: member.user.username,
+      managerEmail: member.user.email,
+      teamName: member.teamName || member.user.username,
+      leagueName: member.league.name,
+      consolidationDate: consolidation.consolidatedAt,
+      transactionId: consolidation.id,
+      renewals,
+      releasedPlayers,
+      totalSalary,
+      remainingBudget: member.currentBudget,
+    },
+  }
+}

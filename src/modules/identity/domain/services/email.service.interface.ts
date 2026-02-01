@@ -84,4 +84,24 @@ export interface IEmailService {
     managerEmail: string,
     leagueName: string
   ): Promise<void>
+
+  /**
+   * Send contract renewal receipt with PDF and Excel attachments
+   * @param email - Recipient email address
+   * @param managerName - Name of the manager
+   * @param teamName - Name of the team
+   * @param leagueName - Name of the league
+   * @param pdfBuffer - PDF file as Buffer
+   * @param renewalCount - Number of renewals consolidated
+   * @param excelBuffer - Optional Excel file as Buffer
+   */
+  sendContractRenewalReceipt(
+    email: string,
+    managerName: string,
+    teamName: string,
+    leagueName: string,
+    pdfBuffer: Buffer,
+    renewalCount: number,
+    excelBuffer?: Buffer
+  ): Promise<void>
 }

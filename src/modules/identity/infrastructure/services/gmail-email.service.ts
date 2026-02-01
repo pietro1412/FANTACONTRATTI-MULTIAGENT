@@ -659,6 +659,167 @@ export class GmailEmailService implements IEmailService {
     `
   }
 
+  async sendContractRenewalReceipt(
+    email: string,
+    managerName: string,
+    teamName: string,
+    leagueName: string,
+    pdfBuffer: Buffer,
+    renewalCount: number,
+    excelBuffer?: Buffer
+  ): Promise<void> {
+    const dateStr = new Date().toISOString().split('T')[0]
+    const safeTeamName = teamName.replace(/\s+/g, '_')
+    const pdfFilename = `Ricevuta_Rinnovi_${safeTeamName}_${dateStr}.pdf`
+    const excelFilename = `Contratti_${safeTeamName}_${dateStr}.xlsx`
+
+    // If no credentials, log to console (development mode)
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+      console.log('[GmailService] === CONTRACT RENEWAL RECEIPT EMAIL ===')
+      console.log(`[GmailService] To: ${email}`)
+      console.log(`[GmailService] Manager: ${managerName}`)
+      console.log(`[GmailService] Team: ${teamName}`)
+      console.log(`[GmailService] League: ${leagueName}`)
+      console.log(`[GmailService] Renewals: ${renewalCount}`)
+      console.log(`[GmailService] PDF Size: ${pdfBuffer.length} bytes`)
+      console.log(`[GmailService] PDF Attachment: ${pdfFilename}`)
+      if (excelBuffer) {
+        console.log(`[GmailService] Excel Size: ${excelBuffer.length} bytes`)
+        console.log(`[GmailService] Excel Attachment: ${excelFilename}`)
+      }
+      console.log('[GmailService] ==============================')
+      return
+    }
+
+    try {
+      // Build attachments array
+      const attachments: Array<{ filename: string; content: Buffer; contentType: string }> = [
+        {
+          filename: pdfFilename,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        },
+      ]
+
+      if (excelBuffer) {
+        attachments.push({
+          filename: excelFilename,
+          content: excelBuffer,
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+      }
+
+      await this.transporter.sendMail({
+        from: `"Fantacontratti" <${process.env.GMAIL_USER}>`,
+        to: email,
+        subject: `📄 Ricevuta Rinnovi Contrattuali - ${teamName} - Fantacontratti`,
+        html: this.getContractRenewalReceiptTemplate(managerName, teamName, leagueName, renewalCount),
+        attachments,
+      })
+      console.log(`[GmailService] Contract renewal receipt sent to ${email} (PDF + ${excelBuffer ? 'Excel' : 'no Excel'})`)
+    } catch (error) {
+      console.error('[GmailService] Failed to send contract renewal receipt:', error)
+      // Don't throw - email failure shouldn't block consolidation
+    }
+  }
+
+  /**
+   * Generate contract renewal receipt email template
+   */
+  private getContractRenewalReceiptTemplate(managerName: string, teamName: string, leagueName: string, renewalCount: number): string {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #0a0a0b; font-family: 'Segoe UI', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0a0a0b;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 500px; background-color: #1a1c20; border-radius: 16px; border: 1px solid #2d3139;">
+          <!-- Header -->
+          <tr>
+            <td align="center" style="padding: 40px 40px 20px;">
+              <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; display: inline-block; line-height: 70px; font-size: 36px; text-align: center;">
+                ✅
+              </div>
+              <h1 style="color: #ffffff; font-size: 28px; font-weight: bold; margin: 20px 0 0;">
+                Fantacontratti
+              </h1>
+              <p style="color: #9ca3af; font-size: 14px; margin: 5px 0 0;">
+                Dynasty Fantasy Football
+              </p>
+            </td>
+          </tr>
+          <!-- Contenuto -->
+          <tr>
+            <td style="padding: 20px 40px 30px;">
+              <h2 style="color: #f3f4f6; font-size: 20px; font-weight: 600; margin: 0 0 15px; text-align: center;">
+                Rinnovi Consolidati!
+              </h2>
+              <p style="color: #9ca3af; font-size: 15px; line-height: 1.6; margin: 0 0 20px; text-align: center;">
+                Ciao <strong style="color: #ffffff;">${managerName}</strong>,<br>
+                i tuoi rinnovi contrattuali sono stati consolidati con successo.
+              </p>
+
+              <!-- Info Box -->
+              <div style="background-color: #111214; border-radius: 12px; padding: 20px; margin-bottom: 25px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="padding: 8px 0;">
+                      <span style="color: #6b7280; font-size: 12px; text-transform: uppercase;">Squadra</span>
+                      <p style="color: #22c55e; font-size: 18px; font-weight: bold; margin: 5px 0 0;">⚽ ${teamName}</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; border-top: 1px solid #2d3139;">
+                      <span style="color: #6b7280; font-size: 12px; text-transform: uppercase;">Lega</span>
+                      <p style="color: #fbbf24; font-size: 16px; font-weight: 600; margin: 5px 0 0;">🏆 ${leagueName}</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; border-top: 1px solid #2d3139;">
+                      <span style="color: #6b7280; font-size: 12px; text-transform: uppercase;">Contratti Rinnovati</span>
+                      <p style="color: #3b82f6; font-size: 24px; font-weight: bold; margin: 5px 0 0;">${renewalCount}</p>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Info allegato -->
+              <div style="background-color: #111214; border-radius: 8px; padding: 15px; border-left: 3px solid #3b82f6;">
+                <p style="color: #60a5fa; font-size: 13px; margin: 0; font-weight: 500;">
+                  📎 Allegato: Ricevuta PDF
+                </p>
+                <p style="color: #6b7280; font-size: 12px; margin: 8px 0 0;">
+                  Trovi allegata a questa email la ricevuta completa dei tuoi rinnovi contrattuali.
+                </p>
+              </div>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 40px 30px; border-top: 1px solid #2d3139;">
+              <p style="color: #6b7280; font-size: 12px; text-align: center; margin: 0;">
+                Questa email è stata inviata automaticamente da Fantacontratti.<br>
+                Non rispondere a questa email.
+              </p>
+              <p style="color: #4b5563; font-size: 11px; text-align: center; margin: 15px 0 0;">
+                © ${new Date().getFullYear()} Fantacontratti. Tutti i diritti riservati.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `
+  }
+
   /**
    * Generate invite response notification email template
    */

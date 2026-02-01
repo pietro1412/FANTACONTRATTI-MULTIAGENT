@@ -593,4 +593,104 @@ export class ResendEmailService implements IEmailService {
 </body>
 </html>`
   }
+
+  async sendContractRenewalReceipt(
+    email: string,
+    managerName: string,
+    teamName: string,
+    leagueName: string,
+    pdfBuffer: Buffer,
+    renewalCount: number,
+    excelBuffer?: Buffer
+  ): Promise<void> {
+    const dateStr = new Date().toISOString().split('T')[0]
+    const safeTeamName = teamName.replace(/\s+/g, '_')
+    const pdfFilename = `Ricevuta_Rinnovi_${safeTeamName}_${dateStr}.pdf`
+    const excelFilename = `Contratti_${safeTeamName}_${dateStr}.xlsx`
+
+    if (!process.env.RESEND_API_KEY) {
+      console.log('[EmailService] === CONTRACT RENEWAL RECEIPT EMAIL ===')
+      console.log(`[EmailService] To: ${email}`)
+      console.log(`[EmailService] Manager: ${managerName}`)
+      console.log(`[EmailService] Team: ${teamName}`)
+      console.log(`[EmailService] League: ${leagueName}`)
+      console.log(`[EmailService] Renewals: ${renewalCount}`)
+      console.log(`[EmailService] PDF Size: ${pdfBuffer.length} bytes`)
+      console.log(`[EmailService] PDF Attachment: ${pdfFilename}`)
+      if (excelBuffer) {
+        console.log(`[EmailService] Excel Size: ${excelBuffer.length} bytes`)
+        console.log(`[EmailService] Excel Attachment: ${excelFilename}`)
+      }
+      console.log('[EmailService] ==============================')
+      return
+    }
+
+    try {
+      // Build attachments array
+      const attachments: Array<{ filename: string; content: Buffer }> = [
+        {
+          filename: pdfFilename,
+          content: pdfBuffer,
+        },
+      ]
+
+      if (excelBuffer) {
+        attachments.push({
+          filename: excelFilename,
+          content: excelBuffer,
+        })
+      }
+
+      await this.resend.emails.send({
+        from: this.fromEmail,
+        to: email,
+        subject: `📄 Ricevuta Rinnovi Contrattuali - ${teamName} - Fantacontratti`,
+        html: this.getContractRenewalReceiptTemplate(managerName, teamName, leagueName, renewalCount),
+        attachments,
+      })
+      console.log(`[EmailService] Contract renewal receipt sent to ${email} (PDF + ${excelBuffer ? 'Excel' : 'no Excel'})`)
+    } catch (error) {
+      console.error('[EmailService] Failed to send contract renewal receipt:', error)
+    }
+  }
+
+  private getContractRenewalReceiptTemplate(managerName: string, teamName: string, leagueName: string, renewalCount: number): string {
+    return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin: 0; padding: 0; background-color: #0a0a0b; font-family: 'Segoe UI', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0a0a0b;">
+    <tr><td align="center" style="padding: 40px 20px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 500px; background-color: #1a1c20; border-radius: 16px; border: 1px solid #2d3139;">
+        <tr><td align="center" style="padding: 40px 40px 20px;">
+          <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; line-height: 70px; font-size: 36px; text-align: center;">✅</div>
+          <h1 style="color: #ffffff; font-size: 28px; font-weight: bold; margin: 20px 0 0;">Fantacontratti</h1>
+        </td></tr>
+        <tr><td style="padding: 20px 40px 30px;">
+          <h2 style="color: #f3f4f6; font-size: 20px; font-weight: 600; margin: 0 0 15px; text-align: center;">Rinnovi Consolidati!</h2>
+          <p style="color: #9ca3af; font-size: 15px; line-height: 1.6; margin: 0 0 20px; text-align: center;">
+            Ciao <strong style="color: #ffffff;">${managerName}</strong>,<br>
+            i tuoi rinnovi contrattuali sono stati consolidati con successo.
+          </p>
+          <div style="background-color: #111214; border-radius: 12px; padding: 20px; margin-bottom: 25px;">
+            <p style="color: #6b7280; font-size: 12px; text-transform: uppercase;">Squadra</p>
+            <p style="color: #22c55e; font-size: 18px; font-weight: bold; margin: 5px 0 15px;">⚽ ${teamName}</p>
+            <p style="color: #6b7280; font-size: 12px; text-transform: uppercase;">Lega</p>
+            <p style="color: #fbbf24; font-size: 16px; font-weight: 600; margin: 5px 0 15px;">🏆 ${leagueName}</p>
+            <p style="color: #6b7280; font-size: 12px; text-transform: uppercase;">Contratti Rinnovati</p>
+            <p style="color: #3b82f6; font-size: 24px; font-weight: bold; margin: 5px 0 0;">${renewalCount}</p>
+          </div>
+          <div style="background-color: #111214; border-radius: 8px; padding: 15px; border-left: 3px solid #3b82f6;">
+            <p style="color: #60a5fa; font-size: 13px; margin: 0; font-weight: 500;">📎 Allegato: Ricevuta PDF</p>
+            <p style="color: #6b7280; font-size: 12px; margin: 8px 0 0;">Trovi allegata la ricevuta completa dei tuoi rinnovi.</p>
+          </div>
+        </td></tr>
+        <tr><td style="padding: 20px 40px 30px; border-top: 1px solid #2d3139;"><p style="color: #6b7280; font-size: 12px; text-align: center; margin: 0;">© ${new Date().getFullYear()} Fantacontratti</p></td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+  }
 }
