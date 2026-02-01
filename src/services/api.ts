@@ -1777,3 +1777,20 @@ export const feedbackApi = {
   markAllNotificationsRead: () =>
     request('/api/feedback/notifications/read-all', { method: 'PATCH' }),
 }
+
+// Game Status API - Phase-aware UI
+export const gameApi = {
+  // Get current game status for a league
+  getStatus: (leagueId: string) =>
+    request<{
+      phase: 'scouting' | 'open_window' | 'clause_meeting'
+      phaseLabel: string
+      marketPhase: string | null
+      sessionId: string | null
+      sessionType: string | null
+      nextClauseDay: string
+      daysRemaining: number
+      isActive: boolean
+      leagueName?: string
+    }>(`/api/game/status?leagueId=${leagueId}`),
+}

@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { rubataApi, leagueApi } from '../services/api'
+import { rubataApi, leagueApi, gameApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
+import { MarketPhaseBanner, type DisplayPhase } from '../components/MarketPhaseBanner'
 import { getTeamLogo } from '../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../utils/player-images'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
@@ -170,6 +171,16 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   const [strategiesData, setStrategiesData] = useState<StrategiesData | null>(null)
   const [svincolatiData, setSvincolatiData] = useState<SvincolatiData | null>(null)
 
+  // Game status for phase-aware UI
+  const [gameStatus, setGameStatus] = useState<{
+    phase: DisplayPhase
+    phaseLabel: string
+    marketPhase: string | null
+    nextClauseDay: string
+    daysRemaining: number
+    isActive: boolean
+  } | null>(null)
+
   // View mode: my roster, owned players, svincolati, or all
   const [viewMode, setViewMode] = useState<ViewMode>('myRoster')
 
@@ -220,11 +231,17 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         setIsLeagueAdmin(data.userMembership?.role === 'ADMIN')
       }
 
-      // Fetch both owned players and svincolati in parallel
-      const [ownedRes, svincolatiRes] = await Promise.all([
+      // Fetch owned players, svincolati, and game status in parallel
+      const [ownedRes, svincolatiRes, gameStatusRes] = await Promise.all([
         rubataApi.getAllPlayersForStrategies(leagueId),
         rubataApi.getAllSvincolatiForStrategies(leagueId),
+        gameApi.getStatus(leagueId),
       ])
+
+      // Set game status
+      if (gameStatusRes.success && gameStatusRes.data) {
+        setGameStatus(gameStatusRes.data)
+      }
 
       // Initialize local strategies
       const locals: Record<string, LocalStrategy> = {}
@@ -693,6 +710,18 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   return (
     <div className="min-h-screen bg-dark-300 pb-6">
       <Navigation currentPage="strategie-rubata" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
+
+      {/* Phase Banner - shows current market phase */}
+      {gameStatus && (
+        <MarketPhaseBanner
+          phase={gameStatus.phase}
+          phaseLabel={gameStatus.phaseLabel}
+          marketPhase={gameStatus.marketPhase}
+          nextClauseDay={gameStatus.nextClauseDay}
+          daysRemaining={gameStatus.daysRemaining}
+          isActive={gameStatus.isActive}
+        />
+      )}
 
       <main className="max-w-[1600px] mx-auto px-4 py-6">
         {/* Header */}
