@@ -1906,3 +1906,77 @@ export const newsApi = {
   getPlayerNews: (playerNames: string[]): Promise<{ success: boolean; data?: NewsArticle[]; count?: number; message?: string }> =>
     request(`/api/news?players=${encodeURIComponent(playerNames.join(','))}`),
 }
+
+// ==================== SIMULATORE API ====================
+
+export interface CessioneAnalysis {
+  player: {
+    id: string
+    name: string
+    position: string
+    realTeam: string
+    quotation: number
+  }
+  rosterId: string
+  contractId: string
+  currentSalary: number
+  currentDuration: number
+  rescissionCost: number  // costo taglio = (ingaggio x durata rimanente) / 2
+  budgetFreed: number     // salary that would be freed
+  newBudget: number       // projected budget after release
+  slotFreed: {
+    position: string
+    count: number
+  }
+}
+
+export interface BudgetAnalysis {
+  currentBudget: number
+  totalSalary: number
+  draftRenewalsImpact: number
+  projectedBudget: number
+  availableForPurchase: number
+  slotsByPosition: {
+    P: { used: number; max: number }
+    D: { used: number; max: number }
+    C: { used: number; max: number }
+    A: { used: number; max: number }
+  }
+  totalSlots: {
+    used: number
+    max: number
+  }
+}
+
+export interface SostitutoSuggestion {
+  player: {
+    id: string
+    name: string
+    position: string
+    realTeam: string
+  }
+  quotation: number
+  rating: number | null
+  isOwned: boolean
+  ownerId: string | null
+  ownerTeamName: string | null
+  matchScore: number
+}
+
+export const simulatoreApi = {
+  // Get cessioni analysis for current user
+  getCessioni: (leagueId: string) =>
+    request<CessioneAnalysis[]>(`/api/leagues/${leagueId}/simulatore/cessioni`),
+
+  // Get budget analysis for current user
+  getBudget: (leagueId: string) =>
+    request<BudgetAnalysis>(`/api/leagues/${leagueId}/simulatore/budget`),
+
+  // Get replacement suggestions for a player
+  getSostituti: (leagueId: string, playerId: string, limit?: number) => {
+    const params = new URLSearchParams()
+    if (limit) params.append('limit', String(limit))
+    const query = params.toString()
+    return request<SostitutoSuggestion[]>(`/api/leagues/${leagueId}/simulatore/sostituti/${playerId}${query ? `?${query}` : ''}`)
+  },
+}

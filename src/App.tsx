@@ -21,6 +21,7 @@ const Indemnity = lazy(() => import('./pages/Indemnity').then(m => ({ default: m
 const Trades = lazy(() => import('./pages/Trades').then(m => ({ default: m.Trades })))
 const Rubata = lazy(() => import('./pages/Rubata').then(m => ({ default: m.Rubata })))
 const StrategieRubata = lazy(() => import('./pages/StrategieRubata').then(m => ({ default: m.StrategieRubata })))
+const Simulatore = lazy(() => import('./pages/Simulatore').then(m => ({ default: m.Simulatore })))
 const Svincolati = lazy(() => import('./pages/Svincolati').then(m => ({ default: m.Svincolati })))
 const AllPlayers = lazy(() => import('./pages/AllPlayers').then(m => ({ default: m.AllPlayers })))
 const ManagerDashboard = lazy(() => import('./pages/ManagerDashboard').then(m => ({ default: m.ManagerDashboard })))
@@ -184,6 +185,7 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
         break
       case 'rubata': navigate(`/leagues/${lid}/rubata`); break
       case 'strategie-rubata': navigate(`/leagues/${lid}/strategie-rubata`); break
+      case 'simulatore': navigate(`/leagues/${lid}/strategie/simulatore`); break
       case 'svincolati': navigate(`/leagues/${lid}/svincolati`); break
       case 'prizes': navigate(`/leagues/${lid}/prizes`); break
       case 'allPlayers':
@@ -289,6 +291,15 @@ function StrategieRubataWrapper() {
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
   return <StrategieRubata onNavigate={onNavigate} />
+}
+
+function SimulatoreWrapper() {
+  const navigate = useNavigate()
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
+
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <Simulatore onNavigate={onNavigate} />
 }
 
 function SvincolatiWrapper() {
@@ -549,6 +560,13 @@ function AppRoutes() {
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
             <StrategieRubataWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/strategie/simulatore" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <SimulatoreWrapper />
           </Suspense>
         </ProtectedRoute>
       } />
