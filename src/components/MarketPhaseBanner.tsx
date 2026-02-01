@@ -63,7 +63,7 @@ const MARKET_PHASE_LABELS: Record<string, string> = {
   OFFERTE_POST_ASTA_SVINCOLATI: 'Offerte Post-Asta',
 }
 
-function formatCountdown(targetDate: string): string {
+export function formatCountdown(targetDate: string): string {
   const now = new Date()
   const target = new Date(targetDate)
   const diff = target.getTime() - now.getTime()

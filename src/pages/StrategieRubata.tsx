@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom'
 import { rubataApi, leagueApi, gameApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import { MarketPhaseBanner, type DisplayPhase } from '../components/MarketPhaseBanner'
+import { FilterSidebar } from '../components/FilterSidebar'
+import { PlannerSidebarPlaceholder } from '../components/PlannerSidebarPlaceholder'
 import { getTeamLogo } from '../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../utils/player-images'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
@@ -210,6 +212,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   const [localStrategies, setLocalStrategies] = useState<Record<string, LocalStrategy>>({})
   const localStrategiesRef = useRef<Record<string, LocalStrategy>>({})
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({})
+
+  // Sidebar collapse states (3-column layout)
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false)
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false)
 
   // Keep ref in sync with state (for stale closure fix)
   useEffect(() => {
@@ -748,74 +754,105 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
           <div className="bg-secondary-500/20 border border-secondary-500/30 text-secondary-400 p-3 rounded-lg mb-4 text-sm">{success}</div>
         )}
 
-        {/* Main content: Table + Sidebar */}
-        <div className="flex flex-col xl:flex-row gap-4">
+        {/* 3-Column Layout: Left Sidebar (Filters) + Main Table + Right Sidebar (Planner) */}
+        <div className="flex gap-4">
+          {/* Left Sidebar - Filters (hidden on mobile, shown on lg+) */}
+          <div className="hidden lg:block">
+            <FilterSidebar
+              positionFilter={positionFilter}
+              viewMode={viewMode}
+              dataViewMode={dataViewMode}
+              searchQuery={searchQuery}
+              showOnlyWithStrategy={showOnlyWithStrategy}
+              ownerFilter={ownerFilter}
+              teamFilter={teamFilter}
+              setPositionFilter={setPositionFilter}
+              setViewMode={setViewMode}
+              setDataViewMode={setDataViewMode}
+              setSearchQuery={setSearchQuery}
+              setShowOnlyWithStrategy={setShowOnlyWithStrategy}
+              setOwnerFilter={setOwnerFilter}
+              setTeamFilter={setTeamFilter}
+              uniqueOwners={uniqueOwners}
+              uniqueTeams={uniqueTeams}
+              counts={{
+                myRoster: strategiesData?.players.filter(p => p.memberId === myMemberId).length || 0,
+                owned: strategiesData?.players.filter(p => p.memberId !== myMemberId).length || 0,
+                svincolati: svincolatiData?.players.length || 0,
+                total: (strategiesData?.players.length || 0) + (svincolatiData?.players.length || 0),
+                filtered: filteredPlayers.length,
+              }}
+              isCollapsed={leftSidebarCollapsed}
+              onToggleCollapse={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
+            />
+          </div>
+
           {/* Main Table */}
           <div className="flex-1 min-w-0">
             <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
-              {/* === 3-LEVEL FILTER LAYOUT === */}
-
-              {/* LEVEL 1: Data View Toggle (sticky) */}
-              <div className="sticky top-0 z-10 p-2 border-b border-surface-50/20 bg-surface-300/80 backdrop-blur-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex gap-1 bg-surface-400/50 rounded-lg p-0.5">
-                    <button
-                      onClick={() => setDataViewMode('contracts')}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                        dataViewMode === 'contracts'
-                          ? 'bg-accent-500 text-white shadow-md'
-                          : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
-                      }`}
-                      title="Vista contratti"
-                    >
-                      📋 Contratti
-                    </button>
-                    <button
-                      onClick={() => setDataViewMode('stats')}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                        dataViewMode === 'stats'
-                          ? 'bg-cyan-500 text-white shadow-md'
-                          : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
-                      }`}
-                      title="Vista statistiche"
-                    >
-                      📊 Stats
-                    </button>
-                    <button
-                      onClick={() => setDataViewMode('merge')}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                        dataViewMode === 'merge'
-                          ? 'bg-violet-500 text-white shadow-md'
-                          : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
-                      }`}
-                      title="Vista mista"
-                    >
-                      🔀 Merge
-                    </button>
-                  </div>
-                  <div className="text-sm text-gray-400">
-                    <span className="font-semibold text-white">{filteredPlayers.length}</span> giocatori
+              {/* === MOBILE FILTERS (shown only on mobile) === */}
+              <div className="lg:hidden">
+                {/* LEVEL 1: Data View Toggle (sticky) */}
+                <div className="sticky top-0 z-10 p-2 border-b border-surface-50/20 bg-surface-300/80 backdrop-blur-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex gap-1 bg-surface-400/50 rounded-lg p-0.5">
+                      <button
+                        onClick={() => setDataViewMode('contracts')}
+                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                          dataViewMode === 'contracts'
+                            ? 'bg-accent-500 text-white shadow-md'
+                            : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
+                        }`}
+                        title="Vista contratti"
+                      >
+                        📋 Contratti
+                      </button>
+                      <button
+                        onClick={() => setDataViewMode('stats')}
+                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                          dataViewMode === 'stats'
+                            ? 'bg-cyan-500 text-white shadow-md'
+                            : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
+                        }`}
+                        title="Vista statistiche"
+                      >
+                        📊 Stats
+                      </button>
+                      <button
+                        onClick={() => setDataViewMode('merge')}
+                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                          dataViewMode === 'merge'
+                            ? 'bg-violet-500 text-white shadow-md'
+                            : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
+                        }`}
+                        title="Vista mista"
+                      >
+                        🔀 Merge
+                      </button>
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      <span className="font-semibold text-white">{filteredPlayers.length}</span> giocatori
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* LEVEL 2: Scope Buttons with Count Badges */}
-              <div className="p-2 border-b border-surface-50/20 bg-surface-300/50">
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  <button
-                    onClick={() => { setViewMode('myRoster'); setOwnerFilter('ALL'); }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                      viewMode === 'myRoster'
-                        ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
-                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
-                    }`}
-                    title="La mia rosa"
-                  >
-                    <span>🏠 La Mia Rosa</span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                      viewMode === 'myRoster' ? 'bg-white/20' : 'bg-primary-500/20 text-primary-400'
-                    }`}>
-                      {strategiesData?.players.filter(p => p.memberId === myMemberId).length || 0}
+                {/* LEVEL 2: Scope Buttons with Count Badges */}
+                <div className="p-2 border-b border-surface-50/20 bg-surface-300/50">
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    <button
+                      onClick={() => { setViewMode('myRoster'); setOwnerFilter('ALL'); }}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                        viewMode === 'myRoster'
+                          ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+                          : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
+                      }`}
+                      title="La mia rosa"
+                    >
+                      <span>🏠 La Mia Rosa</span>
+                      <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                        viewMode === 'myRoster' ? 'bg-white/20' : 'bg-primary-500/20 text-primary-400'
+                      }`}>
+                        {strategiesData?.players.filter(p => p.memberId === myMemberId).length || 0}
                     </span>
                   </button>
                   <button
@@ -968,6 +1005,42 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       </button>
                     </div>
                   )}
+                </div>
+              </div>
+              </div>
+              {/* End of mobile filters */}
+
+              {/* Desktop Table Header (shown only on lg+) */}
+              <div className="hidden lg:block sticky top-0 z-10 p-3 border-b border-surface-50/20 bg-surface-300/80 backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-semibold text-white">{filteredPlayers.length}</span>
+                    <span className="text-gray-400">giocatori</span>
+                    {selectedForCompare.size > 0 && (
+                      <div className="flex items-center gap-2 ml-4">
+                        <button
+                          onClick={() => setShowCompareModal(true)}
+                          disabled={selectedForCompare.size < 2}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            selectedForCompare.size >= 2
+                              ? 'bg-cyan-500 text-white hover:bg-cyan-600'
+                              : 'bg-cyan-500/30 text-cyan-400/50 cursor-not-allowed'
+                          }`}
+                        >
+                          📊 Confronta ({selectedForCompare.size})
+                        </button>
+                        <button
+                          onClick={clearComparison}
+                          className="w-7 h-7 rounded-lg bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-100 text-sm flex items-center justify-center transition-colors"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Filtri nella sidebar sinistra
+                  </div>
                 </div>
               </div>
 
@@ -1477,6 +1550,16 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Right Sidebar - Planner Widget (hidden on mobile, shown on xl+) */}
+          <div className="hidden xl:block">
+            <PlannerSidebarPlaceholder
+              isCollapsed={rightSidebarCollapsed}
+              onToggleCollapse={() => setRightSidebarCollapsed(!rightSidebarCollapsed)}
+              budgetAvailable={0} // TODO: Get actual budget from league data
+              plannedCount={myStrategiesCount}
+            />
           </div>
         </div>
       </main>
