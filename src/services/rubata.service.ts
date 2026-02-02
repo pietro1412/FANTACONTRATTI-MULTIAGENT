@@ -3786,6 +3786,7 @@ export async function getAllPlayersForStrategies(
               age: true,  // #190: include age for financial dashboard
               apiFootballId: true,
               apiFootballStats: true,
+              seasonalStatsCache: true,  // Seasonality data for sparkbar
             },
           },
           contract: {
@@ -3813,6 +3814,7 @@ export async function getAllPlayersForStrategies(
     playerAge: number | null  // #190: player age
     playerApiFootballId: number | null
     playerApiFootballStats: unknown
+    playerSeasonalStatsCache: unknown  // Seasonality data
     ownerUsername: string
     ownerTeamName: string | null
     ownerRubataOrder: number | null
@@ -3841,6 +3843,7 @@ export async function getAllPlayersForStrategies(
         playerAge: rosterEntry.player.age,  // #190: player age
         playerApiFootballId: rosterEntry.player.apiFootballId,
         playerApiFootballStats: rosterEntry.player.apiFootballStats,
+        playerSeasonalStatsCache: rosterEntry.player.seasonalStatsCache,  // Seasonality data
         ownerUsername: memberData.user.username,
         ownerTeamName: memberData.teamName,
         ownerRubataOrder: memberData.rubataOrder,
@@ -3971,6 +3974,7 @@ export async function getAllSvincolatiForStrategies(
       age: true,  // #190: include age
       apiFootballId: true,
       apiFootballStats: true,
+      seasonalStatsCache: true,  // Seasonality data
     },
     orderBy: [
       { position: 'asc' },
@@ -3987,6 +3991,7 @@ export async function getAllSvincolatiForStrategies(
     playerAge: player.age,  // #190: include age
     playerApiFootballId: player.apiFootballId,
     playerApiFootballStats: player.apiFootballStats,
+    playerSeasonalStatsCache: player.seasonalStatsCache,  // Seasonality data
     preference: preferencesMap.get(player.id) || null,
   }))
 

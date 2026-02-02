@@ -4,7 +4,8 @@ import { rubataApi, leagueApi, gameApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import { MarketPhaseBanner, type DisplayPhase } from '../components/MarketPhaseBanner'
 import { FilterSidebar } from '../components/FilterSidebar'
-import { PlannerSidebarPlaceholder } from '../components/PlannerSidebarPlaceholder'
+import { PlannerWidget } from '../components/PlannerWidget'
+import { SeasonalitySparkbar, HotMonthsBadge } from '../components/SeasonalitySparkbar'
 import { getTeamLogo } from '../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../utils/player-images'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
@@ -33,6 +34,14 @@ function getAgeBgColor(age: number | null | undefined): string {
   return 'bg-red-500/20 text-red-400'
 }
 
+// Seasonality cache structure from API
+interface SeasonalStats {
+  avgRating: number
+  hotMonths: string[]
+  monthlyBreakdown: Record<string, number>
+  matchCount: number
+}
+
 interface StrategyPlayer {
   rosterId: string
   memberId: string
@@ -44,6 +53,7 @@ interface StrategyPlayer {
   playerAge?: number | null
   playerApiFootballId?: number | null
   playerApiFootballStats?: PlayerStats | null
+  playerSeasonalStatsCache?: SeasonalStats | null
   ownerUsername: string
   ownerTeamName: string | null
   ownerRubataOrder: number | null
@@ -61,6 +71,7 @@ interface SvincolatoPlayer {
   playerAge?: number | null
   playerApiFootballId?: number | null
   playerApiFootballStats?: PlayerStats | null
+  playerSeasonalStatsCache?: SeasonalStats | null
 }
 
 interface RubataPreference {
@@ -183,6 +194,12 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     isActive: boolean
   } | null>(null)
 
+  // Budget data for planner widget
+  const [budgetData, setBudgetData] = useState<{
+    budgetTotal: number
+    budgetUsed: number
+  } | null>(null)
+
   // View mode: my roster, owned players, svincolati, or all
   const [viewMode, setViewMode] = useState<ViewMode>('myRoster')
 
@@ -237,16 +254,30 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         setIsLeagueAdmin(data.userMembership?.role === 'ADMIN')
       }
 
-      // Fetch owned players, svincolati, and game status in parallel
-      const [ownedRes, svincolatiRes, gameStatusRes] = await Promise.all([
+      // Fetch owned players, svincolati, game status, and financials in parallel
+      const [ownedRes, svincolatiRes, gameStatusRes, financialsRes] = await Promise.all([
         rubataApi.getAllPlayersForStrategies(leagueId),
         rubataApi.getAllSvincolatiForStrategies(leagueId),
         gameApi.getStatus(leagueId),
+        leagueApi.getFinancials(leagueId),
       ])
 
       // Set game status
       if (gameStatusRes.success && gameStatusRes.data) {
         setGameStatus(gameStatusRes.data)
+      }
+
+      // Set budget data for planner widget
+      if (financialsRes.success && financialsRes.data) {
+        const data = financialsRes.data as { teams: Array<{ budget: number; annualContractCost: number }> }
+        // Find my team (first team in the response belongs to current user)
+        const myTeam = data.teams?.[0]
+        if (myTeam) {
+          setBudgetData({
+            budgetTotal: myTeam.budget || 100,
+            budgetUsed: myTeam.annualContractCost || 0,
+          })
+        }
       }
 
       // Initialize local strategies
@@ -1244,6 +1275,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       <th className="text-left p-2">Squadra</th>
                       <th className="text-center p-2 w-12">Età</th>
                       <SortableHeader field="owner" label="Prop." className="text-left p-2" />
+                      {/* Seasonality column */}
+                      <th className="text-center p-2 w-24" title="Andamento mensile (Set-Mag)">Trend</th>
                       {/* Contract columns */}
                       {(dataViewMode === 'contracts' || dataViewMode === 'merge') && (
                         <>
@@ -1384,6 +1417,24 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                   <div className="text-xs text-gray-500">{player.ownerUsername}</div>
                                 )}
                               </div>
+                            )}
+                          </td>
+
+                          {/* Seasonality sparkbar */}
+                          <td className="p-2 text-center">
+                            {player.playerSeasonalStatsCache ? (
+                              <div className="flex flex-col items-center gap-1">
+                                <SeasonalitySparkbar
+                                  monthlyBreakdown={player.playerSeasonalStatsCache.monthlyBreakdown}
+                                  hotMonths={player.playerSeasonalStatsCache.hotMonths}
+                                  showLabels={false}
+                                />
+                                {player.playerSeasonalStatsCache.hotMonths.length > 0 && (
+                                  <HotMonthsBadge hotMonths={player.playerSeasonalStatsCache.hotMonths} />
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-600">N/D</span>
                             )}
                           </td>
 
@@ -1554,11 +1605,36 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
           {/* Right Sidebar - Planner Widget (hidden on mobile, shown on xl+) */}
           <div className="hidden xl:block">
-            <PlannerSidebarPlaceholder
+            <PlannerWidget
               isCollapsed={rightSidebarCollapsed}
               onToggleCollapse={() => setRightSidebarCollapsed(!rightSidebarCollapsed)}
-              budgetAvailable={0} // TODO: Get actual budget from league data
-              plannedCount={myStrategiesCount}
+              budgetTotal={budgetData?.budgetTotal ?? 100}
+              budgetUsed={budgetData?.budgetUsed ?? 0}
+              strategiesData={strategiesData?.players ?? []}
+              svincolatiData={svincolatiData?.players.map(p => ({
+                id: p.playerId,
+                name: p.playerName,
+                team: p.playerTeam,
+                position: p.playerPosition,
+                quotation: 0, // Svincolati don't have quotation in this context
+                status: 'SVINCOLATO',
+                preference: p.preference ? {
+                  maxBid: p.preference.maxBid,
+                  priority: p.preference.priority,
+                  notes: p.preference.notes,
+                  isWatchlist: p.preference.isWatchlist,
+                  isAutoPass: p.preference.isAutoPass,
+                } : undefined,
+              })) ?? []}
+              onPlayerClick={(playerId) => {
+                // Find player and open strategy panel
+                const player = [...(strategiesData?.players ?? []), ...(svincolatiData?.players ?? [])].find(p =>
+                  ('playerId' in p ? p.playerId : p.playerId) === playerId
+                )
+                if (player) {
+                  setSelectedPlayer(player as any)
+                }
+              }}
             />
           </div>
         </div>
