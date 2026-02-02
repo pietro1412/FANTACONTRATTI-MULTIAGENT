@@ -1,5 +1,9 @@
+import { useState } from 'react'
 import { Modal, ModalHeader, ModalBody } from './ui/Modal'
 import { getPlayerPhotoUrl, getTeamLogoUrl } from '../utils/player-images'
+import { PlayerFormChart, extractRatingsFromStats } from './PlayerFormChart'
+import { PlayerTrendBadge, getFormQuality } from './PlayerTrendBadge'
+import { PlayerHistoricalStats } from './PlayerHistoricalStats'
 
 // Position colors
 const POSITION_COLORS: Record<string, string> = {
@@ -100,6 +104,84 @@ function StatSection({ title, children }: { title: string; children: React.React
   )
 }
 
+/**
+ * Recent Form Section - Sprint 4
+ * Shows player form trend with chart and quality indicators
+ */
+function RecentFormSection({ stats }: { stats: PlayerStats }) {
+  const ratings = extractRatingsFromStats(stats)
+  const hasRatings = ratings.length > 0
+  const avgRating = stats.games.rating
+
+  // Calculate form quality from average rating
+  const quality = avgRating ? getFormQuality(avgRating) : null
+
+  return (
+    <div className="mb-4 p-4 bg-gradient-to-r from-surface-100/50 to-surface-200/30 rounded-xl border border-surface-50/20">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-primary-400 font-semibold text-sm uppercase tracking-wider flex items-center gap-2">
+          <span>📈</span> Forma Recente
+        </h3>
+        {hasRatings && (
+          <PlayerTrendBadge ratings={ratings} variant="full" />
+        )}
+      </div>
+
+      <div className="flex items-center gap-6">
+        {/* Form Chart */}
+        <div className="flex-1">
+          {hasRatings ? (
+            <PlayerFormChart
+              ratings={ratings}
+              size="lg"
+              showLabels={true}
+              showTrend={true}
+            />
+          ) : avgRating ? (
+            <div className="flex items-center gap-3">
+              <div className={`text-3xl font-bold ${quality?.color || 'text-white'}`}>
+                {typeof avgRating === 'number' ? avgRating.toFixed(1) : avgRating}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs text-gray-500">Rating Medio</span>
+                {quality && (
+                  <span className={`text-sm font-medium ${quality.color}`}>{quality.label}</span>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="text-gray-500 text-sm">Dati forma non disponibili</div>
+          )}
+        </div>
+
+        {/* Quick Stats */}
+        <div className="flex gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-white">{stats.games.appearences || 0}</div>
+            <div className="text-[10px] text-gray-500 uppercase">Presenze</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-white">{stats.games.minutes || 0}</div>
+            <div className="text-[10px] text-gray-500 uppercase">Minuti</div>
+          </div>
+          {stats.goals.total != null && stats.goals.total > 0 && (
+            <div className="text-center">
+              <div className="text-2xl font-bold text-emerald-400">{stats.goals.total}</div>
+              <div className="text-[10px] text-gray-500 uppercase">Gol</div>
+            </div>
+          )}
+          {stats.goals.assists != null && stats.goals.assists > 0 && (
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-400">{stats.goals.assists}</div>
+              <div className="text-[10px] text-gray-500 uppercase">Assist</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalProps) {
   if (!player) return null
 
@@ -190,7 +272,12 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
               )}
             </div>
           </div>
-        ) : player.position === 'P' ? (
+        ) : (
+          <>
+            {/* Recent Form Section - Sprint 4 */}
+            <RecentFormSection stats={stats} />
+
+            {player.position === 'P' ? (
           /* ========== GOALKEEPER STATS ========== */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Generali */}
@@ -288,6 +375,17 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
               <StatRow label="Sbagliati" value={stats.penalty.missed} />
             </StatSection>
           </div>
+        )}
+
+            {/* Historical Stats Section */}
+            <div className="mt-6 pt-4 border-t border-surface-50/20">
+              <PlayerHistoricalStats
+                stats={stats}
+                playerName={player.name}
+                position={player.position}
+              />
+            </div>
+          </>
         )}
 
         {player.statsSyncedAt && (

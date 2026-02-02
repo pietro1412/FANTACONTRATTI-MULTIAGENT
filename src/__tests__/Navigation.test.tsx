@@ -41,6 +41,10 @@ vi.mock('../services/api', () => ({
   leagueApi: {
     getPendingRequests: vi.fn().mockResolvedValue({ success: true, data: [] }),
   },
+  feedbackApi: {
+    getNotifications: vi.fn().mockResolvedValue({ success: true, data: { unreadCount: 0, notifications: [] } }),
+    getUnreadNotifications: vi.fn().mockResolvedValue({ success: true, data: { unreadCount: 0, notifications: [] } }),
+  },
 }))
 
 // Import the mocked api to control behavior in tests
@@ -101,12 +105,13 @@ describe('Navigation Component', () => {
       // Check back to leagues button exists
       expect(screen.getByTestId('back-to-leagues')).toBeInTheDocument()
 
-      // Check non-admin menu items are visible
+      // Check non-admin menu items are visible (current LEAGUE_MENU_ITEMS)
       expect(screen.getByTestId('nav-dashboard')).toBeInTheDocument()
-      expect(screen.getByTestId('nav-la-mia-rosa')).toBeInTheDocument()
-      expect(screen.getByTestId('nav-tutte-le-rose')).toBeInTheDocument()
-      expect(screen.getByTestId('nav-svincolati')).toBeInTheDocument()
+      expect(screen.getByTestId('nav-giocatori')).toBeInTheDocument()
+      expect(screen.getByTestId('nav-finanze')).toBeInTheDocument()
       expect(screen.getByTestId('nav-storico')).toBeInTheDocument()
+      expect(screen.getByTestId('nav-profezie')).toBeInTheDocument()
+      expect(screen.getByTestId('nav-feedback')).toBeInTheDocument()
 
       // Admin panel should NOT be visible for non-admin
       expect(screen.queryByTestId('nav-admin')).not.toBeInTheDocument()
@@ -251,8 +256,8 @@ describe('Navigation Component', () => {
         )
       })
 
-      await user.click(screen.getByTestId('nav-la-mia-rosa'))
-      expect(mockOnNavigate).toHaveBeenCalledWith('roster', { leagueId: 'league-123' })
+      await user.click(screen.getByTestId('nav-giocatori'))
+      expect(mockOnNavigate).toHaveBeenCalledWith('strategie-rubata', { leagueId: 'league-123' })
     })
 
     it('calls onNavigate when back to leagues button is clicked', async () => {
@@ -339,26 +344,25 @@ describe('Navigation Component', () => {
         )
       })
 
-      const mobileMenu = screen.getByTestId('mobile-menu')
       const toggleButton = screen.getByTestId('mobile-menu-toggle')
 
-      // Initially closed (full-screen overlay is invisible)
-      expect(mobileMenu).toHaveClass('invisible')
+      // Initially closed (mobile menu not in DOM due to conditional rendering)
+      expect(screen.queryByTestId('mobile-menu')).not.toBeInTheDocument()
 
       // Click to open
       await user.click(toggleButton)
 
-      // Should be open (visible)
+      // Should be open (now in DOM)
       await waitFor(() => {
-        expect(mobileMenu).toHaveClass('visible')
+        expect(screen.getByTestId('mobile-menu')).toBeInTheDocument()
       })
 
       // Click to close
       await user.click(toggleButton)
 
-      // Should be closed again
+      // Should be closed again (removed from DOM)
       await waitFor(() => {
-        expect(mobileMenu).toHaveClass('invisible')
+        expect(screen.queryByTestId('mobile-menu')).not.toBeInTheDocument()
       })
     })
 
@@ -378,20 +382,19 @@ describe('Navigation Component', () => {
       // Open mobile menu
       await user.click(screen.getByTestId('mobile-menu-toggle'))
 
-      const mobileMenu = screen.getByTestId('mobile-menu')
       await waitFor(() => {
-        expect(mobileMenu).toHaveClass('visible')
+        expect(screen.getByTestId('mobile-menu')).toBeInTheDocument()
       })
 
       // Click a navigation item
-      await user.click(screen.getByTestId('mobile-nav-la-mia-rosa'))
+      await user.click(screen.getByTestId('mobile-nav-giocatori'))
 
-      // Menu should close
+      // Menu should close (removed from DOM)
       await waitFor(() => {
-        expect(mobileMenu).toHaveClass('invisible')
+        expect(screen.queryByTestId('mobile-menu')).not.toBeInTheDocument()
       })
 
-      expect(mockOnNavigate).toHaveBeenCalledWith('roster', { leagueId: 'league-123' })
+      expect(mockOnNavigate).toHaveBeenCalledWith('strategie-rubata', { leagueId: 'league-123' })
     })
 
     it('shows mobile logout button and handles logout', async () => {
@@ -410,7 +413,7 @@ describe('Navigation Component', () => {
       await user.click(screen.getByTestId('mobile-menu-toggle'))
 
       await waitFor(() => {
-        expect(screen.getByTestId('mobile-menu')).toHaveClass('visible')
+        expect(screen.getByTestId('mobile-menu')).toBeInTheDocument()
       })
 
       // Click mobile logout
@@ -426,19 +429,19 @@ describe('Navigation Component', () => {
       await act(async () => {
         render(
           <Navigation
-            currentPage="roster"
+            currentPage="strategie-rubata"
             leagueId="league-123"
             onNavigate={mockOnNavigate}
           />
         )
       })
 
-      const rosterButton = screen.getByTestId('nav-la-mia-rosa')
+      const giocatoriButton = screen.getByTestId('nav-giocatori')
       const dashboardButton = screen.getByTestId('nav-dashboard')
 
       // Active button should have active styling (contains gradient classes)
-      expect(rosterButton).toHaveClass('bg-gradient-to-r')
-      expect(rosterButton).toHaveClass('from-primary-500/30')
+      expect(giocatoriButton).toHaveClass('bg-gradient-to-r')
+      expect(giocatoriButton).toHaveClass('from-primary-500/30')
 
       // Inactive button should not have active gradient
       expect(dashboardButton).not.toHaveClass('from-primary-500/30')
@@ -469,7 +472,7 @@ describe('Navigation Component', () => {
       await act(async () => {
         render(
           <Navigation
-            currentPage="roster"
+            currentPage="strategie-rubata"
             leagueId="league-123"
             onNavigate={mockOnNavigate}
           />
@@ -480,14 +483,14 @@ describe('Navigation Component', () => {
       await user.click(screen.getByTestId('mobile-menu-toggle'))
 
       await waitFor(() => {
-        expect(screen.getByTestId('mobile-menu')).toHaveClass('visible')
+        expect(screen.getByTestId('mobile-menu')).toBeInTheDocument()
       })
 
-      const mobileRosterButton = screen.getByTestId('mobile-nav-la-mia-rosa')
+      const mobileGiocatoriButton = screen.getByTestId('mobile-nav-giocatori')
 
       // Check for active styling (border-l-3 for active state)
-      expect(mobileRosterButton).toHaveClass('border-l-3')
-      expect(mobileRosterButton).toHaveClass('border-primary-400')
+      expect(mobileGiocatoriButton).toHaveClass('border-l-3')
+      expect(mobileGiocatoriButton).toHaveClass('border-primary-400')
     })
 
     it('applies correct styles for superadmin active tabs', async () => {
@@ -705,7 +708,7 @@ describe('Navigation Component', () => {
       await user.click(screen.getByTestId('mobile-menu-toggle'))
 
       await waitFor(() => {
-        expect(screen.getByTestId('mobile-menu')).toHaveClass('visible')
+        expect(screen.getByTestId('mobile-menu')).toBeInTheDocument()
       })
 
       // Check mobile profile section shows admin badge (multiple Admin texts exist)

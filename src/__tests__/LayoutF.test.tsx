@@ -372,7 +372,7 @@ describe('LayoutF Component', () => {
       expect(screen.getByText('Obiettivi')).toBeInTheDocument()
     })
 
-    it('expands objectives panel on click', () => {
+    it('shows empty objectives panel when no active objectives', () => {
       const auctionData = {
         id: 'auction-1',
         player: {
@@ -389,11 +389,7 @@ describe('LayoutF Component', () => {
 
       render(<LayoutF {...baseProps} auction={auctionData as any} sessionId="session-1" />)
 
-      const button = screen.getByText('Obiettivi').closest('button')
-      if (button) {
-        fireEvent.click(button)
-      }
-
+      // Panel is expanded by default (showObjectives = true)
       // Should show empty state since mock returns empty objectives
       expect(screen.getByText('Nessun obiettivo attivo')).toBeInTheDocument()
     })

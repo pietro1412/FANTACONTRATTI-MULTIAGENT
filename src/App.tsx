@@ -40,6 +40,7 @@ const InviteDetail = lazy(() => import('./pages/InviteDetail').then(m => ({ defa
 const Rules = lazy(() => import('./pages/Rules').then(m => ({ default: m.Rules })))
 const PatchNotes = lazy(() => import('./pages/PatchNotes').then(m => ({ default: m.PatchNotes })))
 const FeedbackHub = lazy(() => import('./pages/FeedbackHub').then(m => ({ default: m.FeedbackHub })))
+const HubDG = lazy(() => import('./pages/HubDG').then(m => ({ default: m.HubDG })))
 
 // Loading component per autenticazione
 function LoadingScreen() {
@@ -183,6 +184,7 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
         break
       case 'rubata': navigate(`/leagues/${lid}/rubata`); break
       case 'strategie-rubata': navigate(`/leagues/${lid}/strategie-rubata`); break
+      case 'hub-dg': navigate(`/leagues/${lid}/hub-dg`); break
       case 'svincolati': navigate(`/leagues/${lid}/svincolati`); break
       case 'prizes': navigate(`/leagues/${lid}/prizes`); break
       case 'allPlayers':
@@ -288,6 +290,15 @@ function StrategieRubataWrapper() {
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
   return <StrategieRubata onNavigate={onNavigate} />
+}
+
+function HubDGWrapper() {
+  const navigate = useNavigate()
+  const { leagueId } = useParams<{ leagueId: string }>()
+  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
+
+  if (!leagueId) return <Navigate to="/dashboard" replace />
+  return <HubDG onNavigate={onNavigate} />
 }
 
 function SvincolatiWrapper() {
@@ -548,6 +559,13 @@ function AppRoutes() {
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
             <StrategieRubataWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      } />
+      <Route path="/leagues/:leagueId/hub-dg" element={
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <HubDGWrapper />
           </Suspense>
         </ProtectedRoute>
       } />

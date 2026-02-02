@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { PrismaClient, MarketPhase } from '@prisma/client'
-import { authMiddleware } from '../../middleware/auth'
+import { authMiddleware } from '../middleware/auth'
 
 const router = Router()
 const prisma = new PrismaClient()

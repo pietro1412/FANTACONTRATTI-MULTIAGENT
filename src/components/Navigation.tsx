@@ -136,6 +136,7 @@ const LEAGUE_MENU_ITEMS = [
   { key: 'leagueDetail', label: 'Dashboard', adminOnly: false, icon: 'dashboard' },
   { key: 'adminPanel', label: 'Admin', adminOnly: true, icon: 'admin' },
   { key: 'strategie-rubata', label: 'Giocatori', adminOnly: false, icon: 'allRosters' },
+  { key: 'hub-dg', label: 'Hub DG', adminOnly: false, icon: 'strategy' },
   // { key: 'playerStats', label: 'Statistiche', adminOnly: false, icon: 'stats' },  // Temporarily hidden - route still works
   { key: 'financials', label: 'Finanze', adminOnly: false, icon: 'financials' },
   { key: 'history', label: 'Storico', adminOnly: false, icon: 'history' },
@@ -159,6 +160,7 @@ function getPageDisplayName(page: string): string {
     trades: 'Scambi',
     rubata: 'Rubata',
     'strategie-rubata': 'Giocatori',
+    'hub-dg': 'Hub DG',
     financials: 'Finanze',
     patchNotes: 'Patch Notes',
     feedbackHub: 'Feedback',
