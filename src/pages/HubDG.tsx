@@ -15,6 +15,8 @@ import { Navigation } from '../components/Navigation'
 import { MarketPhaseBanner, type DisplayPhase } from '../components/MarketPhaseBanner'
 import { PlayerTrendBadge, getFormQuality } from '../components/PlayerTrendBadge'
 import { extractRatingsFromStats } from '../components/PlayerFormChart'
+import { getPlayerPhotoUrl } from '../utils/player-images'
+import { getTeamLogo } from '../utils/teamLogos'
 import type { PlayerStats } from '../components/PlayerStatsModal'
 
 interface StrategyPlayer {
@@ -135,6 +137,14 @@ function CategoryBadge({
   )
 }
 
+// Position colors
+const POS_COLORS: Record<string, string> = {
+  P: 'bg-yellow-500',
+  D: 'bg-green-500',
+  C: 'bg-blue-500',
+  A: 'bg-red-500',
+}
+
 // Objective Card
 function ObjectiveCard({
   player,
@@ -142,7 +152,7 @@ function ObjectiveCard({
   maxBid,
   type
 }: {
-  player: { name: string; position: string; team: string; clause?: number }
+  player: { name: string; position: string; team: string; clause?: number; apiFootballId?: number | null }
   priority: number
   maxBid: number | null
   type: 'owned' | 'svincolato'
@@ -153,17 +163,58 @@ function ObjectiveCard({
     3: 'border-l-orange-500 bg-orange-500/10',
   }
 
+  const photoUrl = getPlayerPhotoUrl(player.apiFootballId)
+  const teamLogoUrl = getTeamLogo(player.team)
+
   return (
     <div className={`border-l-4 ${priorityColors[priority as keyof typeof priorityColors] || 'border-l-gray-500 bg-gray-500/10'} rounded-r-lg p-3`}>
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center gap-3">
+        {/* Player photo */}
+        <div className="relative flex-shrink-0">
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt={player.name}
+              className="w-10 h-10 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none'
+                const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                if (fallback) fallback.style.display = 'flex'
+              }}
+            />
+          ) : null}
+          <span
+            className={`w-10 h-10 rounded-full text-xs font-bold text-white items-center justify-center ${POS_COLORS[player.position] || 'bg-gray-500'} ${photoUrl ? 'hidden' : 'flex'}`}
+          >
+            {player.position}
+          </span>
+          {/* Position badge */}
+          {photoUrl && (
+            <span className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full text-[8px] font-bold text-white flex items-center justify-center ${POS_COLORS[player.position] || 'bg-gray-500'} border border-surface-200`}>
+              {player.position}
+            </span>
+          )}
+        </div>
+
+        {/* Player info */}
+        <div className="flex-1 min-w-0">
           <div className="font-medium text-white">{player.name}</div>
-          <div className="text-xs text-gray-400">
-            {player.position} - {player.team}
+          <div className="text-xs text-gray-400 flex items-center gap-1">
+            {teamLogoUrl && (
+              <img
+                src={teamLogoUrl}
+                alt={player.team}
+                className="w-3.5 h-3.5 object-contain"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+              />
+            )}
+            {player.team}
             {type === 'svincolato' && <span className="ml-1 text-emerald-400">(Svincolato)</span>}
           </div>
         </div>
-        <div className="text-right">
+
+        {/* Bid info */}
+        <div className="text-right flex-shrink-0">
           {maxBid && <div className="text-lg font-bold text-primary-400">{maxBid}M</div>}
           {player.clause && <div className="text-xs text-gray-500">Clausola: {player.clause}M</div>}
         </div>
@@ -290,7 +341,7 @@ export function HubDG({ onNavigate }: { onNavigate: (page: string) => void }) {
   // Compute objectives and categories
   const objectives = useMemo(() => {
     const allObjectives: Array<{
-      player: { name: string; position: string; team: string; clause?: number }
+      player: { name: string; position: string; team: string; clause?: number; apiFootballId?: number | null }
       priority: number
       maxBid: number | null
       type: 'owned' | 'svincolato'
@@ -306,6 +357,7 @@ export function HubDG({ onNavigate }: { onNavigate: (page: string) => void }) {
             position: p.playerPosition,
             team: p.playerTeam,
             clause: p.contractClause,
+            apiFootballId: p.playerApiFootballId,
           },
           priority: p.preference?.priority || 99,
           maxBid: p.preference?.maxBid || null,
@@ -322,6 +374,7 @@ export function HubDG({ onNavigate }: { onNavigate: (page: string) => void }) {
             name: p.playerName,
             position: p.playerPosition,
             team: p.playerTeam,
+            apiFootballId: p.playerApiFootballId,
           },
           priority: p.preference?.priority || 99,
           maxBid: p.preference?.maxBid || null,

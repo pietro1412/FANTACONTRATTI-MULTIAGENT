@@ -10,6 +10,8 @@
  */
 
 import { useMemo } from 'react'
+import { getPlayerPhotoUrl } from '../utils/player-images'
+import { getTeamLogo } from '../utils/teamLogos'
 
 // Types for player preferences
 interface PlayerPreference {
@@ -29,6 +31,7 @@ interface StrategyPlayer {
   playerPosition: string
   playerTeam: string
   playerQuotation: number
+  playerApiFootballId?: number | null
   ownerUsername?: string
   ownerTeamName?: string | null
   contractSalary: number
@@ -46,6 +49,7 @@ interface SvincolatoPlayer {
   position: string
   quotation: number
   status: string
+  apiFootballId?: number | null
   preference?: PlayerPreference
 }
 
@@ -89,6 +93,7 @@ export function PlannerWidget({
         position: p.playerPosition,
         team: p.playerTeam,
         quotation: p.playerQuotation,
+        apiFootballId: p.playerApiFootballId,
         maxBid: p.preference?.maxBid || 0,
         priority: p.preference?.priority || 5,
         type: 'owned' as const,
@@ -104,6 +109,7 @@ export function PlannerWidget({
         position: p.position,
         team: p.team,
         quotation: p.quotation,
+        apiFootballId: p.apiFootballId,
         maxBid: p.preference?.maxBid || 0,
         priority: p.preference?.priority || 5,
         type: 'svincolato' as const,
@@ -346,6 +352,7 @@ interface PlayerPlanCardProps {
     name: string
     position: string
     team: string
+    apiFootballId?: number | null
     maxBid: number
     priority: number
     type: 'owned' | 'svincolato'
@@ -358,6 +365,8 @@ interface PlayerPlanCardProps {
 function PlayerPlanCard({ player, onClick }: PlayerPlanCardProps) {
   const priceComparison = player.maxBid - player.rubataPrice
   const isGoodDeal = priceComparison >= 0
+  const photoUrl = getPlayerPhotoUrl(player.apiFootballId)
+  const teamLogoUrl = getTeamLogo(player.team)
 
   return (
     <button
@@ -365,15 +374,45 @@ function PlayerPlanCard({ player, onClick }: PlayerPlanCardProps) {
       className="w-full p-2 rounded-lg bg-surface-300/50 hover:bg-surface-300 transition-colors text-left mb-1"
     >
       <div className="flex items-center gap-2">
-        {/* Position badge */}
-        <span className={`w-5 h-5 rounded text-[10px] font-bold text-white flex items-center justify-center ${POS_COLORS[player.position] || 'bg-gray-500'}`}>
-          {player.position}
-        </span>
+        {/* Player photo with position badge */}
+        <div className="relative flex-shrink-0">
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt={player.name}
+              className="w-8 h-8 rounded-full object-cover bg-surface-300 border border-surface-50/30"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none'
+                const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                if (fallback) fallback.style.display = 'flex'
+              }}
+            />
+          ) : null}
+          <span
+            className={`w-8 h-8 rounded-full text-[10px] font-bold text-white items-center justify-center ${POS_COLORS[player.position] || 'bg-gray-500'} ${photoUrl ? 'hidden' : 'flex'}`}
+          >
+            {player.position}
+          </span>
+          {/* Position badge overlay */}
+          {photoUrl && (
+            <span className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full text-[8px] font-bold text-white flex items-center justify-center ${POS_COLORS[player.position] || 'bg-gray-500'} border border-surface-200`}>
+              {player.position}
+            </span>
+          )}
+        </div>
 
         {/* Player info */}
         <div className="flex-1 min-w-0">
           <div className="text-xs font-medium text-white truncate">{player.name}</div>
-          <div className="text-[10px] text-gray-500 truncate">
+          <div className="text-[10px] text-gray-500 truncate flex items-center gap-1">
+            {teamLogoUrl && (
+              <img
+                src={teamLogoUrl}
+                alt={player.team}
+                className="w-3 h-3 object-contain"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+              />
+            )}
             {player.team} • {player.type === 'svincolato' ? '🆓' : `da ${player.ownerTeam}`}
           </div>
         </div>
