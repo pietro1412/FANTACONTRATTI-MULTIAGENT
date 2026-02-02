@@ -61,6 +61,9 @@ interface PlannerWidgetProps {
   strategiesData?: StrategyPlayer[]
   svincolatiData?: SvincolatoPlayer[]
   onPlayerClick?: (playerId: string) => void
+  // Phase-aware execution
+  phase?: 'scouting' | 'open_window' | 'clause_meeting'
+  onExecutePlan?: () => void
 }
 
 // Position colors
@@ -71,6 +74,21 @@ const POS_COLORS: Record<string, string> = {
   A: 'bg-red-500',
 }
 
+// Export planned player type for use with ExecutePlanModal
+export interface PlannedPlayer {
+  id: string
+  name: string
+  position: string
+  team: string
+  quotation: number
+  apiFootballId?: number | null
+  maxBid: number
+  priority: number
+  type: 'owned' | 'svincolato'
+  ownerTeam: string
+  rubataPrice: number
+}
+
 export function PlannerWidget({
   isCollapsed = false,
   onToggleCollapse,
@@ -79,6 +97,8 @@ export function PlannerWidget({
   strategiesData = [],
   svincolatiData = [],
   onPlayerClick,
+  phase = 'scouting',
+  onExecutePlan,
 }: PlannerWidgetProps) {
   // Calculate available budget
   const budgetAvailable = budgetTotal - budgetUsed
@@ -340,6 +360,17 @@ export function PlannerWidget({
             </div>
           </div>
         </div>
+
+        {/* Execute Plan Button - Only visible during clause_meeting phase */}
+        {phase === 'clause_meeting' && plannedPlayers.length > 0 && onExecutePlan && (
+          <button
+            onClick={onExecutePlan}
+            className="w-full mt-3 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+          >
+            <span>{'\uD83C\uDFAF'}</span>
+            Esegui Piano ({plannedPlayers.length} clausole)
+          </button>
+        )}
       </div>
     </div>
   )
