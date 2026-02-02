@@ -1824,3 +1824,59 @@ export const seasonalityApi = {
       { method: 'POST' }
     ),
 }
+
+// Watchlist Plans API - Multiple strategy plans
+export interface WatchlistPlan {
+  id: string
+  memberId: string
+  name: string
+  description: string | null
+  playerIds: string[]
+  totalBudget: number
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export const plansApi = {
+  // Get all plans for the authenticated member
+  getPlans: (leagueId: string) =>
+    request<WatchlistPlan[]>(`/api/leagues/${leagueId}/plans`),
+
+  // Get a specific plan
+  getPlan: (leagueId: string, planId: string) =>
+    request<WatchlistPlan>(`/api/leagues/${leagueId}/plans/${planId}`),
+
+  // Create a new plan
+  createPlan: (
+    leagueId: string,
+    data: { name: string; description?: string; playerIds: string[] }
+  ) =>
+    request<WatchlistPlan>(`/api/leagues/${leagueId}/plans`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Update an existing plan
+  updatePlan: (
+    leagueId: string,
+    planId: string,
+    data: { name?: string; description?: string; playerIds?: string[] }
+  ) =>
+    request<WatchlistPlan>(`/api/leagues/${leagueId}/plans/${planId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  // Delete a plan
+  deletePlan: (leagueId: string, planId: string) =>
+    request<{ message: string }>(`/api/leagues/${leagueId}/plans/${planId}`, {
+      method: 'DELETE',
+    }),
+
+  // Activate a plan (deactivates all others)
+  activatePlan: (leagueId: string, planId: string) =>
+    request<WatchlistPlan>(`/api/leagues/${leagueId}/plans/${planId}/activate`, {
+      method: 'POST',
+    }),
+}

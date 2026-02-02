@@ -26,6 +26,7 @@ import objectivesRoutes from './routes/objectives'
 import feedbackRoutes from './routes/feedback'
 import gameRoutes from './routes/game'
 import seasonalityRoutes from './routes/seasonality'
+import plansRoutes from './routes/plans'
 
 const app = express()
 const PORT = process.env.API_PORT || 3003
@@ -129,6 +130,7 @@ app.use('/api', objectivesRoutes) // Objectives routes for pre-auction targets
 app.use('/api/feedback', feedbackRoutes) // Feedback/segnalazioni routes
 app.use('/api/game', gameRoutes) // Game status for phase-aware UI
 app.use('/api/seasonality', seasonalityRoutes) // Seasonality data for players
+app.use('/api', plansRoutes) // Watchlist plans for strategy management
 
 // 404 handler
 app.use((_req, res) => {

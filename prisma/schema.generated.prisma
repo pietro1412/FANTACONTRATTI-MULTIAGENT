@@ -797,6 +797,7 @@ model LeagueMember {
   rubataPreferences RubataPreference[]       // see: rubata.prisma
   auctionObjectives AuctionObjective[]       // see: auction.prisma
   alertNotifications PlayerAlertNotification[] // see: alert.prisma
+  watchlistPlans    WatchlistPlan[]          // see: rubata.prisma
 
   @@unique([userId, leagueId])
   @@index([leagueId, status])
@@ -1480,6 +1481,32 @@ model RubataPreference {
   @@unique([sessionId, memberId, playerId])
   @@index([sessionId, memberId])
   @@index([memberId, isWatchlist])
+}
+
+// =============================================================================
+// WATCHLIST PLANS - Piano A/B per obiettivi clausole
+// =============================================================================
+
+// Piano salvato per gestire scenari multipli
+model WatchlistPlan {
+  id          String   @id @default(cuid())
+
+  memberId    String
+  member      LeagueMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  name        String   // "Piano A", "Piano B", "Aggressivo"
+  description String?
+
+  playerIds   String[] // Array di SerieAPlayer IDs
+
+  totalBudget Int      // Somma clausole (calcolato)
+  isActive    Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([memberId, name])
+  @@index([memberId])
 }
 
 

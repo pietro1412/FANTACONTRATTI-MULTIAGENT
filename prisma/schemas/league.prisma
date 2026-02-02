@@ -94,6 +94,7 @@ model LeagueMember {
   rubataPreferences RubataPreference[]       // see: rubata.prisma
   auctionObjectives AuctionObjective[]       // see: auction.prisma
   alertNotifications PlayerAlertNotification[] // see: alert.prisma
+  watchlistPlans    WatchlistPlan[]          // see: rubata.prisma
 
   @@unique([userId, leagueId])
   @@index([leagueId, status])

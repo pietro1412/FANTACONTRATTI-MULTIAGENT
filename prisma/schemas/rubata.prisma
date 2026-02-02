@@ -122,3 +122,29 @@ model RubataPreference {
   @@index([sessionId, memberId])
   @@index([memberId, isWatchlist])
 }
+
+// =============================================================================
+// WATCHLIST PLANS - Piano A/B per obiettivi clausole
+// =============================================================================
+
+// Piano salvato per gestire scenari multipli
+model WatchlistPlan {
+  id          String   @id @default(cuid())
+
+  memberId    String
+  member      LeagueMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  name        String   // "Piano A", "Piano B", "Aggressivo"
+  description String?
+
+  playerIds   String[] // Array di SerieAPlayer IDs
+
+  totalBudget Int      // Somma clausole (calcolato)
+  isActive    Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([memberId, name])
+  @@index([memberId])
+}
