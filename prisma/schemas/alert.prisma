@@ -1,0 +1,86 @@
+// =============================================================================
+// alert.prisma - PlayerAlert, PlayerAlertNotification
+// =============================================================================
+//
+// This file contains models for the player alert system.
+// Alerts are created when important events happen to players (injury, form change,
+// transfer, etc.) and notifications are sent to managers who watch those players.
+//
+// =============================================================================
+
+// Types of alerts that can be generated
+enum AlertType {
+  INJURY              // Player injured
+  SUSPENSION          // Player suspended (red card, accumulated yellows)
+  FORM_UP             // Player form improved significantly
+  FORM_DOWN           // Player form decreased significantly
+  GOAL_SCORED         // Player scored a goal
+  STARTED_MATCH       // Player started a match
+  BENCHED             // Player was on the bench
+  NOT_CALLED          // Player not called for match
+  TRANSFER            // Player transferred to another team
+  PRICE_CHANGE        // Player quotation changed
+}
+
+// Severity levels for alerts
+enum AlertSeverity {
+  INFO       // Informational (goal scored, started match)
+  WARNING    // Worth attention (form down, benched)
+  DANGER     // Important (injury, suspension, not called)
+}
+
+// Alert for a player event
+model PlayerAlert {
+  id           String        @id @default(cuid())
+
+  playerId     String
+  player       SerieAPlayer  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  alertType    AlertType
+  severity     AlertSeverity @default(INFO)
+
+  title        String        // Short title (e.g., "Infortunio")
+  message      String        // Detailed message (e.g., "Distorsione alla caviglia, 15 giorni di stop")
+
+  // Optional match reference (for match-related alerts)
+  matchId      Int?
+  matchInfo    String?       // e.g., "Roma vs Juventus, Giornata 15"
+
+  // Additional metadata as JSON (flexible for different alert types)
+  metadata     Json?         // e.g., { "days_out": 15, "old_rating": 6.5, "new_rating": 7.2 }
+
+  // Validity period (some alerts expire, like "form up" after next match)
+  validFrom    DateTime      @default(now())
+  validUntil   DateTime?     // null = no expiry
+
+  createdAt    DateTime      @default(now())
+
+  // Notifications sent to managers
+  notifications PlayerAlertNotification[]
+
+  @@index([playerId, createdAt])
+  @@index([alertType, createdAt])
+  @@index([createdAt])
+}
+
+// Notification sent to a manager about a player alert
+model PlayerAlertNotification {
+  id           String       @id @default(cuid())
+
+  alertId      String
+  alert        PlayerAlert  @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  memberId     String
+  member       LeagueMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  // Read status
+  isRead       Boolean      @default(false)
+  readAt       DateTime?
+
+  createdAt    DateTime     @default(now())
+
+  // Each member gets only one notification per alert
+  @@unique([alertId, memberId])
+  @@index([memberId, isRead, createdAt])
+  @@index([memberId, createdAt])
+}
