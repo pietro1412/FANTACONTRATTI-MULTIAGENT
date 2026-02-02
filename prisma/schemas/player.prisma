@@ -28,6 +28,10 @@ model SerieAPlayer {
   apiFootballStats Json?               // Stats JSON blob from API-Football
   statsSyncedAt    DateTime?           // Last stats sync timestamp
 
+  // Seasonality cache (computed from matchRatings)
+  seasonalStatsCache    Json?       // { monthly_breakdown: {...}, hot_months: [...], avg_rating: N }
+  seasonalStatsCachedAt DateTime?
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -39,6 +43,8 @@ model SerieAPlayer {
   pendingNominations MarketSession[] @relation("PendingNomination")  // see: market-session.prisma
   rubataPreferences RubataPreference[] // see: rubata.prisma
   auctionObjectives AuctionObjective[] // see: auction.prisma
+  matchRatings PlayerMatchRating[]  // see below
+  alerts       PlayerAlert[]        // see: alert.prisma
 }
 
 model QuotazioniUpload {
@@ -72,4 +78,28 @@ model ApiFootballPlayerCache {
 
   @@index([name])
   @@index([team])
+}
+
+// Ratings per singola partita (per calcolo stagionalità)
+model PlayerMatchRating {
+  id              String   @id @default(cuid())
+  playerId        String
+  player          SerieAPlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  apiFixtureId    Int           // API-Football fixture ID
+  matchDate       DateTime
+  season          String        // "2024-2025"
+  round           String?       // "Regular Season - 15"
+
+  rating          Float?        // Rating 0-10 (null se non ha giocato)
+  minutesPlayed   Int?
+  goals           Int?
+  assists         Int?
+
+  createdAt       DateTime @default(now())
+
+  @@unique([playerId, apiFixtureId])
+  @@index([playerId, matchDate])
+  @@index([matchDate])
+  @@index([season])
 }

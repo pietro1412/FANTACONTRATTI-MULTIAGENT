@@ -93,6 +93,7 @@ model LeagueMember {
   sessionPrizes  SessionPrize[]              // see: prize.prisma
   rubataPreferences RubataPreference[]       // see: rubata.prisma
   auctionObjectives AuctionObjective[]       // see: auction.prisma
+  alertNotifications PlayerAlertNotification[] // see: alert.prisma
 
   @@unique([userId, leagueId])
   @@index([leagueId, status])

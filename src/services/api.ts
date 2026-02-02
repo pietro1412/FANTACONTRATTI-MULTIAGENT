@@ -1794,3 +1794,33 @@ export const gameApi = {
       leagueName?: string
     }>(`/api/game/status?leagueId=${leagueId}`),
 }
+
+// Seasonality API - Monthly performance breakdown
+export const seasonalityApi = {
+  // Get seasonal stats for a player
+  getPlayerSeasonality: (playerId: string) =>
+    request<{
+      monthly_breakdown: Record<string, number>
+      hot_months: string[]
+      avg_rating: number
+      currentMonth: string
+    }>(`/api/seasonality/player/${playerId}`),
+
+  // Get current month name
+  getCurrentMonth: () =>
+    request<{ month: string }>('/api/seasonality/current-month'),
+
+  // Sync ratings from API-Football (superadmin only)
+  syncRatings: (season: number) =>
+    request<{ success: boolean; fixturesProcessed: number; ratingsCreated: number }>(
+      '/api/seasonality/sync',
+      { method: 'POST', body: JSON.stringify({ season }) }
+    ),
+
+  // Refresh cache for all players (superadmin only)
+  refreshCache: () =>
+    request<{ playersUpdated: number }>(
+      '/api/seasonality/refresh-cache',
+      { method: 'POST' }
+    ),
+}
