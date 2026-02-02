@@ -5,7 +5,7 @@ import { Navigation } from '../components/Navigation'
 import { MarketPhaseBanner, type DisplayPhase } from '../components/MarketPhaseBanner'
 import { FilterSidebar } from '../components/FilterSidebar'
 import { PlannerWidget } from '../components/PlannerWidget'
-import { SeasonalitySparkbar, HotMonthsBadge } from '../components/SeasonalitySparkbar'
+import { SeasonalitySparkbar } from '../components/SeasonalitySparkbar'
 import { getTeamLogo } from '../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../utils/player-images'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
@@ -1420,21 +1420,19 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             )}
                           </td>
 
-                          {/* Seasonality sparkbar */}
-                          <td className="p-2 text-center">
+                          {/* Seasonality - Rating with tooltip */}
+                          <td className="p-2">
                             {player.playerSeasonalStatsCache ? (
-                              <div className="flex flex-col items-center gap-1">
-                                <SeasonalitySparkbar
-                                  monthlyBreakdown={player.playerSeasonalStatsCache.monthlyBreakdown}
-                                  hotMonths={player.playerSeasonalStatsCache.hotMonths}
-                                  showLabels={false}
-                                />
-                                {player.playerSeasonalStatsCache.hotMonths.length > 0 && (
-                                  <HotMonthsBadge hotMonths={player.playerSeasonalStatsCache.hotMonths} />
-                                )}
-                              </div>
+                              <SeasonalitySparkbar
+                                monthlyBreakdown={player.playerSeasonalStatsCache.monthlyBreakdown}
+                                hotMonths={player.playerSeasonalStatsCache.hotMonths}
+                                avgRating={player.playerSeasonalStatsCache.avgRating}
+                                matchCount={player.playerSeasonalStatsCache.matchCount}
+                              />
                             ) : (
-                              <span className="text-xs text-gray-600">N/D</span>
+                              <div className="flex items-center justify-center">
+                                <span className="text-xs text-gray-600">—</span>
+                              </div>
                             )}
                           </td>
 
