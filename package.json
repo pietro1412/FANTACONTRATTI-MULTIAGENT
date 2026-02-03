@@ -27,7 +27,10 @@
     "db:studio": "prisma studio --schema=prisma/schema.generated.prisma",
     "db:seed": "tsx prisma/seed.ts",
     "db:init-prod": "tsx scripts/init-production.ts",
-    "db:build-schema": "tsx scripts/build-schema.ts"
+    "db:build-schema": "tsx scripts/build-schema.ts",
+    "db:backup": "node scripts/backup-critical-data.cjs",
+    "predeploy": "npm run db:backup",
+    "deploy:main": "npm run db:backup && git checkout main && git pull origin main && git merge develop --no-edit && git push origin main && git checkout develop"
   },
   "keywords": [
     "fantacalcio",
