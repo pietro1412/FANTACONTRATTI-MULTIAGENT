@@ -131,3 +131,66 @@ npx prisma studio --schema=prisma/schema.generated.prisma
 ```bash
 npm run build
 ```
+
+---
+
+## CI/CD Pipeline
+
+### GitHub Actions Workflows
+
+Il progetto utilizza GitHub Actions per CI/CD automatizzata.
+
+#### Workflow Disponibili
+
+| Workflow | Trigger | Descrizione |
+|----------|---------|-------------|
+| **CI** (`ci.yml`) | Push/PR su develop, master, main | Lint, TypeCheck, Unit Tests, Build |
+| **E2E** (`e2e.yml`) | PR + Manual | Test Playwright end-to-end |
+| **PR Check** (`pr-check.yml`) | PR aperte | Validazione PR, security, bundle size |
+| **Release** (`release.yml`) | Push master + Tags | Validazione release, changelog |
+
+#### CI Workflow
+Eseguito automaticamente su ogni push e PR:
+1. **Lint** - ESLint check
+2. **TypeCheck** - Compilazione TypeScript
+3. **Unit Tests** - Vitest con coverage
+4. **Build** - Build frontend e API
+
+#### E2E Workflow
+Test end-to-end con Playwright:
+- Database PostgreSQL in container
+- Eseguibile manualmente con scelta browser
+- Report HTML degli errori
+
+#### PR Check Workflow
+Validazione qualità delle PR:
+- Formato titolo PR (conventional commits)
+- Check file sensibili (.env, credentials)
+- Dependency review (vulnerabilità)
+- Report dimensioni bundle
+
+#### Release Workflow
+Gestione release automatica:
+- Validazione completa build
+- Generazione changelog
+- Creazione GitHub Release
+- Integrazione con Vercel deploy
+
+### Dependabot
+Aggiornamento automatico dipendenze:
+- NPM: settimanale (lunedì 09:00)
+- GitHub Actions: settimanale
+- Gruppi separati per dev/prod dependencies
+
+### Secrets Richiesti
+| Secret | Descrizione |
+|--------|-------------|
+| `CODECOV_TOKEN` | (Opzionale) Upload coverage reports |
+| `GITHUB_TOKEN` | Automatico, per release |
+
+### Status Checks Richiesti per Merge
+Per proteggere i branch principali, configurare:
+- `CI / Lint`
+- `CI / Type Check`
+- `CI / Unit Tests`
+- `CI / Build`

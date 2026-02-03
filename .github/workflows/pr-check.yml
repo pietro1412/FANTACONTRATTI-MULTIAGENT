@@ -1,0 +1,95 @@
+name: PR Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  pr-metadata:
+    name: PR Validation
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR title format
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          # Allow conventional commits format or simple descriptive titles
+          if [[ ! "$PR_TITLE" =~ ^(feat|fix|docs|style|refactor|test|chore|ci|perf|build|revert)(\(.+\))?:.*$ ]] && \
+             [[ ! "$PR_TITLE" =~ ^[A-Z].*$ ]]; then
+            echo "::warning::PR title should follow conventional commits format (feat:, fix:, etc.) or start with a capital letter"
+          fi
+
+      - name: Check for large files
+        run: |
+          # Check for files larger than 5MB
+          LARGE_FILES=$(find . -type f -size +5M -not -path "./.git/*" -not -path "./node_modules/*" 2>/dev/null || true)
+          if [ -n "$LARGE_FILES" ]; then
+            echo "::warning::Large files detected (>5MB):"
+            echo "$LARGE_FILES"
+          fi
+
+      - name: Check for sensitive files
+        run: |
+          # Check for common sensitive file patterns
+          SENSITIVE_PATTERNS=".env .env.local .env.production credentials.json service-account.json"
+          for pattern in $SENSITIVE_PATTERNS; do
+            if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "$pattern"; then
+              echo "::error::Sensitive file detected in PR: $pattern"
+              exit 1
+            fi
+          done
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, CC0-1.0, Unlicense
+        continue-on-error: true
+
+  size-check:
+    name: Bundle Size Check
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and check size
+        run: |
+          npm run build
+
+          # Report bundle sizes
+          echo "## Bundle Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+
+          for file in dist/assets/*.js; do
+            if [ -f "$file" ]; then
+              SIZE=$(du -h "$file" | cut -f1)
+              FILENAME=$(basename "$file")
+              echo "| $FILENAME | $SIZE |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done

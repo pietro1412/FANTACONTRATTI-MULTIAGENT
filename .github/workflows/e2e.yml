@@ -1,0 +1,112 @@
+name: E2E Tests
+
+on:
+  pull_request:
+    branches: [develop, master, main]
+  workflow_dispatch:
+    inputs:
+      browser:
+        description: 'Browser to test'
+        required: false
+        default: 'chromium'
+        type: choice
+        options:
+          - chromium
+          - firefox
+          - webkit
+          - all
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fantacontratti_test
+  DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@localhost:5432/fantacontratti_test
+  JWT_ACCESS_SECRET: test-jwt-access-secret-min-32-chars
+  JWT_REFRESH_SECRET: test-jwt-refresh-secret-min-32-chars
+  API_PORT: 3003
+  FRONTEND_URL: http://localhost:5173
+  VITE_API_URL: http://localhost:3003
+  VITE_APP_NAME: Fantacontratti
+  VITE_APP_ENV: test
+
+jobs:
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fantacontratti_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps ${{ github.event.inputs.browser || 'chromium' }}
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Push database schema
+        run: npx prisma db push --schema=prisma/schema.generated.prisma --accept-data-loss
+
+      - name: Seed database
+        run: npm run db:seed
+        continue-on-error: true
+
+      - name: Build API
+        run: npm run build:api
+
+      - name: Build Frontend
+        run: npm run build
+
+      - name: Run E2E tests
+        run: |
+          if [ "${{ github.event.inputs.browser }}" = "all" ]; then
+            npx playwright test
+          else
+            npx playwright test --project=${{ github.event.inputs.browser || 'chromium' }}
+          fi
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7
