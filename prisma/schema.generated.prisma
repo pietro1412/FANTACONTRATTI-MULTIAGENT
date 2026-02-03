@@ -1035,6 +1035,7 @@ model SerieAPlayer {
   pendingNominations MarketSession[] @relation("PendingNomination")  // see: market-session.prisma
   rubataPreferences RubataPreference[] // see: rubata.prisma
   auctionObjectives AuctionObjective[] // see: auction.prisma
+  matchRatings PlayerMatchRating[]  // Match-by-match ratings from API-Football
 }
 
 model QuotazioniUpload {
@@ -1068,6 +1069,31 @@ model ApiFootballPlayerCache {
 
   @@index([name])
   @@index([team])
+}
+
+// Match-by-match player ratings from API-Football /fixtures/players endpoint
+// Accurate source for stats (replaces apiFootballStats blob)
+model PlayerMatchRating {
+  id            String   @id @default(cuid())
+
+  playerId      String
+  player        SerieAPlayer @relation(fields: [playerId], references: [id])
+
+  apiFixtureId  Int              // API-Football fixture ID
+  matchDate     DateTime
+  season        String           // e.g. "2025-2026"
+  round         String?          // e.g. "Regular Season - 15"
+
+  rating        Float?           // Match rating (e.g. 7.2)
+  minutesPlayed Int?             // Minutes played in match
+  goals         Int?             // Goals scored
+  assists       Int?             // Assists made
+
+  createdAt     DateTime @default(now())
+
+  @@unique([playerId, apiFixtureId])
+  @@index([playerId, season])
+  @@index([season])
 }
 
 
