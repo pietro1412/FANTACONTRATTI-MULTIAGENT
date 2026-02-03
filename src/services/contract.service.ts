@@ -1043,25 +1043,25 @@ export async function consolidateContracts(
               where: { id: member.id },
               data: { currentBudget: { increment: compensation } },
             })
-            await recordMovement(tx, {
+            await recordMovement({
               leagueId,
-              sessionId: activeSession.id,
+              marketSessionId: activeSession.id,
               playerId: player.id,
               fromMemberId: member.id,
               toMemberId: null,
-              type: 'ABROAD_COMPENSATION',
-              amount: compensation,
+              movementType: 'ABROAD_COMPENSATION',
+              price: compensation,
             })
           } else {
             // RETROCESSO: free release, no compensation
-            await recordMovement(tx, {
+            await recordMovement({
               leagueId,
-              sessionId: activeSession.id,
+              marketSessionId: activeSession.id,
               playerId: player.id,
               fromMemberId: member.id,
               toMemberId: null,
-              type: 'RELEGATION_RELEASE',
-              amount: 0,
+              movementType: 'RELEGATION_RELEASE',
+              price: 0,
             })
           }
         } else {
@@ -1071,14 +1071,14 @@ export async function consolidateContracts(
             where: { id: member.id },
             data: { currentBudget: { decrement: releaseCost } },
           })
-          await recordMovement(tx, {
+          await recordMovement({
             leagueId,
-            sessionId: activeSession.id,
+            marketSessionId: activeSession.id,
             playerId: contract.roster.playerId,
             fromMemberId: member.id,
             toMemberId: null,
-            type: 'RELEASE',
-            amount: releaseCost,
+            movementType: 'RELEASE',
+            price: releaseCost,
           })
         }
 
@@ -1116,16 +1116,16 @@ export async function consolidateContracts(
       })
 
       for (const contract of keptExitedPlayers) {
-        const movementType = contract.roster.player.exitReason === 'ESTERO'
+        const keepMovementType = contract.roster.player.exitReason === 'ESTERO'
           ? 'ABROAD_KEEP' : 'RELEGATION_KEEP'
-        await recordMovement(tx, {
+        await recordMovement({
           leagueId,
-          sessionId: activeSession.id,
+          marketSessionId: activeSession.id,
           playerId: contract.roster.player.id,
           fromMemberId: null,
           toMemberId: member.id,
-          type: movementType,
-          amount: 0,
+          movementType: keepMovementType,
+          price: 0,
         })
       }
 
