@@ -25,10 +25,26 @@ interface FeedbackHubProps {
 // Hardcoded patch notes
 const PATCH_NOTES: PatchNote[] = [
   {
+    id: 'predeploy-backup',
+    version: '1.x',
+    date: '2026-02-03',
+    title: 'Sistema di backup automatico pre-deploy',
+    description: 'Implementato sistema di backup automatico che salva i dati critici (statistiche giocatori, rose, contratti, membri lega) prima di ogni deploy in produzione. Include script di recovery per ripristino rapido in caso di problemi.',
+    type: 'feature',
+  },
+  {
+    id: 'fix-player-stats-accuracy',
+    version: '1.x',
+    date: '2026-02-03',
+    title: 'Statistiche giocatori accurate',
+    description: 'Corretta la fonte dati per le statistiche dei giocatori. Ora le presenze, minuti, gol e assist vengono calcolati dalla tabella PlayerMatchRating (dati partita per partita da API-Football) invece che dal blob apiFootballStats, garantendo dati sempre accurati e aggiornati.',
+    type: 'fix',
+  },
+  {
     id: 'fix-rinnovi-regole',
     version: '1.x',
     date: '2026-01-31',
-    title: '🚨 FIX IMPORTANTE: Regole Rinnovo Contratti',
+    title: 'FIX IMPORTANTE: Regole Rinnovo Contratti',
     description: 'Corretto bug nelle regole di rinnovo contratti. ORA FUNZIONA COSÌ: l\'ingaggio può sempre essere aumentato, ma la DURATA può essere estesa SOLO SE prima si aumenta l\'ingaggio. Esempio: da (4M, 3s) NON si può andare a (4M, 4s), ma SI può andare a (5M, 3s) o (5M, 4s). Aggiunto anche pulsante "Reset Modifica" per annullare le modifiche e ricominciare.',
     type: 'fix',
   },
