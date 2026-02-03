@@ -1,6 +1,7 @@
 import { PrismaClient, MemberStatus, RosterStatus, AuctionStatus, Position } from '@prisma/client'
 import { recordMovement } from './movement.service'
 import { triggerRubataBidPlaced, triggerRubataStealDeclared, triggerRubataReadyChanged, triggerAuctionClosed } from './pusher.service'
+import { computeSeasonStatsBatch, type ComputedSeasonStats } from './player-stats.service'
 
 const prisma = new PrismaClient()
 
@@ -3801,6 +3802,14 @@ export async function getAllPlayersForStrategies(
     },
   })
 
+  // Collect all player IDs for batch stats computation
+  const allPlayerIds = allMembers.flatMap(m =>
+    m.roster.filter(r => r.contract).map(r => r.playerId)
+  )
+
+  // Compute season stats for all players in batch (efficient single query)
+  const statsMap = await computeSeasonStatsBatch(allPlayerIds)
+
   // Build the players list with all info
   const players: Array<{
     rosterId: string
@@ -3813,6 +3822,7 @@ export async function getAllPlayersForStrategies(
     playerAge: number | null  // #190: player age
     playerApiFootballId: number | null
     playerApiFootballStats: unknown
+    playerComputedStats: ComputedSeasonStats | null
     ownerUsername: string
     ownerTeamName: string | null
     ownerRubataOrder: number | null
@@ -3841,6 +3851,7 @@ export async function getAllPlayersForStrategies(
         playerAge: rosterEntry.player.age,  // #190: player age
         playerApiFootballId: rosterEntry.player.apiFootballId,
         playerApiFootballStats: rosterEntry.player.apiFootballStats,
+        playerComputedStats: statsMap.get(rosterEntry.playerId) || null,
         ownerUsername: memberData.user.username,
         ownerTeamName: memberData.teamName,
         ownerRubataOrder: memberData.rubataOrder,
