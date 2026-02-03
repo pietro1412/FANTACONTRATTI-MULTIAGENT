@@ -19,16 +19,45 @@ function getAgeColor(age: number | null | undefined): string {
   return 'text-red-400'
 }
 
-// Computed stats from PlayerMatchRating (accurate data)
-export interface ComputedSeasonStats {
-  season: string
-  appearances: number
-  totalMinutes: number
-  avgRating: number | null
-  totalGoals: number
-  totalAssists: number
-  startingXI: number
-  matchesInSquad: number
+// Stats structure from API-Football
+export interface PlayerStats {
+  games: {
+    appearences: number | null
+    minutes: number | null
+    rating: number | null
+  }
+  goals: {
+    total: number | null
+    assists: number | null
+    conceded: number | null  // Goalkeeper: goals conceded
+    saves: number | null     // Goalkeeper: saves
+  }
+  shots: {
+    total: number | null
+    on: number | null
+  }
+  passes: {
+    total: number | null
+    key: number | null
+    accuracy: number | null
+  }
+  tackles: {
+    total: number | null
+    interceptions: number | null
+  }
+  dribbles: {
+    attempts: number | null
+    success: number | null
+  }
+  cards: {
+    yellow: number | null
+    red: number | null
+  }
+  penalty: {
+    scored: number | null
+    missed: number | null
+    saved: number | null     // Goalkeeper: penalties saved
+  }
 }
 
 export interface PlayerInfo {
@@ -38,7 +67,8 @@ export interface PlayerInfo {
   quotation?: number
   age?: number | null
   apiFootballId?: number | null
-  computedStats?: ComputedSeasonStats | null
+  apiFootballStats?: PlayerStats | null
+  statsSyncedAt?: string | null
 }
 
 interface PlayerStatsModalProps {
@@ -73,7 +103,7 @@ function StatSection({ title, children }: { title: string; children: React.React
 export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalProps) {
   if (!player) return null
 
-  const stats = player.computedStats
+  const stats = player.apiFootballStats as PlayerStats | null
 
   const positionLabels: Record<string, string> = {
     P: 'Portiere',
@@ -84,6 +114,9 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
 
   const playerPhotoUrl = getPlayerPhotoUrl(player.apiFootballId)
   const teamLogoUrl = getTeamLogoUrl(player.team)
+
+  // Debug: log player data to verify apiFootballId is present
+  console.log('PlayerStatsModal player:', player.name, 'apiFootballId:', player.apiFootballId, 'photoUrl:', playerPhotoUrl)
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
@@ -157,52 +190,115 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
               )}
             </div>
           </div>
-        ) : (
+        ) : player.position === 'P' ? (
+          /* ========== GOALKEEPER STATS ========== */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Presenze e Minuti */}
-            <StatSection title="Presenze">
-              <StatRow label="Presenze" value={stats.appearances} />
-              <StatRow label="Minuti Totali" value={stats.totalMinutes} />
-              <StatRow label="Titolarita (60+ min)" value={stats.startingXI} />
-              <StatRow label="Convocazioni" value={stats.matchesInSquad} />
+            {/* Generali */}
+            <StatSection title="Generali">
+              <StatRow label="Presenze" value={stats.games.appearences} />
+              <StatRow label="Minuti" value={stats.games.minutes} />
+              <StatRow label="Rating Medio" value={stats.games.rating != null ? Number(Number(stats.games.rating).toFixed(2)) : null} />
             </StatSection>
 
-            {/* Rating */}
-            <StatSection title="Performance">
-              <StatRow
-                label="Rating Medio"
-                value={stats.avgRating != null ? Number(stats.avgRating.toFixed(2)) : null}
-              />
-              {stats.appearances > 0 && stats.totalMinutes > 0 && (
+            {/* Portiere - Stats Principali */}
+            <StatSection title="🧤 Portiere">
+              <StatRow label="Parate" value={stats.goals.saves} />
+              <StatRow label="Gol Subiti" value={stats.goals.conceded} />
+              {stats.games.appearences && stats.goals.conceded != null && (
                 <StatRow
-                  label="Media Minuti/Partita"
-                  value={Math.round(stats.totalMinutes / stats.appearances)}
+                  label="Media Gol Subiti"
+                  value={Number((stats.goals.conceded / stats.games.appearences).toFixed(2))}
+                />
+              )}
+              {stats.games.appearences && stats.goals.conceded != null && stats.goals.conceded === 0 && (
+                <StatRow label="Clean Sheet" value={stats.games.appearences} />
+              )}
+            </StatSection>
+
+            {/* Passaggi */}
+            <StatSection title="Passaggi">
+              <StatRow label="Totali" value={stats.passes.total} />
+              <StatRow label="Precisione" value={stats.passes.accuracy} suffix="%" />
+            </StatSection>
+
+            {/* Rigori */}
+            <StatSection title="Rigori">
+              <StatRow label="Parati" value={stats.penalty.saved} />
+            </StatSection>
+
+            {/* Disciplina */}
+            <StatSection title="Disciplina">
+              <StatRow label="Cartellini Gialli" value={stats.cards.yellow} />
+              <StatRow label="Cartellini Rossi" value={stats.cards.red} />
+            </StatSection>
+          </div>
+        ) : (
+          /* ========== OUTFIELD PLAYER STATS ========== */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Generali */}
+            <StatSection title="Generali">
+              <StatRow label="Presenze" value={stats.games.appearences} />
+              <StatRow label="Minuti" value={stats.games.minutes} />
+              <StatRow label="Rating Medio" value={stats.games.rating != null ? Number(Number(stats.games.rating).toFixed(2)) : null} />
+            </StatSection>
+
+            {/* Attacco */}
+            <StatSection title="Attacco">
+              <StatRow label="Gol" value={stats.goals.total} />
+              <StatRow label="Assist" value={stats.goals.assists} />
+              <StatRow label="Tiri Totali" value={stats.shots.total} />
+              <StatRow label="Tiri in Porta" value={stats.shots.on} />
+            </StatSection>
+
+            {/* Passaggi */}
+            <StatSection title="Passaggi">
+              <StatRow label="Totali" value={stats.passes.total} />
+              <StatRow label="Key Passes" value={stats.passes.key} />
+              <StatRow label="Precisione" value={stats.passes.accuracy} suffix="%" />
+            </StatSection>
+
+            {/* Difesa */}
+            <StatSection title="Difesa">
+              <StatRow label="Tackles" value={stats.tackles.total} />
+              <StatRow label="Intercetti" value={stats.tackles.interceptions} />
+            </StatSection>
+
+            {/* Dribbling */}
+            <StatSection title="Dribbling">
+              <StatRow label="Tentati" value={stats.dribbles.attempts} />
+              <StatRow label="Riusciti" value={stats.dribbles.success} />
+              {stats.dribbles.attempts && stats.dribbles.success && (
+                <StatRow
+                  label="Percentuale"
+                  value={Math.round((stats.dribbles.success / stats.dribbles.attempts) * 100)}
+                  suffix="%"
                 />
               )}
             </StatSection>
 
-            {/* Gol e Assist - mostrato solo se ha almeno un gol o assist o e' attaccante/centrocampista */}
-            {(stats.totalGoals > 0 || stats.totalAssists > 0 || player.position === 'A' || player.position === 'C') && (
-              <StatSection title="Contributo Offensivo">
-                <StatRow label="Gol" value={stats.totalGoals} />
-                <StatRow label="Assist" value={stats.totalAssists} />
-                <StatRow label="Totale G+A" value={stats.totalGoals + stats.totalAssists} />
-                {stats.appearances > 0 && (stats.totalGoals + stats.totalAssists) > 0 && (
-                  <StatRow
-                    label="G+A ogni 90 min"
-                    value={Number(((stats.totalGoals + stats.totalAssists) / stats.totalMinutes * 90).toFixed(2))}
-                  />
-                )}
-              </StatSection>
-            )}
-
-            {/* Info Stagione */}
-            <StatSection title="Info">
-              <div className="flex justify-between items-center py-1.5">
-                <span className="text-gray-400 text-sm">Stagione</span>
-                <span className="text-white font-semibold">{stats.season}</span>
-              </div>
+            {/* Disciplina */}
+            <StatSection title="Disciplina">
+              <StatRow label="Cartellini Gialli" value={stats.cards.yellow} />
+              <StatRow label="Cartellini Rossi" value={stats.cards.red} />
             </StatSection>
+
+            {/* Rigori */}
+            <StatSection title="Rigori">
+              <StatRow label="Segnati" value={stats.penalty.scored} />
+              <StatRow label="Sbagliati" value={stats.penalty.missed} />
+            </StatSection>
+          </div>
+        )}
+
+        {player.statsSyncedAt && (
+          <div className="mt-4 text-xs text-gray-500 text-center">
+            Ultimo aggiornamento: {new Date(player.statsSyncedAt).toLocaleDateString('it-IT', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
           </div>
         )}
       </ModalBody>

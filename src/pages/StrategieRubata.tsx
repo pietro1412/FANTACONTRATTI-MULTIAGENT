@@ -5,7 +5,7 @@ import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../utils/player-images'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
-import { PlayerStatsModal, type PlayerInfo, type ComputedSeasonStats } from '../components/PlayerStatsModal'
+import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
 import RadarChart from '../components/ui/RadarChart'
 
 // Player colors for radar chart comparison
@@ -40,7 +40,7 @@ interface StrategyPlayer {
   playerQuotation: number
   playerAge?: number | null
   playerApiFootballId?: number | null
-  playerComputedStats?: ComputedSeasonStats | null
+  playerApiFootballStats?: PlayerStats | null
   ownerUsername: string
   ownerTeamName: string | null
   ownerRubataOrder: number | null
@@ -57,7 +57,7 @@ interface SvincolatoPlayer {
   playerTeam: string
   playerAge?: number | null
   playerApiFootballId?: number | null
-  playerComputedStats?: PlayerStats | null
+  playerApiFootballStats?: PlayerStats | null
 }
 
 interface RubataPreference {
@@ -999,7 +999,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               quotation: isSvincolato ? undefined : player.playerQuotation,
                               age: player.playerAge,
                               apiFootballId: player.playerApiFootballId,
-                              computedStats: player.playerComputedStats,
+                              apiFootballStats: player.playerApiFootballStats,
                             })}
                             className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
                           >
@@ -1055,21 +1055,21 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           <div className="bg-cyan-500/10 rounded p-1.5 border border-cyan-500/20">
                             <div className="text-gray-500 text-[10px] uppercase">Rating</div>
                             <div className="text-cyan-400 font-semibold">
-                              {player.playerComputedStats?.avgRating != null
-                                ? Number(player.playerComputedStats.avgRating).toFixed(1)
+                              {player.playerApiFootballStats?.games?.rating != null
+                                ? Number(player.playerApiFootballStats.games.rating).toFixed(1)
                                 : '-'}
                             </div>
                           </div>
                           <div className="bg-secondary-500/10 rounded p-1.5 border border-secondary-500/20">
                             <div className="text-gray-500 text-[10px] uppercase">Gol</div>
                             <div className="text-secondary-400 font-medium">
-                              {player.playerComputedStats?.totalGoals ?? '-'}
+                              {player.playerApiFootballStats?.goals?.total ?? '-'}
                             </div>
                           </div>
                           <div className="bg-primary-500/10 rounded p-1.5 border border-primary-500/20">
                             <div className="text-gray-500 text-[10px] uppercase">Assist</div>
                             <div className="text-primary-400 font-medium">
-                              {player.playerComputedStats?.totalAssists ?? '-'}
+                              {player.playerApiFootballStats?.goals?.assists ?? '-'}
                             </div>
                           </div>
                         </div>
@@ -1236,7 +1236,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                   quotation: isSvincolato ? undefined : player.playerQuotation,
                                   age: player.playerAge,
                                   apiFootballId: player.playerApiFootballId,
-                                  computedStats: player.playerComputedStats,
+                                  apiFootballStats: player.playerApiFootballStats,
                                 })}
                                 className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
                               >
@@ -1328,7 +1328,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
                           {/* Stats columns - full set for stats view */}
                           {dataViewMode === 'stats' && STATS_COLUMNS.map((col, idx) => {
-                            const rawValue = col.getValue(player.playerComputedStats)
+                            const rawValue = col.getValue(player.playerApiFootballStats)
                             const numValue = rawValue != null && rawValue !== '' ? Number(rawValue) : null
                             const formatted = col.format ? col.format(numValue) : (numValue ?? '-')
                             return (
@@ -1340,7 +1340,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
                           {/* Stats columns - essential only for merge view */}
                           {dataViewMode === 'merge' && STATS_COLUMNS.filter(c => MERGE_STATS_KEYS.includes(c.key)).map((col, idx) => {
-                            const rawValue = col.getValue(player.playerComputedStats)
+                            const rawValue = col.getValue(player.playerApiFootballStats)
                             const numValue = rawValue != null && rawValue !== '' ? Number(rawValue) : null
                             const formatted = col.format ? col.format(numValue) : (numValue ?? '-')
                             return (
@@ -1553,10 +1553,30 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
                           }))}
                           data={[
-                            { label: 'Rating', values: playersToCompare.map(p => Math.round((Number(p.playerComputedStats?.avgRating) || 0) * 10)) },
-                            { label: 'Presenze', values: playersToCompare.map(p => p.playerComputedStats?.appearances ?? 0) },
-                            { label: 'Minuti', values: playersToCompare.map(p => Math.round((p.playerComputedStats?.totalMinutes ?? 0) / 100)) },
-                            { label: 'Titolare', values: playersToCompare.map(p => p.playerComputedStats?.startingXI ?? 0) },
+                            { label: 'Parate', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.saves ?? 0) },
+                            { label: 'Rig. Parati', values: playersToCompare.map(p => (p.playerApiFootballStats?.penalty?.saved ?? 0) * 10) },
+                            { label: 'Rating', values: playersToCompare.map(p => Math.round((Number(p.playerApiFootballStats?.games?.rating) || 0) * 10)) },
+                            { label: 'Presenze', values: playersToCompare.map(p => p.playerApiFootballStats?.games?.appearences ?? 0) },
+                            { label: 'Minuti', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.games?.minutes ?? 0) / 100)) },
+                            { label: 'Passaggi', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.passes?.total ?? 0) / 10)) },
+                          ]}
+                        />
+                      </div>
+
+                      {/* Goalkeeper Goals Conceded Radar */}
+                      <div className="bg-yellow-500/10 rounded-xl p-4 border border-yellow-500/20">
+                        <h3 className="text-center text-yellow-400 font-semibold mb-4">🧤 Gol Subiti (meno è meglio)</h3>
+                        <RadarChart
+                          size={280}
+                          players={playersToCompare.map((p, i) => ({
+                            name: p.playerName,
+                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                          }))}
+                          data={[
+                            { label: 'Gol Subiti', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.conceded ?? 0) },
+                            { label: 'Prec. Pass', values: playersToCompare.map(p => p.playerApiFootballStats?.passes?.accuracy ?? 0) },
+                            { label: 'Gialli', values: playersToCompare.map(p => (p.playerApiFootballStats?.cards?.yellow ?? 0) * 5) },
+                            { label: 'Rossi', values: playersToCompare.map(p => (p.playerApiFootballStats?.cards?.red ?? 0) * 20) },
                           ]}
                         />
                       </div>
@@ -1574,7 +1594,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     )}
                     {/* Offensive Stats Radar */}
                     <div className="bg-surface-300/50 rounded-xl p-4">
-                      <h3 className="text-center text-white font-semibold mb-4">Contributo Offensivo</h3>
+                      <h3 className="text-center text-white font-semibold mb-4">Statistiche Offensive</h3>
                       <RadarChart
                         size={280}
                         players={playersToCompare.map((p, i) => ({
@@ -1582,16 +1602,19 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
                         }))}
                         data={[
-                          { label: 'Gol', values: playersToCompare.map(p => p.playerComputedStats?.totalGoals ?? 0) },
-                          { label: 'Assist', values: playersToCompare.map(p => p.playerComputedStats?.totalAssists ?? 0) },
-                          { label: 'Rating', values: playersToCompare.map(p => Math.round((Number(p.playerComputedStats?.avgRating) || 0) * 10)) },
+                          { label: 'Gol', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.total ?? 0) },
+                          { label: 'Assist', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.assists ?? 0) },
+                          { label: 'Tiri', values: playersToCompare.map(p => p.playerApiFootballStats?.shots?.total ?? 0) },
+                          { label: 'Tiri Porta', values: playersToCompare.map(p => p.playerApiFootballStats?.shots?.on ?? 0) },
+                          { label: 'Dribbling', values: playersToCompare.map(p => p.playerApiFootballStats?.dribbles?.success ?? 0) },
+                          { label: 'Pass Chiave', values: playersToCompare.map(p => p.playerApiFootballStats?.passes?.key ?? 0) },
                         ]}
                       />
                     </div>
 
-                    {/* General Stats Radar */}
+                    {/* Defensive/General Stats Radar */}
                     <div className="bg-surface-300/50 rounded-xl p-4">
-                      <h3 className="text-center text-white font-semibold mb-4">Rendimento Generale</h3>
+                      <h3 className="text-center text-white font-semibold mb-4">Statistiche Difensive</h3>
                       <RadarChart
                         size={280}
                         players={playersToCompare.map((p, i) => ({
@@ -1599,10 +1622,12 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
                         }))}
                         data={[
-                          { label: 'Presenze', values: playersToCompare.map(p => p.playerComputedStats?.appearances ?? 0) },
-                          { label: 'Titolare', values: playersToCompare.map(p => p.playerComputedStats?.startingXI ?? 0) },
-                          { label: 'Rating', values: playersToCompare.map(p => Math.round((Number(p.playerComputedStats?.avgRating) || 0) * 10)) },
-                          { label: 'Minuti', values: playersToCompare.map(p => Math.round((p.playerComputedStats?.totalMinutes ?? 0) / 100)) },
+                          { label: 'Contrasti', values: playersToCompare.map(p => p.playerApiFootballStats?.tackles?.total ?? 0) },
+                          { label: 'Intercetti', values: playersToCompare.map(p => p.playerApiFootballStats?.tackles?.interceptions ?? 0) },
+                          { label: 'Passaggi', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.passes?.total ?? 0) / 10)) },
+                          { label: 'Presenze', values: playersToCompare.map(p => p.playerApiFootballStats?.games?.appearences ?? 0) },
+                          { label: 'Rating', values: playersToCompare.map(p => Math.round((Number(p.playerApiFootballStats?.games?.rating) || 0) * 10)) },
+                          { label: 'Minuti', values: playersToCompare.map(p => Math.round((p.playerApiFootballStats?.games?.minutes ?? 0) / 100)) },
                         ]}
                       />
                     </div>
@@ -1701,15 +1726,34 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           </tr>
                         </>
                       )}
-                      {/* Stats - simplified to computed stats only */}
+                      {/* Stats - includes goalkeeper-specific stats */}
                       {[
-                        { label: 'Presenze', getValue: (p: DisplayPlayer) => p.playerComputedStats?.appearances },
-                        { label: 'Titolarita', getValue: (p: DisplayPlayer) => p.playerComputedStats?.startingXI },
-                        { label: 'Minuti', getValue: (p: DisplayPlayer) => p.playerComputedStats?.totalMinutes },
-                        { label: 'Rating', getValue: (p: DisplayPlayer) => p.playerComputedStats?.avgRating, format: (v: number | null) => v != null ? Number(v).toFixed(2) : '-' },
-                        { label: 'Gol', getValue: (p: DisplayPlayer) => p.playerComputedStats?.totalGoals, colorClass: 'text-secondary-400' },
-                        { label: 'Assist', getValue: (p: DisplayPlayer) => p.playerComputedStats?.totalAssists, colorClass: 'text-primary-400' },
-                      ].map(row => {
+                        { label: 'Presenze', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.appearences },
+                        { label: 'Minuti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.minutes },
+                        { label: 'Rating', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.rating, format: (v: number | null) => v != null ? Number(v).toFixed(2) : '-' },
+                        // Goalkeeper-specific stats
+                        { label: '🧤 Parate', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.goals?.saves : null, colorClass: 'text-yellow-400', goalkeeperOnly: true },
+                        { label: '🧤 Gol Subiti', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.goals?.conceded : null, colorClass: 'text-yellow-400', goalkeeperOnly: true, lowerIsBetter: true },
+                        { label: '🧤 Rigori Parati', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.penalty?.saved : null, colorClass: 'text-yellow-400', goalkeeperOnly: true },
+                        // Outfield stats
+                        { label: 'Gol', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.goals?.total, colorClass: 'text-secondary-400' },
+                        { label: 'Assist', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.goals?.assists, colorClass: 'text-primary-400' },
+                        { label: 'Tiri Totali', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.shots?.total },
+                        { label: 'Tiri in Porta', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.shots?.on },
+                        { label: 'Contrasti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.tackles?.total },
+                        { label: 'Intercetti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.tackles?.interceptions },
+                        { label: 'Passaggi Chiave', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.passes?.key },
+                        { label: 'Precisione Passaggi', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.passes?.accuracy, format: (v: number | null) => v != null ? `${v}%` : '-' },
+                        { label: 'Dribbling Riusciti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.dribbles?.success },
+                        { label: 'Ammonizioni', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.cards?.yellow, colorClass: 'text-warning-400' },
+                        { label: 'Espulsioni', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.cards?.red, colorClass: 'text-danger-400' },
+                      ].filter(row => {
+                        // Hide goalkeeper-only rows if no goalkeepers in comparison
+                        if ((row as { goalkeeperOnly?: boolean }).goalkeeperOnly) {
+                          return playersToCompare.some(p => p.playerPosition === 'P')
+                        }
+                        return true
+                      }).map(row => {
                         const values = playersToCompare.map(p => {
                           const val = row.getValue(p)
                           return val != null ? Number(val) : 0

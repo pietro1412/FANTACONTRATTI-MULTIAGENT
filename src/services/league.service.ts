@@ -1,7 +1,6 @@
 import { PrismaClient, MemberRole, MemberStatus, JoinType } from '@prisma/client'
 import type { CreateLeagueInput, UpdateLeagueInput } from '../utils/validation'
 import type { IEmailService } from '../modules/identity/domain/services/email.service.interface'
-import { computeSeasonStatsBatch, type ComputedSeasonStats } from './player-stats.service'
 
 const prisma = new PrismaClient()
 
@@ -814,29 +813,19 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
     return { success: false, message: 'Lega non trovata' }
   }
 
-  // Collect all player IDs for batch stats computation
-  const allPlayerIds = league.members.flatMap(m =>
-    m.roster.map(r => r.playerId)
-  )
-
-  // Compute season stats for all players in batch (efficient single query)
-  const statsMap = await computeSeasonStatsBatch(allPlayerIds)
-
   // If in CONTRATTI phase, hide contract details for other managers
   const processedMembers = league.members.map(member => {
-    const processedRoster = member.roster.map(r => ({
-      ...r,
-      player: {
-        ...r.player,
-        computedStats: statsMap.get(r.playerId) || null,
-      },
-      contract: hideOthersContracts && member.userId !== userId ? null : r.contract,
-    }))
-
-    return {
-      ...member,
-      roster: processedRoster,
+    if (hideOthersContracts && member.userId !== userId) {
+      // Hide contract info for other managers during CONTRATTI phase
+      return {
+        ...member,
+        roster: member.roster.map(r => ({
+          ...r,
+          contract: null, // Hide contract details
+        })),
+      }
     }
+    return member
   })
 
   return {
