@@ -20,6 +20,22 @@ interface PatchNotesProps {
 // Hardcoded patch notes - in the future this could come from an API
 const PATCH_NOTES: PatchNote[] = [
   {
+    id: 'predeploy-backup',
+    version: '1.x',
+    date: '2026-02-03',
+    title: 'Sistema di backup automatico pre-deploy',
+    description: 'Implementato sistema di backup automatico che salva i dati critici (statistiche giocatori, rose, contratti, membri lega) prima di ogni deploy in produzione. Include script di recovery per ripristino rapido in caso di problemi.',
+    type: 'feature',
+  },
+  {
+    id: 'fix-player-stats-accuracy',
+    version: '1.x',
+    date: '2026-02-03',
+    title: 'Statistiche giocatori accurate',
+    description: 'Corretta la fonte dati per le statistiche dei giocatori. Ora le presenze, minuti, gol e assist vengono calcolati dalla tabella PlayerMatchRating (dati partita per partita da API-Football) invece che dal blob apiFootballStats, garantendo dati sempre accurati e aggiornati.',
+    type: 'fix',
+  },
+  {
     id: 'fix-strategie-save',
     version: '1.x',
     date: '2026-01-31',
