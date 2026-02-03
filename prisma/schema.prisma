@@ -1055,6 +1055,11 @@ model PlayerContract {
   draftReleased   Boolean  @default(false)  // Marcato per taglio (pending)
   draftExitDecision String?  // null=INDECISO, "KEEP"=tieni, "RELEASE"=rilascia (solo giocatori usciti)
 
+  // Pre-consolidamento (privacy durante fase CONTRATTI)
+  // Salvato al momento del consolidamento per mostrare valori originali agli altri
+  preConsolidationSalary   Int?
+  preConsolidationDuration Int?
+
   signedAt        DateTime @default(now())
   expiresAt       DateTime?
 

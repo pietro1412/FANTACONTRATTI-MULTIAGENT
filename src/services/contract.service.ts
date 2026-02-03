@@ -902,10 +902,15 @@ export async function consolidateContracts(
           const multiplier = DURATION_MULTIPLIERS[renewal.duration as keyof typeof DURATION_MULTIPLIERS] || 7
           const newRescissionClause = renewal.salary * multiplier
 
-          // Update contract
+          // Update contract - save pre-consolidation values for privacy during CONTRATTI phase
+          // Only save if not already set (first consolidation)
           await tx.playerContract.update({
             where: { id: renewal.contractId },
             data: {
+              // Save original values before applying changes (for privacy to other managers)
+              preConsolidationSalary: contract.preConsolidationSalary ?? contract.salary,
+              preConsolidationDuration: contract.preConsolidationDuration ?? contract.duration,
+              // Apply new values
               salary: renewal.salary,
               duration: renewal.duration,
               rescissionClause: newRescissionClause,

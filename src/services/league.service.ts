@@ -1011,6 +1011,9 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
                 draftSalary: true,
                 draftDuration: true,
                 draftReleased: true,
+                // Pre-consolidation values for privacy during CONTRATTI phase
+                preConsolidationSalary: true,
+                preConsolidationDuration: true,
               },
             },
           },
@@ -1045,16 +1048,51 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
       const canSeeDraft = inContrattiPhase && !isConsolidated && isOwnTeam
 
       const players = member.roster.map(r => {
-        // Pre-rinnovo: original salary (before any draft changes)
-        const preRenewalSalary = r.contract?.salary || 0
+        // Pre-rinnovo salary logic:
+        // - For own team: always show current salary (real-time)
+        // - For other teams during CONTRATTI: if manager has consolidated, show preConsolidationSalary
+        //   (the value BEFORE they consolidated), otherwise show current salary
+        // This ensures other managers don't see consolidated values until phase ends
+        let preRenewalSalary: number
+        if (isOwnTeam) {
+          // Own team: always see current salary
+          preRenewalSalary = r.contract?.salary || 0
+        } else if (inContrattiPhase && isConsolidated && r.contract?.preConsolidationSalary != null) {
+          // Other team, consolidated during CONTRATTI: show pre-consolidation value
+          preRenewalSalary = r.contract.preConsolidationSalary
+        } else {
+          // Other team, not consolidated yet: show current salary
+          preRenewalSalary = r.contract?.salary || 0
+        }
 
-        // Post-rinnovo: use draftSalary if available and not consolidated, otherwise use salary
-        // If consolidated, the salary field already contains the final value
-        // FIX: Only show draft values to the owner, not to other managers
+        // Post-rinnovo: only show to owner who hasn't consolidated yet
         let postRenewalSalary: number | null = null
         if (canSeeDraft) {
           // During CONTRATTI phase, show draft value only to owner
           postRenewalSalary = r.contract?.draftSalary ?? null
+        }
+
+        // Salary to display in the main column:
+        // - Own team: current salary
+        // - Other team during CONTRATTI after consolidation: preConsolidationSalary
+        // - Otherwise: current salary
+        let displaySalary: number
+        if (isOwnTeam) {
+          displaySalary = r.contract?.salary || 0
+        } else if (inContrattiPhase && isConsolidated && r.contract?.preConsolidationSalary != null) {
+          displaySalary = r.contract.preConsolidationSalary
+        } else {
+          displaySalary = r.contract?.salary || 0
+        }
+
+        // Duration logic (same as salary)
+        let displayDuration: number
+        if (isOwnTeam) {
+          displayDuration = r.contract?.duration || 0
+        } else if (inContrattiPhase && isConsolidated && r.contract?.preConsolidationDuration != null) {
+          displayDuration = r.contract.preConsolidationDuration
+        } else {
+          displayDuration = r.contract?.duration || 0
         }
 
         return {
@@ -1064,8 +1102,8 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
           position: r.player.position,
           quotation: r.player.quotation,
           age: r.player.age,
-          salary: r.contract?.salary || 0,
-          duration: r.contract?.duration || 0,
+          salary: displaySalary,
+          duration: displayDuration,
           clause: r.contract?.rescissionClause || 0,
           // #193: Pre/Post renewal values
           preRenewalSalary,
