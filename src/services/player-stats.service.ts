@@ -5,8 +5,9 @@
  * Fonte dati accurata e sempre aggiornata.
  */
 
-import prisma from '../lib/prisma'
+import { PrismaClient } from '@prisma/client'
 
+const prisma = new PrismaClient()
 const CURRENT_SEASON = '2025-2026'
 
 export interface ComputedSeasonStats {
