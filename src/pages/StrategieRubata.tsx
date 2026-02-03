@@ -5,7 +5,7 @@ import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../utils/player-images'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
-import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
+import { PlayerStatsModal, type PlayerInfo, type PlayerStats, type ComputedSeasonStats } from '../components/PlayerStatsModal'
 import RadarChart from '../components/ui/RadarChart'
 
 // Player colors for radar chart comparison
@@ -41,6 +41,7 @@ interface StrategyPlayer {
   playerAge?: number | null
   playerApiFootballId?: number | null
   playerApiFootballStats?: PlayerStats | null
+  playerComputedStats?: ComputedSeasonStats | null
   ownerUsername: string
   ownerTeamName: string | null
   ownerRubataOrder: number | null
@@ -58,6 +59,7 @@ interface SvincolatoPlayer {
   playerAge?: number | null
   playerApiFootballId?: number | null
   playerApiFootballStats?: PlayerStats | null
+  playerComputedStats?: ComputedSeasonStats | null
 }
 
 interface RubataPreference {
@@ -999,7 +1001,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               quotation: isSvincolato ? undefined : player.playerQuotation,
                               age: player.playerAge,
                               apiFootballId: player.playerApiFootballId,
-                              apiFootballStats: player.playerApiFootballStats,
+                              computedStats: player.playerComputedStats,
                             })}
                             className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
                           >
@@ -1049,27 +1051,27 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         </div>
                       )}
 
-                      {/* Stats info - only for stats/merge view */}
+                      {/* Stats info - only for stats/merge view (using computedStats) */}
                       {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
                         <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3">
                           <div className="bg-cyan-500/10 rounded p-1.5 border border-cyan-500/20">
                             <div className="text-gray-500 text-[10px] uppercase">Rating</div>
                             <div className="text-cyan-400 font-semibold">
-                              {player.playerApiFootballStats?.games?.rating != null
-                                ? Number(player.playerApiFootballStats.games.rating).toFixed(1)
+                              {player.playerComputedStats?.avgRating != null
+                                ? player.playerComputedStats.avgRating.toFixed(1)
                                 : '-'}
                             </div>
                           </div>
                           <div className="bg-secondary-500/10 rounded p-1.5 border border-secondary-500/20">
                             <div className="text-gray-500 text-[10px] uppercase">Gol</div>
                             <div className="text-secondary-400 font-medium">
-                              {player.playerApiFootballStats?.goals?.total ?? '-'}
+                              {player.playerComputedStats?.totalGoals ?? '-'}
                             </div>
                           </div>
                           <div className="bg-primary-500/10 rounded p-1.5 border border-primary-500/20">
                             <div className="text-gray-500 text-[10px] uppercase">Assist</div>
                             <div className="text-primary-400 font-medium">
-                              {player.playerApiFootballStats?.goals?.assists ?? '-'}
+                              {player.playerComputedStats?.totalAssists ?? '-'}
                             </div>
                           </div>
                         </div>
@@ -1236,7 +1238,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                   quotation: isSvincolato ? undefined : player.playerQuotation,
                                   age: player.playerAge,
                                   apiFootballId: player.playerApiFootballId,
-                                  apiFootballStats: player.playerApiFootballStats,
+                                  computedStats: player.playerComputedStats,
                                 })}
                                 className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
                               >
@@ -1326,9 +1328,17 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             </>
                           )}
 
-                          {/* Stats columns - full set for stats view */}
+                          {/* Stats columns - full set for stats view (using computedStats for main stats) */}
                           {dataViewMode === 'stats' && STATS_COLUMNS.map((col, idx) => {
-                            const rawValue = col.getValue(player.playerApiFootballStats)
+                            // Use computedStats for main stats (more accurate data)
+                            let rawValue: number | string | null = null
+                            const cs = player.playerComputedStats
+                            if (col.key === 'appearances') rawValue = cs?.appearances ?? null
+                            else if (col.key === 'rating') rawValue = cs?.avgRating ?? null
+                            else if (col.key === 'goals') rawValue = cs?.totalGoals ?? null
+                            else if (col.key === 'assists') rawValue = cs?.totalAssists ?? null
+                            else if (col.key === 'minutes') rawValue = cs?.totalMinutes ?? null
+                            else rawValue = col.getValue(player.playerApiFootballStats) // secondary stats from API
                             const numValue = rawValue != null && rawValue !== '' ? Number(rawValue) : null
                             const formatted = col.format ? col.format(numValue) : (numValue ?? '-')
                             return (
@@ -1338,9 +1348,14 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             )
                           })}
 
-                          {/* Stats columns - essential only for merge view */}
+                          {/* Stats columns - essential only for merge view (using computedStats) */}
                           {dataViewMode === 'merge' && STATS_COLUMNS.filter(c => MERGE_STATS_KEYS.includes(c.key)).map((col, idx) => {
-                            const rawValue = col.getValue(player.playerApiFootballStats)
+                            const cs = player.playerComputedStats
+                            let rawValue: number | string | null = null
+                            if (col.key === 'rating') rawValue = cs?.avgRating ?? null
+                            else if (col.key === 'goals') rawValue = cs?.totalGoals ?? null
+                            else if (col.key === 'assists') rawValue = cs?.totalAssists ?? null
+                            else rawValue = col.getValue(player.playerApiFootballStats)
                             const numValue = rawValue != null && rawValue !== '' ? Number(rawValue) : null
                             const formatted = col.format ? col.format(numValue) : (numValue ?? '-')
                             return (

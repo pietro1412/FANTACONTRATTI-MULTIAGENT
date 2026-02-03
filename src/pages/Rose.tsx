@@ -10,6 +10,18 @@ interface RoseProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
 }
 
+// Computed stats from PlayerMatchRating (accurate data)
+interface ComputedSeasonStats {
+  season: string
+  appearances: number
+  totalMinutes: number
+  avgRating: number | null
+  totalGoals: number
+  totalAssists: number
+  startingXI: number
+  matchesInSquad: number
+}
+
 interface Player {
   id: string
   name: string
@@ -18,6 +30,7 @@ interface Player {
   quotation: number
   apiFootballId?: number | null
   apiFootballStats?: PlayerStats | null
+  computedStats?: ComputedSeasonStats | null
   statsSyncedAt?: string | null
 }
 
@@ -416,7 +429,7 @@ export function Rose({ onNavigate }: RoseProps) {
                               position: entry.player.position,
                               quotation: entry.player.quotation,
                               apiFootballId: entry.player.apiFootballId,
-                              apiFootballStats: entry.player.apiFootballStats,
+                              computedStats: entry.player.computedStats,
                               statsSyncedAt: entry.player.statsSyncedAt,
                             })}
                             className="font-medium text-white text-sm truncate block hover:text-primary-400 transition-colors text-left w-full"
@@ -426,9 +439,9 @@ export function Rose({ onNavigate }: RoseProps) {
                           <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
                             <TeamLogo team={entry.player.team} size="sm" />
                             <span className="truncate">{entry.player.team}</span>
-                            {entry.player.apiFootballStats?.games?.appearences !== null && entry.player.apiFootballStats?.games?.appearences !== undefined && (
+                            {entry.player.computedStats && entry.player.computedStats.appearances > 0 && (
                               <span className="ml-auto text-[10px] text-gray-500">
-                                {entry.player.apiFootballStats.games.appearences}P {entry.player.apiFootballStats?.goals?.total ?? 0}G {entry.player.apiFootballStats?.goals?.assists ?? 0}A
+                                {entry.player.computedStats.appearances}P {entry.player.computedStats.totalGoals}G {entry.player.computedStats.totalAssists}A
                               </span>
                             )}
                           </div>
@@ -519,7 +532,7 @@ export function Rose({ onNavigate }: RoseProps) {
                                 position: entry.player.position,
                                 quotation: entry.player.quotation,
                                 apiFootballId: entry.player.apiFootballId,
-                                apiFootballStats: entry.player.apiFootballStats,
+                                computedStats: entry.player.computedStats,
                                 statsSyncedAt: entry.player.statsSyncedAt,
                               })}
                               className="font-medium text-white text-sm truncate block hover:text-primary-400 transition-colors text-left"
@@ -536,20 +549,20 @@ export function Rose({ onNavigate }: RoseProps) {
                             </div>
                           </td>
 
-                          {/* Stats columns */}
+                          {/* Stats columns - using computedStats from PlayerMatchRating */}
                           <td className="p-2 text-center">
-                            <span className="text-gray-400 text-xs">{entry.player.apiFootballStats?.games?.appearences ?? '-'}</span>
+                            <span className="text-gray-400 text-xs">{entry.player.computedStats?.appearances ?? '-'}</span>
                           </td>
                           <td className="p-2 text-center">
-                            <span className="text-gray-400 text-xs">{entry.player.apiFootballStats?.goals?.total ?? '-'}</span>
+                            <span className="text-gray-400 text-xs">{entry.player.computedStats?.totalGoals ?? '-'}</span>
                           </td>
                           <td className="p-2 text-center">
-                            <span className="text-gray-400 text-xs">{entry.player.apiFootballStats?.goals?.assists ?? '-'}</span>
+                            <span className="text-gray-400 text-xs">{entry.player.computedStats?.totalAssists ?? '-'}</span>
                           </td>
                           <td className="p-2 text-center">
                             <span className="text-gray-400 text-xs">
-                              {entry.player.apiFootballStats?.games?.rating
-                                ? Number(entry.player.apiFootballStats.games.rating).toFixed(1)
+                              {entry.player.computedStats?.avgRating != null
+                                ? entry.player.computedStats.avgRating.toFixed(1)
                                 : '-'}
                             </span>
                           </td>
