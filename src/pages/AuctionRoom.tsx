@@ -5,7 +5,6 @@ import { useServerTime } from '../hooks/useServerTime'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Navigation } from '../components/Navigation'
-import { Chat } from '../components/Chat'
 import { getTeamLogo } from '../utils/teamLogos'
 import haptic from '../utils/haptics'
 import { POSITION_GRADIENTS, POSITION_FILTER_COLORS, POSITION_NAMES } from '../components/ui/PositionBadge'
@@ -2465,14 +2464,6 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
              * OLD_MANAGERS_LIST_END
              */}
 
-            {/* Chat - Below DGs, taller */}
-            <div className="hidden lg:block">
-              <Chat
-                sessionId={sessionId}
-                currentMemberId={managersStatus?.myId}
-                isAdmin={isAdmin}
-              />
-            </div>
           </div>
         </div>
       </main>

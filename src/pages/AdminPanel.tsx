@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import * as XLSX from 'xlsx'
-import { leagueApi, auctionApi, adminApi, inviteApi, contractApi, chatApi } from '../services/api'
+import { leagueApi, auctionApi, adminApi, inviteApi, contractApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { NumberStepper } from '../components/ui/NumberStepper'
@@ -230,20 +230,6 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       loadAppeals()
     } else {
       setError(res.message || 'Errore nella simulazione')
-    }
-    setIsSubmitting(false)
-  }
-
-  async function handleSimulateChatMessage() {
-    if (!activeSession) return
-    setError('')
-    setIsSubmitting(true)
-
-    const res = await chatApi.simulateMessage(activeSession.id)
-    if (res.success) {
-      setSuccess('Messaggio chat simulato!')
-    } else {
-      setError(res.message || 'Errore nella simulazione chat')
     }
     setIsSubmitting(false)
   }
@@ -915,9 +901,6 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                     <div className="flex gap-3">
                       <Button variant="danger" onClick={() => handleCloseSession(activeSession.id)} disabled={isSubmitting}>
                         Chiudi Sessione
-                      </Button>
-                      <Button variant="outline" onClick={handleSimulateChatMessage} disabled={isSubmitting} className="border-purple-500/50 text-purple-400">
-                        Simula Messaggio Chat
                       </Button>
                     </div>
                   </div>
