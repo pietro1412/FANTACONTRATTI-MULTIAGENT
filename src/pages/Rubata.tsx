@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { rubataApi, leagueApi, auctionApi, contractApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
-import { Chat } from '../components/Chat'
 import { getTeamLogo } from '../utils/teamLogos'
 import { usePusherAuction } from '../services/pusher.client'
 import { ContractModifierModal } from '../components/ContractModifier'
@@ -3035,16 +3034,6 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
           </button>
         )}
 
-        {/* Floating Chat - Bottom Right */}
-        {isRubataPhase && isOrderSet && sessionId && (
-          <div className="fixed bottom-4 right-4 z-40 w-80">
-            <Chat
-              sessionId={sessionId}
-              currentMemberId={boardData?.myMemberId}
-              isAdmin={isAdmin}
-            />
-          </div>
-        )}
       </main>
 
       {/* Contract Modification Modal after Rubata Win */}

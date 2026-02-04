@@ -1493,28 +1493,6 @@ export const superadminApi = {
     request(`/api/superadmin/api-football/match/${playerId}`, { method: 'DELETE' }),
 }
 
-// Chat API
-export const chatApi = {
-  // Get messages (optionally since a timestamp)
-  getMessages: (sessionId: string, since?: string) => {
-    const params = new URLSearchParams()
-    if (since) params.append('since', since)
-    const query = params.toString()
-    return request(`/api/sessions/${sessionId}/chat${query ? `?${query}` : ''}`)
-  },
-
-  // Send a message
-  sendMessage: (sessionId: string, content: string) =>
-    request(`/api/sessions/${sessionId}/chat`, {
-      method: 'POST',
-      body: JSON.stringify({ content }),
-    }),
-
-  // Simulate random bot message (Admin only)
-  simulateMessage: (sessionId: string) =>
-    request(`/api/sessions/${sessionId}/chat/simulate`, { method: 'POST' }),
-}
-
 // Prize Phase API (Fase PREMI)
 export const prizePhaseApi = {
   // Initialize prize phase for session (Admin)

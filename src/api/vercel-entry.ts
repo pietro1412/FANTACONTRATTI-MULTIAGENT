@@ -17,7 +17,6 @@ import adminRoutes from './routes/admin'
 import inviteRoutes from './routes/invites'
 import movementRoutes from './routes/movements'
 import superadminRoutes from './routes/superadmin'
-import chatRoutes from './routes/chat'
 import prizeRoutes from './routes/prizes'
 import historyRoutes from './routes/history'
 import indemnityRoutes from './routes/indemnity'
@@ -381,7 +380,6 @@ app.use('/api', adminRoutes)
 app.use('/api', inviteRoutes)
 app.use('/api', movementRoutes)
 app.use('/api', superadminRoutes)
-app.use('/api', chatRoutes)
 app.use('/api', prizeRoutes)
 app.use('/api', historyRoutes)
 app.use('/api', indemnityRoutes)

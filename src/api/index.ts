@@ -17,7 +17,6 @@ import adminRoutes from './routes/admin'
 import inviteRoutes from './routes/invites'
 import movementRoutes from './routes/movements'
 import superadminRoutes from './routes/superadmin'
-import chatRoutes from './routes/chat'
 import prizeRoutes from './routes/prizes'
 import historyRoutes from './routes/history'
 import indemnityRoutes from './routes/indemnity'
@@ -118,7 +117,6 @@ app.use('/api', adminRoutes) // Admin routes include /leagues/:id/admin/*
 app.use('/api', inviteRoutes) // Invite routes include /leagues/:id/invites and /invites/*
 app.use('/api', movementRoutes) // Movement routes include /leagues/:id/movements and /movements/*
 app.use('/api', superadminRoutes) // Superadmin routes include /superadmin/*
-app.use('/api', chatRoutes) // Chat routes include /sessions/:id/chat
 app.use('/api', prizeRoutes) // Prize phase routes include /sessions/:id/prizes/*
 app.use('/api', historyRoutes) // History routes include /leagues/:id/history/*
 app.use('/api', indemnityRoutes) // Indemnity phase routes include /leagues/:id/indemnity/*
