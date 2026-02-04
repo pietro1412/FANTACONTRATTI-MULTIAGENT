@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contract History - Mockup Viste</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .tab-btn.active { background-color: #3b82f6; color: white; }
+    .timeline-line { position: absolute; left: 20px; top: 0; bottom: 0; width: 2px; background: #e5e7eb; }
+    .timeline-dot { position: absolute; left: 14px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; }
+    .event-card { transition: all 0.2s; }
+    .event-card:hover { transform: translateX(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-gray-800 border-b border-gray-700 py-4 px-6">
+    <h1 class="text-2xl font-bold text-blue-400">Contract History - Mockup Viste</h1>
+    <p class="text-gray-400 text-sm mt-1">Prototipo visualizzazione storico contratti - Dati di esempio</p>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="bg-gray-800 px-6 py-3 border-b border-gray-700">
+    <div class="flex gap-2 flex-wrap">
+      <button onclick="showTab('manager')" class="tab-btn active px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition">
+        👤 Vista Manager
+      </button>
+      <button onclick="showTab('player')" class="tab-btn px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition">
+        ⚽ Vista Giocatore
+      </button>
+      <button onclick="showTab('league')" class="tab-btn px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition">
+        🏆 Timeline Lega
+      </button>
+      <button onclick="showTab('session')" class="tab-btn px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition">
+        📅 Riepilogo Sessione
+      </button>
+      <button onclick="showTab('comparison')" class="tab-btn px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition">
+        📊 Confronto Pre/Post
+      </button>
+    </div>
+  </nav>
+
+  <main class="p-6 max-w-7xl mx-auto">
+
+    <!-- ==================== VISTA MANAGER ==================== -->
+    <div id="tab-manager" class="tab-content active">
+      <div class="mb-6">
+        <h2 class="text-xl font-bold text-blue-400 mb-2">Vista Manager: Pietro (RUGGERI FC)</h2>
+        <p class="text-gray-400">Storico completo delle operazioni del manager nella sessione corrente</p>
+      </div>
+
+      <!-- Manager Summary Card -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+          <div class="text-gray-400 text-sm">Budget Iniziale</div>
+          <div class="text-2xl font-bold text-green-400">312M</div>
+          <div class="text-xs text-gray-500">Snapshot PHASE_START</div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+          <div class="text-gray-400 text-sm">Indennizzi Ricevuti</div>
+          <div class="text-2xl font-bold text-blue-400">+75M</div>
+          <div class="text-xs text-gray-500">1 giocatore ESTERO</div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+          <div class="text-gray-400 text-sm">Costi Tagli</div>
+          <div class="text-2xl font-bold text-red-400">-30M</div>
+          <div class="text-xs text-gray-500">3 giocatori rilasciati</div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+          <div class="text-gray-400 text-sm">Budget Finale</div>
+          <div class="text-2xl font-bold text-yellow-400">357M</div>
+          <div class="text-xs text-gray-500">312 + 75 - 30</div>
+        </div>
+      </div>
+
+      <!-- Monte Ingaggi Section -->
+      <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-6">
+        <h3 class="font-bold text-lg mb-3">Variazione Monte Ingaggi</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="text-center p-3 bg-gray-700 rounded">
+            <div class="text-gray-400 text-sm">Pre-Consolidamento</div>
+            <div class="text-xl font-bold">227M</div>
+          </div>
+          <div class="text-center p-3 bg-gray-700 rounded">
+            <div class="text-gray-400 text-sm">Variazione Rinnovi</div>
+            <div class="text-xl font-bold text-orange-400">+12M</div>
+            <div class="text-xs text-gray-500">4 rinnovi effettuati</div>
+          </div>
+          <div class="text-center p-3 bg-gray-700 rounded">
+            <div class="text-gray-400 text-sm">Post-Consolidamento</div>
+            <div class="text-xl font-bold">239M</div>
+          </div>
+        </div>
+        <div class="mt-3 p-3 bg-blue-900/30 rounded border border-blue-700">
+          <span class="text-blue-400">ℹ️</span> I rinnovi aumentano il monte ingaggi ma <strong>NON</strong> scalano il budget direttamente.
+          Il bilancio = Budget - Monte Ingaggi.
+        </div>
+      </div>
+
+      <!-- Events Timeline -->
+      <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+        <h3 class="font-bold text-lg mb-4">Timeline Eventi</h3>
+
+        <div class="relative pl-10">
+          <div class="timeline-line"></div>
+
+          <!-- Event 1: Budget Ricevuto -->
+          <div class="event-card relative mb-4 bg-gray-700 rounded-lg p-4 border-l-4 border-green-500">
+            <div class="timeline-dot bg-green-500" style="top: 20px;"></div>
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="inline-block px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded mb-2">PHASE_START</span>
+                <h4 class="font-bold">Inizio Fase CONTRATTI</h4>
+                <p class="text-gray-400 text-sm">Budget iniziale assegnato per la sessione</p>
+              </div>
+              <div class="text-right">
+                <div class="text-green-400 font-bold text-lg">312M</div>
+                <div class="text-xs text-gray-500">02/02/2026 09:00</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Event 2: Rinnovo Barella -->
+          <div class="event-card relative mb-4 bg-gray-700 rounded-lg p-4 border-l-4 border-blue-500">
+            <div class="timeline-dot bg-blue-500" style="top: 20px;"></div>
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="inline-block px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded mb-2">RENEWAL</span>
+                <h4 class="font-bold">Rinnovo: Barella</h4>
+                <p class="text-gray-400 text-sm">Aumento ingaggio e durata</p>
+                <div class="mt-2 grid grid-cols-2 gap-4 text-sm">
+                  <div class="bg-gray-800 p-2 rounded">
+                    <div class="text-gray-500">Prima</div>
+                    <div>15M × 2 semestri</div>
+                    <div class="text-gray-500">Clausola: 105M</div>
+                  </div>
+                  <div class="bg-gray-800 p-2 rounded">
+                    <div class="text-gray-500">Dopo</div>
+                    <div class="text-blue-400">18M × 3 semestri</div>
+                    <div class="text-gray-500">Clausola: 162M</div>
+                  </div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-orange-400 font-bold">+3M ingaggio</div>
+                <div class="text-xs text-gray-500">02/02/2026 14:30</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Event 3: Spalma Vlahovic -->
+          <div class="event-card relative mb-4 bg-gray-700 rounded-lg p-4 border-l-4 border-purple-500">
+            <div class="timeline-dot bg-purple-500" style="top: 20px;"></div>
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="inline-block px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded mb-2">SPALMA</span>
+                <h4 class="font-bold">Spalma: Vlahovic</h4>
+                <p class="text-gray-400 text-sm">Ridistribuzione ingaggio su più semestri</p>
+                <div class="mt-2 grid grid-cols-2 gap-4 text-sm">
+                  <div class="bg-gray-800 p-2 rounded">
+                    <div class="text-gray-500">Prima</div>
+                    <div>40M × 1 semestre</div>
+                    <div class="text-gray-500">Totale: 40M</div>
+                  </div>
+                  <div class="bg-gray-800 p-2 rounded">
+                    <div class="text-gray-500">Dopo</div>
+                    <div class="text-purple-400">10M × 4 semestri</div>
+                    <div class="text-gray-500">Totale: 40M</div>
+                  </div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-green-400 font-bold">-30M ingaggio/sem</div>
+                <div class="text-xs text-gray-500">02/02/2026 14:35</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Event 4: Release ESTERO Lookman -->
+          <div class="event-card relative mb-4 bg-gray-700 rounded-lg p-4 border-l-4 border-yellow-500">
+            <div class="timeline-dot bg-yellow-500" style="top: 20px;"></div>
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="inline-block px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded mb-2">RELEASE_ESTERO</span>
+                <h4 class="font-bold">Rilascio ESTERO: Lookman</h4>
+                <p class="text-gray-400 text-sm">Giocatore andato all'estero - Indennizzo ricevuto</p>
+                <div class="mt-2 text-sm bg-gray-800 p-2 rounded">
+                  <div>Contratto rilasciato: 10M × 4 semestri</div>
+                  <div class="text-gray-500">Clausola: 110M</div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-green-400 font-bold text-lg">+75M</div>
+                <div class="text-xs text-gray-400">Indennizzo</div>
+                <div class="text-xs text-gray-500">02/02/2026 14:40</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Event 5: Release Normal -->
+          <div class="event-card relative mb-4 bg-gray-700 rounded-lg p-4 border-l-4 border-red-500">
+            <div class="timeline-dot bg-red-500" style="top: 20px;"></div>
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="inline-block px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded mb-2">RELEASE_NORMAL</span>
+                <h4 class="font-bold">Taglio: Zaccagni</h4>
+                <p class="text-gray-400 text-sm">Rilascio volontario - Pagamento costo taglio</p>
+                <div class="mt-2 text-sm bg-gray-800 p-2 rounded">
+                  <div>Contratto: 8M × 3 semestri</div>
+                  <div class="text-gray-500">Costo = (8×3)/2 = 12M</div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-red-400 font-bold text-lg">-12M</div>
+                <div class="text-xs text-gray-400">Costo taglio</div>
+                <div class="text-xs text-gray-500">02/02/2026 14:45</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Event 6: KEEP RETROCESSO -->
+          <div class="event-card relative mb-4 bg-gray-700 rounded-lg p-4 border-l-4 border-gray-500">
+            <div class="timeline-dot bg-gray-500" style="top: 20px;"></div>
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="inline-block px-2 py-1 bg-gray-500/20 text-gray-400 text-xs rounded mb-2">KEEP_RETROCESSO</span>
+                <h4 class="font-bold">Mantenuto: Caprari</h4>
+                <p class="text-gray-400 text-sm">Giocatore retrocesso - Decisione di mantenere in rosa</p>
+                <div class="mt-2 text-sm bg-gray-800 p-2 rounded">
+                  <div>Contratto mantenuto: 5M × 2 semestri</div>
+                  <div class="text-gray-500">Ingaggio resta nel monte</div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-gray-400 font-bold">KEEP</div>
+                <div class="text-xs text-gray-500">02/02/2026 14:50</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Event 7: Consolidamento -->
+          <div class="event-card relative mb-4 bg-gray-700 rounded-lg p-4 border-l-4 border-green-500">
+            <div class="timeline-dot bg-green-500" style="top: 20px;"></div>
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="inline-block px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded mb-2">PHASE_END</span>
+                <h4 class="font-bold">Consolidamento Completato</h4>
+                <p class="text-gray-400 text-sm">Snapshot finale della sessione</p>
+              </div>
+              <div class="text-right">
+                <div class="text-green-400 font-bold">✓ Confermato</div>
+                <div class="text-xs text-gray-500">02/02/2026 15:00</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== VISTA GIOCATORE ==================== -->
+    <div id="tab-player" class="tab-content">
+      <div class="mb-6">
+        <h2 class="text-xl font-bold text-blue-400 mb-2">Vista Giocatore: Nicolò Barella</h2>
+        <p class="text-gray-400">Storico contratti attraverso tutte le sessioni e squadre della lega</p>
+      </div>
+
+      <!-- Player Info Card -->
+      <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-6">
+        <div class="flex items-center gap-4">
+          <div class="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-2xl font-bold">NB</div>
+          <div>
+            <h3 class="text-xl font-bold">Nicolò Barella</h3>
+            <div class="text-gray-400">Centrocampista - Inter</div>
+            <div class="flex gap-2 mt-2">
+              <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded">IN LISTA</span>
+              <span class="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded">Quotazione: 65</span>
+            </div>
+          </div>
+          <div class="ml-auto text-right">
+            <div class="text-gray-400 text-sm">Contratto Attuale</div>
+            <div class="text-xl font-bold text-blue-400">18M × 3s</div>
+            <div class="text-sm text-gray-400">Clausola: 162M</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contract History Table -->
+      <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden mb-6">
+        <div class="p-4 border-b border-gray-700">
+          <h3 class="font-bold">Storico Contratti nella Lega</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-700">
+              <tr>
+                <th class="px-4 py-3 text-left text-sm">Sessione</th>
+                <th class="px-4 py-3 text-left text-sm">Squadra</th>
+                <th class="px-4 py-3 text-left text-sm">Evento</th>
+                <th class="px-4 py-3 text-right text-sm">Ingaggio</th>
+                <th class="px-4 py-3 text-right text-sm">Durata</th>
+                <th class="px-4 py-3 text-right text-sm">Clausola</th>
+                <th class="px-4 py-3 text-right text-sm">Data</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700">
+              <tr class="hover:bg-gray-700/50">
+                <td class="px-4 py-3 text-sm">Mercato Feb 2026</td>
+                <td class="px-4 py-3">
+                  <span class="font-medium text-blue-400">RUGGERI FC</span>
+                </td>
+                <td class="px-4 py-3">
+                  <span class="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded">RENEWAL</span>
+                </td>
+                <td class="px-4 py-3 text-right">
+                  <span class="text-gray-500">15M →</span> <span class="text-blue-400 font-bold">18M</span>
+                </td>
+                <td class="px-4 py-3 text-right">
+                  <span class="text-gray-500">2s →</span> <span class="text-blue-400 font-bold">3s</span>
+                </td>
+                <td class="px-4 py-3 text-right text-gray-400">162M</td>
+                <td class="px-4 py-3 text-right text-gray-500 text-sm">02/02/2026</td>
+              </tr>
+              <tr class="hover:bg-gray-700/50">
+                <td class="px-4 py-3 text-sm">Mercato Set 2025</td>
+                <td class="px-4 py-3">
+                  <span class="font-medium text-blue-400">RUGGERI FC</span>
+                </td>
+                <td class="px-4 py-3">
+                  <span class="px-2 py-1 bg-gray-500/20 text-gray-400 text-xs rounded">DURATION_DEC</span>
+                </td>
+                <td class="px-4 py-3 text-right">15M</td>
+                <td class="px-4 py-3 text-right">
+                  <span class="text-gray-500">3s →</span> <span class="text-yellow-400">2s</span>
+                </td>
+                <td class="px-4 py-3 text-right text-gray-400">105M</td>
+                <td class="px-4 py-3 text-right text-gray-500 text-sm">01/09/2025</td>
+              </tr>
+              <tr class="hover:bg-gray-700/50">
+                <td class="px-4 py-3 text-sm">Mercato Feb 2025</td>
+                <td class="px-4 py-3">
+                  <span class="font-medium text-blue-400">RUGGERI FC</span>
+                </td>
+                <td class="px-4 py-3">
+                  <span class="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded">RENEWAL</span>
+                </td>
+                <td class="px-4 py-3 text-right">
+                  <span class="text-gray-500">12M →</span> <span class="text-blue-400 font-bold">15M</span>
+                </td>
+                <td class="px-4 py-3 text-right">
+                  <span class="text-gray-500">2s →</span> <span class="text-blue-400 font-bold">3s</span>
+                </td>
+                <td class="px-4 py-3 text-right text-gray-400">135M</td>
+                <td class="px-4 py-3 text-right text-gray-500 text-sm">01/02/2025</td>
+              </tr>
+              <tr class="hover:bg-gray-700/50">
+                <td class="px-4 py-3 text-sm">Mercato Set 2024</td>
+                <td class="px-4 py-3">
+                  <span class="font-medium text-blue-400">RUGGERI FC</span>
+                </td>
+                <td class="px-4 py-3">
+                  <span class="px-2 py-1 bg-gray-500/20 text-gray-400 text-xs rounded">DURATION_DEC</span>
+                </td>
+                <td class="px-4 py-3 text-right">12M</td>
+                <td class="px-4 py-3 text-right">
+                  <span class="text-gray-500">3s →</span> <span class="text-yellow-400">2s</span>
+                </td>
+                <td class="px-4 py-3 text-right text-gray-400">84M</td>
+                <td class="px-4 py-3 text-right text-gray-500 text-sm">01/09/2024</td>
+              </tr>
+              <tr class="hover:bg-gray-700/50 bg-green-900/20">
+                <td class="px-4 py-3 text-sm">Primo Mercato 2024</td>
+                <td class="px-4 py-3">
+                  <span class="font-medium text-green-400">RUGGERI FC</span>
+                </td>
+                <td class="px-4 py-3">
+                  <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded">ACQUISTO</span>
+                </td>
+                <td class="px-4 py-3 text-right font-bold text-green-400">12M</td>
+                <td class="px-4 py-3 text-right font-bold text-green-400">3s</td>
+                <td class="px-4 py-3 text-right text-gray-400">108M</td>
+                <td class="px-4 py-3 text-right text-gray-500 text-sm">15/07/2024</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Player Stats Summary -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+          <div class="text-gray-400 text-sm">Nella Lega Da</div>
+          <div class="text-xl font-bold">Luglio 2024</div>
+          <div class="text-sm text-gray-500">4 sessioni</div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+          <div class="text-gray-400 text-sm">Sempre con</div>
+          <div class="text-xl font-bold text-blue-400">RUGGERI FC</div>
+          <div class="text-sm text-gray-500">Mai scambiato</div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+          <div class="text-gray-400 text-sm">Evoluzione Ingaggio</div>
+          <div class="text-xl font-bold">
+            <span class="text-gray-500">12M</span> → <span class="text-green-400">18M</span>
+          </div>
+          <div class="text-sm text-gray-500">+50% in 2 anni</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TIMELINE LEGA ==================== -->
+    <div id="tab-league" class="tab-content">
+      <div class="mb-6">
+        <h2 class="text-xl font-bold text-blue-400 mb-2">Timeline Lega: Sessione Febbraio 2026</h2>
+        <p class="text-gray-400">Tutti gli eventi di tutti i manager in ordine cronologico</p>
+      </div>
+
+      <!-- Filters -->
+      <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-6">
+        <div class="flex flex-wrap gap-2">
+          <span class="text-gray-400 text-sm mr-2">Filtra:</span>
+          <button class="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600">Tutti</button>
+          <button class="px-3 py-1 bg-gray-700 text-gray-300 text-sm rounded hover:bg-gray-600">RENEWAL</button>
+          <button class="px-3 py-1 bg-gray-700 text-gray-300 text-sm rounded hover:bg-gray-600">SPALMA</button>
+          <button class="px-3 py-1 bg-gray-700 text-gray-300 text-sm rounded hover:bg-gray-600">RELEASE</button>
+          <button class="px-3 py-1 bg-gray-700 text-gray-300 text-sm rounded hover:bg-gray-600">KEEP</button>
+        </div>
+      </div>
+
+      <!-- League Timeline -->
+      <div class="space-y-3">
+
+        <!-- Manager 1 Events -->
+        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 border-l-4 border-l-blue-500">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold">P</div>
+              <span class="font-bold">RUGGERI FC</span>
+              <span class="text-gray-500">•</span>
+              <span class="text-gray-400 text-sm">Pietro</span>
+            </div>
+            <span class="text-gray-500 text-sm">02/02/2026 15:00</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
+            <div class="bg-gray-700 p-2 rounded flex justify-between">
+              <span class="text-blue-400">RENEWAL</span>
+              <span>Barella 15→18M</span>
+            </div>
+            <div class="bg-gray-700 p-2 rounded flex justify-between">
+              <span class="text-purple-400">SPALMA</span>
+              <span>Vlahovic 40→10M</span>
+            </div>
+            <div class="bg-gray-700 p-2 rounded flex justify-between">
+              <span class="text-yellow-400">RELEASE_ESTERO</span>
+              <span>Lookman +75M</span>
+            </div>
+            <div class="bg-gray-700 p-2 rounded flex justify-between">
+              <span class="text-red-400">RELEASE_NORMAL</span>
+              <span>Zaccagni -12M</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manager 2 Events -->
+        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 border-l-4 border-l-green-500">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-sm font-bold">M</div>
+              <span class="font-bold">AC TUA</span>
+              <span class="text-gray-500">•</span>
+              <span class="text-gray-400 text-sm">Marco</span>
+            </div>
+            <span class="text-gray-500 text-sm">02/02/2026 14:30</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
+            <div class="bg-gray-700 p-2 rounded flex justify-between">
+              <span class="text-blue-400">RENEWAL</span>
+              <span>Leao 20→25M</span>
+            </div>
+            <div class="bg-gray-700 p-2 rounded flex justify-between">
+              <span class="text-blue-400">RENEWAL</span>
+              <span>Theo 18→22M</span>
+            </div>
+            <div class="bg-gray-700 p-2 rounded flex justify-between">
+              <span class="text-gray-400">KEEP_RETROCESSO</span>
+              <span>Djuric</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manager 3 Events -->
+        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 border-l-4 border-l-yellow-500">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 bg-yellow-600 rounded-full flex items-center justify-center text-sm font-bold">E</div>
+              <span class="font-bold">ARCIONIA</span>
+              <span class="text-gray-500">•</span>
+              <span class="text-gray-400 text-sm">Emiliano</span>
+            </div>
+            <span class="text-gray-500 text-sm">02/02/2026 14:00</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
+            <div class="bg-gray-700 p-2 rounded flex justify-between">
+              <span class="text-purple-400">SPALMA</span>
+              <span>Osimhen 50→12.5M</span>
+            </div>
+            <div class="bg-gray-700 p-2 rounded flex justify-between">
+              <span class="text-red-400">RELEASE_NORMAL</span>
+              <span>Candreva -8M</span>
+            </div>
+            <div class="bg-gray-700 p-2 rounded flex justify-between">
+              <span class="text-red-400">RELEASE_NORMAL</span>
+              <span>Berardi -15M</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manager 4: Not Consolidated -->
+        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 border-l-4 border-l-gray-500 opacity-60">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center text-sm font-bold">L</div>
+              <span class="font-bold">BIRRETTA</span>
+              <span class="text-gray-500">•</span>
+              <span class="text-gray-400 text-sm">Lorenzo</span>
+            </div>
+            <span class="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded">IN ATTESA</span>
+          </div>
+          <div class="text-gray-500 text-sm italic">
+            Non ancora consolidato - eventi nascosti per privacy
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==================== RIEPILOGO SESSIONE ==================== -->
+    <div id="tab-session" class="tab-content">
+      <div class="mb-6">
+        <h2 class="text-xl font-bold text-blue-400 mb-2">Riepilogo Sessione: Febbraio 2026</h2>
+        <p class="text-gray-400">Confronto pre/post consolidamento di tutti i manager</p>
+      </div>
+
+      <!-- Session Summary Table -->
+      <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-700">
+              <tr>
+                <th class="px-4 py-3 text-left text-sm">Manager</th>
+                <th class="px-4 py-3 text-right text-sm">Budget Iniz.</th>
+                <th class="px-4 py-3 text-right text-sm">Indennizzi</th>
+                <th class="px-4 py-3 text-right text-sm">Tagli</th>
+                <th class="px-4 py-3 text-right text-sm">Budget Fin.</th>
+                <th class="px-4 py-3 text-right text-sm">Ingaggi Pre</th>
+                <th class="px-4 py-3 text-right text-sm">Δ Rinnovi</th>
+                <th class="px-4 py-3 text-right text-sm">Ingaggi Post</th>
+                <th class="px-4 py-3 text-right text-sm">Bilancio</th>
+                <th class="px-4 py-3 text-center text-sm">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700">
+              <tr class="hover:bg-gray-700/50">
+                <td class="px-4 py-3 font-medium">RUGGERI FC</td>
+                <td class="px-4 py-3 text-right">312M</td>
+                <td class="px-4 py-3 text-right text-green-400">+75M</td>
+                <td class="px-4 py-3 text-right text-red-400">-30M</td>
+                <td class="px-4 py-3 text-right font-bold">357M</td>
+                <td class="px-4 py-3 text-right text-gray-400">227M</td>
+                <td class="px-4 py-3 text-right text-orange-400">+12M</td>
+                <td class="px-4 py-3 text-right">239M</td>
+                <td class="px-4 py-3 text-right font-bold text-green-400">118M</td>
+                <td class="px-4 py-3 text-center"><span class="text-green-400">✓</span></td>
+              </tr>
+              <tr class="hover:bg-gray-700/50">
+                <td class="px-4 py-3 font-medium">AC TUA</td>
+                <td class="px-4 py-3 text-right">258M</td>
+                <td class="px-4 py-3 text-right text-gray-500">-</td>
+                <td class="px-4 py-3 text-right text-gray-500">-</td>
+                <td class="px-4 py-3 text-right font-bold">258M</td>
+                <td class="px-4 py-3 text-right text-gray-400">195M</td>
+                <td class="px-4 py-3 text-right text-orange-400">+9M</td>
+                <td class="px-4 py-3 text-right">204M</td>
+                <td class="px-4 py-3 text-right font-bold text-green-400">54M</td>
+                <td class="px-4 py-3 text-center"><span class="text-green-400">✓</span></td>
+              </tr>
+              <tr class="hover:bg-gray-700/50">
+                <td class="px-4 py-3 font-medium">ARCIONIA</td>
+                <td class="px-4 py-3 text-right">219M</td>
+                <td class="px-4 py-3 text-right text-gray-500">-</td>
+                <td class="px-4 py-3 text-right text-red-400">-23M</td>
+                <td class="px-4 py-3 text-right font-bold">196M</td>
+                <td class="px-4 py-3 text-right text-gray-400">180M</td>
+                <td class="px-4 py-3 text-right text-green-400">-37.5M</td>
+                <td class="px-4 py-3 text-right">142.5M</td>
+                <td class="px-4 py-3 text-right font-bold text-green-400">53.5M</td>
+                <td class="px-4 py-3 text-center"><span class="text-green-400">✓</span></td>
+              </tr>
+              <tr class="hover:bg-gray-700/50 bg-yellow-900/20">
+                <td class="px-4 py-3 font-medium">BIRRETTA</td>
+                <td class="px-4 py-3 text-right">241M</td>
+                <td class="px-4 py-3 text-right text-gray-500">?</td>
+                <td class="px-4 py-3 text-right text-gray-500">?</td>
+                <td class="px-4 py-3 text-right text-gray-500">?</td>
+                <td class="px-4 py-3 text-right text-gray-400">210M</td>
+                <td class="px-4 py-3 text-right text-gray-500">?</td>
+                <td class="px-4 py-3 text-right text-gray-500">?</td>
+                <td class="px-4 py-3 text-right text-gray-500">?</td>
+                <td class="px-4 py-3 text-center"><span class="text-yellow-400">⏳</span></td>
+              </tr>
+              <tr class="hover:bg-gray-700/50">
+                <td class="px-4 py-3 font-medium">DIIIGHE</td>
+                <td class="px-4 py-3 text-right">172M</td>
+                <td class="px-4 py-3 text-right text-gray-500">-</td>
+                <td class="px-4 py-3 text-right text-red-400">-10M</td>
+                <td class="px-4 py-3 text-right font-bold">162M</td>
+                <td class="px-4 py-3 text-right text-gray-400">145M</td>
+                <td class="px-4 py-3 text-right text-orange-400">+5M</td>
+                <td class="px-4 py-3 text-right">150M</td>
+                <td class="px-4 py-3 text-right font-bold text-green-400">12M</td>
+                <td class="px-4 py-3 text-center"><span class="text-green-400">✓</span></td>
+              </tr>
+            </tbody>
+            <tfoot class="bg-gray-700">
+              <tr>
+                <td class="px-4 py-3 font-bold">TOTALE LEGA</td>
+                <td class="px-4 py-3 text-right font-bold">1202M</td>
+                <td class="px-4 py-3 text-right text-green-400 font-bold">+75M</td>
+                <td class="px-4 py-3 text-right text-red-400 font-bold">-63M</td>
+                <td class="px-4 py-3 text-right font-bold">1214M</td>
+                <td class="px-4 py-3 text-right">957M</td>
+                <td class="px-4 py-3 text-right text-orange-400">-11.5M</td>
+                <td class="px-4 py-3 text-right">945.5M</td>
+                <td class="px-4 py-3 text-right font-bold text-green-400">268.5M</td>
+                <td class="px-4 py-3 text-center">4/5</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div class="mt-4 bg-gray-800 rounded-lg p-4 border border-gray-700">
+        <h4 class="font-bold mb-2">Legenda</h4>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+          <div><span class="text-green-400">+</span> Indennizzi = entrate da ESTERO</div>
+          <div><span class="text-red-400">-</span> Tagli = costi rilascio (ing×dur/2)</div>
+          <div><span class="text-orange-400">Δ Rinnovi</span> = variazione monte ingaggi</div>
+          <div><span class="text-gray-400">?</span> = dati nascosti (non consolidato)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== CONFRONTO PRE/POST ==================== -->
+    <div id="tab-comparison" class="tab-content">
+      <div class="mb-6">
+        <h2 class="text-xl font-bold text-blue-400 mb-2">Confronto Pre/Post Rinnovo</h2>
+        <p class="text-gray-400">Dettaglio di ogni contratto modificato nella sessione</p>
+      </div>
+
+      <!-- Manager Selector -->
+      <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-6">
+        <label class="text-gray-400 text-sm mb-2 block">Seleziona Manager:</label>
+        <select class="bg-gray-700 border border-gray-600 rounded px-4 py-2 w-full md:w-auto" onchange="filterContracts(this.value)">
+          <option value="all">Tutti i Manager</option>
+          <option value="ruggeri">RUGGERI FC</option>
+          <option value="actua">AC TUA</option>
+          <option value="arcionia">ARCIONIA</option>
+        </select>
+      </div>
+
+      <!-- Contracts Comparison Cards -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        <!-- Contract 1: Barella -->
+        <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+          <div class="bg-blue-600 px-4 py-2 flex justify-between items-center">
+            <span class="font-bold">Barella</span>
+            <span class="text-sm opacity-80">RUGGERI FC</span>
+          </div>
+          <div class="p-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-gray-700 rounded p-3">
+                <div class="text-gray-400 text-xs mb-1">PRE-RINNOVO</div>
+                <div class="text-2xl font-bold">15M</div>
+                <div class="text-sm text-gray-400">× 2 semestri</div>
+                <div class="text-xs text-gray-500 mt-1">Clausola: 105M</div>
+              </div>
+              <div class="bg-blue-900/30 rounded p-3 border border-blue-600">
+                <div class="text-blue-400 text-xs mb-1">POST-RINNOVO</div>
+                <div class="text-2xl font-bold text-blue-400">18M</div>
+                <div class="text-sm text-blue-300">× 3 semestri</div>
+                <div class="text-xs text-gray-500 mt-1">Clausola: 162M</div>
+              </div>
+            </div>
+            <div class="mt-3 flex justify-between text-sm">
+              <span class="text-gray-400">Tipo: <span class="text-blue-400">RENEWAL</span></span>
+              <span class="text-orange-400">+3M ingaggio</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contract 2: Vlahovic -->
+        <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+          <div class="bg-purple-600 px-4 py-2 flex justify-between items-center">
+            <span class="font-bold">Vlahovic</span>
+            <span class="text-sm opacity-80">RUGGERI FC</span>
+          </div>
+          <div class="p-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-gray-700 rounded p-3">
+                <div class="text-gray-400 text-xs mb-1">PRE-SPALMA</div>
+                <div class="text-2xl font-bold">40M</div>
+                <div class="text-sm text-gray-400">× 1 semestre</div>
+                <div class="text-xs text-gray-500 mt-1">Totale: 40M</div>
+              </div>
+              <div class="bg-purple-900/30 rounded p-3 border border-purple-600">
+                <div class="text-purple-400 text-xs mb-1">POST-SPALMA</div>
+                <div class="text-2xl font-bold text-purple-400">10M</div>
+                <div class="text-sm text-purple-300">× 4 semestri</div>
+                <div class="text-xs text-gray-500 mt-1">Totale: 40M</div>
+              </div>
+            </div>
+            <div class="mt-3 flex justify-between text-sm">
+              <span class="text-gray-400">Tipo: <span class="text-purple-400">SPALMA</span></span>
+              <span class="text-green-400">-30M ingaggio/sem</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contract 3: Leao -->
+        <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+          <div class="bg-blue-600 px-4 py-2 flex justify-between items-center">
+            <span class="font-bold">Leao</span>
+            <span class="text-sm opacity-80">AC TUA</span>
+          </div>
+          <div class="p-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-gray-700 rounded p-3">
+                <div class="text-gray-400 text-xs mb-1">PRE-RINNOVO</div>
+                <div class="text-2xl font-bold">20M</div>
+                <div class="text-sm text-gray-400">× 2 semestri</div>
+                <div class="text-xs text-gray-500 mt-1">Clausola: 140M</div>
+              </div>
+              <div class="bg-blue-900/30 rounded p-3 border border-blue-600">
+                <div class="text-blue-400 text-xs mb-1">POST-RINNOVO</div>
+                <div class="text-2xl font-bold text-blue-400">25M</div>
+                <div class="text-sm text-blue-300">× 3 semestri</div>
+                <div class="text-xs text-gray-500 mt-1">Clausola: 225M</div>
+              </div>
+            </div>
+            <div class="mt-3 flex justify-between text-sm">
+              <span class="text-gray-400">Tipo: <span class="text-blue-400">RENEWAL</span></span>
+              <span class="text-orange-400">+5M ingaggio</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contract 4: Osimhen -->
+        <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+          <div class="bg-purple-600 px-4 py-2 flex justify-between items-center">
+            <span class="font-bold">Osimhen</span>
+            <span class="text-sm opacity-80">ARCIONIA</span>
+          </div>
+          <div class="p-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-gray-700 rounded p-3">
+                <div class="text-gray-400 text-xs mb-1">PRE-SPALMA</div>
+                <div class="text-2xl font-bold">50M</div>
+                <div class="text-sm text-gray-400">× 1 semestre</div>
+                <div class="text-xs text-gray-500 mt-1">Totale: 50M</div>
+              </div>
+              <div class="bg-purple-900/30 rounded p-3 border border-purple-600">
+                <div class="text-purple-400 text-xs mb-1">POST-SPALMA</div>
+                <div class="text-2xl font-bold text-purple-400">12.5M</div>
+                <div class="text-sm text-purple-300">× 4 semestri</div>
+                <div class="text-xs text-gray-500 mt-1">Totale: 50M</div>
+              </div>
+            </div>
+            <div class="mt-3 flex justify-between text-sm">
+              <span class="text-gray-400">Tipo: <span class="text-purple-400">SPALMA</span></span>
+              <span class="text-green-400">-37.5M ingaggio/sem</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Released Contract: Lookman -->
+        <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+          <div class="bg-yellow-600 px-4 py-2 flex justify-between items-center">
+            <span class="font-bold">Lookman</span>
+            <span class="text-sm opacity-80">RUGGERI FC</span>
+          </div>
+          <div class="p-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-gray-700 rounded p-3">
+                <div class="text-gray-400 text-xs mb-1">CONTRATTO</div>
+                <div class="text-2xl font-bold">10M</div>
+                <div class="text-sm text-gray-400">× 4 semestri</div>
+                <div class="text-xs text-gray-500 mt-1">Clausola: 110M</div>
+              </div>
+              <div class="bg-yellow-900/30 rounded p-3 border border-yellow-600">
+                <div class="text-yellow-400 text-xs mb-1">INDENNIZZO</div>
+                <div class="text-2xl font-bold text-green-400">+75M</div>
+                <div class="text-sm text-yellow-300">Giocatore ESTERO</div>
+                <div class="text-xs text-gray-500 mt-1">Rilasciato</div>
+              </div>
+            </div>
+            <div class="mt-3 flex justify-between text-sm">
+              <span class="text-gray-400">Tipo: <span class="text-yellow-400">RELEASE_ESTERO</span></span>
+              <span class="text-green-400">+75M budget</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Released Contract: Zaccagni -->
+        <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+          <div class="bg-red-600 px-4 py-2 flex justify-between items-center">
+            <span class="font-bold">Zaccagni</span>
+            <span class="text-sm opacity-80">RUGGERI FC</span>
+          </div>
+          <div class="p-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-gray-700 rounded p-3">
+                <div class="text-gray-400 text-xs mb-1">CONTRATTO</div>
+                <div class="text-2xl font-bold">8M</div>
+                <div class="text-sm text-gray-400">× 3 semestri</div>
+                <div class="text-xs text-gray-500 mt-1">Clausola: 72M</div>
+              </div>
+              <div class="bg-red-900/30 rounded p-3 border border-red-600">
+                <div class="text-red-400 text-xs mb-1">COSTO TAGLIO</div>
+                <div class="text-2xl font-bold text-red-400">-12M</div>
+                <div class="text-sm text-red-300">(8×3)/2 = 12M</div>
+                <div class="text-xs text-gray-500 mt-1">Rilasciato</div>
+              </div>
+            </div>
+            <div class="mt-3 flex justify-between text-sm">
+              <span class="text-gray-400">Tipo: <span class="text-red-400">RELEASE_NORMAL</span></span>
+              <span class="text-red-400">-12M budget</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Formula Reminder -->
+      <div class="mt-6 bg-blue-900/30 rounded-lg p-4 border border-blue-700">
+        <h4 class="font-bold text-blue-400 mb-2">Reminder Formule</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <div class="text-gray-400">Costo Taglio:</div>
+            <code class="text-yellow-400">(ingaggio × durata) / 2</code>
+          </div>
+          <div>
+            <div class="text-gray-400">Clausola Rescissoria:</div>
+            <code class="text-yellow-400">ingaggio × moltiplicatore(durata)</code>
+          </div>
+          <div>
+            <div class="text-gray-400">Residuo Contratti:</div>
+            <code class="text-yellow-400">Budget - Ingaggi - Tagli + Indennizzi</code>
+          </div>
+          <div>
+            <div class="text-gray-400">Bilancio:</div>
+            <code class="text-yellow-400">Budget - Monte Ingaggi</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 border-t border-gray-700 py-4 px-6 mt-8">
+    <div class="text-center text-gray-500 text-sm">
+      Mockup Contract History - FantaContratti | Dati di esempio per visualizzazione
+    </div>
+  </footer>
+
+  <script>
+    function showTab(tabId) {
+      // Hide all tabs
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      // Remove active from all buttons
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      // Show selected tab
+      document.getElementById('tab-' + tabId).classList.add('active');
+      // Mark button as active
+      event.target.classList.add('active');
+    }
+
+    function filterContracts(manager) {
+      // Placeholder for filter functionality
+      console.log('Filter by:', manager);
+    }
+  </script>
+
+</body>
+</html>

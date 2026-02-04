@@ -50,6 +50,7 @@ describe('AdminPrismaRepository', () => {
     status: 'ACTIVE',
     joinType: 'CREATOR',
     currentBudget: 100,
+    preConsolidationBudget: null,
     rubataOrder: null,
     firstMarketOrder: null,
     joinedAt: new Date(),

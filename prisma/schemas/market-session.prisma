@@ -120,6 +120,8 @@ model MarketSession {
   prizeCategories  PrizeCategory[]   // see: prize.prisma
   rubataPreferences RubataPreference[] // see: rubata.prisma
   auctionObjectives AuctionObjective[] // see: auction.prisma
+  contractHistory   ContractHistory[]  // see: contract-history.prisma
+  sessionSnapshots  ManagerSessionSnapshot[] // see: contract-history.prisma
 
   // Indice per velocizzare ricerca sessioni attive per lega
   @@index([leagueId, status])
