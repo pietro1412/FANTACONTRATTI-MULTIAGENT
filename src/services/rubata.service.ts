@@ -1174,19 +1174,25 @@ export async function getRubataBoard(
     }
   }
 
-  // Auto-advance if in PENDING_ACK but auction is already COMPLETED (appeal was handled)
+  // Auto-advance if in PENDING_ACK but all members have already acknowledged
+  // This handles the case where an appeal was rejected and everyone confirmed,
+  // or where all acknowledgments arrived before this poll.
+  // NOTE: We must NOT skip PENDING_ACK just because auction.status === 'COMPLETED',
+  // because the auction is always set to COMPLETED at close time — that's the normal flow.
+  // The real signal to advance is: all members have acknowledged.
   if (
     activeSession.rubataState === 'PENDING_ACK' &&
     activeSession.rubataPendingAck
   ) {
-    const pendingAck = activeSession.rubataPendingAck as { auctionId: string }
-    const referencedAuction = await prisma.auction.findUnique({
-      where: { id: pendingAck.auctionId },
+    const pendingAck = activeSession.rubataPendingAck as { auctionId: string; acknowledgedMembers: string[] }
+    const allMembers = await prisma.leagueMember.findMany({
+      where: { leagueId, status: MemberStatus.ACTIVE },
+      select: { id: true },
     })
+    const allAcknowledged = allMembers.every(m => pendingAck.acknowledgedMembers.includes(m.id))
 
-    // If auction is COMPLETED, the appeal was rejected and everyone confirmed
-    // Clear pendingAck and move to READY_CHECK for next player
-    if (referencedAuction && referencedAuction.status === 'COMPLETED') {
+    if (allAcknowledged) {
+      // Everyone confirmed — clear pendingAck and move to READY_CHECK for next player
       await prisma.marketSession.update({
         where: { id: activeSession.id },
         data: {
@@ -1211,20 +1217,37 @@ export async function getRubataBoard(
   }
 
   const isRubataPhase = activeSession.currentPhase === 'RUBATA'
-  const board = activeSession.rubataBoard as Array<{
+  const rawBoard = activeSession.rubataBoard as Array<{
     rosterId: string
     memberId: string
     playerId: string
     playerName: string
     playerPosition: Position
     playerTeam: string
+    playerQuotation?: number
+    playerAge?: number | null
+    playerApiFootballId?: number | null
     ownerUsername: string
     ownerTeamName: string | null
     rubataPrice: number
     contractSalary: number
     contractDuration: number
     contractClause: number
+    stolenById?: string | null
+    stolenByUsername?: string | null
+    stolenPrice?: number | null
   }> | null
+
+  // Enrich board with computed stats (not stored in JSON)
+  let board = rawBoard
+  if (rawBoard) {
+    const playerIds = rawBoard.map(p => p.playerId)
+    const statsMap = await computeSeasonStatsBatch(playerIds)
+    board = rawBoard.map(p => ({
+      ...p,
+      playerComputedStats: statsMap.get(p.playerId) || null,
+    }))
+  }
 
   // Calculate remaining time if timer is active
   let remainingSeconds: number | null = null
@@ -1267,6 +1290,32 @@ export async function getRubataBoard(
     },
   })
 
+  // Fetch member budgets for budget box
+  const activeMembers = await prisma.leagueMember.findMany({
+    where: { leagueId, status: MemberStatus.ACTIVE },
+    select: {
+      id: true,
+      teamName: true,
+      currentBudget: true,
+      user: { select: { username: true } },
+      contracts: {
+        where: { roster: { status: RosterStatus.ACTIVE } },
+        select: { salary: true },
+      },
+    },
+  })
+
+  const memberBudgets = activeMembers
+    .map(m => ({
+      memberId: m.id,
+      teamName: m.teamName || m.user.username,
+      username: m.user.username,
+      currentBudget: m.currentBudget,
+      totalSalaries: m.contracts.reduce((sum, c) => sum + c.salary, 0),
+      residuo: m.currentBudget - m.contracts.reduce((sum, c) => sum + c.salary, 0),
+    }))
+    .sort((a, b) => b.residuo - a.residuo)
+
   return {
     success: true,
     data: {
@@ -1279,6 +1328,7 @@ export async function getRubataBoard(
       remainingSeconds,
       offerTimerSeconds: activeSession.rubataOfferTimerSeconds,
       auctionTimerSeconds: activeSession.rubataAuctionTimerSeconds,
+      memberBudgets,
       activeAuction: activeAuction
         ? {
             id: activeAuction.id,
@@ -4049,13 +4099,16 @@ export async function getRubataPreviewBoard(
     return { success: false, message: 'Nessuna sessione rubata attiva' }
   }
 
-  const board = activeSession.rubataBoard as Array<{
+  const rawPreviewBoard = activeSession.rubataBoard as Array<{
     rosterId: string
     memberId: string
     playerId: string
     playerName: string
     playerPosition: Position
     playerTeam: string
+    playerQuotation?: number
+    playerAge?: number | null
+    playerApiFootballId?: number | null
     ownerUsername: string
     ownerTeamName: string | null
     rubataPrice: number
@@ -4064,9 +4117,13 @@ export async function getRubataPreviewBoard(
     contractClause: number
   }> | null
 
-  if (!board) {
+  if (!rawPreviewBoard) {
     return { success: false, message: 'Tabellone non ancora generato' }
   }
+
+  // Compute stats for all players in the board
+  const previewPlayerIds = rawPreviewBoard.map(p => p.playerId)
+  const previewStatsMap = await computeSeasonStatsBatch(previewPlayerIds)
 
   // Get this member's preferences
   const preferences = await prisma.rubataPreference.findMany({
@@ -4078,9 +4135,10 @@ export async function getRubataPreviewBoard(
 
   const preferencesMap = new Map(preferences.map(p => [p.playerId, p]))
 
-  // Enrich board with preferences
-  const enrichedBoard = board.map(player => ({
+  // Enrich board with preferences and computed stats
+  const enrichedBoard = rawPreviewBoard.map(player => ({
     ...player,
+    playerComputedStats: previewStatsMap.get(player.playerId) || null,
     preference: preferencesMap.get(player.playerId) || null,
   }))
 

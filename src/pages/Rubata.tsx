@@ -99,6 +99,15 @@ interface RubataPreference {
   notes: string | null
 }
 
+interface MemberBudgetInfo {
+  memberId: string
+  teamName: string
+  username: string
+  currentBudget: number
+  totalSalaries: number
+  residuo: number
+}
+
 interface BoardPlayerWithPreference extends BoardPlayer {
   preference?: RubataPreference | null
 }
@@ -118,6 +127,7 @@ interface BoardData {
   // Pause info for resume ready check
   pausedRemainingSeconds: number | null
   pausedFromState: string | null
+  memberBudgets?: MemberBudgetInfo[]
   sessionId: string | null
   myMemberId: string
   isAdmin: boolean
@@ -352,6 +362,10 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   const [offerTimer, setOfferTimer] = useState(30)
   const [auctionTimer, setAuctionTimer] = useState(15)
 
+  // Budget panel
+  const [budgetPanelOpen, setBudgetPanelOpen] = useState(true)
+  const [mobileBudgetExpanded, setMobileBudgetExpanded] = useState(false)
+
   // Ready check and acknowledgment
   const [readyStatus, setReadyStatus] = useState<ReadyStatus | null>(null)
   const [pendingAck, setPendingAck] = useState<PendingAck | null>(null)
@@ -429,6 +443,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   // Track if timers have been initialized (to avoid overwriting user changes)
   const timersInitialized = useRef(false)
 
+  // Stores winner contract info from acknowledge response, shown only after all members confirm
+  const pendingWinnerContractRef = useRef<ContractForModification | null>(null)
+
   // Timer countdown effect
   useEffect(() => {
     if (!boardData) return
@@ -485,6 +502,19 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     }
   }
 
+  // When state transitions out of PENDING_ACK (all confirmed), show contract modal for the winner (#242)
+  // We can't watch pendingAck.allAcknowledged because the backend clears pendingAck atomically
+  // when it moves to READY_CHECK — the frontend never sees allAcknowledged=true.
+  // Instead, detect the state transition: if we stored winnerContractInfo in the ref
+  // and the state is no longer PENDING_ACK, it means everyone confirmed.
+  useEffect(() => {
+    const state = boardData?.rubataState
+    if (state && state !== 'PENDING_ACK' && pendingWinnerContractRef.current) {
+      setPendingContractModification(pendingWinnerContractRef.current)
+      pendingWinnerContractRef.current = null
+    }
+  }, [boardData?.rubataState])
+
   // Track auction ID to avoid showing duplicate modals (keeping for future use)
   useEffect(() => {
     if (boardData?.activeAuction && boardData.rubataState === 'AUCTION') {
@@ -527,6 +557,15 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
       if (data.sessionId) {
         setSessionId(data.sessionId)
       }
+      // If server transitioned to PENDING_ACK (e.g. auto-close during getRubataBoard),
+      // immediately fetch ack data so the confirmation modal can display without waiting
+      // for the next polling cycle (fixes #242)
+      if (data.rubataState === 'PENDING_ACK') {
+        const ackRes = await rubataApi.getPendingAck(leagueId)
+        if (ackRes.success) {
+          setPendingAck(ackRes.data as PendingAck | null)
+        }
+      }
     }
   }, [leagueId])
 
@@ -561,6 +600,16 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
       }
       if (data.sessionId) {
         setSessionId(data.sessionId)
+      }
+      // If server auto-closed the auction during this getRubataBoard() call,
+      // the state transitions to PENDING_ACK but we didn't fetch pendingAck data.
+      // Fetch it immediately so the confirmation modal can display without waiting
+      // for the next polling cycle (fixes #242)
+      if (data.rubataState === 'PENDING_ACK') {
+        const ackRes = await rubataApi.getPendingAck(leagueId)
+        if (ackRes.success) {
+          setPendingAck(ackRes.data as PendingAck | null)
+        }
       }
     }
     if (readyRes.success && readyRes.data) {
@@ -1059,14 +1108,16 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
       setIsAppealMode(false)
 
       // Check if there's contract info for modification (winner only)
+      // Always save in ref — the useEffect watching rubataState will show the modal
+      // when the state transitions out of PENDING_ACK (i.e. all managers confirmed)
       const data = res.data as { winnerContractInfo?: ContractForModification } | undefined
       if (data?.winnerContractInfo) {
         const playerInfo = pendingAck?.player
-        setPendingContractModification({
+        pendingWinnerContractRef.current = {
           ...data.winnerContractInfo,
           playerTeam: playerInfo?.team,
           playerPosition: playerInfo?.position,
-        })
+        }
       }
 
       loadData()
@@ -1426,8 +1477,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     <div className="min-h-screen bg-dark-300">
       <Navigation currentPage="rubata" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
 
-      {/* Transaction Confirmation Modal - Non mostrare se c'è un ricorso attivo */}
-      {rubataState === 'PENDING_ACK' && pendingAck && !pendingAck.userAcknowledged &&
+      {/* Transaction Confirmation Modal - Resta aperta finché TUTTI i manager confermano */}
+      {rubataState === 'PENDING_ACK' && pendingAck && !pendingAck.allAcknowledged &&
        !['APPEAL_REVIEW', 'AWAITING_APPEAL_ACK', 'AWAITING_RESUME'].includes(appealStatus?.auctionStatus || '') && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
           <div className="bg-gradient-to-br from-purple-900 to-purple-950 rounded-3xl p-6 max-w-lg w-full shadow-2xl border-2 border-purple-400 animate-bounce-in max-h-[90vh] overflow-y-auto">
@@ -1560,7 +1611,13 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
             {/* Action Buttons */}
             <div className="space-y-2">
-              {!isAppealMode ? (
+              {pendingAck.userAcknowledged ? (
+                /* User already confirmed - show waiting state */
+                <div className="w-full py-3 text-center rounded-xl bg-secondary-500/20 border border-secondary-500/30">
+                  <p className="text-secondary-400 font-bold">✅ Hai confermato</p>
+                  <p className="text-xs text-gray-400 mt-1">In attesa degli altri manager ({pendingAck.totalAcknowledged}/{pendingAck.totalMembers})</p>
+                </div>
+              ) : !isAppealMode ? (
                 <>
                   <Button onClick={handleAcknowledgeWithAppeal} disabled={isSubmitting} className="w-full py-3 text-lg">
                     {prophecyContent.trim() ? '🔮 CONFERMA CON PROFEZIA' : '✅ CONFERMA TRANSAZIONE'}
@@ -2131,10 +2188,46 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
         {/* Tabellone e controlli - Board generato */}
         {isRubataPhase && isOrderSet && (
-          <div className={`${isAdmin ? 'grid grid-cols-1 lg:grid-cols-5 gap-6' : ''}`}>
-            {/* Admin Sidebar - Left */}
-            {isAdmin && (
-              <div className="lg:col-span-1 space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            {/* Left Sidebar - Budget + Admin controls */}
+            <div className="hidden lg:block lg:col-span-1 space-y-4">
+              {/* Budget Residuo Panel - visible to all */}
+              {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && (
+                <div className="bg-surface-200 rounded-2xl border border-primary-500/50 overflow-hidden sticky top-20">
+                  <div className="p-3 border-b border-surface-50/20 bg-primary-500/10">
+                    <h3 className="font-bold text-primary-400 text-sm flex items-center gap-2">
+                      <span>💰</span>
+                      Budget Residuo
+                    </h3>
+                  </div>
+                  <div className="p-2 space-y-1">
+                    {boardData.memberBudgets.map((mb, idx) => (
+                      <div
+                        key={mb.memberId}
+                        className={`flex items-center justify-between px-2 py-1.5 rounded-lg ${
+                          idx === 0 ? 'bg-accent-500/10 border border-accent-500/20' :
+                          mb.residuo < 0 ? 'bg-danger-500/10' :
+                          mb.residuo < 50 ? 'bg-warning-500/5' :
+                          'bg-surface-300/30'
+                        }`}
+                      >
+                        <span className="text-xs text-gray-400 truncate flex-1">{mb.teamName}</span>
+                        <span className={`text-sm font-bold ml-2 ${
+                          mb.residuo < 0 ? 'text-danger-400' :
+                          mb.residuo < 50 ? 'text-warning-400' :
+                          'text-accent-400'
+                        }`}>
+                          {mb.residuo}M
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Admin-only panels */}
+              {isAdmin && (<>
+              {/* Timer Settings Panel */}
                 {/* Timer Settings Panel */}
                 <div className="bg-surface-200 rounded-2xl border border-accent-500/50 overflow-hidden">
                   <div className="p-3 border-b border-surface-50/20 bg-accent-500/10">
@@ -2289,11 +2382,11 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     </Button>
                   </div>
                 </div>
-              </div>
-            )}
+              </>)}
+            </div>
 
             {/* Main Content */}
-            <div className={`${isAdmin ? 'lg:col-span-4' : ''}`}>
+            <div className="lg:col-span-4">
             {/* Timer e stato corrente - sticky on mobile for visibility */}
             <div className="mb-6 bg-surface-200 rounded-2xl border-2 border-primary-500/50 overflow-hidden sticky top-16 z-20 lg:relative lg:top-0">
               <div className="p-5 bg-primary-500/10">
@@ -2728,18 +2821,20 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
               {/* Desktop: Table View - Scrollable */}
               <div className="hidden md:block overflow-y-auto flex-1">
-                <table className="w-full text-base table-fixed">
+                <table className="w-full text-sm table-fixed">
                   <thead className="sticky top-0 z-10">
-                    <tr className="bg-surface-300 text-sm text-gray-400 uppercase">
-                      <th className="text-left p-2 w-10">#</th>
-                      <th className="text-left p-2 w-[20%]">Giocatore</th>
-                      <th className="text-left p-2 w-[12%]">Proprietario</th>
-                      <th className="text-center p-2 w-[8%]">Ing.</th>
-                      <th className="text-center p-2 w-[6%]">Dur.</th>
-                      <th className="text-center p-2 w-[8%]">Claus.</th>
-                      <th className="text-center p-2 w-[8%]">Rubata</th>
-                      <th className="text-center p-2 w-[12%]">Nuovo Prop.</th>
-                      <th className="text-center p-2 w-[14%]">Strategia</th>
+                    <tr className="bg-surface-300 text-[11px] text-gray-400 uppercase tracking-wide">
+                      <th className="text-center py-2 w-[3%]">#</th>
+                      <th className="text-left pl-2 py-2 w-[18%]">Giocatore</th>
+                      <th className="text-center py-2 w-[5%]">Pos</th>
+                      <th className="text-center py-2 w-[5%]">Età</th>
+                      <th className="text-left px-2 py-2 w-[10%]">Propr.</th>
+                      <th className="text-center py-2 w-[5%]">Ing.</th>
+                      <th className="text-center py-2 w-[5%]">Dur.</th>
+                      <th className="text-center py-2 w-[6%]">Claus.</th>
+                      <th className="text-center py-2 w-[7%]">Rubata</th>
+                      <th className="text-center py-2 w-[13%]">Nuovo Prop.</th>
+                      <th className="text-center py-2 w-[11%]">Strategia</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2762,7 +2857,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                               : 'hover:bg-surface-300/30'
                           }`}
                         >
-                          <td className="p-2 font-mono text-xs">
+                          <td className="text-center py-2 font-mono text-[11px]">
                             {isCurrent ? (
                               <span className="inline-flex items-center justify-center w-5 h-5 bg-primary-500 text-white rounded-full animate-pulse font-bold text-[10px]">
                                 {globalIndex + 1}
@@ -2771,9 +2866,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                               <span className={isPassed ? 'text-gray-600' : 'text-gray-500'}>{globalIndex + 1}</span>
                             )}
                           </td>
-                          <td className="p-2">
+                          <td className="pl-2 py-2">
                             <div className="flex items-center gap-1.5">
-                              {/* Player photo */}
                               {player.playerApiFootballId ? (
                                 <img
                                   src={getPlayerPhotoUrl(player.playerApiFootballId)}
@@ -2809,17 +2903,33 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                               </button>
                             </div>
                           </td>
-                          <td className="p-2">
-                            <span className={`truncate block ${isPassed && wasStolen ? 'text-gray-500 line-through' : isPassed ? 'text-gray-500' : 'text-gray-400'}`}>
+                          <td className="py-2 text-center">
+                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold ${isPassed ? 'opacity-40' : ''} ${POSITION_COLORS[player.playerPosition]}`}>
+                              {player.playerPosition}
+                            </span>
+                          </td>
+                          <td className="py-2 text-center">
+                            <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
+                              isPassed ? 'text-gray-600 bg-transparent' :
+                              (player.playerAge ?? 99) <= 23 ? 'text-green-400 bg-green-500/10' :
+                              (player.playerAge ?? 99) <= 27 ? 'text-blue-400 bg-blue-500/10' :
+                              (player.playerAge ?? 99) <= 30 ? 'text-yellow-400 bg-yellow-500/10' :
+                              'text-orange-400 bg-orange-500/10'
+                            }`}>
+                              {player.playerAge || '—'}
+                            </span>
+                          </td>
+                          <td className="px-2 py-2">
+                            <span className={`text-xs truncate block ${isPassed && wasStolen ? 'text-gray-500 line-through' : isPassed ? 'text-gray-500' : 'text-gray-400'}`}>
                               {player.ownerUsername}
                             </span>
                           </td>
-                          <td className="p-2 text-center">
+                          <td className="py-2 text-center">
                             <span className={`text-xs ${isCurrent ? 'text-accent-400' : isPassed ? 'text-gray-600' : 'text-accent-400'}`}>
                               {player.contractSalary}
                             </span>
                           </td>
-                          <td className="p-2 text-center">
+                          <td className="py-2 text-center">
                             <span className={`text-xs font-medium ${
                               isPassed ? 'text-gray-500' :
                               player.contractDuration === 1 ? 'text-danger-400' :
@@ -2830,25 +2940,25 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                               {player.contractDuration}
                             </span>
                           </td>
-                          <td className="p-2 text-center">
+                          <td className="py-2 text-center">
                             <span className={`text-xs ${isPassed ? 'text-gray-600' : 'text-gray-400'}`}>
                               {player.contractClause}
                             </span>
                           </td>
-                          <td className="p-2 text-center">
-                            <span className={`text-xs font-bold ${isCurrent ? 'text-primary-400' : isPassed ? 'text-gray-600' : 'text-warning-400'}`}>
-                              {player.rubataPrice}
+                          <td className="py-2 text-center">
+                            <span className={`font-bold ${isCurrent ? 'text-primary-400 text-sm' : isPassed ? 'text-gray-600 text-xs' : 'text-warning-400 text-sm'}`}>
+                              {player.rubataPrice}M
                             </span>
                           </td>
-                          <td className="p-2 text-center">
+                          <td className="px-1 py-2 text-center">
                             {wasStolen ? (
-                              <span className="text-danger-400 font-bold text-xs truncate block">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-danger-500/20 border border-danger-500/30 text-danger-400 font-bold text-xs truncate">
                                 🎯 {player.stolenByUsername}
                               </span>
                             ) : isPassed ? (
                               <span className="text-secondary-500/60 text-xs">✓</span>
                             ) : (
-                              <span className="text-gray-600">—</span>
+                              <span className="text-gray-600 text-xs">—</span>
                             )}
                           </td>
                           <td className="p-2 text-center">
@@ -2898,7 +3008,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               </div>
 
               {/* Mobile: Card View - Scrollable */}
-              <div className="md:hidden p-4 space-y-3 overflow-y-auto flex-1">
+              <div className="md:hidden p-4 pb-24 space-y-3 overflow-y-auto flex-1">
                 {board?.map((player, globalIndex) => {
                   const isCurrent = globalIndex === boardData?.currentIndex
                   const isPassed = globalIndex < (boardData?.currentIndex ?? 0)
@@ -2947,6 +3057,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         <div className="w-6 h-6 bg-white rounded p-0.5 flex-shrink-0">
                           <TeamLogo team={player.playerTeam} />
                         </div>
+                        <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[8px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition]}`}>
+                          {player.playerPosition}
+                        </span>
                         <button
                           type="button"
                           onClick={() => setSelectedPlayerForStats({
@@ -2969,10 +3082,11 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         )}
                       </div>
 
-                      {/* Proprietario */}
+                      {/* Proprietario + Età */}
                       <div className="text-xs text-gray-500 mb-2 pl-6">
                         di <span className={isPassed && wasStolen ? 'text-gray-500 line-through' : 'text-gray-400'}>{player.ownerUsername}</span>
                         {player.ownerTeamName && <span className="text-gray-600"> ({player.ownerTeamName})</span>}
+                        {player.playerAge && <span className="text-gray-600"> · {player.playerAge}a</span>}
                       </div>
 
                       {/* Nuovo proprietario se rubato */}
@@ -3078,7 +3192,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
         {isRubataPhase && isOrderSet && !isCurrentPlayerVisible && currentPlayer && (
           <button
             onClick={scrollToCurrentPlayer}
-            className="fixed bottom-4 left-4 z-50 flex items-center gap-2 px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-full shadow-lg transition-all animate-pulse hover:animate-none"
+            className="fixed bottom-20 md:bottom-4 left-4 z-50 flex items-center gap-2 px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-full shadow-lg transition-all animate-pulse hover:animate-none"
             title={`Torna a ${currentPlayer.playerName}`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -3094,6 +3208,46 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
         )}
 
       </main>
+
+      {/* Mobile Budget Footer - Fixed Bottom */}
+      {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && isRubataPhase && isOrderSet && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-r from-surface-200 via-surface-200 to-surface-200 border-t-2 border-primary-500/50 z-40 shadow-lg shadow-black/30">
+          <div className="px-3 py-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[9px] text-gray-500 uppercase font-medium">Budget Residuo</span>
+              <button
+                type="button"
+                onClick={() => setMobileBudgetExpanded(prev => !prev)}
+                className="text-[9px] text-gray-400 px-2 py-0.5 rounded bg-surface-300/50"
+              >
+                {mobileBudgetExpanded ? '▼ Chiudi' : '▲ Espandi'}
+              </button>
+            </div>
+            <div className={`grid gap-1.5 ${mobileBudgetExpanded ? 'grid-cols-2' : 'grid-cols-4'}`}>
+              {(mobileBudgetExpanded ? boardData.memberBudgets : boardData.memberBudgets.slice(0, 4)).map(mb => (
+                <div
+                  key={mb.memberId}
+                  className={`rounded p-1 text-center ${
+                    mb.residuo < 0 ? 'bg-danger-500/20' : 'bg-surface-300/50'
+                  }`}
+                >
+                  <div className="text-[8px] text-gray-500 truncate">{mb.teamName}</div>
+                  <div className={`font-bold text-xs ${
+                    mb.residuo < 0 ? 'text-danger-400' : mb.residuo < 50 ? 'text-warning-400' : 'text-accent-400'
+                  }`}>
+                    {mb.residuo}M
+                  </div>
+                  {mobileBudgetExpanded && (
+                    <div className="text-[7px] text-gray-600">
+                      {mb.currentBudget}M - {mb.totalSalaries}M
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Contract Modification Modal after Rubata Win */}
       {pendingContractModification && (
@@ -3113,8 +3267,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             rescissionClause: pendingContractModification.rescissionClause,
           }}
           onConfirm={handleContractModification}
+          increaseOnly={true}
           title="Modifica Contratto"
-          description="Hai appena rubato questo giocatore. Puoi modificare il suo contratto seguendo le regole del rinnovo."
+          description="Hai appena rubato questo giocatore. Puoi solo aumentare ingaggio e/o durata del contratto."
         />
       )}
 
