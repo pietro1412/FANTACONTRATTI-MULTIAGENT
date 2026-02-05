@@ -2784,20 +2784,20 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
               {/* Desktop: Table View - Scrollable */}
               <div className="hidden md:block overflow-y-auto flex-1">
-                <table className="w-full text-base table-fixed">
+                <table className="w-full text-sm">
                   <thead className="sticky top-0 z-10">
-                    <tr className="bg-surface-300 text-sm text-gray-400 uppercase">
-                      <th className="text-left p-2 w-8">#</th>
-                      <th className="text-left p-2 w-[17%]">Giocatore</th>
-                      <th className="text-center p-2 w-[5%]">Ruolo</th>
-                      <th className="text-center p-2 w-[4%]">Età</th>
-                      <th className="text-left p-2 w-[11%]">Proprietario</th>
-                      <th className="text-center p-2 w-[7%]">Ing.</th>
-                      <th className="text-center p-2 w-[5%]">Dur.</th>
-                      <th className="text-center p-2 w-[7%]">Claus.</th>
-                      <th className="text-center p-2 w-[7%]">Rubata</th>
-                      <th className="text-center p-2 w-[11%]">Nuovo Prop.</th>
-                      <th className="text-center p-2 w-[13%]">Strategia</th>
+                    <tr className="bg-surface-300 text-xs text-gray-400 uppercase">
+                      <th className="text-center px-1 py-2 w-8">#</th>
+                      <th className="text-left px-2 py-2">Giocatore</th>
+                      <th className="text-center px-1 py-2 w-12">Ruolo</th>
+                      <th className="text-center px-1 py-2 w-10">Età</th>
+                      <th className="text-left px-2 py-2 w-[11%]">Proprietario</th>
+                      <th className="text-center px-1 py-2 w-12">Ing.</th>
+                      <th className="text-center px-1 py-2 w-10">Dur.</th>
+                      <th className="text-center px-1 py-2 w-14">Claus.</th>
+                      <th className="text-center px-1 py-2 w-16">Rubata</th>
+                      <th className="text-center px-2 py-2 w-[12%]">Nuovo Prop.</th>
+                      <th className="text-center px-1 py-2 w-[12%]">Strategia</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2820,7 +2820,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                               : 'hover:bg-surface-300/30'
                           }`}
                         >
-                          <td className="p-2 font-mono text-xs">
+                          <td className="px-1 py-1.5 text-center font-mono text-xs">
                             {isCurrent ? (
                               <span className="inline-flex items-center justify-center w-5 h-5 bg-primary-500 text-white rounded-full animate-pulse font-bold text-[10px]">
                                 {globalIndex + 1}
@@ -2829,9 +2829,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                               <span className={isPassed ? 'text-gray-600' : 'text-gray-500'}>{globalIndex + 1}</span>
                             )}
                           </td>
-                          <td className="p-2">
+                          <td className="px-2 py-1.5">
                             <div className="flex items-center gap-1.5">
-                              {/* Player photo */}
                               {player.playerApiFootballId ? (
                                 <img
                                   src={getPlayerPhotoUrl(player.playerApiFootballId)}
@@ -2867,27 +2866,27 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                               </button>
                             </div>
                           </td>
-                          <td className="p-2 text-center">
+                          <td className="px-1 py-1.5 text-center">
                             <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold ${isPassed ? 'opacity-50' : ''} ${POSITION_COLORS[player.playerPosition]}`}>
                               {player.playerPosition}
                             </span>
                           </td>
-                          <td className="p-2 text-center">
-                            <span className={`text-xs ${isPassed ? 'text-gray-600' : 'text-gray-400'}`}>
+                          <td className="px-1 py-1.5 text-center">
+                            <span className={`text-xs font-medium ${isPassed ? 'text-gray-600' : 'text-gray-300'}`}>
                               {player.playerAge || '—'}
                             </span>
                           </td>
-                          <td className="p-2">
-                            <span className={`truncate block ${isPassed && wasStolen ? 'text-gray-500 line-through' : isPassed ? 'text-gray-500' : 'text-gray-400'}`}>
+                          <td className="px-2 py-1.5">
+                            <span className={`text-xs truncate block ${isPassed && wasStolen ? 'text-gray-500 line-through' : isPassed ? 'text-gray-500' : 'text-gray-400'}`}>
                               {player.ownerUsername}
                             </span>
                           </td>
-                          <td className="p-2 text-center">
+                          <td className="px-1 py-1.5 text-center">
                             <span className={`text-xs ${isCurrent ? 'text-accent-400' : isPassed ? 'text-gray-600' : 'text-accent-400'}`}>
                               {player.contractSalary}
                             </span>
                           </td>
-                          <td className="p-2 text-center">
+                          <td className="px-1 py-1.5 text-center">
                             <span className={`text-xs font-medium ${
                               isPassed ? 'text-gray-500' :
                               player.contractDuration === 1 ? 'text-danger-400' :
@@ -2898,25 +2897,25 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                               {player.contractDuration}
                             </span>
                           </td>
-                          <td className="p-2 text-center">
+                          <td className="px-1 py-1.5 text-center">
                             <span className={`text-xs ${isPassed ? 'text-gray-600' : 'text-gray-400'}`}>
                               {player.contractClause}
                             </span>
                           </td>
-                          <td className="p-2 text-center">
-                            <span className={`text-xs font-bold ${isCurrent ? 'text-primary-400' : isPassed ? 'text-gray-600' : 'text-warning-400'}`}>
-                              {player.rubataPrice}
+                          <td className="px-1 py-1.5 text-center">
+                            <span className={`font-bold ${isCurrent ? 'text-primary-400 text-sm' : isPassed ? 'text-gray-600 text-xs' : 'text-warning-400 text-sm'}`}>
+                              {player.rubataPrice}M
                             </span>
                           </td>
-                          <td className="p-2 text-center">
+                          <td className="px-2 py-1.5 text-center">
                             {wasStolen ? (
-                              <span className="text-danger-400 font-bold text-xs truncate block">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-danger-500/20 border border-danger-500/30 text-danger-400 font-bold text-xs truncate">
                                 🎯 {player.stolenByUsername}
                               </span>
                             ) : isPassed ? (
                               <span className="text-secondary-500/60 text-xs">✓</span>
                             ) : (
-                              <span className="text-gray-600">—</span>
+                              <span className="text-gray-600 text-xs">—</span>
                             )}
                           </td>
                           <td className="p-2 text-center">

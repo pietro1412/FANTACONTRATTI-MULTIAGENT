@@ -1211,20 +1211,37 @@ export async function getRubataBoard(
   }
 
   const isRubataPhase = activeSession.currentPhase === 'RUBATA'
-  const board = activeSession.rubataBoard as Array<{
+  const rawBoard = activeSession.rubataBoard as Array<{
     rosterId: string
     memberId: string
     playerId: string
     playerName: string
     playerPosition: Position
     playerTeam: string
+    playerQuotation?: number
+    playerAge?: number | null
+    playerApiFootballId?: number | null
     ownerUsername: string
     ownerTeamName: string | null
     rubataPrice: number
     contractSalary: number
     contractDuration: number
     contractClause: number
+    stolenById?: string | null
+    stolenByUsername?: string | null
+    stolenPrice?: number | null
   }> | null
+
+  // Enrich board with computed stats (not stored in JSON)
+  let board = rawBoard
+  if (rawBoard) {
+    const playerIds = rawBoard.map(p => p.playerId)
+    const statsMap = await computeSeasonStatsBatch(playerIds)
+    board = rawBoard.map(p => ({
+      ...p,
+      playerComputedStats: statsMap.get(p.playerId) || null,
+    }))
+  }
 
   // Calculate remaining time if timer is active
   let remainingSeconds: number | null = null
@@ -4076,13 +4093,16 @@ export async function getRubataPreviewBoard(
     return { success: false, message: 'Nessuna sessione rubata attiva' }
   }
 
-  const board = activeSession.rubataBoard as Array<{
+  const rawPreviewBoard = activeSession.rubataBoard as Array<{
     rosterId: string
     memberId: string
     playerId: string
     playerName: string
     playerPosition: Position
     playerTeam: string
+    playerQuotation?: number
+    playerAge?: number | null
+    playerApiFootballId?: number | null
     ownerUsername: string
     ownerTeamName: string | null
     rubataPrice: number
@@ -4091,9 +4111,13 @@ export async function getRubataPreviewBoard(
     contractClause: number
   }> | null
 
-  if (!board) {
+  if (!rawPreviewBoard) {
     return { success: false, message: 'Tabellone non ancora generato' }
   }
+
+  // Compute stats for all players in the board
+  const previewPlayerIds = rawPreviewBoard.map(p => p.playerId)
+  const previewStatsMap = await computeSeasonStatsBatch(previewPlayerIds)
 
   // Get this member's preferences
   const preferences = await prisma.rubataPreference.findMany({
@@ -4105,9 +4129,10 @@ export async function getRubataPreviewBoard(
 
   const preferencesMap = new Map(preferences.map(p => [p.playerId, p]))
 
-  // Enrich board with preferences
-  const enrichedBoard = board.map(player => ({
+  // Enrich board with preferences and computed stats
+  const enrichedBoard = rawPreviewBoard.map(player => ({
     ...player,
+    playerComputedStats: previewStatsMap.get(player.playerId) || null,
     preference: preferencesMap.get(player.playerId) || null,
   }))
 
