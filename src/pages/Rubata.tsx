@@ -2778,19 +2778,19 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
               {/* Desktop: Table View - Scrollable */}
               <div className="hidden md:block overflow-y-auto flex-1">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm table-fixed">
                   <thead className="sticky top-0 z-10">
                     <tr className="bg-surface-300 text-[11px] text-gray-400 uppercase tracking-wide">
-                      <th className="text-center py-2 w-7">#</th>
-                      <th className="text-left pl-2 py-2">Giocatore</th>
-                      <th className="text-center py-2 w-11">Pos</th>
-                      <th className="text-center py-2 w-10">Età</th>
+                      <th className="text-center py-2 w-[3%]">#</th>
+                      <th className="text-left pl-2 py-2 w-[18%]">Giocatore</th>
+                      <th className="text-center py-2 w-[5%]">Pos</th>
+                      <th className="text-center py-2 w-[5%]">Età</th>
                       <th className="text-left px-2 py-2 w-[10%]">Propr.</th>
-                      <th className="text-center py-2 w-10">Ing.</th>
-                      <th className="text-center py-2 w-9">Dur.</th>
-                      <th className="text-center py-2 w-12">Claus.</th>
-                      <th className="text-center py-2 w-14">Rubata</th>
-                      <th className="text-center px-1 py-2 w-[12%]">Nuovo Prop.</th>
+                      <th className="text-center py-2 w-[5%]">Ing.</th>
+                      <th className="text-center py-2 w-[5%]">Dur.</th>
+                      <th className="text-center py-2 w-[6%]">Claus.</th>
+                      <th className="text-center py-2 w-[7%]">Rubata</th>
+                      <th className="text-center py-2 w-[13%]">Nuovo Prop.</th>
                       <th className="text-center py-2 w-[11%]">Strategia</th>
                     </tr>
                   </thead>
