@@ -1294,15 +1294,15 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
         A: players.filter(p => p.position === 'A').length,
       }
 
-      // Durante CONTRATTI, mostra il budget "congelato" (pre-consolidamento)
-      // Per i consolidati: usa preConsolidationBudget
-      // Per i non-consolidati: usa currentBudget (che è ancora quello pre-fase)
+      // Budget display:
+      // Se il manager ha consolidato e preConsolidationBudget è disponibile,
+      // mostra SEMPRE il budget pre-consolidamento (tagli/indennizzi mostrati separatamente)
+      // Questo vale sia durante CONTRATTI (dati congelati) che dopo (es. RUBATA)
+      // dove la formula è: Bilancio = Budget(pre) - Ingaggi - Tagli + Indennizzi
       let displayBudget: number
-      if (inContrattiPhase && isConsolidated && member.preConsolidationBudget != null) {
-        // Team consolidato: usa il budget salvato prima del consolidamento
+      if (isConsolidated && member.preConsolidationBudget != null) {
         displayBudget = member.preConsolidationBudget
       } else {
-        // Team non consolidato o fuori da CONTRATTI: usa il budget corrente
         displayBudget = member.currentBudget
       }
 

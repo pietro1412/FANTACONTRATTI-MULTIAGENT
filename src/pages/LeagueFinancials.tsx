@@ -412,11 +412,10 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
       : null
 
     // Aggregate tagli/indennizzi
-    // Durante CONTRATTI: mostra solo quando TUTTI i manager hanno consolidato
-    // Dopo CONTRATTI: mostra sempre se ci sono dati
+    // Durante CONTRATTI: MAI mostrare (dati congelati, niente tagli/indennizzi)
+    // Dopo CONTRATTI (es. RUBATA): mostra se ci sono dati
     const rawHasFinancialDetails = data.teams.some(t => t.totalReleaseCosts !== null || t.totalIndemnities !== null)
-    const allConsolidated = data?.inContrattiPhase ? data.teams.every(t => t.isConsolidated) : true
-    const hasFinancialDetails = rawHasFinancialDetails && allConsolidated
+    const hasFinancialDetails = rawHasFinancialDetails && !data?.inContrattiPhase
 
     const totalReleaseCosts = hasFinancialDetails
       ? data.teams.reduce((sum, t) => sum + (t.totalReleaseCosts ?? 0), 0)
