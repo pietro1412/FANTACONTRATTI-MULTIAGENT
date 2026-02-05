@@ -7,7 +7,6 @@
 
 // Re-export existing components
 export { default as PlayerRevealCard } from '@/components/PlayerRevealCard'
-export { default as Chat } from '@/components/Chat'
 
 // Future exports:
 // export { AuctionTimer } from './AuctionTimer'
