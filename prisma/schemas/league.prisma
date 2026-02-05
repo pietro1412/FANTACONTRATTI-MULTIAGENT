@@ -64,6 +64,7 @@ model LeagueMember {
 
   // Budget
   currentBudget Int    @default(0)
+  preConsolidationBudget Int?  // Budget prima del consolidamento (per fase CONTRATTI)
 
   // Ordine Rubata (impostato da admin)
   rubataOrder   Int?
@@ -93,6 +94,8 @@ model LeagueMember {
   sessionPrizes  SessionPrize[]              // see: prize.prisma
   rubataPreferences RubataPreference[]       // see: rubata.prisma
   auctionObjectives AuctionObjective[]       // see: auction.prisma
+  contractHistory   ContractHistory[]        // see: contract-history.prisma
+  sessionSnapshots  ManagerSessionSnapshot[] // see: contract-history.prisma
 
   @@unique([userId, leagueId])
   @@index([leagueId, status])

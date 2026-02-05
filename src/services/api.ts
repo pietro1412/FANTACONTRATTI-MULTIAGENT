@@ -1755,3 +1755,14 @@ export const feedbackApi = {
   markAllNotificationsRead: () =>
     request('/api/feedback/notifications/read-all', { method: 'PATCH' }),
 }
+
+// Contract History API
+export const contractHistoryApi = {
+  // Get contract phase prospetto (real-time summary during CONTRATTI)
+  getProspetto: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/contract-prospetto`),
+
+  // Get historical session summaries
+  getHistorical: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/contract-history/historical`),
+}

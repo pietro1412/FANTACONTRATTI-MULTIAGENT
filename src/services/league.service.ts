@@ -149,6 +149,15 @@ export async function getLeagueById(leagueId: string, userId: string): Promise<S
               profilePhoto: true,
             },
           },
+          // Include roster with contracts to calculate total salaries
+          roster: {
+            where: { status: 'ACTIVE' },
+            include: {
+              contract: {
+                select: { salary: true },
+              },
+            },
+          },
         },
       },
     },
@@ -161,11 +170,31 @@ export async function getLeagueById(leagueId: string, userId: string): Promise<S
   // Check if user is a member
   const membership = league.members.find(m => m.userId === userId)
 
+  // Add totalSalaries and balance to each member
+  const membersWithBalance = league.members.map(member => {
+    const totalSalaries = member.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
+    const balance = member.currentBudget - totalSalaries
+    return {
+      ...member,
+      roster: undefined, // Don't expose roster details
+      totalSalaries,
+      balance,
+    }
+  })
+
   return {
     success: true,
     data: {
-      league,
-      userMembership: membership || null,
+      league: {
+        ...league,
+        members: membersWithBalance,
+      },
+      userMembership: membership ? {
+        ...membership,
+        roster: undefined,
+        totalSalaries: membership.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0),
+        balance: membership.currentBudget - membership.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0),
+      } : null,
       isAdmin: membership?.role === MemberRole.ADMIN,
     },
   }
@@ -980,7 +1009,68 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
       consolidationMap = new Map(consolidations.map(c => [c.memberId, c.consolidatedAt]))
     }
 
+    // Get the most recent active session to fetch snapshot data (tagli, indennizzi)
+    const activeSession = await prisma.marketSession.findFirst({
+      where: { leagueId, status: 'ACTIVE' },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    // Fetch ManagerSessionSnapshot data for each member
+    // PHASE_START: valori pre-consolidamento (usati per "congelare" i dati durante CONTRATTI)
+    // PHASE_END: tagli/indennizzi (usati per report post-consolidamento)
+    let phaseStartMap = new Map<string, { budget: number; totalSalaries: number; contractCount: number }>()
+    let phaseEndMap = new Map<string, { totalReleaseCosts: number | null; totalIndemnities: number | null; totalRenewalCosts: number | null; preConsolidationBudget: number | null }>()
+    if (activeSession) {
+      const snapshots = await prisma.managerSessionSnapshot.findMany({
+        where: {
+          marketSessionId: activeSession.id,
+          snapshotType: { in: ['PHASE_START', 'PHASE_END'] },
+        },
+      })
+      for (const snap of snapshots) {
+        if (snap.snapshotType === 'PHASE_START') {
+          phaseStartMap.set(snap.leagueMemberId, {
+            budget: snap.budget,
+            totalSalaries: snap.totalSalaries,
+            contractCount: snap.contractCount,
+          })
+        } else if (snap.snapshotType === 'PHASE_END') {
+          phaseEndMap.set(snap.leagueMemberId, {
+            totalReleaseCosts: snap.totalReleaseCosts,
+            totalIndemnities: snap.totalIndemnities,
+            totalRenewalCosts: snap.totalRenewalCosts,
+            preConsolidationBudget: snap.budget,
+          })
+        }
+      }
+    }
+    // Backwards compatibility: use phaseEndMap as snapshotMap for existing code
+    const snapshotMap = phaseEndMap
+
+    // Durante CONTRATTI, recupera i salari dei giocatori rilasciati da ContractHistory
+    // Questi dati sono necessari per calcolare i totali pre-consolidamento
+    let releasedSalariesMap = new Map<string, { totalSalary: number; count: number }>()
+    if (inContrattiPhase && activeContrattiSession) {
+      const releaseHistory = await prisma.contractHistory.findMany({
+        where: {
+          marketSessionId: activeContrattiSession.id,
+          eventType: { in: ['RELEASE_NORMAL', 'RELEASE_ESTERO', 'RELEASE_RETROCESSO'] },
+        },
+        select: {
+          leagueMemberId: true,
+          previousSalary: true,
+        },
+      })
+      for (const h of releaseHistory) {
+        const existing = releasedSalariesMap.get(h.leagueMemberId) || { totalSalary: 0, count: 0 }
+        existing.totalSalary += h.previousSalary || 0
+        existing.count += 1
+        releasedSalariesMap.set(h.leagueMemberId, existing)
+      }
+    }
+
     // Get all active members with their rosters and contracts (including draft values for #193)
+    // Durante CONTRATTI, include anche i roster RELEASED per mostrare lo stato pre-consolidamento
     const members = await prisma.leagueMember.findMany({
       where: {
         leagueId,
@@ -991,7 +1081,10 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
           select: { username: true },
         },
         roster: {
-          where: { status: 'ACTIVE' },
+          // Durante CONTRATTI, include anche RELEASED per mostrare stato pre-consolidamento
+          where: inContrattiPhase
+            ? { status: { in: ['ACTIVE', 'RELEASED'] } }
+            : { status: 'ACTIVE' },
           include: {
             player: {
               select: {
@@ -1039,57 +1132,54 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
       ? (league.goalkeeperSlots + league.defenderSlots + league.midfielderSlots + league.forwardSlots)
       : 25
 
+    // Verifica se TUTTI i manager hanno consolidato
+    const allMembersConsolidated = inContrattiPhase
+      ? members.every(m => consolidationMap.has(m.id))
+      : false
+
     // Calculate financial data for each team
     const teamsData = members.map(member => {
       const isConsolidated = consolidationMap.has(member.id)
       const consolidatedAt = consolidationMap.get(member.id) || null
-      // FIX: Only show draft values to the owner during CONTRATTI phase
       const isOwnTeam = member.id === membership.id
-      const canSeeDraft = inContrattiPhase && !isConsolidated && isOwnTeam
+
+      // MODIFICA: Durante fase CONTRATTI, la pagina Finanze NON mostra mai i valori draft/post-rinnovo
+      // I nuovi valori saranno visibili solo dopo che l'admin avanza la fase
+      // canSeeDraft è sempre false per la pagina Finanze durante CONTRATTI
+      const canSeeDraft = false // Era: inContrattiPhase && !isConsolidated && isOwnTeam
 
       const players = member.roster.map(r => {
-        // Pre-rinnovo salary logic:
-        // - For own team: always show current salary (real-time)
-        // - For other teams during CONTRATTI: if manager has consolidated, show preConsolidationSalary
-        //   (the value BEFORE they consolidated), otherwise show current salary
-        // This ensures other managers don't see consolidated values until phase ends
+        // MODIFICA: Durante fase CONTRATTI, mostra SEMPRE i valori pre-consolidamento
+        // per TUTTI i team (incluso il proprio), così il tabellone rimane "congelato"
+        // fino a quando l'admin non avanza la fase
         let preRenewalSalary: number
-        if (isOwnTeam) {
-          // Own team: always see current salary
-          preRenewalSalary = r.contract?.salary || 0
-        } else if (inContrattiPhase && isConsolidated && r.contract?.preConsolidationSalary != null) {
-          // Other team, consolidated during CONTRATTI: show pre-consolidation value
+        if (inContrattiPhase && isConsolidated && r.contract?.preConsolidationSalary != null) {
+          // Team che ha consolidato: mostra il valore PRE-consolidamento
           preRenewalSalary = r.contract.preConsolidationSalary
         } else {
-          // Other team, not consolidated yet: show current salary
+          // Team non ancora consolidato: mostra il valore corrente (che è ancora quello pre-fase)
           preRenewalSalary = r.contract?.salary || 0
         }
 
-        // Post-rinnovo: only show to owner who hasn't consolidated yet
-        let postRenewalSalary: number | null = null
-        if (canSeeDraft) {
-          // During CONTRATTI phase, show draft value only to owner
-          postRenewalSalary = r.contract?.draftSalary ?? null
-        }
+        // Post-rinnovo: NON mostrare nella pagina Finanze durante CONTRATTI
+        // I valori draft sono visibili solo nella pagina Contratti
+        const postRenewalSalary: number | null = null
 
         // Salary to display in the main column:
-        // - Own team: current salary
-        // - Other team during CONTRATTI after consolidation: preConsolidationSalary
-        // - Otherwise: current salary
+        // Durante CONTRATTI: sempre valore pre-consolidamento (congelato)
+        // Dopo CONTRATTI: valore corrente (aggiornato)
         let displaySalary: number
-        if (isOwnTeam) {
-          displaySalary = r.contract?.salary || 0
-        } else if (inContrattiPhase && isConsolidated && r.contract?.preConsolidationSalary != null) {
+        if (inContrattiPhase && isConsolidated && r.contract?.preConsolidationSalary != null) {
+          // Team consolidato durante CONTRATTI: mostra pre-consolidamento
           displaySalary = r.contract.preConsolidationSalary
         } else {
+          // Team non consolidato o fuori da CONTRATTI: mostra valore corrente
           displaySalary = r.contract?.salary || 0
         }
 
         // Duration logic (same as salary)
         let displayDuration: number
-        if (isOwnTeam) {
-          displayDuration = r.contract?.duration || 0
-        } else if (inContrattiPhase && isConsolidated && r.contract?.preConsolidationDuration != null) {
+        if (inContrattiPhase && isConsolidated && r.contract?.preConsolidationDuration != null) {
           displayDuration = r.contract.preConsolidationDuration
         } else {
           displayDuration = r.contract?.duration || 0
@@ -1113,13 +1203,47 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
         }
       })
 
-      // Calculate totals (current values)
-      const annualContractCost = players.reduce((sum, p) => sum + p.salary, 0)
-      const totalContractCost = players.reduce((sum, p) => sum + (p.salary * p.duration), 0)
-      const slotCount = players.length
+      // Logica per calcolare annualContractCost e slotCount:
+      // - Se TUTTI hanno consolidato: mostra dati POST-consolidamento (salari attuali)
+      // - Se NON tutti hanno consolidato: mostra dati PRE-consolidamento (congelati)
+      // - Fuori da CONTRATTI: mostra dati attuali
+      let annualContractCost: number
+      let slotCount: number
 
-      // #193: Pre-renewal cost (original salaries)
-      const preRenewalContractCost = players.reduce((sum, p) => sum + p.preRenewalSalary, 0)
+      // Filtra solo giocatori ACTIVE
+      const activePlayers = players.filter(p => {
+        const rosterEntry = member.roster.find(r => r.player.id === p.id)
+        return rosterEntry?.status === 'ACTIVE'
+      })
+
+      if (inContrattiPhase && !allMembersConsolidated) {
+        // NON tutti hanno consolidato: mostra dati PRE-consolidamento (congelati)
+        // Usa preRenewalSalary e aggiungi i salari dei rilasciati
+        const activeRosterSalaries = activePlayers.reduce((sum, p) => sum + p.preRenewalSalary, 0)
+        const releasedData = releasedSalariesMap.get(member.id)
+        const releasedSalaries = releasedData?.totalSalary || 0
+        const releasedCount = releasedData?.count || 0
+
+        annualContractCost = activeRosterSalaries + releasedSalaries
+        slotCount = activePlayers.length + releasedCount
+      } else {
+        // TUTTI hanno consolidato OPPURE fuori da CONTRATTI: mostra dati POST-consolidamento (attuali)
+        annualContractCost = activePlayers.reduce((sum, p) => sum + p.salary, 0)
+        slotCount = activePlayers.length
+      }
+
+      const totalContractCost = players.reduce((sum, p) => sum + (p.salary * p.duration), 0)
+
+      // #193: Pre-renewal cost - include i salari dei giocatori rilasciati
+      const releasedData = releasedSalariesMap.get(member.id)
+      const releasedSalaries = releasedData?.totalSalary || 0
+      const basePreRenewalCost = players
+        .filter(p => {
+          const rosterEntry = member.roster.find(r => r.player.id === p.id)
+          return rosterEntry?.status === 'ACTIVE'
+        })
+        .reduce((sum, p) => sum + p.preRenewalSalary, 0)
+      const preRenewalContractCost = basePreRenewalCost + releasedSalaries
 
       // #193: Post-renewal cost (draft salaries where available, original otherwise)
       // Only calculated during CONTRATTI phase and only visible to owner
@@ -1170,11 +1294,26 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
         A: players.filter(p => p.position === 'A').length,
       }
 
+      // Durante CONTRATTI, mostra il budget "congelato" (pre-consolidamento)
+      // Per i consolidati: usa preConsolidationBudget
+      // Per i non-consolidati: usa currentBudget (che è ancora quello pre-fase)
+      let displayBudget: number
+      if (inContrattiPhase && isConsolidated && member.preConsolidationBudget != null) {
+        // Team consolidato: usa il budget salvato prima del consolidamento
+        displayBudget = member.preConsolidationBudget
+      } else {
+        // Team non consolidato o fuori da CONTRATTI: usa il budget corrente
+        displayBudget = member.currentBudget
+      }
+
+      // Get snapshot data for this member (tagli, indennizzi)
+      const snapshot = snapshotMap.get(member.id)
+
       return {
         memberId: member.id,
         teamName: member.teamName || member.user.username,
         username: member.user.username,
-        budget: member.currentBudget,
+        budget: displayBudget,
         annualContractCost,
         totalContractCost,
         slotCount,
@@ -1195,6 +1334,11 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
         costByPosition,
         isConsolidated,
         consolidatedAt,
+        // New: Detailed financial breakdown from session snapshot
+        preConsolidationBudget: member.preConsolidationBudget ?? snapshot?.preConsolidationBudget ?? null,
+        totalReleaseCosts: snapshot?.totalReleaseCosts ?? null,
+        totalIndemnities: snapshot?.totalIndemnities ?? null,
+        totalRenewalCosts: snapshot?.totalRenewalCosts ?? null,
       }
     })
 

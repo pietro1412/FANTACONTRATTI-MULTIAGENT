@@ -1,5 +1,13 @@
 import { PrismaClient, MemberStatus, RosterStatus, AcquisitionType } from '@prisma/client'
 import { recordMovement } from './movement.service'
+import {
+  createContractHistoryEntry,
+  createContractHistoryEntries,
+  createPhaseStartSnapshot,
+  createPhaseEndSnapshot,
+} from './contract-history.service'
+import type { CreateContractHistoryInput, ContractEventType } from '../types/contract-history'
+import { computeSeasonStatsBatch, type ComputedSeasonStats } from './player-stats.service'
 
 const prisma = new PrismaClient()
 
@@ -112,8 +120,25 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
     return { success: false, message: 'Non sei membro di questa lega' }
   }
 
-  // Check if in CONTRATTI phase
-  const inContrattiPhase = await isInContrattiPhase(leagueId)
+  // Check if in CONTRATTI phase and if user has consolidated
+  const activeSession = await prisma.marketSession.findFirst({
+    where: { leagueId, status: 'ACTIVE', currentPhase: 'CONTRATTI' },
+  })
+  const inContrattiPhase = !!activeSession
+
+  // Check consolidation status
+  let isConsolidated = false
+  if (activeSession) {
+    const consolidation = await prisma.contractConsolidation.findUnique({
+      where: {
+        sessionId_memberId: {
+          sessionId: activeSession.id,
+          memberId: member.id,
+        },
+      },
+    })
+    isConsolidated = !!consolidation
+  }
 
   // Get roster with contracts and draft contracts
   const roster = await prisma.playerRoster.findMany({
@@ -123,7 +148,22 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
     },
     include: {
       player: true,
-      contract: true,
+      contract: {
+        select: {
+          id: true,
+          salary: true,
+          duration: true,
+          initialSalary: true,
+          initialDuration: true,
+          rescissionClause: true,
+          draftSalary: true,
+          draftDuration: true,
+          draftReleased: true,
+          draftExitDecision: true,
+          preConsolidationSalary: true,
+          preConsolidationDuration: true,
+        },
+      },
       draftContract: true,
     },
     orderBy: {
@@ -133,10 +173,12 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
     },
   })
 
+  // Compute season stats for all players in batch (efficient single query)
+  const allPlayerIds = roster.map(r => r.playerId)
+  const statsMap = await computeSeasonStatsBatch(allPlayerIds)
+
   // Fetch indemnity amounts for ESTERO players from individual "Indennizzo - PlayerName" categories
-  const activeSession = await prisma.marketSession.findFirst({
-    where: { leagueId, status: 'ACTIVE' },
-  })
+  // (activeSession is already defined above for CONTRATTI phase check)
   // Map: playerName -> indemnity amount (from consolidated individual categories)
   const playerIndemnityAmounts: Record<string, number> = {}
   let indennizzoEsteroDefault = 50 // fallback if no individual category exists
@@ -179,45 +221,166 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
   const playersWithContract = roster.filter(r => r.contract)
   const playersWithoutContract = roster.filter(r => !r.contract)
 
+  // If consolidated, fetch renewal history to show what changed
+  // This map contains ONLY contracts that were actually modified (RENEWAL or SPALMA)
+  let modifiedContractsMap: Map<string, { newSalary: number; newDuration: number; previousSalary: number; previousDuration: number }> = new Map()
+  if (isConsolidated && activeSession) {
+    const renewalHistory = await prisma.contractHistory.findMany({
+      where: {
+        leagueMemberId: member.id,
+        marketSessionId: activeSession.id,
+        eventType: { in: ['RENEWAL', 'SPALMA'] },
+        contractId: { not: null },
+      },
+      select: {
+        contractId: true,
+        newSalary: true,
+        newDuration: true,
+        previousSalary: true,
+        previousDuration: true,
+      },
+    })
+    for (const h of renewalHistory) {
+      if (h.contractId && h.newSalary != null && h.newDuration != null) {
+        modifiedContractsMap.set(h.contractId, {
+          newSalary: h.newSalary,
+          newDuration: h.newDuration,
+          previousSalary: h.previousSalary || 0,
+          previousDuration: h.previousDuration || 0,
+        })
+      }
+    }
+  }
+
   // Add calculated fields for contracts (including draft values)
   const contracts = playersWithContract.map(r => {
-    const rescissionClause = calculateRescissionClause(r.contract!.salary, r.contract!.duration)
+    const contract = r.contract!
+    const rescissionClause = calculateRescissionClause(contract.salary, contract.duration)
     const isExitedPlayer = r.player.listStatus === 'NOT_IN_LIST' && r.player.exitReason != null && r.player.exitReason !== 'RITIRATO'
     const exitReason = r.player.exitReason
 
+    // Check if this contract was modified during consolidation (has RENEWAL/SPALMA history)
+    const historyEntry = modifiedContractsMap.get(contract.id)
+    const wasModified = !!historyEntry
+
+    // Display values depend on consolidation state
+    let displaySalary = contract.salary
+    let displayDuration = contract.duration
+    let displayDraftSalary: number | null = contract.draftSalary
+    let displayDraftDuration: number | null = contract.draftDuration
+
+    if (isConsolidated) {
+      if (historyEntry) {
+        // Contract was modified: show previous as "current", new as "draft"
+        displaySalary = historyEntry.previousSalary
+        displayDuration = historyEntry.previousDuration
+        displayDraftSalary = historyEntry.newSalary
+        displayDraftDuration = historyEntry.newDuration
+      } else {
+        // Contract was NOT modified: show current values in both columns
+        // (current = new, no change)
+        displayDraftSalary = contract.salary
+        displayDraftDuration = contract.duration
+      }
+    }
+
     return {
-      id: r.contract!.id,
-      salary: r.contract!.salary,
-      duration: r.contract!.duration,
-      initialSalary: r.contract!.initialSalary,
-      initialDuration: r.contract!.initialDuration,
+      id: contract.id,
+      salary: displaySalary,
+      duration: displayDuration,
+      initialSalary: contract.initialSalary,
+      initialDuration: contract.initialDuration,
       rescissionClause,
-      canRenew: r.contract!.duration < MAX_DURATION,
-      canSpalmare: r.contract!.duration === 1,
-      // Draft values (if any saved)
-      draftSalary: r.contract!.draftSalary,
-      draftDuration: r.contract!.draftDuration,
-      draftReleased: r.contract!.draftReleased,  // Marcato per taglio
-      draftExitDecision: r.contract!.draftExitDecision,  // null=INDECISO, "KEEP", "RELEASE"
+      canRenew: true,  // Tutti possono rinnovare (aumentare ingaggio), anche con durata max
+      canSpalmare: displayDuration === 1,
+      // Draft values (if any saved, or post-consolidation values from history)
+      draftSalary: displayDraftSalary,
+      draftDuration: displayDraftDuration,
+      draftReleased: contract.draftReleased,  // Marcato per taglio
+      draftExitDecision: contract.draftExitDecision,  // null=INDECISO, "KEEP", "RELEASE"
       // Exited player info
       isExitedPlayer,
       exitReason,
       indemnityCompensation: (isExitedPlayer && exitReason === 'ESTERO')
         ? (playerIndemnityAmounts[r.player.name] ?? indennizzoEsteroDefault)
         : 0,
+      // Flag to indicate if contract was modified during this session's consolidation
+      wasModified,
       roster: {
         id: r.id,
-        player: r.player,
+        player: {
+          ...r.player,
+          computedStats: statsMap.get(r.playerId) || null,
+        },
         acquisitionPrice: r.acquisitionPrice,
         acquisitionType: r.acquisitionType,
       },
     }
   })
 
+  // Query released players from ContractHistory (only after consolidation)
+  let releasedPlayers: Array<{
+    id: string
+    playerName: string
+    playerTeam: string
+    playerPosition: string
+    salary: number
+    duration: number
+    releaseCost: number
+    releaseType: string
+    indemnityAmount?: number
+  }> = []
+
+  // Track total renewal cost for the formula
+  let totalRenewalCost = 0
+
+  if (isConsolidated && activeSession) {
+    const releaseHistory = await prisma.contractHistory.findMany({
+      where: {
+        leagueMemberId: member.id,
+        marketSessionId: activeSession.id,
+        eventType: { in: ['RELEASE_NORMAL', 'RELEASE_ESTERO', 'RELEASE_RETROCESSO'] },
+      },
+      include: {
+        player: { select: { id: true, name: true, team: true, position: true } },
+      },
+    })
+
+    releasedPlayers = releaseHistory.map(h => ({
+      id: h.id,
+      playerName: h.player.name,
+      playerTeam: h.player.team,
+      playerPosition: h.player.position,
+      salary: h.previousSalary || 0,
+      duration: h.previousDuration || 0,
+      releaseCost: h.cost || 0,
+      releaseType: h.eventType,
+      indemnityAmount: h.eventType === 'RELEASE_ESTERO' ? (h.income || 0) : undefined,
+    }))
+
+    // Fetch net salary change from ContractHistory (RENEWAL and SPALMA)
+    // Positive = cost (salary increases), Negative = savings (salary decreases from spalma)
+    const salaryChangeHistory = await prisma.contractHistory.findMany({
+      where: {
+        leagueMemberId: member.id,
+        marketSessionId: activeSession.id,
+        eventType: { in: ['RENEWAL', 'SPALMA'] },
+      },
+      select: { previousSalary: true, newSalary: true },
+    })
+    totalRenewalCost = salaryChangeHistory.reduce((sum, h) => {
+      const diff = (h.newSalary || 0) - (h.previousSalary || 0)
+      return sum + diff
+    }, 0)
+  }
+
   // Players needing contract setup (include any saved draft values)
   const pendingContracts = playersWithoutContract.map(r => ({
     rosterId: r.id,
-    player: r.player,
+    player: {
+      ...r.player,
+      computedStats: statsMap.get(r.playerId) || null,
+    },
     acquisitionPrice: r.acquisitionPrice,
     acquisitionType: r.acquisitionType,
     minSalary: r.acquisitionType === AcquisitionType.FIRST_MARKET
@@ -228,14 +391,23 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
     draftDuration: r.draftContract?.duration || null,
   }))
 
+  // After consolidation, use preConsolidationBudget as the "Budget Iniziale"
+  // so the formula (Budget - Ingaggi - Tagli + Indennizzi = Residuo) displays correctly
+  const budgetToShow = isConsolidated && member.preConsolidationBudget !== null
+    ? member.preConsolidationBudget
+    : member.currentBudget
+
   return {
     success: true,
     data: {
       contracts,
       pendingContracts,
-      memberBudget: member.currentBudget,
+      releasedPlayers,  // Include released players for post-consolidation view
+      memberBudget: budgetToShow,
       inContrattiPhase,
+      isConsolidated,  // Include consolidation status
       indennizzoEsteroAmount: indennizzoEsteroDefault,
+      totalRenewalCost,  // Total cost of renewals for the formula
     },
   }
 }
@@ -273,7 +445,7 @@ export async function getContractById(
   }
 
   const rescissionClause = calculateRescissionClause(contract.salary, contract.duration)
-  const canRenew = contract.duration < MAX_DURATION
+  const canRenew = true  // Tutti possono rinnovare (aumentare ingaggio)
   const canSpalmare = contract.duration === 1
   const inContrattiPhase = await isInContrattiPhase(contract.roster.leagueMember.leagueId)
 
@@ -384,7 +556,7 @@ export async function createContract(
       contract: {
         ...contract,
         rescissionClause,
-        canRenew: duration < MAX_DURATION,
+        canRenew: true,  // Tutti possono rinnovare
         canSpalmare: duration === 1,
       },
     },
@@ -879,15 +1051,27 @@ export async function consolidateContracts(
     return { success: false, message: 'Hai già consolidato i tuoi contratti' }
   }
 
-  // Process all operations in a transaction
+  // Collect history entries to create after transaction succeeds
+  const historyEntries: CreateContractHistoryInput[] = []
+
+  // Process all operations in a transaction (with extended timeout for complex consolidations)
   try {
     await prisma.$transaction(async (tx) => {
+      // 0. Salva il budget pre-consolidamento PRIMA di qualsiasi modifica
+      // Questo permette alla pagina Finanze di mostrare i valori "congelati" durante tutta la fase CONTRATTI
+      await tx.leagueMember.update({
+        where: { id: member.id },
+        data: {
+          preConsolidationBudget: member.currentBudget,
+        },
+      })
+
       // 1. Process all renewals
       if (renewals && renewals.length > 0) {
         for (const renewal of renewals) {
           const contract = await tx.playerContract.findUnique({
             where: { id: renewal.contractId },
-            include: { roster: { include: { leagueMember: true } } },
+            include: { roster: { include: { leagueMember: true, player: true } } },
           })
 
           if (!contract || contract.roster.leagueMember.id !== member.id) {
@@ -901,6 +1085,29 @@ export async function consolidateContracts(
           // Calculate new rescission clause
           const multiplier = DURATION_MULTIPLIERS[renewal.duration as keyof typeof DURATION_MULTIPLIERS] || 7
           const newRescissionClause = renewal.salary * multiplier
+
+          // Determine if this is a renewal (increase) or spalma (decrease salary with duration > 1)
+          const isSpalma = contract.duration === 1 && renewal.duration > 1
+          const eventType: ContractEventType = isSpalma ? 'SPALMA' : 'RENEWAL'
+
+          // Track history entry
+          historyEntries.push({
+            contractId: contract.id,
+            playerId: contract.roster.playerId,
+            leagueMemberId: member.id,
+            marketSessionId: activeSession.id,
+            eventType,
+            previousSalary: contract.salary,
+            previousDuration: contract.duration,
+            previousClause: contract.rescissionClause,
+            newSalary: renewal.salary,
+            newDuration: renewal.duration,
+            newClause: newRescissionClause,
+            cost: renewalCost > 0 ? renewalCost : undefined,
+            notes: isSpalma
+              ? `Spalma: ${contract.salary}/${contract.duration}s → ${renewal.salary}/${renewal.duration}s`
+              : `Rinnovo: ${contract.salary} → ${renewal.salary}`,
+          })
 
           // Update contract - save pre-consolidation values for privacy during CONTRATTI phase
           // Only save if not already set (first consolidation)
@@ -916,14 +1123,9 @@ export async function consolidateContracts(
               rescissionClause: newRescissionClause,
             },
           })
-
-          // Deduct renewal cost from budget
-          if (renewalCost > 0) {
-            await tx.leagueMember.update({
-              where: { id: member.id },
-              data: { currentBudget: { decrement: renewalCost } },
-            })
-          }
+          // NOTE: Rinnovo NON decrementa il budget.
+          // Aumenta solo il monte ingaggi (salary), che impatta il bilancio.
+          // Vedi docs/BIBBIA-CONTRATTI.md sezione 2.5
         }
       }
 
@@ -1043,25 +1245,64 @@ export async function consolidateContracts(
               where: { id: member.id },
               data: { currentBudget: { increment: compensation } },
             })
-            await recordMovement(tx, {
+
+            // Track history entry for ESTERO release
+            historyEntries.push({
+              contractId: contract.id,
+              playerId: player.id,
+              leagueMemberId: member.id,
+              marketSessionId: activeSession.id,
+              eventType: 'RELEASE_ESTERO',
+              previousSalary: contract.salary,
+              previousDuration: contract.duration,
+              previousClause: contract.rescissionClause,
+              income: compensation,
+              notes: `Rilascio ${player.name} (ESTERO) - Indennizzo: ${compensation}`,
+            })
+
+            // Track indemnity as separate entry
+            historyEntries.push({
+              playerId: player.id,
+              leagueMemberId: member.id,
+              marketSessionId: activeSession.id,
+              eventType: 'INDEMNITY_RECEIVED',
+              income: compensation,
+              notes: `Indennizzo ricevuto per ${player.name}`,
+            })
+
+            await recordMovement({
               leagueId,
-              sessionId: activeSession.id,
+              marketSessionId: activeSession.id,
               playerId: player.id,
               fromMemberId: member.id,
               toMemberId: null,
-              type: 'ABROAD_COMPENSATION',
-              amount: compensation,
+              movementType: 'ABROAD_COMPENSATION',
+              price: compensation,
             })
           } else {
             // RETROCESSO: free release, no compensation
-            await recordMovement(tx, {
+            // Track history entry for RETROCESSO release
+            historyEntries.push({
+              contractId: contract.id,
+              playerId: player.id,
+              leagueMemberId: member.id,
+              marketSessionId: activeSession.id,
+              eventType: 'RELEASE_RETROCESSO',
+              previousSalary: contract.salary,
+              previousDuration: contract.duration,
+              previousClause: contract.rescissionClause,
+              cost: 0,
+              notes: `Rilascio ${player.name} (RETROCESSO) - Gratuito`,
+            })
+
+            await recordMovement({
               leagueId,
-              sessionId: activeSession.id,
+              marketSessionId: activeSession.id,
               playerId: player.id,
               fromMemberId: member.id,
               toMemberId: null,
-              type: 'RELEGATION_RELEASE',
-              amount: 0,
+              movementType: 'RELEGATION_RELEASE',
+              price: 0,
             })
           }
         } else {
@@ -1071,14 +1312,29 @@ export async function consolidateContracts(
             where: { id: member.id },
             data: { currentBudget: { decrement: releaseCost } },
           })
-          await recordMovement(tx, {
+
+          // Track history entry for normal release
+          historyEntries.push({
+            contractId: contract.id,
+            playerId: contract.roster.playerId,
+            leagueMemberId: member.id,
+            marketSessionId: activeSession.id,
+            eventType: 'RELEASE_NORMAL',
+            previousSalary: contract.salary,
+            previousDuration: contract.duration,
+            previousClause: contract.rescissionClause,
+            cost: releaseCost,
+            notes: `Taglio ${player.name} - Costo: ${releaseCost} (${contract.salary}×${contract.duration}/2)`,
+          })
+
+          await recordMovement({
             leagueId,
-            sessionId: activeSession.id,
+            marketSessionId: activeSession.id,
             playerId: contract.roster.playerId,
             fromMemberId: member.id,
             toMemberId: null,
-            type: 'RELEASE',
-            amount: releaseCost,
+            movementType: 'RELEASE',
+            price: releaseCost,
           })
         }
 
@@ -1111,21 +1367,40 @@ export async function consolidateContracts(
           },
         },
         include: {
-          roster: { include: { player: { select: { id: true, exitReason: true } } } },
+          roster: { include: { player: { select: { id: true, name: true, exitReason: true } } } },
         },
       })
 
       for (const contract of keptExitedPlayers) {
         const movementType = contract.roster.player.exitReason === 'ESTERO'
           ? 'ABROAD_KEEP' : 'RELEGATION_KEEP'
-        await recordMovement(tx, {
+        const eventType: ContractEventType = contract.roster.player.exitReason === 'ESTERO'
+          ? 'KEEP_ESTERO' : 'KEEP_RETROCESSO'
+
+        // Track history entry for KEEP decision
+        historyEntries.push({
+          contractId: contract.id,
+          playerId: contract.roster.player.id,
+          leagueMemberId: member.id,
+          marketSessionId: activeSession.id,
+          eventType,
+          previousSalary: contract.salary,
+          previousDuration: contract.duration,
+          previousClause: contract.rescissionClause,
+          newSalary: contract.salary,
+          newDuration: contract.duration,
+          newClause: contract.rescissionClause,
+          notes: `Mantenuto ${contract.roster.player.name} (${contract.roster.player.exitReason})`,
+        })
+
+        await recordMovement({
           leagueId,
-          sessionId: activeSession.id,
+          marketSessionId: activeSession.id,
           playerId: contract.roster.player.id,
           fromMemberId: null,
           toMemberId: member.id,
-          type: movementType,
-          amount: 0,
+          movementType: movementType as any,
+          price: 0,
         })
       }
 
@@ -1157,13 +1432,36 @@ export async function consolidateContracts(
           memberId: member.id,
         },
       })
+    }, {
+      timeout: 30000, // 30 seconds timeout for complex consolidations
+      maxWait: 10000, // 10 seconds max wait to acquire connection
     })
+
+    // After successful consolidation, batch create contract history entries
+    if (historyEntries.length > 0) {
+      try {
+        const createdCount = await createContractHistoryEntries(historyEntries)
+        console.log(`Created ${createdCount} contract history entries for member ${member.id}`)
+      } catch (error) {
+        console.error('Error creating contract history entries:', error)
+        // Don't fail the consolidation if history creation fails
+      }
+    }
+
+    // After successful consolidation, create PHASE_END snapshot
+    try {
+      await createPhaseEndSnapshot(activeSession.id, member.id)
+    } catch (error) {
+      console.error('Error creating phase end snapshot:', error)
+      // Don't fail the consolidation if snapshot fails
+    }
 
     return {
       success: true,
       message: 'Contratti consolidati con successo',
       data: {
         consolidatedAt: new Date().toISOString(),
+        historyEntriesCreated: historyEntries.length,
       },
     }
   } catch (error) {

@@ -61,6 +61,7 @@ describe('LeaguePrismaRepository', () => {
     userId: 'user-123',
     teamName: 'Test Team',
     currentBudget: 500,
+    preConsolidationBudget: null,
     role: 'ADMIN' as const,
     status: 'ACTIVE' as const,
     joinType: 'CREATOR' as const,

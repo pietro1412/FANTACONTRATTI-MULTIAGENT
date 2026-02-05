@@ -241,6 +241,11 @@ interface TeamData {
   }
   isConsolidated: boolean
   consolidatedAt: string | null
+  // Detailed financial breakdown from session snapshot
+  preConsolidationBudget: number | null
+  totalReleaseCosts: number | null
+  totalIndemnities: number | null
+  totalRenewalCosts: number | null
 }
 
 interface FinancialsData {
@@ -406,10 +411,29 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
       ? data.teams.reduce((sum, t) => sum + (t.postRenewalContractCost ?? t.preRenewalContractCost), 0)
       : null
 
+    // Aggregate tagli/indennizzi
+    // Durante CONTRATTI: mostra solo quando TUTTI i manager hanno consolidato
+    // Dopo CONTRATTI: mostra sempre se ci sono dati
+    const rawHasFinancialDetails = data.teams.some(t => t.totalReleaseCosts !== null || t.totalIndemnities !== null)
+    const allConsolidated = data?.inContrattiPhase ? data.teams.every(t => t.isConsolidated) : true
+    const hasFinancialDetails = rawHasFinancialDetails && allConsolidated
+
+    const totalReleaseCosts = hasFinancialDetails
+      ? data.teams.reduce((sum, t) => sum + (t.totalReleaseCosts ?? 0), 0)
+      : null
+    const totalIndemnities = hasFinancialDetails
+      ? data.teams.reduce((sum, t) => sum + (t.totalIndemnities ?? 0), 0)
+      : null
+
+    // Bilancio: Budget - Contratti - Tagli + Indennizzi (quando disponibili)
+    const totalBalance = hasFinancialDetails
+      ? totalBudget - totalContracts - (totalReleaseCosts ?? 0) + (totalIndemnities ?? 0)
+      : totalBudget - totalContracts
+
     return {
       totalBudget,
       totalContracts,
-      totalBalance: totalBudget - totalContracts,
+      totalBalance,
       totalPlayers: data.teams.reduce((sum, t) => sum + t.slotCount, 0),
       avgAge: (() => {
         const allPlayers = data.teams.flatMap(t => t.players).filter(p => p.age != null)
@@ -420,6 +444,10 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
       totalPreRenewal,
       totalPostRenewal,
       contractsDelta: totalPostRenewal !== null ? totalPostRenewal - totalPreRenewal : null,
+      // Aggregate financial details
+      totalReleaseCosts,
+      totalIndemnities,
+      hasFinancialDetails,
     }
   }, [data?.teams, data?.inContrattiPhase])
 
@@ -518,45 +546,78 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
 
         {/* League Totals */}
         {totals && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4 mb-4 md:mb-6">
-            <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
-              <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Budget Totale</div>
-              <div className="text-lg md:text-xl font-bold text-primary-400">{totals.totalBudget}M</div>
-            </div>
-            {/* #193: Show pre/post renewal contracts during CONTRATTI phase */}
-            {data?.inContrattiPhase && totals.totalPostRenewal !== null ? (
+          <div className="mb-4 md:mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">
               <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
-                <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Contratti</div>
-                <div className="flex items-baseline gap-1 md:gap-2 flex-wrap">
-                  <span className="text-xs md:text-sm text-gray-500 line-through">{totals.totalPreRenewal}M</span>
-                  <span className="text-lg md:text-xl font-bold text-accent-400">{totals.totalPostRenewal}M</span>
-                </div>
-                {totals.contractsDelta !== null && totals.contractsDelta !== 0 && (
-                  <div className={`text-[10px] md:text-xs mt-1 ${totals.contractsDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                    {totals.contractsDelta > 0 ? '+' : ''}{totals.contractsDelta}M
-                  </div>
-                )}
+                <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Budget Totale</div>
+                <div className="text-lg md:text-xl font-bold text-primary-400">{totals.totalBudget}M</div>
               </div>
-            ) : (
+              {/* #193: Show pre/post renewal contracts during CONTRATTI phase */}
+              {data?.inContrattiPhase && totals.totalPostRenewal !== null ? (
+                <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
+                  <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Contratti</div>
+                  <div className="flex items-baseline gap-1 md:gap-2 flex-wrap">
+                    <span className="text-xs md:text-sm text-gray-500 line-through">{totals.totalPreRenewal}M</span>
+                    <span className="text-lg md:text-xl font-bold text-accent-400">{totals.totalPostRenewal}M</span>
+                  </div>
+                  {totals.contractsDelta !== null && totals.contractsDelta !== 0 && (
+                    <div className={`text-[10px] md:text-xs mt-1 ${totals.contractsDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                      {totals.contractsDelta > 0 ? '+' : ''}{totals.contractsDelta}M
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
+                  <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Contratti</div>
+                  <div className="text-lg md:text-xl font-bold text-accent-400">{totals.totalContracts}M</div>
+                </div>
+              )}
               <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
-                <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Contratti</div>
-                <div className="text-lg md:text-xl font-bold text-accent-400">{totals.totalContracts}M</div>
+                <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Bilancio</div>
+                <div className={`text-lg md:text-xl font-bold ${totals.totalBalance >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
+                  {totals.totalBalance >= 0 ? '+' : ''}{totals.totalBalance}M
+                </div>
+              </div>
+              <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
+                <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Giocatori</div>
+                <div className="text-lg md:text-xl font-bold text-white">{totals.totalPlayers}</div>
+              </div>
+              <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10 col-span-2 sm:col-span-1">
+                <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Età Media</div>
+                <div className="text-lg md:text-xl font-bold text-secondary-400">{totals.avgAge.toFixed(1)} anni</div>
+              </div>
+            </div>
+
+            {/* Tagli/Indennizzi totals row - shown when data is available */}
+            {totals.hasFinancialDetails && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-4 mt-2 md:mt-4">
+                <div className="bg-danger-500/10 rounded-lg p-3 md:p-4 border border-danger-500/20">
+                  <div className="text-[10px] md:text-xs text-danger-400/70 uppercase tracking-wider">Tagli Totali</div>
+                  <div className="text-lg md:text-xl font-bold text-danger-400">
+                    {totals.totalReleaseCosts !== null ? `-${totals.totalReleaseCosts}M` : '-'}
+                  </div>
+                </div>
+                <div className="bg-green-500/10 rounded-lg p-3 md:p-4 border border-green-500/20">
+                  <div className="text-[10px] md:text-xs text-green-400/70 uppercase tracking-wider">Indennizzi Totali</div>
+                  <div className="text-lg md:text-xl font-bold text-green-400">
+                    {totals.totalIndemnities !== null ? `+${totals.totalIndemnities}M` : '-'}
+                  </div>
+                </div>
+                <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10 col-span-2">
+                  <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Impatto Netto</div>
+                  {totals.totalReleaseCosts !== null && totals.totalIndemnities !== null && (
+                    (() => {
+                      const netImpact = (totals.totalIndemnities ?? 0) - (totals.totalReleaseCosts ?? 0)
+                      return (
+                        <div className={`text-lg md:text-xl font-bold ${netImpact >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
+                          {netImpact >= 0 ? '+' : ''}{netImpact}M
+                        </div>
+                      )
+                    })()
+                  )}
+                </div>
               </div>
             )}
-            <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
-              <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Bilancio</div>
-              <div className={`text-lg md:text-xl font-bold ${totals.totalBalance >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
-                {totals.totalBalance >= 0 ? '+' : ''}{totals.totalBalance}M
-              </div>
-            </div>
-            <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
-              <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Giocatori</div>
-              <div className="text-lg md:text-xl font-bold text-white">{totals.totalPlayers}</div>
-            </div>
-            <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10 col-span-2 sm:col-span-1">
-              <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Età Media</div>
-              <div className="text-lg md:text-xl font-bold text-secondary-400">{totals.avgAge.toFixed(1)} anni</div>
-            </div>
           </div>
         )}
 
@@ -568,6 +629,13 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                 <tr>
                   <SortableHeader field="teamName" label="Squadra" />
                   <SortableHeader field="budget" label="Budget" className="text-right" />
+                  {/* Show Tagli/Indennizzi columns when data is available */}
+                  {totals?.hasFinancialDetails && (
+                    <>
+                      <th className="hidden md:table-cell px-2 md:px-3 py-3 text-right text-xs font-medium text-danger-400 uppercase tracking-wider">Tagli</th>
+                      <th className="hidden md:table-cell px-2 md:px-3 py-3 text-right text-xs font-medium text-green-400 uppercase tracking-wider">Indenn.</th>
+                    </>
+                  )}
                   <SortableHeader field="annualContractCost" label="Contratti" className="text-right" />
                   <SortableHeader field="balance" label="Bilancio" className="text-right" hideOnMobile />
                   <SortableHeader field="slotCount" label="Rosa" className="text-center" hideOnMobile />
@@ -578,7 +646,10 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
               <tbody className="divide-y divide-surface-50/10">
                 {sortedTeams.map((team) => {
                   const isExpanded = expandedTeam === team.memberId
-                  const balance = team.budget - team.annualContractCost
+                  // Bilancio: Budget - Contratti - Tagli + Indennizzi (quando disponibili)
+                  const balance = totals?.hasFinancialDetails
+                    ? team.budget - team.annualContractCost - (team.totalReleaseCosts ?? 0) + (team.totalIndemnities ?? 0)
+                    : team.budget - team.annualContractCost
                   const balanceLow = balance < 0
                   // #193: Calculate delta for pre/post renewal
                   const showPrePost = data?.inContrattiPhase && team.postRenewalContractCost !== null && !team.isConsolidated
@@ -616,6 +687,20 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                         <td className="px-2 md:px-4 py-3 md:py-4 text-right font-medium text-primary-400 text-sm md:text-base whitespace-nowrap">
                           {team.budget}M
                         </td>
+
+                        {/* Tagli column - only shown when data is available */}
+                        {totals?.hasFinancialDetails && (
+                          <td className="hidden md:table-cell px-2 md:px-3 py-3 md:py-4 text-right font-medium text-danger-400 text-sm whitespace-nowrap">
+                            {team.totalReleaseCosts !== null ? `-${team.totalReleaseCosts}M` : '-'}
+                          </td>
+                        )}
+
+                        {/* Indennizzi column - only shown when data is available */}
+                        {totals?.hasFinancialDetails && (
+                          <td className="hidden md:table-cell px-2 md:px-3 py-3 md:py-4 text-right font-medium text-green-400 text-sm whitespace-nowrap">
+                            {team.totalIndemnities !== null && team.totalIndemnities > 0 ? `+${team.totalIndemnities}M` : '-'}
+                          </td>
+                        )}
 
                         {/* #193: Contracts with pre/post renewal */}
                         <td className="px-2 md:px-4 py-3 md:py-4 text-right">
@@ -701,7 +786,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                       {/* Expanded aggregated view with charts */}
                       {isExpanded && (
                         <tr key={`${team.memberId}-expanded`}>
-                          <td colSpan={10} className="px-2 md:px-4 py-4 md:py-6 bg-surface-100/30">
+                          <td colSpan={totals?.hasFinancialDetails ? 12 : 10} className="px-2 md:px-4 py-4 md:py-6 bg-surface-100/30">
                             {/* Header with team name and view players button */}
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
                               <div className="text-xs md:text-sm font-medium text-gray-400">
@@ -738,6 +823,85 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                 <div className="text-lg font-bold text-white">{team.slotCount}</div>
                               </div>
                             </div>
+
+                            {/* Financial Breakdown Section - shows tagli, indennizzi when available */}
+                            {(team.totalReleaseCosts !== null || team.totalIndemnities !== null) && (
+                              <div className="bg-surface-300/30 rounded-xl p-3 md:p-4 border border-surface-50/10 mb-4 md:mb-6">
+                                <h4 className="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 md:mb-4">
+                                  Dettaglio Finanziario Sessione
+                                </h4>
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+                                  {/* Budget Iniziale */}
+                                  <div className="bg-surface-200/50 rounded-lg p-2 md:p-3">
+                                    <div className="text-[10px] md:text-xs text-gray-500 mb-1">Budget Iniziale</div>
+                                    <div className="text-sm md:text-lg font-bold text-primary-400">
+                                      {team.preConsolidationBudget ?? team.budget}M
+                                    </div>
+                                  </div>
+
+                                  {/* Tagli */}
+                                  <div className="bg-surface-200/50 rounded-lg p-2 md:p-3">
+                                    <div className="text-[10px] md:text-xs text-gray-500 mb-1">Tagli</div>
+                                    <div className="text-sm md:text-lg font-bold text-danger-400">
+                                      {team.totalReleaseCosts !== null ? `-${team.totalReleaseCosts}M` : '-'}
+                                    </div>
+                                  </div>
+
+                                  {/* Indennizzi */}
+                                  <div className="bg-surface-200/50 rounded-lg p-2 md:p-3">
+                                    <div className="text-[10px] md:text-xs text-gray-500 mb-1">Indennizzi</div>
+                                    <div className="text-sm md:text-lg font-bold text-green-400">
+                                      {team.totalIndemnities !== null ? `+${team.totalIndemnities}M` : '-'}
+                                    </div>
+                                  </div>
+
+                                  {/* Budget Finale */}
+                                  <div className="bg-surface-200/50 rounded-lg p-2 md:p-3">
+                                    <div className="text-[10px] md:text-xs text-gray-500 mb-1">Budget Finale</div>
+                                    <div className="text-sm md:text-lg font-bold text-primary-400">
+                                      {team.budget}M
+                                    </div>
+                                  </div>
+
+                                  {/* Bilancio (Budget - Ingaggi) */}
+                                  <div className="bg-surface-200/50 rounded-lg p-2 md:p-3 col-span-2 md:col-span-1">
+                                    <div className="text-[10px] md:text-xs text-gray-500 mb-1">Bilancio</div>
+                                    <div className={`text-sm md:text-lg font-bold ${balance >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
+                                      {balance >= 0 ? '+' : ''}{balance}M
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Formula verification */}
+                                <div className="mt-3 pt-3 border-t border-surface-50/20">
+                                  <div className="text-[10px] md:text-xs text-gray-500 flex flex-wrap items-center gap-1">
+                                    <span className="text-primary-400">{team.preConsolidationBudget ?? team.budget}M</span>
+                                    {team.totalReleaseCosts !== null && (
+                                      <>
+                                        <span>−</span>
+                                        <span className="text-danger-400">{team.totalReleaseCosts}M</span>
+                                      </>
+                                    )}
+                                    {team.totalIndemnities !== null && team.totalIndemnities > 0 && (
+                                      <>
+                                        <span>+</span>
+                                        <span className="text-green-400">{team.totalIndemnities}M</span>
+                                      </>
+                                    )}
+                                    <span>=</span>
+                                    <span className="text-primary-400 font-medium">{team.budget}M</span>
+                                    <span className="mx-1">|</span>
+                                    <span className="text-primary-400">{team.budget}M</span>
+                                    <span>−</span>
+                                    <span className="text-accent-400">{team.annualContractCost}M</span>
+                                    <span>=</span>
+                                    <span className={`font-medium ${balance >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
+                                      {balance >= 0 ? '+' : ''}{balance}M
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
 
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
                               {/* Left: Aggregated data by position - #200: only current values during CONTRATTI phase */}
@@ -860,6 +1024,24 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
             <div>
               <span className="text-white font-medium">Rosa</span>
               <span className="text-gray-500 ml-2">Giocatori totali</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs mt-3">
+            <div>
+              <span className="text-danger-400 font-medium">Tagli</span>
+              <span className="text-gray-500 ml-2">Costo giocatori tagliati</span>
+            </div>
+            <div>
+              <span className="text-green-400 font-medium">Indennizzi</span>
+              <span className="text-gray-500 ml-2">Compensi per giocatori ESTERO</span>
+            </div>
+            <div>
+              <span className="text-primary-400 font-medium">Budget Iniziale</span>
+              <span className="text-gray-500 ml-2">Prima dei tagli/indennizzi</span>
+            </div>
+            <div>
+              <span className="text-primary-400 font-medium">Budget Finale</span>
+              <span className="text-gray-500 ml-2">Dopo tagli/indennizzi</span>
             </div>
           </div>
           <div className="flex flex-wrap gap-4 text-xs mt-3">

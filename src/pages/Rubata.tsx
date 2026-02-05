@@ -3,8 +3,10 @@ import { rubataApi, leagueApi, auctionApi, contractApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
+import { getPlayerPhotoUrl } from '../utils/player-images'
 import { usePusherAuction } from '../services/pusher.client'
 import { ContractModifierModal } from '../components/ContractModifier'
+import { PlayerStatsModal, type PlayerInfo, type ComputedSeasonStats } from '../components/PlayerStatsModal'
 
 // Componente logo squadra
 function TeamLogo({ team }: { team: string }) {
@@ -43,6 +45,11 @@ interface BoardPlayer {
   playerName: string
   playerPosition: 'P' | 'D' | 'C' | 'A'
   playerTeam: string
+  playerQuotation?: number
+  playerAge?: number | null
+  playerApiFootballId?: number | null
+  playerApiFootballStats?: unknown
+  playerComputedStats?: ComputedSeasonStats | null
   ownerUsername: string
   ownerTeamName: string | null
   rubataPrice: number
@@ -386,6 +393,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
   // Session ID for Pusher subscription (we'll get this from boardData)
   const [sessionId, setSessionId] = useState<string | null>(null)
+
+  // Player stats modal state
+  const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<PlayerInfo | null>(null)
 
   // Drag and drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
@@ -2762,16 +2772,41 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             )}
                           </td>
                           <td className="p-2">
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1.5">
+                              {/* Player photo */}
+                              {player.playerApiFootballId ? (
+                                <img
+                                  src={getPlayerPhotoUrl(player.playerApiFootballId)}
+                                  alt={player.playerName}
+                                  className="w-7 h-7 rounded-full object-cover bg-surface-300 flex-shrink-0"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none'
+                                  }}
+                                />
+                              ) : (
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition]}`}>
+                                  {player.playerPosition}
+                                </div>
+                              )}
                               <div className="w-5 h-5 bg-white rounded p-0.5 flex-shrink-0">
                                 <TeamLogo team={player.playerTeam} />
                               </div>
-                              <div className={`w-5 h-5 flex items-center justify-center rounded text-[10px] ${POSITION_COLORS[player.playerPosition]}`}>
-                                <span className="font-bold">{player.playerPosition}</span>
-                              </div>
-                              <span className={`font-medium truncate ${isCurrent ? 'text-white font-bold' : isPassed ? 'text-gray-500' : 'text-gray-300'}`}>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedPlayerForStats({
+                                  name: player.playerName,
+                                  team: player.playerTeam,
+                                  position: player.playerPosition,
+                                  quotation: player.playerQuotation,
+                                  age: player.playerAge,
+                                  apiFootballId: player.playerApiFootballId,
+                                  computedStats: player.playerComputedStats,
+                                })}
+                                className={`font-medium truncate hover:underline cursor-pointer text-left ${isCurrent ? 'text-white font-bold' : isPassed ? 'text-gray-500' : 'text-gray-300 hover:text-white'}`}
+                                title="Clicca per vedere statistiche"
+                              >
                                 {player.playerName}
-                              </span>
+                              </button>
                             </div>
                           </td>
                           <td className="p-2">
@@ -2894,15 +2929,39 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             #{globalIndex + 1}
                           </span>
                         )}
-                        <div className="w-7 h-7 bg-white rounded p-0.5 flex-shrink-0">
+                        {/* Player photo */}
+                        {player.playerApiFootballId ? (
+                          <img
+                            src={getPlayerPhotoUrl(player.playerApiFootballId)}
+                            alt={player.playerName}
+                            className="w-8 h-8 rounded-full object-cover bg-surface-300 flex-shrink-0"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none'
+                            }}
+                          />
+                        ) : (
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition]}`}>
+                            {player.playerPosition}
+                          </div>
+                        )}
+                        <div className="w-6 h-6 bg-white rounded p-0.5 flex-shrink-0">
                           <TeamLogo team={player.playerTeam} />
                         </div>
-                        <div className={`w-6 h-6 flex items-center justify-center rounded ${POSITION_COLORS[player.playerPosition]}`}>
-                          <span className="text-xs font-bold">{player.playerPosition}</span>
-                        </div>
-                        <span className={`font-medium flex-1 truncate ${isCurrent ? 'text-white font-bold' : isPassed ? 'text-gray-500' : 'text-gray-300'}`}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPlayerForStats({
+                            name: player.playerName,
+                            team: player.playerTeam,
+                            position: player.playerPosition,
+                            quotation: player.playerQuotation,
+                            age: player.playerAge,
+                            apiFootballId: player.playerApiFootballId,
+                            computedStats: player.playerComputedStats,
+                          })}
+                          className={`font-medium flex-1 truncate text-left ${isCurrent ? 'text-white font-bold' : isPassed ? 'text-gray-500' : 'text-gray-300'}`}
+                        >
                           {player.playerName}
-                        </span>
+                        </button>
                         {isCurrent && (
                           <span className="text-[10px] bg-primary-500 text-white px-2 py-0.5 rounded-full shrink-0">
                             SUL PIATTO
@@ -3058,6 +3117,13 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
           description="Hai appena rubato questo giocatore. Puoi modificare il suo contratto seguendo le regole del rinnovo."
         />
       )}
+
+      {/* Player Stats Modal */}
+      <PlayerStatsModal
+        isOpen={!!selectedPlayerForStats}
+        onClose={() => setSelectedPlayerForStats(null)}
+        player={selectedPlayerForStats}
+      />
     </div>
   )
 }

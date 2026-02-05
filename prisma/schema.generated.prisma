@@ -444,6 +444,119 @@ model ChatMessage {
 
 
 // =============================================================================
+// Source: prisma/schemas/contract-history.prisma
+// =============================================================================
+// =============================================================================
+// contract-history.prisma - ContractHistory, ManagerSessionSnapshot
+// =============================================================================
+//
+// This file contains models for tracking contract changes and manager state
+// during market sessions, particularly the CONTRATTI phase.
+//
+// =============================================================================
+
+// ==================== CONTRACT HISTORY ====================
+// Tracks all contract changes during a market session
+model ContractHistory {
+  id                String   @id @default(cuid())
+
+  // Riferimenti
+  contractId        String?  // Null se contratto cancellato
+  playerId          String
+  leagueMemberId    String
+  marketSessionId   String
+
+  // Tipo di evento
+  eventType         ContractEventType
+
+  // Valori PRIMA del cambio
+  previousSalary    Int?
+  previousDuration  Int?
+  previousClause    Int?
+
+  // Valori DOPO il cambio
+  newSalary         Int?
+  newDuration       Int?
+  newClause         Int?
+
+  // Costi/Ricavi
+  cost              Int?     // Costo taglio, costo rinnovo
+  income            Int?     // Indennizzo ricevuto
+
+  // Metadata
+  notes             String?
+  createdAt         DateTime @default(now())
+
+  // Relations
+  player            SerieAPlayer   @relation(fields: [playerId], references: [id])
+  leagueMember      LeagueMember   @relation(fields: [leagueMemberId], references: [id])
+  marketSession     MarketSession  @relation(fields: [marketSessionId], references: [id])
+
+  @@index([marketSessionId, leagueMemberId])
+  @@index([playerId])
+  @@index([eventType])
+}
+
+enum ContractEventType {
+  SESSION_START_SNAPSHOT    // Snapshot iniziale sessione
+  DURATION_DECREMENT        // Decremento automatico durata
+  AUTO_RELEASE_EXPIRED      // Svincolo automatico (durata 0)
+  RENEWAL                   // Rinnovo con aumento
+  SPALMA                    // Applicazione spalma
+  RELEASE_NORMAL            // Taglio normale
+  RELEASE_ESTERO            // Rilascio giocatore estero
+  RELEASE_RETROCESSO        // Rilascio giocatore retrocesso
+  KEEP_ESTERO               // Mantenimento giocatore estero
+  KEEP_RETROCESSO           // Mantenimento giocatore retrocesso
+  INDEMNITY_RECEIVED        // Indennizzo ricevuto
+}
+
+// ==================== MANAGER SESSION SNAPSHOT ====================
+// Snapshot of manager financial state at key points during a session
+model ManagerSessionSnapshot {
+  id                String   @id @default(cuid())
+
+  // Riferimenti
+  leagueMemberId    String
+  marketSessionId   String
+
+  // Tipo snapshot
+  snapshotType      SnapshotType
+
+  // Valori finanziari
+  budget            Int      // Budget al momento dello snapshot
+  totalSalaries     Int      // Somma ingaggi
+  balance           Int      // Bilancio (budget - salaries)
+
+  // Dettagli sessione (solo per PHASE_END)
+  totalIndemnities  Int?     // Totale indennizzi ricevuti
+  totalReleaseCosts Int?     // Totale costi tagli
+  totalRenewalCosts Int?     // Totale costi rinnovi (aumenti)
+
+  // Conteggi
+  contractCount     Int      // Numero contratti attivi
+  releasedCount     Int?     // Numero giocatori rilasciati
+  renewedCount      Int?     // Numero contratti rinnovati
+
+  // Metadata
+  createdAt         DateTime @default(now())
+
+  // Relations
+  leagueMember      LeagueMember   @relation(fields: [leagueMemberId], references: [id])
+  marketSession     MarketSession  @relation(fields: [marketSessionId], references: [id])
+
+  @@unique([leagueMemberId, marketSessionId, snapshotType])
+  @@index([marketSessionId])
+}
+
+enum SnapshotType {
+  SESSION_START     // Inizio sessione (dopo decremento durata)
+  PHASE_START       // Inizio fase CONTRATTI (dopo premi)
+  PHASE_END         // Fine fase CONTRATTI (dopo consolidamento)
+}
+
+
+// =============================================================================
 // Source: prisma/schemas/feedback.prisma
 // =============================================================================
 // =============================================================================
@@ -676,6 +789,7 @@ model LeagueMember {
 
   // Budget
   currentBudget Int    @default(0)
+  preConsolidationBudget Int?  // Budget prima del consolidamento (per fase CONTRATTI)
 
   // Ordine Rubata (impostato da admin)
   rubataOrder   Int?
@@ -705,6 +819,8 @@ model LeagueMember {
   sessionPrizes  SessionPrize[]              // see: prize.prisma
   rubataPreferences RubataPreference[]       // see: rubata.prisma
   auctionObjectives AuctionObjective[]       // see: auction.prisma
+  contractHistory   ContractHistory[]        // see: contract-history.prisma
+  sessionSnapshots  ManagerSessionSnapshot[] // see: contract-history.prisma
 
   @@unique([userId, leagueId])
   @@index([leagueId, status])
@@ -859,6 +975,8 @@ model MarketSession {
   prizeCategories  PrizeCategory[]   // see: prize.prisma
   rubataPreferences RubataPreference[] // see: rubata.prisma
   auctionObjectives AuctionObjective[] // see: auction.prisma
+  contractHistory   ContractHistory[]  // see: contract-history.prisma
+  sessionSnapshots  ManagerSessionSnapshot[] // see: contract-history.prisma
 
   // Indice per velocizzare ricerca sessioni attive per lega
   @@index([leagueId, status])
@@ -1036,6 +1154,7 @@ model SerieAPlayer {
   rubataPreferences RubataPreference[] // see: rubata.prisma
   auctionObjectives AuctionObjective[] // see: auction.prisma
   matchRatings PlayerMatchRating[]  // Match-by-match ratings from API-Football
+  contractHistory ContractHistory[]  // see: contract-history.prisma
 }
 
 model QuotazioniUpload {

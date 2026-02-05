@@ -3,6 +3,11 @@ import { calculateRescissionClause, canAdvanceFromContratti } from './contract.s
 import { autoReleaseRitiratiPlayers } from './indemnity-phase.service'
 import { recordMovement } from './movement.service'
 import {
+  createContractHistoryEntry,
+  createContractHistoryEntries,
+  createSessionStartSnapshots,
+} from './contract-history.service'
+import {
   triggerBidPlaced,
   triggerNominationPending,
   triggerNominationConfirmed,
@@ -146,8 +151,9 @@ export async function canAdvanceFromAstaLibera(leagueId: string): Promise<{
  * Decrementa la durata di tutti i contratti di una lega di 1 semestre
  * Chiamato all'apertura di un nuovo mercato (non PRIMO_MERCATO)
  * Se la durata diventa 0, il giocatore viene svincolato automaticamente
+ * Crea ContractHistory entries per tracciare tutte le operazioni
  */
-async function decrementContractDurations(leagueId: string): Promise<{
+async function decrementContractDurations(leagueId: string, marketSessionId: string): Promise<{
   decremented: number
   released: string[]
 }> {
@@ -173,12 +179,31 @@ async function decrementContractDurations(leagueId: string): Promise<{
 
   const released: string[] = []
   let decremented = 0
+  const historyEntries: Parameters<typeof createContractHistoryEntries>[0] = []
 
   for (const contract of contracts) {
     const newDuration = contract.duration - 1
+    const previousClause = contract.rescissionClause
 
     if (newDuration <= 0) {
       // Contract expired - release player automatically (NO clause payment)
+      // Create history entry for auto-release
+      historyEntries.push({
+        contractId: contract.id,
+        playerId: contract.roster.playerId,
+        leagueMemberId: contract.roster.leagueMemberId,
+        marketSessionId,
+        eventType: 'AUTO_RELEASE_EXPIRED',
+        previousSalary: contract.salary,
+        previousDuration: contract.duration,
+        previousClause,
+        newSalary: undefined,
+        newDuration: undefined,
+        newClause: undefined,
+        cost: 0, // No cost for auto-release on expiry
+        notes: `Contratto scaduto automaticamente per ${contract.roster.player.name}`,
+      })
+
       await prisma.playerContract.delete({
         where: { id: contract.id },
       })
@@ -196,6 +221,22 @@ async function decrementContractDurations(leagueId: string): Promise<{
       // Decrement duration and recalculate rescission clause
       const newRescissionClause = calculateRescissionClause(contract.salary, newDuration)
 
+      // Create history entry for duration decrement
+      historyEntries.push({
+        contractId: contract.id,
+        playerId: contract.roster.playerId,
+        leagueMemberId: contract.roster.leagueMemberId,
+        marketSessionId,
+        eventType: 'DURATION_DECREMENT',
+        previousSalary: contract.salary,
+        previousDuration: contract.duration,
+        previousClause,
+        newSalary: contract.salary,
+        newDuration,
+        newClause: newRescissionClause,
+        notes: `Decremento automatico durata: ${contract.duration}→${newDuration}`,
+      })
+
       await prisma.playerContract.update({
         where: { id: contract.id },
         data: {
@@ -206,6 +247,11 @@ async function decrementContractDurations(leagueId: string): Promise<{
 
       decremented++
     }
+  }
+
+  // Batch create all history entries
+  if (historyEntries.length > 0) {
+    await createContractHistoryEntries(historyEntries)
   }
 
   return { decremented, released }
@@ -340,7 +386,15 @@ export async function createAuctionSession(
     const isEffectivelyRegularMarket = result.marketType === 'MERCATO_RICORRENTE'
     let decrementResult = { decremented: 0, released: [] as string[] }
     if (isEffectivelyRegularMarket) {
-      decrementResult = await decrementContractDurations(leagueId)
+      decrementResult = await decrementContractDurations(leagueId, result.session.id)
+
+      // Create SESSION_START snapshots for all managers (after duration decrement)
+      try {
+        const snapshotResult = await createSessionStartSnapshots(result.session.id, leagueId)
+        console.log(`Created SESSION_START snapshots: ${snapshotResult.created} success, ${snapshotResult.failed} failed`)
+      } catch (error) {
+        console.error('Error creating session start snapshots:', error)
+      }
     }
 
     // Auto-release RITIRATO players (RETROCESSO/ESTERO handled in CONTRATTI phase)
@@ -480,6 +534,23 @@ export async function setMarketPhase(
     if (!consolidationCheck.canAdvance) {
       return { success: false, message: consolidationCheck.reason || 'Non tutti i manager hanno consolidato i contratti' }
     }
+
+    // Reset all pre-consolidation values now that the phase is ending
+    // This makes the Finanze page show the actual current values
+    await prisma.leagueMember.updateMany({
+      where: { leagueId: session.leagueId, status: MemberStatus.ACTIVE },
+      data: { preConsolidationBudget: null },
+    })
+
+    await prisma.playerContract.updateMany({
+      where: {
+        leagueMember: { leagueId: session.leagueId, status: MemberStatus.ACTIVE },
+      },
+      data: {
+        preConsolidationSalary: null,
+        preConsolidationDuration: null,
+      },
+    })
   }
 
   // Update session phase
