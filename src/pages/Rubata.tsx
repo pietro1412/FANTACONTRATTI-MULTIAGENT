@@ -443,6 +443,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   // Track if timers have been initialized (to avoid overwriting user changes)
   const timersInitialized = useRef(false)
 
+  // Stores winner contract info from acknowledge response, shown only after all members confirm
+  const pendingWinnerContractRef = useRef<ContractForModification | null>(null)
+
   // Timer countdown effect
   useEffect(() => {
     if (!boardData) return
@@ -498,6 +501,14 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
       currentPlayerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   }
+
+  // When all members acknowledge, show the contract modification modal for the winner (#242)
+  useEffect(() => {
+    if (pendingAck?.allAcknowledged && pendingWinnerContractRef.current) {
+      setPendingContractModification(pendingWinnerContractRef.current)
+      pendingWinnerContractRef.current = null
+    }
+  }, [pendingAck?.allAcknowledged])
 
   // Track auction ID to avoid showing duplicate modals (keeping for future use)
   useEffect(() => {
@@ -1092,14 +1103,22 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
       setIsAppealMode(false)
 
       // Check if there's contract info for modification (winner only)
-      const data = res.data as { winnerContractInfo?: ContractForModification } | undefined
+      // Save it but DON'T show the modal yet — wait until all members have acknowledged
+      const data = res.data as { allAcknowledged?: boolean; winnerContractInfo?: ContractForModification } | undefined
       if (data?.winnerContractInfo) {
         const playerInfo = pendingAck?.player
-        setPendingContractModification({
+        const contractInfo = {
           ...data.winnerContractInfo,
           playerTeam: playerInfo?.team,
           playerPosition: playerInfo?.position,
-        })
+        }
+        if (data?.allAcknowledged) {
+          // Everyone already confirmed (e.g. we were last) — show contract modal now
+          setPendingContractModification(contractInfo)
+        } else {
+          // Save for later — will be activated when allAcknowledged becomes true
+          pendingWinnerContractRef.current = contractInfo
+        }
       }
 
       loadData()
@@ -1459,8 +1478,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     <div className="min-h-screen bg-dark-300">
       <Navigation currentPage="rubata" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
 
-      {/* Transaction Confirmation Modal - Non mostrare se c'è un ricorso attivo */}
-      {rubataState === 'PENDING_ACK' && pendingAck && !pendingAck.userAcknowledged &&
+      {/* Transaction Confirmation Modal - Resta aperta finché TUTTI i manager confermano */}
+      {rubataState === 'PENDING_ACK' && pendingAck && !pendingAck.allAcknowledged &&
        !['APPEAL_REVIEW', 'AWAITING_APPEAL_ACK', 'AWAITING_RESUME'].includes(appealStatus?.auctionStatus || '') && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
           <div className="bg-gradient-to-br from-purple-900 to-purple-950 rounded-3xl p-6 max-w-lg w-full shadow-2xl border-2 border-purple-400 animate-bounce-in max-h-[90vh] overflow-y-auto">
@@ -1593,7 +1612,13 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
             {/* Action Buttons */}
             <div className="space-y-2">
-              {!isAppealMode ? (
+              {pendingAck.userAcknowledged ? (
+                /* User already confirmed - show waiting state */
+                <div className="w-full py-3 text-center rounded-xl bg-secondary-500/20 border border-secondary-500/30">
+                  <p className="text-secondary-400 font-bold">✅ Hai confermato</p>
+                  <p className="text-xs text-gray-400 mt-1">In attesa degli altri manager ({pendingAck.totalAcknowledged}/{pendingAck.totalMembers})</p>
+                </div>
+              ) : !isAppealMode ? (
                 <>
                   <Button onClick={handleAcknowledgeWithAppeal} disabled={isSubmitting} className="w-full py-3 text-lg">
                     {prophecyContent.trim() ? '🔮 CONFERMA CON PROFEZIA' : '✅ CONFERMA TRANSAZIONE'}
