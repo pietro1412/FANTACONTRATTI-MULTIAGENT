@@ -1267,6 +1267,32 @@ export async function getRubataBoard(
     },
   })
 
+  // Fetch member budgets for budget box
+  const activeMembers = await prisma.leagueMember.findMany({
+    where: { leagueId, status: MemberStatus.ACTIVE },
+    select: {
+      id: true,
+      teamName: true,
+      currentBudget: true,
+      user: { select: { username: true } },
+      contracts: {
+        where: { roster: { status: RosterStatus.ACTIVE } },
+        select: { salary: true },
+      },
+    },
+  })
+
+  const memberBudgets = activeMembers
+    .map(m => ({
+      memberId: m.id,
+      teamName: m.teamName || m.user.username,
+      username: m.user.username,
+      currentBudget: m.currentBudget,
+      totalSalaries: m.contracts.reduce((sum, c) => sum + c.salary, 0),
+      residuo: m.currentBudget - m.contracts.reduce((sum, c) => sum + c.salary, 0),
+    }))
+    .sort((a, b) => b.residuo - a.residuo)
+
   return {
     success: true,
     data: {
@@ -1279,6 +1305,7 @@ export async function getRubataBoard(
       remainingSeconds,
       offerTimerSeconds: activeSession.rubataOfferTimerSeconds,
       auctionTimerSeconds: activeSession.rubataAuctionTimerSeconds,
+      memberBudgets,
       activeAuction: activeAuction
         ? {
             id: activeAuction.id,

@@ -99,6 +99,15 @@ interface RubataPreference {
   notes: string | null
 }
 
+interface MemberBudgetInfo {
+  memberId: string
+  teamName: string
+  username: string
+  currentBudget: number
+  totalSalaries: number
+  residuo: number
+}
+
 interface BoardPlayerWithPreference extends BoardPlayer {
   preference?: RubataPreference | null
 }
@@ -118,6 +127,7 @@ interface BoardData {
   // Pause info for resume ready check
   pausedRemainingSeconds: number | null
   pausedFromState: string | null
+  memberBudgets?: MemberBudgetInfo[]
   sessionId: string | null
   myMemberId: string
   isAdmin: boolean
@@ -351,6 +361,10 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   // Timer settings
   const [offerTimer, setOfferTimer] = useState(30)
   const [auctionTimer, setAuctionTimer] = useState(15)
+
+  // Budget panel
+  const [budgetPanelOpen, setBudgetPanelOpen] = useState(true)
+  const [mobileBudgetExpanded, setMobileBudgetExpanded] = useState(false)
 
   // Ready check and acknowledgment
   const [readyStatus, setReadyStatus] = useState<ReadyStatus | null>(null)
@@ -2726,20 +2740,64 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 <p className="text-sm text-gray-400 mt-1">{boardData?.totalPlayers} giocatori in ordine di rubata</p>
               </div>
 
+              {/* Desktop: Budget Residuo Panel */}
+              {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && (
+                <div className="hidden md:block border-b border-surface-50/20 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setBudgetPanelOpen(prev => !prev)}
+                    className="w-full px-5 py-2 flex items-center justify-between text-sm text-gray-400 hover:bg-surface-300/30 transition-colors"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span>💰</span>
+                      <span>Budget Residuo Manager</span>
+                    </span>
+                    <span className={`transform transition-transform ${budgetPanelOpen ? 'rotate-180' : ''}`}>▼</span>
+                  </button>
+                  {budgetPanelOpen && (
+                    <div className="px-5 pb-3">
+                      <div className="grid grid-cols-4 gap-2">
+                        {boardData.memberBudgets.map(mb => (
+                          <div
+                            key={mb.memberId}
+                            className={`rounded-lg p-2 text-center border ${
+                              mb.residuo < 0
+                                ? 'bg-danger-500/10 border-danger-500/30'
+                                : mb.residuo < 50
+                                ? 'bg-warning-500/10 border-warning-500/30'
+                                : 'bg-surface-300/50 border-surface-50/20'
+                            }`}
+                          >
+                            <div className="text-[10px] text-gray-500 truncate">{mb.teamName}</div>
+                            <div className={`font-bold text-sm ${
+                              mb.residuo < 0 ? 'text-danger-400' : mb.residuo < 50 ? 'text-warning-400' : 'text-accent-400'
+                            }`}>
+                              {mb.residuo}M
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Desktop: Table View - Scrollable */}
               <div className="hidden md:block overflow-y-auto flex-1">
                 <table className="w-full text-base table-fixed">
                   <thead className="sticky top-0 z-10">
                     <tr className="bg-surface-300 text-sm text-gray-400 uppercase">
-                      <th className="text-left p-2 w-10">#</th>
-                      <th className="text-left p-2 w-[20%]">Giocatore</th>
-                      <th className="text-left p-2 w-[12%]">Proprietario</th>
-                      <th className="text-center p-2 w-[8%]">Ing.</th>
-                      <th className="text-center p-2 w-[6%]">Dur.</th>
-                      <th className="text-center p-2 w-[8%]">Claus.</th>
-                      <th className="text-center p-2 w-[8%]">Rubata</th>
-                      <th className="text-center p-2 w-[12%]">Nuovo Prop.</th>
-                      <th className="text-center p-2 w-[14%]">Strategia</th>
+                      <th className="text-left p-2 w-8">#</th>
+                      <th className="text-left p-2 w-[17%]">Giocatore</th>
+                      <th className="text-center p-2 w-[5%]">Ruolo</th>
+                      <th className="text-center p-2 w-[4%]">Età</th>
+                      <th className="text-left p-2 w-[11%]">Proprietario</th>
+                      <th className="text-center p-2 w-[7%]">Ing.</th>
+                      <th className="text-center p-2 w-[5%]">Dur.</th>
+                      <th className="text-center p-2 w-[7%]">Claus.</th>
+                      <th className="text-center p-2 w-[7%]">Rubata</th>
+                      <th className="text-center p-2 w-[11%]">Nuovo Prop.</th>
+                      <th className="text-center p-2 w-[13%]">Strategia</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2808,6 +2866,16 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                                 {player.playerName}
                               </button>
                             </div>
+                          </td>
+                          <td className="p-2 text-center">
+                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold ${isPassed ? 'opacity-50' : ''} ${POSITION_COLORS[player.playerPosition]}`}>
+                              {player.playerPosition}
+                            </span>
+                          </td>
+                          <td className="p-2 text-center">
+                            <span className={`text-xs ${isPassed ? 'text-gray-600' : 'text-gray-400'}`}>
+                              {player.playerAge || '—'}
+                            </span>
                           </td>
                           <td className="p-2">
                             <span className={`truncate block ${isPassed && wasStolen ? 'text-gray-500 line-through' : isPassed ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -2898,7 +2966,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               </div>
 
               {/* Mobile: Card View - Scrollable */}
-              <div className="md:hidden p-4 space-y-3 overflow-y-auto flex-1">
+              <div className="md:hidden p-4 pb-24 space-y-3 overflow-y-auto flex-1">
                 {board?.map((player, globalIndex) => {
                   const isCurrent = globalIndex === boardData?.currentIndex
                   const isPassed = globalIndex < (boardData?.currentIndex ?? 0)
@@ -2947,6 +3015,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         <div className="w-6 h-6 bg-white rounded p-0.5 flex-shrink-0">
                           <TeamLogo team={player.playerTeam} />
                         </div>
+                        <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[8px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition]}`}>
+                          {player.playerPosition}
+                        </span>
                         <button
                           type="button"
                           onClick={() => setSelectedPlayerForStats({
@@ -2969,10 +3040,11 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         )}
                       </div>
 
-                      {/* Proprietario */}
+                      {/* Proprietario + Età */}
                       <div className="text-xs text-gray-500 mb-2 pl-6">
                         di <span className={isPassed && wasStolen ? 'text-gray-500 line-through' : 'text-gray-400'}>{player.ownerUsername}</span>
                         {player.ownerTeamName && <span className="text-gray-600"> ({player.ownerTeamName})</span>}
+                        {player.playerAge && <span className="text-gray-600"> · {player.playerAge}a</span>}
                       </div>
 
                       {/* Nuovo proprietario se rubato */}
@@ -3078,7 +3150,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
         {isRubataPhase && isOrderSet && !isCurrentPlayerVisible && currentPlayer && (
           <button
             onClick={scrollToCurrentPlayer}
-            className="fixed bottom-4 left-4 z-50 flex items-center gap-2 px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-full shadow-lg transition-all animate-pulse hover:animate-none"
+            className="fixed bottom-20 md:bottom-4 left-4 z-50 flex items-center gap-2 px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-full shadow-lg transition-all animate-pulse hover:animate-none"
             title={`Torna a ${currentPlayer.playerName}`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -3094,6 +3166,46 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
         )}
 
       </main>
+
+      {/* Mobile Budget Footer - Fixed Bottom */}
+      {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && isRubataPhase && isOrderSet && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-r from-surface-200 via-surface-200 to-surface-200 border-t-2 border-primary-500/50 z-40 shadow-lg shadow-black/30">
+          <div className="px-3 py-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[9px] text-gray-500 uppercase font-medium">Budget Residuo</span>
+              <button
+                type="button"
+                onClick={() => setMobileBudgetExpanded(prev => !prev)}
+                className="text-[9px] text-gray-400 px-2 py-0.5 rounded bg-surface-300/50"
+              >
+                {mobileBudgetExpanded ? '▼ Chiudi' : '▲ Espandi'}
+              </button>
+            </div>
+            <div className={`grid gap-1.5 ${mobileBudgetExpanded ? 'grid-cols-2' : 'grid-cols-4'}`}>
+              {(mobileBudgetExpanded ? boardData.memberBudgets : boardData.memberBudgets.slice(0, 4)).map(mb => (
+                <div
+                  key={mb.memberId}
+                  className={`rounded p-1 text-center ${
+                    mb.residuo < 0 ? 'bg-danger-500/20' : 'bg-surface-300/50'
+                  }`}
+                >
+                  <div className="text-[8px] text-gray-500 truncate">{mb.teamName}</div>
+                  <div className={`font-bold text-xs ${
+                    mb.residuo < 0 ? 'text-danger-400' : mb.residuo < 50 ? 'text-warning-400' : 'text-accent-400'
+                  }`}>
+                    {mb.residuo}M
+                  </div>
+                  {mobileBudgetExpanded && (
+                    <div className="text-[7px] text-gray-600">
+                      {mb.currentBudget}M - {mb.totalSalaries}M
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Contract Modification Modal after Rubata Win */}
       {pendingContractModification && (
