@@ -1174,19 +1174,25 @@ export async function getRubataBoard(
     }
   }
 
-  // Auto-advance if in PENDING_ACK but auction is already COMPLETED (appeal was handled)
+  // Auto-advance if in PENDING_ACK but all members have already acknowledged
+  // This handles the case where an appeal was rejected and everyone confirmed,
+  // or where all acknowledgments arrived before this poll.
+  // NOTE: We must NOT skip PENDING_ACK just because auction.status === 'COMPLETED',
+  // because the auction is always set to COMPLETED at close time — that's the normal flow.
+  // The real signal to advance is: all members have acknowledged.
   if (
     activeSession.rubataState === 'PENDING_ACK' &&
     activeSession.rubataPendingAck
   ) {
-    const pendingAck = activeSession.rubataPendingAck as { auctionId: string }
-    const referencedAuction = await prisma.auction.findUnique({
-      where: { id: pendingAck.auctionId },
+    const pendingAck = activeSession.rubataPendingAck as { auctionId: string; acknowledgedMembers: string[] }
+    const allMembers = await prisma.leagueMember.findMany({
+      where: { leagueId, status: MemberStatus.ACTIVE },
+      select: { id: true },
     })
+    const allAcknowledged = allMembers.every(m => pendingAck.acknowledgedMembers.includes(m.id))
 
-    // If auction is COMPLETED, the appeal was rejected and everyone confirmed
-    // Clear pendingAck and move to READY_CHECK for next player
-    if (referencedAuction && referencedAuction.status === 'COMPLETED') {
+    if (allAcknowledged) {
+      // Everyone confirmed — clear pendingAck and move to READY_CHECK for next player
       await prisma.marketSession.update({
         where: { id: activeSession.id },
         data: {
