@@ -1295,12 +1295,12 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
       }
 
       // Budget display:
-      // Se il manager ha consolidato e preConsolidationBudget è disponibile,
-      // mostra SEMPRE il budget pre-consolidamento (tagli/indennizzi mostrati separatamente)
-      // Questo vale sia durante CONTRATTI (dati congelati) che dopo (es. RUBATA)
-      // dove la formula è: Bilancio = Budget(pre) - Ingaggi - Tagli + Indennizzi
+      // Se preConsolidationBudget è disponibile, usarlo SEMPRE come budget nel tabellone.
+      // Tagli e indennizzi vengono mostrati separatamente nelle colonne dedicate.
+      // Formula: Bilancio = Budget(pre) - Ingaggi - Tagli + Indennizzi
+      // Nota: non dipendere da isConsolidated perché consolidationMap è vuoto fuori da CONTRATTI
       let displayBudget: number
-      if (isConsolidated && member.preConsolidationBudget != null) {
+      if (member.preConsolidationBudget != null) {
         displayBudget = member.preConsolidationBudget
       } else {
         displayBudget = member.currentBudget
