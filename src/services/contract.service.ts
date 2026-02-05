@@ -1912,17 +1912,18 @@ export async function modifyContractPostAcquisition(
     return { success: false, message: 'Non sei il proprietario di questo contratto' }
   }
 
-  // Validate using renewal rules
-  const validation = isValidRenewal(
-    contract.salary,
-    contract.duration,
-    newSalary,
-    newDuration,
-    contract.initialSalary
-  )
-
-  if (!validation.valid) {
-    return { success: false, message: validation.reason || 'Modifica non valida' }
+  // Post-acquisition: only increase allowed (no spalma, no taglio)
+  if (newSalary < contract.salary) {
+    return { success: false, message: `Ingaggio non può diminuire: ${newSalary} < ${contract.salary}` }
+  }
+  if (newDuration < contract.duration) {
+    return { success: false, message: `Durata non può diminuire: ${newDuration} < ${contract.duration}` }
+  }
+  if (newDuration > contract.duration && newSalary <= contract.salary) {
+    return { success: false, message: 'Per aumentare la durata devi prima aumentare l\'ingaggio' }
+  }
+  if (newDuration > MAX_DURATION) {
+    return { success: false, message: `Durata massima: ${MAX_DURATION} semestri` }
   }
 
   // Check if there are actual changes

@@ -3268,8 +3268,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             rescissionClause: pendingContractModification.rescissionClause,
           }}
           onConfirm={handleContractModification}
+          increaseOnly={true}
           title="Modifica Contratto"
-          description="Hai appena rubato questo giocatore. Puoi modificare il suo contratto seguendo le regole del rinnovo."
+          description="Hai appena rubato questo giocatore. Puoi solo aumentare ingaggio e/o durata del contratto."
         />
       )}
 
