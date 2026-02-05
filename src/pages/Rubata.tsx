@@ -541,6 +541,15 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
       if (data.sessionId) {
         setSessionId(data.sessionId)
       }
+      // If server transitioned to PENDING_ACK (e.g. auto-close during getRubataBoard),
+      // immediately fetch ack data so the confirmation modal can display without waiting
+      // for the next polling cycle (fixes #242)
+      if (data.rubataState === 'PENDING_ACK') {
+        const ackRes = await rubataApi.getPendingAck(leagueId)
+        if (ackRes.success) {
+          setPendingAck(ackRes.data as PendingAck | null)
+        }
+      }
     }
   }, [leagueId])
 
@@ -575,6 +584,16 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
       }
       if (data.sessionId) {
         setSessionId(data.sessionId)
+      }
+      // If server auto-closed the auction during this getRubataBoard() call,
+      // the state transitions to PENDING_ACK but we didn't fetch pendingAck data.
+      // Fetch it immediately so the confirmation modal can display without waiting
+      // for the next polling cycle (fixes #242)
+      if (data.rubataState === 'PENDING_ACK') {
+        const ackRes = await rubataApi.getPendingAck(leagueId)
+        if (ackRes.success) {
+          setPendingAck(ackRes.data as PendingAck | null)
+        }
       }
     }
     if (readyRes.success && readyRes.data) {
