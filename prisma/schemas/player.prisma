@@ -40,6 +40,7 @@ model SerieAPlayer {
   rubataPreferences RubataPreference[] // see: rubata.prisma
   auctionObjectives AuctionObjective[] // see: auction.prisma
   matchRatings PlayerMatchRating[]  // Match-by-match ratings from API-Football
+  contractHistory ContractHistory[]  // see: contract-history.prisma
 }
 
 model QuotazioniUpload {

@@ -27,6 +27,8 @@ interface League {
     currentBudget: number
     teamName?: string
     user: { id: string; username: string; profilePhoto?: string }
+    totalSalaries?: number
+    balance?: number
   }>
 }
 
@@ -367,27 +369,6 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
                 </div>
               </div>
 
-              {/* Roster Slots */}
-              <div className="mt-6 pt-5 border-t border-surface-50/20">
-                <p className="text-sm text-gray-400 mb-4 uppercase tracking-wide">Slot Rosa</p>
-                <div className="grid grid-cols-4 gap-3">
-                  {[
-                    { pos: 'P', slots: league.goalkeeperSlots, label: 'POR' },
-                    { pos: 'D', slots: league.defenderSlots, label: 'DIF' },
-                    { pos: 'C', slots: league.midfielderSlots, label: 'CEN' },
-                    { pos: 'A', slots: league.forwardSlots, label: 'ATT' },
-                  ].map(({ pos, slots, label }) => (
-                    <div key={pos} className="text-center bg-surface-300 rounded-lg p-3">
-                      <div className={`w-10 h-10 mx-auto rounded-full ${POSITION_COLORS[pos]?.bg ?? 'bg-gray-500'} flex items-center justify-center text-white font-bold mb-2`}>
-                        {pos}
-                      </div>
-                      <p className={`text-xs ${POSITION_COLORS[pos]?.text ?? 'text-gray-400'} font-medium`}>{label}</p>
-                      <p className="text-lg font-bold text-white">{slots}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {/* Leave League Button */}
               {!isAdmin && league.status === 'DRAFT' && (
                 <div className="mt-6 pt-5 border-t border-surface-50/20">
@@ -452,8 +433,10 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-lg font-bold text-accent-400">{member.currentBudget}</span>
-                    <span className="text-xs text-gray-500 ml-1">crediti</span>
+                    <span className={`text-lg font-bold ${(member.balance ?? member.currentBudget) >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
+                      {(member.balance ?? member.currentBudget) >= 0 ? '+' : ''}{member.balance ?? member.currentBudget}
+                    </span>
+                    <span className="text-xs text-gray-500 ml-1">bilancio</span>
                   </div>
                 </div>
               ))}
