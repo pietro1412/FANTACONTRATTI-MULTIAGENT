@@ -6,11 +6,11 @@ const DURATION_MULTIPLIERS: Record<number, number> = {
   4: 11,
   3: 9,
   2: 7,
-  1: 4,
+  1: 3,
 }
 
 function calculateRescissionClause(salary: number, duration: number): number {
-  const multiplier = DURATION_MULTIPLIERS[duration] || 4
+  const multiplier = DURATION_MULTIPLIERS[duration] || 3
   return salary * multiplier
 }
 

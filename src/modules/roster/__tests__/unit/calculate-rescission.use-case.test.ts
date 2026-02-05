@@ -138,7 +138,7 @@ describe('CalculateRescissionUseCase', () => {
         { duration: 4, multiplier: 11, expectedCost: 110 },
         { duration: 3, multiplier: 9, expectedCost: 90 },
         { duration: 2, multiplier: 7, expectedCost: 70 },
-        { duration: 1, multiplier: 4, expectedCost: 40 },
+        { duration: 1, multiplier: 3, expectedCost: 30 },
       ]
 
       for (const testCase of testCases) {

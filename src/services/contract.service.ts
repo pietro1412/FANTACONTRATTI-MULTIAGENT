@@ -22,7 +22,7 @@ const DURATION_MULTIPLIERS: Record<number, number> = {
   4: 11,  // 4 semestri = moltiplicatore 11
   3: 9,   // 3 semestri = moltiplicatore 9
   2: 7,   // 2 semestri = moltiplicatore 7
-  1: 4,   // 1 semestre = moltiplicatore 4
+  1: 3,   // 1 semestre = moltiplicatore 3
 }
 
 const MAX_DURATION = 4 // Max 4 semestri
@@ -30,7 +30,7 @@ const MIN_SALARY_PERCENTAGE = 0.1 // 10% del prezzo acquisto per acquisti non-PR
 const MAX_ROSTER_SIZE = 29 // Massimo giocatori in rosa dopo consolidamento
 
 function getMultiplier(duration: number): number {
-  return DURATION_MULTIPLIERS[duration] ?? 4
+  return DURATION_MULTIPLIERS[duration] ?? 3
 }
 
 export function calculateRescissionClause(salary: number, duration: number): number {

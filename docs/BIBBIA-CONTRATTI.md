@@ -108,7 +108,7 @@ Moltiplicatori:
 - 4 semestri → 11
 - 3 semestri → 9
 - 2 semestri → 7
-- 1 semestre → 4
+- 1 semestre → 3
 ```
 
 **Codice:** `src/services/contract.service.ts:21-38`
