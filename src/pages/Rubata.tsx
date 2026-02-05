@@ -502,13 +502,18 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     }
   }
 
-  // When all members acknowledge, show the contract modification modal for the winner (#242)
+  // When state transitions out of PENDING_ACK (all confirmed), show contract modal for the winner (#242)
+  // We can't watch pendingAck.allAcknowledged because the backend clears pendingAck atomically
+  // when it moves to READY_CHECK — the frontend never sees allAcknowledged=true.
+  // Instead, detect the state transition: if we stored winnerContractInfo in the ref
+  // and the state is no longer PENDING_ACK, it means everyone confirmed.
   useEffect(() => {
-    if (pendingAck?.allAcknowledged && pendingWinnerContractRef.current) {
+    const state = boardData?.rubataState
+    if (state && state !== 'PENDING_ACK' && pendingWinnerContractRef.current) {
       setPendingContractModification(pendingWinnerContractRef.current)
       pendingWinnerContractRef.current = null
     }
-  }, [pendingAck?.allAcknowledged])
+  }, [boardData?.rubataState])
 
   // Track auction ID to avoid showing duplicate modals (keeping for future use)
   useEffect(() => {
@@ -1103,21 +1108,15 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
       setIsAppealMode(false)
 
       // Check if there's contract info for modification (winner only)
-      // Save it but DON'T show the modal yet — wait until all members have acknowledged
-      const data = res.data as { allAcknowledged?: boolean; winnerContractInfo?: ContractForModification } | undefined
+      // Always save in ref — the useEffect watching rubataState will show the modal
+      // when the state transitions out of PENDING_ACK (i.e. all managers confirmed)
+      const data = res.data as { winnerContractInfo?: ContractForModification } | undefined
       if (data?.winnerContractInfo) {
         const playerInfo = pendingAck?.player
-        const contractInfo = {
+        pendingWinnerContractRef.current = {
           ...data.winnerContractInfo,
           playerTeam: playerInfo?.team,
           playerPosition: playerInfo?.position,
-        }
-        if (data?.allAcknowledged) {
-          // Everyone already confirmed (e.g. we were last) — show contract modal now
-          setPendingContractModification(contractInfo)
-        } else {
-          // Save for later — will be activated when allAcknowledged becomes true
-          pendingWinnerContractRef.current = contractInfo
         }
       }
 
