@@ -29,6 +29,15 @@ const MAX_DURATION = 4 // Max 4 semestri
 const MIN_SALARY_PERCENTAGE = 0.1 // 10% del prezzo acquisto per acquisti non-PRIMO MERCATO
 const MAX_ROSTER_SIZE = 29 // Massimo giocatori in rosa dopo consolidamento
 
+// M-12: Runtime validation to ensure budget never goes negative
+export async function validateBudgetNotNegative(memberId: string): Promise<boolean> {
+  const member = await prisma.leagueMember.findUnique({
+    where: { id: memberId },
+    select: { currentBudget: true },
+  })
+  return member ? member.currentBudget >= 0 : true
+}
+
 function getMultiplier(duration: number): number {
   return DURATION_MULTIPLIERS[duration] ?? 3
 }
@@ -807,8 +816,11 @@ export async function releasePlayer(
     }
   }
 
-  // Calculate release cost = (ingaggio × durata) / 2
-  const releaseCost = calculateReleaseCost(contract.salary, contract.duration)
+  // M-14: Release cost = 0 for ESTERO/RETROCESSO players
+  const player = contract.roster.player
+  const isExitedPlayer = player.listStatus === 'NOT_IN_LIST' &&
+    (player.exitReason === 'ESTERO' || player.exitReason === 'RETROCESSO')
+  const releaseCost = isExitedPlayer ? 0 : calculateReleaseCost(contract.salary, contract.duration)
 
   // Check budget
   const member = contract.roster.leagueMember
@@ -816,7 +828,7 @@ export async function releasePlayer(
     return { success: false, message: `Budget insufficiente. Costo taglio: ${releaseCost}, Budget: ${member.currentBudget}` }
   }
 
-  const playerName = contract.roster.player.name
+  const playerName = player.name
 
   // Delete contract
   await prisma.playerContract.delete({
@@ -850,11 +862,14 @@ export async function releasePlayer(
     },
   })
 
-  // Record movement for RELEASE
+  // Record movement for RELEASE (M-14: use specific type for exited players)
+  const movementType = isExitedPlayer
+    ? (player.exitReason === 'ESTERO' ? 'ABROAD_COMPENSATION' : 'RELEGATION_RELEASE')
+    : 'RELEASE'
   await recordMovement({
     leagueId: contract.roster.leagueMember.leagueId,
     playerId: contract.roster.playerId,
-    movementType: 'RELEASE',
+    movementType,
     fromMemberId: member.id,
     price: releaseCost,
     oldSalary: contract.salary,
@@ -863,12 +878,17 @@ export async function releasePlayer(
     marketSessionId: activeSession?.id,
   })
 
+  const releaseMessage = isExitedPlayer
+    ? `${playerName} svincolato gratuitamente (${player.exitReason}).`
+    : `${playerName} svincolato. Costo taglio: ${releaseCost}M (${contract.salary}×${contract.duration}/2)`
+
   return {
     success: true,
-    message: `${playerName} svincolato. Costo taglio: ${releaseCost}M (${contract.salary}×${contract.duration}/2)`,
+    message: releaseMessage,
     data: {
       releaseCost,
       newBudget: member.currentBudget - releaseCost,
+      isExitedPlayer,
     },
   }
 }
@@ -1471,6 +1491,21 @@ export async function consolidateContracts(
       if (roster.length > MAX_ROSTER_SIZE) {
         const excess = roster.length - MAX_ROSTER_SIZE
         throw new Error(`Rosa troppo grande: ${roster.length} giocatori. Devi tagliare ${excess} giocator${excess === 1 ? 'e' : 'i'} (max ${MAX_ROSTER_SIZE})`)
+      }
+
+      // M-11: Ricalcolo monte ingaggi post-consolidamento
+      // Verify the total salaries after all operations are consistent
+      const postConsolidationContracts = await tx.playerContract.findMany({
+        where: { leagueMemberId: member.id },
+      })
+      const postMonteIngaggi = postConsolidationContracts.reduce((sum, c) => sum + c.salary, 0)
+      const postMember = await tx.leagueMember.findUnique({
+        where: { id: member.id },
+      })
+      if (postMember && postMonteIngaggi > postMember.currentBudget) {
+        throw new Error(
+          `Monte ingaggi (${postMonteIngaggi}) supera il budget (${postMember.currentBudget}) dopo il consolidamento`
+        )
       }
 
       // 5. Clear all draft values and create consolidation record

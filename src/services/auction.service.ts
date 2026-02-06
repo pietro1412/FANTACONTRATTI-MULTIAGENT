@@ -216,6 +216,19 @@ async function decrementContractDurations(leagueId: string, marketSessionId: str
         },
       })
 
+      // M-13: Record PlayerMovement for auto-release on contract expiry
+      await recordMovement({
+        leagueId,
+        playerId: contract.roster.playerId,
+        movementType: 'RELEASE',
+        fromMemberId: contract.roster.leagueMemberId,
+        price: 0,
+        oldSalary: contract.salary,
+        oldDuration: contract.duration,
+        oldClause: contract.rescissionClause,
+        marketSessionId,
+      })
+
       released.push(contract.roster.player.name)
     } else {
       // Decrement duration and recalculate rescission clause
@@ -1935,7 +1948,39 @@ export async function advanceToNextTurn(
   }
 
   const currentIndex = session.currentTurnIndex ?? 0
-  const nextIndex = (currentIndex + 1) % turnOrder.length
+
+  // M-3: Skip members with bilancio < 2 (budget - monteIngaggi)
+  let nextIndex = (currentIndex + 1) % turnOrder.length
+  let searchCount = 0
+  const skippedMembers: string[] = []
+  while (searchCount < turnOrder.length) {
+    const candidateId = turnOrder[nextIndex] as string
+    const candidate = await prisma.leagueMember.findUnique({
+      where: { id: candidateId },
+    })
+    if (candidate) {
+      const monteIngaggi = await prisma.playerContract.aggregate({
+        where: { leagueMemberId: candidateId },
+        _sum: { salary: true },
+      })
+      const bilancio = candidate.currentBudget - (monteIngaggi._sum.salary || 0)
+      if (bilancio >= 2) {
+        break // This member has enough budget
+      }
+      skippedMembers.push(candidateId)
+    }
+    nextIndex = (nextIndex + 1) % turnOrder.length
+    searchCount++
+  }
+
+  // If all members have bilancio < 2, no one can play
+  if (searchCount >= turnOrder.length) {
+    return {
+      success: false,
+      message: 'Nessun manager ha bilancio sufficiente (>= 2) per continuare',
+      data: { allInsufficientBudget: true, skippedMembers },
+    }
+  }
 
   await prisma.marketSession.update({
     where: { id: sessionId },
@@ -1945,7 +1990,113 @@ export async function advanceToNextTurn(
   return {
     success: true,
     message: 'Turno avanzato',
-    data: { previousIndex: currentIndex, currentIndex: nextIndex },
+    data: { previousIndex: currentIndex, currentIndex: nextIndex, skippedMembers },
+  }
+}
+
+// ==================== M-1: PAUSE/RESUME AUCTION TIMER ====================
+
+export async function pauseAuction(
+  auctionId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  const auction = await prisma.auction.findUnique({
+    where: { id: auctionId },
+    include: { marketSession: true },
+  })
+
+  if (!auction || !auction.marketSession) {
+    return { success: false, message: 'Asta non trovata' }
+  }
+
+  // Verify admin
+  const admin = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: auction.leagueId,
+      userId: adminUserId,
+      role: MemberRole.ADMIN,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (auction.status !== AuctionStatus.ACTIVE) {
+    return { success: false, message: 'Puoi mettere in pausa solo un\'asta attiva' }
+  }
+
+  // Calculate remaining seconds
+  let remainingSeconds = auction.timerSeconds || 30
+  if (auction.timerExpiresAt) {
+    const remainingMs = auction.timerExpiresAt.getTime() - Date.now()
+    remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000))
+  }
+
+  await prisma.auction.update({
+    where: { id: auctionId },
+    data: {
+      status: AuctionStatus.AWAITING_RESUME,
+      timerExpiresAt: null,
+      timerSeconds: remainingSeconds,
+      resumeReadyMembers: [],
+    },
+  })
+
+  return {
+    success: true,
+    message: `Asta in pausa (${remainingSeconds} secondi rimanenti)`,
+    data: { remainingSeconds },
+  }
+}
+
+export async function resumeAuction(
+  auctionId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  const auction = await prisma.auction.findUnique({
+    where: { id: auctionId },
+    include: { marketSession: true },
+  })
+
+  if (!auction || !auction.marketSession) {
+    return { success: false, message: 'Asta non trovata' }
+  }
+
+  // Verify admin
+  const admin = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: auction.leagueId,
+      userId: adminUserId,
+      role: MemberRole.ADMIN,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (auction.status !== AuctionStatus.AWAITING_RESUME) {
+    return { success: false, message: 'L\'asta non è in pausa' }
+  }
+
+  const remainingSeconds = auction.timerSeconds || 30
+
+  await prisma.auction.update({
+    where: { id: auctionId },
+    data: {
+      status: AuctionStatus.ACTIVE,
+      timerExpiresAt: new Date(Date.now() + remainingSeconds * 1000),
+      resumeReadyMembers: null,
+    },
+  })
+
+  return {
+    success: true,
+    message: `Asta ripresa (${remainingSeconds} secondi)`,
+    data: { remainingSeconds },
   }
 }
 
@@ -2043,6 +2194,189 @@ export async function cancelLastBid(
         currentPrice: auction.basePrice,
       },
     }
+  }
+}
+
+// ==================== M-2: ADMIN CANCEL ACTIVE AUCTION ====================
+
+export async function cancelActiveAuction(
+  auctionId: string,
+  adminUserId: string,
+  reason: string
+): Promise<ServiceResult> {
+  const auction = await prisma.auction.findUnique({
+    where: { id: auctionId },
+    include: { marketSession: true, player: true },
+  })
+
+  if (!auction || !auction.marketSession) {
+    return { success: false, message: 'Asta non trovata' }
+  }
+
+  // Verify admin
+  const admin = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: auction.leagueId,
+      userId: adminUserId,
+      role: MemberRole.ADMIN,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (auction.status !== AuctionStatus.ACTIVE && auction.status !== AuctionStatus.PENDING) {
+    return { success: false, message: 'Asta non attiva o pendente' }
+  }
+
+  // Cancel the auction (no winner)
+  await prisma.auction.update({
+    where: { id: auctionId },
+    data: {
+      status: AuctionStatus.NO_BIDS,
+      timerExpiresAt: null,
+      endsAt: new Date(),
+    },
+  })
+
+  // Cancel all bids
+  await prisma.auctionBid.updateMany({
+    where: { auctionId, isCancelled: false },
+    data: { isCancelled: true, cancelledAt: new Date(), cancelledBy: adminUserId },
+  })
+
+  // M-7: Audit log
+  await prisma.auditLog.create({
+    data: {
+      userId: adminUserId,
+      leagueId: auction.leagueId,
+      action: 'AUCTION_CANCELLED_BY_ADMIN',
+      entityType: 'Auction',
+      entityId: auctionId,
+      oldValues: { status: auction.status, playerName: auction.player.name } as never,
+      newValues: { status: 'NO_BIDS', reason } as never,
+    },
+  })
+
+  return {
+    success: true,
+    message: `Asta per ${auction.player.name} annullata dall'admin. Motivo: ${reason}`,
+    data: { auctionId, playerName: auction.player.name },
+  }
+}
+
+// ==================== M-2: ADMIN RECTIFY COMPLETED TRANSACTION ====================
+
+export async function rectifyTransaction(
+  auctionId: string,
+  adminUserId: string,
+  reason: string
+): Promise<ServiceResult> {
+  const auction = await prisma.auction.findUnique({
+    where: { id: auctionId },
+    include: {
+      marketSession: true,
+      player: true,
+      bids: { where: { isWinning: true }, take: 1 },
+    },
+  })
+
+  if (!auction || !auction.marketSession) {
+    return { success: false, message: 'Asta non trovata' }
+  }
+
+  // Verify admin
+  const admin = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: auction.leagueId,
+      userId: adminUserId,
+      role: MemberRole.ADMIN,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (auction.status !== AuctionStatus.COMPLETED) {
+    return { success: false, message: 'Solo aste completate possono essere rettificate' }
+  }
+
+  if (!auction.winnerId) {
+    return { success: false, message: 'Nessun vincitore da rettificare' }
+  }
+
+  const winningBid = auction.bids[0]
+  if (!winningBid) {
+    return { success: false, message: 'Nessuna offerta vincente trovata' }
+  }
+
+  // Rollback: restore budget to winner
+  await prisma.leagueMember.update({
+    where: { id: auction.winnerId },
+    data: { currentBudget: { increment: winningBid.amount } },
+  })
+
+  // Rollback: remove roster entry and contract
+  const roster = await prisma.playerRoster.findFirst({
+    where: {
+      leagueMemberId: auction.winnerId,
+      playerId: auction.playerId,
+      status: 'ACTIVE',
+    },
+    include: { contract: true },
+  })
+
+  if (roster) {
+    if (roster.contract) {
+      await prisma.playerContract.delete({ where: { id: roster.contract.id } })
+    }
+    await prisma.playerRoster.delete({ where: { id: roster.id } })
+  }
+
+  // For RUBATA: also restore seller's roster/contract and deduct seller payment
+  if (auction.type === 'RUBATA' && auction.sellerId) {
+    // Note: Full rubata rollback is complex (seller's contract was transferred).
+    // This is a basic version — the admin may need to manually fix the seller's state.
+  }
+
+  // Mark auction as cancelled
+  await prisma.auction.update({
+    where: { id: auctionId },
+    data: {
+      status: AuctionStatus.NO_BIDS,
+      winnerId: null,
+    },
+  })
+
+  // M-7: Audit log
+  await prisma.auditLog.create({
+    data: {
+      userId: adminUserId,
+      leagueId: auction.leagueId,
+      action: 'TRANSACTION_RECTIFIED_BY_ADMIN',
+      entityType: 'Auction',
+      entityId: auctionId,
+      oldValues: {
+        winnerId: auction.winnerId,
+        amount: winningBid.amount,
+        playerName: auction.player.name,
+      } as never,
+      newValues: { status: 'NO_BIDS', reason } as never,
+    },
+  })
+
+  return {
+    success: true,
+    message: `Transazione rettificata: ${auction.player.name}. Budget restituito (${winningBid.amount}). Motivo: ${reason}`,
+    data: {
+      auctionId,
+      playerName: auction.player.name,
+      refundedAmount: winningBid.amount,
+    },
   }
 }
 

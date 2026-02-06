@@ -1559,6 +1559,19 @@ export async function makeRubataOffer(
     return { success: false, message: 'Non puoi rubare un tuo giocatore' }
   }
 
+  // M-8: Cannot steal a player you released during CONTRATTI phase of the same session
+  const releasedByMember = await prisma.playerMovement.findFirst({
+    where: {
+      marketSessionId: activeSession.id,
+      playerId: currentPlayer.playerId,
+      fromMemberId: member.id,
+      movementType: { in: ['RELEASE', 'RELEGATION_RELEASE', 'ABROAD_COMPENSATION'] },
+    },
+  })
+  if (releasedByMember) {
+    return { success: false, message: 'Non puoi rubare un giocatore che hai svincolato in questa sessione' }
+  }
+
   // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
   const monteIngaggiOffer = await prisma.playerContract.aggregate({
     where: { leagueMemberId: member.id },
@@ -2946,6 +2959,34 @@ export async function acknowledgeRubataTransaction(
   }
 
   if (allAcknowledged) {
+    // M-9: Check if this was the last player on the board
+    const board = activeSession.rubataBoard as Array<unknown> | null
+    const currentIndex = activeSession.rubataBoardIndex ?? 0
+    const isLastPlayer = board ? (currentIndex + 1) >= board.length : false
+
+    if (isLastPlayer) {
+      // Last player acknowledged — complete rubata phase
+      await prisma.marketSession.update({
+        where: { id: activeSession.id },
+        data: {
+          rubataPendingAck: null,
+          rubataReadyMembers: [],
+          rubataState: 'COMPLETED',
+          rubataTimerStartedAt: null,
+        },
+      })
+
+      return {
+        success: true,
+        message: 'Ultimo giocatore confermato! Rubata completata!',
+        data: {
+          allAcknowledged: true,
+          completed: true,
+          winnerContractInfo,
+        },
+      }
+    }
+
     // Clear pending ack and move to ready check for next player
     await prisma.marketSession.update({
       where: { id: activeSession.id },
