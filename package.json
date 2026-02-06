@@ -37,7 +37,7 @@
     "db:local:setup": "npm run docker:up && bash scripts/with-env.sh .env.local npx prisma db push --schema=prisma/schema.generated.prisma --accept-data-loss && bash scripts/with-env.sh .env.local npx tsx prisma/seed.ts",
     "db:test:setup": "npm run docker:up:test && bash scripts/with-env.sh .env.test npx prisma db push --schema=prisma/schema.generated.prisma --accept-data-loss",
     "dev:local": "bash scripts/with-env.sh .env.local npx concurrently \"npm run dev:api\" \"npm run dev:client\"",
-    "test:integration": "bash scripts/with-env.sh .env.test npx vitest run tests/integration",
+    "test:integration": "bash scripts/with-env.sh .env.test npx vitest run -c vitest.integration.config.ts",
     "test:all": "vitest run"
   },
   "keywords": [
@@ -89,6 +89,7 @@
     "@types/nodemailer": "^7.0.5",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@types/supertest": "^6.0.3",
     "@vitejs/plugin-react": "^5.1.2",
     "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",
@@ -106,6 +107,7 @@
     "postcss": "^8.5.6",
     "prettier": "^3.7.4",
     "prisma": "^5.22.0",
+    "supertest": "^7.2.2",
     "tailwindcss": "^3.4.19",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
