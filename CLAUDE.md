@@ -50,8 +50,7 @@ Quando lo sviluppo è completato:
 ### Branch Principali
 | Branch | Scopo | Deploy |
 |--------|-------|--------|
-| `master` | Produzione stabile | Vercel Production |
-| `main` | Allineato a master | - |
+| `main` | Produzione stabile | Vercel Production |
 | `develop` | Integrazione nuove feature | Vercel Preview |
 
 ### Versioning
@@ -79,7 +78,7 @@ Quando lo sviluppo è completato:
 
 4. **Per rilascio in produzione:**
    ```bash
-   develop → PR verso master → Tag versione (v1.1, v1.2, etc.)
+   develop → PR verso main → Tag versione (v1.1, v1.2, etc.)
    ```
 
 ### Convenzioni Commit
