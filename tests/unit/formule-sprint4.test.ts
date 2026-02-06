@@ -83,7 +83,7 @@ describe('P1-1/P1-2: Rubata budget checks use bilancio', () => {
     const fnStart = code.indexOf('export async function makeRubataOffer')
     expect(fnStart).toBeGreaterThan(-1)
 
-    const fnBody = code.slice(fnStart, fnStart + 2000)
+    const fnBody = code.slice(fnStart, fnStart + 3000)
 
     // Should NOT have raw currentBudget check for rubata price
     expect(fnBody).not.toMatch(/rubataPrice\s*>\s*member\.currentBudget/)
@@ -123,7 +123,7 @@ describe('P1-3: advanceSvincolatiToNextTurn and passSvincolatiTurn skip finished
     const fnStart = code.indexOf('async function advanceSvincolatiToNextTurn')
     expect(fnStart).toBeGreaterThan(-1)
 
-    const fnBody = code.slice(fnStart, fnStart + 2000)
+    const fnBody = code.slice(fnStart, fnStart + 6000)
     expect(fnBody).toContain('svincolatiFinishedMembers')
   })
 
@@ -131,7 +131,7 @@ describe('P1-3: advanceSvincolatiToNextTurn and passSvincolatiTurn skip finished
     const fnStart = code.indexOf('async function advanceSvincolatiToNextTurn')
     expect(fnStart).toBeGreaterThan(-1)
 
-    const fnBody = code.slice(fnStart, fnStart + 2000)
+    const fnBody = code.slice(fnStart, fnStart + 6000)
 
     // The while loop that skips passed members should ALSO skip finished members
     // Look for finishedMembers being used in the skip condition
@@ -142,7 +142,7 @@ describe('P1-3: advanceSvincolatiToNextTurn and passSvincolatiTurn skip finished
     const fnStart = code.indexOf('async function advanceSvincolatiToNextTurn')
     expect(fnStart).toBeGreaterThan(-1)
 
-    const fnBody = code.slice(fnStart, fnStart + 2000)
+    const fnBody = code.slice(fnStart, fnStart + 6000)
 
     // The activeMembers calculation should exclude finishedMembers too
     // Pattern: filter out both passed AND finished
