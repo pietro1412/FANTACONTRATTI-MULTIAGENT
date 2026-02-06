@@ -1,5 +1,7 @@
 import { PrismaClient, MemberStatus, AuctionStatus, Position, Prisma } from '@prisma/client'
 import { recordMovement } from './movement.service'
+import { calculateDefaultSalary, calculateRescissionClause } from './contract.service'
+import { logAction } from './admin.service'
 
 const prisma = new PrismaClient()
 
@@ -320,9 +322,14 @@ export async function bidOnFreeAgent(
     return { success: false, message: `L'offerta deve essere maggiore di ${auction.currentPrice}` }
   }
 
-  // Check budget
-  if (amount > bidder.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Disponibile: ${bidder.currentBudget}` }
+  // Check budget using bilancio (budget - monteIngaggi)
+  const monteIngaggiBid = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: bidder.id },
+    _sum: { salary: true },
+  })
+  const bilancioBid = bidder.currentBudget - (monteIngaggiBid._sum.salary || 0)
+  if (amount + calculateDefaultSalary(amount) > bilancioBid) {
+    return { success: false, message: `Budget insufficiente. Bilancio disponibile: ${bilancioBid}` }
   }
 
   // Check if this is a turn-based svincolati auction (no slot limits)
@@ -491,10 +498,10 @@ export async function closeFreeAgentAuction(
       },
     })
 
-    // Create contract automatically: 10% salary, 3 semesters (svincolati default)
-    const salary = Math.ceil(auction.currentPrice * 0.1)
+    // Create contract automatically: 10% salary (integer, min 1), 3 semesters (svincolati default)
+    const salary = calculateDefaultSalary(auction.currentPrice)
     const duration = 3
-    const rescissionClause = salary * 9 // multiplier for 3 semesters
+    const rescissionClause = calculateRescissionClause(salary, duration)
 
     await tx.playerContract.create({
       data: {
@@ -520,9 +527,9 @@ export async function closeFreeAgentAuction(
   })
 
   // Record movement with contract values
-  const movementSalary = Math.ceil(auction.currentPrice * 0.1)
+  const movementSalary = calculateDefaultSalary(auction.currentPrice)
   const movementDuration = 3
-  const movementClause = movementSalary * 9 // multiplier for 3 semesters
+  const movementClause = calculateRescissionClause(movementSalary, movementDuration)
 
   await recordMovement({
     leagueId: auction.leagueId,
@@ -707,16 +714,32 @@ export async function setSvincolatiTurnOrder(
     return { success: false, message: 'Nessuna sessione svincolati attiva' }
   }
 
+  // M-4: If no explicit order provided, auto-reverse rubata order
+  let finalMemberIds = memberIds
+  if (!memberIds || memberIds.length === 0) {
+    const rubataOrder = activeSession.rubataOrder as string[] | null
+    if (rubataOrder && rubataOrder.length > 0) {
+      finalMemberIds = [...rubataOrder].reverse()
+    } else {
+      // Fallback: use all active members in default order
+      const allMembers = await prisma.leagueMember.findMany({
+        where: { leagueId, status: MemberStatus.ACTIVE, role: 'MANAGER' },
+        orderBy: { joinedAt: 'asc' },
+      })
+      finalMemberIds = allMembers.map(m => m.id)
+    }
+  }
+
   // Verify all memberIds are valid active members
   const validMembers = await prisma.leagueMember.findMany({
     where: {
       leagueId,
-      id: { in: memberIds },
+      id: { in: finalMemberIds },
       status: MemberStatus.ACTIVE,
     },
   })
 
-  if (validMembers.length !== memberIds.length) {
+  if (validMembers.length !== finalMemberIds.length) {
     return { success: false, message: 'Alcuni membri non sono validi' }
   }
 
@@ -724,7 +747,7 @@ export async function setSvincolatiTurnOrder(
   await prisma.marketSession.update({
     where: { id: activeSession.id },
     data: {
-      svincolatiTurnOrder: memberIds,
+      svincolatiTurnOrder: finalMemberIds,
       svincolatiCurrentTurnIndex: 0,
       svincolatiState: 'READY_CHECK',
       svincolatiReadyMembers: [],
@@ -739,7 +762,7 @@ export async function setSvincolatiTurnOrder(
   return {
     success: true,
     message: 'Ordine turni impostato',
-    data: { turnOrder: memberIds },
+    data: { turnOrder: finalMemberIds, autoReversed: memberIds.length === 0 },
   }
 }
 
@@ -987,9 +1010,14 @@ export async function nominateFreeAgent(
     return { success: false, message: 'Questo giocatore è già in una rosa' }
   }
 
-  // Check budget (must have at least 1)
-  if (member.currentBudget < 1) {
-    return { success: false, message: 'Budget insufficiente' }
+  // Check bilancio (budget - monteIngaggi) >= 2 (offerta minima 1 + ingaggio minimo 1)
+  const monteIngaggiNom = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: member.id },
+    _sum: { salary: true },
+  })
+  const bilancio = member.currentBudget - (monteIngaggiNom._sum.salary || 0)
+  if (bilancio < 2) {
+    return { success: false, message: `Budget insufficiente. Bilancio disponibile: ${bilancio} (servono almeno 2)` }
   }
 
   // Set pending nomination
@@ -1321,13 +1349,15 @@ export async function passSvincolatiTurn(
 
   // Add to passed members
   const passedMembers = (activeSession.svincolatiPassedMembers as string[] | null) || []
+  const finishedMembers = (activeSession.svincolatiFinishedMembers as string[] | null) || []
   const newPassedMembers = passedMembers.includes(member.id)
     ? passedMembers
     : [...passedMembers, member.id]
 
-  // Check if all have passed
-  if (newPassedMembers.length === turnOrder.length) {
-    // All passed - complete svincolati phase
+  // Check if all active members have passed (exclude finished members)
+  const activeMembersAfterPass = turnOrder.filter(id => !newPassedMembers.includes(id) && !finishedMembers.includes(id))
+  if (activeMembersAfterPass.length === 0) {
+    // All passed or finished - complete svincolati phase
     await prisma.marketSession.update({
       where: { id: activeSession.id },
       data: {
@@ -1345,12 +1375,11 @@ export async function passSvincolatiTurn(
 
   // Advance to next turn
   const nextTurnIndex = (currentTurnIndex + 1) % turnOrder.length
-  const nextMemberId = turnOrder[nextTurnIndex]
 
-  // Skip members who have already passed until we find one who hasn't
+  // Skip members who have already passed or declared finished
   let searchIndex = nextTurnIndex
   let searchCount = 0
-  while (newPassedMembers.includes(turnOrder[searchIndex]) && searchCount < turnOrder.length) {
+  while ((newPassedMembers.includes(turnOrder[searchIndex]) || finishedMembers.includes(turnOrder[searchIndex])) && searchCount < turnOrder.length) {
     searchIndex = (searchIndex + 1) % turnOrder.length
     searchCount++
   }
@@ -1530,10 +1559,10 @@ export async function closeSvincolatiAuction(
       },
     })
 
-    // Create contract automatically: 10% salary, 3 semesters (svincolati default)
-    const salary = Math.ceil(auction.currentPrice * 0.1)
+    // Create contract automatically: 10% salary (integer, min 1), 3 semesters (svincolati default)
+    const salary = calculateDefaultSalary(auction.currentPrice)
     const duration = 3
-    const rescissionClause = salary * 9 // multiplier for 3 semesters
+    const rescissionClause = calculateRescissionClause(salary, duration)
 
     await tx.playerContract.create({
       data: {
@@ -1578,9 +1607,9 @@ export async function closeSvincolatiAuction(
   })
 
   // Record movement with contract values
-  const movementSalary2 = Math.ceil(auction.currentPrice * 0.1)
+  const movementSalary2 = calculateDefaultSalary(auction.currentPrice)
   const movementDuration2 = 3
-  const movementClause2 = movementSalary2 * 9 // multiplier for 3 semesters
+  const movementClause2 = calculateRescissionClause(movementSalary2, movementDuration2)
 
   await recordMovement({
     leagueId: auction.leagueId,
@@ -1778,8 +1807,79 @@ async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceRe
     return { success: false, message: 'Sessione non trovata' }
   }
 
+  // M-6: Check if there are free agents available
+  const rostersInLeague = await prisma.playerRoster.findMany({
+    where: {
+      leagueMember: { leagueId: session.leagueId },
+      status: 'ACTIVE',
+    },
+    select: { playerId: true },
+  })
+  const assignedPlayerIds = rostersInLeague.map(r => r.playerId)
+  const freeAgentCount = await prisma.serieAPlayer.count({
+    where: {
+      id: { notIn: assignedPlayerIds },
+      isActive: true,
+      listStatus: 'IN_LIST',
+    },
+  })
+  if (freeAgentCount === 0) {
+    await prisma.marketSession.update({
+      where: { id: sessionId },
+      data: {
+        svincolatiState: 'COMPLETED',
+        svincolatiPendingPlayerId: null,
+        svincolatiPendingNominatorId: null,
+        svincolatiNominatorConfirmed: false,
+        svincolatiPendingAck: null,
+        svincolatiReadyMembers: [],
+      },
+    })
+    return {
+      success: true,
+      message: 'Nessun giocatore svincolato disponibile. Fase completata!',
+      data: { completed: true, reason: 'no_free_agents' },
+    }
+  }
+
+  // M-5: Check if any member has bilancio >= 2
+  const allActiveMembers = await prisma.leagueMember.findMany({
+    where: { leagueId: session.leagueId, status: MemberStatus.ACTIVE },
+  })
+  let anyoneCanBuy = false
+  for (const m of allActiveMembers) {
+    const monteIngaggi = await prisma.playerContract.aggregate({
+      where: { leagueMemberId: m.id },
+      _sum: { salary: true },
+    })
+    const bilancio = m.currentBudget - (monteIngaggi._sum.salary || 0)
+    if (bilancio >= 2) {
+      anyoneCanBuy = true
+      break
+    }
+  }
+  if (!anyoneCanBuy) {
+    await prisma.marketSession.update({
+      where: { id: sessionId },
+      data: {
+        svincolatiState: 'COMPLETED',
+        svincolatiPendingPlayerId: null,
+        svincolatiPendingNominatorId: null,
+        svincolatiNominatorConfirmed: false,
+        svincolatiPendingAck: null,
+        svincolatiReadyMembers: [],
+      },
+    })
+    return {
+      success: true,
+      message: 'Nessun manager ha bilancio sufficiente (>= 2). Fase completata!',
+      data: { completed: true, reason: 'no_budget' },
+    }
+  }
+
   const turnOrder = (session.svincolatiTurnOrder as string[] | null) || []
   const passedMembers = (session.svincolatiPassedMembers as string[] | null) || []
+  const finishedMembers = (session.svincolatiFinishedMembers as string[] | null) || []
   const currentTurnIndex = session.svincolatiCurrentTurnIndex ?? 0
 
   // Reset the pass state for the member who just called (they didn't pass)
@@ -1788,16 +1888,41 @@ async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceRe
     ? passedMembers.filter(id => id !== previousNominatorId)
     : passedMembers
 
-  // Find next member who hasn't passed
+  // M-5 (turn-level): Also skip members with bilancio < 2
+  const insufficientBudgetMembers: string[] = []
+  for (const memberId of turnOrder) {
+    if (newPassedMembers.includes(memberId) || finishedMembers.includes(memberId)) continue
+    const memberData = allActiveMembers.find(m => m.id === memberId)
+    if (!memberData) continue
+    const monteIngaggi = await prisma.playerContract.aggregate({
+      where: { leagueMemberId: memberId },
+      _sum: { salary: true },
+    })
+    const bilancio = memberData.currentBudget - (monteIngaggi._sum.salary || 0)
+    if (bilancio < 2) {
+      insufficientBudgetMembers.push(memberId)
+    }
+  }
+
+  // Find next member who hasn't passed, hasn't declared finished, AND has bilancio >= 2
   let nextIndex = (currentTurnIndex + 1) % turnOrder.length
   let searchCount = 0
-  while (newPassedMembers.includes(turnOrder[nextIndex]) && searchCount < turnOrder.length) {
+  while (
+    (newPassedMembers.includes(turnOrder[nextIndex]) ||
+     finishedMembers.includes(turnOrder[nextIndex]) ||
+     insufficientBudgetMembers.includes(turnOrder[nextIndex])) &&
+    searchCount < turnOrder.length
+  ) {
     nextIndex = (nextIndex + 1) % turnOrder.length
     searchCount++
   }
 
-  // Check if all remaining members have passed
-  const activeMembers = turnOrder.filter(id => !newPassedMembers.includes(id))
+  // Check if all remaining members have passed, finished, or have insufficient budget
+  const activeMembers = turnOrder.filter(
+    id => !newPassedMembers.includes(id) &&
+          !finishedMembers.includes(id) &&
+          !insufficientBudgetMembers.includes(id)
+  )
   if (activeMembers.length === 0) {
     // All passed - complete phase
     await prisma.marketSession.update({
@@ -2294,6 +2419,9 @@ export async function declareSvincolatiFinished(
     },
   })
 
+  // M-7: Audit log for declare finished
+  logAction(userId, leagueId, 'SVINCOLATI_DECLARE_FINISHED', 'MarketSession', activeSession.id, undefined, { memberId: member.id }).catch(() => {})
+
   // Get total active members to check if all finished
   const allMembers = await prisma.leagueMember.findMany({
     where: { leagueId, status: MemberStatus.ACTIVE },
@@ -2364,6 +2492,9 @@ export async function undoSvincolatiFinished(
     },
   })
 
+  // M-7: Audit log for undo finished
+  logAction(userId, leagueId, 'SVINCOLATI_UNDO_FINISHED', 'MarketSession', activeSession.id, undefined, { memberId: member.id }).catch(() => {})
+
   return {
     success: true,
     message: 'Puoi tornare a fare offerte.',
@@ -2427,5 +2558,126 @@ export async function forceAllSvincolatiFinished(
       totalMembers: allMembers.length,
       allFinished: true,
     },
+  }
+}
+
+// ==================== M-1: PAUSE/RESUME SVINCOLATI TIMER ====================
+
+export async function pauseSvincolati(
+  leagueId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione svincolati attiva' }
+  }
+
+  // Can only pause during AUCTION state
+  if (activeSession.svincolatiState !== 'AUCTION') {
+    return { success: false, message: 'Puoi mettere in pausa solo durante l\'asta' }
+  }
+
+  // Calculate remaining seconds
+  let remainingSeconds = 0
+  if (activeSession.svincolatiTimerStartedAt) {
+    const elapsedMs = Date.now() - activeSession.svincolatiTimerStartedAt.getTime()
+    const elapsedSeconds = Math.floor(elapsedMs / 1000)
+    remainingSeconds = Math.max(0, activeSession.svincolatiTimerSeconds - elapsedSeconds)
+  }
+
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: {
+      svincolatiPausedFromState: activeSession.svincolatiState,
+      svincolatiPausedRemainingSeconds: remainingSeconds,
+      svincolatiState: 'PAUSED',
+      svincolatiTimerStartedAt: null,
+      svincolatiReadyMembers: [],
+    },
+  })
+
+  // M-7: Audit log
+  logAction(adminUserId, leagueId, 'SVINCOLATI_PAUSE', 'MarketSession', activeSession.id, undefined, { remainingSeconds }).catch(() => {})
+
+  return {
+    success: true,
+    message: `Svincolati in pausa (${remainingSeconds} secondi rimanenti)`,
+    data: { remainingSeconds, pausedFromState: activeSession.svincolatiState },
+  }
+}
+
+export async function resumeSvincolati(
+  leagueId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'ASTA_SVINCOLATI',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione svincolati attiva' }
+  }
+
+  if (activeSession.svincolatiState !== 'PAUSED') {
+    return { success: false, message: 'La sessione non è in pausa' }
+  }
+
+  const resumeState = activeSession.svincolatiPausedFromState || 'AUCTION'
+  const remainingSeconds = activeSession.svincolatiPausedRemainingSeconds || 0
+
+  await prisma.marketSession.update({
+    where: { id: activeSession.id },
+    data: {
+      svincolatiState: resumeState,
+      svincolatiTimerStartedAt: new Date(),
+      svincolatiPausedFromState: null,
+      svincolatiPausedRemainingSeconds: null,
+    },
+  })
+
+  // M-7: Audit log
+  logAction(adminUserId, leagueId, 'SVINCOLATI_RESUME', 'MarketSession', activeSession.id, undefined, { remainingSeconds, resumeState }).catch(() => {})
+
+  return {
+    success: true,
+    message: `Svincolati ripresi (${remainingSeconds} secondi rimanenti)`,
+    data: { remainingSeconds, resumedToState: resumeState },
   }
 }
