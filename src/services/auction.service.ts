@@ -1234,9 +1234,14 @@ export async function placeBid(
     return { success: false, message: 'Non sei membro di questa lega' }
   }
 
-  // Check budget
-  if (amount > member.currentBudget) {
-    return { success: false, message: 'Budget insufficiente' }
+  // Check budget using bilancio (budget - monteIngaggi)
+  const monteIngaggiAuction = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: member.id },
+    _sum: { salary: true },
+  })
+  const bilancio = member.currentBudget - (monteIngaggiAuction._sum.salary || 0)
+  if (amount + calculateDefaultSalary(amount) > bilancio) {
+    return { success: false, message: `Budget insufficiente. Bilancio disponibile: ${bilancio}` }
   }
 
   // Check minimum bid

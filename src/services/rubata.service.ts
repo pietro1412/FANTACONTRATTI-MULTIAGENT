@@ -472,9 +472,14 @@ export async function bidOnRubata(
     return { success: false, message: `L'offerta deve essere maggiore di ${auction.currentPrice}` }
   }
 
-  // Check budget
-  if (amount > bidder.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Disponibile: ${bidder.currentBudget}` }
+  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
+  const monteIngaggiOld = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: bidder.id },
+    _sum: { salary: true },
+  })
+  const bilancioOld = bidder.currentBudget - (monteIngaggiOld._sum.salary || 0)
+  if (amount > bilancioOld) {
+    return { success: false, message: `Budget insufficiente. Bilancio disponibile: ${bilancioOld}` }
   }
 
   // Place bid
@@ -948,13 +953,15 @@ export async function getRubataBoard(
             },
           })
         } else {
-          // Advance to next player
+          // Advance to next player — go to READY_CHECK (not directly to OFFERING)
+          // so all managers can confirm readiness before the next offering window
           await prisma.marketSession.update({
             where: { id: activeSession.id },
             data: {
               rubataBoardIndex: nextIndex,
-              rubataState: 'OFFERING',
-              rubataTimerStartedAt: new Date(),
+              rubataState: 'READY_CHECK',
+              rubataTimerStartedAt: null,
+              rubataReadyMembers: [],
             },
           })
         }
@@ -1552,9 +1559,14 @@ export async function makeRubataOffer(
     return { success: false, message: 'Non puoi rubare un tuo giocatore' }
   }
 
-  // Check budget
-  if (currentPlayer.rubataPrice > member.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Necessario: ${currentPlayer.rubataPrice}, Disponibile: ${member.currentBudget}` }
+  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
+  const monteIngaggiOffer = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: member.id },
+    _sum: { salary: true },
+  })
+  const bilancioOffer = member.currentBudget - (monteIngaggiOffer._sum.salary || 0)
+  if (currentPlayer.rubataPrice > bilancioOffer) {
+    return { success: false, message: `Budget insufficiente. Necessario: ${currentPlayer.rubataPrice}, Bilancio disponibile: ${bilancioOffer}` }
   }
 
   // Check if there's already an active auction for this player
@@ -1702,9 +1714,14 @@ export async function bidOnRubataAuction(
     return { success: false, message: `L'offerta deve essere maggiore di ${activeAuction.currentPrice}` }
   }
 
-  // Check budget
-  if (amount > member.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Disponibile: ${member.currentBudget}` }
+  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
+  const monteIngaggiBidR = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: member.id },
+    _sum: { salary: true },
+  })
+  const bilancioBidR = member.currentBudget - (monteIngaggiBidR._sum.salary || 0)
+  if (amount > bilancioBidR) {
+    return { success: false, message: `Budget insufficiente. Bilancio disponibile: ${bilancioBidR}` }
   }
 
   // Get member username and player info for Pusher notification
@@ -3084,9 +3101,14 @@ export async function simulateRubataOffer(
     return { success: false, message: 'Non può rubare un proprio giocatore' }
   }
 
-  // Check budget
-  if (currentPlayer.rubataPrice > targetMember.currentBudget) {
-    return { success: false, message: `Budget insufficiente per ${targetMember.id}` }
+  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
+  const monteIngaggiSim = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: targetMember.id },
+    _sum: { salary: true },
+  })
+  const bilancioSim = targetMember.currentBudget - (monteIngaggiSim._sum.salary || 0)
+  if (currentPlayer.rubataPrice > bilancioSim) {
+    return { success: false, message: `Budget insufficiente per ${targetMember.id}. Bilancio: ${bilancioSim}` }
   }
 
   // Check if there's already an active auction
@@ -3243,9 +3265,14 @@ export async function simulateRubataBid(
     return { success: false, message: `L'offerta deve essere maggiore di ${activeAuction.currentPrice}` }
   }
 
-  // Check budget
-  if (amount > targetMember.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Disponibile: ${targetMember.currentBudget}` }
+  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
+  const monteIngaggiSimBid = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: targetMember.id },
+    _sum: { salary: true },
+  })
+  const bilancioSimBid = targetMember.currentBudget - (monteIngaggiSimBid._sum.salary || 0)
+  if (amount > bilancioSimBid) {
+    return { success: false, message: `Budget insufficiente. Bilancio disponibile: ${bilancioSimBid}` }
   }
 
   // Place simulated bid

@@ -321,9 +321,14 @@ export async function bidOnFreeAgent(
     return { success: false, message: `L'offerta deve essere maggiore di ${auction.currentPrice}` }
   }
 
-  // Check budget
-  if (amount > bidder.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Disponibile: ${bidder.currentBudget}` }
+  // Check budget using bilancio (budget - monteIngaggi)
+  const monteIngaggiBid = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: bidder.id },
+    _sum: { salary: true },
+  })
+  const bilancioBid = bidder.currentBudget - (monteIngaggiBid._sum.salary || 0)
+  if (amount + calculateDefaultSalary(amount) > bilancioBid) {
+    return { success: false, message: `Budget insufficiente. Bilancio disponibile: ${bilancioBid}` }
   }
 
   // Check if this is a turn-based svincolati auction (no slot limits)
@@ -988,9 +993,14 @@ export async function nominateFreeAgent(
     return { success: false, message: 'Questo giocatore è già in una rosa' }
   }
 
-  // Check budget (must have at least 1)
-  if (member.currentBudget < 1) {
-    return { success: false, message: 'Budget insufficiente' }
+  // Check bilancio (budget - monteIngaggi) >= 2 (offerta minima 1 + ingaggio minimo 1)
+  const monteIngaggiNom = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: member.id },
+    _sum: { salary: true },
+  })
+  const bilancio = member.currentBudget - (monteIngaggiNom._sum.salary || 0)
+  if (bilancio < 2) {
+    return { success: false, message: `Budget insufficiente. Bilancio disponibile: ${bilancio} (servono almeno 2)` }
   }
 
   // Set pending nomination
@@ -1322,13 +1332,15 @@ export async function passSvincolatiTurn(
 
   // Add to passed members
   const passedMembers = (activeSession.svincolatiPassedMembers as string[] | null) || []
+  const finishedMembers = (activeSession.svincolatiFinishedMembers as string[] | null) || []
   const newPassedMembers = passedMembers.includes(member.id)
     ? passedMembers
     : [...passedMembers, member.id]
 
-  // Check if all have passed
-  if (newPassedMembers.length === turnOrder.length) {
-    // All passed - complete svincolati phase
+  // Check if all active members have passed (exclude finished members)
+  const activeMembersAfterPass = turnOrder.filter(id => !newPassedMembers.includes(id) && !finishedMembers.includes(id))
+  if (activeMembersAfterPass.length === 0) {
+    // All passed or finished - complete svincolati phase
     await prisma.marketSession.update({
       where: { id: activeSession.id },
       data: {
@@ -1346,12 +1358,11 @@ export async function passSvincolatiTurn(
 
   // Advance to next turn
   const nextTurnIndex = (currentTurnIndex + 1) % turnOrder.length
-  const nextMemberId = turnOrder[nextTurnIndex]
 
-  // Skip members who have already passed until we find one who hasn't
+  // Skip members who have already passed or declared finished
   let searchIndex = nextTurnIndex
   let searchCount = 0
-  while (newPassedMembers.includes(turnOrder[searchIndex]) && searchCount < turnOrder.length) {
+  while ((newPassedMembers.includes(turnOrder[searchIndex]) || finishedMembers.includes(turnOrder[searchIndex])) && searchCount < turnOrder.length) {
     searchIndex = (searchIndex + 1) % turnOrder.length
     searchCount++
   }
@@ -1781,6 +1792,7 @@ async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceRe
 
   const turnOrder = (session.svincolatiTurnOrder as string[] | null) || []
   const passedMembers = (session.svincolatiPassedMembers as string[] | null) || []
+  const finishedMembers = (session.svincolatiFinishedMembers as string[] | null) || []
   const currentTurnIndex = session.svincolatiCurrentTurnIndex ?? 0
 
   // Reset the pass state for the member who just called (they didn't pass)
@@ -1789,16 +1801,16 @@ async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceRe
     ? passedMembers.filter(id => id !== previousNominatorId)
     : passedMembers
 
-  // Find next member who hasn't passed
+  // Find next member who hasn't passed AND hasn't declared finished
   let nextIndex = (currentTurnIndex + 1) % turnOrder.length
   let searchCount = 0
-  while (newPassedMembers.includes(turnOrder[nextIndex]) && searchCount < turnOrder.length) {
+  while ((newPassedMembers.includes(turnOrder[nextIndex]) || finishedMembers.includes(turnOrder[nextIndex])) && searchCount < turnOrder.length) {
     nextIndex = (nextIndex + 1) % turnOrder.length
     searchCount++
   }
 
-  // Check if all remaining members have passed
-  const activeMembers = turnOrder.filter(id => !newPassedMembers.includes(id))
+  // Check if all remaining members have passed or finished
+  const activeMembers = turnOrder.filter(id => !newPassedMembers.includes(id) && !finishedMembers.includes(id))
   if (activeMembers.length === 0) {
     // All passed - complete phase
     await prisma.marketSession.update({
