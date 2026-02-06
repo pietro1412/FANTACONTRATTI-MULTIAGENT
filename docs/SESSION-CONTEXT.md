@@ -123,37 +123,48 @@ Full suite: 1097/1106 passed (9 pre-existing failures).
 
 ## 6. PROSSIMI PASSI
 
-### Immediati (in ordine)
+### Completati
 1. ~~Creare `docs/SESSION-CONTEXT.md`~~ (questo file)
-2. **PR sprint 1-4** verso `develop`
-3. **Setup ambiente locale**: Docker + PostgreSQL + `.env.test` + seed
-4. **Test API/service** con DB locale reale (vitest + Prisma)
-5. **Test E2E Playwright** flussi critici
+2. ~~**PR sprint 1-4** verso `develop`~~ — PR #272
+3. ~~**Setup ambiente locale**~~ — Docker + PostgreSQL + `.env.test` + `.env.local` + seed
+4. ~~**Test API/service con DB locale**~~ — 16/16 verdi (vitest integration)
+5. ~~**Test E2E Playwright**~~ — 6/6 verdi (auth + league navigation)
 
 ### Da decidere
-- **Sprint 5** (M-1 a M-15 feature mancanti) — prima o dopo i test?
-- **Evolutive tracciate** nel project EVOLUTIVE su GitHub — quando iniziare?
-- Suggerimento: completare test sprint 1-4 → Sprint 5 → test Sprint 5 → evolutive
+- **Sprint 5** (M-1 a M-15 feature mancanti)
+- **Evolutive tracciate** nel project EVOLUTIVE su GitHub
+- **Merge PR #272** in develop
 
 ---
 
 ## 7. AMBIENTE
 
-### Attuale
-- **DB**: Neon PostgreSQL remoto (`.env` punta a `ep-patient-frost-...neon.tech`)
-- **Dev**: `npm run dev` (Vite + Express via concurrently)
-- **Test**: Vitest (jsdom) — solo test strutturali e FE component
-- **E2E**: Playwright configurato, 1 test base (`home.spec.ts`)
-- **Docker**: Installato v28.4.0, Desktop NON avviato
-- **PostgreSQL locale**: NON installato
+### Configurato (funzionante)
+- **DB dev locale**: Docker PostgreSQL 16 su porta 5433 (persistent volume) — `.env.local`
+- **DB test locale**: Docker PostgreSQL 16 su porta 5434 (tmpfs) — `.env.test`
+- **Dev locale**: `npm run dev:local` (usa `.env.local`, punta a DB locale)
+- **Test unit**: `npx vitest run tests/unit/` — 57 test strutturali
+- **Test integration**: `npm run test:integration` — 16 test con DB reale
+- **Test E2E**: `npx playwright test --project=chromium` — 6 test (auth + navigation)
+- **Script helper**: `scripts/with-env.sh` bypassa auto-load `.env` di Prisma
 
-### Necessario per test completi
-- Docker Desktop avviato
-- `docker-compose.yml` con PostgreSQL locale (porta 5433 per non conflitto)
-- `.env.test` con `DATABASE_URL=postgresql://postgres:postgres@localhost:5433/fantacontratti_test`
-- `db:push` + `db:seed` su DB locale
-- Vitest config per test API/integration (environment: node, non jsdom)
-- Playwright E2E su dev server con DB locale
+### Comandi rapidi
+```bash
+# Avvia DB locale
+docker compose up db db-test -d --wait
+
+# Setup schema su DB
+bash scripts/with-env.sh .env.local npx prisma db push --schema=prisma/schema.generated.prisma --accept-data-loss
+bash scripts/with-env.sh .env.test npx prisma db push --schema=prisma/schema.generated.prisma --accept-data-loss
+
+# Seed DB dev
+bash scripts/with-env.sh .env.local npx tsx scripts/init-production.ts
+
+# Run tests
+npx vitest run tests/unit/formule-sprint*.test.ts      # unit strutturali
+npm run test:integration                                 # integration DB
+npx playwright test --project=chromium --workers=1       # E2E
+```
 
 ---
 
