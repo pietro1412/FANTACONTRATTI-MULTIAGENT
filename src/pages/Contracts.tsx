@@ -150,7 +150,7 @@ const DURATION_MULTIPLIERS: Record<number, number> = {
   4: 11,
   3: 9,
   2: 7,
-  1: 4,
+  1: 3,
 }
 
 // Massimo numero di giocatori in rosa dopo consolidamento

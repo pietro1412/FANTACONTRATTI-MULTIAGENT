@@ -40,18 +40,18 @@ describe('ContractCalculator', () => {
       expect(result).toBe(70) // 10 * 7 = 70
     })
 
-    it('should calculate rescission with multiplier 4 for 1 semester', () => {
+    it('should calculate rescission with multiplier 3 for 1 semester', () => {
       const salary = 10
       const duration = 1
       const result = calculator.calculateRescission(salary, duration)
-      expect(result).toBe(40) // 10 * 4 = 40
+      expect(result).toBe(30) // 10 * 3 = 30
     })
 
-    it('should use default multiplier 4 for invalid duration', () => {
+    it('should use default multiplier 3 for invalid duration', () => {
       const salary = 10
-      const duration = 5 // Invalid, should default to 4
+      const duration = 5 // Invalid, should default to 3
       const result = calculator.calculateRescission(salary, duration)
-      expect(result).toBe(40) // 10 * 4 = 40
+      expect(result).toBe(30) // 10 * 3 = 30
     })
 
     it('should handle zero salary', () => {
@@ -148,7 +148,7 @@ describe('ContractCalculator', () => {
       expect(DURATION_MULTIPLIERS[4]).toBe(11)
       expect(DURATION_MULTIPLIERS[3]).toBe(9)
       expect(DURATION_MULTIPLIERS[2]).toBe(7)
-      expect(DURATION_MULTIPLIERS[1]).toBe(4)
+      expect(DURATION_MULTIPLIERS[1]).toBe(3)
     })
   })
 
@@ -178,8 +178,8 @@ describe('ContractCalculator', () => {
       expect(breakdown).toEqual({
         salary: 10,
         duration: 10,
-        multiplier: 4,
-        totalCost: 40,
+        multiplier: 3,
+        totalCost: 30,
       })
     })
   })

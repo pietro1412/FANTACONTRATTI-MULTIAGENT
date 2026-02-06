@@ -62,7 +62,7 @@ model LeagueMember {
   // Come e entrato nella lega
   joinType    JoinType @default(REQUEST)      // see: _base.prisma
 
-  // Budget
+  // Budget (M-12: runtime validated >= 0, see validateBudgetNotNegative)
   currentBudget Int    @default(0)
   preConsolidationBudget Int?  // Budget prima del consolidamento (per fase CONTRATTI)
 

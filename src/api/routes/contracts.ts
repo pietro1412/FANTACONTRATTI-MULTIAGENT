@@ -15,6 +15,7 @@ import {
   simulateAllConsolidation,
   modifyContractPostAcquisition,
   getConsolidationReceiptData,
+  calculateRescissionClause,
 } from '../../services/contract.service'
 import { authMiddleware } from '../middleware/auth'
 import { generateRenewalReceipt } from '../../services/pdf.service'
@@ -565,11 +566,5 @@ router.get('/leagues/:leagueId/contracts/export-excel', authMiddleware, async (r
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })
-
-// Helper function for rescission clause calculation
-function calculateRescissionClause(salary: number, duration: number): number {
-  const multipliers: Record<number, number> = { 1: 1, 2: 1.5, 3: 1.75, 4: 2 }
-  return Math.ceil(salary * (multipliers[duration] || 1))
-}
 
 export default router

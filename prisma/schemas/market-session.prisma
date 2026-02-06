@@ -87,6 +87,9 @@ model MarketSession {
   svincolatiNominatorConfirmed Boolean @default(false)
   // Pending acknowledgment dopo chiusura asta (JSON: {auctionId, playerId, winnerId, price, acknowledgedMembers[], pendingMembers[]})
   svincolatiPendingAck    Json?
+  // M-1: Pausa svincolati
+  svincolatiPausedRemainingSeconds Int?
+  svincolatiPausedFromState String?
 
   // ===== READY CHECK =====
   // Manager pronti per la prossima asta (JSON array di leagueMemberId)
