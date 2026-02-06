@@ -32,6 +32,9 @@ import {
   forceAllSvincolatiFinished,
   // Connection tracking
   registerSvincolatiHeartbeat,
+  // Admin pause/resume
+  pauseSvincolati,
+  resumeSvincolati,
 } from '../../services/svincolati.service'
 import { simulateBotBidding, getBotMembers } from '../../services/bot.service'
 import { authMiddleware } from '../middleware/auth'
@@ -622,6 +625,42 @@ router.post('/leagues/:leagueId/svincolati/heartbeat', authMiddleware, async (re
     res.json({ success: true })
   } catch (error) {
     console.error('Svincolati heartbeat error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== ADMIN: PAUSE / RESUME ====================
+
+router.post('/:leagueId/svincolati/pause', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { leagueId } = req.params
+    const result = await pauseSvincolati(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Pause svincolati error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+router.post('/:leagueId/svincolati/resume', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { leagueId } = req.params
+    const result = await resumeSvincolati(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Resume svincolati error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

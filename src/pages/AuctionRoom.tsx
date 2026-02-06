@@ -933,6 +933,26 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     }
   }
 
+  async function handlePauseAuction() {
+    setError('')
+    const res = await auctionApi.pauseAuction(leagueId)
+    if (res.success) {
+      loadCurrentAuction()
+    } else {
+      setError(res.message || 'Errore')
+    }
+  }
+
+  async function handleResumeAuction() {
+    setError('')
+    const res = await auctionApi.resumeAuction(leagueId)
+    if (res.success) {
+      loadCurrentAuction()
+    } else {
+      setError(res.message || 'Errore')
+    }
+  }
+
   async function handleCompleteAllSlots() {
     if (!sessionId) return
     if (!confirm('Sei sicuro di voler completare l\'asta riempiendo tutti gli slot di tutti i Direttori Generali?')) return
@@ -1593,6 +1613,31 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       ))}
                     </div>
                   </div>
+                  {/* Pause / Resume */}
+                  {auction && (
+                    <div className="pt-2 border-t border-surface-50/20">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handlePauseAuction}
+                        className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10"
+                      >
+                        Pausa Asta
+                      </Button>
+                    </div>
+                  )}
+                  {!auction && firstMarketStatus?.currentPhase === 'PAUSED' && (
+                    <div className="pt-2 border-t border-surface-50/20">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleResumeAuction}
+                        className="w-full text-xs border-secondary-500/50 text-secondary-400 hover:bg-secondary-500/10"
+                      >
+                        Riprendi Asta
+                      </Button>
+                    </div>
+                  )}
                   <div className="pt-2 border-t border-surface-50/20 space-y-2">
                     <p className="text-xs text-accent-500 font-bold uppercase">Test Mode</p>
                     <Button size="sm" variant="outline" onClick={handleBotNominate} className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10">
