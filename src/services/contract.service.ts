@@ -641,11 +641,9 @@ export async function renewContract(
   const newValue = newSalary * newDuration
   const renewalCost = Math.max(0, newValue - currentValue)
 
-  // Check budget
+  // Renewal affects monte ingaggi (salary commitment), NOT budget.
+  // No budget check needed — budget is only for auction/rubata cash flows.
   const member = contract.roster.leagueMember
-  if (renewalCost > member.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Costo rinnovo: ${renewalCost}, Budget: ${member.currentBudget}` }
-  }
 
   // Calculate new rescission clause
   const newRescissionClause = calculateRescissionClause(newSalary, newDuration)
@@ -677,17 +675,9 @@ export async function renewContract(
     },
   })
 
-  // Deduct budget
-  if (renewalCost > 0) {
-    await prisma.leagueMember.update({
-      where: { id: member.id },
-      data: {
-        currentBudget: {
-          decrement: renewalCost,
-        },
-      },
-    })
-  }
+  // NOTE: Renewal does NOT decrement budget. Budget is cash liquidity for
+  // auctions/rubate. Renewal only changes the salary commitment (monte ingaggi),
+  // which is tracked via the contract's salary field, not the member's currentBudget.
 
   // Get active market session
   const activeSession = await prisma.marketSession.findFirst({
@@ -719,7 +709,7 @@ export async function renewContract(
     data: {
       contract: updatedContract,
       renewalCost,
-      newBudget: member.currentBudget - renewalCost,
+      newBudget: member.currentBudget, // Budget unchanged — renewal only affects monte ingaggi
     },
   }
 }

@@ -597,6 +597,10 @@ export async function closeRubataAuction(
 
     // Calculate payment: winner pays currentPrice (clausola + ingaggio or higher)
     const payment = auction.currentPrice
+    // Seller receives only OFFERTA = currentPrice - salary.
+    // The salary saving happens automatically via monte ingaggi when contract transfers.
+    const contractSalary = rosterEntry.contract?.salary ?? 0
+    const sellerPayment = payment - contractSalary
 
     // Update winner budget (decrease)
     await tx.leagueMember.update({
@@ -604,10 +608,10 @@ export async function closeRubataAuction(
       data: { currentBudget: { decrement: payment } },
     })
 
-    // Update seller budget (increase by payment)
+    // Update seller budget (increase by OFFERTA only, not full price)
     await tx.leagueMember.update({
       where: { id: auction.sellerId! },
-      data: { currentBudget: { increment: payment } },
+      data: { currentBudget: { increment: sellerPayment } },
     })
 
     // Transfer roster to winner
@@ -1025,6 +1029,9 @@ export async function getRubataBoard(
             if (!rosterEntry) throw new Error('Roster entry not found')
 
             const payment = auctionToClose.currentPrice
+            // Seller receives only OFFERTA = currentPrice - salary
+            const contractSalary = rosterEntry.contract?.salary ?? 0
+            const sellerPayment = payment - contractSalary
 
             await tx.leagueMember.update({
               where: { id: winningBid.bidderId },
@@ -1033,7 +1040,7 @@ export async function getRubataBoard(
 
             await tx.leagueMember.update({
               where: { id: auctionToClose.sellerId! },
-              data: { currentBudget: { increment: payment } },
+              data: { currentBudget: { increment: sellerPayment } },
             })
 
             await tx.playerRoster.update({
@@ -1985,6 +1992,9 @@ export async function closeCurrentRubataAuction(
     if (!rosterEntry) throw new Error('Roster entry not found')
 
     const payment = activeAuction.currentPrice
+    // Seller receives only OFFERTA = currentPrice - salary
+    const contractSalary = rosterEntry.contract?.salary ?? 0
+    const sellerPayment = payment - contractSalary
 
     // Update winner budget (decrease)
     await tx.leagueMember.update({
@@ -1992,10 +2002,10 @@ export async function closeCurrentRubataAuction(
       data: { currentBudget: { decrement: payment } },
     })
 
-    // Update seller budget (increase)
+    // Update seller budget (increase by OFFERTA only)
     await tx.leagueMember.update({
       where: { id: activeAuction.sellerId! },
-      data: { currentBudget: { increment: payment } },
+      data: { currentBudget: { increment: sellerPayment } },
     })
 
     // Transfer roster to winner
@@ -3396,6 +3406,10 @@ export async function completeRubataWithTransactions(
           })
 
           // Update budgets
+          // Seller receives only OFFERTA = bidAmount - salary
+          const contractSalary = rosterEntry.contract?.salary ?? 0
+          const sellerPayment = bidAmount - contractSalary
+
           await prisma.leagueMember.update({
             where: { id: buyer.id },
             data: { currentBudget: { decrement: bidAmount } },
@@ -3403,7 +3417,7 @@ export async function completeRubataWithTransactions(
 
           await prisma.leagueMember.update({
             where: { id: player.memberId },
-            data: { currentBudget: { increment: bidAmount } },
+            data: { currentBudget: { increment: sellerPayment } },
           })
 
           // Transfer roster to winner
