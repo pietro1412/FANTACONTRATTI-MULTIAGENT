@@ -782,6 +782,34 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     }
   }
 
+  // ========== PAUSE / RESUME ==========
+
+  async function handlePause() {
+    setError('')
+    setIsSubmitting(true)
+
+    const res = await svincolatiApi.pause(leagueId)
+    if (res.success) {
+      loadBoard()
+    } else {
+      setError(res.message || 'Errore')
+    }
+    setIsSubmitting(false)
+  }
+
+  async function handleResume() {
+    setError('')
+    setIsSubmitting(true)
+
+    const res = await svincolatiApi.resume(leagueId)
+    if (res.success) {
+      loadBoard()
+    } else {
+      setError(res.message || 'Errore')
+    }
+    setIsSubmitting(false)
+  }
+
   // ========== TIMER ==========
 
   async function handleSetTimer() {
@@ -1251,6 +1279,34 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       ))}
                     </div>
                   </div>
+
+                  {/* Pause / Resume */}
+                  {(state === 'AUCTION' || state === 'NOMINATION' || state === 'READY_CHECK') && (
+                    <div className="pt-2 border-t border-surface-50/20">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handlePause}
+                        disabled={isSubmitting}
+                        className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10"
+                      >
+                        Pausa
+                      </Button>
+                    </div>
+                  )}
+                  {state === 'PAUSED' && (
+                    <div className="pt-2 border-t border-surface-50/20">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleResume}
+                        disabled={isSubmitting}
+                        className="w-full text-xs border-secondary-500/50 text-secondary-400 hover:bg-secondary-500/10"
+                      >
+                        Riprendi
+                      </Button>
+                    </div>
+                  )}
 
                   {/* Test Mode */}
                   <div className="pt-2 border-t border-surface-50/20 space-y-2">

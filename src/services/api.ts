@@ -592,6 +592,27 @@ export const auctionApi = {
     request(`/api/auctions/${auctionId}/force-all-ready-resume`, {
       method: 'POST',
     }),
+
+  // Admin: Pause/Resume auction timer
+  pauseAuction: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/auctions/pause`, { method: 'POST' }),
+
+  resumeAuction: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/auctions/resume`, { method: 'POST' }),
+
+  // Admin: Cancel active auction
+  cancelActiveAuction: (leagueId: string, auctionId: string) =>
+    request(`/api/leagues/${leagueId}/auctions/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({ auctionId }),
+    }),
+
+  // Admin: Rectify completed auction
+  rectifyTransaction: (leagueId: string, auctionId: string, newWinnerId?: string, newPrice?: number) =>
+    request(`/api/leagues/${leagueId}/auctions/rectify`, {
+      method: 'POST',
+      body: JSON.stringify({ auctionId, newWinnerId, newPrice }),
+    }),
 }
 
 // Contract API
@@ -1143,6 +1164,13 @@ export const svincolatiApi = {
       method: 'POST',
       body: JSON.stringify({ memberId }),
     }),
+
+  // Admin: Pause/Resume svincolati timer
+  pause: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/pause`, { method: 'POST' }),
+
+  resume: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/resume`, { method: 'POST' }),
 }
 
 // Admin API
