@@ -613,6 +613,33 @@ export async function renewContract(
     return { success: false, message: 'Puoi rinnovare contratti solo durante la fase CONTRATTI' }
   }
 
+  // P0-9 FIX: Block standalone renewal if member has already consolidated.
+  // After consolidation, contract modifications must go through saveDrafts → consolidateContracts.
+  // This is a legacy path — the preferred flow is the consolidation pipeline.
+  const activeSessionForConsolidation = await prisma.marketSession.findFirst({
+    where: {
+      leagueId: contract.roster.leagueMember.leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'CONTRATTI',
+    },
+  })
+  if (activeSessionForConsolidation) {
+    const existingConsolidation = await prisma.contractConsolidation.findUnique({
+      where: {
+        sessionId_memberId: {
+          sessionId: activeSessionForConsolidation.id,
+          memberId: contract.roster.leagueMember.id,
+        },
+      },
+    })
+    if (existingConsolidation) {
+      return {
+        success: false,
+        message: 'Non puoi modificare contratti dopo il consolidamento. Hai già consolidato i tuoi contratti.',
+      }
+    }
+  }
+
   // Validate salary
   if (newSalary < 1) {
     return { success: false, message: 'Ingaggio minimo: 1' }
@@ -751,6 +778,33 @@ export async function releasePlayer(
   const inContrattiPhase = await isInContrattiPhase(contract.roster.leagueMember.leagueId)
   if (!inContrattiPhase) {
     return { success: false, message: 'Puoi svincolare giocatori solo durante la fase CONTRATTI' }
+  }
+
+  // P0-9 FIX: Block standalone release if member has already consolidated.
+  // After consolidation, releases must go through saveDrafts → consolidateContracts.
+  // This is a legacy path — the preferred flow is the consolidation pipeline.
+  const activeSessionForConsolidation = await prisma.marketSession.findFirst({
+    where: {
+      leagueId: contract.roster.leagueMember.leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'CONTRATTI',
+    },
+  })
+  if (activeSessionForConsolidation) {
+    const existingConsolidation = await prisma.contractConsolidation.findUnique({
+      where: {
+        sessionId_memberId: {
+          sessionId: activeSessionForConsolidation.id,
+          memberId: contract.roster.leagueMember.id,
+        },
+      },
+    })
+    if (existingConsolidation) {
+      return {
+        success: false,
+        message: 'Non puoi svincolare giocatori dopo il consolidamento. Hai già consolidato i tuoi contratti.',
+      }
+    }
   }
 
   // Calculate release cost = (ingaggio × durata) / 2
