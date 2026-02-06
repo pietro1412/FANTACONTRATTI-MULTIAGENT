@@ -1,9 +1,9 @@
 import { Router } from 'express'
-import { PrismaClient, MarketPhase } from '@prisma/client'
+import type { MarketPhase } from '@prisma/client'
 import { authMiddleware } from '../middleware/auth'
+import { prisma } from '../../lib/prisma'
 
 const router = Router()
-const prisma = new PrismaClient()
 
 // Display phase type for UI
 type DisplayPhase = 'scouting' | 'open_window' | 'clause_meeting'
@@ -52,8 +52,8 @@ router.get('/status', authMiddleware, async (req, res) => {
       select: {
         id: true,
         currentPhase: true,
-        sessionType: true,
-        year: true,
+        type: true,
+        season: true,
         semester: true,
         createdAt: true,
         league: {
@@ -70,12 +70,12 @@ router.get('/status', authMiddleware, async (req, res) => {
     const nextSaturday = new Date(now)
     nextSaturday.setDate(now.getDate() + ((6 - now.getDay() + 7) % 7 || 7))
     nextSaturday.setHours(20, 0, 0, 0)
-    const daysRemaining = Math.ceil((nextSaturday.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    const daysRemaining = Math.ceil(
+      (nextSaturday.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    )
 
     // Determine display phase
-    const displayPhase = activeSession
-      ? mapMarketPhase(activeSession.currentPhase)
-      : 'scouting'
+    const displayPhase = activeSession ? mapMarketPhase(activeSession.currentPhase) : 'scouting'
 
     // Phase display names
     const phaseLabels: Record<DisplayPhase, string> = {
@@ -91,7 +91,7 @@ router.get('/status', authMiddleware, async (req, res) => {
         phaseLabel: phaseLabels[displayPhase],
         marketPhase: activeSession?.currentPhase ?? null,
         sessionId: activeSession?.id ?? null,
-        sessionType: activeSession?.sessionType ?? null,
+        sessionType: activeSession?.type ?? null,
         nextClauseDay: nextSaturday.toISOString(),
         daysRemaining,
         isActive: !!activeSession,

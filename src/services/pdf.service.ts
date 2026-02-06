@@ -55,8 +55,10 @@ export function generateRenewalReceipt(data: RenewalReceiptData): Promise<Buffer
       })
 
       const chunks: Buffer[] = []
-      doc.on('data', (chunk) => chunks.push(chunk))
-      doc.on('end', () => resolve(Buffer.concat(chunks)))
+      doc.on('data', chunk => chunks.push(chunk))
+      doc.on('end', () => {
+        resolve(Buffer.concat(chunks))
+      })
       doc.on('error', reject)
 
       // Background color (simulate dark theme)
@@ -93,9 +95,7 @@ export function generateRenewalReceipt(data: RenewalReceiptData): Promise<Buffer
 
 function drawHeader(doc: PDFKit.PDFDocument, _data: RenewalReceiptData): void {
   // Logo placeholder (circle with soccer ball emoji simulation)
-  doc
-    .circle(doc.page.width / 2, 60, 25)
-    .fill('#3b82f6')
+  doc.circle(doc.page.width / 2, 60, 25).fill('#3b82f6')
 
   doc
     .fontSize(20)
@@ -139,11 +139,7 @@ function drawManagerInfo(doc: PDFKit.PDFDocument, data: RenewalReceiptData): voi
   const rightCol = doc.page.width / 2 + 20
 
   // Left column
-  doc
-    .fontSize(10)
-    .fillColor('#6b7280')
-    .font('Helvetica')
-    .text('Manager:', leftCol, startY)
+  doc.fontSize(10).fillColor('#6b7280').font('Helvetica').text('Manager:', leftCol, startY)
   doc
     .fontSize(12)
     .fillColor('#1a1c20')
@@ -162,11 +158,7 @@ function drawManagerInfo(doc: PDFKit.PDFDocument, data: RenewalReceiptData): voi
     .text(data.teamName, leftCol, startY + 49)
 
   // Right column
-  doc
-    .fontSize(10)
-    .fillColor('#6b7280')
-    .font('Helvetica')
-    .text('Lega:', rightCol, startY)
+  doc.fontSize(10).fillColor('#6b7280').font('Helvetica').text('Lega:', rightCol, startY)
   doc
     .fontSize(12)
     .fillColor('#1a1c20')
@@ -197,25 +189,24 @@ function drawManagerInfo(doc: PDFKit.PDFDocument, data: RenewalReceiptData): voi
   doc.y += 15
 }
 
-function drawRenewalsTable(doc: PDFKit.PDFDocument, renewals: RenewalReceiptData['renewals']): void {
+function drawRenewalsTable(
+  doc: PDFKit.PDFDocument,
+  renewals: RenewalReceiptData['renewals']
+): void {
   // Section title
-  doc
-    .fontSize(14)
-    .fillColor('#1a1c20')
-    .font('Helvetica-Bold')
-    .text('Rinnovi Effettuati', 50, doc.y)
+  doc.fontSize(14).fillColor('#1a1c20').font('Helvetica-Bold').text('Rinnovi Effettuati', 50, doc.y)
 
   doc.y += 20
 
   // Table header
   const tableTop = doc.y
-  const colWidths: readonly [number, number, number, number, number, number] = [130, 30, 80, 80, 80, 95] as const
+  const colWidths: readonly [number, number, number, number, number, number] = [
+    130, 30, 80, 80, 80, 95,
+  ] as const
   const headers = ['Giocatore', 'Pos', 'Ingaggio Prec.', 'Ingaggio Nuovo', 'Durata', 'Clausola']
 
   // Header background
-  doc
-    .rect(50, tableTop - 5, doc.page.width - 100, 20)
-    .fill('#f3f4f6')
+  doc.rect(50, tableTop - 5, doc.page.width - 100, 20).fill('#f3f4f6')
 
   let x = 50
   headers.forEach((header, i) => {
@@ -236,9 +227,7 @@ function drawRenewalsTable(doc: PDFKit.PDFDocument, renewals: RenewalReceiptData
 
     // Alternate row background
     if (index % 2 === 0) {
-      doc
-        .rect(50, rowY - 3, doc.page.width - 100, 18)
-        .fill('#fafafa')
+      doc.rect(50, rowY - 3, doc.page.width - 100, 18).fill('#fafafa')
     }
 
     x = 50
@@ -282,9 +271,10 @@ function drawRenewalsTable(doc: PDFKit.PDFDocument, renewals: RenewalReceiptData
     x += colWidths[3]
 
     // Duration
-    const durationText = renewal.newDuration !== renewal.oldDuration
-      ? `${renewal.oldDuration}s -> ${renewal.newDuration}s`
-      : `${renewal.newDuration}s`
+    const durationText =
+      renewal.newDuration !== renewal.oldDuration
+        ? `${renewal.oldDuration}s -> ${renewal.newDuration}s`
+        : `${renewal.newDuration}s`
     doc
       .fontSize(9)
       .fillColor('#1a1c20')
@@ -305,7 +295,10 @@ function drawRenewalsTable(doc: PDFKit.PDFDocument, renewals: RenewalReceiptData
   doc.y += 15
 }
 
-function drawReleasedPlayers(doc: PDFKit.PDFDocument, released: NonNullable<RenewalReceiptData['releasedPlayers']>): void {
+function drawReleasedPlayers(
+  doc: PDFKit.PDFDocument,
+  released: NonNullable<RenewalReceiptData['releasedPlayers']>
+): void {
   // Check if we need a new page
   if (doc.y > doc.page.height - 150) {
     doc.addPage()
@@ -321,7 +314,7 @@ function drawReleasedPlayers(doc: PDFKit.PDFDocument, released: NonNullable<Rene
 
   doc.y += 20
 
-  released.forEach((player) => {
+  released.forEach(player => {
     doc
       .fontSize(10)
       .fillColor('#1a1c20')

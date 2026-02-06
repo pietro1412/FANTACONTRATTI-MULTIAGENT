@@ -28,7 +28,7 @@ model PlayerRoster {
 
   @@unique([leagueMemberId, playerId, status])
   @@index([leagueMemberId, status])
-  @@index([playerId])
+  @@index([playerId, status])
 }
 
 model PlayerContract {
@@ -60,6 +60,8 @@ model PlayerContract {
 
   // Storico rinnovi
   renewalHistory  Json?    // [{salary, duration, renewedAt}]
+
+  @@index([leagueMemberId])
 }
 
 // Bozza per nuovi contratti (giocatori senza contratto)

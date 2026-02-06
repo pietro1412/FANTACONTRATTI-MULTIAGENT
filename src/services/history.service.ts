@@ -1,6 +1,6 @@
-import { PrismaClient, MemberStatus, TradeStatus } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import type { TradeStatus } from '@prisma/client'
+import { MemberStatus } from '@prisma/client'
+import { prisma } from '../lib/prisma'
 
 export interface ServiceResult {
   success: boolean
@@ -57,9 +57,7 @@ export async function getSessionsOverview(
     },
   })
 
-  const tradeCountMap = new Map(
-    tradeCounts.map(t => [t.marketSessionId, t._count.id])
-  )
+  const tradeCountMap = new Map(tradeCounts.map(t => [t.marketSessionId, t._count.id]))
 
   const formattedSessions = sessions.map(s => ({
     id: s.id,
@@ -158,15 +156,9 @@ export async function getSessionDetails(
         endsAt: session.endsAt,
       },
       summary: {
-        auctions: Object.fromEntries(
-          auctionCounts.map(a => [a.type, a._count.id])
-        ),
-        trades: Object.fromEntries(
-          tradeCounts.map(t => [t.status, t._count.id])
-        ),
-        movements: Object.fromEntries(
-          movementCounts.map(m => [m.movementType, m._count.id])
-        ),
+        auctions: Object.fromEntries(auctionCounts.map(a => [a.type, a._count.id])),
+        trades: Object.fromEntries(tradeCounts.map(t => [t.status, t._count.id])),
+        movements: Object.fromEntries(movementCounts.map(m => [m.movementType, m._count.id])),
         prizesFinalized: session.prizePhaseConfig?.isFinalized ?? false,
       },
     },
@@ -317,9 +309,11 @@ export async function getFirstMarketHistory(
           teamName: p.author.teamName,
         },
       })),
-    ].filter((p, idx, arr) =>
-      // Remove duplicates based on content
-      arr.findIndex(x => x.content === p.content && x.author.username === p.author.username) === idx
+    ].filter(
+      (p, idx, arr) =>
+        // Remove duplicates based on content
+        arr.findIndex(x => x.content === p.content && x.author.username === p.author.username) ===
+        idx
     ),
     endedAt: a.endsAt,
   }))
@@ -369,12 +363,11 @@ export async function getFirstMarketHistory(
       members: formattedMembers,
       stats: {
         totalAuctions: auctions.length,
-        avgPrice: auctions.length > 0
-          ? Math.round(auctions.reduce((sum, a) => sum + a.currentPrice, 0) / auctions.length)
-          : 0,
-        maxPrice: auctions.length > 0
-          ? Math.max(...auctions.map(a => a.currentPrice))
-          : 0,
+        avgPrice:
+          auctions.length > 0
+            ? Math.round(auctions.reduce((sum, a) => sum + a.currentPrice, 0) / auctions.length)
+            : 0,
+        maxPrice: auctions.length > 0 ? Math.max(...auctions.map(a => a.currentPrice)) : 0,
       },
     },
   }
@@ -634,16 +627,19 @@ export async function getSessionPrizes(
   })
 
   // Group indemnity data by member
-  const indemnityByMember: Record<string, Array<{
-    playerId: string
-    playerName: string
-    position: string
-    team: string
-    quotation: number
-    exitReason: string
-    indemnityAmount: number
-    contract: { salary: number; duration: number } | null
-  }>> = {}
+  const indemnityByMember: Record<
+    string,
+    Array<{
+      playerId: string
+      playerName: string
+      position: string
+      team: string
+      quotation: number
+      exitReason: string
+      indemnityAmount: number
+      contract: { salary: number; duration: number } | null
+    }>
+  > = {}
 
   // From movements (historical)
   for (const mov of indemnityMovements) {
@@ -673,9 +669,7 @@ export async function getSessionPrizes(
     // Only add ESTERO players as they receive indemnity
     if (roster.player.exitReason === 'ESTERO') {
       // Check if not already added from movements
-      const alreadyAdded = indemnityByMember[memberId].some(
-        p => p.playerId === roster.player.id
-      )
+      const alreadyAdded = indemnityByMember[memberId].some(p => p.playerId === roster.player.id)
       if (!alreadyAdded) {
         indemnityByMember[memberId].push({
           playerId: roster.player.id,
@@ -990,12 +984,13 @@ export async function getSessionSvincolatiHistory(
       stats: {
         total: formattedAuctions.length,
         totalSpent: formattedAuctions.reduce((sum, a) => sum + a.finalPrice, 0),
-        avgPrice: formattedAuctions.length > 0
-          ? Math.round(
-              formattedAuctions.reduce((sum, a) => sum + a.finalPrice, 0) /
-                formattedAuctions.length
-            )
-          : 0,
+        avgPrice:
+          formattedAuctions.length > 0
+            ? Math.round(
+                formattedAuctions.reduce((sum, a) => sum + a.finalPrice, 0) /
+                  formattedAuctions.length
+              )
+            : 0,
       },
     },
   }
@@ -1195,9 +1190,7 @@ export async function getPlayerCareer(
     ['FIRST_MARKET', 'RUBATA', 'SVINCOLATI'].includes(m.movementType)
   ).length
   const renewals = movements.filter(m => m.movementType === 'CONTRACT_RENEW').length
-  const totalValue = movements
-    .filter(m => m.price)
-    .reduce((sum, m) => sum + (m.price ?? 0), 0)
+  const totalValue = movements.filter(m => m.price).reduce((sum, m) => sum + (m.price ?? 0), 0)
 
   return {
     success: true,
@@ -1246,9 +1239,7 @@ export async function getPlayerCareer(
         newContract: m.newSalary
           ? { salary: m.newSalary, duration: m.newDuration, clause: m.newClause }
           : null,
-        session: m.marketSession
-          ? `${m.marketSession.type} S${m.marketSession.season}`
-          : null,
+        session: m.marketSession ? `${m.marketSession.type} S${m.marketSession.season}` : null,
       })),
       stats: {
         totalMovements: movements.length,
@@ -1383,10 +1374,7 @@ export async function getProphecies(
 /**
  * Ottieni statistiche profezie per la lega
  */
-export async function getProphecyStats(
-  leagueId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function getProphecyStats(leagueId: string, userId: string): Promise<ServiceResult> {
   // Verify membership
   const member = await prisma.leagueMember.findFirst({
     where: {

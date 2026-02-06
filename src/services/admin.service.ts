@@ -1,7 +1,6 @@
-import { PrismaClient, MemberStatus, ProphecyRole, Prisma } from '@prisma/client'
+import { MemberStatus, ProphecyRole, Prisma } from '@prisma/client'
 import bcrypt from 'bcryptjs'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 
 export interface ServiceResult {
   success: boolean
@@ -171,13 +170,7 @@ export async function getLeagueStatistics(
   }
 
   // Get all data for statistics
-  const [
-    league,
-    members,
-    totalPlayers,
-    completedAuctions,
-    completedTrades,
-  ] = await Promise.all([
+  const [league, members, totalPlayers, completedAuctions, completedTrades] = await Promise.all([
     prisma.league.findUnique({ where: { id: leagueId } }),
     prisma.leagueMember.findMany({
       where: { leagueId, status: MemberStatus.ACTIVE },
@@ -520,7 +513,7 @@ export async function assignPrize(
 
   // Validate amount
   if (!Number.isInteger(amount) || amount <= 0) {
-    return { success: false, message: 'L\'importo deve essere un numero intero positivo' }
+    return { success: false, message: "L'importo deve essere un numero intero positivo" }
   }
 
   // Get target member

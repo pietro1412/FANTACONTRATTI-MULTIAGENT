@@ -7,9 +7,8 @@
  * Creato il: 25/01/2026
  */
 
-import { PrismaClient, ObjectiveStatus } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import type { ObjectiveStatus } from '@prisma/client'
+import { prisma } from '../lib/prisma'
 
 export interface ServiceResult {
   success: boolean
@@ -35,14 +34,11 @@ export interface UpdateObjectiveInput {
 /**
  * Get all objectives for a member in a session
  */
-export async function getObjectives(
-  sessionId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function getObjectives(sessionId: string, userId: string): Promise<ServiceResult> {
   // Get member for this session
   const session = await prisma.marketSession.findUnique({
     where: { id: sessionId },
-    select: { leagueId: true }
+    select: { leagueId: true },
   })
 
   if (!session) {
@@ -53,8 +49,8 @@ export async function getObjectives(
     where: {
       userId,
       leagueId: session.leagueId,
-      status: 'ACTIVE'
-    }
+      status: 'ACTIVE',
+    },
   })
 
   if (!member) {
@@ -64,7 +60,7 @@ export async function getObjectives(
   const objectives = await prisma.auctionObjective.findMany({
     where: {
       sessionId,
-      memberId: member.id
+      memberId: member.id,
     },
     include: {
       player: {
@@ -73,14 +69,11 @@ export async function getObjectives(
           name: true,
           team: true,
           position: true,
-          quotation: true
-        }
-      }
+          quotation: true,
+        },
+      },
     },
-    orderBy: [
-      { priority: 'asc' },
-      { createdAt: 'asc' }
-    ]
+    orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
   })
 
   return { success: true, data: objectives }
@@ -98,7 +91,7 @@ export async function createObjective(
   // Get session and verify it exists
   const session = await prisma.marketSession.findUnique({
     where: { id: sessionId },
-    select: { id: true, leagueId: true, status: true }
+    select: { id: true, leagueId: true, status: true },
   })
 
   if (!session) {
@@ -115,8 +108,8 @@ export async function createObjective(
     where: {
       userId,
       leagueId: session.leagueId,
-      status: 'ACTIVE'
-    }
+      status: 'ACTIVE',
+    },
   })
 
   if (!member) {
@@ -126,7 +119,7 @@ export async function createObjective(
   // Verify player exists
   const player = await prisma.serieAPlayer.findUnique({
     where: { id: playerId },
-    select: { id: true, name: true }
+    select: { id: true, name: true },
   })
 
   if (!player) {
@@ -139,9 +132,9 @@ export async function createObjective(
       sessionId_memberId_playerId: {
         sessionId,
         memberId: member.id,
-        playerId
-      }
-    }
+        playerId,
+      },
+    },
   })
 
   if (existingObjective) {
@@ -161,7 +154,7 @@ export async function createObjective(
       playerId,
       priority,
       notes,
-      maxPrice
+      maxPrice,
     },
     include: {
       player: {
@@ -170,10 +163,10 @@ export async function createObjective(
           name: true,
           team: true,
           position: true,
-          quotation: true
-        }
-      }
-    }
+          quotation: true,
+        },
+      },
+    },
   })
 
   return { success: true, data: objective }
@@ -192,12 +185,12 @@ export async function updateObjective(
     where: { id: objectiveId },
     include: {
       member: {
-        select: { userId: true, leagueId: true }
+        select: { userId: true, leagueId: true },
       },
       session: {
-        select: { status: true }
-      }
-    }
+        select: { status: true },
+      },
+    },
   })
 
   if (!objective) {
@@ -225,7 +218,7 @@ export async function updateObjective(
       ...(input.priority !== undefined && { priority: input.priority }),
       ...(input.notes !== undefined && { notes: input.notes }),
       ...(input.maxPrice !== undefined && { maxPrice: input.maxPrice }),
-      ...(input.status !== undefined && { status: input.status })
+      ...(input.status !== undefined && { status: input.status }),
     },
     include: {
       player: {
@@ -234,10 +227,10 @@ export async function updateObjective(
           name: true,
           team: true,
           position: true,
-          quotation: true
-        }
-      }
-    }
+          quotation: true,
+        },
+      },
+    },
   })
 
   return { success: true, data: updated }
@@ -246,21 +239,18 @@ export async function updateObjective(
 /**
  * Delete an objective
  */
-export async function deleteObjective(
-  objectiveId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function deleteObjective(objectiveId: string, userId: string): Promise<ServiceResult> {
   // Get objective and verify ownership
   const objective = await prisma.auctionObjective.findUnique({
     where: { id: objectiveId },
     include: {
       member: {
-        select: { userId: true }
+        select: { userId: true },
       },
       session: {
-        select: { status: true }
-      }
-    }
+        select: { status: true },
+      },
+    },
   })
 
   if (!objective) {
@@ -277,7 +267,7 @@ export async function deleteObjective(
   }
 
   await prisma.auctionObjective.delete({
-    where: { id: objectiveId }
+    where: { id: objectiveId },
   })
 
   return { success: true, message: 'Obiettivo eliminato' }
@@ -297,11 +287,11 @@ export async function markObjectiveAcquired(
       sessionId,
       playerId,
       memberId: winnerId,
-      status: 'ACTIVE'
+      status: 'ACTIVE',
     },
     data: {
-      status: 'ACQUIRED'
-    }
+      status: 'ACQUIRED',
+    },
   })
 
   // Mark other members' objectives for this player as MISSED
@@ -310,11 +300,11 @@ export async function markObjectiveAcquired(
       sessionId,
       playerId,
       memberId: { not: winnerId },
-      status: 'ACTIVE'
+      status: 'ACTIVE',
     },
     data: {
-      status: 'MISSED'
-    }
+      status: 'MISSED',
+    },
   })
 }
 
@@ -328,7 +318,7 @@ export async function getObjectivesSummary(
   // Get session and verify membership
   const session = await prisma.marketSession.findUnique({
     where: { id: sessionId },
-    select: { leagueId: true }
+    select: { leagueId: true },
   })
 
   if (!session) {
@@ -339,8 +329,8 @@ export async function getObjectivesSummary(
     where: {
       userId,
       leagueId: session.leagueId,
-      status: 'ACTIVE'
-    }
+      status: 'ACTIVE',
+    },
   })
 
   if (!member) {
@@ -351,9 +341,9 @@ export async function getObjectivesSummary(
     by: ['status'],
     where: {
       sessionId,
-      memberId: member.id
+      memberId: member.id,
     },
-    _count: true
+    _count: true,
   })
 
   const summary = {
@@ -361,7 +351,7 @@ export async function getObjectivesSummary(
     acquired: 0,
     missed: 0,
     removed: 0,
-    total: 0
+    total: 0,
   }
 
   for (const obj of objectives) {

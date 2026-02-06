@@ -1,15 +1,15 @@
-import { PrismaClient, MemberRole, MemberStatus, JoinType } from '@prisma/client'
+import { MemberRole, MemberStatus, JoinType } from '@prisma/client'
 import type { CreateLeagueInput, UpdateLeagueInput } from '../utils/validation'
 import type { IEmailService } from '../modules/identity/domain/services/email.service.interface'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 
 // Lazy-loaded email service to avoid initialization errors
 let emailService: IEmailService | null = null
 async function getEmailService(): Promise<IEmailService | null> {
   if (emailService) return emailService
   try {
-    const { GmailEmailService } = await import('../modules/identity/infrastructure/services/gmail-email.service')
+    const { GmailEmailService } =
+      await import('../modules/identity/infrastructure/services/gmail-email.service')
     emailService = new GmailEmailService()
     return emailService
   } catch (error) {
@@ -24,7 +24,10 @@ export interface ServiceResult {
   data?: unknown
 }
 
-export async function createLeague(userId: string, input: CreateLeagueInput & { teamName?: string }): Promise<ServiceResult> {
+export async function createLeague(
+  userId: string,
+  input: CreateLeagueInput & { teamName?: string }
+): Promise<ServiceResult> {
   // Validazione numero partecipanti
   const minParticipants = 6 // Default minimo fisso
   const maxParticipants = input.maxParticipants ?? 20
@@ -243,7 +246,11 @@ async function sendJoinRequestEmail(
   }
 }
 
-export async function requestJoinLeague(leagueId: string, userId: string, teamName?: string): Promise<ServiceResult> {
+export async function requestJoinLeague(
+  leagueId: string,
+  userId: string,
+  teamName?: string
+): Promise<ServiceResult> {
   // Check if league exists - include admin user for email notification
   const league = await prisma.league.findUnique({
     where: { id: leagueId },
@@ -265,7 +272,10 @@ export async function requestJoinLeague(leagueId: string, userId: string, teamNa
 
   // Verifica che la lega sia in stato DRAFT
   if (league.status !== 'DRAFT') {
-    return { success: false, message: 'La lega è già stata avviata, non puoi richiedere di partecipare' }
+    return {
+      success: false,
+      message: 'La lega è già stata avviata, non puoi richiedere di partecipare',
+    }
   }
 
   // Check if league is full
@@ -296,7 +306,10 @@ export async function requestJoinLeague(leagueId: string, userId: string, teamNa
     if (existingMembership.status === MemberStatus.LEFT) {
       // If user left the league, allow to re-request by updating the existing record
       if (!teamName || teamName.trim().length < 2) {
-        return { success: false, message: 'Il nome della squadra è obbligatorio (minimo 2 caratteri)' }
+        return {
+          success: false,
+          message: 'Il nome della squadra è obbligatorio (minimo 2 caratteri)',
+        }
       }
       const membership = await prisma.leagueMember.update({
         where: { id: existingMembership.id },
@@ -369,11 +382,7 @@ export async function getLeagueMembers(leagueId: string, userId: string): Promis
         },
       },
     },
-    orderBy: [
-      { status: 'asc' },
-      { role: 'asc' },
-      { joinedAt: 'asc' },
-    ],
+    orderBy: [{ status: 'asc' }, { role: 'asc' }, { joinedAt: 'asc' }],
   })
 
   return {
@@ -385,7 +394,10 @@ export async function getLeagueMembers(leagueId: string, userId: string): Promis
   }
 }
 
-export async function getPendingJoinRequests(leagueId: string, userId: string): Promise<ServiceResult> {
+export async function getPendingJoinRequests(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
   // Check if user is admin
   const adminCheck = await prisma.leagueMember.findFirst({
     where: {
@@ -464,7 +476,7 @@ export async function updateMemberStatus(
 
   // BLOCCO POST-AVVIO: Non si può espellere se la lega è ACTIVE
   if (action === 'kick' && member.league.status === 'ACTIVE') {
-    return { success: false, message: 'Non puoi rimuovere membri dopo l\'avvio della lega' }
+    return { success: false, message: "Non puoi rimuovere membri dopo l'avvio della lega" }
   }
 
   if (action === 'accept') {
@@ -474,7 +486,7 @@ export async function updateMemberStatus(
 
     // Non accettare nuovi membri se lega è ACTIVE
     if (member.league.status === 'ACTIVE') {
-      return { success: false, message: 'Non puoi accettare nuovi membri dopo l\'avvio della lega' }
+      return { success: false, message: "Non puoi accettare nuovi membri dopo l'avvio della lega" }
     }
 
     await prisma.leagueMember.update({
@@ -533,10 +545,7 @@ export async function updateMemberStatus(
       try {
         const emailSvc = await getEmailService()
         if (emailSvc) {
-          await emailSvc.sendMemberExpelledEmail(
-            member.user.email,
-            member.league.name
-          )
+          await emailSvc.sendMemberExpelledEmail(member.user.email, member.league.name)
         }
       } catch (error) {
         console.error('[LeagueService] Failed to send expulsion email:', error)
@@ -667,7 +676,10 @@ export async function leaveLeague(leagueId: string, userId: string): Promise<Ser
 
   // Admin non può lasciare (deve prima passare il ruolo o eliminare la lega)
   if (member.role === MemberRole.ADMIN) {
-    return { success: false, message: 'L\'admin non può lasciare la lega. Trasferisci il ruolo di admin o elimina la lega.' }
+    return {
+      success: false,
+      message: "L'admin non può lasciare la lega. Trasferisci il ruolo di admin o elimina la lega.",
+    }
   }
 
   await prisma.leagueMember.update({
@@ -843,10 +855,7 @@ export async function getAllRosters(leagueId: string, userId: string): Promise<S
 
 // ==================== RICERCA LEGHE ====================
 
-export async function searchLeagues(
-  userId: string,
-  query: string
-): Promise<ServiceResult> {
+export async function searchLeagues(userId: string, query: string): Promise<ServiceResult> {
   if (!query || query.trim().length < 2) {
     return { success: false, message: 'Inserisci almeno 2 caratteri per la ricerca' }
   }
@@ -935,7 +944,10 @@ export async function searchLeagues(
  * Get financial dashboard data for all teams in a league (#190, #193)
  * Includes pre/post renewal contract costs when in CONTRATTI phase
  */
-export async function getLeagueFinancials(leagueId: string, userId: string): Promise<ServiceResult> {
+export async function getLeagueFinancials(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
   try {
     // Verify user is a member of the league
     const membership = await prisma.leagueMember.findFirst({
@@ -1022,7 +1034,7 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
 
     // Calculate max slots from individual position slots
     const maxSlots = league
-      ? (league.goalkeeperSlots + league.defenderSlots + league.midfielderSlots + league.forwardSlots)
+      ? league.goalkeeperSlots + league.defenderSlots + league.midfielderSlots + league.forwardSlots
       : 25
 
     // Calculate financial data for each team
@@ -1066,7 +1078,7 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
 
       // Calculate totals (current values)
       const annualContractCost = players.reduce((sum, p) => sum + p.salary, 0)
-      const totalContractCost = players.reduce((sum, p) => sum + (p.salary * p.duration), 0)
+      const totalContractCost = players.reduce((sum, p) => sum + p.salary * p.duration, 0)
       const slotCount = players.length
 
       // #193: Pre-renewal cost (original salaries)
@@ -1101,7 +1113,7 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
             if (costByPosition[pos].postRenewal === null) {
               costByPosition[pos].postRenewal = 0
             }
-            costByPosition[pos].postRenewal! += (p.postRenewalSalary ?? p.preRenewalSalary)
+            costByPosition[pos].postRenewal += p.postRenewalSalary ?? p.preRenewalSalary
           }
         }
       }
@@ -1162,6 +1174,9 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
     }
   } catch (error) {
     console.error('[getLeagueFinancials] Error:', error)
-    return { success: false, message: `Errore nel caricamento dati finanziari: ${(error as Error).message}` }
+    return {
+      success: false,
+      message: `Errore nel caricamento dati finanziari: ${(error as Error).message}`,
+    }
   }
 }

@@ -8,7 +8,11 @@ import { Navigation } from '../components/Navigation'
 import { Chat } from '../components/Chat'
 import { getTeamLogo } from '../utils/teamLogos'
 import haptic from '../utils/haptics'
-import { POSITION_GRADIENTS, POSITION_FILTER_COLORS, POSITION_NAMES } from '../components/ui/PositionBadge'
+import {
+  POSITION_GRADIENTS,
+  POSITION_FILTER_COLORS,
+  POSITION_NAMES,
+} from '../components/ui/PositionBadge'
 import { ContractModifierModal } from '../components/ContractModifier'
 /**
  * NUOVO COMPONENTE TIMER v2 - 24/01/2026
@@ -28,9 +32,10 @@ import {
   LayoutC,
   LayoutD,
   LayoutE,
-  LayoutF
+  LayoutF,
 } from '../components/auction'
-import type { AuctionLayout, ManagerData as LayoutManagerData } from '../components/auction/types'
+import type { ManagerData as LayoutManagerData } from '../components/auction/types'
+import type { DragEndEvent } from '@dnd-kit/core'
 import {
   DndContext,
   closestCenter,
@@ -38,7 +43,6 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
 } from '@dnd-kit/core'
 import {
   arrayMove,
@@ -250,15 +254,18 @@ interface FirstMarketStatus {
 }
 
 // Sortable item component for drag & drop
-function SortableManagerItem({ id, member, index }: { id: string; member: { username: string; teamName: string | null }; index: number }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id })
+function SortableManagerItem({
+  id,
+  member,
+  index,
+}: {
+  id: string
+  member: { username: string; teamName: string | null }
+  index: number
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -291,14 +298,10 @@ function SortableManagerItem({ id, member, index }: { id: string; member: { user
 
       <div className="flex-1">
         <p className="font-semibold text-gray-100">{member.username}</p>
-        {member.teamName && (
-          <p className="text-sm text-gray-400">{member.teamName}</p>
-        )}
+        {member.teamName && <p className="text-sm text-gray-400">{member.teamName}</p>}
       </div>
 
-      <div className="text-right text-sm text-gray-500">
-        #{index + 1}
-      </div>
+      <div className="text-right text-sm text-gray-500">#{index + 1}</div>
     </div>
   )
 }
@@ -315,7 +318,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPosition, setSelectedPosition] = useState<string>('')
   const [selectedTeam, setSelectedTeam] = useState<string>('')
-  const [availableTeams, setAvailableTeams] = useState<Array<{ name: string; playerCount: number }>>([])
+  const [availableTeams, setAvailableTeams] = useState<
+    Array<{ name: string; playerCount: number }>
+  >([])
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -326,7 +331,12 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   const [timerSetting, setTimerSetting] = useState(30)
 
   // Server time synchronization for accurate timer display
-  const { getRemainingSeconds, isCalibrating: isTimeSyncing, error: timeSyncError, offset: serverTimeOffset } = useServerTime()
+  const {
+    getRemainingSeconds,
+    isCalibrating: _isTimeSyncing,
+    error: _timeSyncError,
+    offset: _serverTimeOffset,
+  } = useServerTime()
 
   const [firstMarketStatus, setFirstMarketStatus] = useState<FirstMarketStatus | null>(null)
   const [turnOrderDraft, setTurnOrderDraft] = useState<string[]>([])
@@ -363,11 +373,12 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     initialSalary: number
     rescissionClause: number
   }
-  const [pendingContractModification, setPendingContractModification] = useState<ContractForModification | null>(null)
+  const [pendingContractModification, setPendingContractModification] =
+    useState<ContractForModification | null>(null)
 
   // Pusher real-time updates - update state directly from Pusher data (no HTTP calls)
   const { connectionStatus, isConnected } = usePusherAuction(sessionId, {
-    onBidPlaced: (data) => {
+    onBidPlaced: data => {
       console.log('[Pusher] Bid placed:', data)
       // Update auction state directly with Pusher data - INSTANT!
       setAuction(prev => {
@@ -379,8 +390,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           amount: data.amount,
           placedAt: data.timestamp,
           bidder: {
-            user: { username: data.memberName }
-          }
+            user: { username: data.memberName },
+          },
         }
 
         return {
@@ -389,52 +400,60 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           bids: [newBid, ...prev.bids],
           // Update timer immediately from Pusher data - NO DELAY!
           timerExpiresAt: data.timerExpiresAt,
-          timerSeconds: data.timerSeconds
+          timerSeconds: data.timerSeconds,
         }
       })
       // Note: loadManagersStatus() removed - polling handles budget updates
       // This eliminates API call delay after each bid
     },
-    onNominationPending: (data) => {
+    onNominationPending: data => {
       console.log('[Pusher] Nomination pending:', data)
       // Update ready status directly
-      setReadyStatus(prev => prev ? {
-        ...prev,
-        hasPendingNomination: true,
-        player: {
-          id: data.playerId,
-          name: data.playerName,
-          team: '',
-          position: data.playerRole,
-          quotation: data.startingPrice
-        },
-        nominatorId: data.nominatorId,
-        nominatorUsername: data.nominatorName
-      } : null)
+      setReadyStatus(prev =>
+        prev
+          ? {
+              ...prev,
+              hasPendingNomination: true,
+              player: {
+                id: data.playerId,
+                name: data.playerName,
+                team: '',
+                position: data.playerRole,
+                quotation: data.startingPrice,
+              },
+              nominatorId: data.nominatorId,
+              nominatorUsername: data.nominatorName,
+            }
+          : null
+      )
       loadFirstMarketStatus()
     },
-    onNominationConfirmed: (data) => {
+    onNominationConfirmed: data => {
       console.log('[Pusher] Nomination confirmed:', data)
       // Nomination confirmed - load current auction to get full auction data
       loadCurrentAuction()
       loadReadyStatus()
     },
-    onMemberReady: (data) => {
+    onMemberReady: data => {
       console.log('[Pusher] Member ready:', data)
       // Update ready status directly with full lists from Pusher
-      setReadyStatus(prev => prev ? {
-        ...prev,
-        readyMembers: data.readyMembers || prev.readyMembers,
-        pendingMembers: data.pendingMembers || prev.pendingMembers,
-        totalMembers: data.totalMembers
-      } : null)
+      setReadyStatus(prev =>
+        prev
+          ? {
+              ...prev,
+              readyMembers: data.readyMembers || prev.readyMembers,
+              pendingMembers: data.pendingMembers || prev.pendingMembers,
+              totalMembers: data.totalMembers,
+            }
+          : null
+      )
     },
-    onAuctionStarted: (data) => {
+    onAuctionStarted: data => {
       console.log('[Pusher] Auction started:', data)
       loadCurrentAuction()
       loadReadyStatus()
     },
-    onAuctionClosed: (data) => {
+    onAuctionClosed: data => {
       console.log('[Pusher] Auction closed:', data)
       // Update auction state to show winner immediately
       setAuction(prev => {
@@ -443,7 +462,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           ...prev,
           status: 'CLOSED',
           winner: data.winnerId ? { user: { username: data.winnerName || '' } } : undefined,
-          currentPrice: data.finalPrice || prev.currentPrice
+          currentPrice: data.finalPrice || prev.currentPrice,
         }
       })
       loadPendingAcknowledgment()
@@ -472,7 +491,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       }
     }
     document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+    }
   }, [teamDropdownOpen])
 
   const loadCurrentAuction = useCallback(async (): Promise<boolean> => {
@@ -480,15 +501,23 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     let auctionJustCompleted = false
     if (result.success && result.data) {
       const data = result.data as {
-        auction: Auction | null;
-        userMembership: Membership;
-        session: SessionInfo;
-        marketProgress: MarketProgress | null;
-        justCompleted?: { playerId: string; playerName: string; winnerId: string; winnerName: string; amount: number } | null
+        auction: Auction | null
+        userMembership: Membership
+        session: SessionInfo
+        marketProgress: MarketProgress | null
+        justCompleted?: {
+          playerId: string
+          playerName: string
+          winnerId: string
+          winnerName: string
+          amount: number
+        } | null
       }
       if (data.auction) {
         const newMinBid = data.auction.currentPrice + 1
-        setBidAmount(prev => (parseInt(prev) || 0) <= data.auction!.currentPrice ? String(newMinBid) : prev)
+        setBidAmount(prev =>
+          (parseInt(prev) || 0) <= data.auction!.currentPrice ? String(newMinBid) : prev
+        )
       } else {
         setBidAmount('')
       }
@@ -523,7 +552,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   const loadPendingAcknowledgment = useCallback(async () => {
     const result = await auctionApi.getPendingAcknowledgment(sessionId)
     if (result.success && result.data) {
-      const serverPendingAck = (result.data as { pendingAuction: PendingAcknowledgment | null }).pendingAuction
+      const serverPendingAck = (result.data as { pendingAuction: PendingAcknowledgment | null })
+        .pendingAuction
 
       // If we have a locked local pendingAck, only update if server has same auction or valid data
       if (pendingAckLockedRef.current) {
@@ -570,7 +600,13 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   }, [pendingAck?.id])
 
   const loadPlayers = useCallback(async () => {
-    const filters: { available: boolean; leagueId: string; position?: string; search?: string; team?: string } = { available: true, leagueId }
+    const filters: {
+      available: boolean
+      leagueId: string
+      position?: string
+      search?: string
+      team?: string
+    } = { available: true, leagueId }
     if (selectedPosition) filters.position = selectedPosition
     if (searchQuery) filters.search = searchQuery
     if (selectedTeam) filters.team = selectedTeam
@@ -622,10 +658,12 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           const immediatePendingAck: PendingAcknowledgment = {
             id: currentAuction.id,
             player: currentAuction.player,
-            winner: winningBid ? {
-              id: winningBid.bidder.user.username, // temporary, will be updated
-              username: winningBid.bidder.user.username,
-            } : null,
+            winner: winningBid
+              ? {
+                  id: winningBid.bidder.user.username, // temporary, will be updated
+                  username: winningBid.bidder.user.username,
+                }
+              : null,
             finalPrice: currentAuction.currentPrice,
             status: winningBid ? 'COMPLETED' : 'NO_BIDS',
             userAcknowledged: false,
@@ -650,7 +688,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     }
     updateTimer()
     const interval = setInterval(updateTimer, 1000)
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+    }
   }, [auction?.timerExpiresAt, loadCurrentAuction, loadPendingAcknowledgment, getRemainingSeconds])
 
   useEffect(() => {
@@ -661,26 +701,60 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     loadMyRosterSlots()
     loadManagersStatus()
     loadTeams()
-    // Polling at 1.5s as fallback - real-time updates come from Pusher
-    // Reduced from 3s for faster sync when Pusher events are missed
+    // Polling as fallback - real-time updates come from Pusher
+    // When Pusher is connected, poll slowly (fallback only); otherwise poll faster
+    const pollingMs = isConnected ? 10000 : 5000
     const interval = setInterval(() => {
+      if (document.hidden) return // Skip polling when tab is hidden
       loadCurrentAuction()
       loadFirstMarketStatus()
       loadPendingAcknowledgment()
       loadReadyStatus()
       loadMyRosterSlots()
       loadManagersStatus()
-    }, 1500)
-    return () => clearInterval(interval)
-  }, [loadCurrentAuction, loadFirstMarketStatus, loadPendingAcknowledgment, loadReadyStatus, loadMyRosterSlots, loadManagersStatus, loadTeams])
+    }, pollingMs)
+
+    // Page Visibility API: refresh immediately when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadCurrentAuction()
+        loadFirstMarketStatus()
+        loadPendingAcknowledgment()
+        loadReadyStatus()
+        loadMyRosterSlots()
+        loadManagersStatus()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [
+    loadCurrentAuction,
+    loadFirstMarketStatus,
+    loadPendingAcknowledgment,
+    loadReadyStatus,
+    loadMyRosterSlots,
+    loadManagersStatus,
+    loadTeams,
+    isConnected,
+  ])
 
   // Carica stato ricorso quando cambia pendingAck
   useEffect(() => {
     loadAppealStatus()
-    // Polling at 1.5s as fallback - real-time updates come from Pusher
-    const interval = setInterval(loadAppealStatus, 1500)
-    return () => clearInterval(interval)
-  }, [loadAppealStatus])
+    // Polling as fallback - real-time updates come from Pusher
+    const appealPollingMs = isConnected ? 10000 : 5000
+    const interval = setInterval(() => {
+      if (document.hidden) return
+      loadAppealStatus()
+    }, appealPollingMs)
+    return () => {
+      clearInterval(interval)
+    }
+  }, [loadAppealStatus, isConnected])
 
   useEffect(() => {
     // Wait until sessionInfo is loaded to know the session type
@@ -710,17 +784,19 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     // Send immediately on mount
     sendHeartbeat()
 
-    // Then send every 3 seconds
-    const interval = setInterval(sendHeartbeat, 3000)
+    // Then send every 10 seconds
+    const interval = setInterval(sendHeartbeat, 10000)
 
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+    }
   }, [sessionId, managersStatus?.myId])
 
   // Drag end handler
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (over && active.id !== over.id) {
-      setTurnOrderDraft((items) => {
+      setTurnOrderDraft(items => {
         const oldIndex = items.indexOf(active.id as string)
         const newIndex = items.indexOf(over.id as string)
         return arrayMove(items, oldIndex, newIndex)
@@ -807,7 +883,11 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     if (!auction) return
     const result = await auctionApi.triggerBotBid(auction.id)
     if (result.success) {
-      const data = result.data as { hasBotBid: boolean; winningBot: string | null; newCurrentPrice: number }
+      const data = result.data as {
+        hasBotBid: boolean
+        winningBot: string | null
+        newCurrentPrice: number
+      }
       if (data.hasBotBid) {
         setSuccessMessage(`${data.winningBot} ha offerto ${data.newCurrentPrice}!`)
       } else {
@@ -920,7 +1000,10 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   }
 
   async function handleResetFirstMarket() {
-    if (!confirm('Sei sicuro di voler resettare il Primo Mercato? Tutti i dati verranno cancellati!')) return
+    if (
+      !confirm('Sei sicuro di voler resettare il Primo Mercato? Tutti i dati verranno cancellati!')
+    )
+      return
     const result = await adminApi.resetFirstMarket(leagueId)
     if (result.success) {
       setSuccessMessage('Primo Mercato resettato!')
@@ -936,11 +1019,22 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
 
   async function handleCompleteAllSlots() {
     if (!sessionId) return
-    if (!confirm('Sei sicuro di voler completare l\'asta riempiendo tutti gli slot di tutti i Direttori Generali?')) return
+    if (
+      !confirm(
+        "Sei sicuro di voler completare l'asta riempiendo tutti gli slot di tutti i Direttori Generali?"
+      )
+    )
+      return
     const result = await auctionApi.completeAllSlots(sessionId)
     if (result.success) {
-      const data = result.data as { totalPlayersAdded: number; totalContractsCreated: number; memberResults: string[] }
-      setSuccessMessage(`Asta completata! ${data.totalPlayersAdded} giocatori, ${data.totalContractsCreated} contratti.`)
+      const data = result.data as {
+        totalPlayersAdded: number
+        totalContractsCreated: number
+        memberResults: string[]
+      }
+      setSuccessMessage(
+        `Asta completata! ${data.totalPlayersAdded} giocatori, ${data.totalContractsCreated} contratti.`
+      )
       loadCurrentAuction()
       loadFirstMarketStatus()
       loadMyRosterSlots()
@@ -977,8 +1071,17 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     const result = await auctionApi.closeAuction(auction.id)
     if (result.success) {
       const data = result.data as { winner?: { username: string; amount: number }; player: Player }
-      setSuccessMessage(data.winner ? `${data.player.name} a ${data.winner.username} per ${data.winner.amount}!` : 'Asta chiusa')
-      setTimeout(() => { loadCurrentAuction(); loadPlayers(); loadMyRosterSlots(); loadManagersStatus() }, 2000)
+      setSuccessMessage(
+        data.winner
+          ? `${data.player.name} a ${data.winner.username} per ${data.winner.amount}!`
+          : 'Asta chiusa'
+      )
+      setTimeout(() => {
+        loadCurrentAuction()
+        loadPlayers()
+        loadMyRosterSlots()
+        loadManagersStatus()
+      }, 2000)
     } else {
       setError(result.message || 'Errore')
     }
@@ -990,8 +1093,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     if (result.success) {
       setTimerSetting(value)
       setSuccessMessage(`Timer: ${value}s`)
-    }
-    else setError(result.message || 'Errore')
+    } else setError(result.message || 'Errore')
   }
 
   async function handleAcknowledge(withProphecy: boolean, isAppeal: boolean = false) {
@@ -1002,11 +1104,11 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       // Invia ricorso tramite endpoint dedicato
       const appealResult = await auctionApi.submitAppeal(pendingAck.id, appealContent.trim())
       if (!appealResult.success) {
-        setError(appealResult.message || 'Errore nell\'invio del ricorso')
+        setError(appealResult.message || "Errore nell'invio del ricorso")
         setAckSubmitting(false)
         return
       }
-      setSuccessMessage('Ricorso inviato! L\'admin della lega valuterà la tua richiesta.')
+      setSuccessMessage("Ricorso inviato! L'admin della lega valuterà la tua richiesta.")
     }
 
     // Conferma comunque la visione dell'asta (anche con ricorso)
@@ -1038,7 +1140,11 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   async function handleContractModification(newSalary: number, newDuration: number) {
     if (!pendingContractModification?.contractId) return
 
-    const res = await contractApi.modify(pendingContractModification.contractId, newSalary, newDuration)
+    const res = await contractApi.modify(
+      pendingContractModification.contractId,
+      newSalary,
+      newDuration
+    )
     if (res.success) {
       setPendingContractModification(null)
       loadPlayers()
@@ -1055,14 +1161,14 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   const isMyTurn = firstMarketStatus?.isUserTurn || false
   const currentTurnManager = firstMarketStatus?.currentNominator
 
-  function getTimerClass() {
+  function _getTimerClass() {
     if (timeLeft === null) return 'text-gray-500'
     if (timeLeft <= 5) return 'timer-value timer-value-danger'
     if (timeLeft <= 10) return 'timer-value timer-value-warning'
     return 'timer-value text-secondary-400'
   }
 
-  function getTimerContainerClass() {
+  function _getTimerContainerClass() {
     if (timeLeft === null) return 'timer-container'
     if (timeLeft <= 5) return 'timer-container timer-container-danger'
     if (timeLeft <= 10) return 'timer-container timer-container-warning'
@@ -1070,7 +1176,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   }
 
   // Check if current user is winning the auction
-  const currentUsername = managersStatus?.managers.find(m => m.id === managersStatus?.myId)?.username
+  const currentUsername = managersStatus?.managers.find(
+    m => m.id === managersStatus?.myId
+  )?.username
   const isUserWinning = auction?.bids?.[0]?.bidder?.user?.username === currentUsername
 
   // Check if timer is expired
@@ -1081,7 +1189,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     return Math.min(100, Math.max(0, (current / initial) * 100))
   }
 
-  const getBudgetBarClass = (percentage: number) => {
+  const _getBudgetBarClass = (percentage: number) => {
     if (percentage <= 20) return 'budget-progress-bar budget-progress-bar-critical'
     if (percentage <= 40) return 'budget-progress-bar budget-progress-bar-low'
     return 'budget-progress-bar'
@@ -1104,17 +1212,32 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       <div className="min-h-screen bg-dark-300">
         <header className="fm-header py-6">
           <div className="max-w-2xl mx-auto px-4">
-            <button onClick={() => onNavigate('leagueDetail', { leagueId })} className="text-primary-400 hover:text-primary-300 text-sm mb-2 flex items-center gap-1">
+            <button
+              onClick={() => {
+                onNavigate('leagueDetail', { leagueId })
+              }}
+              className="text-primary-400 hover:text-primary-300 text-sm mb-2 flex items-center gap-1"
+            >
               <span>←</span> Torna alla lega
             </button>
             <h1 className="text-3xl font-bold text-white">Ordine di Chiamata</h1>
-            <p className="text-gray-400 mt-1">Trascina i Direttori Generali per definire l'ordine dei turni</p>
+            <p className="text-gray-400 mt-1">
+              Trascina i Direttori Generali per definire l'ordine dei turni
+            </p>
           </div>
         </header>
 
         <main className="max-w-2xl mx-auto px-4 py-8">
-          {error && <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-lg mb-6">{error}</div>}
-          {successMessage && <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-4 rounded-lg mb-6">{successMessage}</div>}
+          {error && (
+            <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-lg mb-6">
+              {error}
+            </div>
+          )}
+          {successMessage && (
+            <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-4 rounded-lg mb-6">
+              {successMessage}
+            </div>
+          )}
 
           <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
             <div className="p-4 border-b border-surface-50/20 flex items-center gap-3">
@@ -1128,19 +1251,35 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             </div>
 
             <div className="p-4 space-y-2">
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
                 <SortableContext items={turnOrderDraft} strategy={verticalListSortingStrategy}>
                   {turnOrderDraft.map((memberId, index) => {
-                    const member = firstMarketStatus?.memberStatus.find(m => m.memberId === memberId)
+                    const member = firstMarketStatus?.memberStatus.find(
+                      m => m.memberId === memberId
+                    )
                     if (!member) return null
-                    return <SortableManagerItem key={memberId} id={memberId} member={member} index={index} />
+                    return (
+                      <SortableManagerItem
+                        key={memberId}
+                        id={memberId}
+                        member={member}
+                        index={index}
+                      />
+                    )
                   })}
                 </SortableContext>
               </DndContext>
             </div>
 
             <div className="p-4 border-t border-surface-50/20">
-              <Button onClick={handleSetTurnOrder} className="w-full btn-accent py-3 text-lg font-bold">
+              <Button
+                onClick={handleSetTurnOrder}
+                className="w-full btn-accent py-3 text-lg font-bold"
+              >
                 Conferma e Inizia Aste
               </Button>
             </div>
@@ -1166,7 +1305,12 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   // ==================== MAIN AUCTION ROOM ====================
   return (
     <div className="min-h-screen bg-dark-300">
-      <Navigation currentPage="auction" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
+      <Navigation
+        currentPage="auction"
+        leagueId={leagueId}
+        isLeagueAdmin={isAdmin}
+        onNavigate={onNavigate}
+      />
 
       {/* Auction Header */}
       <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
@@ -1196,7 +1340,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
               />
               <div className="text-right bg-surface-200 rounded-xl px-5 py-3 border border-surface-50/20">
                 <p className="text-xs text-gray-400 uppercase tracking-wider">Budget</p>
-                <p className="text-3xl font-bold gradient-text-gold">{membership?.currentBudget || 0}</p>
+                <p className="text-3xl font-bold gradient-text-gold">
+                  {membership?.currentBudget || 0}
+                </p>
               </div>
             </div>
           </div>
@@ -1204,16 +1350,23 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
 
         {/* Turn Banner */}
         {currentTurnManager && (
-          <div className={`px-4 py-3 ${isMyTurn ? 'bg-accent-500/20 border-y border-accent-500/40' : 'bg-primary-500/10 border-y border-primary-500/30'}`}>
+          <div
+            className={`px-4 py-3 ${isMyTurn ? 'bg-accent-500/20 border-y border-accent-500/40' : 'bg-primary-500/10 border-y border-primary-500/30'}`}
+          >
             <div className="max-w-full mx-auto flex items-center justify-center gap-3">
               {isMyTurn ? (
                 <>
                   <span className="text-2xl">🎯</span>
-                  <span className="text-lg font-bold text-accent-400 text-glow-gold">È IL TUO TURNO!</span>
+                  <span className="text-lg font-bold text-accent-400 text-glow-gold">
+                    È IL TUO TURNO!
+                  </span>
                   <span className="text-2xl">🎯</span>
                 </>
               ) : (
-                <span className="text-gray-300">Turno di <strong className="text-primary-400">{currentTurnManager.username}</strong></span>
+                <span className="text-gray-300">
+                  Turno di{' '}
+                  <strong className="text-primary-400">{currentTurnManager.username}</strong>
+                </span>
               )}
             </div>
           </div>
@@ -1224,19 +1377,32 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           <div className="bg-dark-400/50 px-4 py-3">
             <div className="max-w-full mx-auto flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {marketProgress.roleSequence.map((role) => (
-                  <span key={role} className={`px-3 py-1 rounded-full text-xs font-bold border ${role === marketProgress.currentRole ? POSITION_BG[role] : 'bg-surface-300 text-gray-500 border-surface-50/20'}`}>
+                {marketProgress.roleSequence.map(role => (
+                  <span
+                    key={role}
+                    className={`px-3 py-1 rounded-full text-xs font-bold border ${role === marketProgress.currentRole ? POSITION_BG[role] : 'bg-surface-300 text-gray-500 border-surface-50/20'}`}
+                  >
                     {POSITION_NAMES[role]}
                   </span>
                 ))}
               </div>
               <div className="text-sm flex items-center gap-4">
                 <div>
-                  <span className="text-gray-400">{POSITION_NAMES[marketProgress.currentRole]}: </span>
-                  <span className="font-bold text-white">{marketProgress.filledSlots}/{marketProgress.totalSlots}</span>
+                  <span className="text-gray-400">
+                    {POSITION_NAMES[marketProgress.currentRole]}:{' '}
+                  </span>
+                  <span className="font-bold text-white">
+                    {marketProgress.filledSlots}/{marketProgress.totalSlots}
+                  </span>
                 </div>
                 <div className="text-gray-500">
-                  (slot/DG: {marketProgress.slotLimits[marketProgress.currentRole as keyof typeof marketProgress.slotLimits]})
+                  (slot/DG:{' '}
+                  {
+                    marketProgress.slotLimits[
+                      marketProgress.currentRole as keyof typeof marketProgress.slotLimits
+                    ]
+                  }
+                  )
                 </div>
               </div>
             </div>
@@ -1244,7 +1410,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
         )}
       </div>
 
-      <main className={`max-w-full mx-auto px-4 py-4 lg:py-6 ${auction ? 'auction-room-mobile' : ''}`}>
+      <main
+        className={`max-w-full mx-auto px-4 py-4 lg:py-6 ${auction ? 'auction-room-mobile' : ''}`}
+      >
         {/* Error/Success Messages - Fixed on mobile */}
         <div className="space-y-2 mb-4">
           {error && (
@@ -1289,7 +1457,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
               onPlaceBid={handlePlaceBid}
               isConnected={isConnected}
               connectionStatus={connectionStatus}
-              onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
+              onSelectManager={(m: LayoutManagerData) => {
+                setSelectedManager(m as any)
+              }}
               onCloseAuction={handleCloseAuction}
               sessionId={sessionId}
               players={players}
@@ -1337,7 +1507,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 onPlaceBid={handlePlaceBid}
                 isConnected={isConnected}
                 connectionStatus={connectionStatus}
-                onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
+                onSelectManager={(m: LayoutManagerData) => {
+                  setSelectedManager(m as any)
+                }}
                 onCloseAuction={handleCloseAuction}
                 sessionId={sessionId}
                 players={players}
@@ -1374,7 +1546,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 onPlaceBid={handlePlaceBid}
                 isConnected={isConnected}
                 connectionStatus={connectionStatus}
-                onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
+                onSelectManager={(m: LayoutManagerData) => {
+                  setSelectedManager(m as any)
+                }}
                 onCloseAuction={handleCloseAuction}
                 sessionId={sessionId}
                 players={players}
@@ -1411,7 +1585,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 onPlaceBid={handlePlaceBid}
                 isConnected={isConnected}
                 connectionStatus={connectionStatus}
-                onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
+                onSelectManager={(m: LayoutManagerData) => {
+                  setSelectedManager(m as any)
+                }}
                 onCloseAuction={handleCloseAuction}
                 sessionId={sessionId}
                 players={players}
@@ -1448,7 +1624,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 onPlaceBid={handlePlaceBid}
                 isConnected={isConnected}
                 connectionStatus={connectionStatus}
-                onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
+                onSelectManager={(m: LayoutManagerData) => {
+                  setSelectedManager(m as any)
+                }}
                 onCloseAuction={handleCloseAuction}
                 sessionId={sessionId}
                 players={players}
@@ -1485,7 +1663,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 onPlaceBid={handlePlaceBid}
                 isConnected={isConnected}
                 connectionStatus={connectionStatus}
-                onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
+                onSelectManager={(m: LayoutManagerData) => {
+                  setSelectedManager(m as any)
+                }}
                 onCloseAuction={handleCloseAuction}
                 sessionId={sessionId}
                 players={players}
@@ -1506,7 +1686,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
         )}
 
         {/* Mobile-first grid layout - Classic Layout (nascosto quando LayoutF è selezionato) */}
-        <div className={`grid grid-cols-1 lg:grid-cols-12 gap-4 ${auctionLayout === 'F' || (auctionLayout !== 'classic' && auction) ? 'hidden' : ''}`}>
+        <div
+          className={`grid grid-cols-1 lg:grid-cols-12 gap-4 ${auctionLayout === 'F' || (auctionLayout !== 'classic' && auction) ? 'hidden' : ''}`}
+        >
           {/* LEFT: My Roster - Hidden on mobile during active auction, collapsible */}
           <div className={`lg:col-span-3 space-y-4 ${auction ? 'hidden lg:block' : ''}`}>
             <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
@@ -1523,10 +1705,18 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       <div key={pos} className={`p-2 ${isCurrent ? 'bg-primary-500/10' : ''}`}>
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <span className={`w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos]} flex items-center justify-center text-xs font-bold text-white`}>{pos}</span>
+                            <span
+                              className={`w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos]} flex items-center justify-center text-xs font-bold text-white`}
+                            >
+                              {pos}
+                            </span>
                             <span className="text-sm text-gray-300">{POSITION_NAMES[pos]}</span>
                           </div>
-                          <span className={`text-sm font-bold ${slot.filled >= slot.total ? 'text-secondary-400' : 'text-gray-500'}`}>{slot.filled}/{slot.total}</span>
+                          <span
+                            className={`text-sm font-bold ${slot.filled >= slot.total ? 'text-secondary-400' : 'text-gray-500'}`}
+                          >
+                            {slot.filled}/{slot.total}
+                          </span>
                         </div>
                         {slot.players.length > 0 && (
                           <table className="w-full text-xs">
@@ -1545,15 +1735,27 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                                   <td className="py-1.5">
                                     <div className="flex items-center gap-1.5">
                                       <div className="w-4 h-4 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
-                                        <img src={getTeamLogo(p.playerTeam)} alt={p.playerTeam} className="w-3 h-3 object-contain" />
+                                        <img
+                                          src={getTeamLogo(p.playerTeam)}
+                                          alt={p.playerTeam}
+                                          className="w-3 h-3 object-contain"
+                                        />
                                       </div>
                                       <span className="text-gray-200 truncate">{p.playerName}</span>
                                     </div>
                                   </td>
-                                  <td className="text-center text-accent-400 font-bold">{p.acquisitionPrice}</td>
-                                  <td className="text-center text-white">{p.contract?.salary ?? '-'}</td>
-                                  <td className="text-center text-white">{p.contract?.duration ?? '-'}</td>
-                                  <td className="text-center text-primary-400">{p.contract?.rescissionClause ?? '-'}</td>
+                                  <td className="text-center text-accent-400 font-bold">
+                                    {p.acquisitionPrice}
+                                  </td>
+                                  <td className="text-center text-white">
+                                    {p.contract?.salary ?? '-'}
+                                  </td>
+                                  <td className="text-center text-white">
+                                    {p.contract?.duration ?? '-'}
+                                  </td>
+                                  <td className="text-center text-primary-400">
+                                    {p.contract?.rescissionClause ?? '-'}
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
@@ -1596,23 +1798,64 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   </div>
                   <div className="pt-2 border-t border-surface-50/20 space-y-2">
                     <p className="text-xs text-accent-500 font-bold uppercase">Test Mode</p>
-                    <Button size="sm" variant="outline" onClick={handleBotNominate} className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleBotNominate}
+                      className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10"
+                    >
                       🎯 Simula Scelta Giocatore
                     </Button>
-                    <Button size="sm" variant="outline" onClick={handleBotConfirmNomination} className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleBotConfirmNomination}
+                      className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10"
+                    >
                       ✅ Simula Conferma Scelta
                     </Button>
                     {auction && (
-                      <Button size="sm" variant="outline" onClick={handleBotBid} className="w-full text-xs border-primary-500/50 text-primary-400 hover:bg-primary-500/10">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleBotBid}
+                        className="w-full text-xs border-primary-500/50 text-primary-400 hover:bg-primary-500/10"
+                      >
                         💰 Simula Offerta Bot
                       </Button>
                     )}
-                    <Button size="sm" variant="outline" onClick={handleForceAllReady} className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10">Forza Tutti Pronti</Button>
-                    <Button size="sm" variant="outline" onClick={handleForceAcknowledgeAll} className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10">Forza Conferme</Button>
-                    <Button size="sm" variant="outline" onClick={handleCompleteAllSlots} className="w-full text-xs border-secondary-500/50 text-secondary-400 hover:bg-secondary-500/10">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleForceAllReady}
+                      className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
+                    >
+                      Forza Tutti Pronti
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleForceAcknowledgeAll}
+                      className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
+                    >
+                      Forza Conferme
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCompleteAllSlots}
+                      className="w-full text-xs border-secondary-500/50 text-secondary-400 hover:bg-secondary-500/10"
+                    >
                       ✅ Completa Tutti Slot
                     </Button>
-                    <Button size="sm" variant="danger" onClick={handleResetFirstMarket} className="w-full text-xs">Reset Asta</Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      onClick={handleResetFirstMarket}
+                      className="w-full text-xs"
+                    >
+                      Reset Asta
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1625,7 +1868,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             {readyStatus?.hasPendingNomination && !auction && (
               <div className="bg-surface-200 rounded-xl border-2 border-accent-500/50 overflow-hidden animate-pulse-slow">
                 <div className="p-6 text-center">
-                  <div className="text-4xl mb-4">{readyStatus.userIsNominator && !readyStatus.nominatorConfirmed ? '🎯' : '⏳'}</div>
+                  <div className="text-4xl mb-4">
+                    {readyStatus.userIsNominator && !readyStatus.nominatorConfirmed ? '🎯' : '⏳'}
+                  </div>
                   <h2 className="text-xl font-bold text-white mb-2">
                     {readyStatus.userIsNominator && !readyStatus.nominatorConfirmed
                       ? 'Conferma la tua scelta'
@@ -1633,7 +1878,11 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   </h2>
                   {readyStatus.player && (
                     <div className="inline-flex items-center gap-3 bg-surface-300 rounded-lg p-4 mb-4">
-                      <span className={`w-12 h-12 rounded-full bg-gradient-to-br ${POSITION_COLORS[readyStatus.player.position]} flex items-center justify-center text-white font-bold text-lg`}>{readyStatus.player.position}</span>
+                      <span
+                        className={`w-12 h-12 rounded-full bg-gradient-to-br ${POSITION_COLORS[readyStatus.player.position]} flex items-center justify-center text-white font-bold text-lg`}
+                      >
+                        {readyStatus.player.position}
+                      </span>
                       <div className="w-10 h-10 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
                         <img
                           src={getTeamLogo(readyStatus.player.team)}
@@ -1652,14 +1901,24 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   {readyStatus.userIsNominator && !readyStatus.nominatorConfirmed && (
                     <div className="space-y-3">
                       <div className="flex gap-3 justify-center">
-                        <Button onClick={handleConfirmNomination} disabled={markingReady} className="btn-accent px-8 py-3 text-lg font-bold">
+                        <Button
+                          onClick={handleConfirmNomination}
+                          disabled={markingReady}
+                          className="btn-accent px-8 py-3 text-lg font-bold"
+                        >
                           {markingReady ? 'Attendi...' : '✓ CONFERMA'}
                         </Button>
-                        <Button onClick={handleCancelNomination} variant="outline" className="border-gray-500 text-gray-300 px-6 py-3">
+                        <Button
+                          onClick={handleCancelNomination}
+                          variant="outline"
+                          className="border-gray-500 text-gray-300 px-6 py-3"
+                        >
                           Cambia
                         </Button>
                       </div>
-                      <p className="text-sm text-gray-500">Dopo la conferma, gli altri Direttori Generali potranno dichiararsi pronti</p>
+                      <p className="text-sm text-gray-500">
+                        Dopo la conferma, gli altri Direttori Generali potranno dichiararsi pronti
+                      </p>
                     </div>
                   )}
 
@@ -1669,10 +1928,17 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       <div className="mb-4">
                         <div className="flex justify-between text-sm mb-2">
                           <span className="text-gray-400">DG pronti</span>
-                          <span className="font-bold text-white">{readyStatus.readyCount}/{readyStatus.totalMembers}</span>
+                          <span className="font-bold text-white">
+                            {readyStatus.readyCount}/{readyStatus.totalMembers}
+                          </span>
                         </div>
                         <div className="w-full bg-surface-400 rounded-full h-2">
-                          <div className="h-2 rounded-full bg-accent-500 transition-all" style={{ width: `${(readyStatus.readyCount / readyStatus.totalMembers) * 100}%` }}></div>
+                          <div
+                            className="h-2 rounded-full bg-accent-500 transition-all"
+                            style={{
+                              width: `${(readyStatus.readyCount / readyStatus.totalMembers) * 100}%`,
+                            }}
+                          ></div>
                         </div>
                       </div>
                       {/* Lista DG pronti/non pronti */}
@@ -1682,7 +1948,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                             <p className="text-secondary-400 font-semibold mb-1">✓ Pronti</p>
                             {readyStatus.readyMembers.length > 0 ? (
                               readyStatus.readyMembers.map(m => (
-                                <p key={m.id} className="text-gray-300">{m.username}</p>
+                                <p key={m.id} className="text-gray-300">
+                                  {m.username}
+                                </p>
                               ))
                             ) : (
                               <p className="text-gray-500 italic">Nessuno</p>
@@ -1692,7 +1960,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                             <p className="text-amber-400 font-semibold mb-1">⏳ In attesa</p>
                             {readyStatus.pendingMembers.length > 0 ? (
                               readyStatus.pendingMembers.map(m => (
-                                <p key={m.id} className="text-gray-400">{m.username}</p>
+                                <p key={m.id} className="text-gray-400">
+                                  {m.username}
+                                </p>
                               ))
                             ) : (
                               <p className="text-gray-500 italic">Nessuno</p>
@@ -1700,15 +1970,28 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                           </div>
                         </div>
                       </div>
-                      <p className="text-secondary-400 font-medium">✓ Confermato - In attesa degli altri</p>
-                      {isAdmin && <Button size="sm" variant="outline" onClick={handleForceAllReady} className="border-accent-500/50 text-accent-400">[TEST] Forza Tutti Pronti</Button>}
+                      <p className="text-secondary-400 font-medium">
+                        ✓ Confermato - In attesa degli altri
+                      </p>
+                      {isAdmin && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleForceAllReady}
+                          className="border-accent-500/50 text-accent-400"
+                        >
+                          [TEST] Forza Tutti Pronti
+                        </Button>
+                      )}
                     </div>
                   )}
 
                   {/* Non-nominator: Waiting for confirmation */}
                   {!readyStatus.userIsNominator && !readyStatus.nominatorConfirmed && (
                     <div className="space-y-3">
-                      <p className="text-amber-400 font-medium">⏳ Attendi che {readyStatus.nominatorUsername} confermi la scelta...</p>
+                      <p className="text-amber-400 font-medium">
+                        ⏳ Attendi che {readyStatus.nominatorUsername} confermi la scelta...
+                      </p>
                     </div>
                   )}
 
@@ -1718,10 +2001,17 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       <div className="mb-4">
                         <div className="flex justify-between text-sm mb-2">
                           <span className="text-gray-400">DG pronti</span>
-                          <span className="font-bold text-white">{readyStatus.readyCount}/{readyStatus.totalMembers}</span>
+                          <span className="font-bold text-white">
+                            {readyStatus.readyCount}/{readyStatus.totalMembers}
+                          </span>
                         </div>
                         <div className="w-full bg-surface-400 rounded-full h-2">
-                          <div className="h-2 rounded-full bg-accent-500 transition-all" style={{ width: `${(readyStatus.readyCount / readyStatus.totalMembers) * 100}%` }}></div>
+                          <div
+                            className="h-2 rounded-full bg-accent-500 transition-all"
+                            style={{
+                              width: `${(readyStatus.readyCount / readyStatus.totalMembers) * 100}%`,
+                            }}
+                          ></div>
                         </div>
                       </div>
                       {/* Lista DG pronti/non pronti */}
@@ -1731,7 +2021,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                             <p className="text-secondary-400 font-semibold mb-1">✓ Pronti</p>
                             {readyStatus.readyMembers.length > 0 ? (
                               readyStatus.readyMembers.map(m => (
-                                <p key={m.id} className="text-gray-300">{m.username}</p>
+                                <p key={m.id} className="text-gray-300">
+                                  {m.username}
+                                </p>
                               ))
                             ) : (
                               <p className="text-gray-500 italic">Nessuno</p>
@@ -1741,7 +2033,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                             <p className="text-amber-400 font-semibold mb-1">⏳ In attesa</p>
                             {readyStatus.pendingMembers.length > 0 ? (
                               readyStatus.pendingMembers.map(m => (
-                                <p key={m.id} className="text-gray-400">{m.username}</p>
+                                <p key={m.id} className="text-gray-400">
+                                  {m.username}
+                                </p>
                               ))
                             ) : (
                               <p className="text-gray-500 italic">Nessuno</p>
@@ -1750,13 +2044,28 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                         </div>
                       </div>
                       {!readyStatus.userIsReady ? (
-                        <Button onClick={handleMarkReady} disabled={markingReady} className="btn-accent px-12 py-3 text-lg font-bold">
+                        <Button
+                          onClick={handleMarkReady}
+                          disabled={markingReady}
+                          className="btn-accent px-12 py-3 text-lg font-bold"
+                        >
                           {markingReady ? 'Attendi...' : 'SONO PRONTO'}
                         </Button>
                       ) : (
                         <div className="space-y-3">
-                          <p className="text-secondary-400 font-medium">✓ Pronto - In attesa degli altri</p>
-                          {isAdmin && <Button size="sm" variant="outline" onClick={handleForceAllReady} className="border-accent-500/50 text-accent-400">[TEST] Forza Tutti Pronti</Button>}
+                          <p className="text-secondary-400 font-medium">
+                            ✓ Pronto - In attesa degli altri
+                          </p>
+                          {isAdmin && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleForceAllReady}
+                              className="border-accent-500/50 text-accent-400"
+                            >
+                              [TEST] Forza Tutti Pronti
+                            </Button>
+                          )}
                         </div>
                       )}
                     </>
@@ -1766,16 +2075,24 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             )}
 
             {/* Auction Card */}
-            <div className={`bg-surface-200 rounded-xl border overflow-hidden ${auction ? 'auction-card-active' : 'border-surface-50/20'}`}>
+            <div
+              className={`bg-surface-200 rounded-xl border overflow-hidden ${auction ? 'auction-card-active' : 'border-surface-50/20'}`}
+            >
               <div className="p-4 border-b border-surface-50/20 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{auction ? '🔨' : '📭'}</span>
-                  <h3 className="font-bold text-white">{auction ? 'Asta in Corso' : 'Nessuna Asta'}</h3>
+                  <h3 className="font-bold text-white">
+                    {auction ? 'Asta in Corso' : 'Nessuna Asta'}
+                  </h3>
                 </div>
                 {auction && isUserWinning && (
                   <div className="winning-indicator">
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     Stai vincendo!
                   </div>
@@ -1833,13 +2150,19 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                      */}
                     <div className="relative overflow-hidden rounded-2xl">
                       {/* Sfondo con gradient posizione */}
-                      <div className={`absolute inset-0 opacity-30 ${POSITION_GRADIENTS[auction.player.position] || 'bg-gradient-to-br from-gray-600 to-gray-800'}`} />
+                      <div
+                        className={`absolute inset-0 opacity-30 ${POSITION_GRADIENTS[auction.player.position] || 'bg-gradient-to-br from-gray-600 to-gray-800'}`}
+                      />
 
                       {/* Pattern decorativo */}
                       <div className="absolute inset-0 opacity-5">
-                        <div className="absolute inset-0" style={{
-                          backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)'
-                        }} />
+                        <div
+                          className="absolute inset-0"
+                          style={{
+                            backgroundImage:
+                              'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)',
+                          }}
+                        />
                       </div>
 
                       <div className="relative text-center p-6 bg-gradient-to-br from-surface-300/90 to-surface-200/90 backdrop-blur-sm">
@@ -1871,7 +2194,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                         <div className="flex items-center justify-center gap-3 mb-4">
                           <span className="text-gray-400 font-medium">{auction.player.team}</span>
                           <span className="text-gray-600">•</span>
-                          <span className={`px-3 py-1 rounded-full text-sm font-bold ${POSITION_BG[auction.player.position]}`}>
+                          <span
+                            className={`px-3 py-1 rounded-full text-sm font-bold ${POSITION_BG[auction.player.position]}`}
+                          >
                             {POSITION_NAMES[auction.player.position]}
                           </span>
                         </div>
@@ -1880,8 +2205,12 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                         {auction.player.quotation && (
                           <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-gradient-to-r from-accent-500/20 via-accent-400/10 to-accent-500/20 rounded-xl border border-accent-500/30">
                             <div className="text-center">
-                              <span className="text-xs text-gray-400 block uppercase tracking-wider">Quotazione Ufficiale</span>
-                              <span className="text-2xl font-black text-accent-400">{auction.player.quotation}</span>
+                              <span className="text-xs text-gray-400 block uppercase tracking-wider">
+                                Quotazione Ufficiale
+                              </span>
+                              <span className="text-2xl font-black text-accent-400">
+                                {auction.player.quotation}
+                              </span>
                             </div>
                           </div>
                         )}
@@ -1933,8 +2262,17 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
 
                         {/* Label con icona martelletto */}
                         <div className="flex items-center justify-center gap-2 mb-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-primary-400">
-                            <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 000-1.5h-3.75V6z" clipRule="evenodd" />
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="w-5 h-5 text-primary-400"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 000-1.5h-3.75V6z"
+                              clipRule="evenodd"
+                            />
                           </svg>
                           <p className="text-sm text-primary-400 uppercase tracking-wider font-bold">
                             Offerta Corrente
@@ -1947,28 +2285,44 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                             className="text-6xl lg:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary-400 via-white to-primary-400 mb-2"
                             style={{
                               textShadow: '0 0 40px rgba(99, 102, 241, 0.5)',
-                              animation: auction.bids.length > 0 ? 'none' : undefined
+                              animation: auction.bids.length > 0 ? 'none' : undefined,
                             }}
                           >
                             {auction.currentPrice}
                           </p>
                           {/* Indicatore crediti */}
-                          <span className="absolute -top-2 -right-2 lg:right-1/4 text-lg text-primary-300">€</span>
+                          <span className="absolute -top-2 -right-2 lg:right-1/4 text-lg text-primary-300">
+                            €
+                          </span>
                         </div>
 
                         {/* Info offerente con badge */}
                         {auction.bids.length > 0 && auction.bids[0] && (
-                          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full mt-2 ${
-                            auction.bids[0].bidder.user.username === currentUsername
-                              ? 'bg-green-500/20 border border-green-500/50'
-                              : 'bg-primary-500/20 border border-primary-500/30'
-                          }`}>
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-4 h-4 ${auction.bids[0].bidder.user.username === currentUsername ? 'text-green-400' : 'text-primary-400'}`}>
-                              <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd" />
+                          <div
+                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full mt-2 ${
+                              auction.bids[0].bidder.user.username === currentUsername
+                                ? 'bg-green-500/20 border border-green-500/50'
+                                : 'bg-primary-500/20 border border-primary-500/30'
+                            }`}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              className={`w-4 h-4 ${auction.bids[0].bidder.user.username === currentUsername ? 'text-green-400' : 'text-primary-400'}`}
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z"
+                                clipRule="evenodd"
+                              />
                             </svg>
-                            <span className={`font-bold ${auction.bids[0].bidder.user.username === currentUsername ? 'text-green-400' : 'text-primary-300'}`}>
+                            <span
+                              className={`font-bold ${auction.bids[0].bidder.user.username === currentUsername ? 'text-green-400' : 'text-primary-300'}`}
+                            >
                               {auction.bids[0].bidder.user.username}
-                              {auction.bids[0].bidder.user.username === currentUsername && ' (SEI TU!)'}
+                              {auction.bids[0].bidder.user.username === currentUsername &&
+                                ' (SEI TU!)'}
                             </span>
                           </div>
                         )}
@@ -1981,7 +2335,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
 
                         {/* Contatore offerte */}
                         <div className="mt-4 text-xs text-gray-500">
-                          {auction.bids.length} {auction.bids.length === 1 ? 'offerta' : 'offerte'} ricevute
+                          {auction.bids.length} {auction.bids.length === 1 ? 'offerta' : 'offerte'}{' '}
+                          ricevute
                         </div>
                       </div>
                     </div>
@@ -2016,10 +2371,14 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                               key={n}
                               size="sm"
                               variant="outline"
-                              onClick={() => setBidAmount(String(newBid))}
+                              onClick={() => {
+                                setBidAmount(String(newBid))
+                              }}
                               disabled={isTimerExpired || (membership?.currentBudget || 0) < newBid}
                               className={`border-surface-50/30 text-gray-300 hover:border-primary-500/50 hover:bg-primary-500/10 font-mono ${
-                                (membership?.currentBudget || 0) < newBid ? 'opacity-50 cursor-not-allowed' : ''
+                                (membership?.currentBudget || 0) < newBid
+                                  ? 'opacity-50 cursor-not-allowed'
+                                  : ''
                               }`}
                             >
                               +{n}
@@ -2029,7 +2388,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                         <Button
                           size="sm"
                           variant="accent"
-                          onClick={() => setBidAmount(String(membership?.currentBudget || 0))}
+                          onClick={() => {
+                            setBidAmount(String(membership?.currentBudget || 0))
+                          }}
                           disabled={isTimerExpired || !membership?.currentBudget}
                           className="font-bold"
                         >
@@ -2041,8 +2402,16 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       <div className="flex gap-2">
                         <button
                           type="button"
-                          onClick={() => setBidAmount(String(Math.max(auction.currentPrice + 1, parseInt(bidAmount || '0') - 1)))}
-                          disabled={isTimerExpired || parseInt(bidAmount || '0') <= auction.currentPrice + 1}
+                          onClick={() => {
+                            setBidAmount(
+                              String(
+                                Math.max(auction.currentPrice + 1, parseInt(bidAmount || '0') - 1)
+                              )
+                            )
+                          }}
+                          disabled={
+                            isTimerExpired || parseInt(bidAmount || '0') <= auction.currentPrice + 1
+                          }
                           className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           −
@@ -2050,22 +2419,33 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                         <Input
                           type="number"
                           value={bidAmount}
-                          onChange={e => setBidAmount(e.target.value)}
+                          onChange={e => {
+                            setBidAmount(e.target.value)
+                          }}
                           disabled={isTimerExpired}
                           className="flex-1 text-xl text-center bg-surface-300 border-surface-50/30 text-white font-mono"
                           placeholder="Importo..."
                         />
                         <button
                           type="button"
-                          onClick={() => setBidAmount(String(parseInt(bidAmount || '0') + 1))}
-                          disabled={isTimerExpired || parseInt(bidAmount || '0') + 1 > (membership?.currentBudget || 0)}
+                          onClick={() => {
+                            setBidAmount(String(parseInt(bidAmount || '0') + 1))
+                          }}
+                          disabled={
+                            isTimerExpired ||
+                            parseInt(bidAmount || '0') + 1 > (membership?.currentBudget || 0)
+                          }
                           className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           +
                         </button>
                         <Button
                           onClick={handlePlaceBid}
-                          disabled={isTimerExpired || !membership || membership.currentBudget < (parseInt(bidAmount) || 0)}
+                          disabled={
+                            isTimerExpired ||
+                            !membership ||
+                            membership.currentBudget < (parseInt(bidAmount) || 0)
+                          }
                           className={`btn-primary px-6 lg:px-8 font-bold ${isTimerExpired ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           {isTimerExpired ? 'Scaduto' : 'Offri'}
@@ -2075,11 +2455,17 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       {/* Budget reminder */}
                       <div className="flex items-center justify-between text-xs text-gray-400">
                         <span>Il tuo budget:</span>
-                        <span className="font-bold text-accent-400">{membership?.currentBudget || 0}</span>
+                        <span className="font-bold text-accent-400">
+                          {membership?.currentBudget || 0}
+                        </span>
                       </div>
 
                       {isAdmin && (
-                        <Button variant="secondary" onClick={handleCloseAuction} className="w-full mt-2">
+                        <Button
+                          variant="secondary"
+                          onClick={handleCloseAuction}
+                          className="w-full mt-2"
+                        >
                           Chiudi Asta Manualmente
                         </Button>
                       )}
@@ -2090,7 +2476,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       <div className="border-t border-surface-50/20 pt-4">
                         <div className="flex items-center justify-between mb-3">
                           <h4 className="text-sm text-gray-400 font-medium">Storico Offerte</h4>
-                          <span className="text-xs text-gray-500">{auction.bids.length} offerte</span>
+                          <span className="text-xs text-gray-500">
+                            {auction.bids.length} offerte
+                          </span>
                         </div>
                         <div className="bid-history space-y-1.5">
                           {auction.bids.map((bid, i) => (
@@ -2105,17 +2493,25 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                               <div className="flex items-center gap-2">
                                 {i === 0 && (
                                   <span className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center">
-                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg
+                                      className="w-3 h-3 text-white"
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
                                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                     </svg>
                                   </span>
                                 )}
-                                <span className={`${i === 0 ? 'text-white font-medium' : 'text-gray-300'} ${bid.bidder.user.username === currentUsername ? 'text-secondary-400' : ''}`}>
+                                <span
+                                  className={`${i === 0 ? 'text-white font-medium' : 'text-gray-300'} ${bid.bidder.user.username === currentUsername ? 'text-secondary-400' : ''}`}
+                                >
                                   {bid.bidder.user.username}
                                   {bid.bidder.user.username === currentUsername && ' (tu)'}
                                 </span>
                               </div>
-                              <span className={`font-mono font-bold ${i === 0 ? 'text-primary-400 text-lg' : 'text-white'}`}>
+                              <span
+                                className={`font-mono font-bold ${i === 0 ? 'text-primary-400 text-lg' : 'text-white'}`}
+                              >
                                 {bid.amount}
                               </span>
                             </div>
@@ -2124,101 +2520,170 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       </div>
                     )}
                   </div>
-                ) : !readyStatus?.hasPendingNomination && !pendingAck && (
-                  <div>
-                    {isMyTurn ? (
-                      <div>
-                        <div className="text-center mb-4">
-                          <div className="text-4xl mb-2">🎯</div>
-                          <p className="text-lg font-bold text-accent-400">È il tuo turno!</p>
-                          <p className="text-sm text-gray-400">Seleziona un giocatore</p>
-                        </div>
-                        <Input placeholder="Cerca giocatore..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="mb-3 bg-surface-300 border-surface-50/30 text-white placeholder-gray-500" />
-                        {/* Team Filter Dropdown */}
-                        <div className="relative mb-3" data-team-dropdown>
-                          <button
-                            type="button"
-                            onClick={() => setTeamDropdownOpen(!teamDropdownOpen)}
-                            className="w-full bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm flex items-center justify-between"
-                          >
-                            <div className="flex items-center gap-2">
-                              {selectedTeam ? (
-                                <>
-                                  <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center p-0.5">
-                                    <img src={getTeamLogo(selectedTeam)} alt={selectedTeam} className="w-4 h-4 object-contain" />
-                                  </div>
-                                  <span>{selectedTeam}</span>
-                                </>
-                              ) : (
-                                <span className="text-gray-400">Tutte le squadre</span>
-                              )}
-                            </div>
-                            <svg className={`w-4 h-4 transition-transform ${teamDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </button>
-                          {teamDropdownOpen && (
-                            <div className="absolute top-full left-0 right-0 mt-1 bg-surface-200 border border-surface-50/30 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto">
-                              <button
-                                type="button"
-                                onClick={() => { setSelectedTeam(''); setTeamDropdownOpen(false) }}
-                                className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-300 ${!selectedTeam ? 'bg-primary-500/20 text-primary-400' : 'text-white'}`}
+                ) : (
+                  !readyStatus?.hasPendingNomination &&
+                  !pendingAck && (
+                    <div>
+                      {isMyTurn ? (
+                        <div>
+                          <div className="text-center mb-4">
+                            <div className="text-4xl mb-2">🎯</div>
+                            <p className="text-lg font-bold text-accent-400">È il tuo turno!</p>
+                            <p className="text-sm text-gray-400">Seleziona un giocatore</p>
+                          </div>
+                          <Input
+                            placeholder="Cerca giocatore..."
+                            value={searchQuery}
+                            onChange={e => {
+                              setSearchQuery(e.target.value)
+                            }}
+                            className="mb-3 bg-surface-300 border-surface-50/30 text-white placeholder-gray-500"
+                          />
+                          {/* Team Filter Dropdown */}
+                          <div className="relative mb-3" data-team-dropdown>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTeamDropdownOpen(!teamDropdownOpen)
+                              }}
+                              className="w-full bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm flex items-center justify-between"
+                            >
+                              <div className="flex items-center gap-2">
+                                {selectedTeam ? (
+                                  <>
+                                    <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center p-0.5">
+                                      <img
+                                        src={getTeamLogo(selectedTeam)}
+                                        alt={selectedTeam}
+                                        className="w-4 h-4 object-contain"
+                                      />
+                                    </div>
+                                    <span>{selectedTeam}</span>
+                                  </>
+                                ) : (
+                                  <span className="text-gray-400">Tutte le squadre</span>
+                                )}
+                              </div>
+                              <svg
+                                className={`w-4 h-4 transition-transform ${teamDropdownOpen ? 'rotate-180' : ''}`}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
                               >
-                                Tutte le squadre
-                              </button>
-                              {availableTeams.map(team => (
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 9l-7 7-7-7"
+                                />
+                              </svg>
+                            </button>
+                            {teamDropdownOpen && (
+                              <div className="absolute top-full left-0 right-0 mt-1 bg-surface-200 border border-surface-50/30 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto">
                                 <button
-                                  key={team.name}
                                   type="button"
-                                  onClick={() => { setSelectedTeam(team.name); setTeamDropdownOpen(false) }}
-                                  className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-300 flex items-center gap-2 ${selectedTeam === team.name ? 'bg-primary-500/20 text-primary-400' : 'text-white'}`}
+                                  onClick={() => {
+                                    setSelectedTeam('')
+                                    setTeamDropdownOpen(false)
+                                  }}
+                                  className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-300 ${!selectedTeam ? 'bg-primary-500/20 text-primary-400' : 'text-white'}`}
                                 >
-                                  <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
-                                    <img src={getTeamLogo(team.name)} alt={team.name} className="w-4 h-4 object-contain" />
-                                  </div>
-                                  <span>{team.name}</span>
-                                  <span className="text-xs text-gray-500 ml-auto">({team.playerCount})</span>
+                                  Tutte le squadre
                                 </button>
-                              ))}
+                                {availableTeams.map(team => (
+                                  <button
+                                    key={team.name}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedTeam(team.name)
+                                      setTeamDropdownOpen(false)
+                                    }}
+                                    className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-300 flex items-center gap-2 ${selectedTeam === team.name ? 'bg-primary-500/20 text-primary-400' : 'text-white'}`}
+                                  >
+                                    <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
+                                      <img
+                                        src={getTeamLogo(team.name)}
+                                        alt={team.name}
+                                        className="w-4 h-4 object-contain"
+                                      />
+                                    </div>
+                                    <span>{team.name}</span>
+                                    <span className="text-xs text-gray-500 ml-auto">
+                                      ({team.playerCount})
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {isPrimoMercato && marketProgress && (
+                            <div
+                              className={`text-center py-2 px-3 rounded-lg mb-3 border ${POSITION_BG[marketProgress.currentRole]}`}
+                            >
+                              <span className="font-medium">
+                                Solo {marketProgress.currentRoleName}
+                              </span>
                             </div>
                           )}
-                        </div>
-                        {isPrimoMercato && marketProgress && (
-                          <div className={`text-center py-2 px-3 rounded-lg mb-3 border ${POSITION_BG[marketProgress.currentRole]}`}>
-                            <span className="font-medium">Solo {marketProgress.currentRoleName}</span>
+                          <div className="max-h-[45vh] overflow-y-auto space-y-1">
+                            {players.length === 0 ? (
+                              <p className="text-gray-500 text-center py-4">Nessun giocatore</p>
+                            ) : (
+                              players.slice(0, 50).map(player => (
+                                <button
+                                  key={player.id}
+                                  onClick={() => handleNominatePlayer(player.id)}
+                                  className="w-full flex items-center p-3 rounded-lg bg-surface-300 hover:bg-primary-500/10 border border-transparent hover:border-primary-500/30 transition-all text-left"
+                                >
+                                  <div className="flex items-center gap-3 flex-1">
+                                    <span
+                                      className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}
+                                    >
+                                      {player.position}
+                                    </span>
+                                    <div className="w-7 h-7 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
+                                      <img
+                                        src={getTeamLogo(player.team)}
+                                        alt={player.team}
+                                        className="w-6 h-6 object-contain"
+                                      />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="font-medium text-white truncate">
+                                        {player.name}
+                                      </p>
+                                      <p className="text-xs text-gray-400 truncate">
+                                        {player.team}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </button>
+                              ))
+                            )}
                           </div>
-                        )}
-                        <div className="max-h-[45vh] overflow-y-auto space-y-1">
-                          {players.length === 0 ? (
-                            <p className="text-gray-500 text-center py-4">Nessun giocatore</p>
-                          ) : players.slice(0, 50).map(player => (
-                            <button key={player.id} onClick={() => handleNominatePlayer(player.id)} className="w-full flex items-center p-3 rounded-lg bg-surface-300 hover:bg-primary-500/10 border border-transparent hover:border-primary-500/30 transition-all text-left">
-                              <div className="flex items-center gap-3 flex-1">
-                                <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>{player.position}</span>
-                                <div className="w-7 h-7 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
-                                  <img
-                                    src={getTeamLogo(player.team)}
-                                    alt={player.team}
-                                    className="w-6 h-6 object-contain"
-                                  />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="font-medium text-white truncate">{player.name}</p>
-                                  <p className="text-xs text-gray-400 truncate">{player.team}</p>
-                                </div>
-                              </div>
-                            </button>
-                          ))}
                         </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-12">
-                        {marketProgress && <div className={`w-20 h-20 mx-auto rounded-full bg-gradient-to-br ${POSITION_COLORS[marketProgress.currentRole]} flex items-center justify-center text-3xl font-bold text-white mb-4`}>{marketProgress.currentRole}</div>}
-                        <p className="text-gray-400">In attesa...</p>
-                        {currentTurnManager && <p className="text-sm text-gray-500 mt-1">Turno di <strong className="text-primary-400">{currentTurnManager.username}</strong></p>}
-                      </div>
-                    )}
-                  </div>
+                      ) : (
+                        <div className="text-center py-12">
+                          {marketProgress && (
+                            <div
+                              className={`w-20 h-20 mx-auto rounded-full bg-gradient-to-br ${POSITION_COLORS[marketProgress.currentRole]} flex items-center justify-center text-3xl font-bold text-white mb-4`}
+                            >
+                              {marketProgress.currentRole}
+                            </div>
+                          )}
+                          <p className="text-gray-400">In attesa...</p>
+                          {currentTurnManager && (
+                            <p className="text-sm text-gray-500 mt-1">
+                              Turno di{' '}
+                              <strong className="text-primary-400">
+                                {currentTurnManager.username}
+                              </strong>
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
                 )}
                 {/* Waiting for confirmation state - show when auction just ended */}
                 {!auction && pendingAck && !readyStatus?.hasPendingNomination && (
@@ -2269,12 +2734,42 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       <tr>
                         <th className="px-2 py-1.5 text-left text-gray-400 font-medium">#</th>
                         <th className="px-2 py-1.5 text-left text-gray-400 font-medium">Manager</th>
-                        <th className="px-2 py-1.5 text-center text-gray-400 font-medium" title="Budget Disponibile">Disp.</th>
-                        <th className="px-2 py-1.5 text-center text-gray-400 font-medium" title="Budget Speso">Speso</th>
-                        <th className="px-2 py-1.5 text-center text-yellow-400 font-medium" title="Portieri">P</th>
-                        <th className="px-2 py-1.5 text-center text-green-400 font-medium" title="Difensori">D</th>
-                        <th className="px-2 py-1.5 text-center text-blue-400 font-medium" title="Centrocampisti">C</th>
-                        <th className="px-2 py-1.5 text-center text-red-400 font-medium" title="Attaccanti">A</th>
+                        <th
+                          className="px-2 py-1.5 text-center text-gray-400 font-medium"
+                          title="Budget Disponibile"
+                        >
+                          Disp.
+                        </th>
+                        <th
+                          className="px-2 py-1.5 text-center text-gray-400 font-medium"
+                          title="Budget Speso"
+                        >
+                          Speso
+                        </th>
+                        <th
+                          className="px-2 py-1.5 text-center text-yellow-400 font-medium"
+                          title="Portieri"
+                        >
+                          P
+                        </th>
+                        <th
+                          className="px-2 py-1.5 text-center text-green-400 font-medium"
+                          title="Difensori"
+                        >
+                          D
+                        </th>
+                        <th
+                          className="px-2 py-1.5 text-center text-blue-400 font-medium"
+                          title="Centrocampisti"
+                        >
+                          C
+                        </th>
+                        <th
+                          className="px-2 py-1.5 text-center text-red-400 font-medium"
+                          title="Attaccanti"
+                        >
+                          A
+                        </th>
                       </tr>
                     </thead>
                     {/* Body */}
@@ -2292,12 +2787,17 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                           const isMe = m.id === managersStatus.myId
                           const budgetPercent = getBudgetPercentage(m.currentBudget)
                           // Calcola budget speso sommando i prezzi di acquisizione
-                          const budgetSpent = m.roster.reduce((sum, r) => sum + (r.acquisitionPrice || 0), 0)
+                          const budgetSpent = m.roster.reduce(
+                            (sum, r) => sum + (r.acquisitionPrice || 0),
+                            0
+                          )
 
                           return (
                             <tr
                               key={m.id}
-                              onClick={() => setSelectedManager(m)}
+                              onClick={() => {
+                                setSelectedManager(m)
+                              }}
                               className={`cursor-pointer hover:bg-surface-300/50 transition-colors ${
                                 isCurrent ? 'bg-accent-500/10' : ''
                               } ${isMe && !isCurrent ? 'bg-primary-500/5' : ''}`}
@@ -2305,16 +2805,22 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                               {/* Turno + Connessione */}
                               <td className="px-2 py-2">
                                 <div className="relative inline-flex">
-                                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                                    isCurrent
-                                      ? 'bg-accent-500 text-dark-900'
-                                      : 'bg-surface-300 text-gray-400'
-                                  }`}>
+                                  <span
+                                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                                      isCurrent
+                                        ? 'bg-accent-500 text-dark-900'
+                                        : 'bg-surface-300 text-gray-400'
+                                    }`}
+                                  >
                                     {turnIndex >= 0 ? turnIndex + 1 : '-'}
                                   </span>
                                   <span
                                     className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-surface-200 ${
-                                      m.isConnected === true ? 'bg-green-500' : m.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
+                                      m.isConnected === true
+                                        ? 'bg-green-500'
+                                        : m.isConnected === false
+                                          ? 'bg-red-500'
+                                          : 'bg-gray-500'
                                     }`}
                                   />
                                 </div>
@@ -2322,9 +2828,15 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
 
                               {/* Nome Manager */}
                               <td className="px-2 py-2">
-                                <div className={`truncate max-w-[80px] font-medium ${
-                                  isMe ? 'text-primary-400' : isCurrent ? 'text-accent-400' : 'text-gray-200'
-                                }`}>
+                                <div
+                                  className={`truncate max-w-[80px] font-medium ${
+                                    isMe
+                                      ? 'text-primary-400'
+                                      : isCurrent
+                                        ? 'text-accent-400'
+                                        : 'text-gray-200'
+                                  }`}
+                                >
                                   {m.username}
                                   {isMe && <span className="text-primary-300 ml-0.5">•</span>}
                                 </div>
@@ -2332,52 +2844,72 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
 
                               {/* Budget Disponibile */}
                               <td className="px-2 py-2 text-center">
-                                <span className={`font-mono font-bold ${
-                                  budgetPercent <= 20 ? 'text-red-400' : budgetPercent <= 40 ? 'text-amber-400' : 'text-green-400'
-                                }`}>
+                                <span
+                                  className={`font-mono font-bold ${
+                                    budgetPercent <= 20
+                                      ? 'text-red-400'
+                                      : budgetPercent <= 40
+                                        ? 'text-amber-400'
+                                        : 'text-green-400'
+                                  }`}
+                                >
                                   {m.currentBudget}
                                 </span>
                               </td>
 
                               {/* Budget Speso */}
                               <td className="px-2 py-2 text-center">
-                                <span className="font-mono text-gray-400">
-                                  {budgetSpent}
-                                </span>
+                                <span className="font-mono text-gray-400">{budgetSpent}</span>
                               </td>
 
                               {/* Slot Portieri */}
                               <td className="px-2 py-2 text-center">
-                                <span className={`font-mono ${
-                                  m.slotsByPosition.P.filled >= m.slotsByPosition.P.total ? 'text-yellow-400' : 'text-gray-500'
-                                }`}>
+                                <span
+                                  className={`font-mono ${
+                                    m.slotsByPosition.P.filled >= m.slotsByPosition.P.total
+                                      ? 'text-yellow-400'
+                                      : 'text-gray-500'
+                                  }`}
+                                >
                                   {m.slotsByPosition.P.filled}/{m.slotsByPosition.P.total}
                                 </span>
                               </td>
 
                               {/* Slot Difensori */}
                               <td className="px-2 py-2 text-center">
-                                <span className={`font-mono ${
-                                  m.slotsByPosition.D.filled >= m.slotsByPosition.D.total ? 'text-green-400' : 'text-gray-500'
-                                }`}>
+                                <span
+                                  className={`font-mono ${
+                                    m.slotsByPosition.D.filled >= m.slotsByPosition.D.total
+                                      ? 'text-green-400'
+                                      : 'text-gray-500'
+                                  }`}
+                                >
                                   {m.slotsByPosition.D.filled}/{m.slotsByPosition.D.total}
                                 </span>
                               </td>
 
                               {/* Slot Centrocampisti */}
                               <td className="px-2 py-2 text-center">
-                                <span className={`font-mono ${
-                                  m.slotsByPosition.C.filled >= m.slotsByPosition.C.total ? 'text-blue-400' : 'text-gray-500'
-                                }`}>
+                                <span
+                                  className={`font-mono ${
+                                    m.slotsByPosition.C.filled >= m.slotsByPosition.C.total
+                                      ? 'text-blue-400'
+                                      : 'text-gray-500'
+                                  }`}
+                                >
                                   {m.slotsByPosition.C.filled}/{m.slotsByPosition.C.total}
                                 </span>
                               </td>
 
                               {/* Slot Attaccanti */}
                               <td className="px-2 py-2 text-center">
-                                <span className={`font-mono ${
-                                  m.slotsByPosition.A.filled >= m.slotsByPosition.A.total ? 'text-red-400' : 'text-gray-500'
-                                }`}>
+                                <span
+                                  className={`font-mono ${
+                                    m.slotsByPosition.A.filled >= m.slotsByPosition.A.total
+                                      ? 'text-red-400'
+                                      : 'text-gray-500'
+                                  }`}
+                                >
                                   {m.slotsByPosition.A.filled}/{m.slotsByPosition.A.total}
                                 </span>
                               </td>
@@ -2489,11 +3021,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 {auction.timerExpiresAt && (
-                  <AuctionTimer
-                    timeLeft={timeLeft}
-                    totalSeconds={timerSetting}
-                    compact={true}
-                  />
+                  <AuctionTimer timeLeft={timeLeft} totalSeconds={timerSetting} compact={true} />
                 )}
                 <div>
                   <p className="text-xs text-gray-400">{auction.player.name}</p>
@@ -2548,7 +3076,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 return (
                   <button
                     key={n}
-                    onClick={() => setBidAmount(String(newBid))}
+                    onClick={() => {
+                      setBidAmount(String(newBid))
+                    }}
                     disabled={isTimerExpired || (membership?.currentBudget || 0) < newBid}
                     className={`py-2 rounded-lg text-sm font-bold transition-all min-h-[44px] ${
                       isTimerExpired || (membership?.currentBudget || 0) < newBid
@@ -2561,7 +3091,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 )
               })}
               <button
-                onClick={() => setBidAmount(String(membership?.currentBudget || 0))}
+                onClick={() => {
+                  setBidAmount(String(membership?.currentBudget || 0))
+                }}
                 disabled={isTimerExpired || !membership?.currentBudget}
                 className={`py-2 rounded-lg text-sm font-bold transition-all min-h-[44px] ${
                   isTimerExpired || !membership?.currentBudget
@@ -2577,7 +3109,11 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setBidAmount(String(Math.max(auction.currentPrice + 1, parseInt(bidAmount || '0') - 1)))}
+                onClick={() => {
+                  setBidAmount(
+                    String(Math.max(auction.currentPrice + 1, parseInt(bidAmount || '0') - 1))
+                  )
+                }}
                 disabled={isTimerExpired || parseInt(bidAmount || '0') <= auction.currentPrice + 1}
                 className="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -2586,24 +3122,37 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
               <input
                 type="number"
                 value={bidAmount}
-                onChange={e => setBidAmount(e.target.value)}
+                onChange={e => {
+                  setBidAmount(e.target.value)
+                }}
                 disabled={isTimerExpired}
                 className="flex-1 bg-surface-300 border border-surface-50/30 rounded-lg px-3 py-2 text-white text-center font-mono"
                 placeholder="Importo..."
               />
               <button
                 type="button"
-                onClick={() => setBidAmount(String(parseInt(bidAmount || '0') + 1))}
-                disabled={isTimerExpired || parseInt(bidAmount || '0') + 1 > (membership?.currentBudget || 0)}
+                onClick={() => {
+                  setBidAmount(String(parseInt(bidAmount || '0') + 1))
+                }}
+                disabled={
+                  isTimerExpired ||
+                  parseInt(bidAmount || '0') + 1 > (membership?.currentBudget || 0)
+                }
                 className="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 +
               </button>
               <button
                 onClick={handlePlaceBid}
-                disabled={isTimerExpired || !membership || membership.currentBudget < (parseInt(bidAmount) || 0)}
+                disabled={
+                  isTimerExpired ||
+                  !membership ||
+                  membership.currentBudget < (parseInt(bidAmount) || 0)
+                }
                 className={`px-6 py-2 rounded-lg font-bold transition-all ${
-                  isTimerExpired || !membership || membership.currentBudget < (parseInt(bidAmount) || 0)
+                  isTimerExpired ||
+                  !membership ||
+                  membership.currentBudget < (parseInt(bidAmount) || 0)
                     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                     : 'btn-primary active:scale-95'
                 }`}
@@ -2617,24 +3166,47 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
 
       {/* Manager Detail Modal */}
       {selectedManager && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setSelectedManager(null)}>
-          <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          onClick={() => {
+            setSelectedManager(null)
+          }}
+        >
+          <div
+            className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20"
+            onClick={e => {
+              e.stopPropagation()
+            }}
+          >
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h2 className="text-xl font-bold text-white">{selectedManager.username}</h2>
-                  {selectedManager.teamName && <p className="text-gray-400">{selectedManager.teamName}</p>}
+                  {selectedManager.teamName && (
+                    <p className="text-gray-400">{selectedManager.teamName}</p>
+                  )}
                 </div>
-                <button onClick={() => setSelectedManager(null)} className="text-gray-400 hover:text-white text-2xl">×</button>
+                <button
+                  onClick={() => {
+                    setSelectedManager(null)
+                  }}
+                  className="text-gray-400 hover:text-white text-2xl"
+                >
+                  ×
+                </button>
               </div>
               <div className="flex gap-4 mb-6">
                 <div className="bg-surface-300 rounded-lg px-4 py-3 flex-1 text-center">
                   <p className="text-xs text-gray-400 uppercase">Budget</p>
-                  <p className="text-2xl font-bold text-accent-400">{selectedManager.currentBudget}</p>
+                  <p className="text-2xl font-bold text-accent-400">
+                    {selectedManager.currentBudget}
+                  </p>
                 </div>
                 <div className="bg-surface-300 rounded-lg px-4 py-3 flex-1 text-center">
                   <p className="text-xs text-gray-400 uppercase">Rosa</p>
-                  <p className="text-2xl font-bold text-white">{selectedManager.slotsFilled}/{selectedManager.totalSlots}</p>
+                  <p className="text-2xl font-bold text-white">
+                    {selectedManager.slotsFilled}/{selectedManager.totalSlots}
+                  </p>
                 </div>
               </div>
               {(['P', 'D', 'C', 'A'] as const).map(pos => {
@@ -2644,10 +3216,18 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   <div key={pos} className="mb-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className={`w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos]} flex items-center justify-center text-xs font-bold text-white`}>{pos}</span>
+                        <span
+                          className={`w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos]} flex items-center justify-center text-xs font-bold text-white`}
+                        >
+                          {pos}
+                        </span>
                         <span className="text-gray-300">{POSITION_NAMES[pos]}</span>
                       </div>
-                      <span className={`text-sm font-bold ${slot.filled >= slot.total ? 'text-secondary-400' : 'text-gray-500'}`}>{slot.filled}/{slot.total}</span>
+                      <span
+                        className={`text-sm font-bold ${slot.filled >= slot.total ? 'text-secondary-400' : 'text-gray-500'}`}
+                      >
+                        {slot.filled}/{slot.total}
+                      </span>
                     </div>
                     {posPlayers.length > 0 ? (
                       <table className="w-full text-xs ml-2">
@@ -2666,15 +3246,27 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                               <td className="py-1.5">
                                 <div className="flex items-center gap-1.5">
                                   <div className="w-4 h-4 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
-                                    <img src={getTeamLogo(p.playerTeam)} alt={p.playerTeam} className="w-3 h-3 object-contain" />
+                                    <img
+                                      src={getTeamLogo(p.playerTeam)}
+                                      alt={p.playerTeam}
+                                      className="w-3 h-3 object-contain"
+                                    />
                                   </div>
                                   <span className="text-gray-200 truncate">{p.playerName}</span>
                                 </div>
                               </td>
-                              <td className="text-center text-accent-400 font-bold">{p.acquisitionPrice}</td>
-                              <td className="text-center text-white">{p.contract?.salary ?? '-'}</td>
-                              <td className="text-center text-white">{p.contract?.duration ?? '-'}</td>
-                              <td className="text-center text-primary-400">{p.contract?.rescissionClause ?? '-'}</td>
+                              <td className="text-center text-accent-400 font-bold">
+                                {p.acquisitionPrice}
+                              </td>
+                              <td className="text-center text-white">
+                                {p.contract?.salary ?? '-'}
+                              </td>
+                              <td className="text-center text-white">
+                                {p.contract?.duration ?? '-'}
+                              </td>
+                              <td className="text-center text-primary-400">
+                                {p.contract?.rescissionClause ?? '-'}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -2691,172 +3283,227 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       )}
 
       {/* Acknowledgment Modal - Non mostrare se c'è un ricorso attivo */}
-      {pendingAck && !pendingAck.userAcknowledged && appealStatus?.auctionStatus !== 'APPEAL_REVIEW' && appealStatus?.auctionStatus !== 'AWAITING_APPEAL_ACK' && appealStatus?.auctionStatus !== 'AWAITING_RESUME' && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20">
-            <div className="p-6">
-              <div className="text-center mb-6">
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${pendingAck.winner ? 'bg-secondary-500/20' : 'bg-surface-300'}`}>
-                  <span className="text-3xl">{pendingAck.winner ? '✅' : '❌'}</span>
-                </div>
-                <h2 className="text-2xl font-bold text-white">{pendingAck.winner ? 'Transazione Completata' : 'Asta Conclusa'}</h2>
-              </div>
-              <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-                <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[pendingAck.player.position]} flex items-center justify-center text-white font-bold flex-shrink-0`}>{pendingAck.player.position}</span>
-                <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
-                  <img
-                    src={getTeamLogo(pendingAck.player.team)}
-                    alt={pendingAck.player.team}
-                    className="w-7 h-7 object-contain"
-                  />
-                </div>
-                <div>
-                  <p className="font-bold text-white">{pendingAck.player.name}</p>
-                  <p className="text-sm text-gray-400">{pendingAck.player.team}</p>
-                </div>
-              </div>
-              {pendingAck.winner ? (
-                <div className="bg-primary-500/10 rounded-lg p-4 mb-4 border border-primary-500/30">
-                  <div className="text-center mb-3">
-                    <p className="text-sm text-primary-400">Acquistato da</p>
-                    <p className="text-xl font-bold text-white">{pendingAck.winner.username}</p>
-                    <p className="text-3xl font-bold text-accent-400 mt-1">{pendingAck.finalPrice}M</p>
+      {pendingAck &&
+        !pendingAck.userAcknowledged &&
+        appealStatus?.auctionStatus !== 'APPEAL_REVIEW' &&
+        appealStatus?.auctionStatus !== 'AWAITING_APPEAL_ACK' &&
+        appealStatus?.auctionStatus !== 'AWAITING_RESUME' && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20">
+              <div className="p-6">
+                <div className="text-center mb-6">
+                  <div
+                    className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${pendingAck.winner ? 'bg-secondary-500/20' : 'bg-surface-300'}`}
+                  >
+                    <span className="text-3xl">{pendingAck.winner ? '✅' : '❌'}</span>
                   </div>
-                  {pendingAck.contractInfo && (
-                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-primary-500/20">
-                      <div className="text-center">
-                        <p className="text-[10px] text-gray-500 uppercase">Ingaggio</p>
-                        <p className="text-sm font-bold text-white">{pendingAck.contractInfo.salary}M</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-[10px] text-gray-500 uppercase">Durata</p>
-                        <p className="text-sm font-bold text-white">{pendingAck.contractInfo.duration}s</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-[10px] text-gray-500 uppercase">Clausola</p>
-                        <p className="text-sm font-bold text-primary-400">{pendingAck.contractInfo.rescissionClause}M</p>
-                      </div>
+                  <h2 className="text-2xl font-bold text-white">
+                    {pendingAck.winner ? 'Transazione Completata' : 'Asta Conclusa'}
+                  </h2>
+                </div>
+                <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
+                  <span
+                    className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[pendingAck.player.position]} flex items-center justify-center text-white font-bold flex-shrink-0`}
+                  >
+                    {pendingAck.player.position}
+                  </span>
+                  <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
+                    <img
+                      src={getTeamLogo(pendingAck.player.team)}
+                      alt={pendingAck.player.team}
+                      className="w-7 h-7 object-contain"
+                    />
+                  </div>
+                  <div>
+                    <p className="font-bold text-white">{pendingAck.player.name}</p>
+                    <p className="text-sm text-gray-400">{pendingAck.player.team}</p>
+                  </div>
+                </div>
+                {pendingAck.winner ? (
+                  <div className="bg-primary-500/10 rounded-lg p-4 mb-4 border border-primary-500/30">
+                    <div className="text-center mb-3">
+                      <p className="text-sm text-primary-400">Acquistato da</p>
+                      <p className="text-xl font-bold text-white">{pendingAck.winner.username}</p>
+                      <p className="text-3xl font-bold text-accent-400 mt-1">
+                        {pendingAck.finalPrice}M
+                      </p>
                     </div>
+                    {pendingAck.contractInfo && (
+                      <div className="grid grid-cols-3 gap-2 pt-3 border-t border-primary-500/20">
+                        <div className="text-center">
+                          <p className="text-[10px] text-gray-500 uppercase">Ingaggio</p>
+                          <p className="text-sm font-bold text-white">
+                            {pendingAck.contractInfo.salary}M
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[10px] text-gray-500 uppercase">Durata</p>
+                          <p className="text-sm font-bold text-white">
+                            {pendingAck.contractInfo.duration}s
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[10px] text-gray-500 uppercase">Clausola</p>
+                          <p className="text-sm font-bold text-primary-400">
+                            {pendingAck.contractInfo.rescissionClause}M
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-surface-300 rounded-lg p-4 mb-4 text-center">
+                    <p className="text-gray-400">Nessuna offerta</p>
+                  </div>
+                )}
+                <div className="mb-4">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-gray-400">Conferme</span>
+                    <span className="text-white">
+                      {pendingAck.totalAcknowledged}/{pendingAck.totalMembers}
+                    </span>
+                  </div>
+                  <div className="w-full bg-surface-400 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full bg-secondary-500 transition-all"
+                      style={{
+                        width: `${(pendingAck.totalAcknowledged / pendingAck.totalMembers) * 100}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                {/* Profezia opzionale */}
+                <textarea
+                  value={prophecyContent}
+                  onChange={e => {
+                    setProphecyContent(e.target.value)
+                  }}
+                  className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-3 text-white placeholder-gray-500 mb-4"
+                  rows={2}
+                  placeholder="Profezia (opzionale)..."
+                  maxLength={500}
+                />
+
+                {/* Ricorso (espandibile) */}
+                {isAppealMode && (
+                  <div className="mb-4">
+                    <p className="text-xs text-danger-400 mb-2">
+                      Indica il motivo per cui contesti questa conclusione d'asta (es. problemi di
+                      connessione)
+                    </p>
+                    <textarea
+                      value={appealContent}
+                      onChange={e => {
+                        setAppealContent(e.target.value)
+                      }}
+                      className="w-full bg-surface-300 border border-danger-500/50 rounded-lg p-3 text-white placeholder-gray-500"
+                      rows={3}
+                      placeholder="Descrivi il motivo del ricorso..."
+                      maxLength={500}
+                    />
+                  </div>
+                )}
+
+                {/* Bottoni Azione */}
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => handleAcknowledge(!!prophecyContent.trim())}
+                    disabled={ackSubmitting}
+                    className="flex-1 bg-secondary-500 hover:bg-secondary-600 text-white font-bold py-3"
+                  >
+                    {ackSubmitting ? 'Invio...' : 'Conferma'}
+                  </Button>
+                  {!isAppealMode ? (
+                    <Button
+                      onClick={() => {
+                        setIsAppealMode(true)
+                      }}
+                      disabled={ackSubmitting}
+                      variant="outline"
+                      className="flex-1 border-danger-500 text-danger-400 hover:bg-danger-500/10 py-3"
+                    >
+                      Ricorso
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => handleAcknowledge(false, true)}
+                      disabled={ackSubmitting || !appealContent.trim()}
+                      className="flex-1 bg-danger-500 hover:bg-danger-600 text-white py-3"
+                    >
+                      {ackSubmitting ? 'Invio...' : 'Invia Ricorso'}
+                    </Button>
                   )}
                 </div>
-              ) : (
-                <div className="bg-surface-300 rounded-lg p-4 mb-4 text-center"><p className="text-gray-400">Nessuna offerta</p></div>
-              )}
-              <div className="mb-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-400">Conferme</span>
-                  <span className="text-white">{pendingAck.totalAcknowledged}/{pendingAck.totalMembers}</span>
-                </div>
-                <div className="w-full bg-surface-400 rounded-full h-2">
-                  <div className="h-2 rounded-full bg-secondary-500 transition-all" style={{ width: `${(pendingAck.totalAcknowledged / pendingAck.totalMembers) * 100}%` }}></div>
-                </div>
-              </div>
 
-              {/* Profezia opzionale */}
-              <textarea
-                value={prophecyContent}
-                onChange={e => setProphecyContent(e.target.value)}
-                className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-3 text-white placeholder-gray-500 mb-4"
-                rows={2}
-                placeholder="Profezia (opzionale)..."
-                maxLength={500}
-              />
-
-              {/* Ricorso (espandibile) */}
-              {isAppealMode && (
-                <div className="mb-4">
-                  <p className="text-xs text-danger-400 mb-2">
-                    Indica il motivo per cui contesti questa conclusione d'asta (es. problemi di connessione)
-                  </p>
-                  <textarea
-                    value={appealContent}
-                    onChange={e => setAppealContent(e.target.value)}
-                    className="w-full bg-surface-300 border border-danger-500/50 rounded-lg p-3 text-white placeholder-gray-500"
-                    rows={3}
-                    placeholder="Descrivi il motivo del ricorso..."
-                    maxLength={500}
-                  />
-                </div>
-              )}
-
-              {/* Bottoni Azione */}
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => handleAcknowledge(!!prophecyContent.trim())}
-                  disabled={ackSubmitting}
-                  className="flex-1 bg-secondary-500 hover:bg-secondary-600 text-white font-bold py-3"
-                >
-                  {ackSubmitting ? 'Invio...' : 'Conferma'}
-                </Button>
-                {!isAppealMode ? (
-                  <Button
-                    onClick={() => setIsAppealMode(true)}
-                    disabled={ackSubmitting}
-                    variant="outline"
-                    className="flex-1 border-danger-500 text-danger-400 hover:bg-danger-500/10 py-3"
-                  >
-                    Ricorso
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => handleAcknowledge(false, true)}
-                    disabled={ackSubmitting || !appealContent.trim()}
-                    className="flex-1 bg-danger-500 hover:bg-danger-600 text-white py-3"
-                  >
-                    {ackSubmitting ? 'Invio...' : 'Invia Ricorso'}
-                  </Button>
+                {/* Admin: Simula ricorso */}
+                {isAdmin && (
+                  <>
+                    {error && (
+                      <div className="mt-3 p-2 bg-danger-500/20 border border-danger-500/50 rounded text-danger-400 text-xs">
+                        {error}
+                        {error.includes('PENDING') && (
+                          <Button
+                            onClick={() => {
+                              onNavigate('admin', { leagueId, tab: 'appeals' })
+                            }}
+                            size="sm"
+                            className="w-full mt-2 bg-danger-500 hover:bg-danger-600 text-white text-xs"
+                          >
+                            Gestisci Ricorsi
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    <Button
+                      onClick={handleSimulateAppeal}
+                      size="sm"
+                      variant="outline"
+                      className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
+                    >
+                      [TEST] Simula ricorso di un DG
+                    </Button>
+                  </>
                 )}
               </div>
+            </div>
+          </div>
+        )}
 
-              {/* Admin: Simula ricorso */}
+      {/* Waiting Modal - Solo per stati normali (COMPLETED, NO_BIDS), non per stati di ricorso */}
+      {pendingAck &&
+        pendingAck.userAcknowledged &&
+        !['APPEAL_REVIEW', 'AWAITING_APPEAL_ACK', 'AWAITING_RESUME'].includes(pendingAck.status) &&
+        !['APPEAL_REVIEW', 'AWAITING_APPEAL_ACK', 'AWAITING_RESUME'].includes(
+          appealStatus?.auctionStatus || ''
+        ) && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-surface-200 rounded-xl max-w-sm w-full p-6 text-center border border-surface-50/20">
+              <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
+              <h3 className="font-bold text-white mb-2">In attesa degli altri</h3>
+              <p className="text-sm text-gray-400 mb-3">
+                {pendingAck.totalAcknowledged}/{pendingAck.totalMembers} confermati
+              </p>
+              <p className="text-xs text-gray-500 mb-4">
+                Mancano: {pendingAck.pendingMembers.map(m => m.username).join(', ')}
+              </p>
               {isAdmin && (
-                <>
-                  {error && (
-                    <div className="mt-3 p-2 bg-danger-500/20 border border-danger-500/50 rounded text-danger-400 text-xs">
-                      {error}
-                      {error.includes('PENDING') && (
-                        <Button
-                          onClick={() => onNavigate('admin', { leagueId, tab: 'appeals' })}
-                          size="sm"
-                          className="w-full mt-2 bg-danger-500 hover:bg-danger-600 text-white text-xs"
-                        >
-                          Gestisci Ricorsi
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                  <Button
-                    onClick={handleSimulateAppeal}
-                    size="sm"
-                    variant="outline"
-                    className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
-                  >
-                    [TEST] Simula ricorso di un DG
-                  </Button>
-                </>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleForceAcknowledgeAll}
+                  className="border-accent-500/50 text-accent-400"
+                >
+                  [TEST] Forza Conferme
+                </Button>
               )}
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Waiting Modal - Solo per stati normali (COMPLETED, NO_BIDS), non per stati di ricorso */}
-      {pendingAck && pendingAck.userAcknowledged &&
-       !['APPEAL_REVIEW', 'AWAITING_APPEAL_ACK', 'AWAITING_RESUME'].includes(pendingAck.status) &&
-       !['APPEAL_REVIEW', 'AWAITING_APPEAL_ACK', 'AWAITING_RESUME'].includes(appealStatus?.auctionStatus || '') && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-200 rounded-xl max-w-sm w-full p-6 text-center border border-surface-50/20">
-            <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
-            <h3 className="font-bold text-white mb-2">In attesa degli altri</h3>
-            <p className="text-sm text-gray-400 mb-3">{pendingAck.totalAcknowledged}/{pendingAck.totalMembers} confermati</p>
-            <p className="text-xs text-gray-500 mb-4">Mancano: {pendingAck.pendingMembers.map(m => m.username).join(', ')}</p>
-            {isAdmin && <Button size="sm" variant="outline" onClick={handleForceAcknowledgeAll} className="border-accent-500/50 text-accent-400">[TEST] Forza Conferme</Button>}
-          </div>
-        </div>
-      )}
+        )}
 
       {/* APPEAL_REVIEW Modal - Asta bloccata in attesa decisione admin */}
-      {(appealStatus?.auctionStatus === 'APPEAL_REVIEW' || pendingAck?.status === 'APPEAL_REVIEW') && (
+      {(appealStatus?.auctionStatus === 'APPEAL_REVIEW' ||
+        pendingAck?.status === 'APPEAL_REVIEW') && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-danger-500/50">
             <div className="p-6">
@@ -2865,13 +3512,17 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   <span className="text-3xl">⚠️</span>
                 </div>
                 <h2 className="text-2xl font-bold text-white">Ricorso in Corso</h2>
-                <p className="text-gray-400 mt-1">L'asta è sospesa in attesa della decisione dell'admin</p>
+                <p className="text-gray-400 mt-1">
+                  L'asta è sospesa in attesa della decisione dell'admin
+                </p>
               </div>
 
               {/* Player info */}
               {(appealStatus?.player || pendingAck?.player) && (
                 <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-                  <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}>
+                  <span
+                    className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}
+                  >
                     {(appealStatus?.player || pendingAck?.player)?.position}
                   </span>
                   <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
@@ -2882,8 +3533,12 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                     />
                   </div>
                   <div>
-                    <p className="font-bold text-white">{(appealStatus?.player || pendingAck?.player)?.name}</p>
-                    <p className="text-sm text-gray-400">{(appealStatus?.player || pendingAck?.player)?.team}</p>
+                    <p className="font-bold text-white">
+                      {(appealStatus?.player || pendingAck?.player)?.name}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      {(appealStatus?.player || pendingAck?.player)?.team}
+                    </p>
                   </div>
                 </div>
               )}
@@ -2891,9 +3546,14 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
               {/* Appeal details */}
               {appealStatus?.appeal && (
                 <div className="bg-danger-500/10 border border-danger-500/30 rounded-lg p-4 mb-4">
-                  <p className="text-xs text-danger-400 uppercase font-bold mb-2">Motivo del ricorso</p>
+                  <p className="text-xs text-danger-400 uppercase font-bold mb-2">
+                    Motivo del ricorso
+                  </p>
                   <p className="text-gray-300">{appealStatus.appeal.reason}</p>
-                  <p className="text-sm text-gray-500 mt-2">Presentato da: <span className="text-white">{appealStatus.appeal.submittedBy?.username}</span></p>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Presentato da:{' '}
+                    <span className="text-white">{appealStatus.appeal.submittedBy?.username}</span>
+                  </p>
                 </div>
               )}
 
@@ -2901,8 +3561,12 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
               {(appealStatus?.winner || pendingAck?.winner) && (
                 <div className="bg-primary-500/10 rounded-lg p-4 mb-4 text-center border border-primary-500/30">
                   <p className="text-sm text-primary-400">Transazione contestata</p>
-                  <p className="text-lg font-bold text-white">{(appealStatus?.winner || pendingAck?.winner)?.username}</p>
-                  <p className="text-2xl font-bold text-accent-400 mt-1">{appealStatus?.finalPrice || pendingAck?.finalPrice}</p>
+                  <p className="text-lg font-bold text-white">
+                    {(appealStatus?.winner || pendingAck?.winner)?.username}
+                  </p>
+                  <p className="text-2xl font-bold text-accent-400 mt-1">
+                    {appealStatus?.finalPrice || pendingAck?.finalPrice}
+                  </p>
                 </div>
               )}
 
@@ -2914,7 +3578,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
               {/* Admin button */}
               {isAdmin && (
                 <Button
-                  onClick={() => onNavigate('admin', { leagueId, tab: 'appeals' })}
+                  onClick={() => {
+                    onNavigate('admin', { leagueId, tab: 'appeals' })
+                  }}
                   className="w-full bg-danger-500 hover:bg-danger-600 text-white font-bold py-3"
                 >
                   Gestisci Ricorso
@@ -2926,20 +3592,25 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       )}
 
       {/* AWAITING_APPEAL_ACK Modal - Tutti devono confermare di aver visto la decisione */}
-      {(appealStatus?.auctionStatus === 'AWAITING_APPEAL_ACK' || pendingAck?.status === 'AWAITING_APPEAL_ACK') && (
+      {(appealStatus?.auctionStatus === 'AWAITING_APPEAL_ACK' ||
+        pendingAck?.status === 'AWAITING_APPEAL_ACK') && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20">
             <div className="p-6">
               <div className="text-center mb-6">
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${appealStatus?.appeal?.status === 'ACCEPTED' ? 'bg-warning-500/20' : 'bg-secondary-500/20'}`}>
-                  <span className="text-3xl">{appealStatus?.appeal?.status === 'ACCEPTED' ? '🔄' : '✅'}</span>
+                <div
+                  className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${appealStatus?.appeal?.status === 'ACCEPTED' ? 'bg-warning-500/20' : 'bg-secondary-500/20'}`}
+                >
+                  <span className="text-3xl">
+                    {appealStatus?.appeal?.status === 'ACCEPTED' ? '🔄' : '✅'}
+                  </span>
                 </div>
                 <h2 className="text-2xl font-bold text-white">
                   Ricorso {appealStatus?.appeal?.status === 'ACCEPTED' ? 'Accolto' : 'Respinto'}
                 </h2>
                 <p className="text-gray-400 mt-1">
                   {appealStatus?.appeal?.status === 'ACCEPTED'
-                    ? 'La transazione è stata annullata, l\'asta riprenderà'
+                    ? "La transazione è stata annullata, l'asta riprenderà"
                     : 'La transazione è confermata'}
                 </p>
               </div>
@@ -2947,7 +3618,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
               {/* Player info */}
               {(appealStatus?.player || pendingAck?.player) && (
                 <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-                  <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}>
+                  <span
+                    className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}
+                  >
                     {(appealStatus?.player || pendingAck?.player)?.position}
                   </span>
                   <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
@@ -2958,8 +3631,12 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                     />
                   </div>
                   <div>
-                    <p className="font-bold text-white">{(appealStatus?.player || pendingAck?.player)?.name}</p>
-                    <p className="text-sm text-gray-400">{(appealStatus?.player || pendingAck?.player)?.team}</p>
+                    <p className="font-bold text-white">
+                      {(appealStatus?.player || pendingAck?.player)?.name}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      {(appealStatus?.player || pendingAck?.player)?.team}
+                    </p>
                   </div>
                 </div>
               )}
@@ -2976,19 +3653,31 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
               <div className="mb-4">
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-400">Conferme presa visione</span>
-                  <span className="text-white">{appealStatus?.appealDecisionAcks?.length || 0}/{appealStatus?.allMembers?.length || pendingAck?.totalMembers || 0}</span>
+                  <span className="text-white">
+                    {appealStatus?.appealDecisionAcks?.length || 0}/
+                    {appealStatus?.allMembers?.length || pendingAck?.totalMembers || 0}
+                  </span>
                 </div>
                 <div className="w-full bg-surface-400 rounded-full h-2">
                   <div
                     className="h-2 rounded-full bg-secondary-500 transition-all"
-                    style={{ width: `${((appealStatus?.appealDecisionAcks?.length || 0) / (appealStatus?.allMembers?.length || pendingAck?.totalMembers || 1)) * 100}%` }}
+                    style={{
+                      width: `${((appealStatus?.appealDecisionAcks?.length || 0) / (appealStatus?.allMembers?.length || pendingAck?.totalMembers || 1)) * 100}%`,
+                    }}
                   ></div>
                 </div>
-                {appealStatus?.allMembers && appealStatus.allMembers.filter(m => !appealStatus.appealDecisionAcks?.includes(m.id)).length > 0 && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Mancano: {appealStatus.allMembers.filter(m => !appealStatus.appealDecisionAcks?.includes(m.id)).map(m => m.username).join(', ')}
-                  </p>
-                )}
+                {appealStatus?.allMembers &&
+                  appealStatus.allMembers.filter(
+                    m => !appealStatus.appealDecisionAcks?.includes(m.id)
+                  ).length > 0 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Mancano:{' '}
+                      {appealStatus.allMembers
+                        .filter(m => !appealStatus.appealDecisionAcks?.includes(m.id))
+                        .map(m => m.username)
+                        .join(', ')}
+                    </p>
+                  )}
               </div>
 
               {/* Action buttons */}
@@ -3002,7 +3691,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 </Button>
               ) : (
                 <div className="text-center py-4">
-                  <p className="text-secondary-400 font-medium mb-2">✓ Hai confermato - In attesa degli altri</p>
+                  <p className="text-secondary-400 font-medium mb-2">
+                    ✓ Hai confermato - In attesa degli altri
+                  </p>
                 </div>
               )}
 
@@ -3023,7 +3714,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       )}
 
       {/* AWAITING_RESUME Modal - Ready check prima di riprendere l'asta */}
-      {(appealStatus?.auctionStatus === 'AWAITING_RESUME' || pendingAck?.status === 'AWAITING_RESUME') && (
+      {(appealStatus?.auctionStatus === 'AWAITING_RESUME' ||
+        pendingAck?.status === 'AWAITING_RESUME') && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border-2 border-accent-500/50 animate-pulse-slow">
             <div className="p-6">
@@ -3032,13 +3724,17 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                   <span className="text-3xl">🔔</span>
                 </div>
                 <h2 className="text-2xl font-bold text-white">Pronto a Riprendere?</h2>
-                <p className="text-gray-400 mt-1">L'asta sta per riprendere, conferma la tua presenza</p>
+                <p className="text-gray-400 mt-1">
+                  L'asta sta per riprendere, conferma la tua presenza
+                </p>
               </div>
 
               {/* Player info */}
               {(appealStatus?.player || pendingAck?.player) && (
                 <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-                  <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}>
+                  <span
+                    className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}
+                  >
                     {(appealStatus?.player || pendingAck?.player)?.position}
                   </span>
                   <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
@@ -3049,8 +3745,12 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                     />
                   </div>
                   <div>
-                    <p className="font-bold text-white">{(appealStatus?.player || pendingAck?.player)?.name}</p>
-                    <p className="text-sm text-gray-400">{(appealStatus?.player || pendingAck?.player)?.team}</p>
+                    <p className="font-bold text-white">
+                      {(appealStatus?.player || pendingAck?.player)?.name}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      {(appealStatus?.player || pendingAck?.player)?.team}
+                    </p>
                   </div>
                 </div>
               )}
@@ -3065,19 +3765,31 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
               <div className="mb-4">
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-400">DG pronti</span>
-                  <span className="text-white">{appealStatus?.resumeReadyMembers?.length || 0}/{appealStatus?.allMembers?.length || pendingAck?.totalMembers || 0}</span>
+                  <span className="text-white">
+                    {appealStatus?.resumeReadyMembers?.length || 0}/
+                    {appealStatus?.allMembers?.length || pendingAck?.totalMembers || 0}
+                  </span>
                 </div>
                 <div className="w-full bg-surface-400 rounded-full h-2">
                   <div
                     className="h-2 rounded-full bg-accent-500 transition-all"
-                    style={{ width: `${((appealStatus?.resumeReadyMembers?.length || 0) / (appealStatus?.allMembers?.length || pendingAck?.totalMembers || 1)) * 100}%` }}
+                    style={{
+                      width: `${((appealStatus?.resumeReadyMembers?.length || 0) / (appealStatus?.allMembers?.length || pendingAck?.totalMembers || 1)) * 100}%`,
+                    }}
                   ></div>
                 </div>
-                {appealStatus?.allMembers && appealStatus.allMembers.filter(m => !appealStatus.resumeReadyMembers?.includes(m.id)).length > 0 && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Mancano: {appealStatus.allMembers.filter(m => !appealStatus.resumeReadyMembers?.includes(m.id)).map(m => m.username).join(', ')}
-                  </p>
-                )}
+                {appealStatus?.allMembers &&
+                  appealStatus.allMembers.filter(
+                    m => !appealStatus.resumeReadyMembers?.includes(m.id)
+                  ).length > 0 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Mancano:{' '}
+                      {appealStatus.allMembers
+                        .filter(m => !appealStatus.resumeReadyMembers?.includes(m.id))
+                        .map(m => m.username)
+                        .join(', ')}
+                    </p>
+                  )}
               </div>
 
               {/* Action buttons */}
@@ -3091,7 +3803,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 </Button>
               ) : (
                 <div className="text-center py-4">
-                  <p className="text-secondary-400 font-medium mb-2">✓ Pronto - In attesa degli altri</p>
+                  <p className="text-secondary-400 font-medium mb-2">
+                    ✓ Pronto - In attesa degli altri
+                  </p>
                 </div>
               )}
 

@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client'
 import { hashPassword, verifyPassword } from '../utils/password'
 import type { UpdateProfileInput, ChangePasswordInput } from '../utils/validation'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 
 export interface ServiceResult {
   success: boolean
@@ -49,7 +47,10 @@ export async function getProfile(userId: string) {
   return { success: true, data: user }
 }
 
-export async function updateProfile(userId: string, input: UpdateProfileInput): Promise<ServiceResult> {
+export async function updateProfile(
+  userId: string,
+  input: UpdateProfileInput
+): Promise<ServiceResult> {
   const { email, username } = input
 
   // Check if email is being updated and already exists
@@ -99,7 +100,10 @@ export async function updateProfile(userId: string, input: UpdateProfileInput): 
   return { success: true, message: 'Profilo aggiornato', data: user }
 }
 
-export async function updateProfilePhoto(userId: string, photoData: string): Promise<ServiceResult> {
+export async function updateProfilePhoto(
+  userId: string,
+  photoData: string
+): Promise<ServiceResult> {
   // photoData is a base64 encoded image string
   if (!photoData) {
     return { success: false, message: 'Nessuna foto fornita' }

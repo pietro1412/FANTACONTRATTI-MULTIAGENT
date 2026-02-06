@@ -21,4 +21,6 @@ model ChatMessage {
   isSystem        Boolean  @default(false)
 
   createdAt       DateTime @default(now())
+
+  @@index([marketSessionId, createdAt])
 }

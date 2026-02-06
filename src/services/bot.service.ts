@@ -1,7 +1,7 @@
-import { PrismaClient, MemberStatus, AuctionStatus, Position, AuctionType } from '@prisma/client'
+import type { Position } from '@prisma/client'
+import { MemberStatus, AuctionStatus, AuctionType } from '@prisma/client'
 import { placeBid } from './auction.service'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 
 // ==================== BOT NOMINATION FOR FIRST MARKET ====================
 
@@ -27,7 +27,7 @@ export async function botNominate(
   }
 
   if (session.pendingNominationPlayerId) {
-    return { success: false, message: 'C\'è già una nomination in attesa' }
+    return { success: false, message: "C'è già una nomination in attesa" }
   }
 
   // Check for existing active auction
@@ -39,7 +39,7 @@ export async function botNominate(
   })
 
   if (existingAuction) {
-    return { success: false, message: 'C\'è già un\'asta attiva' }
+    return { success: false, message: "C'è già un'asta attiva" }
   }
 
   const turnOrder = session.turnOrder as string[] | null
@@ -83,7 +83,10 @@ export async function botNominate(
   }
 
   if (!currentNominator) {
-    return { success: false, message: 'Nessun nominatore trovato (tutti hanno completato il ruolo)' }
+    return {
+      success: false,
+      message: 'Nessun nominatore trovato (tutti hanno completato il ruolo)',
+    }
   }
 
   // Check if the current nominator is the real user (not a bot)
@@ -92,13 +95,15 @@ export async function botNominate(
   }
 
   // Bot needs to nominate - get available players of the current role
-  const alreadyRosteredPlayerIds = await prisma.playerRoster.findMany({
-    where: {
-      status: 'ACTIVE',
-      leagueMember: { leagueId: session.leagueId },
-    },
-    select: { playerId: true },
-  }).then(r => r.map(x => x.playerId))
+  const alreadyRosteredPlayerIds = await prisma.playerRoster
+    .findMany({
+      where: {
+        status: 'ACTIVE',
+        leagueMember: { leagueId: session.leagueId },
+      },
+      select: { playerId: true },
+    })
+    .then(r => r.map(x => x.playerId))
 
   const availablePlayers = await prisma.serieAPlayer.findMany({
     where: {
@@ -146,9 +151,7 @@ export async function botNominate(
  * Confirm the pending nomination (simulates nominator confirming their choice)
  * This adds the nominator to readyMembers and allows others to mark ready
  */
-export async function botConfirmNomination(
-  sessionId: string
-): Promise<ServiceResult> {
+export async function botConfirmNomination(sessionId: string): Promise<ServiceResult> {
   const session = await prisma.marketSession.findUnique({
     where: { id: sessionId },
     include: {
@@ -386,14 +389,14 @@ const BOT_CONFIGS: Record<BotBehavior, BotConfig> = {
     behavior: 'moderate',
   },
   conservative: {
-    bidProbability: 0.70,
+    bidProbability: 0.7,
     maxQuotationMultiplier: 4.0, // Will pay up to 4x quotation
     minIncrement: 1,
     maxIncrement: 2,
     behavior: 'conservative',
   },
   random: {
-    bidProbability: 0.80,
+    bidProbability: 0.8,
     maxQuotationMultiplier: 5.0, // Will pay up to 5x quotation
     minIncrement: 1,
     maxIncrement: 4,
@@ -519,7 +522,10 @@ export async function simulateBotBidding(
 
     // Calculate max price bot is willing to pay
     // Use at least 20 as minimum willing price, or quotation * multiplier, whichever is higher
-    const maxWillingPrice = Math.max(20, Math.floor(playerQuotation * config.maxQuotationMultiplier))
+    const maxWillingPrice = Math.max(
+      20,
+      Math.floor(playerQuotation * config.maxQuotationMultiplier)
+    )
 
     if (maxWillingPrice <= highestBid) {
       botBids.push({
@@ -563,7 +569,7 @@ export async function simulateBotBidding(
   if (winningBotId) {
     const winningBot = botMembers.find(b => b.id === winningBotId)!
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async tx => {
       // Mark previous bids as not winning
       await tx.auctionBid.updateMany({
         where: { auctionId },
@@ -574,7 +580,7 @@ export async function simulateBotBidding(
       await tx.auctionBid.create({
         data: {
           auctionId,
-          bidderId: winningBotId!,
+          bidderId: winningBotId,
           userId: winningBot.userId,
           amount: highestBid,
           isWinning: true,
@@ -591,9 +597,7 @@ export async function simulateBotBidding(
 
   return {
     success: true,
-    message: winningBotId
-      ? `Bot ha offerto ${highestBid}`
-      : 'Nessun bot ha fatto offerte',
+    message: winningBotId ? `Bot ha offerto ${highestBid}` : 'Nessun bot ha fatto offerte',
     data: {
       botBids,
       newCurrentPrice: highestBid,
@@ -624,7 +628,11 @@ export async function runBotAuctionRounds(
       break
     }
 
-    const data = result.data as { hasBotBid: boolean; newCurrentPrice: number; botBids: Array<{ botName: string; amount: number }> }
+    const data = result.data as {
+      hasBotBid: boolean
+      newCurrentPrice: number
+      botBids: Array<{ botName: string; amount: number }>
+    }
 
     if (data.hasBotBid) {
       const winningBid = data.botBids.find(b => b.amount > 0)
@@ -761,7 +769,7 @@ export async function simulateFirstMarketBotBidding(
 
   const botBids: Array<{ botName: string; amount: number; reason: string }> = []
   let bestBidAmount = currentPrice
-  let bestBidBot: typeof botMembers[0] | null = null
+  let bestBidBot: (typeof botMembers)[0] | null = null
 
   // Shuffle bots to add randomness
   const shuffledBots = [...botMembers].sort(() => Math.random() - 0.5)
@@ -811,7 +819,10 @@ export async function simulateFirstMarketBotBidding(
 
     // Calculate max price bot is willing to pay
     // Use at least 20 as minimum willing price, or quotation * multiplier, whichever is higher
-    const maxWillingPrice = Math.max(20, Math.floor(playerQuotation * config.maxQuotationMultiplier))
+    const maxWillingPrice = Math.max(
+      20,
+      Math.floor(playerQuotation * config.maxQuotationMultiplier)
+    )
 
     if (maxWillingPrice <= bestBidAmount) {
       botBids.push({
@@ -853,7 +864,9 @@ export async function simulateFirstMarketBotBidding(
 
   // Log bot decisions for debugging
   console.log('=== BOT BIDDING DEBUG ===')
-  console.log(`Player: ${auction.player.name}, Quotation: ${playerQuotation}, Current Price: ${currentPrice}`)
+  console.log(
+    `Player: ${auction.player.name}, Quotation: ${playerQuotation}, Current Price: ${currentPrice}`
+  )
   console.log(`Total bots evaluated: ${botBids.length}`)
   for (const bid of botBids) {
     console.log(`  ${bid.botName}: ${bid.amount > 0 ? `BIDS ${bid.amount}` : bid.reason}`)

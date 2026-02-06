@@ -1,12 +1,18 @@
-import { PrismaClient, MemberStatus, MovementType, ProphecyRole } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import type { MovementType, PrismaClient } from '@prisma/client'
+import { MemberStatus, ProphecyRole } from '@prisma/client'
+import { prisma } from '../lib/prisma'
 
 export interface ServiceResult {
   success: boolean
   message?: string
   data?: unknown
 }
+
+// Tipo per il client Prisma dentro una transaction
+type PrismaTransactionClient = Omit<
+  PrismaClient,
+  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+>
 
 // ==================== REGISTRA MOVIMENTO ====================
 
@@ -28,9 +34,13 @@ interface MovementData {
   marketSessionId?: string
 }
 
-export async function recordMovement(data: MovementData): Promise<string | null> {
+export async function recordMovement(
+  data: MovementData,
+  tx?: PrismaTransactionClient
+): Promise<string | null> {
   try {
-    const movement = await prisma.playerMovement.create({
+    const db = tx ?? prisma
+    const movement = await db.playerMovement.create({
       data: {
         leagueId: data.leagueId,
         playerId: data.playerId,
@@ -127,18 +137,21 @@ export async function getLeagueMovements(
   // Also get prophecies from AuctionAcknowledgment for movements with auctionId
   const auctionIds = movements.filter(m => m.auctionId).map(m => m.auctionId as string)
 
-  const auctionAcks = auctionIds.length > 0 ? await prisma.auctionAcknowledgment.findMany({
-    where: {
-      auctionId: { in: auctionIds },
-      prophecy: { not: null },
-    },
-    include: {
-      member: {
-        include: { user: { select: { username: true } } },
-      },
-      auction: true,
-    },
-  }) : []
+  const auctionAcks =
+    auctionIds.length > 0
+      ? await prisma.auctionAcknowledgment.findMany({
+          where: {
+            auctionId: { in: auctionIds },
+            prophecy: { not: null },
+          },
+          include: {
+            member: {
+              include: { user: { select: { username: true } } },
+            },
+            auction: true,
+          },
+        })
+      : []
 
   // Create a map of auctionId -> acknowledgments with prophecies
   const acksByAuction = new Map<string, typeof auctionAcks>()
@@ -164,7 +177,7 @@ export async function getLeagueMovements(
     }))
 
     // Get prophecies from AuctionAcknowledgment (if this movement is from an auction)
-    const ackProphecies = m.auctionId ? (acksByAuction.get(m.auctionId) || []) : []
+    const ackProphecies = m.auctionId ? acksByAuction.get(m.auctionId) || [] : []
 
     // Filter out ack prophecies that are already in the Prophecy model (avoid duplicates)
     const existingAuthorIds = new Set(m.prophecies.map(p => p.authorId))
@@ -184,8 +197,9 @@ export async function getLeagueMovements(
       }))
 
     // Combine both sources
-    const allProphecies = [...propheciesFromModel, ...propheciesFromAck]
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    const allProphecies = [...propheciesFromModel, ...propheciesFromAck].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    )
 
     return {
       id: m.id,
@@ -510,10 +524,7 @@ export async function getPlayerProphecies(
 
 // ==================== CHECK SE PUO' FARE PROFEZIA ====================
 
-export async function canMakeProphecy(
-  movementId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function canMakeProphecy(movementId: string, userId: string): Promise<ServiceResult> {
   const movement = await prisma.playerMovement.findUnique({
     where: { id: movementId },
     include: {

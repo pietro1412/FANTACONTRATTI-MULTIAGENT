@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client'
 import { hashPassword, verifyPassword } from '../utils/password'
 import { generateTokens, type TokenPayload } from '../utils/jwt'
 import type { RegisterInput, LoginInput } from '../utils/validation'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 
 export interface AuthResult {
   success: boolean
@@ -19,7 +17,9 @@ export interface AuthResult {
   }
 }
 
-export async function registerUser(input: Omit<RegisterInput, 'confirmPassword'>): Promise<AuthResult> {
+export async function registerUser(
+  input: Omit<RegisterInput, 'confirmPassword'>
+): Promise<AuthResult> {
   const { email, username, password } = input
 
   // Check if email already exists
@@ -62,10 +62,7 @@ export async function loginUser(input: LoginInput): Promise<AuthResult> {
   // Find user by email or username
   const user = await prisma.user.findFirst({
     where: {
-      OR: [
-        { email: emailOrUsername },
-        { username: emailOrUsername },
-      ],
+      OR: [{ email: emailOrUsername }, { username: emailOrUsername }],
     },
   })
 

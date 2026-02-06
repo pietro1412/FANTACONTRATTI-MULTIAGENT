@@ -1,6 +1,5 @@
-import { PrismaClient, Position } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import type { Position } from '@prisma/client'
+import { prisma } from '../lib/prisma'
 
 export interface PlayerFilters {
   position?: Position
@@ -38,10 +37,7 @@ export async function getPlayers(filters: PlayerFilters = {}) {
 
   const players = await prisma.serieAPlayer.findMany({
     where,
-    orderBy: [
-      { quotation: 'desc' },
-      { name: 'asc' },
-    ],
+    orderBy: [{ quotation: 'desc' }, { name: 'asc' }],
   })
 
   // If filtering by availability in a league, exclude players already in rosters
@@ -111,7 +107,7 @@ export async function getPlayersWithStats(filters: PlayerStatsFilters = {}) {
 
   // Debug: check how many players have stats
   const withStatsCount = await prisma.serieAPlayer.count({
-    where: { apiFootballStats: { not: { equals: null } } }
+    where: { apiFootballStats: { not: { equals: null } } },
   })
   console.log(`[PlayerStats] Players with apiFootballStats: ${withStatsCount}`)
 
@@ -177,26 +173,28 @@ export async function getPlayersWithStats(filters: PlayerStatsFilters = {}) {
       quotation: player.quotation,
       apiFootballId: player.apiFootballId,
       statsSyncedAt: player.statsSyncedAt,
-      stats: stats ? {
-        appearances: (stats.games as Record<string, unknown>)?.appearences ?? 0,
-        minutes: (stats.games as Record<string, unknown>)?.minutes ?? 0,
-        rating: (stats.games as Record<string, unknown>)?.rating ?? null,
-        goals: (stats.goals as Record<string, unknown>)?.total ?? 0,
-        assists: (stats.goals as Record<string, unknown>)?.assists ?? 0,
-        yellowCards: (stats.cards as Record<string, unknown>)?.yellow ?? 0,
-        redCards: (stats.cards as Record<string, unknown>)?.red ?? 0,
-        passesTotal: (stats.passes as Record<string, unknown>)?.total ?? 0,
-        passesKey: (stats.passes as Record<string, unknown>)?.key ?? 0,
-        passAccuracy: (stats.passes as Record<string, unknown>)?.accuracy ?? null,
-        shotsTotal: (stats.shots as Record<string, unknown>)?.total ?? 0,
-        shotsOn: (stats.shots as Record<string, unknown>)?.on ?? 0,
-        tacklesTotal: (stats.tackles as Record<string, unknown>)?.total ?? 0,
-        interceptions: (stats.tackles as Record<string, unknown>)?.interceptions ?? 0,
-        dribblesAttempts: (stats.dribbles as Record<string, unknown>)?.attempts ?? 0,
-        dribblesSuccess: (stats.dribbles as Record<string, unknown>)?.success ?? 0,
-        penaltyScored: (stats.penalty as Record<string, unknown>)?.scored ?? 0,
-        penaltyMissed: (stats.penalty as Record<string, unknown>)?.missed ?? 0,
-      } : null,
+      stats: stats
+        ? {
+            appearances: (stats.games as Record<string, unknown>)?.appearences ?? 0,
+            minutes: (stats.games as Record<string, unknown>)?.minutes ?? 0,
+            rating: (stats.games as Record<string, unknown>)?.rating ?? null,
+            goals: (stats.goals as Record<string, unknown>)?.total ?? 0,
+            assists: (stats.goals as Record<string, unknown>)?.assists ?? 0,
+            yellowCards: (stats.cards as Record<string, unknown>)?.yellow ?? 0,
+            redCards: (stats.cards as Record<string, unknown>)?.red ?? 0,
+            passesTotal: (stats.passes as Record<string, unknown>)?.total ?? 0,
+            passesKey: (stats.passes as Record<string, unknown>)?.key ?? 0,
+            passAccuracy: (stats.passes as Record<string, unknown>)?.accuracy ?? null,
+            shotsTotal: (stats.shots as Record<string, unknown>)?.total ?? 0,
+            shotsOn: (stats.shots as Record<string, unknown>)?.on ?? 0,
+            tacklesTotal: (stats.tackles as Record<string, unknown>)?.total ?? 0,
+            interceptions: (stats.tackles as Record<string, unknown>)?.interceptions ?? 0,
+            dribblesAttempts: (stats.dribbles as Record<string, unknown>)?.attempts ?? 0,
+            dribblesSuccess: (stats.dribbles as Record<string, unknown>)?.success ?? 0,
+            penaltyScored: (stats.penalty as Record<string, unknown>)?.scored ?? 0,
+            penaltyMissed: (stats.penalty as Record<string, unknown>)?.missed ?? 0,
+          }
+        : null,
     }
   })
 

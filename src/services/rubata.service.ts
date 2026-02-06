@@ -1,8 +1,13 @@
-import { PrismaClient, MemberStatus, RosterStatus, AuctionStatus, Position } from '@prisma/client'
+import type { Position } from '@prisma/client'
+import { MemberStatus, RosterStatus, AuctionStatus } from '@prisma/client'
 import { recordMovement } from './movement.service'
-import { triggerRubataBidPlaced, triggerRubataStealDeclared, triggerRubataReadyChanged, triggerAuctionClosed } from './pusher.service'
-
-const prisma = new PrismaClient()
+import {
+  triggerRubataBidPlaced,
+  triggerRubataStealDeclared,
+  triggerRubataReadyChanged,
+  triggerAuctionClosed,
+} from './pusher.service'
+import { prisma } from '../lib/prisma'
 
 export interface ServiceResult {
   success: boolean
@@ -87,7 +92,10 @@ export async function setRubataOrder(
   const validOrder = memberOrder.every(id => memberIds.includes(id))
 
   if (!validOrder || memberOrder.length !== memberIds.length) {
-    return { success: false, message: 'Ordine non valido: tutti i membri attivi devono essere inclusi' }
+    return {
+      success: false,
+      message: 'Ordine non valido: tutti i membri attivi devono essere inclusi',
+    }
   }
 
   // Update the rubata order in the active session
@@ -103,7 +111,7 @@ export async function setRubataOrder(
   }
 
   // Update session rubata order and member rubataOrder fields
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async tx => {
     await tx.marketSession.update({
       where: { id: activeSession.id },
       data: { rubataOrder: memberOrder },
@@ -164,7 +172,10 @@ export async function getRubataOrder(leagueId: string, userId: string): Promise<
 
 // ==================== RUBATA TURN MANAGEMENT ====================
 
-export async function getCurrentRubataTurn(leagueId: string, userId: string): Promise<ServiceResult> {
+export async function getCurrentRubataTurn(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
   // Verify membership
   const member = await prisma.leagueMember.findFirst({
     where: {
@@ -303,9 +314,7 @@ export async function getRubablePlayers(
           }
         : null,
       // Base price for rubata = clausola + ingaggio
-      rubataBasePrice: r.contract
-        ? r.contract.rescissionClause + r.contract.salary
-        : 0,
+      rubataBasePrice: r.contract ? r.contract.rescissionClause + r.contract.salary : 0,
     })),
   }
 }
@@ -380,7 +389,7 @@ export async function putPlayerOnPlate(
   })
 
   if (existingAuction) {
-    return { success: false, message: 'C\'è già un\'asta rubata in corso' }
+    return { success: false, message: "C'è già un'asta rubata in corso" }
   }
 
   // Calculate base price = clausola + ingaggio
@@ -441,7 +450,7 @@ export async function bidOnRubata(
   }
 
   if (auction.type !== 'RUBATA') {
-    return { success: false, message: 'Non è un\'asta rubata' }
+    return { success: false, message: "Non è un'asta rubata" }
   }
 
   if (auction.status !== 'ACTIVE') {
@@ -477,7 +486,7 @@ export async function bidOnRubata(
   }
 
   // Place bid
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async tx => {
     // Mark previous bids as not winning
     await tx.auctionBid.updateMany({
       where: { auctionId },
@@ -533,7 +542,7 @@ export async function closeRubataAuction(
   }
 
   if (auction.type !== 'RUBATA') {
-    return { success: false, message: 'Non è un\'asta rubata' }
+    return { success: false, message: "Non è un'asta rubata" }
   }
 
   if (auction.status !== 'ACTIVE') {
@@ -574,7 +583,7 @@ export async function closeRubataAuction(
   }
 
   // Execute the rubata transfer
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async tx => {
     // Get seller
     const seller = await tx.leagueMember.findUnique({
       where: { id: auction.sellerId! },
@@ -879,10 +888,7 @@ export async function generateRubataBoard(
 
 // ==================== GET RUBATA BOARD ====================
 
-export async function getRubataBoard(
-  leagueId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function getRubataBoard(leagueId: string, userId: string): Promise<ServiceResult> {
   // Verify membership
   const member = await prisma.leagueMember.findFirst({
     where: {
@@ -1005,7 +1011,7 @@ export async function getRubataBoard(
 
         if (winningBid) {
           // Execute the rubata transfer
-          await prisma.$transaction(async (tx) => {
+          await prisma.$transaction(async tx => {
             const seller = await tx.leagueMember.findUnique({
               where: { id: auctionToClose.sellerId! },
             })
@@ -1155,7 +1161,9 @@ export async function getRubataBoard(
             finalPrice: auctionToClose.currentPrice,
             wasUnsold: false,
             timestamp: new Date().toISOString(),
-          }).catch(err => console.error('[Pusher] Failed to trigger auction closed:', err))
+          }).catch(err => {
+            console.error('[Pusher] Failed to trigger auction closed:', err)
+          })
         }
 
         // Re-fetch the session with updated data
@@ -1174,10 +1182,7 @@ export async function getRubataBoard(
   }
 
   // Auto-advance if in PENDING_ACK but auction is already COMPLETED (appeal was handled)
-  if (
-    activeSession.rubataState === 'PENDING_ACK' &&
-    activeSession.rubataPendingAck
-  ) {
+  if (activeSession.rubataState === 'PENDING_ACK' && activeSession.rubataPendingAck) {
     const pendingAck = activeSession.rubataPendingAck as { auctionId: string }
     const referencedAuction = await prisma.auction.findUnique({
       where: { id: pendingAck.auctionId },
@@ -1230,20 +1235,20 @@ export async function getRubataBoard(
   if (activeSession.rubataTimerStartedAt && activeSession.rubataState) {
     const now = new Date()
     const timerStart = new Date(activeSession.rubataTimerStartedAt)
-    const timerDuration = activeSession.rubataState === 'OFFERING'
-      ? activeSession.rubataOfferTimerSeconds
-      : activeSession.rubataState === 'AUCTION'
-        ? activeSession.rubataAuctionTimerSeconds
-        : 0
+    const timerDuration =
+      activeSession.rubataState === 'OFFERING'
+        ? activeSession.rubataOfferTimerSeconds
+        : activeSession.rubataState === 'AUCTION'
+          ? activeSession.rubataAuctionTimerSeconds
+          : 0
 
     const elapsed = Math.floor((now.getTime() - timerStart.getTime()) / 1000)
     remainingSeconds = Math.max(0, timerDuration - elapsed)
   }
 
   // Get current player if board exists
-  const currentPlayer = board && activeSession.rubataBoardIndex !== null
-    ? board[activeSession.rubataBoardIndex]
-    : null
+  const currentPlayer =
+    board && activeSession.rubataBoardIndex !== null ? board[activeSession.rubataBoardIndex] : null
 
   // Get active auction if any
   const activeAuction = await prisma.auction.findFirst({
@@ -1313,10 +1318,7 @@ export async function getRubataBoard(
 
 // ==================== START RUBATA ====================
 
-export async function startRubata(
-  leagueId: string,
-  adminUserId: string
-): Promise<ServiceResult> {
+export async function startRubata(leagueId: string, adminUserId: string): Promise<ServiceResult> {
   // Verify admin
   const adminMember = await prisma.leagueMember.findFirst({
     where: {
@@ -1428,10 +1430,7 @@ export async function updateRubataTimers(
 // ==================== MAKE RUBATA OFFER ====================
 
 // Called when someone wants to ruba the current player within the offer timer
-export async function makeRubataOffer(
-  leagueId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function makeRubataOffer(leagueId: string, userId: string): Promise<ServiceResult> {
   const member = await prisma.leagueMember.findFirst({
     where: {
       leagueId,
@@ -1496,7 +1495,10 @@ export async function makeRubataOffer(
 
   // Check budget
   if (currentPlayer.rubataPrice > member.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Necessario: ${currentPlayer.rubataPrice}, Disponibile: ${member.currentBudget}` }
+    return {
+      success: false,
+      message: `Budget insufficiente. Necessario: ${currentPlayer.rubataPrice}, Disponibile: ${member.currentBudget}`,
+    }
   }
 
   // Check if there's already an active auction for this player
@@ -1509,7 +1511,7 @@ export async function makeRubataOffer(
   })
 
   if (existingAuction) {
-    return { success: false, message: 'C\'è già un\'asta in corso' }
+    return { success: false, message: "C'è già un'asta in corso" }
   }
 
   // Get member username for announcement
@@ -1519,7 +1521,7 @@ export async function makeRubataOffer(
   })
 
   // Create the rubata auction and place the initial bid
-  const auction = await prisma.$transaction(async (tx) => {
+  const auction = await prisma.$transaction(async tx => {
     const newAuction = await tx.auction.create({
       data: {
         leagueId,
@@ -1578,7 +1580,9 @@ export async function makeRubataOffer(
     ownerUsername: currentPlayer.ownerUsername || 'Unknown',
     basePrice: currentPlayer.rubataPrice,
     timestamp: new Date().toISOString(),
-  }).catch(err => console.error('[Pusher] Failed to trigger steal declared:', err))
+  }).catch(err => {
+    console.error('[Pusher] Failed to trigger steal declared:', err)
+  })
 
   return {
     success: true,
@@ -1641,7 +1645,10 @@ export async function bidOnRubataAuction(
 
   // Check bid is higher
   if (amount <= activeAuction.currentPrice) {
-    return { success: false, message: `L'offerta deve essere maggiore di ${activeAuction.currentPrice}` }
+    return {
+      success: false,
+      message: `L'offerta deve essere maggiore di ${activeAuction.currentPrice}`,
+    }
   }
 
   // Check budget
@@ -1660,7 +1667,7 @@ export async function bidOnRubataAuction(
   })
 
   // Place bid and reset timer
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async tx => {
     // Mark previous bids as not winning
     await tx.auctionBid.updateMany({
       where: { auctionId: activeAuction.id },
@@ -1700,7 +1707,9 @@ export async function bidOnRubataAuction(
     amount,
     playerName: playerInfo?.name || 'Unknown',
     timestamp: new Date().toISOString(),
-  }).catch(err => console.error('[Pusher] Failed to trigger rubata bid:', err))
+  }).catch(err => {
+    console.error('[Pusher] Failed to trigger rubata bid:', err)
+  })
 
   return {
     success: true,
@@ -1913,7 +1922,7 @@ export async function closeCurrentRubataAuction(
   }
 
   // Execute the rubata transfer
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async tx => {
     // Get seller
     const seller = await tx.leagueMember.findUnique({
       where: { id: activeAuction.sellerId! },
@@ -2081,7 +2090,9 @@ export async function closeCurrentRubataAuction(
     finalPrice: activeAuction.currentPrice,
     wasUnsold: false,
     timestamp: new Date().toISOString(),
-  }).catch(err => console.error('[Pusher] Failed to trigger auction closed:', err))
+  }).catch(err => {
+    console.error('[Pusher] Failed to trigger auction closed:', err)
+  })
 
   return {
     success: true,
@@ -2099,10 +2110,7 @@ export async function closeCurrentRubataAuction(
 
 // ==================== PAUSE/RESUME RUBATA ====================
 
-export async function pauseRubata(
-  leagueId: string,
-  adminUserId: string
-): Promise<ServiceResult> {
+export async function pauseRubata(leagueId: string, adminUserId: string): Promise<ServiceResult> {
   const adminMember = await prisma.leagueMember.findFirst({
     where: {
       leagueId,
@@ -2139,9 +2147,10 @@ export async function pauseRubata(
     const elapsedMs = Date.now() - activeSession.rubataTimerStartedAt.getTime()
     const elapsedSeconds = Math.floor(elapsedMs / 1000)
 
-    const totalSeconds = activeSession.rubataState === 'OFFERING'
-      ? activeSession.rubataOfferTimerSeconds
-      : activeSession.rubataAuctionTimerSeconds
+    const totalSeconds =
+      activeSession.rubataState === 'OFFERING'
+        ? activeSession.rubataOfferTimerSeconds
+        : activeSession.rubataAuctionTimerSeconds
 
     remainingSeconds = Math.max(0, totalSeconds - elapsedSeconds)
   }
@@ -2164,10 +2173,7 @@ export async function pauseRubata(
   }
 }
 
-export async function resumeRubata(
-  leagueId: string,
-  adminUserId: string
-): Promise<ServiceResult> {
+export async function resumeRubata(leagueId: string, adminUserId: string): Promise<ServiceResult> {
   const adminMember = await prisma.leagueMember.findFirst({
     where: {
       leagueId,
@@ -2353,11 +2359,19 @@ export async function getRubataReadyStatus(
 
   const readyMembers = allMembers
     .filter(m => rubataReadyMembers.includes(m.id))
-    .map(m => ({ id: m.id, username: m.user.username, isConnected: connectionStatus.get(m.id) ?? false }))
+    .map(m => ({
+      id: m.id,
+      username: m.user.username,
+      isConnected: connectionStatus.get(m.id) ?? false,
+    }))
 
   const pendingMembers = allMembers
     .filter(m => !rubataReadyMembers.includes(m.id))
-    .map(m => ({ id: m.id, username: m.user.username, isConnected: connectionStatus.get(m.id) ?? false }))
+    .map(m => ({
+      id: m.id,
+      username: m.user.username,
+      isConnected: connectionStatus.get(m.id) ?? false,
+    }))
 
   return {
     success: true,
@@ -2375,10 +2389,7 @@ export async function getRubataReadyStatus(
   }
 }
 
-export async function setRubataReady(
-  leagueId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function setRubataReady(leagueId: string, userId: string): Promise<ServiceResult> {
   const member = await prisma.leagueMember.findFirst({
     where: {
       leagueId,
@@ -2439,7 +2450,9 @@ export async function setRubataReady(
     readyCount: updatedReadyMembers.length,
     totalMembers: allMembers.length,
     timestamp: new Date().toISOString(),
-  }).catch(err => console.error('[Pusher] Failed to trigger ready changed:', err))
+  }).catch(err => {
+    console.error('[Pusher] Failed to trigger ready changed:', err)
+  })
 
   // If in AUCTION_READY_CHECK state and all ready, start the auction
   if (activeSession.rubataState === 'AUCTION_READY_CHECK' && allReady) {
@@ -2487,9 +2500,10 @@ export async function setRubataReady(
     // Calculate the start time to make the timer show the remaining seconds
     // If we have 10 seconds remaining and the timer is 30 seconds total,
     // we set timerStartedAt to (now - (30 - 10) seconds) = (now - 20 seconds)
-    const totalSeconds = resumeState === 'AUCTION'
-      ? activeSession.rubataAuctionTimerSeconds
-      : activeSession.rubataOfferTimerSeconds
+    const totalSeconds =
+      resumeState === 'AUCTION'
+        ? activeSession.rubataAuctionTimerSeconds
+        : activeSession.rubataOfferTimerSeconds
     const offsetSeconds = totalSeconds - remainingSeconds
     const adjustedStartTime = new Date(Date.now() - offsetSeconds * 1000)
 
@@ -2621,9 +2635,10 @@ export async function forceAllRubataReady(
     const remainingSeconds = activeSession.rubataPausedRemainingSeconds || 0
 
     // Calculate the start time to make the timer show the remaining seconds
-    const totalSeconds = resumeState === 'AUCTION'
-      ? activeSession.rubataAuctionTimerSeconds
-      : activeSession.rubataOfferTimerSeconds
+    const totalSeconds =
+      resumeState === 'AUCTION'
+        ? activeSession.rubataAuctionTimerSeconds
+        : activeSession.rubataOfferTimerSeconds
     const offsetSeconds = totalSeconds - remainingSeconds
     const adjustedStartTime = new Date(Date.now() - offsetSeconds * 1000)
 
@@ -2743,10 +2758,12 @@ export async function getRubataPendingAck(
         team: pendingAck.playerTeam,
         position: pendingAck.playerPosition,
       },
-      winner: pendingAck.winnerId ? {
-        id: pendingAck.winnerId,
-        username: pendingAck.winnerUsername,
-      } : null,
+      winner: pendingAck.winnerId
+        ? {
+            id: pendingAck.winnerId,
+            username: pendingAck.winnerUsername,
+          }
+        : null,
       seller: {
         id: pendingAck.sellerId,
         username: pendingAck.sellerUsername,
@@ -2821,12 +2838,15 @@ export async function acknowledgeRubataTransaction(
   // Add prophecy if provided
   const existingProphecies = pendingAck.prophecies || []
   const newProphecies = prophecy?.trim()
-    ? [...existingProphecies, {
-        memberId: member.id,
-        username: memberWithUser?.user.username || 'Unknown',
-        content: prophecy.trim(),
-        createdAt: new Date().toISOString(),
-      }]
+    ? [
+        ...existingProphecies,
+        {
+          memberId: member.id,
+          username: memberWithUser?.user.username || 'Unknown',
+          content: prophecy.trim(),
+          createdAt: new Date().toISOString(),
+        },
+      ]
     : existingProphecies
 
   const updatedAck = {
@@ -3038,7 +3058,7 @@ export async function simulateRubataOffer(
   })
 
   if (existingAuction) {
-    return { success: false, message: 'C\'è già un\'asta in corso' }
+    return { success: false, message: "C'è già un'asta in corso" }
   }
 
   // Get target member username
@@ -3059,7 +3079,7 @@ export async function simulateRubataOffer(
   })
 
   // Create the rubata auction with simulated bid
-  const auction = await prisma.$transaction(async (tx) => {
+  const auction = await prisma.$transaction(async tx => {
     const newAuction = await tx.auction.create({
       data: {
         leagueId,
@@ -3179,16 +3199,22 @@ export async function simulateRubataBid(
 
   // Check bid is higher
   if (amount <= activeAuction.currentPrice) {
-    return { success: false, message: `L'offerta deve essere maggiore di ${activeAuction.currentPrice}` }
+    return {
+      success: false,
+      message: `L'offerta deve essere maggiore di ${activeAuction.currentPrice}`,
+    }
   }
 
   // Check budget
   if (amount > targetMember.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Disponibile: ${targetMember.currentBudget}` }
+    return {
+      success: false,
+      message: `Budget insufficiente. Disponibile: ${targetMember.currentBudget}`,
+    }
   }
 
   // Place simulated bid
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async tx => {
     await tx.auctionBid.updateMany({
       where: { auctionId: activeAuction.id },
       data: { isWinning: false },
@@ -3495,10 +3521,7 @@ export async function getRubataPreferences(
         },
       },
     },
-    orderBy: [
-      { priority: 'asc' },
-      { createdAt: 'desc' },
-    ],
+    orderBy: [{ priority: 'asc' }, { createdAt: 'desc' }],
   })
 
   return {
@@ -3548,7 +3571,7 @@ export async function setRubataPreference(
   if (session) {
     const blockedStates = ['OFFERING', 'AUCTION']
     if (blockedStates.includes(session.rubataState || '')) {
-      return { success: false, message: 'Non puoi modificare le preferenze durante l\'asta attiva' }
+      return { success: false, message: "Non puoi modificare le preferenze durante l'asta attiva" }
     }
   }
 
@@ -3658,7 +3681,7 @@ export async function deleteRubataPreference(
   if (session) {
     const blockedStates = ['OFFERING', 'AUCTION']
     if (blockedStates.includes(session.rubataState || '')) {
-      return { success: false, message: 'Non puoi modificare le preferenze durante l\'asta attiva' }
+      return { success: false, message: "Non puoi modificare le preferenze durante l'asta attiva" }
     }
   }
 
@@ -3726,7 +3749,7 @@ export async function getAllPlayersForStrategies(
 
   // Check if active session is in RUBATA phase with a board
   const isRubataPhase = activeSession?.currentPhase === 'RUBATA'
-  const hasRubataBoard = isRubataPhase && !!(activeSession?.rubataBoard)
+  const hasRubataBoard = isRubataPhase && !!activeSession?.rubataBoard
 
   // Check if rubata order is set on the active session (admin has prepared rubata)
   const rubataOrderArray = activeSession?.rubataOrder as string[] | null
@@ -3742,16 +3765,19 @@ export async function getAllPlayersForStrategies(
   }
 
   // Get user's preferences
-  let preferencesMap = new Map<string, {
-    id: string
-    playerId: string
-    memberId: string
-    maxBid: number | null
-    priority: number | null
-    notes: string | null
-    isWatchlist: boolean
-    isAutoPass: boolean
-  }>()
+  let preferencesMap = new Map<
+    string,
+    {
+      id: string
+      playerId: string
+      memberId: string
+      maxBid: number | null
+      priority: number | null
+      notes: string | null
+      isWatchlist: boolean
+      isAutoPass: boolean
+    }
+  >()
 
   if (preferenceSession) {
     const preferences = await prisma.rubataPreference.findMany({
@@ -3783,10 +3809,9 @@ export async function getAllPlayersForStrategies(
               team: true,
               position: true,
               quotation: true,
-              age: true,  // #190: include age for financial dashboard
+              age: true, // #190: include age for financial dashboard
               apiFootballId: true,
               apiFootballStats: true,
-              seasonalStatsCache: true,  // Seasonality data for sparkbar
             },
           },
           contract: {
@@ -3811,10 +3836,10 @@ export async function getAllPlayersForStrategies(
     playerPosition: string
     playerTeam: string
     playerQuotation: number
-    playerAge: number | null  // #190: player age
+    playerAge: number | null // #190: player age
     playerApiFootballId: number | null
     playerApiFootballStats: unknown
-    playerSeasonalStatsCache: unknown  // Seasonality data
+    playerSeasonalStatsCache: unknown // Seasonality data
     ownerUsername: string
     ownerTeamName: string | null
     ownerRubataOrder: number | null
@@ -3840,10 +3865,10 @@ export async function getAllPlayersForStrategies(
         playerPosition: rosterEntry.player.position,
         playerTeam: rosterEntry.player.team,
         playerQuotation: rosterEntry.player.quotation,
-        playerAge: rosterEntry.player.age,  // #190: player age
+        playerAge: rosterEntry.player.age, // #190: player age
         playerApiFootballId: rosterEntry.player.apiFootballId,
         playerApiFootballStats: rosterEntry.player.apiFootballStats,
-        playerSeasonalStatsCache: rosterEntry.player.seasonalStatsCache,  // Seasonality data
+        playerSeasonalStatsCache: null, // Seasonality data (requires db column)
         ownerUsername: memberData.user.username,
         ownerTeamName: memberData.teamName,
         ownerRubataOrder: memberData.rubataOrder,
@@ -3937,16 +3962,19 @@ export async function getAllSvincolatiForStrategies(
   }
 
   // Get user's preferences
-  let preferencesMap = new Map<string, {
-    id: string
-    playerId: string
-    memberId: string
-    maxBid: number | null
-    priority: number | null
-    notes: string | null
-    isWatchlist: boolean
-    isAutoPass: boolean
-  }>()
+  let preferencesMap = new Map<
+    string,
+    {
+      id: string
+      playerId: string
+      memberId: string
+      maxBid: number | null
+      priority: number | null
+      notes: string | null
+      isWatchlist: boolean
+      isAutoPass: boolean
+    }
+  >()
 
   if (preferenceSession) {
     const preferences = await prisma.rubataPreference.findMany({
@@ -3971,15 +3999,11 @@ export async function getAllSvincolatiForStrategies(
       team: true,
       position: true,
       quotation: true,
-      age: true,  // #190: include age
+      age: true, // #190: include age
       apiFootballId: true,
       apiFootballStats: true,
-      seasonalStatsCache: true,  // Seasonality data
     },
-    orderBy: [
-      { position: 'asc' },
-      { name: 'asc' },
-    ],
+    orderBy: [{ position: 'asc' }, { name: 'asc' }],
   })
 
   // Build the players list
@@ -3988,10 +4012,10 @@ export async function getAllSvincolatiForStrategies(
     playerName: player.name,
     playerPosition: player.position,
     playerTeam: player.team,
-    playerAge: player.age,  // #190: include age
+    playerAge: player.age, // #190: include age
     playerApiFootballId: player.apiFootballId,
     playerApiFootballStats: player.apiFootballStats,
-    playerSeasonalStatsCache: player.seasonalStatsCache,  // Seasonality data
+    playerSeasonalStatsCache: null, // Seasonality data (requires db column)
     preference: preferencesMap.get(player.id) || null,
   }))
 

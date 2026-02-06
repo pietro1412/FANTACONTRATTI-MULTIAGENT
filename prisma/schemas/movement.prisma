@@ -50,6 +50,8 @@ model PlayerMovement {
 
   // Relazioni
   prophecies      Prophecy[]
+
+  @@index([leagueId, createdAt])
 }
 
 model Prophecy {
@@ -78,4 +80,5 @@ model Prophecy {
   createdAt       DateTime @default(now())
 
   @@unique([movementId, authorId])
+  @@index([leagueId, playerId])
 }

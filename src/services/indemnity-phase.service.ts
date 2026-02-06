@@ -1,8 +1,8 @@
-import { PrismaClient, MemberStatus, RosterStatus, PlayerExitReason, Prisma } from '@prisma/client'
+import type { PlayerExitReason, Prisma } from '@prisma/client'
+import { MemberStatus, RosterStatus } from '@prisma/client'
 import { recordMovement } from './movement.service'
 import { triggerIndemnityDecisionSubmitted, triggerIndemnityAllDecided } from './pusher.service'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 
 export interface ServiceResult {
   success: boolean
@@ -194,14 +194,16 @@ export async function getMyAffectedPlayers(
   const inCalcoloIndennizziPhase = !!activeSession
 
   // Check if already submitted decisions
-  const existingDecision = activeSession ? await prisma.indemnityDecision.findUnique({
-    where: {
-      sessionId_memberId: {
-        sessionId: activeSession.id,
-        memberId: member.id,
-      },
-    },
-  }) : null
+  const existingDecision = activeSession
+    ? await prisma.indemnityDecision.findUnique({
+        where: {
+          sessionId_memberId: {
+            sessionId: activeSession.id,
+            memberId: member.id,
+          },
+        },
+      })
+    : null
 
   // Get the indennizzo estero amount from the session's prize configuration
   let indennizzoEstero = 50 // Default
@@ -328,8 +330,8 @@ export async function submitPlayerDecisions(
   })
 
   // Validate that all affected players have decisions (except RITIRATO which is automatic)
-  const needsDecision = affectedRosters.filter(r =>
-    r.player.exitReason !== 'RITIRATO' && r.contract
+  const needsDecision = affectedRosters.filter(
+    r => r.player.exitReason !== 'RITIRATO' && r.contract
   )
 
   const decisionMap = new Map(decisions.map(d => [d.rosterId, d.decision]))
@@ -338,7 +340,7 @@ export async function submitPlayerDecisions(
     if (!decisionMap.has(roster.id)) {
       return {
         success: false,
-        message: `Decisione mancante per ${roster.player.name}`
+        message: `Decisione mancante per ${roster.player.name}`,
       }
     }
   }
@@ -361,7 +363,7 @@ export async function submitPlayerDecisions(
 
   // Process decisions in transaction
   try {
-    const processedResults = await prisma.$transaction(async (tx) => {
+    const processedResults = await prisma.$transaction(async tx => {
       const results: Array<{
         playerName: string
         exitReason: PlayerExitReason
@@ -370,8 +372,8 @@ export async function submitPlayerDecisions(
       }> = []
 
       // Process RITIRATO players automatically (contract dissolved, no compensation)
-      const ritiratiPlayers = affectedRosters.filter(r =>
-        r.player.exitReason === 'RITIRATO' && r.contract
+      const ritiratiPlayers = affectedRosters.filter(
+        r => r.player.exitReason === 'RITIRATO' && r.contract
       )
 
       for (const roster of ritiratiPlayers) {
@@ -521,9 +523,7 @@ export async function submitPlayerDecisions(
       },
     })
 
-    const managersWithAffected = allMembers.filter(m =>
-      m.roster.some(r => r.contract)
-    )
+    const managersWithAffected = allMembers.filter(m => m.roster.some(r => r.contract))
 
     const allDecisions = await prisma.indemnityDecision.findMany({
       where: { sessionId: activeSession.id },
@@ -557,9 +557,10 @@ export async function submitPlayerDecisions(
 
     return {
       success: true,
-      message: totalCompensation > 0
-        ? `Decisioni registrate. Compenso ricevuto: ${totalCompensation}M`
-        : 'Decisioni registrate',
+      message:
+        totalCompensation > 0
+          ? `Decisioni registrate. Compenso ricevuto: ${totalCompensation}M`
+          : 'Decisioni registrate',
       data: {
         processed: processedResults,
         totalCompensation,
@@ -567,7 +568,7 @@ export async function submitPlayerDecisions(
     }
   } catch (error) {
     console.error('Error processing indemnity decisions:', error)
-    return { success: false, message: 'Errore durante l\'elaborazione delle decisioni' }
+    return { success: false, message: "Errore durante l'elaborazione delle decisioni" }
   }
 }
 
@@ -721,9 +722,7 @@ export async function canAdvanceFromCalcoloIndennizzi(
   })
 
   // Filter to members who have affected players with contracts
-  const managersWithAffected = members.filter(m =>
-    m.roster.some(r => r.contract)
-  )
+  const managersWithAffected = members.filter(m => m.roster.some(r => r.contract))
 
   // Get decisions for this session
   const decisions = await prisma.indemnityDecision.findMany({
@@ -808,9 +807,7 @@ export async function autoProcessExitedPlayers(
   })
 
   // Filter to members who have affected players with contracts
-  const membersWithAffected = members.filter(m =>
-    m.roster.some(r => r.contract)
-  )
+  const membersWithAffected = members.filter(m => m.roster.some(r => r.contract))
 
   if (membersWithAffected.length === 0) {
     return emptyResult
@@ -864,7 +861,7 @@ export async function autoProcessExitedPlayers(
   }
 
   // Process all in a single transaction
-  const memberResults = await prisma.$transaction(async (tx) => {
+  const memberResults = await prisma.$transaction(async tx => {
     const results: AutoProcessResult['memberResults'] = []
 
     for (const member of membersWithAffected) {
@@ -972,7 +969,8 @@ export async function autoProcessExitedPlayers(
     })
   }
 
-  const totalProcessed = byExitReason.ritirato.count + byExitReason.retrocesso.count + byExitReason.estero.count
+  const totalProcessed =
+    byExitReason.ritirato.count + byExitReason.retrocesso.count + byExitReason.estero.count
 
   return {
     totalProcessed,

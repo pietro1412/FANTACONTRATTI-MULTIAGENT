@@ -1,6 +1,5 @@
-import { PrismaClient, AlertType, AlertSeverity } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import type { AlertType, AlertSeverity } from '@prisma/client'
+import { prisma } from '../lib/prisma'
 
 export interface ServiceResult {
   success: boolean
@@ -96,10 +95,7 @@ export async function getAlertsForMember(
       memberId,
       alert: {
         playerId: { in: allPlayerIds },
-        OR: [
-          { validUntil: null },
-          { validUntil: { gte: new Date() } },
-        ],
+        OR: [{ validUntil: null }, { validUntil: { gte: new Date() } }],
       },
     }
 
@@ -228,10 +224,7 @@ export async function getUnreadCount(memberId: string): Promise<ServiceResult> {
         isRead: false,
         alert: {
           playerId: { in: allPlayerIds },
-          OR: [
-            { validUntil: null },
-            { validUntil: { gte: new Date() } },
-          ],
+          OR: [{ validUntil: null }, { validUntil: { gte: new Date() } }],
         },
       },
     })
@@ -245,10 +238,7 @@ export async function getUnreadCount(memberId: string): Promise<ServiceResult> {
 
 // ==================== MARK ALERT AS READ ====================
 
-export async function markAsRead(
-  notificationId: string,
-  memberId: string
-): Promise<ServiceResult> {
+export async function markAsRead(notificationId: string, memberId: string): Promise<ServiceResult> {
   try {
     // Verify ownership
     const notification = await prisma.playerAlertNotification.findFirst({
@@ -263,7 +253,7 @@ export async function markAsRead(
     }
 
     if (notification.isRead) {
-      return { success: true, message: 'Notifica gia\' letta' }
+      return { success: true, message: "Notifica gia' letta" }
     }
 
     await prisma.playerAlertNotification.update({
@@ -371,10 +361,12 @@ export async function createAlert(data: AlertData): Promise<ServiceResult> {
     })
 
     // Get unique member IDs
-    const memberIds = [...new Set([
-      ...watchlistMembers.map(w => w.memberId),
-      ...rosterMembers.map(r => r.leagueMemberId),
-    ])]
+    const memberIds = [
+      ...new Set([
+        ...watchlistMembers.map(w => w.memberId),
+        ...rosterMembers.map(r => r.leagueMemberId),
+      ]),
+    ]
 
     // Create notifications for all interested members
     if (memberIds.length > 0) {
@@ -396,7 +388,7 @@ export async function createAlert(data: AlertData): Promise<ServiceResult> {
     }
   } catch (error) {
     console.error('Error creating alert:', error)
-    return { success: false, message: 'Errore nella creazione dell\'alert' }
+    return { success: false, message: "Errore nella creazione dell'alert" }
   }
 }
 

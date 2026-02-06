@@ -3,9 +3,7 @@
  * Sync and calculate monthly performance breakdown for players
  */
 
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 
 const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY
 const SERIE_A_LEAGUE_ID = 135
@@ -105,7 +103,7 @@ export async function syncSeasonRatings(season: number): Promise<{
     }
 
     // Rate limiting (API-Football allows 10 requests/minute on free plan)
-    await new Promise((r) => setTimeout(r, 200))
+    await new Promise(r => setTimeout(r, 200))
   }
 
   return {
@@ -159,14 +157,11 @@ export async function calculateSeasonalStats(playerId: string): Promise<{
   // Calculate averages per month
   const monthly_breakdown: Record<string, number> = {}
   for (const [month, vals] of Object.entries(byMonth)) {
-    monthly_breakdown[month] =
-      Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10
+    monthly_breakdown[month] = Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10
   }
 
   // Calculate overall average
-  const allRatings = ratings
-    .filter((r) => r.rating !== null)
-    .map((r) => r.rating!)
+  const allRatings = ratings.filter(r => r.rating !== null).map(r => r.rating!)
   const avg_rating =
     Math.round((allRatings.reduce((a, b) => a + b, 0) / allRatings.length) * 10) / 10
 

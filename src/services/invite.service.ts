@@ -1,8 +1,7 @@
-import { PrismaClient, MemberStatus, InviteStatus, JoinType } from '@prisma/client'
+import { MemberStatus, InviteStatus, JoinType } from '@prisma/client'
 import { randomBytes } from 'crypto'
 import { createEmailService } from '../modules/identity/infrastructure/services/email.factory'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 const emailService = createEmailService()
 
 export interface ServiceResult {
@@ -52,7 +51,10 @@ export async function createEmailInvite(
   }
 
   if (league.status !== 'DRAFT') {
-    return { success: false, message: 'La lega è già stata avviata, non puoi invitare nuovi membri' }
+    return {
+      success: false,
+      message: 'La lega è già stata avviata, non puoi invitare nuovi membri',
+    }
   }
 
   // Verifica che l'email non sia già un membro attivo
@@ -325,10 +327,7 @@ export async function getPendingInvites(
 
 // ==================== ANNULLA INVITO ====================
 
-export async function cancelInvite(
-  inviteId: string,
-  adminUserId: string
-): Promise<ServiceResult> {
+export async function cancelInvite(inviteId: string, adminUserId: string): Promise<ServiceResult> {
   const invite = await prisma.leagueInvite.findUnique({
     where: { id: inviteId },
     include: { league: true },
@@ -452,10 +451,7 @@ export async function getInviteInfoDetailed(token: string): Promise<ServiceResul
                 },
               },
             },
-            orderBy: [
-              { role: 'asc' },
-              { joinedAt: 'asc' },
-            ],
+            orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
           },
         },
       },
@@ -505,11 +501,13 @@ export async function getInviteInfoDetailed(token: string): Promise<ServiceResul
             forward: invite.league.forwardSlots,
           },
         },
-        admin: admin ? {
-          username: admin.user.username,
-          teamName: admin.teamName,
-          profilePhoto: admin.user.profilePhoto,
-        } : null,
+        admin: admin
+          ? {
+              username: admin.user.username,
+              teamName: admin.teamName,
+              profilePhoto: admin.user.profilePhoto,
+            }
+          : null,
         members: invite.league.members.map(m => ({
           id: m.id,
           role: m.role,
@@ -585,10 +583,7 @@ export async function getMyPendingInvites(userId: string): Promise<ServiceResult
 
 // ==================== RIFIUTA INVITO ====================
 
-export async function rejectInvite(
-  token: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function rejectInvite(token: string, userId: string): Promise<ServiceResult> {
   // Trova l'invito with league info
   const invite = await prisma.leagueInvite.findUnique({
     where: { token },

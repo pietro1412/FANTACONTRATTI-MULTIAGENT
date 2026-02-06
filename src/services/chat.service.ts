@@ -1,29 +1,27 @@
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 
 // Frasi random per simulazione chat
 const RANDOM_MESSAGES = [
-  "Questo giocatore vale oro!",
-  "Troppo caro per me...",
-  "Lo voglio a tutti i costi!",
-  "Che rubata sarebbe!",
-  "Non mi interessa",
-  "Ottima scelta!",
-  "Vai piano con le offerte!",
-  "Lo compro io, statevi calmi",
-  "Budget in esaurimento...",
-  "Chi rilancia?",
-  "Prezzo giusto",
-  "Lo lascio passare",
-  "Interessante...",
-  "Forza, offrite!",
-  "Mi sa che passo",
-  "Top player!",
-  "Flop assicurato",
-  "Lo prendo io!",
-  "Aspetto il prossimo",
-  "Grande acquisto!",
+  'Questo giocatore vale oro!',
+  'Troppo caro per me...',
+  'Lo voglio a tutti i costi!',
+  'Che rubata sarebbe!',
+  'Non mi interessa',
+  'Ottima scelta!',
+  'Vai piano con le offerte!',
+  'Lo compro io, statevi calmi',
+  'Budget in esaurimento...',
+  'Chi rilancia?',
+  'Prezzo giusto',
+  'Lo lascio passare',
+  'Interessante...',
+  'Forza, offrite!',
+  'Mi sa che passo',
+  'Top player!',
+  'Flop assicurato',
+  'Lo prendo io!',
+  'Aspetto il prossimo',
+  'Grande acquisto!',
 ]
 
 export async function getMessages(sessionId: string, userId: string, since?: string) {
@@ -34,11 +32,11 @@ export async function getMessages(sessionId: string, userId: string, since?: str
       league: {
         include: {
           members: {
-            where: { user: { id: userId }, status: 'ACTIVE' }
-          }
-        }
-      }
-    }
+            where: { user: { id: userId }, status: 'ACTIVE' },
+          },
+        },
+      },
+    },
   })
 
   if (!session) {
@@ -51,7 +49,7 @@ export async function getMessages(sessionId: string, userId: string, since?: str
 
   // Costruisci la query per i messaggi
   const whereClause: { marketSessionId: string; createdAt?: { gt: Date } } = {
-    marketSessionId: sessionId
+    marketSessionId: sessionId,
   }
 
   if (since) {
@@ -64,13 +62,13 @@ export async function getMessages(sessionId: string, userId: string, since?: str
       member: {
         include: {
           user: {
-            select: { username: true }
-          }
-        }
-      }
+            select: { username: true },
+          },
+        },
+      },
     },
     orderBy: { createdAt: 'asc' },
-    take: 100 // Limita a 100 messaggi
+    take: 100, // Limita a 100 messaggi
   })
 
   return {
@@ -84,10 +82,10 @@ export async function getMessages(sessionId: string, userId: string, since?: str
         member: {
           id: m.member.id,
           username: m.member.user.username,
-          teamName: m.member.teamName
-        }
-      }))
-    }
+          teamName: m.member.teamName,
+        },
+      })),
+    },
   }
 }
 
@@ -99,11 +97,11 @@ export async function sendMessage(sessionId: string, userId: string, content: st
       league: {
         include: {
           members: {
-            where: { user: { id: userId }, status: 'ACTIVE' }
-          }
-        }
-      }
-    }
+            where: { user: { id: userId }, status: 'ACTIVE' },
+          },
+        },
+      },
+    },
   })
 
   if (!session) {
@@ -121,17 +119,17 @@ export async function sendMessage(sessionId: string, userId: string, content: st
       marketSessionId: sessionId,
       memberId: membership.id,
       content,
-      isSystem: false
+      isSystem: false,
     },
     include: {
       member: {
         include: {
           user: {
-            select: { username: true }
-          }
-        }
-      }
-    }
+            select: { username: true },
+          },
+        },
+      },
+    },
   })
 
   return {
@@ -145,10 +143,10 @@ export async function sendMessage(sessionId: string, userId: string, content: st
         member: {
           id: message.member.id,
           username: message.member.user.username,
-          teamName: message.member.teamName
-        }
-      }
-    }
+          teamName: message.member.teamName,
+        },
+      },
+    },
   }
 }
 
@@ -160,11 +158,11 @@ export async function sendRandomBotMessage(sessionId: string, userId: string) {
       league: {
         include: {
           members: {
-            where: { status: 'ACTIVE' }
-          }
-        }
-      }
-    }
+            where: { status: 'ACTIVE' },
+          },
+        },
+      },
+    },
   })
 
   if (!session) {
@@ -195,17 +193,17 @@ export async function sendRandomBotMessage(sessionId: string, userId: string) {
       marketSessionId: sessionId,
       memberId: randomMember.id,
       content: randomMessage,
-      isSystem: false
+      isSystem: false,
     },
     include: {
       member: {
         include: {
           user: {
-            select: { username: true }
-          }
-        }
-      }
-    }
+            select: { username: true },
+          },
+        },
+      },
+    },
   })
 
   return {
@@ -217,11 +215,11 @@ export async function sendRandomBotMessage(sessionId: string, userId: string) {
         isSystem: message.isSystem,
         createdAt: message.createdAt.toISOString(),
         member: {
-          id: message.member!.id,
-          username: message.member!.user.username,
-          teamName: message.member!.teamName
-        }
-      }
-    }
+          id: message.member.id,
+          username: message.member.user.username,
+          teamName: message.member.teamName,
+        },
+      },
+    },
   }
 }

@@ -4,11 +4,10 @@
  */
 
 import { Router } from 'express'
-import { PrismaClient } from '@prisma/client'
 import { authMiddleware } from '../middleware/auth'
+import { prisma } from '../../lib/prisma'
 
 const router = Router()
-const prisma = new PrismaClient()
 
 /**
  * GET /api/leagues/:leagueId/plans
@@ -228,7 +227,7 @@ router.put('/leagues/:leagueId/plans/:planId', authMiddleware, async (req, res) 
     res.json({ success: true, data: plan })
   } catch (error) {
     console.error('Error updating plan:', error)
-    res.status(500).json({ success: false, message: 'Errore nell\'aggiornamento del piano' })
+    res.status(500).json({ success: false, message: "Errore nell'aggiornamento del piano" })
   }
 })
 
@@ -268,7 +267,7 @@ router.delete('/leagues/:leagueId/plans/:planId', authMiddleware, async (req, re
     res.json({ success: true, message: 'Piano eliminato' })
   } catch (error) {
     console.error('Error deleting plan:', error)
-    res.status(500).json({ success: false, message: 'Errore nell\'eliminazione del piano' })
+    res.status(500).json({ success: false, message: "Errore nell'eliminazione del piano" })
   }
 })
 
@@ -316,7 +315,7 @@ router.post('/leagues/:leagueId/plans/:planId/activate', authMiddleware, async (
     res.json({ success: true, data: plan })
   } catch (error) {
     console.error('Error activating plan:', error)
-    res.status(500).json({ success: false, message: 'Errore nell\'attivazione del piano' })
+    res.status(500).json({ success: false, message: "Errore nell'attivazione del piano" })
   }
 })
 

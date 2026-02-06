@@ -55,8 +55,13 @@ export function Chat({ sessionId, currentMemberId, isAdmin }: ChatProps) {
 
   useEffect(() => {
     loadMessages()
-    const interval = setInterval(loadMessages, 2000)
-    return () => clearInterval(interval)
+    const interval = setInterval(() => {
+      if (document.hidden) return
+      loadMessages()
+    }, 5000)
+    return () => {
+      clearInterval(interval)
+    }
   }, [loadMessages])
 
   useEffect(() => {
@@ -102,7 +107,9 @@ export function Chat({ sessionId, currentMemberId, isAdmin }: ChatProps) {
       {/* Header */}
       <div
         className="p-3 border-b border-surface-50/20 flex items-center justify-between bg-surface-300 cursor-pointer"
-        onClick={() => setIsCollapsed(!isCollapsed)}
+        onClick={() => {
+          setIsCollapsed(!isCollapsed)
+        }}
       >
         <div className="flex items-center gap-2">
           <span className="text-lg">💬</span>
@@ -116,7 +123,10 @@ export function Chat({ sessionId, currentMemberId, isAdmin }: ChatProps) {
         <div className="flex items-center gap-1">
           {isAdmin && !isCollapsed && (
             <button
-              onClick={(e) => { e.stopPropagation(); handleSimulate() }}
+              onClick={e => {
+                e.stopPropagation()
+                handleSimulate()
+              }}
               className="p-1.5 rounded hover:bg-surface-50/20 text-gray-400 hover:text-purple-400 transition-colors"
               title="Simula messaggio random da altro DG"
             >
@@ -124,11 +134,24 @@ export function Chat({ sessionId, currentMemberId, isAdmin }: ChatProps) {
             </button>
           )}
           <button
-            onClick={(e) => { e.stopPropagation(); setIsCollapsed(!isCollapsed) }}
+            onClick={e => {
+              e.stopPropagation()
+              setIsCollapsed(!isCollapsed)
+            }}
             className="p-1.5 rounded hover:bg-surface-50/20 text-gray-400 hover:text-white transition-colors"
           >
-            <svg className={`w-4 h-4 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <svg
+              className={`w-4 h-4 transition-transform ${isCollapsed ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </button>
         </div>
@@ -180,7 +203,9 @@ export function Chat({ sessionId, currentMemberId, isAdmin }: ChatProps) {
               <input
                 type="text"
                 value={newMessage}
-                onChange={e => setNewMessage(e.target.value)}
+                onChange={e => {
+                  setNewMessage(e.target.value)
+                }}
                 placeholder="Scrivi..."
                 maxLength={500}
                 className="flex-1 bg-surface-300 border border-surface-50/30 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500"
@@ -191,7 +216,12 @@ export function Chat({ sessionId, currentMemberId, isAdmin }: ChatProps) {
                 className="bg-primary-500 hover:bg-primary-600 disabled:bg-surface-300 disabled:text-gray-500 text-white rounded-lg px-3 py-2 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                  />
                 </svg>
               </button>
             </div>

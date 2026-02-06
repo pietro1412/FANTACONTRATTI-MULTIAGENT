@@ -41,4 +41,6 @@ model TradeOffer {
   parentOfferId   String?
   parentOffer     TradeOffer?  @relation("CounterOffers", fields: [parentOfferId], references: [id])
   counterOffers   TradeOffer[] @relation("CounterOffers")
+
+  @@index([marketSessionId, status])
 }

@@ -1,7 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '../lib/prisma'
 import { pusher } from '../services/pusher.service'
 
 import authRoutes from './routes/auth'
@@ -50,7 +50,6 @@ app.get('/api/health', (_req, res) => {
 })
 
 // Diagnostic endpoint for debugging latency issues
-const diagPrisma = new PrismaClient()
 app.get('/api/debug/timing', async (_req, res) => {
   const results: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
@@ -61,7 +60,9 @@ app.get('/api/debug/timing', async (_req, res) => {
   const pusherConfig = {
     appId: process.env.PUSHER_APP_ID ? '✓ set' : '✗ missing',
     key: process.env.VITE_PUSHER_KEY ? '✓ set' : '✗ missing',
-    secret: process.env.PUSHER_SECRET ? '✓ set (' + process.env.PUSHER_SECRET?.slice(0, 4) + '...)' : '✗ missing',
+    secret: process.env.PUSHER_SECRET
+      ? '✓ set (' + process.env.PUSHER_SECRET?.slice(0, 4) + '...)'
+      : '✗ missing',
     cluster: process.env.VITE_PUSHER_CLUSTER || '✗ missing',
     instanceCreated: pusher ? '✓ yes' : '✗ no',
   }
@@ -70,7 +71,7 @@ app.get('/api/debug/timing', async (_req, res) => {
   // 2. Test database connection
   const dbStart = Date.now()
   try {
-    await diagPrisma.$queryRaw`SELECT 1`
+    await prisma.$queryRaw`SELECT 1`
     results.dbLatency = `${Date.now() - dbStart}ms`
     results.dbStatus = '✓ connected'
   } catch (err) {
@@ -84,7 +85,7 @@ app.get('/api/debug/timing', async (_req, res) => {
     try {
       await pusher.trigger('debug-channel', 'test-event', {
         test: true,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       })
       results.pusherLatency = `${Date.now() - pusherStart}ms`
       results.pusherStatus = '✓ working'
@@ -101,7 +102,9 @@ app.get('/api/debug/timing', async (_req, res) => {
   results.env = {
     FRONTEND_URL: process.env.FRONTEND_URL || 'not set',
     API_PORT: process.env.API_PORT || 'not set',
-    DATABASE_URL: process.env.DATABASE_URL ? '✓ set (...' + process.env.DATABASE_URL.slice(-20) + ')' : '✗ missing',
+    DATABASE_URL: process.env.DATABASE_URL
+      ? '✓ set (...' + process.env.DATABASE_URL.slice(-20) + ')'
+      : '✗ missing',
   }
 
   res.json(results)

@@ -1,7 +1,6 @@
-import { PrismaClient, MemberStatus, RosterStatus, AcquisitionType } from '@prisma/client'
+import { MemberStatus, RosterStatus, AcquisitionType } from '@prisma/client'
 import { recordMovement } from './movement.service'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 
 export interface ServiceResult {
   success: boolean
@@ -11,10 +10,10 @@ export interface ServiceResult {
 
 // Moltiplicatori per calcolo clausola rescissione (da specifica)
 const DURATION_MULTIPLIERS: Record<number, number> = {
-  4: 11,  // 4 semestri = moltiplicatore 11
-  3: 9,   // 3 semestri = moltiplicatore 9
-  2: 7,   // 2 semestri = moltiplicatore 7
-  1: 4,   // 1 semestre = moltiplicatore 4
+  4: 11, // 4 semestri = moltiplicatore 11
+  3: 9, // 3 semestri = moltiplicatore 9
+  2: 7, // 2 semestri = moltiplicatore 7
+  1: 3, // 1 semestre = moltiplicatore 3
 }
 
 const MAX_DURATION = 4 // Max 4 semestri
@@ -22,7 +21,7 @@ const MIN_SALARY_PERCENTAGE = 0.1 // 10% del prezzo acquisto per acquisti non-PR
 const MAX_ROSTER_SIZE = 29 // Massimo giocatori in rosa dopo consolidamento
 
 function getMultiplier(duration: number): number {
-  return DURATION_MULTIPLIERS[duration] ?? 4
+  return DURATION_MULTIPLIERS[duration] ?? 3
 }
 
 export function calculateRescissionClause(salary: number, duration: number): number {
@@ -69,7 +68,9 @@ export function isValidRenewal(
     const isValid = newSalary * newDuration >= initialSalary
     return {
       valid: isValid,
-      reason: isValid ? undefined : `Spalma non valido: ${newSalary} x ${newDuration} = ${newSalary * newDuration} < ${initialSalary} (ingaggio iniziale)`
+      reason: isValid
+        ? undefined
+        : `Spalma non valido: ${newSalary} x ${newDuration} = ${newSalary * newDuration} < ${initialSalary} (ingaggio iniziale)`,
     }
   }
 
@@ -89,7 +90,7 @@ export function isValidRenewal(
   if (newDuration > currentDuration && newSalary <= currentSalary) {
     return {
       valid: false,
-      reason: `Per aumentare la durata da ${currentDuration} a ${newDuration}, devi prima aumentare l'ingaggio (attuale: ${currentSalary}M)`
+      reason: `Per aumentare la durata da ${currentDuration} a ${newDuration}, devi prima aumentare l'ingaggio (attuale: ${currentSalary}M)`,
     }
   }
 
@@ -182,7 +183,10 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
   // Add calculated fields for contracts (including draft values)
   const contracts = playersWithContract.map(r => {
     const rescissionClause = calculateRescissionClause(r.contract!.salary, r.contract!.duration)
-    const isExitedPlayer = r.player.listStatus === 'NOT_IN_LIST' && r.player.exitReason != null && r.player.exitReason !== 'RITIRATO'
+    const isExitedPlayer =
+      r.player.listStatus === 'NOT_IN_LIST' &&
+      r.player.exitReason != null &&
+      r.player.exitReason !== 'RITIRATO'
     const exitReason = r.player.exitReason
 
     return {
@@ -197,14 +201,15 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
       // Draft values (if any saved)
       draftSalary: r.contract!.draftSalary,
       draftDuration: r.contract!.draftDuration,
-      draftReleased: r.contract!.draftReleased,  // Marcato per taglio
-      draftExitDecision: r.contract!.draftExitDecision,  // null=INDECISO, "KEEP", "RELEASE"
+      draftReleased: r.contract!.draftReleased, // Marcato per taglio
+      draftExitDecision: r.contract!.draftExitDecision, // null=INDECISO, "KEEP", "RELEASE"
       // Exited player info
       isExitedPlayer,
       exitReason,
-      indemnityCompensation: (isExitedPlayer && exitReason === 'ESTERO')
-        ? (playerIndemnityAmounts[r.player.name] ?? indennizzoEsteroDefault)
-        : 0,
+      indemnityCompensation:
+        isExitedPlayer && exitReason === 'ESTERO'
+          ? (playerIndemnityAmounts[r.player.name] ?? indennizzoEsteroDefault)
+          : 0,
       roster: {
         id: r.id,
         player: r.player,
@@ -220,9 +225,10 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
     player: r.player,
     acquisitionPrice: r.acquisitionPrice,
     acquisitionType: r.acquisitionType,
-    minSalary: r.acquisitionType === AcquisitionType.FIRST_MARKET
-      ? 1
-      : Math.ceil(r.acquisitionPrice * MIN_SALARY_PERCENTAGE),
+    minSalary:
+      r.acquisitionType === AcquisitionType.FIRST_MARKET
+        ? 1
+        : Math.ceil(r.acquisitionPrice * MIN_SALARY_PERCENTAGE),
     // Draft values (if any saved)
     draftSalary: r.draftContract?.salary || null,
     draftDuration: r.draftContract?.duration || null,
@@ -240,10 +246,7 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
   }
 }
 
-export async function getContractById(
-  contractId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function getContractById(contractId: string, userId: string): Promise<ServiceResult> {
   const contract = await prisma.playerContract.findUnique({
     where: { id: contractId },
     include: {
@@ -350,7 +353,10 @@ export async function createContract(
   if (roster.acquisitionType !== AcquisitionType.FIRST_MARKET) {
     const minSalary = Math.ceil(roster.acquisitionPrice * MIN_SALARY_PERCENTAGE)
     if (salary < minSalary) {
-      return { success: false, message: `Ingaggio minimo per questo giocatore: ${minSalary} (10% del prezzo acquisto ${roster.acquisitionPrice})` }
+      return {
+        success: false,
+        message: `Ingaggio minimo per questo giocatore: ${minSalary} (10% del prezzo acquisto ${roster.acquisitionPrice})`,
+      }
     }
   }
 
@@ -428,7 +434,10 @@ export async function renewContract(
 
   // Block contract modification for players acquired via trade
   if (contract.roster.acquisitionType === 'TRADE') {
-    return { success: false, message: 'Non puoi modificare il contratto di un giocatore acquisito tramite scambio' }
+    return {
+      success: false,
+      message: 'Non puoi modificare il contratto di un giocatore acquisito tramite scambio',
+    }
   }
 
   // Check if in CONTRATTI phase
@@ -468,7 +477,10 @@ export async function renewContract(
   // Check budget
   const member = contract.roster.leagueMember
   if (renewalCost > member.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Costo rinnovo: ${renewalCost}, Budget: ${member.currentBudget}` }
+    return {
+      success: false,
+      message: `Budget insufficiente. Costo rinnovo: ${renewalCost}, Budget: ${member.currentBudget}`,
+    }
   }
 
   // Calculate new rescission clause
@@ -482,7 +494,7 @@ export async function renewContract(
       duration: newDuration,
       rescissionClause: newRescissionClause,
       renewalHistory: {
-        ...(contract.renewalHistory as object || {}),
+        ...((contract.renewalHistory as object) || {}),
         [new Date().toISOString()]: {
           oldSalary: contract.salary,
           oldDuration: contract.duration,
@@ -550,10 +562,7 @@ export async function renewContract(
 
 // ==================== RELEASE PLAYER ====================
 
-export async function releasePlayer(
-  contractId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function releasePlayer(contractId: string, userId: string): Promise<ServiceResult> {
   // Get contract with all relations
   const contract = await prisma.playerContract.findUnique({
     where: { id: contractId },
@@ -593,7 +602,10 @@ export async function releasePlayer(
   // Check budget
   const member = contract.roster.leagueMember
   if (releaseCost > member.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Costo taglio: ${releaseCost}, Budget: ${member.currentBudget}` }
+    return {
+      success: false,
+      message: `Budget insufficiente. Costo taglio: ${releaseCost}, Budget: ${member.currentBudget}`,
+    }
   }
 
   const playerName = contract.roster.player.name
@@ -747,9 +759,10 @@ export async function previewContract(
   }
 
   // Calculate minimum salary
-  const minSalary = roster.acquisitionType === AcquisitionType.FIRST_MARKET
-    ? 1
-    : Math.ceil(roster.acquisitionPrice * MIN_SALARY_PERCENTAGE)
+  const minSalary =
+    roster.acquisitionType === AcquisitionType.FIRST_MARKET
+      ? 1
+      : Math.ceil(roster.acquisitionPrice * MIN_SALARY_PERCENTAGE)
 
   const isValidSalary = salary >= minSalary
   const isValidDuration = duration >= 1 && duration <= MAX_DURATION
@@ -768,7 +781,9 @@ export async function previewContract(
       isValid: isValidSalary && isValidDuration,
       validationError: !isValidSalary
         ? `Ingaggio minimo: ${minSalary}`
-        : (!isValidDuration ? `Durata deve essere tra 1 e ${MAX_DURATION}` : undefined),
+        : !isValidDuration
+          ? `Durata deve essere tra 1 e ${MAX_DURATION}`
+          : undefined,
     },
   }
 }
@@ -881,7 +896,7 @@ export async function consolidateContracts(
 
   // Process all operations in a transaction
   try {
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async tx => {
       // 1. Process all renewals
       if (renewals && renewals.length > 0) {
         for (const renewal of renewals) {
@@ -899,7 +914,7 @@ export async function consolidateContracts(
           const renewalCost = salaryDiff > 0 ? salaryDiff : 0
 
           // Calculate new rescission clause
-          const multiplier = DURATION_MULTIPLIERS[renewal.duration as keyof typeof DURATION_MULTIPLIERS] || 7
+          const multiplier = DURATION_MULTIPLIERS[renewal.duration] || 7
           const newRescissionClause = renewal.salary * multiplier
 
           // Update contract
@@ -939,7 +954,7 @@ export async function consolidateContracts(
           }
 
           // Calculate rescission clause
-          const multiplier = DURATION_MULTIPLIERS[nc.duration as keyof typeof DURATION_MULTIPLIERS] || 7
+          const multiplier = DURATION_MULTIPLIERS[nc.duration] || 7
           const rescissionClause = nc.salary * multiplier
 
           // Create contract
@@ -1038,26 +1053,32 @@ export async function consolidateContracts(
               where: { id: member.id },
               data: { currentBudget: { increment: compensation } },
             })
-            await recordMovement(tx, {
-              leagueId,
-              sessionId: activeSession.id,
-              playerId: player.id,
-              fromMemberId: member.id,
-              toMemberId: null,
-              type: 'ABROAD_COMPENSATION',
-              amount: compensation,
-            })
+            await recordMovement(
+              {
+                leagueId,
+                marketSessionId: activeSession.id,
+                playerId: player.id,
+                movementType: 'ABROAD_COMPENSATION',
+                fromMemberId: member.id,
+                toMemberId: null,
+                price: compensation,
+              },
+              tx
+            )
           } else {
             // RETROCESSO: free release, no compensation
-            await recordMovement(tx, {
-              leagueId,
-              sessionId: activeSession.id,
-              playerId: player.id,
-              fromMemberId: member.id,
-              toMemberId: null,
-              type: 'RELEGATION_RELEASE',
-              amount: 0,
-            })
+            await recordMovement(
+              {
+                leagueId,
+                marketSessionId: activeSession.id,
+                playerId: player.id,
+                movementType: 'RELEGATION_RELEASE',
+                fromMemberId: member.id,
+                toMemberId: null,
+                price: 0,
+              },
+              tx
+            )
           }
         } else {
           // NORMAL RELEASE: standard release cost
@@ -1066,15 +1087,18 @@ export async function consolidateContracts(
             where: { id: member.id },
             data: { currentBudget: { decrement: releaseCost } },
           })
-          await recordMovement(tx, {
-            leagueId,
-            sessionId: activeSession.id,
-            playerId: contract.roster.playerId,
-            fromMemberId: member.id,
-            toMemberId: null,
-            type: 'RELEASE',
-            amount: releaseCost,
-          })
+          await recordMovement(
+            {
+              leagueId,
+              marketSessionId: activeSession.id,
+              playerId: contract.roster.playerId,
+              movementType: 'RELEASE',
+              fromMemberId: member.id,
+              toMemberId: null,
+              price: releaseCost,
+            },
+            tx
+          )
         }
 
         // Delete the contract
@@ -1111,17 +1135,20 @@ export async function consolidateContracts(
       })
 
       for (const contract of keptExitedPlayers) {
-        const movementType = contract.roster.player.exitReason === 'ESTERO'
-          ? 'ABROAD_KEEP' : 'RELEGATION_KEEP'
-        await recordMovement(tx, {
-          leagueId,
-          sessionId: activeSession.id,
-          playerId: contract.roster.player.id,
-          fromMemberId: null,
-          toMemberId: member.id,
-          type: movementType,
-          amount: 0,
-        })
+        const movementType =
+          contract.roster.player.exitReason === 'ESTERO' ? 'ABROAD_KEEP' : 'RELEGATION_KEEP'
+        await recordMovement(
+          {
+            leagueId,
+            marketSessionId: activeSession.id,
+            playerId: contract.roster.player.id,
+            movementType: movementType,
+            fromMemberId: null,
+            toMemberId: member.id,
+            price: 0,
+          },
+          tx
+        )
       }
 
       // 4. Check if all remaining active players have contracts
@@ -1142,7 +1169,9 @@ export async function consolidateContracts(
       // 4.5 Check roster size limit (max 29 players)
       if (roster.length > MAX_ROSTER_SIZE) {
         const excess = roster.length - MAX_ROSTER_SIZE
-        throw new Error(`Rosa troppo grande: ${roster.length} giocatori. Devi tagliare ${excess} giocator${excess === 1 ? 'e' : 'i'} (max ${MAX_ROSTER_SIZE})`)
+        throw new Error(
+          `Rosa troppo grande: ${roster.length} giocatori. Devi tagliare ${excess} giocator${excess === 1 ? 'e' : 'i'} (max ${MAX_ROSTER_SIZE})`
+        )
       }
 
       // 5. Clear all draft values and create consolidation record
@@ -1399,8 +1428,8 @@ export async function saveDrafts(
   userId: string,
   renewals: { contractId: string; salary: number; duration: number }[],
   newContracts: { rosterId: string; salary: number; duration: number }[],
-  releases: string[] = [],  // Contract IDs to mark for release
-  exitDecisions: { contractId: string; decision: 'KEEP' | 'RELEASE' }[] = []  // Exited player decisions
+  releases: string[] = [], // Contract IDs to mark for release
+  exitDecisions: { contractId: string; decision: 'KEEP' | 'RELEASE' }[] = [] // Exited player decisions
 ): Promise<ServiceResult> {
   const member = await prisma.leagueMember.findFirst({
     where: {
@@ -1442,121 +1471,126 @@ export async function saveDrafts(
   }
 
   try {
-    await prisma.$transaction(async (tx) => {
-      // 1. Validate and save draft renewals in batch
-      if (renewals.length > 0) {
-        const contractIds = renewals.map(r => r.contractId)
-        const contracts = await tx.playerContract.findMany({
-          where: {
-            id: { in: contractIds },
-            leagueMemberId: member.id
-          },
-        })
-
-        const validIds = new Set(contracts.map(c => c.id))
-        for (const renewal of renewals) {
-          if (!validIds.has(renewal.contractId)) {
-            throw new Error(`Contratto ${renewal.contractId} non valido`)
-          }
-        }
-
-        // Update each renewal
-        for (const renewal of renewals) {
-          await tx.playerContract.update({
-            where: { id: renewal.contractId },
-            data: {
-              draftSalary: renewal.salary,
-              draftDuration: renewal.duration,
+    await prisma.$transaction(
+      async tx => {
+        // 1. Validate and save draft renewals in batch
+        if (renewals.length > 0) {
+          const contractIds = renewals.map(r => r.contractId)
+          const contracts = await tx.playerContract.findMany({
+            where: {
+              id: { in: contractIds },
+              leagueMemberId: member.id,
             },
           })
-        }
-      }
 
-      // 2. Validate and save draft new contracts in batch
-      if (newContracts.length > 0) {
-        const rosterIds = newContracts.map(nc => nc.rosterId)
-        const rosterEntries = await tx.playerRoster.findMany({
-          where: {
-            id: { in: rosterIds },
-            leagueMemberId: member.id
-          },
-          include: { contract: true },
-        })
-
-        const validRosters = new Map(rosterEntries.map(r => [r.id, r]))
-        for (const nc of newContracts) {
-          const roster = validRosters.get(nc.rosterId)
-          if (!roster) {
-            throw new Error(`Roster entry ${nc.rosterId} non valido`)
+          const validIds = new Set(contracts.map(c => c.id))
+          for (const renewal of renewals) {
+            if (!validIds.has(renewal.contractId)) {
+              throw new Error(`Contratto ${renewal.contractId} non valido`)
+            }
           }
-          if (roster.contract) {
-            throw new Error(`Il giocatore ha già un contratto`)
+
+          // Update each renewal
+          for (const renewal of renewals) {
+            await tx.playerContract.update({
+              where: { id: renewal.contractId },
+              data: {
+                draftSalary: renewal.salary,
+                draftDuration: renewal.duration,
+              },
+            })
           }
         }
 
-        // Upsert each draft contract
-        for (const nc of newContracts) {
-          await tx.draftContract.upsert({
-            where: { rosterId: nc.rosterId },
-            create: {
-              rosterId: nc.rosterId,
-              memberId: member.id,
-              sessionId: activeSession.id,
-              salary: nc.salary,
-              duration: nc.duration,
+        // 2. Validate and save draft new contracts in batch
+        if (newContracts.length > 0) {
+          const rosterIds = newContracts.map(nc => nc.rosterId)
+          const rosterEntries = await tx.playerRoster.findMany({
+            where: {
+              id: { in: rosterIds },
+              leagueMemberId: member.id,
             },
-            update: {
-              salary: nc.salary,
-              duration: nc.duration,
-            },
+            include: { contract: true },
           })
+
+          const validRosters = new Map(rosterEntries.map(r => [r.id, r]))
+          for (const nc of newContracts) {
+            const roster = validRosters.get(nc.rosterId)
+            if (!roster) {
+              throw new Error(`Roster entry ${nc.rosterId} non valido`)
+            }
+            if (roster.contract) {
+              throw new Error(`Il giocatore ha già un contratto`)
+            }
+          }
+
+          // Upsert each draft contract
+          for (const nc of newContracts) {
+            await tx.draftContract.upsert({
+              where: { rosterId: nc.rosterId },
+              create: {
+                rosterId: nc.rosterId,
+                memberId: member.id,
+                sessionId: activeSession.id,
+                salary: nc.salary,
+                duration: nc.duration,
+              },
+              update: {
+                salary: nc.salary,
+                duration: nc.duration,
+              },
+            })
+          }
         }
-      }
 
-      // 3. Mark contracts for release using batch updates
-      // Get IDs of exited player contracts so we don't overwrite their draftReleased
-      const exitDecisionContractIds = exitDecisions.map(ed => ed.contractId)
+        // 3. Mark contracts for release using batch updates
+        // Get IDs of exited player contracts so we don't overwrite their draftReleased
+        const exitDecisionContractIds = exitDecisions.map(ed => ed.contractId)
 
-      // Reset draftReleased only for NON-exited player contracts
-      await tx.playerContract.updateMany({
-        where: {
-          leagueMemberId: member.id,
-          ...(exitDecisionContractIds.length > 0 ? { id: { notIn: exitDecisionContractIds } } : {}),
-        },
-        data: { draftReleased: false },
-      })
-
-      if (releases.length > 0) {
+        // Reset draftReleased only for NON-exited player contracts
         await tx.playerContract.updateMany({
           where: {
-            id: { in: releases },
-            leagueMemberId: member.id
+            leagueMemberId: member.id,
+            ...(exitDecisionContractIds.length > 0
+              ? { id: { notIn: exitDecisionContractIds } }
+              : {}),
           },
-          data: { draftReleased: true },
+          data: { draftReleased: false },
         })
-      }
 
-      // 4. Save exit decisions for exited players
-      // Reset all draftExitDecision first
-      await tx.playerContract.updateMany({
-        where: { leagueMemberId: member.id },
-        data: { draftExitDecision: null },
-      })
-
-      if (exitDecisions.length > 0) {
-        for (const ed of exitDecisions) {
-          await tx.playerContract.update({
-            where: { id: ed.contractId },
-            data: {
-              draftExitDecision: ed.decision,
-              draftReleased: ed.decision === 'RELEASE',
+        if (releases.length > 0) {
+          await tx.playerContract.updateMany({
+            where: {
+              id: { in: releases },
+              leagueMemberId: member.id,
             },
+            data: { draftReleased: true },
           })
         }
+
+        // 4. Save exit decisions for exited players
+        // Reset all draftExitDecision first
+        await tx.playerContract.updateMany({
+          where: { leagueMemberId: member.id },
+          data: { draftExitDecision: null },
+        })
+
+        if (exitDecisions.length > 0) {
+          for (const ed of exitDecisions) {
+            await tx.playerContract.update({
+              where: { id: ed.contractId },
+              data: {
+                draftExitDecision: ed.decision,
+                draftReleased: ed.decision === 'RELEASE',
+              },
+            })
+          }
+        }
+      },
+      {
+        timeout: 30000, // 30 seconds timeout
       }
-    }, {
-      timeout: 30000, // 30 seconds timeout
-    })
+    )
 
     return {
       success: true,
@@ -1640,7 +1674,7 @@ export async function modifyContractPostAcquisition(
   }
 
   // Get existing renewal history or initialize empty array
-  const renewalHistory = (contract.renewalHistory as unknown[] || []) as unknown[]
+  const renewalHistory = (contract.renewalHistory as unknown[]) || []
 
   // Update contract
   const updatedContract = await prisma.playerContract.update({

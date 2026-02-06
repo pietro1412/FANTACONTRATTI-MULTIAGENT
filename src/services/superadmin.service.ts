@@ -1,7 +1,6 @@
-import { PrismaClient, Position, Prisma, PlayerExitReason } from '@prisma/client'
+import type { Position, Prisma, PlayerExitReason } from '@prisma/client'
 import * as XLSX from 'xlsx'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 
 // ==================== TYPES ====================
 
@@ -93,7 +92,10 @@ export async function importQuotazioni(
   // Verify superadmin
   const isSuperAdmin = await verifySuperAdmin(userId)
   if (!isSuperAdmin) {
-    return { success: false, message: 'Non autorizzato. Solo i superadmin possono caricare le quotazioni.' }
+    return {
+      success: false,
+      message: 'Non autorizzato. Solo i superadmin possono caricare le quotazioni.',
+    }
   }
 
   try {
@@ -143,7 +145,7 @@ export async function importQuotazioni(
     // Convert to JSON starting from the header row
     const rows = XLSX.utils.sheet_to_json<PlayerRow>(sheet, {
       range: headerRowIndex,
-      defval: undefined
+      defval: undefined,
     })
 
     if (rows.length === 0) {
@@ -166,11 +168,14 @@ export async function importQuotazioni(
     }
 
     for (const row of rows) {
-      const externalId = String(getField<string | number>(row, 'Id', 'id', 'ID', 'Cod', 'cod') || '').trim()
+      const externalId = String(
+        getField<string | number>(row, 'Id', 'id', 'ID', 'Cod', 'cod') || ''
+      ).trim()
       const name = getField<string>(row, 'Nome', 'nome', 'Name', 'name')?.trim()
       const team = getField<string>(row, 'Squadra', 'squadra', 'Team', 'team')?.trim()
       const positionStr = getField<string>(row, 'R', 'r', 'Ruolo', 'ruolo', 'Role', 'role')
-      const quotation = getField<number>(row, 'Qt.A', 'Qt.I', 'Quotazione', 'quotazione', 'Quot') || 1
+      const quotation =
+        getField<number>(row, 'Qt.A', 'Qt.I', 'Quotazione', 'quotazione', 'Quot') || 1
 
       if (!name) {
         stats.errors.push(`Riga senza nome`)
@@ -194,15 +199,21 @@ export async function importQuotazioni(
 
     // Load all existing players in ONE query
     const existingPlayers = await prisma.serieAPlayer.findMany({
-      select: { id: true, externalId: true, name: true, position: true, listStatus: true }
+      select: { id: true, externalId: true, name: true, position: true, listStatus: true },
     })
 
     // Track IDs of players that were IN_LIST before this import (for NOT_IN_LIST marking)
     const previouslyInListIds = new Set<string>()
 
     // Create lookup maps for fast matching
-    const byExternalId = new Map<string, { id: string; externalId: string | null; name: string; position: Position }>()
-    const byNamePosition = new Map<string, { id: string; externalId: string | null; name: string; position: Position }>()
+    const byExternalId = new Map<
+      string,
+      { id: string; externalId: string | null; name: string; position: Position }
+    >()
+    const byNamePosition = new Map<
+      string,
+      { id: string; externalId: string | null; name: string; position: Position }
+    >()
 
     for (const p of existingPlayers) {
       if (p.listStatus === 'IN_LIST') {
@@ -253,7 +264,7 @@ export async function importQuotazioni(
             quotation: player.quotation,
             listStatus: 'IN_LIST',
             externalId: player.externalId || undefined,
-          }
+          },
         })
         processedIds.add(existing.id)
       } else {
@@ -269,56 +280,63 @@ export async function importQuotazioni(
     }
 
     // Execute all operations in a transaction
-    await prisma.$transaction(async (tx) => {
-      // Batch create new players
-      if (toCreate.length > 0) {
-        await tx.serieAPlayer.createMany({
-          data: toCreate,
-          skipDuplicates: true,
-        })
-        stats.created = toCreate.length
-      }
+    await prisma.$transaction(
+      async tx => {
+        // Batch create new players
+        if (toCreate.length > 0) {
+          await tx.serieAPlayer.createMany({
+            data: toCreate,
+            skipDuplicates: true,
+          })
+          stats.created = toCreate.length
+        }
 
-      // Batch update existing players (in chunks to avoid timeout)
-      const CHUNK_SIZE = 50
-      for (let i = 0; i < toUpdate.length; i += CHUNK_SIZE) {
-        const chunk = toUpdate.slice(i, i + CHUNK_SIZE)
-        await Promise.all(
-          chunk.map(u => tx.serieAPlayer.update({
-            where: { id: u.id },
-            data: u.data
-          }))
+        // Batch update existing players (in chunks to avoid timeout)
+        const CHUNK_SIZE = 50
+        for (let i = 0; i < toUpdate.length; i += CHUNK_SIZE) {
+          const chunk = toUpdate.slice(i, i + CHUNK_SIZE)
+          await Promise.all(
+            chunk.map(u =>
+              tx.serieAPlayer.update({
+                where: { id: u.id },
+                data: u.data,
+              })
+            )
+          )
+        }
+        stats.updated = toUpdate.length
+
+        // Mark players not in new list as NOT_IN_LIST
+        // Only affect players that were IN_LIST BEFORE this import and weren't updated
+        const idsToMarkNotInList = Array.from(previouslyInListIds).filter(
+          id => !processedIds.has(id)
         )
-      }
-      stats.updated = toUpdate.length
+        if (idsToMarkNotInList.length > 0) {
+          const notInListResult = await tx.serieAPlayer.updateMany({
+            where: {
+              id: { in: idsToMarkNotInList },
+            },
+            data: { listStatus: 'NOT_IN_LIST' },
+          })
+          stats.notInList = notInListResult.count
+        }
 
-      // Mark players not in new list as NOT_IN_LIST
-      // Only affect players that were IN_LIST BEFORE this import and weren't updated
-      const idsToMarkNotInList = Array.from(previouslyInListIds).filter(id => !processedIds.has(id))
-      if (idsToMarkNotInList.length > 0) {
-        const notInListResult = await tx.serieAPlayer.updateMany({
-          where: {
-            id: { in: idsToMarkNotInList },
+        // Save upload record
+        await tx.quotazioniUpload.create({
+          data: {
+            uploadedById: userId,
+            fileName,
+            sheetName,
+            playersCreated: stats.created,
+            playersUpdated: stats.updated,
+            playersNotInList: stats.notInList,
+            totalProcessed: rows.length,
+            errors: stats.errors.length > 0 ? stats.errors.slice(0, 10) : undefined,
           },
-          data: { listStatus: 'NOT_IN_LIST' },
         })
-        stats.notInList = notInListResult.count
-      }
-
-      // Save upload record
-      await tx.quotazioniUpload.create({
-        data: {
-          uploadedById: userId,
-          fileName,
-          sheetName,
-          playersCreated: stats.created,
-          playersUpdated: stats.updated,
-          playersNotInList: stats.notInList,
-          totalProcessed: rows.length,
-          errors: stats.errors.length > 0 ? stats.errors.slice(0, 10) : undefined,
-        },
-      })
-    }, { timeout: 25000 }) // 25 second timeout for transaction
+      },
+      { timeout: 25000 }
+    ) // 25 second timeout for transaction
 
     // After import, find players that need exit classification
     // These are players marked as NOT_IN_LIST that have active contracts AND no exitReason set yet
@@ -387,13 +405,13 @@ export async function detectPlayersNeedingClassification(): Promise<ExitedPlayer
     },
   })
 
-  return playersWithContracts.map((player) => ({
+  return playersWithContracts.map(player => ({
     playerId: player.id,
     playerName: player.name,
     position: player.position,
     team: player.team,
     lastQuotation: player.quotation,
-    contracts: player.rosters.map((roster) => ({
+    contracts: player.rosters.map(roster => ({
       leagueId: roster.leagueMember.league.id,
       leagueName: roster.leagueMember.league.name,
       memberId: roster.leagueMember.id,
@@ -413,7 +431,10 @@ export async function classifyExitedPlayers(
   // Verify superadmin
   const isSuperAdmin = await verifySuperAdmin(userId)
   if (!isSuperAdmin) {
-    return { success: false, message: 'Non autorizzato. Solo i superadmin possono classificare i giocatori.' }
+    return {
+      success: false,
+      message: 'Non autorizzato. Solo i superadmin possono classificare i giocatori.',
+    }
   }
 
   if (!classifications || classifications.length === 0) {
@@ -424,7 +445,7 @@ export async function classifyExitedPlayers(
     const now = new Date()
 
     // Update each player with their exit reason
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async tx => {
       for (const { playerId, exitReason } of classifications) {
         await tx.serieAPlayer.update({
           where: { id: playerId },
@@ -626,10 +647,7 @@ export async function getPlayersList(
 
 // ==================== GET ALL LEAGUES ====================
 
-export async function getAllLeagues(
-  userId: string,
-  search?: string
-): Promise<ServiceResult> {
+export async function getAllLeagues(userId: string, search?: string): Promise<ServiceResult> {
   const isSuperAdmin = await verifySuperAdmin(userId)
   if (!isSuperAdmin) {
     return { success: false, message: 'Non autorizzato' }
@@ -646,7 +664,9 @@ export async function getAllLeagues(
   if (search && search.trim()) {
     where.OR = [
       { name: { contains: search.trim(), mode: 'insensitive' } },
-      { members: { some: { user: { username: { contains: search.trim(), mode: 'insensitive' } } } } },
+      {
+        members: { some: { user: { username: { contains: search.trim(), mode: 'insensitive' } } } },
+      },
     ]
   }
 
@@ -682,10 +702,7 @@ export async function getAllLeagues(
 
 // ==================== GET MEMBER ROSTER ====================
 
-export async function getMemberRoster(
-  userId: string,
-  memberId: string
-): Promise<ServiceResult> {
+export async function getMemberRoster(userId: string, memberId: string): Promise<ServiceResult> {
   const isSuperAdmin = await verifySuperAdmin(userId)
   if (!isSuperAdmin) {
     return { success: false, message: 'Non autorizzato' }
@@ -737,10 +754,7 @@ export async function getMemberRoster(
         },
       },
     },
-    orderBy: [
-      { player: { position: 'asc' } },
-      { player: { name: 'asc' } },
-    ],
+    orderBy: [{ player: { position: 'asc' } }, { player: { name: 'asc' } }],
   })
 
   return {

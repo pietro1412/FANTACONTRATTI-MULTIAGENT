@@ -98,6 +98,7 @@ model LeagueMember {
 
   @@unique([userId, leagueId])
   @@index([leagueId, status])
+  @@index([leagueId, role])
   @@index([userId])
 }
 

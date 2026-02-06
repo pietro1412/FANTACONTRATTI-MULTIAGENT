@@ -1,7 +1,7 @@
-import { PrismaClient, MemberStatus, AuctionStatus, Position, Prisma } from '@prisma/client'
+import type { Position, Prisma } from '@prisma/client'
+import { MemberStatus, AuctionStatus } from '@prisma/client'
 import { recordMovement } from './movement.service'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 
 export interface ServiceResult {
   success: boolean
@@ -174,7 +174,10 @@ export async function startFreeAgentAuction(
   // Check if in ASTA_SVINCOLATI phase
   const inSvincolatiPhase = await isInSvincolatiPhase(leagueId)
   if (!inSvincolatiPhase) {
-    return { success: false, message: 'Puoi avviare aste per svincolati solo in fase ASTA_SVINCOLATI' }
+    return {
+      success: false,
+      message: 'Puoi avviare aste per svincolati solo in fase ASTA_SVINCOLATI',
+    }
   }
 
   // Get player
@@ -220,7 +223,7 @@ export async function startFreeAgentAuction(
   })
 
   if (existingAuction) {
-    return { success: false, message: 'C\'è già un\'asta in corso' }
+    return { success: false, message: "C'è già un'asta in corso" }
   }
 
   // Base price = SEMPRE 1 (come da requisiti)
@@ -287,7 +290,7 @@ export async function bidOnFreeAgent(
   }
 
   if (auction.type !== 'FREE_BID') {
-    return { success: false, message: 'Non è un\'asta per svincolati' }
+    return { success: false, message: "Non è un'asta per svincolati" }
   }
 
   if (auction.status !== 'ACTIVE') {
@@ -309,9 +312,13 @@ export async function bidOnFreeAgent(
 
   // Check if member has declared finished (can't bid anymore)
   if (auction.marketSession) {
-    const finishedMembers = (auction.marketSession.svincolatiFinishedMembers as string[] | null) || []
+    const finishedMembers =
+      (auction.marketSession.svincolatiFinishedMembers as string[] | null) || []
     if (finishedMembers.includes(bidder.id)) {
-      return { success: false, message: 'Hai dichiarato di aver finito questa fase. Non puoi più fare offerte.' }
+      return {
+        success: false,
+        message: 'Hai dichiarato di aver finito questa fase. Non puoi più fare offerte.',
+      }
     }
   }
 
@@ -326,8 +333,9 @@ export async function bidOnFreeAgent(
   }
 
   // Check if this is a turn-based svincolati auction (no slot limits)
-  const isTurnBasedSvincolati = auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI' &&
-                                auction.marketSession?.svincolatiState === 'AUCTION'
+  const isTurnBasedSvincolati =
+    auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI' &&
+    auction.marketSession?.svincolatiState === 'AUCTION'
 
   // Only check roster slot availability if NOT in turn-based svincolati phase
   if (!isTurnBasedSvincolati) {
@@ -357,16 +365,22 @@ export async function bidOnFreeAgent(
 
     const currentCount = currentRoster.filter(r => r.player.position === position).length
     if (currentCount >= slotMap[position]) {
-      return { success: false, message: `Slot ${position} pieni. Non puoi fare offerte per questo ruolo.` }
+      return {
+        success: false,
+        message: `Slot ${position} pieni. Non puoi fare offerte per questo ruolo.`,
+      }
     }
   }
 
   // Get timer settings from session
-  const timerSeconds = auction.marketSession?.svincolatiTimerSeconds ?? auction.marketSession?.auctionTimerSeconds ?? 30
+  const timerSeconds =
+    auction.marketSession?.svincolatiTimerSeconds ??
+    auction.marketSession?.auctionTimerSeconds ??
+    30
   const newTimerExpires = new Date(Date.now() + timerSeconds * 1000)
 
   // Place bid and reset timer
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async tx => {
     // Mark previous bids as not winning
     await tx.auctionBid.updateMany({
       where: { auctionId },
@@ -432,7 +446,7 @@ export async function closeFreeAgentAuction(
   }
 
   if (auction.type !== 'FREE_BID') {
-    return { success: false, message: 'Non è un\'asta per svincolati' }
+    return { success: false, message: "Non è un'asta per svincolati" }
   }
 
   if (auction.status !== 'ACTIVE') {
@@ -473,7 +487,7 @@ export async function closeFreeAgentAuction(
   }
 
   // Assign player to winner
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async tx => {
     // Deduct budget from winner
     await tx.leagueMember.update({
       where: { id: winningBid.bidderId },
@@ -745,10 +759,7 @@ export async function setSvincolatiTurnOrder(
 
 // ==================== GET SVINCOLATI BOARD STATE ====================
 
-export async function getSvincolatiBoard(
-  leagueId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function getSvincolatiBoard(leagueId: string, userId: string): Promise<ServiceResult> {
   // Verify membership
   const member = await prisma.leagueMember.findFirst({
     where: {
@@ -798,7 +809,9 @@ export async function getSvincolatiBoard(
   })
 
   // Sort by turn order
-  const orderedMembers = turnOrder.map(id => turnOrderMembers.find(m => m.id === id)).filter(Boolean)
+  const orderedMembers = turnOrder
+    .map(id => turnOrderMembers.find(m => m.id === id))
+    .filter(Boolean)
 
   // Get pending player if any
   let pendingPlayer = null
@@ -811,8 +824,12 @@ export async function getSvincolatiBoard(
   // Get active auction (in AUCTION or AWAITING_RESUME state)
   let activeAuction = null
   let awaitingResumeAuctionId: string | null = null
-  if (activeSession.svincolatiState === 'AUCTION' || activeSession.svincolatiState === 'AWAITING_RESUME') {
-    const auctionStatus = activeSession.svincolatiState === 'AWAITING_RESUME' ? 'AWAITING_RESUME' : 'ACTIVE'
+  if (
+    activeSession.svincolatiState === 'AUCTION' ||
+    activeSession.svincolatiState === 'AWAITING_RESUME'
+  ) {
+    const auctionStatus =
+      activeSession.svincolatiState === 'AWAITING_RESUME' ? 'AWAITING_RESUME' : 'ACTIVE'
     const auction = await prisma.auction.findFirst({
       where: {
         marketSessionId: activeSession.id,
@@ -863,7 +880,9 @@ export async function getSvincolatiBoard(
   // Get nominator username if pending
   let nominatorUsername = null
   if (activeSession.svincolatiPendingNominatorId) {
-    const nominator = turnOrderMembers.find(m => m.id === activeSession.svincolatiPendingNominatorId)
+    const nominator = turnOrderMembers.find(
+      m => m.id === activeSession.svincolatiPendingNominatorId
+    )
     nominatorUsername = nominator?.user.username || null
   }
 
@@ -892,7 +911,9 @@ export async function getSvincolatiBoard(
         id: m!.id,
         username: m!.user.username,
         budget: m!.currentBudget,
-        hasPassed: ((activeSession.svincolatiPassedMembers as string[] | null) || []).includes(m!.id),
+        hasPassed: ((activeSession.svincolatiPassedMembers as string[] | null) || []).includes(
+          m!.id
+        ),
         isConnected: connectionStatus.get(m!.id) ?? false,
       })),
       currentTurnIndex,
@@ -904,7 +925,9 @@ export async function getSvincolatiBoard(
       readyMembers: (activeSession.svincolatiReadyMembers as string[] | null) || [],
       passedMembers: (activeSession.svincolatiPassedMembers as string[] | null) || [],
       finishedMembers: (activeSession.svincolatiFinishedMembers as string[] | null) || [],
-      isFinished: ((activeSession.svincolatiFinishedMembers as string[] | null) || []).includes(member.id),
+      isFinished: ((activeSession.svincolatiFinishedMembers as string[] | null) || []).includes(
+        member.id
+      ),
       pendingPlayer,
       pendingNominatorId: activeSession.svincolatiPendingNominatorId,
       nominatorUsername,
@@ -953,7 +976,10 @@ export async function nominateFreeAgent(
   }
 
   // Check state
-  if (activeSession.svincolatiState !== 'READY_CHECK' && activeSession.svincolatiState !== 'NOMINATION') {
+  if (
+    activeSession.svincolatiState !== 'READY_CHECK' &&
+    activeSession.svincolatiState !== 'NOMINATION'
+  ) {
     return { success: false, message: 'Non è il momento di nominare' }
   }
 
@@ -1227,7 +1253,7 @@ async function startSvincolatiAuction(
   const timerExpires = new Date(Date.now() + timerSeconds * 1000)
 
   // Create auction with initial bid from nominator
-  const auction = await prisma.$transaction(async (tx) => {
+  const auction = await prisma.$transaction(async tx => {
     // Create the auction
     const newAuction = await tx.auction.create({
       data: {
@@ -1278,10 +1304,7 @@ async function startSvincolatiAuction(
 
 // ==================== PASS TURN ====================
 
-export async function passSvincolatiTurn(
-  leagueId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function passSvincolatiTurn(leagueId: string, userId: string): Promise<ServiceResult> {
   const member = await prisma.leagueMember.findFirst({
     where: {
       leagueId,
@@ -1345,7 +1368,7 @@ export async function passSvincolatiTurn(
 
   // Advance to next turn
   const nextTurnIndex = (currentTurnIndex + 1) % turnOrder.length
-  const nextMemberId = turnOrder[nextTurnIndex]
+  const _nextMemberId = turnOrder[nextTurnIndex]
 
   // Skip members who have already passed until we find one who hasn't
   let searchIndex = nextTurnIndex
@@ -1475,7 +1498,7 @@ export async function closeSvincolatiAuction(
 
   if (!winningBid) {
     // No bids - player stays free
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async tx => {
       await tx.auction.update({
         where: { id: auctionId },
         data: {
@@ -1512,7 +1535,7 @@ export async function closeSvincolatiAuction(
   }
 
   // Assign player to winner
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async tx => {
     // Deduct budget from winner
     await tx.leagueMember.update({
       where: { id: winningBid.bidderId },
@@ -1699,7 +1722,7 @@ export async function acknowledgeSvincolatiAuction(
     return {
       ...result,
       data: {
-        ...(result.data as object || {}),
+        ...((result.data as object) || {}),
         winnerContractInfo,
       },
     }
@@ -1973,7 +1996,10 @@ export async function botNominateSvincolati(
   }
 
   if (activeSession.svincolatiState !== 'READY_CHECK') {
-    return { success: false, message: 'Non è il momento di nominare (stato: ' + activeSession.svincolatiState + ')' }
+    return {
+      success: false,
+      message: 'Non è il momento di nominare (stato: ' + activeSession.svincolatiState + ')',
+    }
   }
 
   // Get current turn member
@@ -2074,7 +2100,7 @@ export async function botConfirmSvincolatiNomination(
   }
 
   if (activeSession.svincolatiState !== 'NOMINATION') {
-    return { success: false, message: 'Non c\'è una nominazione da confermare' }
+    return { success: false, message: "Non c'è una nominazione da confermare" }
   }
 
   if (activeSession.svincolatiNominatorConfirmed) {
@@ -2086,7 +2112,9 @@ export async function botConfirmSvincolatiNomination(
   }
 
   const player = activeSession.svincolatiPendingPlayerId
-    ? await prisma.serieAPlayer.findUnique({ where: { id: activeSession.svincolatiPendingPlayerId } })
+    ? await prisma.serieAPlayer.findUnique({
+        where: { id: activeSession.svincolatiPendingPlayerId },
+      })
     : null
 
   // Confirm and add nominator to ready
@@ -2169,9 +2197,8 @@ export async function botBidSvincolati(
   const currentWinningBidderId = auction.bids[0]?.bidderId || null
 
   // Filter out current winner and those without budget
-  const potentialBidders = members.filter(m =>
-    m.id !== currentWinningBidderId &&
-    m.currentBudget > auction.currentPrice
+  const potentialBidders = members.filter(
+    m => m.id !== currentWinningBidderId && m.currentBudget > auction.currentPrice
   )
 
   if (potentialBidders.length === 0) {
@@ -2198,11 +2225,12 @@ export async function botBidSvincolati(
   }
 
   // Get timer settings and calculate new expiration
-  const timerSeconds = activeSession.svincolatiTimerSeconds ?? activeSession.auctionTimerSeconds ?? 30
+  const timerSeconds =
+    activeSession.svincolatiTimerSeconds ?? activeSession.auctionTimerSeconds ?? 30
   const newTimerExpires = new Date(Date.now() + timerSeconds * 1000)
 
   // Place the bid and reset timer
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async tx => {
     // Mark previous bids as not winning
     await tx.auctionBid.updateMany({
       where: { auctionId },
@@ -2304,7 +2332,7 @@ export async function declareSvincolatiFinished(
   return {
     success: true,
     message: allFinished
-      ? 'Tutti i manager hanno finito! L\'admin può chiudere la fase.'
+      ? "Tutti i manager hanno finito! L'admin può chiudere la fase."
       : 'Hai dichiarato di aver finito. Non potrai più fare offerte.',
     data: {
       finishedCount: newFinishedMembers.length,

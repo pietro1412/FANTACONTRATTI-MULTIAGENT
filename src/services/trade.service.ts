@@ -1,7 +1,6 @@
-import { PrismaClient, MemberStatus, RosterStatus, TradeStatus } from '@prisma/client'
+import { MemberStatus, RosterStatus, TradeStatus } from '@prisma/client'
 import { recordMovement } from './movement.service'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 
 export interface ServiceResult {
   success: boolean
@@ -96,7 +95,10 @@ export async function createTradeOffer(
     })
 
     if (requestedRosters.length !== requestedPlayerIds.length) {
-      return { success: false, message: 'Alcuni giocatori richiesti non sono nella rosa del destinatario' }
+      return {
+        success: false,
+        message: 'Alcuni giocatori richiesti non sono nella rosa del destinatario',
+      }
     }
   }
 
@@ -106,7 +108,10 @@ export async function createTradeOffer(
   }
 
   if (offeredBudget > fromMember.currentBudget) {
-    return { success: false, message: `Non hai abbastanza budget. Disponibile: ${fromMember.currentBudget}` }
+    return {
+      success: false,
+      message: `Non hai abbastanza budget. Disponibile: ${fromMember.currentBudget}`,
+    }
   }
 
   // Get active session (required for trade offer)
@@ -132,7 +137,10 @@ export async function createTradeOffer(
   })
 
   if (reverseTrade) {
-    return { success: false, message: 'Non puoi fare uno scambio inverso nella stessa sessione di mercato' }
+    return {
+      success: false,
+      message: 'Non puoi fare uno scambio inverso nella stessa sessione di mercato',
+    }
   }
 
   // Combine all involved player IDs
@@ -219,7 +227,7 @@ export async function getReceivedOffers(leagueId: string, userId: string): Promi
 
   // Enrich with player details and contracts
   const enrichedOffers = await Promise.all(
-    offers.map(async (offer) => {
+    offers.map(async offer => {
       const offeredPlayerIds = offer.offeredPlayers as string[]
       const requestedPlayerIds = offer.requestedPlayers as string[]
 
@@ -247,22 +255,26 @@ export async function getReceivedOffers(leagueId: string, userId: string): Promi
           name: r.player.name,
           team: r.player.team,
           position: r.player.position,
-          contract: r.contract ? {
-            salary: r.contract.salary,
-            duration: r.contract.duration,
-            rescissionClause: r.contract.rescissionClause,
-          } : null,
+          contract: r.contract
+            ? {
+                salary: r.contract.salary,
+                duration: r.contract.duration,
+                rescissionClause: r.contract.rescissionClause,
+              }
+            : null,
         })),
         requestedPlayerDetails: requestedPlayers.map(r => ({
           id: r.player.id,
           name: r.player.name,
           team: r.player.team,
           position: r.player.position,
-          contract: r.contract ? {
-            salary: r.contract.salary,
-            duration: r.contract.duration,
-            rescissionClause: r.contract.rescissionClause,
-          } : null,
+          contract: r.contract
+            ? {
+                salary: r.contract.salary,
+                duration: r.contract.duration,
+                rescissionClause: r.contract.rescissionClause,
+              }
+            : null,
         })),
       }
     })
@@ -322,7 +334,7 @@ export async function getSentOffers(leagueId: string, userId: string): Promise<S
 
   // Enrich with player details and contracts
   const enrichedOffers = await Promise.all(
-    offers.map(async (offer) => {
+    offers.map(async offer => {
       const offeredPlayerIds = offer.offeredPlayers as string[]
       const requestedPlayerIds = offer.requestedPlayers as string[]
 
@@ -350,22 +362,26 @@ export async function getSentOffers(leagueId: string, userId: string): Promise<S
           name: r.player.name,
           team: r.player.team,
           position: r.player.position,
-          contract: r.contract ? {
-            salary: r.contract.salary,
-            duration: r.contract.duration,
-            rescissionClause: r.contract.rescissionClause,
-          } : null,
+          contract: r.contract
+            ? {
+                salary: r.contract.salary,
+                duration: r.contract.duration,
+                rescissionClause: r.contract.rescissionClause,
+              }
+            : null,
         })),
         requestedPlayerDetails: requestedPlayers.map(r => ({
           id: r.player.id,
           name: r.player.name,
           team: r.player.team,
           position: r.player.position,
-          contract: r.contract ? {
-            salary: r.contract.salary,
-            duration: r.contract.duration,
-            rescissionClause: r.contract.rescissionClause,
-          } : null,
+          contract: r.contract
+            ? {
+                salary: r.contract.salary,
+                duration: r.contract.duration,
+                rescissionClause: r.contract.rescissionClause,
+              }
+            : null,
         })),
       }
     })
@@ -436,19 +452,25 @@ export async function acceptTrade(tradeId: string, userId: string): Promise<Serv
 
   // Validate receiver has enough budget for requested budget
   if (trade.requestedBudget > receiverMember.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Richiesto: ${trade.requestedBudget}, Disponibile: ${receiverMember.currentBudget}` }
+    return {
+      success: false,
+      message: `Budget insufficiente. Richiesto: ${trade.requestedBudget}, Disponibile: ${receiverMember.currentBudget}`,
+    }
   }
 
   // Re-validate sender has enough budget
   if (trade.offeredBudget > senderMember.currentBudget) {
-    return { success: false, message: 'Il mittente non ha più abbastanza budget per questa offerta' }
+    return {
+      success: false,
+      message: 'Il mittente non ha più abbastanza budget per questa offerta',
+    }
   }
 
   const offeredPlayerIds = trade.offeredPlayers as string[]
   const requestedPlayerIds = trade.requestedPlayers as string[]
 
   // Execute trade in transaction
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async tx => {
     // Transfer offered players (from sender to receiver)
     for (const rosterId of offeredPlayerIds) {
       await tx.playerRoster.update({
@@ -568,7 +590,7 @@ export async function acceptTrade(tradeId: string, userId: string): Promise<Serv
     where: { id: { in: offeredPlayerIds } },
     include: {
       player: true,
-      contract: true
+      contract: true,
     },
   })
 
@@ -579,12 +601,14 @@ export async function acceptTrade(tradeId: string, userId: string): Promise<Serv
     playerName: r.player.name,
     playerTeam: r.player.team,
     playerPosition: r.player.position,
-    contract: r.contract ? {
-      salary: r.contract.salary,
-      duration: r.contract.duration,
-      initialSalary: r.contract.initialSalary,
-      rescissionClause: r.contract.rescissionClause,
-    } : null,
+    contract: r.contract
+      ? {
+          salary: r.contract.salary,
+          duration: r.contract.duration,
+          initialSalary: r.contract.initialSalary,
+          rescissionClause: r.contract.rescissionClause,
+        }
+      : null,
   }))
 
   return {
@@ -737,7 +761,7 @@ export async function getTradeHistory(leagueId: string, userId: string): Promise
 
   // Enrich with player details
   const enrichedTrades = await Promise.all(
-    trades.map(async (trade) => {
+    trades.map(async trade => {
       const offeredPlayerIds = trade.offeredPlayers as string[]
       const requestedPlayerIds = trade.requestedPlayers as string[]
 
@@ -767,22 +791,26 @@ export async function getTradeHistory(leagueId: string, userId: string): Promise
           name: r.player.name,
           team: r.player.team,
           position: r.player.position,
-          contract: r.contract ? {
-            salary: r.contract.salary,
-            duration: r.contract.duration,
-            rescissionClause: r.contract.rescissionClause,
-          } : null,
+          contract: r.contract
+            ? {
+                salary: r.contract.salary,
+                duration: r.contract.duration,
+                rescissionClause: r.contract.rescissionClause,
+              }
+            : null,
         })),
         requestedPlayerDetails: requestedPlayers.map(r => ({
           id: r.player.id,
           name: r.player.name,
           team: r.player.team,
           position: r.player.position,
-          contract: r.contract ? {
-            salary: r.contract.salary,
-            duration: r.contract.duration,
-            rescissionClause: r.contract.rescissionClause,
-          } : null,
+          contract: r.contract
+            ? {
+                salary: r.contract.salary,
+                duration: r.contract.duration,
+                rescissionClause: r.contract.rescissionClause,
+              }
+            : null,
         })),
       }
     })

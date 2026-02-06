@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 
 // ==================== TYPES ====================
 
@@ -46,7 +44,12 @@ interface ApiPlayerStats {
     team: { id: number; name: string }
     league: { id: number; name: string; season: number }
     games: { appearences: number | null; minutes: number | null; rating: string | null }
-    goals: { total: number | null; assists: number | null; conceded: number | null; saves: number | null }
+    goals: {
+      total: number | null
+      assists: number | null
+      conceded: number | null
+      saves: number | null
+    }
     shots: { total: number | null; on: number | null }
     passes: { total: number | null; key: number | null; accuracy: number | null }
     tackles: { total: number | null; interceptions: number | null }
@@ -62,7 +65,10 @@ export interface MatchResult {
   data?: {
     matched: number
     unmatched: Array<{ id: string; name: string; team: string }>
-    ambiguous: Array<{ player: { id: string; name: string; team: string }; candidates: Array<{ apiId: number; name: string }> }>
+    ambiguous: Array<{
+      player: { id: string; name: string; team: string }
+      candidates: Array<{ apiId: number; name: string }>
+    }>
     alreadyMatched: number
     apiCallsUsed: number
   }
@@ -150,46 +156,51 @@ const CURRENT_SEASON = 2025
 // Map API-Football team names → DB team names (from quotazioni file)
 const TEAM_NAME_MAP: Record<string, string> = {
   'ac milan': 'Milan',
-  'inter': 'Inter',
-  'juventus': 'Juventus',
-  'napoli': 'Napoli',
+  inter: 'Inter',
+  juventus: 'Juventus',
+  napoli: 'Napoli',
   'as roma': 'Roma',
   'ss lazio': 'Lazio',
-  'lazio': 'Lazio',
-  'atalanta': 'Atalanta',
-  'fiorentina': 'Fiorentina',
-  'torino': 'Torino',
-  'bologna': 'Bologna',
-  'monza': 'Monza',
-  'udinese': 'Udinese',
-  'empoli': 'Empoli',
-  'cagliari': 'Cagliari',
+  lazio: 'Lazio',
+  atalanta: 'Atalanta',
+  fiorentina: 'Fiorentina',
+  torino: 'Torino',
+  bologna: 'Bologna',
+  monza: 'Monza',
+  udinese: 'Udinese',
+  empoli: 'Empoli',
+  cagliari: 'Cagliari',
   'hellas verona': 'Verona',
-  'verona': 'Verona',
-  'lecce': 'Lecce',
-  'genoa': 'Genoa',
-  'como': 'Como',
+  verona: 'Verona',
+  lecce: 'Lecce',
+  genoa: 'Genoa',
+  como: 'Como',
   'como 1907': 'Como',
-  'parma': 'Parma',
-  'venezia': 'Venezia',
-  'salernitana': 'Salernitana',
-  'frosinone': 'Frosinone',
-  'sassuolo': 'Sassuolo',
-  'spezia': 'Spezia',
-  'cremonese': 'Cremonese',
-  'sampdoria': 'Sampdoria',
+  parma: 'Parma',
+  venezia: 'Venezia',
+  salernitana: 'Salernitana',
+  frosinone: 'Frosinone',
+  sassuolo: 'Sassuolo',
+  spezia: 'Spezia',
+  cremonese: 'Cremonese',
+  sampdoria: 'Sampdoria',
 }
 
 // ==================== HELPERS ====================
 
-async function apiFootballFetch<T>(endpoint: string, params: Record<string, string> = {}): Promise<ApiFootballResponse<T>> {
+async function apiFootballFetch<T>(
+  endpoint: string,
+  params: Record<string, string> = {}
+): Promise<ApiFootballResponse<T>> {
   const apiKey = process.env.API_FOOTBALL_KEY
   if (!apiKey) {
     throw new Error('API_FOOTBALL_KEY non configurata')
   }
 
   const url = new URL(API_BASE + endpoint)
-  Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v))
+  Object.entries(params).forEach(([k, v]) => {
+    url.searchParams.append(k, v)
+  })
 
   const res = await fetch(url.toString(), {
     headers: {
@@ -202,7 +213,7 @@ async function apiFootballFetch<T>(endpoint: string, params: Record<string, stri
     throw new Error(`API-Football HTTP ${res.status}: ${res.statusText}`)
   }
 
-  const data = await res.json() as ApiFootballResponse<T>
+  const data = (await res.json()) as ApiFootballResponse<T>
 
   if (data.errors && Object.keys(data.errors).length > 0) {
     throw new Error(`API-Football errors: ${JSON.stringify(data.errors)}`)
@@ -215,8 +226,8 @@ function normalizeName(name: string): string {
   return name
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')  // Remove diacritics
-    .replace(/[^a-z\s]/g, '')         // Keep only letters and spaces
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .replace(/[^a-z\s]/g, '') // Keep only letters and spaces
     .trim()
 }
 
@@ -260,7 +271,7 @@ async function getSerieATeams(): Promise<Array<{ id: number; name: string }>> {
     season: String(CURRENT_SEASON),
   })
 
-  return data.response.map((t) => ({
+  return data.response.map(t => ({
     id: t.team.id,
     name: t.team.name,
   }))
@@ -300,7 +311,10 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
 
     // 3. For each team, fetch squad and try to match
     const matched: Array<{ dbId: string; apiId: number; name: string; age: number | null }> = []
-    const ambiguous: Array<{ player: { id: string; name: string; team: string }; candidates: Array<{ apiId: number; name: string }> }> = []
+    const ambiguous: Array<{
+      player: { id: string; name: string; team: string }
+      candidates: Array<{ apiId: number; name: string }>
+    }> = []
     const matchedDbIds = new Set<string>()
 
     // Pre-load already used API IDs from database
@@ -308,16 +322,18 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
       where: { apiFootballId: { not: null } },
       select: { apiFootballId: true },
     })
-    const usedApiIds = new Set<number>(existingApiIds.map((p) => p.apiFootballId!))
+    const usedApiIds = new Set<number>(existingApiIds.map(p => p.apiFootballId!))
 
     for (const team of teams) {
       const dbTeamName = normalizeTeamName(team.name)
-      const teamPlayers = dbPlayers.filter((p) => p.team === dbTeamName)
+      const teamPlayers = dbPlayers.filter(p => p.team === dbTeamName)
 
       if (teamPlayers.length === 0) continue
 
       // Fetch squad
-      const squadData = await apiFootballFetch<ApiSquad>('/players/squads', { team: String(team.id) })
+      const squadData = await apiFootballFetch<ApiSquad>('/players/squads', {
+        team: String(team.id),
+      })
       apiCallsUsed++
 
       if (squadData.results === 0 || !squadData.response[0]) continue
@@ -329,7 +345,7 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
         const dbFullNorm = normalizeName(dbPlayer.name)
 
         // Try exact last name match
-        const exactMatches = apiSquad.filter((api) => {
+        const exactMatches = apiSquad.filter(api => {
           const apiNorm = normalizeName(api.name)
           const apiLastName = extractLastName(api.name)
           return apiLastName === dbLastName || apiNorm === dbFullNorm
@@ -338,19 +354,24 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
         if (exactMatches.length === 1) {
           const apiPlayer = exactMatches[0]
           if (!usedApiIds.has(apiPlayer.id)) {
-            matched.push({ dbId: dbPlayer.id, apiId: apiPlayer.id, name: dbPlayer.name, age: apiPlayer.age || null })
+            matched.push({
+              dbId: dbPlayer.id,
+              apiId: apiPlayer.id,
+              name: dbPlayer.name,
+              age: apiPlayer.age || null,
+            })
             matchedDbIds.add(dbPlayer.id)
             usedApiIds.add(apiPlayer.id)
           }
         } else if (exactMatches.length > 1) {
           ambiguous.push({
             player: { id: dbPlayer.id, name: dbPlayer.name, team: dbPlayer.team },
-            candidates: exactMatches.map((m) => ({ apiId: m.id, name: m.name })),
+            candidates: exactMatches.map(m => ({ apiId: m.id, name: m.name })),
           })
           matchedDbIds.add(dbPlayer.id) // Don't count as unmatched
         } else {
           // Try partial match
-          const partialMatches = apiSquad.filter((api) => {
+          const partialMatches = apiSquad.filter(api => {
             const apiLastName = extractLastName(api.name)
             return apiLastName.includes(dbLastName) || dbLastName.includes(apiLastName)
           })
@@ -358,14 +379,19 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
           if (partialMatches.length === 1) {
             const apiPlayer = partialMatches[0]
             if (!usedApiIds.has(apiPlayer.id)) {
-              matched.push({ dbId: dbPlayer.id, apiId: apiPlayer.id, name: dbPlayer.name, age: apiPlayer.age || null })
+              matched.push({
+                dbId: dbPlayer.id,
+                apiId: apiPlayer.id,
+                name: dbPlayer.name,
+                age: apiPlayer.age || null,
+              })
               matchedDbIds.add(dbPlayer.id)
               usedApiIds.add(apiPlayer.id)
             }
           } else if (partialMatches.length > 1) {
             ambiguous.push({
               player: { id: dbPlayer.id, name: dbPlayer.name, team: dbPlayer.team },
-              candidates: partialMatches.map((m) => ({ apiId: m.id, name: m.name })),
+              candidates: partialMatches.map(m => ({ apiId: m.id, name: m.name })),
             })
             matchedDbIds.add(dbPlayer.id)
           }
@@ -373,7 +399,7 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
       }
 
       // Rate limiting: small delay between calls
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise(resolve => setTimeout(resolve, 100))
     }
 
     // 4. Save matched players to DB (including age)
@@ -388,7 +414,7 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
           },
         })
         savedCount++
-      } catch (e) {
+      } catch (_e) {
         // Skip duplicates (unique constraint violations)
         console.log(`Skipped duplicate apiFootballId ${m.apiId} for player ${m.name}`)
       }
@@ -396,8 +422,8 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
 
     // 5. Collect unmatched
     const unmatched = dbPlayers
-      .filter((p) => !matchedDbIds.has(p.id))
-      .map((p) => ({ id: p.id, name: p.name, team: p.team }))
+      .filter(p => !matchedDbIds.has(p.id))
+      .map(p => ({ id: p.id, name: p.name, team: p.team }))
 
     const alreadyMatched = await prisma.serieAPlayer.count({
       where: { isActive: true, apiFootballId: { not: null } },
@@ -423,7 +449,11 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
 /**
  * Manually match a DB player to an API-Football ID
  */
-export async function manualMatch(userId: string, playerId: string, apiFootballId: number): Promise<{ success: boolean; message?: string }> {
+export async function manualMatch(
+  userId: string,
+  playerId: string,
+  apiFootballId: number
+): Promise<{ success: boolean; message?: string }> {
   const { verifySuperAdmin } = await import('./superadmin.service')
   if (!(await verifySuperAdmin(userId))) {
     return { success: false, message: 'Non autorizzato: solo super admin' }
@@ -438,7 +468,10 @@ export async function manualMatch(userId: string, playerId: string, apiFootballI
     // Check if apiFootballId is already assigned to another player
     const existing = await prisma.serieAPlayer.findUnique({ where: { apiFootballId } })
     if (existing && existing.id !== playerId) {
-      return { success: false, message: `API-Football ID ${apiFootballId} gia assegnato a ${existing.name}` }
+      return {
+        success: false,
+        message: `API-Football ID ${apiFootballId} gia assegnato a ${existing.name}`,
+      }
     }
 
     await prisma.serieAPlayer.update({
@@ -446,7 +479,10 @@ export async function manualMatch(userId: string, playerId: string, apiFootballI
       data: { apiFootballId },
     })
 
-    return { success: true, message: `${player.name} matchato con API-Football ID ${apiFootballId}` }
+    return {
+      success: true,
+      message: `${player.name} matchato con API-Football ID ${apiFootballId}`,
+    }
   } catch (error) {
     console.error('manualMatch error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
@@ -510,9 +546,7 @@ export async function syncStats(userId: string): Promise<SyncResult> {
         if (!dbPlayer) continue
 
         // Find the Serie A stats entry
-        const serieAStats = apiPlayer.statistics.find(
-          (s) => s.league.id === SERIE_A_LEAGUE_ID
-        )
+        const serieAStats = apiPlayer.statistics.find(s => s.league.id === SERIE_A_LEAGUE_ID)
 
         if (!serieAStats) {
           notFound++
@@ -529,8 +563,8 @@ export async function syncStats(userId: string): Promise<SyncResult> {
           goals: {
             total: serieAStats.goals.total,
             assists: serieAStats.goals.assists,
-            conceded: serieAStats.goals.conceded,  // Goalkeeper: goals conceded
-            saves: serieAStats.goals.saves,        // Goalkeeper: saves
+            conceded: serieAStats.goals.conceded, // Goalkeeper: goals conceded
+            saves: serieAStats.goals.saves, // Goalkeeper: saves
           },
           shots: {
             total: serieAStats.shots.total,
@@ -556,7 +590,7 @@ export async function syncStats(userId: string): Promise<SyncResult> {
           penalty: {
             scored: serieAStats.penalty.scored,
             missed: serieAStats.penalty.missed,
-            saved: serieAStats.penalty.saved,      // Goalkeeper: penalties saved
+            saved: serieAStats.penalty.saved, // Goalkeeper: penalties saved
           },
         }
 
@@ -565,7 +599,7 @@ export async function syncStats(userId: string): Promise<SyncResult> {
           data: {
             apiFootballStats: stats,
             statsSyncedAt: now,
-            age: apiPlayer.player.age || null,  // Update age from API-Football
+            age: apiPlayer.player.age || null, // Update age from API-Football
           },
         })
 
@@ -575,7 +609,7 @@ export async function syncStats(userId: string): Promise<SyncResult> {
       page++
 
       // Rate limiting
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise(resolve => setTimeout(resolve, 100))
     }
 
     // Count players with apiFootballId but not found in API response
@@ -603,8 +637,12 @@ export async function getSyncStatus(userId: string): Promise<SyncStatus> {
 
   try {
     const totalPlayers = await prisma.serieAPlayer.count({ where: { isActive: true } })
-    const matched = await prisma.serieAPlayer.count({ where: { isActive: true, apiFootballId: { not: null } } })
-    const withStats = await prisma.serieAPlayer.count({ where: { isActive: true, apiFootballStats: { not: null } } })
+    const matched = await prisma.serieAPlayer.count({
+      where: { isActive: true, apiFootballId: { not: null } },
+    })
+    const withStats = await prisma.serieAPlayer.count({
+      where: { isActive: true, apiFootballStats: { not: null } },
+    })
 
     // Get last sync time
     const lastSynced = await prisma.serieAPlayer.findFirst({
@@ -662,7 +700,9 @@ function levenshteinDistance(a: string, b: string): number {
 /**
  * Refresh API-Football player cache from squad endpoints
  */
-export async function refreshApiFootballCache(userId: string): Promise<{ success: boolean; message?: string; apiCallsUsed: number }> {
+export async function refreshApiFootballCache(
+  userId: string
+): Promise<{ success: boolean; message?: string; apiCallsUsed: number }> {
   const { verifySuperAdmin } = await import('./superadmin.service')
   if (!(await verifySuperAdmin(userId))) {
     return { success: false, message: 'Non autorizzato: solo super admin', apiCallsUsed: 0 }
@@ -677,7 +717,9 @@ export async function refreshApiFootballCache(userId: string): Promise<{ success
 
     // 2. For each team, fetch squad
     for (const team of teams) {
-      const squadData = await apiFootballFetch<ApiSquad>('/players/squads', { team: String(team.id) })
+      const squadData = await apiFootballFetch<ApiSquad>('/players/squads', {
+        team: String(team.id),
+      })
       apiCallsUsed++
 
       if (squadData.results > 0 && squadData.response[0]) {
@@ -693,7 +735,7 @@ export async function refreshApiFootballCache(userId: string): Promise<{ success
       }
 
       // Rate limiting
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise(resolve => setTimeout(resolve, 100))
     }
 
     // 3. Upsert all players into cache
@@ -780,7 +822,7 @@ export async function getMatchProposals(userId: string): Promise<ProposalsResult
       where: { apiFootballId: { not: null } },
       select: { apiFootballId: true },
     })
-    const usedApiIds = new Set<number>(existingApiIds.map((p) => p.apiFootballId!))
+    const usedApiIds = new Set<number>(existingApiIds.map(p => p.apiFootballId!))
 
     // Generate proposals
     const proposals: MatchProposal[] = []
@@ -790,9 +832,13 @@ export async function getMatchProposals(userId: string): Promise<ProposalsResult
       const dbFullNorm = normalizeName(dbPlayer.name)
 
       // Filter API players by team first
-      const teamPlayers = apiPlayers.filter((api) => api.team === dbPlayer.team)
+      const teamPlayers = apiPlayers.filter(api => api.team === dbPlayer.team)
 
-      let bestMatch: { player: typeof apiPlayers[0]; confidence: 'HIGH' | 'MEDIUM' | 'LOW'; method: string } | null = null
+      let bestMatch: {
+        player: (typeof apiPlayers)[0]
+        confidence: 'HIGH' | 'MEDIUM' | 'LOW'
+        method: string
+      } | null = null
 
       for (const apiPlayer of teamPlayers) {
         if (usedApiIds.has(apiPlayer.id)) continue
@@ -832,7 +878,11 @@ export async function getMatchProposals(userId: string): Promise<ProposalsResult
             for (const apiPart of apiParts) {
               if (dbPart.length >= 3 && apiPart.length >= 3) {
                 if (apiPart.includes(dbPart) || dbPart.includes(apiPart)) {
-                  if (!bestMatch || bestMatch.confidence === 'LOW' || bestMatch.confidence === 'NONE') {
+                  if (
+                    !bestMatch ||
+                    bestMatch.confidence === 'LOW' ||
+                    bestMatch.confidence === 'NONE'
+                  ) {
                     bestMatch = { player: apiPlayer, confidence: 'MEDIUM', method: 'partial_name' }
                   }
                 }
@@ -859,7 +909,9 @@ export async function getMatchProposals(userId: string): Promise<ProposalsResult
           position: dbPlayer.position,
           quotation: dbPlayer.quotation,
         },
-        apiPlayer: bestMatch ? { id: bestMatch.player.id, name: bestMatch.player.name, team: bestMatch.player.team } : null,
+        apiPlayer: bestMatch
+          ? { id: bestMatch.player.id, name: bestMatch.player.name, team: bestMatch.player.team }
+          : null,
         confidence: bestMatch ? bestMatch.confidence : 'NONE',
         method: bestMatch ? bestMatch.method : 'no_match',
       })
@@ -883,7 +935,10 @@ export async function getMatchProposals(userId: string): Promise<ProposalsResult
  * Search API-Football players in cache by name
  * Supports partial matching and handles diacritics (e.g., "Yildiz" matches "Yıldız")
  */
-export async function searchApiFootballPlayers(userId: string, query: string): Promise<SearchResult> {
+export async function searchApiFootballPlayers(
+  userId: string,
+  query: string
+): Promise<SearchResult> {
   const { verifySuperAdmin } = await import('./superadmin.service')
   if (!(await verifySuperAdmin(userId))) {
     return { success: false, message: 'Non autorizzato: solo super admin' }
@@ -907,17 +962,17 @@ export async function searchApiFootballPlayers(userId: string, query: string): P
       where: { apiFootballId: { not: null } },
       select: { apiFootballId: true },
     })
-    const usedApiIds = new Set<number>(existingApiIds.map((p) => p.apiFootballId!))
+    const usedApiIds = new Set<number>(existingApiIds.map(p => p.apiFootballId!))
 
     // Filter players: match normalized name contains normalized query
     const matchingPlayers = allPlayers
-      .filter((p) => {
+      .filter(p => {
         if (usedApiIds.has(p.id)) return false
         const normalizedName = normalizeName(p.name)
         return normalizedName.includes(normalizedQuery)
       })
       .slice(0, 50)
-      .map((p) => ({
+      .map(p => ({
         id: p.id,
         name: p.name,
         team: p.team,
@@ -937,7 +992,10 @@ export async function searchApiFootballPlayers(userId: string, query: string): P
 /**
  * Get unmatched DB players (those without apiFootballId)
  */
-export async function getUnmatchedPlayers(userId: string, search?: string): Promise<UnmatchedResult> {
+export async function getUnmatchedPlayers(
+  userId: string,
+  search?: string
+): Promise<UnmatchedResult> {
   const { verifySuperAdmin } = await import('./superadmin.service')
   if (!(await verifySuperAdmin(userId))) {
     return { success: false, message: 'Non autorizzato: solo super admin' }
@@ -972,7 +1030,7 @@ export async function getUnmatchedPlayers(userId: string, search?: string): Prom
     return {
       success: true,
       data: {
-        players: players.map((p) => ({
+        players: players.map(p => ({
           id: p.id,
           name: p.name,
           team: p.team,
@@ -990,7 +1048,10 @@ export async function getUnmatchedPlayers(userId: string, search?: string): Prom
 /**
  * Get matched DB players (those with apiFootballId) with their API-Football info
  */
-export async function getMatchedPlayers(userId: string, search?: string): Promise<MatchedPlayersResult> {
+export async function getMatchedPlayers(
+  userId: string,
+  search?: string
+): Promise<MatchedPlayersResult> {
   const { verifySuperAdmin } = await import('./superadmin.service')
   if (!(await verifySuperAdmin(userId))) {
     return { success: false, message: 'Non autorizzato: solo super admin' }
@@ -1023,17 +1084,17 @@ export async function getMatchedPlayers(userId: string, search?: string): Promis
     })
 
     // Get API-Football names from cache
-    const apiIds = players.map((p) => p.apiFootballId!).filter(Boolean)
+    const apiIds = players.map(p => p.apiFootballId!).filter(Boolean)
     const apiPlayers = await prisma.apiFootballPlayerCache.findMany({
       where: { id: { in: apiIds } },
       select: { id: true, name: true },
     })
-    const apiNameMap = new Map(apiPlayers.map((p) => [p.id, p.name]))
+    const apiNameMap = new Map(apiPlayers.map(p => [p.id, p.name]))
 
     return {
       success: true,
       data: {
-        players: players.map((p) => ({
+        players: players.map(p => ({
           id: p.id,
           name: p.name,
           team: p.team,
@@ -1053,7 +1114,10 @@ export async function getMatchedPlayers(userId: string, search?: string): Promis
 /**
  * Remove a match (reset apiFootballId to null)
  */
-export async function removeMatch(userId: string, playerId: string): Promise<{ success: boolean; message?: string }> {
+export async function removeMatch(
+  userId: string,
+  playerId: string
+): Promise<{ success: boolean; message?: string }> {
   const { verifySuperAdmin } = await import('./superadmin.service')
   if (!(await verifySuperAdmin(userId))) {
     return { success: false, message: 'Non autorizzato: solo super admin' }

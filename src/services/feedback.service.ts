@@ -1,6 +1,5 @@
-import { PrismaClient, FeedbackStatus, FeedbackCategory } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { FeedbackStatus, FeedbackCategory } from '@prisma/client'
+import { prisma } from '../lib/prisma'
 
 export interface ServiceResult {
   success: boolean
@@ -22,19 +21,19 @@ export async function submitFeedback(
 ): Promise<ServiceResult> {
   // Validate input
   if (!data.title || data.title.trim().length === 0) {
-    return { success: false, message: 'Il titolo e\' obbligatorio' }
+    return { success: false, message: "Il titolo e' obbligatorio" }
   }
 
   if (!data.description || data.description.trim().length === 0) {
-    return { success: false, message: 'La descrizione e\' obbligatoria' }
+    return { success: false, message: "La descrizione e' obbligatoria" }
   }
 
   if (data.title.length > 200) {
-    return { success: false, message: 'Il titolo non puo\' superare i 200 caratteri' }
+    return { success: false, message: "Il titolo non puo' superare i 200 caratteri" }
   }
 
   if (data.description.length > 5000) {
-    return { success: false, message: 'La descrizione non puo\' superare i 5000 caratteri' }
+    return { success: false, message: "La descrizione non puo' superare i 5000 caratteri" }
   }
 
   // If leagueId provided, verify user is member
@@ -141,10 +140,7 @@ export async function getFeedbackForManager(
 
 // ==================== GET FEEDBACK BY ID ====================
 
-export async function getFeedbackById(
-  feedbackId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function getFeedbackById(feedbackId: string, userId: string): Promise<ServiceResult> {
   // Get user to check if superadmin
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -205,10 +201,12 @@ export async function getFeedbackById(
         id: feedback.user.id,
         username: feedback.user.username,
       },
-      league: feedback.league ? {
-        id: feedback.league.id,
-        name: feedback.league.name,
-      } : null,
+      league: feedback.league
+        ? {
+            id: feedback.league.id,
+            name: feedback.league.name,
+          }
+        : null,
       responses: feedback.responses.map(r => ({
         id: r.id,
         content: r.content,
@@ -250,7 +248,10 @@ export async function getAllFeedback(
   const where: {
     status?: FeedbackStatus
     category?: FeedbackCategory
-    OR?: { title: { contains: string; mode: 'insensitive' }; description: { contains: string; mode: 'insensitive' } }[]
+    OR?: {
+      title: { contains: string; mode: 'insensitive' }
+      description: { contains: string; mode: 'insensitive' }
+    }[]
   } = {}
 
   if (options?.status) {
@@ -337,7 +338,7 @@ export async function updateFeedbackStatus(
   }
 
   if (feedback.status === newStatus) {
-    return { success: false, message: 'Lo stato e\' gia\' ' + newStatus }
+    return { success: false, message: "Lo stato e' gia' " + newStatus }
   }
 
   // Update status
@@ -401,11 +402,11 @@ export async function addResponse(
   }
 
   if (!content || content.trim().length === 0) {
-    return { success: false, message: 'Il contenuto della risposta e\' obbligatorio' }
+    return { success: false, message: "Il contenuto della risposta e' obbligatorio" }
   }
 
   if (content.length > 5000) {
-    return { success: false, message: 'La risposta non puo\' superare i 5000 caratteri' }
+    return { success: false, message: "La risposta non puo' superare i 5000 caratteri" }
   }
 
   const feedback = await prisma.userFeedback.findUnique({
@@ -430,15 +431,18 @@ export async function addResponse(
       },
     }),
     // Update feedback status if statusChange provided
-    ...(statusChange ? [
-      prisma.userFeedback.update({
-        where: { id: feedbackId },
-        data: {
-          status: statusChange,
-          resolvedAt: statusChange === FeedbackStatus.RISOLTA ? new Date() : feedback.resolvedAt,
-        },
-      }),
-    ] : []),
+    ...(statusChange
+      ? [
+          prisma.userFeedback.update({
+            where: { id: feedbackId },
+            data: {
+              status: statusChange,
+              resolvedAt:
+                statusChange === FeedbackStatus.RISOLTA ? new Date() : feedback.resolvedAt,
+            },
+          }),
+        ]
+      : []),
   ])
 
   // Create notification for user
@@ -531,7 +535,7 @@ export async function markNotificationRead(
   }
 
   if (notification.isRead) {
-    return { success: true, message: 'Notifica gia\' letta' }
+    return { success: true, message: "Notifica gia' letta" }
   }
 
   await prisma.feedbackNotification.update({
@@ -591,16 +595,12 @@ export async function getFeedbackStats(adminUserId: string): Promise<ServiceResu
     }),
   ])
 
-  const statusCounts = Object.fromEntries(
-    Object.values(FeedbackStatus).map(s => [s, 0])
-  )
+  const statusCounts = Object.fromEntries(Object.values(FeedbackStatus).map(s => [s, 0]))
   byStatus.forEach(s => {
     statusCounts[s.status] = s._count.id
   })
 
-  const categoryCounts = Object.fromEntries(
-    Object.values(FeedbackCategory).map(c => [c, 0])
-  )
+  const categoryCounts = Object.fromEntries(Object.values(FeedbackCategory).map(c => [c, 0]))
   byCategory.forEach(c => {
     categoryCounts[c.category] = c._count.id
   })

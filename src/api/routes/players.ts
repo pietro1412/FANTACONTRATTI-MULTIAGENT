@@ -1,11 +1,11 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
-import { Position, PrismaClient } from '@prisma/client'
+import type { Position } from '@prisma/client'
 import { getPlayers, getPlayerById, getTeams } from '../../services/player.service'
 import { authMiddleware } from '../middleware/auth'
+import { prisma } from '../../lib/prisma'
 
 const router = Router()
-const prisma = new PrismaClient()
 
 // GET /api/players - List all players with filters
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
@@ -108,16 +108,20 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
         apiFootballStats: true,
         statsSyncedAt: true,
       },
-      orderBy: sortBy === 'quotation' ? { quotation: sortOrder === 'asc' ? 'asc' : 'desc' }
-        : sortBy === 'team' ? { team: sortOrder === 'asc' ? 'asc' : 'desc' }
-        : sortBy === 'position' ? { position: sortOrder === 'asc' ? 'asc' : 'desc' }
-        : { name: 'asc' },
+      orderBy:
+        sortBy === 'quotation'
+          ? { quotation: sortOrder === 'asc' ? 'asc' : 'desc' }
+          : sortBy === 'team'
+            ? { team: sortOrder === 'asc' ? 'asc' : 'desc' }
+            : sortBy === 'position'
+              ? { position: sortOrder === 'asc' ? 'asc' : 'desc' }
+              : { name: 'asc' },
       skip,
       take: limitNum,
     })
 
     // Parse stats and flatten for easier frontend use
-    const playersWithStats = players.map((p) => {
+    const playersWithStats = players.map(p => {
       const stats = p.apiFootballStats as {
         games?: { appearences?: number; minutes?: number; rating?: number }
         goals?: { total?: number; assists?: number }
@@ -137,26 +141,28 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
         quotation: p.quotation,
         apiFootballId: p.apiFootballId,
         statsSyncedAt: p.statsSyncedAt,
-        stats: stats ? {
-          appearances: stats.games?.appearences ?? 0,
-          minutes: stats.games?.minutes ?? 0,
-          rating: stats.games?.rating ?? null,
-          goals: stats.goals?.total ?? 0,
-          assists: stats.goals?.assists ?? 0,
-          yellowCards: stats.cards?.yellow ?? 0,
-          redCards: stats.cards?.red ?? 0,
-          passesTotal: stats.passes?.total ?? 0,
-          passesKey: stats.passes?.key ?? 0,
-          passAccuracy: stats.passes?.accuracy ?? null,
-          shotsTotal: stats.shots?.total ?? 0,
-          shotsOn: stats.shots?.on ?? 0,
-          tacklesTotal: stats.tackles?.total ?? 0,
-          interceptions: stats.tackles?.interceptions ?? 0,
-          dribblesAttempts: stats.dribbles?.attempts ?? 0,
-          dribblesSuccess: stats.dribbles?.success ?? 0,
-          penaltyScored: stats.penalty?.scored ?? 0,
-          penaltyMissed: stats.penalty?.missed ?? 0,
-        } : null,
+        stats: stats
+          ? {
+              appearances: stats.games?.appearences ?? 0,
+              minutes: stats.games?.minutes ?? 0,
+              rating: stats.games?.rating ?? null,
+              goals: stats.goals?.total ?? 0,
+              assists: stats.goals?.assists ?? 0,
+              yellowCards: stats.cards?.yellow ?? 0,
+              redCards: stats.cards?.red ?? 0,
+              passesTotal: stats.passes?.total ?? 0,
+              passesKey: stats.passes?.key ?? 0,
+              passAccuracy: stats.passes?.accuracy ?? null,
+              shotsTotal: stats.shots?.total ?? 0,
+              shotsOn: stats.shots?.on ?? 0,
+              tacklesTotal: stats.tackles?.total ?? 0,
+              interceptions: stats.tackles?.interceptions ?? 0,
+              dribblesAttempts: stats.dribbles?.attempts ?? 0,
+              dribblesSuccess: stats.dribbles?.success ?? 0,
+              penaltyScored: stats.penalty?.scored ?? 0,
+              penaltyMissed: stats.penalty?.missed ?? 0,
+            }
+          : null,
       }
     })
 

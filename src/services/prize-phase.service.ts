@@ -1,6 +1,5 @@
-import { PrismaClient, MemberStatus } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { MemberStatus } from '@prisma/client'
+import { prisma } from '../lib/prisma'
 
 export interface ServiceResult {
   success: boolean
@@ -60,7 +59,7 @@ export async function initializePrizePhase(
 
   // Create config, default category and prizes in a single transaction
   // This ensures atomicity - if any operation fails, all are rolled back
-  const { config, indennizzoCategory } = await prisma.$transaction(async (tx) => {
+  const { config, indennizzoCategory } = await prisma.$transaction(async tx => {
     const config = await tx.prizePhaseConfig.create({
       data: {
         marketSessionId: sessionId,
@@ -101,10 +100,7 @@ export async function initializePrizePhase(
  * Ottieni tutti i dati della fase premi per una sessione
  * Include: config, categorie, premi per manager, totali
  */
-export async function getPrizePhaseData(
-  sessionId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function getPrizePhaseData(sessionId: string, userId: string): Promise<ServiceResult> {
   const session = await prisma.marketSession.findUnique({
     where: { id: sessionId },
   })
@@ -238,15 +234,18 @@ export async function getPrizePhaseData(
   })
 
   // Group indemnity players by member
-  const indemnityByMember: Record<string, Array<{
-    playerId: string
-    playerName: string
-    position: string
-    team: string
-    quotation: number
-    exitReason: string
-    contract: { salary: number; duration: number; rescissionClause: number | null } | null
-  }>> = {}
+  const indemnityByMember: Record<
+    string,
+    Array<{
+      playerId: string
+      playerName: string
+      position: string
+      team: string
+      quotation: number
+      exitReason: string
+      contract: { salary: number; duration: number; rescissionClause: number | null } | null
+    }>
+  > = {}
 
   for (const roster of playersWithIndemnity) {
     const memberId = roster.leagueMember.id
@@ -260,11 +259,13 @@ export async function getPrizePhaseData(
       team: roster.player.team,
       quotation: roster.player.quotation,
       exitReason: roster.player.exitReason!,
-      contract: roster.contract ? {
-        salary: roster.contract.salary,
-        duration: roster.contract.duration,
-        rescissionClause: roster.contract.rescissionClause,
-      } : null,
+      contract: roster.contract
+        ? {
+            salary: roster.contract.salary,
+            duration: roster.contract.duration,
+            rescissionClause: roster.contract.rescissionClause,
+          }
+        : null,
     })
   }
 
@@ -383,7 +384,7 @@ export async function updateBaseReincrement(
   }
 
   if (!Number.isInteger(amount) || amount < 0) {
-    return { success: false, message: 'L\'importo deve essere un numero intero >= 0' }
+    return { success: false, message: "L'importo deve essere un numero intero >= 0" }
   }
 
   await prisma.prizePhaseConfig.update({
@@ -570,7 +571,7 @@ export async function setMemberPrize(
   }
 
   if (!Number.isInteger(amount) || amount < 0) {
-    return { success: false, message: 'L\'importo deve essere un numero intero >= 0' }
+    return { success: false, message: "L'importo deve essere un numero intero >= 0" }
   }
 
   // Upsert prize
@@ -772,7 +773,10 @@ export async function setCustomIndemnity(
   }
 
   if (player.exitReason !== 'ESTERO') {
-    return { success: false, message: 'Solo i giocatori ESTERO possono avere indennizzo personalizzato' }
+    return {
+      success: false,
+      message: 'Solo i giocatori ESTERO possono avere indennizzo personalizzato',
+    }
   }
 
   // Find the roster entry to get the member who owns this player
@@ -796,7 +800,7 @@ export async function setCustomIndemnity(
 
   // Validate amount
   if (!Number.isInteger(amount) || amount < 0) {
-    return { success: false, message: 'L\'importo deve essere un numero intero >= 0' }
+    return { success: false, message: "L'importo deve essere un numero intero >= 0" }
   }
 
   // Find or create a category for this player's indemnity
@@ -943,7 +947,10 @@ export async function consolidateIndemnities(
   })
 
   if (!adminMember) {
-    return { success: false, message: 'Non autorizzato - solo admin può consolidare gli indennizzi' }
+    return {
+      success: false,
+      message: 'Non autorizzato - solo admin può consolidare gli indennizzi',
+    }
   }
 
   const config = await prisma.prizePhaseConfig.findUnique({
@@ -1061,10 +1068,7 @@ export async function consolidateIndemnities(
  * Ottieni lo storico di tutti i premi assegnati per una lega
  * Mostra tutte le sessioni con premi finalizzati
  */
-export async function getPrizeHistory(
-  leagueId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function getPrizeHistory(leagueId: string, userId: string): Promise<ServiceResult> {
   // Verify membership
   const member = await prisma.leagueMember.findFirst({
     where: {
@@ -1108,14 +1112,17 @@ export async function getPrizeHistory(
   // Format the response
   const history = sessions.map(session => {
     // Calculate totals per member for this session
-    const memberTotals: Record<string, {
-      memberId: string
-      teamName: string | null
-      username: string
-      baseReincrement: number
-      categoryPrizes: Record<string, number>
-      total: number
-    }> = {}
+    const memberTotals: Record<
+      string,
+      {
+        memberId: string
+        teamName: string | null
+        username: string
+        baseReincrement: number
+        categoryPrizes: Record<string, number>
+        total: number
+      }
+    > = {}
 
     // Initialize with base reincrement
     for (const cat of session.prizeCategories) {

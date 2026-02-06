@@ -108,10 +108,26 @@ const POSITION_COLORS = POSITION_GRADIENTS
 const POSITION_BG = POSITION_FILTER_COLORS
 
 const SERIE_A_TEAMS = [
-  'Atalanta', 'Bologna', 'Cagliari', 'Como', 'Empoli',
-  'Fiorentina', 'Genoa', 'Inter', 'Juventus', 'Lazio', 'Lecce',
-  'Milan', 'Monza', 'Napoli', 'Parma', 'Roma',
-  'Torino', 'Udinese', 'Venezia', 'Verona',
+  'Atalanta',
+  'Bologna',
+  'Cagliari',
+  'Como',
+  'Empoli',
+  'Fiorentina',
+  'Genoa',
+  'Inter',
+  'Juventus',
+  'Lazio',
+  'Lecce',
+  'Milan',
+  'Monza',
+  'Napoli',
+  'Parma',
+  'Roma',
+  'Torino',
+  'Udinese',
+  'Venezia',
+  'Verona',
 ]
 
 export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
@@ -168,7 +184,8 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     initialSalary: number
     rescissionClause: number
   }
-  const [pendingContractModification, setPendingContractModification] = useState<ContractForModification | null>(null)
+  const [pendingContractModification, setPendingContractModification] =
+    useState<ContractForModification | null>(null)
 
   // Manager roster modal
   interface ManagerRosterPlayer {
@@ -190,7 +207,12 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     teamName?: string
     currentBudget: number
     roster: ManagerRosterPlayer[]
-    slotsByPosition: { P: { filled: number; total: number }; D: { filled: number; total: number }; C: { filled: number; total: number }; A: { filled: number; total: number } }
+    slotsByPosition: {
+      P: { filled: number; total: number }
+      D: { filled: number; total: number }
+      C: { filled: number; total: number }
+      A: { filled: number; total: number }
+    }
     slotsFilled: number
     totalSlots: number
   }
@@ -205,7 +227,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
   }, [])
 
   const loadBoard = useCallback(async () => {
@@ -244,8 +268,23 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
   // Poll for board updates
   useEffect(() => {
-    const interval = setInterval(loadBoard, 3000)
-    return () => clearInterval(interval)
+    const interval = setInterval(() => {
+      if (document.hidden) return // Skip polling when tab is hidden
+      loadBoard()
+    }, 5000)
+
+    // Page Visibility API: refresh immediately when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadBoard()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [loadBoard])
 
   // Send heartbeat every 3 seconds to track connection status
@@ -264,9 +303,11 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     // Send immediately on mount
     sendHeartbeat()
 
-    // Then every 3 seconds
-    const interval = setInterval(sendHeartbeat, 3000)
-    return () => clearInterval(interval)
+    // Then every 10 seconds
+    const interval = setInterval(sendHeartbeat, 10000)
+    return () => {
+      clearInterval(interval)
+    }
   }, [leagueId, board?.myMemberId])
 
   // Timer countdown
@@ -297,7 +338,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
       }
       updateTimer()
       const interval = setInterval(updateTimer, 1000)
-      return () => clearInterval(interval)
+      return () => {
+        clearInterval(interval)
+      }
     } else {
       setTimerRemaining(null)
     }
@@ -320,7 +363,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
         // Reset userHasAcked when appeal status changes
         const status = result.data as AppealStatus
         if (board?.pendingAck) {
-          setUserHasAcked(status.userHasAcked || board.pendingAck.acknowledgedMembers.includes(board.myMemberId))
+          setUserHasAcked(
+            status.userHasAcked || board.pendingAck.acknowledgedMembers.includes(board.myMemberId)
+          )
         }
       } else {
         setAppealStatus(null)
@@ -329,13 +374,23 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
       setAppealStatus(null)
       setUserHasAcked(false)
     }
-  }, [board?.pendingAck?.auctionId, board?.pendingAck?.acknowledgedMembers, board?.myMemberId, board?.awaitingResumeAuctionId])
+  }, [
+    board?.pendingAck?.auctionId,
+    board?.pendingAck?.acknowledgedMembers,
+    board?.myMemberId,
+    board?.awaitingResumeAuctionId,
+  ])
 
   // Poll appeal status when in PENDING_ACK state
   useEffect(() => {
     loadAppealStatus()
-    const interval = setInterval(loadAppealStatus, 5000)
-    return () => clearInterval(interval)
+    const interval = setInterval(() => {
+      if (document.hidden) return
+      loadAppealStatus()
+    }, 15000)
+    return () => {
+      clearInterval(interval)
+    }
   }, [loadAppealStatus])
 
   async function loadInitialData() {
@@ -355,7 +410,12 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     if (membersRes.success && membersRes.data) {
       const leagueData = membersRes.data as {
         league?: {
-          members?: Array<{ id: string; user: { username: string }; currentBudget: number; status: string }>
+          members?: Array<{
+            id: string
+            user: { username: string }
+            currentBudget: number
+            status: string
+          }>
         }
       }
       const allMembers = leagueData.league?.members || []
@@ -363,12 +423,14 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
       // Set turn order draft from members
       if (activeMembers.length > 0) {
-        setTurnOrderDraft(activeMembers.map(m => ({
-          id: m.id,
-          username: m.user.username,
-          budget: m.currentBudget,
-          hasPassed: false,
-        })))
+        setTurnOrderDraft(
+          activeMembers.map(m => ({
+            id: m.id,
+            username: m.user.username,
+            budget: m.currentBudget,
+            hasPassed: false,
+          }))
+        )
       }
     }
 
@@ -401,7 +463,10 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     setError('')
     setIsSubmitting(true)
 
-    const res = await svincolatiApi.setTurnOrder(leagueId, turnOrderDraft.map(m => m.id))
+    const res = await svincolatiApi.setTurnOrder(
+      leagueId,
+      turnOrderDraft.map(m => m.id)
+    )
     if (res.success) {
       setSuccess('Ordine turni impostato!')
       loadBoard()
@@ -421,7 +486,11 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
       const res = await auctionApi.getMemberRoster(leagueId, member.id)
       if (res.success && res.data) {
         // API returns { member, roster: { P: [...], D: [...], C: [...], A: [...] }, totals, slots }
-        type RosterItem = { player: { id: string; name: string; team: string; position: string }; contract?: { salary: number; duration: number; rescissionClause: number } | null; acquisitionPrice: number }
+        type RosterItem = {
+          player: { id: string; name: string; team: string; position: string }
+          contract?: { salary: number; duration: number; rescissionClause: number } | null
+          acquisitionPrice: number
+        }
         const apiData = res.data as {
           member: { teamName?: string; user?: { username: string } }
           roster: { P: RosterItem[]; D: RosterItem[]; C: RosterItem[]; A: RosterItem[] }
@@ -430,7 +499,12 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
         }
 
         // Flatten roster from grouped by position to array
-        const allPlayers = [...(apiData.roster.P || []), ...(apiData.roster.D || []), ...(apiData.roster.C || []), ...(apiData.roster.A || [])]
+        const allPlayers = [
+          ...(apiData.roster.P || []),
+          ...(apiData.roster.D || []),
+          ...(apiData.roster.C || []),
+          ...(apiData.roster.A || []),
+        ]
         const rosterData: ManagerRosterPlayer[] = allPlayers.map(r => ({
           id: r.player.id,
           playerId: r.player.id,
@@ -438,11 +512,13 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
           playerTeam: r.player.team,
           position: r.player.position,
           acquisitionPrice: r.acquisitionPrice || 0,
-          contract: r.contract ? {
-            salary: r.contract.salary,
-            duration: r.contract.duration,
-            rescissionClause: r.contract.rescissionClause,
-          } : null,
+          contract: r.contract
+            ? {
+                salary: r.contract.salary,
+                duration: r.contract.duration,
+                rescissionClause: r.contract.rescissionClause,
+              }
+            : null,
         }))
 
         // Use slots from API
@@ -548,7 +624,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     if (res.success) {
       const data = res.data as { allFinished?: boolean }
       if (data.allFinished) {
-        setSuccess('Tutti i manager hanno finito! L\'admin può chiudere la fase.')
+        setSuccess("Tutti i manager hanno finito! L'admin può chiudere la fase.")
       } else {
         setSuccess(res.message || 'Hai dichiarato di aver finito.')
       }
@@ -559,7 +635,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     setIsSubmitting(false)
   }
 
-  async function handleUndoFinished() {
+  async function _handleUndoFinished() {
     setError('')
     setIsSubmitting(true)
 
@@ -660,13 +736,16 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
     // If submitting appeal
     if (withAppeal && appealContent.trim()) {
-      const appealResult = await auctionApi.submitAppeal(board.pendingAck.auctionId, appealContent.trim())
+      const appealResult = await auctionApi.submitAppeal(
+        board.pendingAck.auctionId,
+        appealContent.trim()
+      )
       if (!appealResult.success) {
-        setError(appealResult.message || 'Errore nell\'invio del ricorso')
+        setError(appealResult.message || "Errore nell'invio del ricorso")
         setAckSubmitting(false)
         return
       }
-      setSuccess('Ricorso inviato! L\'admin della lega valuterà la tua richiesta.')
+      setSuccess("Ricorso inviato! L'admin della lega valuterà la tua richiesta.")
     }
 
     // Confirm acknowledgment (even with appeal)
@@ -696,7 +775,11 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
   async function handleContractModification(newSalary: number, newDuration: number) {
     if (!pendingContractModification?.contractId) return
 
-    const res = await contractApi.modify(pendingContractModification.contractId, newSalary, newDuration)
+    const res = await contractApi.modify(
+      pendingContractModification.contractId,
+      newSalary,
+      newDuration
+    )
     if (res.success) {
       setPendingContractModification(null)
       loadBoard()
@@ -823,8 +906,10 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
     const res = await svincolatiApi.botNominate(leagueId)
     if (res.success) {
-      const data = res.data as { player?: { name: string }, nominator?: string }
-      setSuccess(`Bot: ${data.nominator || 'Manager'} ha nominato ${data.player?.name || 'giocatore'}`)
+      const data = res.data as { player?: { name: string }; nominator?: string }
+      setSuccess(
+        `Bot: ${data.nominator || 'Manager'} ha nominato ${data.player?.name || 'giocatore'}`
+      )
       loadBoard()
     } else {
       setError(res.message || 'Errore')
@@ -854,7 +939,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
     const res = await svincolatiApi.botBid(board.activeAuction.id)
     if (res.success) {
-      const data = res.data as { hasBotBid: boolean, winningBot?: string, newCurrentPrice?: number }
+      const data = res.data as { hasBotBid: boolean; winningBot?: string; newCurrentPrice?: number }
       if (data.hasBotBid) {
         setSuccess(`Bot: ${data.winningBot} ha offerto ${data.newCurrentPrice}!`)
       } else {
@@ -900,17 +985,32 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
       <div className="min-h-screen bg-dark-300">
         <header className="py-6 border-b border-surface-50/20 bg-surface-200">
           <div className="max-w-2xl mx-auto px-4">
-            <button onClick={() => onNavigate('leagueDetail', { leagueId })} className="text-primary-400 hover:text-primary-300 text-sm mb-2 flex items-center gap-1">
+            <button
+              onClick={() => {
+                onNavigate('leagueDetail', { leagueId })
+              }}
+              className="text-primary-400 hover:text-primary-300 text-sm mb-2 flex items-center gap-1"
+            >
               <span>←</span> Torna alla lega
             </button>
             <h1 className="text-3xl font-bold text-white">Asta Svincolati - Ordine Turni</h1>
-            <p className="text-gray-400 mt-1">Trascina i Direttori Generali per definire l'ordine dei turni</p>
+            <p className="text-gray-400 mt-1">
+              Trascina i Direttori Generali per definire l'ordine dei turni
+            </p>
           </div>
         </header>
 
         <main className="max-w-2xl mx-auto px-4 py-8">
-          {error && <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-lg mb-6">{error}</div>}
-          {success && <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-4 rounded-lg mb-6">{success}</div>}
+          {error && (
+            <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-lg mb-6">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-4 rounded-lg mb-6">
+              {success}
+            </div>
+          )}
 
           {/* Timer Setting */}
           <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4 mb-6">
@@ -918,7 +1018,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setTimerInput(Math.max(10, timerInput - 5))}
+                onClick={() => {
+                  setTimerInput(Math.max(10, timerInput - 5))
+                }}
                 className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-xl font-bold"
               >
                 −
@@ -929,13 +1031,20 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               </div>
               <button
                 type="button"
-                onClick={() => setTimerInput(Math.min(300, timerInput + 5))}
+                onClick={() => {
+                  setTimerInput(Math.min(300, timerInput + 5))
+                }}
                 className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-xl font-bold"
               >
                 +
               </button>
             </div>
-            <Button size="sm" onClick={handleSetTimer} disabled={isSubmitting} className="w-full mt-3">
+            <Button
+              size="sm"
+              onClick={handleSetTimer}
+              disabled={isSubmitting}
+              className="w-full mt-3"
+            >
               Imposta Timer
             </Button>
           </div>
@@ -959,8 +1068,12 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   <div
                     key={member.id}
                     draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragStart={() => {
+                      handleDragStart(index)
+                    }}
+                    onDragOver={e => {
+                      handleDragOver(e, index)
+                    }}
                     onDragEnd={handleDragEnd}
                     className={`flex items-center gap-4 p-4 rounded-lg border transition-all cursor-grab active:cursor-grabbing ${
                       draggedIndex === index
@@ -975,8 +1088,18 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       <p className="font-semibold text-gray-100">{member.username}</p>
                     </div>
                     <span className="font-mono text-accent-400">{member.budget}</span>
-                    <svg className="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                    <svg
+                      className="w-6 h-6 text-gray-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 8h16M4 16h16"
+                      />
                     </svg>
                   </div>
                 ))}
@@ -984,7 +1107,11 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
             )}
 
             <div className="p-4 border-t border-surface-50/20">
-              <Button onClick={handleSetTurnOrder} disabled={isSubmitting || turnOrderDraft.length === 0} className="w-full py-3 text-lg font-bold">
+              <Button
+                onClick={handleSetTurnOrder}
+                disabled={isSubmitting || turnOrderDraft.length === 0}
+                className="w-full py-3 text-lg font-bold"
+              >
                 Conferma e Inizia Aste
               </Button>
             </div>
@@ -1011,7 +1138,12 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
   if (!board?.isActive) {
     return (
       <div className="min-h-screen bg-dark-300">
-        <Navigation currentPage="svincolati" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
+        <Navigation
+          currentPage="svincolati"
+          leagueId={leagueId}
+          isLeagueAdmin={isAdmin}
+          onNavigate={onNavigate}
+        />
         <main className="max-w-[1600px] mx-auto px-4 py-6">
           {/* Header */}
           <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-6 mb-6">
@@ -1033,12 +1165,16 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                 type="text"
                 placeholder="Cerca giocatore..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={e => {
+                  setSearchQuery(e.target.value)
+                }}
                 className="flex-1 min-w-[200px]"
               />
               <select
                 value={selectedPosition}
-                onChange={(e) => setSelectedPosition(e.target.value)}
+                onChange={e => {
+                  setSelectedPosition(e.target.value)
+                }}
                 className="bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm"
               >
                 <option value="">Tutti i ruoli</option>
@@ -1050,28 +1186,47 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               <div className="relative" ref={teamDropdownRef}>
                 <button
                   type="button"
-                  onClick={() => setTeamDropdownOpen(!teamDropdownOpen)}
+                  onClick={() => {
+                    setTeamDropdownOpen(!teamDropdownOpen)
+                  }}
                   className="bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm flex items-center gap-2 min-w-[150px]"
                 >
                   {selectedTeam ? (
                     <>
                       <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center p-0.5">
-                        <img src={getTeamLogo(selectedTeam)} alt={selectedTeam} className="w-4 h-4 object-contain" />
+                        <img
+                          src={getTeamLogo(selectedTeam)}
+                          alt={selectedTeam}
+                          className="w-4 h-4 object-contain"
+                        />
                       </div>
                       <span>{selectedTeam}</span>
                     </>
                   ) : (
                     <span className="text-gray-400">Squadra</span>
                   )}
-                  <svg className={`w-4 h-4 ml-auto transition-transform ${teamDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <svg
+                    className={`w-4 h-4 ml-auto transition-transform ${teamDropdownOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </button>
                 {teamDropdownOpen && (
                   <div className="absolute top-full left-0 mt-1 bg-surface-200 border border-surface-50/30 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto min-w-[180px]">
                     <button
                       type="button"
-                      onClick={() => { setSelectedTeam(''); setTeamDropdownOpen(false) }}
+                      onClick={() => {
+                        setSelectedTeam('')
+                        setTeamDropdownOpen(false)
+                      }}
                       className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-300 ${!selectedTeam ? 'bg-primary-500/20 text-primary-400' : 'text-white'}`}
                     >
                       Tutte le squadre
@@ -1080,11 +1235,18 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       <button
                         key={team}
                         type="button"
-                        onClick={() => { setSelectedTeam(team); setTeamDropdownOpen(false) }}
+                        onClick={() => {
+                          setSelectedTeam(team)
+                          setTeamDropdownOpen(false)
+                        }}
                         className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-300 flex items-center gap-2 ${selectedTeam === team ? 'bg-primary-500/20 text-primary-400' : 'text-white'}`}
                       >
                         <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
-                          <img src={getTeamLogo(team)} alt={team} className="w-4 h-4 object-contain" />
+                          <img
+                            src={getTeamLogo(team)}
+                            alt={team}
+                            className="w-4 h-4 object-contain"
+                          />
                         </div>
                         <span>{team}</span>
                       </button>
@@ -1099,7 +1261,12 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
           <div className="grid grid-cols-4 gap-3 mb-4">
             {(['P', 'D', 'C', 'A'] as const).map(pos => {
               const count = freeAgents.filter(p => p.position === pos).length
-              const posNames: Record<string, string> = { P: 'Portieri', D: 'Difensori', C: 'Centrocampisti', A: 'Attaccanti' }
+              const posNames: Record<string, string> = {
+                P: 'Portieri',
+                D: 'Difensori',
+                C: 'Centrocampisti',
+                A: 'Attaccanti',
+              }
               return (
                 <div
                   key={pos}
@@ -1135,16 +1302,25 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     </tr>
                   ) : (
                     freeAgents.map(player => (
-                      <tr key={player.id} className="border-b border-surface-50/10 hover:bg-surface-300/30">
+                      <tr
+                        key={player.id}
+                        className="border-b border-surface-50/10 hover:bg-surface-300/30"
+                      >
                         <td className="py-2 px-4">
-                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-xs font-bold text-white`}>
+                          <span
+                            className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-xs font-bold text-white`}
+                          >
                             {player.position}
                           </span>
                         </td>
                         <td className="py-2 px-4">
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 bg-white/90 rounded flex items-center justify-center p-0.5 sm:hidden">
-                              <img src={getTeamLogo(player.team)} alt={player.team} className="w-5 h-5 object-contain" />
+                              <img
+                                src={getTeamLogo(player.team)}
+                                alt={player.team}
+                                className="w-5 h-5 object-contain"
+                              />
                             </div>
                             <span className="font-medium text-white">{player.name}</span>
                           </div>
@@ -1152,7 +1328,11 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                         <td className="py-2 px-4 hidden sm:table-cell">
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 bg-white/90 rounded flex items-center justify-center p-0.5">
-                              <img src={getTeamLogo(player.team)} alt={player.team} className="w-5 h-5 object-contain" />
+                              <img
+                                src={getTeamLogo(player.team)}
+                                alt={player.team}
+                                className="w-5 h-5 object-contain"
+                              />
                             </div>
                             <span className="text-gray-400">{player.team}</span>
                           </div>
@@ -1172,7 +1352,12 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
   // ==================== MAIN AUCTION ROOM ====================
   return (
     <div className="min-h-screen bg-dark-300">
-      <Navigation currentPage="svincolati" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
+      <Navigation
+        currentPage="svincolati"
+        leagueId={leagueId}
+        isLeagueAdmin={isAdmin}
+        onNavigate={onNavigate}
+      />
 
       {/* Header */}
       <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
@@ -1198,7 +1383,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
         {/* Turn Banner */}
         {board?.currentTurnUsername && state !== 'COMPLETED' && (
-          <div className={`px-4 py-3 ${board.isMyTurn ? 'bg-accent-500/20 border-y border-accent-500/40' : 'bg-primary-500/10 border-y border-primary-500/30'}`}>
+          <div
+            className={`px-4 py-3 ${board.isMyTurn ? 'bg-accent-500/20 border-y border-accent-500/40' : 'bg-primary-500/10 border-y border-primary-500/30'}`}
+          >
             <div className="max-w-full mx-auto flex items-center justify-center gap-3">
               {board.isMyTurn ? (
                 <>
@@ -1207,7 +1394,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   <span className="text-2xl">🎯</span>
                 </>
               ) : (
-                <span className="text-gray-300">Turno di <strong className="text-primary-400">{board.currentTurnUsername}</strong></span>
+                <span className="text-gray-300">
+                  Turno di <strong className="text-primary-400">{board.currentTurnUsername}</strong>
+                </span>
               )}
             </div>
           </div>
@@ -1217,14 +1406,24 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
       <main className="max-w-full mx-auto px-4 py-4 lg:py-6">
         {/* Error/Success Messages */}
         <div className="space-y-2 mb-4">
-          {error && <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg text-sm">{error}</div>}
-          {success && <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-3 rounded-lg text-sm">{success}</div>}
+          {error && (
+            <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-3 rounded-lg text-sm">
+              {success}
+            </div>
+          )}
         </div>
 
         {/* 3-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* LEFT: Admin Controls */}
-          <div className={`lg:col-span-3 space-y-4 ${board?.activeAuction ? 'hidden lg:block' : ''}`}>
+          <div
+            className={`lg:col-span-3 space-y-4 ${board?.activeAuction ? 'hidden lg:block' : ''}`}
+          >
             {/* Admin Controls */}
             {isAdmin && (
               <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
@@ -1239,7 +1438,10 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       {[10, 15, 20, 30, 45, 60].map(sec => (
                         <button
                           key={sec}
-                          onClick={() => { setTimerInput(sec); handleSetTimer() }}
+                          onClick={() => {
+                            setTimerInput(sec)
+                            handleSetTimer()
+                          }}
                           className={`px-2 py-1 rounded text-xs font-medium transition-all ${
                             timerInput === sec
                               ? 'bg-primary-500 text-white'
@@ -1288,7 +1490,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       size="sm"
                       variant="outline"
                       onClick={handleForceReady}
-                      disabled={isSubmitting || state !== 'NOMINATION' || !board?.nominatorConfirmed}
+                      disabled={
+                        isSubmitting || state !== 'NOMINATION' || !board?.nominatorConfirmed
+                      }
                       className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
                     >
                       Forza Tutti Pronti
@@ -1333,7 +1537,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   <Input
                     placeholder="Cerca giocatore..."
                     value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
+                    onChange={e => {
+                      setSearchQuery(e.target.value)
+                    }}
                     className="mb-3 bg-surface-300 border-surface-50/30 text-white placeholder-gray-500"
                   />
 
@@ -1341,7 +1547,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   <div className="flex gap-2 mb-3">
                     <select
                       value={selectedPosition}
-                      onChange={(e) => setSelectedPosition(e.target.value)}
+                      onChange={e => {
+                        setSelectedPosition(e.target.value)
+                      }}
                       className="flex-1 bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm"
                     >
                       <option value="">Tutti i ruoli</option>
@@ -1355,14 +1563,20 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <div className="relative flex-1" ref={teamDropdownRef}>
                       <button
                         type="button"
-                        onClick={() => setTeamDropdownOpen(!teamDropdownOpen)}
+                        onClick={() => {
+                          setTeamDropdownOpen(!teamDropdownOpen)
+                        }}
                         className="w-full bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm flex items-center justify-between"
                       >
                         <div className="flex items-center gap-2">
                           {selectedTeam ? (
                             <>
                               <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center p-0.5">
-                                <img src={getTeamLogo(selectedTeam)} alt={selectedTeam} className="w-4 h-4 object-contain" />
+                                <img
+                                  src={getTeamLogo(selectedTeam)}
+                                  alt={selectedTeam}
+                                  className="w-4 h-4 object-contain"
+                                />
                               </div>
                               <span className="truncate">{selectedTeam}</span>
                             </>
@@ -1370,15 +1584,28 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                             <span className="text-gray-400">Squadra</span>
                           )}
                         </div>
-                        <svg className={`w-4 h-4 transition-transform ${teamDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        <svg
+                          className={`w-4 h-4 transition-transform ${teamDropdownOpen ? 'rotate-180' : ''}`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       </button>
                       {teamDropdownOpen && (
                         <div className="absolute top-full left-0 right-0 mt-1 bg-surface-200 border border-surface-50/30 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto">
                           <button
                             type="button"
-                            onClick={() => { setSelectedTeam(''); setTeamDropdownOpen(false) }}
+                            onClick={() => {
+                              setSelectedTeam('')
+                              setTeamDropdownOpen(false)
+                            }}
                             className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-300 ${!selectedTeam ? 'bg-primary-500/20 text-primary-400' : 'text-white'}`}
                           >
                             Tutte le squadre
@@ -1387,11 +1614,18 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                             <button
                               key={team}
                               type="button"
-                              onClick={() => { setSelectedTeam(team); setTeamDropdownOpen(false) }}
+                              onClick={() => {
+                                setSelectedTeam(team)
+                                setTeamDropdownOpen(false)
+                              }}
                               className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-300 flex items-center gap-2 ${selectedTeam === team ? 'bg-primary-500/20 text-primary-400' : 'text-white'}`}
                             >
                               <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
-                                <img src={getTeamLogo(team)} alt={team} className="w-4 h-4 object-contain" />
+                                <img
+                                  src={getTeamLogo(team)}
+                                  alt={team}
+                                  className="w-4 h-4 object-contain"
+                                />
                               </div>
                               <span>{team}</span>
                             </button>
@@ -1415,11 +1649,17 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                         className="w-full flex items-center p-3 rounded-lg bg-surface-300 hover:bg-primary-500/10 border border-transparent hover:border-primary-500/30 transition-all text-left"
                       >
                         <div className="flex items-center gap-3 flex-1">
-                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>
+                          <span
+                            className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}
+                          >
                             {player.position}
                           </span>
                           <div className="w-7 h-7 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
-                            <img src={getTeamLogo(player.team)} alt={player.team} className="w-6 h-6 object-contain" />
+                            <img
+                              src={getTeamLogo(player.team)}
+                              alt={player.team}
+                              className="w-6 h-6 object-contain"
+                            />
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="font-medium text-white truncate">{player.name}</p>
@@ -1454,105 +1694,147 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   </div>
                   <p className="text-gray-400">In attesa...</p>
                   <p className="text-sm text-gray-500 mt-1">
-                    Turno di <strong className="text-primary-400">{board?.currentTurnUsername}</strong>
+                    Turno di{' '}
+                    <strong className="text-primary-400">{board?.currentTurnUsername}</strong>
                   </p>
                 </div>
               </div>
             )}
 
             {/* NOMINATION - Pending nomination */}
-            {(state === 'NOMINATION' || (state === 'READY_CHECK' && board?.pendingPlayer)) && board?.pendingPlayer && (
-              <div className="bg-surface-200 rounded-xl border-2 border-accent-500/50 overflow-hidden animate-pulse-slow">
-                <div className="p-6 text-center">
-                  <div className="text-4xl mb-4">
-                    {board.pendingNominatorId === board.myMemberId && !board.nominatorConfirmed ? '🎯' : '⏳'}
-                  </div>
-                  <h2 className="text-xl font-bold text-white mb-2">
-                    {board.pendingNominatorId === board.myMemberId && !board.nominatorConfirmed
-                      ? 'Conferma la tua scelta'
-                      : `${board.nominatorUsername} ha chiamato`}
-                  </h2>
-
-                  {/* Player Card */}
-                  <div className="inline-flex items-center gap-3 bg-surface-300 rounded-lg p-4 mb-4">
-                    <span className={`w-12 h-12 rounded-full bg-gradient-to-br ${POSITION_COLORS[board.pendingPlayer.position]} flex items-center justify-center text-white font-bold text-lg`}>
-                      {board.pendingPlayer.position}
-                    </span>
-                    <div className="w-10 h-10 bg-white/90 rounded flex items-center justify-center p-0.5">
-                      <img src={getTeamLogo(board.pendingPlayer.team)} alt={board.pendingPlayer.team} className="w-8 h-8 object-contain" />
+            {(state === 'NOMINATION' || (state === 'READY_CHECK' && board?.pendingPlayer)) &&
+              board?.pendingPlayer && (
+                <div className="bg-surface-200 rounded-xl border-2 border-accent-500/50 overflow-hidden animate-pulse-slow">
+                  <div className="p-6 text-center">
+                    <div className="text-4xl mb-4">
+                      {board.pendingNominatorId === board.myMemberId && !board.nominatorConfirmed
+                        ? '🎯'
+                        : '⏳'}
                     </div>
-                    <div className="text-left">
-                      <p className="font-bold text-xl text-white">{board.pendingPlayer.name}</p>
-                      <p className="text-gray-400">{board.pendingPlayer.team}</p>
+                    <h2 className="text-xl font-bold text-white mb-2">
+                      {board.pendingNominatorId === board.myMemberId && !board.nominatorConfirmed
+                        ? 'Conferma la tua scelta'
+                        : `${board.nominatorUsername} ha chiamato`}
+                    </h2>
+
+                    {/* Player Card */}
+                    <div className="inline-flex items-center gap-3 bg-surface-300 rounded-lg p-4 mb-4">
+                      <span
+                        className={`w-12 h-12 rounded-full bg-gradient-to-br ${POSITION_COLORS[board.pendingPlayer.position]} flex items-center justify-center text-white font-bold text-lg`}
+                      >
+                        {board.pendingPlayer.position}
+                      </span>
+                      <div className="w-10 h-10 bg-white/90 rounded flex items-center justify-center p-0.5">
+                        <img
+                          src={getTeamLogo(board.pendingPlayer.team)}
+                          alt={board.pendingPlayer.team}
+                          className="w-8 h-8 object-contain"
+                        />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-bold text-xl text-white">{board.pendingPlayer.name}</p>
+                        <p className="text-gray-400">{board.pendingPlayer.team}</p>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Nominator: Confirm/Cancel buttons */}
-                  {board.pendingNominatorId === board.myMemberId && !board.nominatorConfirmed && (
-                    <div className="space-y-3">
-                      <div className="flex gap-3 justify-center">
-                        <Button onClick={handleConfirmNomination} disabled={isSubmitting} className="px-8 py-3 text-lg font-bold">
-                          {isSubmitting ? 'Attendi...' : '✓ CONFERMA'}
-                        </Button>
-                        <Button onClick={handleCancelNomination} variant="outline" className="border-gray-500 text-gray-300 px-6 py-3">
-                          Cambia
-                        </Button>
-                      </div>
-                      <p className="text-sm text-gray-500">Dopo la conferma, gli altri Direttori Generali potranno dichiararsi pronti</p>
-                    </div>
-                  )}
-
-                  {/* After confirmation - Ready status */}
-                  {board.nominatorConfirmed && (
-                    <>
-                      <div className="mb-4">
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-gray-400">DG pronti</span>
-                          <span className="font-bold text-white">{board.readyMembers.length}/{board.turnOrder.length}</span>
-                        </div>
-                        <div className="w-full bg-surface-400 rounded-full h-2">
-                          <div className="h-2 rounded-full bg-accent-500 transition-all" style={{ width: `${(board.readyMembers.length / board.turnOrder.length) * 100}%` }}></div>
-                        </div>
-                      </div>
-
-                      {/* Ready/Waiting lists */}
-                      <div className="bg-surface-300/50 rounded-lg p-3 text-left mb-4">
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div>
-                            <p className="text-secondary-400 font-semibold mb-1">✓ Pronti</p>
-                            {board.turnOrder.filter(m => board.readyMembers.includes(m.id)).map(m => (
-                              <p key={m.id} className="text-gray-300">{m.username}</p>
-                            ))}
-                          </div>
-                          <div>
-                            <p className="text-amber-400 font-semibold mb-1">⏳ In attesa</p>
-                            {board.turnOrder.filter(m => !board.readyMembers.includes(m.id)).map(m => (
-                              <p key={m.id} className="text-gray-400">{m.username}</p>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Non-nominator: SONO PRONTO button */}
-                      {board.pendingNominatorId !== board.myMemberId && (
-                        !board.readyMembers.includes(board.myMemberId) ? (
-                          <Button onClick={handleMarkReady} disabled={isSubmitting} className="px-12 py-3 text-lg font-bold">
-                            {isSubmitting ? 'Attendi...' : 'SONO PRONTO'}
+                    {/* Nominator: Confirm/Cancel buttons */}
+                    {board.pendingNominatorId === board.myMemberId && !board.nominatorConfirmed && (
+                      <div className="space-y-3">
+                        <div className="flex gap-3 justify-center">
+                          <Button
+                            onClick={handleConfirmNomination}
+                            disabled={isSubmitting}
+                            className="px-8 py-3 text-lg font-bold"
+                          >
+                            {isSubmitting ? 'Attendi...' : '✓ CONFERMA'}
                           </Button>
-                        ) : (
-                          <p className="text-secondary-400 font-medium">✓ Pronto - In attesa degli altri</p>
-                        )
-                      )}
+                          <Button
+                            onClick={handleCancelNomination}
+                            variant="outline"
+                            className="border-gray-500 text-gray-300 px-6 py-3"
+                          >
+                            Cambia
+                          </Button>
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          Dopo la conferma, gli altri Direttori Generali potranno dichiararsi pronti
+                        </p>
+                      </div>
+                    )}
 
-                      {/* Nominator already confirmed */}
-                      {board.pendingNominatorId === board.myMemberId && (
-                        <p className="text-secondary-400 font-medium">✓ Confermato - In attesa degli altri</p>
-                      )}
-                    </>
-                  )}
+                    {/* After confirmation - Ready status */}
+                    {board.nominatorConfirmed && (
+                      <>
+                        <div className="mb-4">
+                          <div className="flex justify-between text-sm mb-2">
+                            <span className="text-gray-400">DG pronti</span>
+                            <span className="font-bold text-white">
+                              {board.readyMembers.length}/{board.turnOrder.length}
+                            </span>
+                          </div>
+                          <div className="w-full bg-surface-400 rounded-full h-2">
+                            <div
+                              className="h-2 rounded-full bg-accent-500 transition-all"
+                              style={{
+                                width: `${(board.readyMembers.length / board.turnOrder.length) * 100}%`,
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+
+                        {/* Ready/Waiting lists */}
+                        <div className="bg-surface-300/50 rounded-lg p-3 text-left mb-4">
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <p className="text-secondary-400 font-semibold mb-1">✓ Pronti</p>
+                              {board.turnOrder
+                                .filter(m => board.readyMembers.includes(m.id))
+                                .map(m => (
+                                  <p key={m.id} className="text-gray-300">
+                                    {m.username}
+                                  </p>
+                                ))}
+                            </div>
+                            <div>
+                              <p className="text-amber-400 font-semibold mb-1">⏳ In attesa</p>
+                              {board.turnOrder
+                                .filter(m => !board.readyMembers.includes(m.id))
+                                .map(m => (
+                                  <p key={m.id} className="text-gray-400">
+                                    {m.username}
+                                  </p>
+                                ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Non-nominator: SONO PRONTO button */}
+                        {board.pendingNominatorId !== board.myMemberId &&
+                          (!board.readyMembers.includes(board.myMemberId) ? (
+                            <Button
+                              onClick={handleMarkReady}
+                              disabled={isSubmitting}
+                              className="px-12 py-3 text-lg font-bold"
+                            >
+                              {isSubmitting ? 'Attendi...' : 'SONO PRONTO'}
+                            </Button>
+                          ) : (
+                            <p className="text-secondary-400 font-medium">
+                              ✓ Pronto - In attesa degli altri
+                            </p>
+                          ))}
+
+                        {/* Nominator already confirmed */}
+                        {board.pendingNominatorId === board.myMemberId && (
+                          <p className="text-secondary-400 font-medium">
+                            ✓ Confermato - In attesa degli altri
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* AUCTION - Active auction */}
             {state === 'AUCTION' && board?.activeAuction && (
@@ -1565,7 +1847,11 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   {isUserWinning && (
                     <div className="flex items-center gap-1 px-2 py-1 bg-secondary-500/20 text-secondary-400 rounded-full text-xs font-medium">
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                       Stai vincendo!
                     </div>
@@ -1576,7 +1862,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   {/* Timer */}
                   {board.activeAuction.timerExpiresAt && (
                     <div className="text-center p-4 bg-surface-300/50 rounded-xl">
-                      <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">Tempo rimanente</p>
+                      <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">
+                        Tempo rimanente
+                      </p>
                       <div className={getTimerClass()}>{timerRemaining ?? '--'}</div>
                       <p className="text-gray-500 text-sm mt-1">secondi</p>
                       {timerRemaining !== null && timerRemaining <= 10 && timerRemaining > 0 && (
@@ -1588,23 +1876,37 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   {/* Player Display */}
                   <div className="text-center p-5 bg-gradient-to-br from-surface-300 to-surface-200 rounded-xl border border-surface-50/20">
                     <div className="flex items-center justify-center gap-4 mb-3">
-                      <span className={`px-4 py-1.5 rounded-full text-sm font-bold border ${POSITION_BG[board.activeAuction.player.position]}`}>
+                      <span
+                        className={`px-4 py-1.5 rounded-full text-sm font-bold border ${POSITION_BG[board.activeAuction.player.position]}`}
+                      >
                         {board.activeAuction.player.position}
                       </span>
                       <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1 shadow-lg">
-                        <img src={getTeamLogo(board.activeAuction.player.team)} alt={board.activeAuction.player.team} className="w-10 h-10 object-contain" />
+                        <img
+                          src={getTeamLogo(board.activeAuction.player.team)}
+                          alt={board.activeAuction.player.team}
+                          className="w-10 h-10 object-contain"
+                        />
                       </div>
                     </div>
-                    <h2 className="text-3xl lg:text-4xl font-bold text-white mb-1">{board.activeAuction.player.name}</h2>
+                    <h2 className="text-3xl lg:text-4xl font-bold text-white mb-1">
+                      {board.activeAuction.player.name}
+                    </h2>
                     <p className="text-lg text-gray-400">{board.activeAuction.player.team}</p>
                   </div>
 
                   {/* Current Price */}
                   <div className="bg-primary-500/10 border border-primary-500/30 rounded-xl p-5 text-center">
-                    <p className="text-sm text-primary-400 mb-2 uppercase tracking-wider">Offerta Attuale</p>
-                    <p className="text-5xl lg:text-6xl font-bold text-white mb-2">{board.activeAuction.currentPrice}</p>
+                    <p className="text-sm text-primary-400 mb-2 uppercase tracking-wider">
+                      Offerta Attuale
+                    </p>
+                    <p className="text-5xl lg:text-6xl font-bold text-white mb-2">
+                      {board.activeAuction.currentPrice}
+                    </p>
                     {board.activeAuction.bids.length > 0 && board.activeAuction.bids[0] && (
-                      <p className={`text-lg ${board.activeAuction.bids[0].bidder === currentUsername ? 'text-secondary-400 font-bold' : 'text-primary-400'}`}>
+                      <p
+                        className={`text-lg ${board.activeAuction.bids[0].bidder === currentUsername ? 'text-secondary-400 font-bold' : 'text-primary-400'}`}
+                      >
                         di {board.activeAuction.bids[0].bidder}
                         {board.activeAuction.bids[0].bidder === currentUsername && ' (TU)'}
                       </p>
@@ -1634,7 +1936,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                             key={n}
                             size="sm"
                             variant="outline"
-                            onClick={() => setBidAmount(String(newBid))}
+                            onClick={() => {
+                              setBidAmount(String(newBid))
+                            }}
                             disabled={isTimerExpired || newBid > board.myBudget || board.isFinished}
                             className="border-surface-50/30 text-gray-300 hover:border-primary-500/50 hover:bg-primary-500/10 font-mono"
                           >
@@ -1648,8 +1952,21 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => setBidAmount(String(Math.max(board.activeAuction!.currentPrice + 1, parseInt(bidAmount || '0') - 1)))}
-                        disabled={isTimerExpired || parseInt(bidAmount || '0') <= board.activeAuction!.currentPrice + 1 || board.isFinished}
+                        onClick={() => {
+                          setBidAmount(
+                            String(
+                              Math.max(
+                                board.activeAuction!.currentPrice + 1,
+                                parseInt(bidAmount || '0') - 1
+                              )
+                            )
+                          )
+                        }}
+                        disabled={
+                          isTimerExpired ||
+                          parseInt(bidAmount || '0') <= board.activeAuction.currentPrice + 1 ||
+                          board.isFinished
+                        }
                         className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         −
@@ -1657,22 +1974,35 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       <Input
                         type="number"
                         value={bidAmount}
-                        onChange={e => setBidAmount(e.target.value)}
+                        onChange={e => {
+                          setBidAmount(e.target.value)
+                        }}
                         disabled={isTimerExpired || board.isFinished}
                         className="flex-1 text-xl text-center bg-surface-300 border-surface-50/30 text-white font-mono"
                         placeholder="Importo..."
                       />
                       <button
                         type="button"
-                        onClick={() => setBidAmount(String(parseInt(bidAmount || '0') + 1))}
-                        disabled={isTimerExpired || parseInt(bidAmount || '0') + 1 > board.myBudget || board.isFinished}
+                        onClick={() => {
+                          setBidAmount(String(parseInt(bidAmount || '0') + 1))
+                        }}
+                        disabled={
+                          isTimerExpired ||
+                          parseInt(bidAmount || '0') + 1 > board.myBudget ||
+                          board.isFinished
+                        }
                         className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         +
                       </button>
                       <Button
                         onClick={handleBid}
-                        disabled={isTimerExpired || !bidAmount || parseInt(bidAmount) > board.myBudget || board.isFinished}
+                        disabled={
+                          isTimerExpired ||
+                          !bidAmount ||
+                          parseInt(bidAmount) > board.myBudget ||
+                          board.isFinished
+                        }
                         className="px-6 lg:px-8 font-bold"
                       >
                         {board.isFinished ? 'Finito' : isTimerExpired ? 'Scaduto' : 'Offri'}
@@ -1686,7 +2016,11 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     </div>
 
                     {isAdmin && (
-                      <Button variant="secondary" onClick={handleCloseAuction} className="w-full mt-2">
+                      <Button
+                        variant="secondary"
+                        onClick={handleCloseAuction}
+                        className="w-full mt-2"
+                      >
                         Chiudi Asta Manualmente
                       </Button>
                     )}
@@ -1697,7 +2031,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <div className="border-t border-surface-50/20 pt-4">
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="text-sm text-gray-400 font-medium">Storico Offerte</h4>
-                        <span className="text-xs text-gray-500">{board.activeAuction.bids.length} offerte</span>
+                        <span className="text-xs text-gray-500">
+                          {board.activeAuction.bids.length} offerte
+                        </span>
                       </div>
                       <div className="space-y-1.5 max-h-48 overflow-y-auto">
                         {board.activeAuction.bids.map((bid, i) => (
@@ -1712,17 +2048,25 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                             <div className="flex items-center gap-2">
                               {i === 0 && (
                                 <span className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center">
-                                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <svg
+                                    className="w-3 h-3 text-white"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
                                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                   </svg>
                                 </span>
                               )}
-                              <span className={`${i === 0 ? 'text-white font-medium' : 'text-gray-300'} ${bid.bidder === currentUsername ? 'text-secondary-400' : ''}`}>
+                              <span
+                                className={`${i === 0 ? 'text-white font-medium' : 'text-gray-300'} ${bid.bidder === currentUsername ? 'text-secondary-400' : ''}`}
+                              >
                                 {bid.bidder}
                                 {bid.bidder === currentUsername && ' (tu)'}
                               </span>
                             </div>
-                            <span className={`font-mono font-bold ${i === 0 ? 'text-primary-400 text-lg' : 'text-white'}`}>
+                            <span
+                              className={`font-mono font-bold ${i === 0 ? 'text-primary-400 text-lg' : 'text-white'}`}
+                            >
                               {bid.amount}
                             </span>
                           </div>
@@ -1753,7 +2097,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
           </div>
 
           {/* RIGHT: DG List */}
-          <div className={`lg:col-span-4 space-y-4 ${board?.activeAuction ? 'hidden lg:block' : ''}`}>
+          <div
+            className={`lg:col-span-4 space-y-4 ${board?.activeAuction ? 'hidden lg:block' : ''}`}
+          >
             {/* DG List with Turn Order */}
             <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
               <div className="p-3 border-b border-surface-50/20 sticky top-0 bg-surface-200 z-10">
@@ -1781,19 +2127,25 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       <div className="flex items-center gap-3">
                         {/* Turn Order Badge + Connection Indicator */}
                         <div className="relative flex-shrink-0">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                            isCurrent
-                              ? 'bg-accent-500 text-white'
-                              : isPassed || hasFinished
-                              ? 'bg-surface-400 text-gray-500'
-                              : 'bg-surface-300 text-gray-400'
-                          }`}>
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                              isCurrent
+                                ? 'bg-accent-500 text-white'
+                                : isPassed || hasFinished
+                                  ? 'bg-surface-400 text-gray-500'
+                                  : 'bg-surface-300 text-gray-400'
+                            }`}
+                          >
                             {index + 1}
                           </div>
                           {/* Connection status dot */}
                           <span
                             className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-surface-200 ${
-                              member.isConnected === true ? 'bg-green-500' : member.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
+                              member.isConnected === true
+                                ? 'bg-green-500'
+                                : member.isConnected === false
+                                  ? 'bg-red-500'
+                                  : 'bg-gray-500'
                             }`}
                             title={member.isConnected ? 'Online' : 'Offline'}
                           />
@@ -1814,7 +2166,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                           </div>
                         </div>
                         {isCurrent && (
-                          <span className="text-accent-400 text-xs font-bold animate-pulse">TURNO</span>
+                          <span className="text-accent-400 text-xs font-bold animate-pulse">
+                            TURNO
+                          </span>
                         )}
                       </div>
                     </div>
@@ -1844,21 +2198,23 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
                   {/* Progresso finiti */}
                   <div className="mt-2 text-center text-xs text-gray-400">
-                    {board.finishedMembers?.length || 0}/{board.turnOrder.length} manager hanno finito
+                    {board.finishedMembers?.length || 0}/{board.turnOrder.length} manager hanno
+                    finito
                   </div>
 
                   {/* Admin: Simula tutti finiti */}
-                  {board.isAdmin && (board.finishedMembers?.length || 0) < board.turnOrder.length && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={handleForceAllFinished}
-                      disabled={isSubmitting}
-                      className="w-full mt-2"
-                    >
-                      🤖 Simula Tutti Finiti
-                    </Button>
-                  )}
+                  {board.isAdmin &&
+                    (board.finishedMembers?.length || 0) < board.turnOrder.length && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleForceAllFinished}
+                        disabled={isSubmitting}
+                        className="w-full mt-2"
+                      >
+                        🤖 Simula Tutti Finiti
+                      </Button>
+                    )}
 
                   {/* Admin: Chiudi fase quando tutti hanno finito */}
                   {board.isAdmin && board.finishedMembers?.length === board.turnOrder.length && (
@@ -1898,16 +2254,18 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
               <div className="bg-warning-500/10 border border-warning-500/30 rounded-lg p-4 mb-6">
                 <p className="text-warning-400 text-sm text-center">
-                  <strong>Attenzione:</strong> Questa azione è <strong>irreversibile</strong>.
-                  Non potrai più fare offerte per nessun giocatore in questa fase.
-                  Potrai comunque continuare a vedere le aste in corso.
+                  <strong>Attenzione:</strong> Questa azione è <strong>irreversibile</strong>. Non
+                  potrai più fare offerte per nessun giocatore in questa fase. Potrai comunque
+                  continuare a vedere le aste in corso.
                 </p>
               </div>
 
               <div className="flex gap-3">
                 <Button
                   variant="outline"
-                  onClick={() => setShowFinishConfirmModal(false)}
+                  onClick={() => {
+                    setShowFinishConfirmModal(false)
+                  }}
                   className="flex-1"
                 >
                   Annulla
@@ -1927,127 +2285,170 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
       )}
 
       {/* Acknowledgment Modal - Non mostrare se c'è un ricorso attivo */}
-      {state === 'PENDING_ACK' && board?.pendingAck && !userHasAcked &&
-       appealStatus?.auctionStatus !== 'APPEAL_REVIEW' &&
-       appealStatus?.auctionStatus !== 'AWAITING_APPEAL_ACK' &&
-       appealStatus?.auctionStatus !== 'AWAITING_RESUME' && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20">
-            <div className="p-6">
-              <div className="text-center mb-6">
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${board.pendingAck.winnerUsername ? 'bg-secondary-500/20' : 'bg-surface-300'}`}>
-                  <span className="text-3xl">{board.pendingAck.winnerUsername ? '✅' : '❌'}</span>
-                </div>
-                <h2 className="text-2xl font-bold text-white">{board.pendingAck.winnerUsername ? 'Transazione Completata' : 'Asta Conclusa'}</h2>
-              </div>
-
-              <div className="bg-surface-300 rounded-lg p-4 mb-4 text-center">
-                <p className="font-bold text-xl text-white mb-2">{board.pendingAck.playerName}</p>
-              </div>
-
-              {board.pendingAck.winnerUsername ? (
-                <div className="bg-primary-500/10 rounded-lg p-4 mb-4 text-center border border-primary-500/30">
-                  <p className="text-sm text-primary-400">Acquistato da</p>
-                  <p className="text-xl font-bold text-white">{board.pendingAck.winnerUsername}</p>
-                  <p className="text-3xl font-bold text-accent-400 mt-1">{board.pendingAck.price}</p>
-                </div>
-              ) : (
-                <div className="bg-surface-300 rounded-lg p-4 mb-4 text-center">
-                  <p className="text-gray-400">Nessuna offerta - rimane svincolato</p>
-                </div>
-              )}
-
-              <div className="mb-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-400">Conferme</span>
-                  <span className="text-white">{board.pendingAck.acknowledgedMembers.length}/{board.turnOrder.length}</span>
-                </div>
-                <div className="w-full bg-surface-400 rounded-full h-2">
-                  <div className="h-2 rounded-full bg-secondary-500 transition-all" style={{ width: `${(board.pendingAck.acknowledgedMembers.length / board.turnOrder.length) * 100}%` }}></div>
-                </div>
-              </div>
-
-              {/* Appeal mode toggle */}
-              {!isAppealMode ? (
-                <div className="space-y-3">
-                  <Button onClick={() => handleAcknowledge(false)} disabled={ackSubmitting} className="w-full py-3 font-bold">
-                    {ackSubmitting ? 'Conferma...' : 'Ho Visto, Conferma'}
-                  </Button>
-                  <button
-                    onClick={() => setIsAppealMode(true)}
-                    className="w-full text-sm text-danger-400 hover:text-danger-300 transition-colors"
+      {state === 'PENDING_ACK' &&
+        board?.pendingAck &&
+        !userHasAcked &&
+        appealStatus?.auctionStatus !== 'APPEAL_REVIEW' &&
+        appealStatus?.auctionStatus !== 'AWAITING_APPEAL_ACK' &&
+        appealStatus?.auctionStatus !== 'AWAITING_RESUME' && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20">
+              <div className="p-6">
+                <div className="text-center mb-6">
+                  <div
+                    className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${board.pendingAck.winnerUsername ? 'bg-secondary-500/20' : 'bg-surface-300'}`}
                   >
-                    Contesta questa transazione (Ricorso)
-                  </button>
+                    <span className="text-3xl">
+                      {board.pendingAck.winnerUsername ? '✅' : '❌'}
+                    </span>
+                  </div>
+                  <h2 className="text-2xl font-bold text-white">
+                    {board.pendingAck.winnerUsername ? 'Transazione Completata' : 'Asta Conclusa'}
+                  </h2>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm text-danger-400 font-medium">
-                    Indica il motivo per cui contesti questa conclusione d'asta
-                  </p>
-                  <textarea
-                    value={appealContent}
-                    onChange={e => setAppealContent(e.target.value)}
-                    className="w-full bg-surface-300 border border-danger-500/50 rounded-lg p-3 text-white placeholder-gray-500"
-                    rows={3}
-                    placeholder="Descrivi il motivo del ricorso..."
-                    maxLength={500}
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => { setIsAppealMode(false); setAppealContent('') }}
-                      className="flex-1 border-gray-500 text-gray-300"
-                    >
-                      Annulla
-                    </Button>
-                    <Button
-                      onClick={() => handleAcknowledge(true)}
-                      disabled={ackSubmitting || !appealContent.trim()}
-                      className="flex-1 bg-danger-500 hover:bg-danger-600 text-white"
-                    >
-                      {ackSubmitting ? 'Invio...' : 'Invia Ricorso'}
-                    </Button>
+
+                <div className="bg-surface-300 rounded-lg p-4 mb-4 text-center">
+                  <p className="font-bold text-xl text-white mb-2">{board.pendingAck.playerName}</p>
+                </div>
+
+                {board.pendingAck.winnerUsername ? (
+                  <div className="bg-primary-500/10 rounded-lg p-4 mb-4 text-center border border-primary-500/30">
+                    <p className="text-sm text-primary-400">Acquistato da</p>
+                    <p className="text-xl font-bold text-white">
+                      {board.pendingAck.winnerUsername}
+                    </p>
+                    <p className="text-3xl font-bold text-accent-400 mt-1">
+                      {board.pendingAck.price}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-surface-300 rounded-lg p-4 mb-4 text-center">
+                    <p className="text-gray-400">Nessuna offerta - rimane svincolato</p>
+                  </div>
+                )}
+
+                <div className="mb-4">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-gray-400">Conferme</span>
+                    <span className="text-white">
+                      {board.pendingAck.acknowledgedMembers.length}/{board.turnOrder.length}
+                    </span>
+                  </div>
+                  <div className="w-full bg-surface-400 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full bg-secondary-500 transition-all"
+                      style={{
+                        width: `${(board.pendingAck.acknowledgedMembers.length / board.turnOrder.length) * 100}%`,
+                      }}
+                    ></div>
                   </div>
                 </div>
-              )}
 
-              {/* Admin: Test button */}
-              {isAdmin && !isAppealMode && (
+                {/* Appeal mode toggle */}
+                {!isAppealMode ? (
+                  <div className="space-y-3">
+                    <Button
+                      onClick={() => handleAcknowledge(false)}
+                      disabled={ackSubmitting}
+                      className="w-full py-3 font-bold"
+                    >
+                      {ackSubmitting ? 'Conferma...' : 'Ho Visto, Conferma'}
+                    </Button>
+                    <button
+                      onClick={() => {
+                        setIsAppealMode(true)
+                      }}
+                      className="w-full text-sm text-danger-400 hover:text-danger-300 transition-colors"
+                    >
+                      Contesta questa transazione (Ricorso)
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-danger-400 font-medium">
+                      Indica il motivo per cui contesti questa conclusione d'asta
+                    </p>
+                    <textarea
+                      value={appealContent}
+                      onChange={e => {
+                        setAppealContent(e.target.value)
+                      }}
+                      className="w-full bg-surface-300 border border-danger-500/50 rounded-lg p-3 text-white placeholder-gray-500"
+                      rows={3}
+                      placeholder="Descrivi il motivo del ricorso..."
+                      maxLength={500}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsAppealMode(false)
+                          setAppealContent('')
+                        }}
+                        className="flex-1 border-gray-500 text-gray-300"
+                      >
+                        Annulla
+                      </Button>
+                      <Button
+                        onClick={() => handleAcknowledge(true)}
+                        disabled={ackSubmitting || !appealContent.trim()}
+                        className="flex-1 bg-danger-500 hover:bg-danger-600 text-white"
+                      >
+                        {ackSubmitting ? 'Invio...' : 'Invia Ricorso'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Admin: Test button */}
+                {isAdmin && !isAppealMode && (
+                  <Button
+                    onClick={handleSimulateAppeal}
+                    variant="outline"
+                    className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
+                  >
+                    [TEST] Simula ricorso di un DG
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+      {/* Waiting Modal - After acknowledging, waiting for others */}
+      {state === 'PENDING_ACK' &&
+        board?.pendingAck &&
+        userHasAcked &&
+        appealStatus?.auctionStatus !== 'APPEAL_REVIEW' &&
+        appealStatus?.auctionStatus !== 'AWAITING_APPEAL_ACK' &&
+        appealStatus?.auctionStatus !== 'AWAITING_RESUME' && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-surface-200 rounded-xl max-w-sm w-full p-6 text-center border border-surface-50/20">
+              <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
+              <h3 className="font-bold text-white mb-2">In attesa degli altri</h3>
+              <p className="text-sm text-gray-400 mb-3">
+                {board.pendingAck.acknowledgedMembers.length}/{board.turnOrder.length} confermati
+              </p>
+              <p className="text-xs text-gray-500 mb-4">
+                Mancano:{' '}
+                {board.turnOrder
+                  .filter(m => !board.pendingAck!.acknowledgedMembers.includes(m.id))
+                  .map(m => m.username)
+                  .join(', ')}
+              </p>
+              {isAdmin && (
                 <Button
-                  onClick={handleSimulateAppeal}
+                  size="sm"
                   variant="outline"
-                  className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
+                  onClick={handleForceAck}
+                  className="border-accent-500/50 text-accent-400"
                 >
-                  [TEST] Simula ricorso di un DG
+                  [TEST] Forza Conferme
                 </Button>
               )}
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Waiting Modal - After acknowledging, waiting for others */}
-      {state === 'PENDING_ACK' && board?.pendingAck && userHasAcked &&
-       appealStatus?.auctionStatus !== 'APPEAL_REVIEW' &&
-       appealStatus?.auctionStatus !== 'AWAITING_APPEAL_ACK' &&
-       appealStatus?.auctionStatus !== 'AWAITING_RESUME' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-200 rounded-xl max-w-sm w-full p-6 text-center border border-surface-50/20">
-            <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
-            <h3 className="font-bold text-white mb-2">In attesa degli altri</h3>
-            <p className="text-sm text-gray-400 mb-3">{board.pendingAck.acknowledgedMembers.length}/{board.turnOrder.length} confermati</p>
-            <p className="text-xs text-gray-500 mb-4">
-              Mancano: {board.turnOrder.filter(m => !board.pendingAck!.acknowledgedMembers.includes(m.id)).map(m => m.username).join(', ')}
-            </p>
-            {isAdmin && (
-              <Button size="sm" variant="outline" onClick={handleForceAck} className="border-accent-500/50 text-accent-400">
-                [TEST] Forza Conferme
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
+        )}
 
       {/* APPEAL_REVIEW Modal - Asta bloccata in attesa decisione admin */}
       {appealStatus?.auctionStatus === 'APPEAL_REVIEW' && (
@@ -2071,10 +2472,13 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
               {appealStatus.appeal && (
                 <div className="bg-danger-500/10 border border-danger-500/30 rounded-lg p-4 mb-4">
-                  <p className="text-xs text-danger-400 uppercase font-bold mb-2">Motivo del ricorso</p>
+                  <p className="text-xs text-danger-400 uppercase font-bold mb-2">
+                    Motivo del ricorso
+                  </p>
                   <p className="text-gray-300">{appealStatus.appeal.reason}</p>
                   <p className="text-sm text-gray-500 mt-2">
-                    Presentato da: <span className="text-white">{appealStatus.appeal.submittedBy?.username}</span>
+                    Presentato da:{' '}
+                    <span className="text-white">{appealStatus.appeal.submittedBy?.username}</span>
                   </p>
                 </div>
               )}
@@ -2083,7 +2487,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                 <div className="bg-primary-500/10 rounded-lg p-4 mb-4 text-center border border-primary-500/30">
                   <p className="text-sm text-primary-400">Transazione contestata</p>
                   <p className="text-lg font-bold text-white">{appealStatus.winner.username}</p>
-                  <p className="text-2xl font-bold text-accent-400 mt-1">{appealStatus.finalPrice}</p>
+                  <p className="text-2xl font-bold text-accent-400 mt-1">
+                    {appealStatus.finalPrice}
+                  </p>
                 </div>
               )}
 
@@ -2093,7 +2499,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
               {isAdmin && (
                 <Button
-                  onClick={() => onNavigate('admin', { leagueId, tab: 'appeals' })}
+                  onClick={() => {
+                    onNavigate('admin', { leagueId, tab: 'appeals' })
+                  }}
                   className="w-full mt-4 bg-danger-500 hover:bg-danger-600 text-white font-bold py-3"
                 >
                   Gestisci Ricorso
@@ -2110,15 +2518,19 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
           <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20">
             <div className="p-6">
               <div className="text-center mb-6">
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${appealStatus.appeal?.status === 'ACCEPTED' ? 'bg-warning-500/20' : 'bg-secondary-500/20'}`}>
-                  <span className="text-3xl">{appealStatus.appeal?.status === 'ACCEPTED' ? '🔄' : '✅'}</span>
+                <div
+                  className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${appealStatus.appeal?.status === 'ACCEPTED' ? 'bg-warning-500/20' : 'bg-secondary-500/20'}`}
+                >
+                  <span className="text-3xl">
+                    {appealStatus.appeal?.status === 'ACCEPTED' ? '🔄' : '✅'}
+                  </span>
                 </div>
                 <h2 className="text-2xl font-bold text-white">
                   Ricorso {appealStatus.appeal?.status === 'ACCEPTED' ? 'Accolto' : 'Respinto'}
                 </h2>
                 <p className="text-gray-400 mt-1">
                   {appealStatus.appeal?.status === 'ACCEPTED'
-                    ? 'La transazione è stata annullata, l\'asta riprenderà'
+                    ? "La transazione è stata annullata, l'asta riprenderà"
                     : 'La transazione è confermata'}
                 </p>
               </div>
@@ -2140,19 +2552,31 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               <div className="mb-4">
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-400">Conferme presa visione</span>
-                  <span className="text-white">{appealStatus.appealDecisionAcks?.length || 0}/{appealStatus.allMembers?.length || 0}</span>
+                  <span className="text-white">
+                    {appealStatus.appealDecisionAcks?.length || 0}/
+                    {appealStatus.allMembers?.length || 0}
+                  </span>
                 </div>
                 <div className="w-full bg-surface-400 rounded-full h-2">
                   <div
                     className="h-2 rounded-full bg-secondary-500 transition-all"
-                    style={{ width: `${((appealStatus.appealDecisionAcks?.length || 0) / (appealStatus.allMembers?.length || 1)) * 100}%` }}
+                    style={{
+                      width: `${((appealStatus.appealDecisionAcks?.length || 0) / (appealStatus.allMembers?.length || 1)) * 100}%`,
+                    }}
                   ></div>
                 </div>
-                {appealStatus.allMembers && appealStatus.allMembers.filter(m => !appealStatus.appealDecisionAcks?.includes(m.id)).length > 0 && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Mancano: {appealStatus.allMembers.filter(m => !appealStatus.appealDecisionAcks?.includes(m.id)).map(m => m.username).join(', ')}
-                  </p>
-                )}
+                {appealStatus.allMembers &&
+                  appealStatus.allMembers.filter(
+                    m => !appealStatus.appealDecisionAcks?.includes(m.id)
+                  ).length > 0 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Mancano:{' '}
+                      {appealStatus.allMembers
+                        .filter(m => !appealStatus.appealDecisionAcks?.includes(m.id))
+                        .map(m => m.username)
+                        .join(', ')}
+                    </p>
+                  )}
               </div>
 
               {!appealStatus.userHasAcked ? (
@@ -2212,19 +2636,31 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               <div className="mb-4">
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-400">DG pronti</span>
-                  <span className="text-white">{appealStatus.resumeReadyMembers?.length || 0}/{appealStatus.allMembers?.length || 0}</span>
+                  <span className="text-white">
+                    {appealStatus.resumeReadyMembers?.length || 0}/
+                    {appealStatus.allMembers?.length || 0}
+                  </span>
                 </div>
                 <div className="w-full bg-surface-400 rounded-full h-2">
                   <div
                     className="h-2 rounded-full bg-accent-500 transition-all"
-                    style={{ width: `${((appealStatus.resumeReadyMembers?.length || 0) / (appealStatus.allMembers?.length || 1)) * 100}%` }}
+                    style={{
+                      width: `${((appealStatus.resumeReadyMembers?.length || 0) / (appealStatus.allMembers?.length || 1)) * 100}%`,
+                    }}
                   ></div>
                 </div>
-                {appealStatus.allMembers && appealStatus.allMembers.filter(m => !appealStatus.resumeReadyMembers?.includes(m.id)).length > 0 && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Mancano: {appealStatus.allMembers.filter(m => !appealStatus.resumeReadyMembers?.includes(m.id)).map(m => m.username).join(', ')}
-                  </p>
-                )}
+                {appealStatus.allMembers &&
+                  appealStatus.allMembers.filter(
+                    m => !appealStatus.resumeReadyMembers?.includes(m.id)
+                  ).length > 0 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Mancano:{' '}
+                      {appealStatus.allMembers
+                        .filter(m => !appealStatus.resumeReadyMembers?.includes(m.id))
+                        .map(m => m.username)
+                        .join(', ')}
+                    </p>
+                  )}
               </div>
 
               {!appealStatus.userIsReady ? (
@@ -2281,81 +2717,131 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
       {/* Manager Roster Modal */}
       {(selectedManager || loadingManager) && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setSelectedManager(null)}>
-          <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          onClick={() => {
+            setSelectedManager(null)
+          }}
+        >
+          <div
+            className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20"
+            onClick={e => {
+              e.stopPropagation()
+            }}
+          >
             {loadingManager ? (
               <div className="p-6 flex items-center justify-center">
                 <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
               </div>
-            ) : selectedManager && (
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-white">{selectedManager.username}</h2>
-                    {selectedManager.teamName && <p className="text-gray-400">{selectedManager.teamName}</p>}
-                  </div>
-                  <button onClick={() => setSelectedManager(null)} className="text-gray-400 hover:text-white text-2xl">×</button>
-                </div>
-                <div className="flex gap-4 mb-6">
-                  <div className="bg-surface-300 rounded-lg px-4 py-3 flex-1 text-center">
-                    <p className="text-xs text-gray-400 uppercase">Budget</p>
-                    <p className="text-2xl font-bold text-accent-400">{selectedManager.currentBudget}</p>
-                  </div>
-                  <div className="bg-surface-300 rounded-lg px-4 py-3 flex-1 text-center">
-                    <p className="text-xs text-gray-400 uppercase">Rosa</p>
-                    <p className="text-2xl font-bold text-white">{selectedManager.slotsFilled}/{selectedManager.totalSlots}</p>
-                  </div>
-                </div>
-                {(['P', 'D', 'C', 'A'] as const).map(pos => {
-                  const slot = selectedManager.slotsByPosition[pos]
-                  const posPlayers = selectedManager.roster.filter(r => r.position === pos)
-                  const POSITION_NAMES: Record<string, string> = { P: 'Portieri', D: 'Difensori', C: 'Centrocampisti', A: 'Attaccanti' }
-                  return (
-                    <div key={pos} className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${POSITION_COLORS[pos]}`}>{pos}</span>
-                          <span className="text-gray-300">{POSITION_NAMES[pos]}</span>
-                        </div>
-                        <span className={`text-sm font-bold ${slot.filled >= slot.total ? 'text-secondary-400' : 'text-gray-500'}`}>{slot.filled}/{slot.total}</span>
-                      </div>
-                      {posPlayers.length > 0 ? (
-                        <table className="w-full text-xs ml-2">
-                          <thead>
-                            <tr className="text-gray-500 text-[10px] uppercase">
-                              <th className="text-left font-medium pb-1">Giocatore</th>
-                              <th className="text-center font-medium pb-1 w-14">Prezzo</th>
-                              <th className="text-center font-medium pb-1 w-12">Ing.</th>
-                              <th className="text-center font-medium pb-1 w-10">Dur.</th>
-                              <th className="text-center font-medium pb-1 w-14">Claus.</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {posPlayers.map(p => (
-                              <tr key={p.id} className="border-t border-surface-50/10">
-                                <td className="py-1.5">
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="w-4 h-4 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
-                                      <img src={getTeamLogo(p.playerTeam)} alt={p.playerTeam} className="w-3 h-3 object-contain" />
-                                    </div>
-                                    <span className="text-gray-200 truncate">{p.playerName}</span>
-                                  </div>
-                                </td>
-                                <td className="text-center text-accent-400 font-bold">{p.acquisitionPrice}</td>
-                                <td className="text-center text-white">{p.contract?.salary ?? '-'}</td>
-                                <td className="text-center text-white">{p.contract?.duration ?? '-'}</td>
-                                <td className="text-center text-primary-400">{p.contract?.rescissionClause ?? '-'}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      ) : (
-                        <p className="text-gray-600 italic text-sm ml-8">Nessuno</p>
+            ) : (
+              selectedManager && (
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h2 className="text-xl font-bold text-white">{selectedManager.username}</h2>
+                      {selectedManager.teamName && (
+                        <p className="text-gray-400">{selectedManager.teamName}</p>
                       )}
                     </div>
-                  )
-                })}
-              </div>
+                    <button
+                      onClick={() => {
+                        setSelectedManager(null)
+                      }}
+                      className="text-gray-400 hover:text-white text-2xl"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="flex gap-4 mb-6">
+                    <div className="bg-surface-300 rounded-lg px-4 py-3 flex-1 text-center">
+                      <p className="text-xs text-gray-400 uppercase">Budget</p>
+                      <p className="text-2xl font-bold text-accent-400">
+                        {selectedManager.currentBudget}
+                      </p>
+                    </div>
+                    <div className="bg-surface-300 rounded-lg px-4 py-3 flex-1 text-center">
+                      <p className="text-xs text-gray-400 uppercase">Rosa</p>
+                      <p className="text-2xl font-bold text-white">
+                        {selectedManager.slotsFilled}/{selectedManager.totalSlots}
+                      </p>
+                    </div>
+                  </div>
+                  {(['P', 'D', 'C', 'A'] as const).map(pos => {
+                    const slot = selectedManager.slotsByPosition[pos]
+                    const posPlayers = selectedManager.roster.filter(r => r.position === pos)
+                    const POSITION_NAMES: Record<string, string> = {
+                      P: 'Portieri',
+                      D: 'Difensori',
+                      C: 'Centrocampisti',
+                      A: 'Attaccanti',
+                    }
+                    return (
+                      <div key={pos} className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${POSITION_COLORS[pos]}`}
+                            >
+                              {pos}
+                            </span>
+                            <span className="text-gray-300">{POSITION_NAMES[pos]}</span>
+                          </div>
+                          <span
+                            className={`text-sm font-bold ${slot.filled >= slot.total ? 'text-secondary-400' : 'text-gray-500'}`}
+                          >
+                            {slot.filled}/{slot.total}
+                          </span>
+                        </div>
+                        {posPlayers.length > 0 ? (
+                          <table className="w-full text-xs ml-2">
+                            <thead>
+                              <tr className="text-gray-500 text-[10px] uppercase">
+                                <th className="text-left font-medium pb-1">Giocatore</th>
+                                <th className="text-center font-medium pb-1 w-14">Prezzo</th>
+                                <th className="text-center font-medium pb-1 w-12">Ing.</th>
+                                <th className="text-center font-medium pb-1 w-10">Dur.</th>
+                                <th className="text-center font-medium pb-1 w-14">Claus.</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {posPlayers.map(p => (
+                                <tr key={p.id} className="border-t border-surface-50/10">
+                                  <td className="py-1.5">
+                                    <div className="flex items-center gap-1.5">
+                                      <div className="w-4 h-4 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
+                                        <img
+                                          src={getTeamLogo(p.playerTeam)}
+                                          alt={p.playerTeam}
+                                          className="w-3 h-3 object-contain"
+                                        />
+                                      </div>
+                                      <span className="text-gray-200 truncate">{p.playerName}</span>
+                                    </div>
+                                  </td>
+                                  <td className="text-center text-accent-400 font-bold">
+                                    {p.acquisitionPrice}
+                                  </td>
+                                  <td className="text-center text-white">
+                                    {p.contract?.salary ?? '-'}
+                                  </td>
+                                  <td className="text-center text-white">
+                                    {p.contract?.duration ?? '-'}
+                                  </td>
+                                  <td className="text-center text-primary-400">
+                                    {p.contract?.rescissionClause ?? '-'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : (
+                          <p className="text-gray-600 italic text-sm ml-8">Nessuno</p>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
             )}
           </div>
         </div>

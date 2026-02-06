@@ -1,7 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '../lib/prisma'
 import { pusher } from '../services/pusher.service'
 
 import authRoutes from './routes/auth'
@@ -38,10 +38,15 @@ const allowedOrigins = [
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true)
+    if (!origin) {
+      callback(null, true)
+      return
+    }
 
     // Check if origin is allowed
-    if (allowedOrigins.some(allowed => origin.startsWith(allowed) || origin.includes('vercel.app'))) {
+    if (
+      allowedOrigins.some(allowed => origin.startsWith(allowed) || origin.includes('vercel.app'))
+    ) {
       callback(null, true)
     } else {
       callback(null, true) // Allow all for now in development
@@ -63,7 +68,6 @@ app.get('/api/health', (_req, res) => {
 })
 
 // Diagnostic endpoints for debugging latency issues
-const diagPrisma = new PrismaClient()
 
 // Simulate auction bid queries (read-only, no actual bid)
 app.get('/api/debug/auction-sim', async (_req, res) => {
@@ -73,7 +77,7 @@ app.get('/api/debug/auction-sim', async (_req, res) => {
   try {
     // 1. Find any active auction (like placeBid does)
     let t = Date.now()
-    const auction = await diagPrisma.auction.findFirst({
+    const auction = await prisma.auction.findFirst({
       where: { status: 'ACTIVE' },
       include: {
         player: true,
@@ -85,7 +89,7 @@ app.get('/api/debug/auction-sim', async (_req, res) => {
     if (!auction) {
       // If no active auction, find any auction for testing
       t = Date.now()
-      const anyAuction = await diagPrisma.auction.findFirst({
+      const anyAuction = await prisma.auction.findFirst({
         include: { player: true, league: true },
       })
       timing['1_findAnyAuction'] = Date.now() - t
@@ -102,7 +106,7 @@ app.get('/api/debug/auction-sim', async (_req, res) => {
 
     // 2. Find member (like placeBid does)
     t = Date.now()
-    const member = await diagPrisma.leagueMember.findFirst({
+    const member = await prisma.leagueMember.findFirst({
       where: {
         leagueId: auction.leagueId,
         status: 'ACTIVE',
@@ -112,7 +116,7 @@ app.get('/api/debug/auction-sim', async (_req, res) => {
 
     // 3. Count roster by position (like placeBid does)
     t = Date.now()
-    const rosterCount = await diagPrisma.playerRoster.count({
+    const rosterCount = await prisma.playerRoster.count({
       where: {
         leagueMemberId: member?.id || '',
         status: 'ACTIVE',
@@ -125,7 +129,7 @@ app.get('/api/debug/auction-sim', async (_req, res) => {
 
     // 4. Find existing bids (like placeBid updateMany check)
     t = Date.now()
-    const bidsCount = await diagPrisma.auctionBid.count({
+    const bidsCount = await prisma.auctionBid.count({
       where: {
         auctionId: auction.id,
         isWinning: true,
@@ -135,7 +139,7 @@ app.get('/api/debug/auction-sim', async (_req, res) => {
 
     // 5. Find session (like placeBid does)
     t = Date.now()
-    const session = await diagPrisma.marketSession.findFirst({
+    const session = await prisma.marketSession.findFirst({
       where: {
         auctions: { some: { id: auction.id } },
       },
@@ -188,7 +192,7 @@ app.post('/api/debug/reset-auction/:leagueId', async (req, res) => {
 
   try {
     // 1. Find the market session
-    const session = await diagPrisma.marketSession.findFirst({
+    const session = await prisma.marketSession.findFirst({
       where: { leagueId },
       orderBy: { createdAt: 'desc' },
     })
@@ -199,42 +203,42 @@ app.post('/api/debug/reset-auction/:leagueId', async (req, res) => {
     }
 
     // 2. Delete all acknowledgments for auctions in this session
-    await diagPrisma.auctionAcknowledgment.deleteMany({
+    await prisma.auctionAcknowledgment.deleteMany({
       where: {
-        auction: { marketSessionId: session.id }
-      }
+        auction: { marketSessionId: session.id },
+      },
     })
 
     // 2b. Delete all appeals for auctions in this session
-    await diagPrisma.auctionAppeal.deleteMany({
+    await prisma.auctionAppeal.deleteMany({
       where: {
-        auction: { marketSessionId: session.id }
-      }
+        auction: { marketSessionId: session.id },
+      },
     })
 
     // 3. Delete all bids for auctions in this session
-    await diagPrisma.auctionBid.deleteMany({
+    await prisma.auctionBid.deleteMany({
       where: {
-        auction: { marketSessionId: session.id }
-      }
+        auction: { marketSessionId: session.id },
+      },
     })
 
     // 4. Delete all auctions in this session
-    await diagPrisma.auction.deleteMany({
-      where: { marketSessionId: session.id }
+    await prisma.auction.deleteMany({
+      where: { marketSessionId: session.id },
     })
 
     // 4. Delete all roster entries created in this session
-    await diagPrisma.playerRoster.deleteMany({
+    await prisma.playerRoster.deleteMany({
       where: {
         leagueMember: { leagueId },
         // Only delete if no contract (first market players)
-        contract: null
-      }
+        contract: null,
+      },
     })
 
     // 5. Reset session state
-    await diagPrisma.marketSession.update({
+    await prisma.marketSession.update({
       where: { id: session.id },
       data: {
         status: 'ACTIVE',
@@ -243,18 +247,18 @@ app.post('/api/debug/reset-auction/:leagueId', async (req, res) => {
         nominatorConfirmed: false,
         pendingNominatorId: null,
         pendingNominationPlayerId: null,
-      }
+      },
     })
 
     // 6. Reset member budgets to initial
-    const league = await diagPrisma.league.findUnique({
-      where: { id: leagueId }
+    const league = await prisma.league.findUnique({
+      where: { id: leagueId },
     })
 
     if (league) {
-      await diagPrisma.leagueMember.updateMany({
+      await prisma.leagueMember.updateMany({
         where: { leagueId, status: 'ACTIVE' },
-        data: { currentBudget: league.initialBudget }
+        data: { currentBudget: league.initialBudget },
       })
     }
 
@@ -262,13 +266,13 @@ app.post('/api/debug/reset-auction/:leagueId', async (req, res) => {
       success: true,
       message: 'Auction reset successfully',
       sessionId: session.id,
-      totalMs: Date.now() - start
+      totalMs: Date.now() - start,
     })
   } catch (err) {
     res.json({
       success: false,
       error: err instanceof Error ? err.message : 'Unknown error',
-      totalMs: Date.now() - start
+      totalMs: Date.now() - start,
     })
   }
 })
@@ -287,7 +291,7 @@ app.get('/api/debug/ping', async (_req, res) => {
   // Test 2: Simple DB query
   const dbStart = Date.now()
   try {
-    await diagPrisma.$queryRaw`SELECT 1`
+    await prisma.$queryRaw`SELECT 1`
     results.dbQueryMs = Date.now() - dbStart
     results.dbStatus = 'ok'
   } catch (err) {
@@ -298,10 +302,10 @@ app.get('/api/debug/ping', async (_req, res) => {
   // Test 3: DB query with actual data
   const dbDataStart = Date.now()
   try {
-    const count = await diagPrisma.user.count()
+    const count = await prisma.user.count()
     results.dbDataQueryMs = Date.now() - dbDataStart
     results.userCount = count
-  } catch (err) {
+  } catch (_err) {
     results.dbDataQueryMs = Date.now() - dbDataStart
   }
 
@@ -330,7 +334,7 @@ app.get('/api/debug/timing', async (_req, res) => {
   // 2. Test database connection
   const dbStart = Date.now()
   try {
-    await diagPrisma.$queryRaw`SELECT 1`
+    await prisma.$queryRaw`SELECT 1`
     results.dbLatency = `${Date.now() - dbStart}ms`
     results.dbStatus = '✓ connected'
   } catch (err) {
@@ -344,7 +348,7 @@ app.get('/api/debug/timing', async (_req, res) => {
     try {
       await pusher.trigger('debug-channel', 'test-event', {
         test: true,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       })
       results.pusherLatency = `${Date.now() - pusherStart}ms`
       results.pusherStatus = '✓ working'

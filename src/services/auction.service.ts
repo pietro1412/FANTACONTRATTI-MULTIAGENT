@@ -1,4 +1,13 @@
-import { PrismaClient, AuctionStatus, AuctionType, MemberRole, MemberStatus, AcquisitionType, RosterStatus, Position, SessionStatus, Prisma } from '@prisma/client'
+import {
+  AuctionStatus,
+  AuctionType,
+  MemberRole,
+  MemberStatus,
+  AcquisitionType,
+  RosterStatus,
+  Position,
+  Prisma,
+} from '@prisma/client'
 import { calculateRescissionClause, canAdvanceFromContratti } from './contract.service'
 import { autoReleaseRitiratiPlayers } from './indemnity-phase.service'
 import { recordMovement } from './movement.service'
@@ -11,8 +20,7 @@ import {
   triggerAuctionClosed,
 } from './pusher.service'
 import { withRetry } from '../utils/db-retry'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 
 export interface ServiceResult {
   success: boolean
@@ -97,7 +105,8 @@ export async function canAdvanceFromAstaLibera(leagueId: string): Promise<{
     },
   })
 
-  const incompleteMembers: { username: string; missing: { position: string; count: number }[] }[] = []
+  const incompleteMembers: { username: string; missing: { position: string; count: number }[] }[] =
+    []
 
   for (const member of members) {
     // Count players by position
@@ -114,7 +123,12 @@ export async function canAdvanceFromAstaLibera(leagueId: string): Promise<{
     for (const [pos, required] of Object.entries(requiredSlots)) {
       const current = positionCounts[pos] || 0
       if (current < required) {
-        const positionNames: Record<string, string> = { P: 'Portieri', D: 'Difensori', C: 'Centrocampisti', A: 'Attaccanti' }
+        const positionNames: Record<string, string> = {
+          P: 'Portieri',
+          D: 'Difensori',
+          C: 'Centrocampisti',
+          A: 'Attaccanti',
+        }
         missing.push({ position: positionNames[pos], count: required - current })
       }
     }
@@ -125,10 +139,12 @@ export async function canAdvanceFromAstaLibera(leagueId: string): Promise<{
   }
 
   if (incompleteMembers.length > 0) {
-    const summary = incompleteMembers.map(m => {
-      const missingStr = m.missing.map(p => `${p.count} ${p.position}`).join(', ')
-      return `${m.username}: mancano ${missingStr}`
-    }).join('; ')
+    const summary = incompleteMembers
+      .map(m => {
+        const missingStr = m.missing.map(p => `${p.count} ${p.position}`).join(', ')
+        return `${m.username}: mancano ${missingStr}`
+      })
+      .join('; ')
 
     return {
       canAdvance: false,
@@ -219,159 +235,165 @@ export async function createAuctionSession(
   isRegularMarket: boolean = false
 ): Promise<ServiceResult> {
   // Usa retry per gestire cold start del database
-  return withRetry(async () => {
-    // Verify admin
-    const admin = await prisma.leagueMember.findFirst({
-      where: {
-        leagueId,
-        userId: adminUserId,
-        role: MemberRole.ADMIN,
-        status: MemberStatus.ACTIVE,
-      },
-    })
-
-    if (!admin) {
-      return { success: false, message: 'Non autorizzato' }
-    }
-
-    // Get league info
-    const league = await prisma.league.findUnique({
-      where: { id: leagueId },
-    })
-
-    if (!league) {
-      return { success: false, message: 'Lega non trovata' }
-    }
-
-    // Check if league is started (status = ACTIVE)
-    if (league.status !== 'ACTIVE') {
-      return { success: false, message: 'La lega deve essere avviata prima di poter creare sessioni di mercato' }
-    }
-
-    // Count active members
-    const activeMembersCount = await prisma.leagueMember.count({
-      where: {
-        leagueId,
-        status: MemberStatus.ACTIVE,
-      },
-    })
-
-    // Check minimum participants
-    if (activeMembersCount < league.minParticipants) {
-      return {
-        success: false,
-        message: `Servono almeno ${league.minParticipants} partecipanti. Attualmente: ${activeMembersCount}`
-      }
-    }
-
-    // Check even number if required
-    if (league.requireEvenNumber && activeMembersCount % 2 !== 0) {
-      return {
-        success: false,
-        message: `Il numero di partecipanti deve essere pari. Attualmente: ${activeMembersCount}`
-      }
-    }
-
-    // Usa transazione per prevenire race condition
-    // Il controllo per sessione esistente e la creazione avvengono atomicamente
-    const result = await prisma.$transaction(async (tx) => {
-      // Check for existing active session (dentro transazione per evitare race condition)
-      const existingSession = await tx.marketSession.findFirst({
+  return withRetry(
+    async () => {
+      // Verify admin
+      const admin = await prisma.leagueMember.findFirst({
         where: {
           leagueId,
-          status: 'ACTIVE',
+          userId: adminUserId,
+          role: MemberRole.ADMIN,
+          status: MemberStatus.ACTIVE,
         },
       })
 
-      if (existingSession) {
-        return { success: false, message: 'Esiste già una sessione attiva' }
+      if (!admin) {
+        return { success: false, message: 'Non autorizzato' }
       }
 
-      // Check if PRIMO_MERCATO already exists (can only have one ever)
-      // Auto-correct: if frontend sends isRegularMarket=false but PRIMO_MERCATO exists,
-      // automatically treat it as a regular market
-      let effectiveIsRegularMarket = isRegularMarket
-      const existingPrimoMercato = await tx.marketSession.findFirst({
+      // Get league info
+      const league = await prisma.league.findUnique({
+        where: { id: leagueId },
+      })
+
+      if (!league) {
+        return { success: false, message: 'Lega non trovata' }
+      }
+
+      // Check if league is started (status = ACTIVE)
+      if (league.status !== 'ACTIVE') {
+        return {
+          success: false,
+          message: 'La lega deve essere avviata prima di poter creare sessioni di mercato',
+        }
+      }
+
+      // Count active members
+      const activeMembersCount = await prisma.leagueMember.count({
         where: {
           leagueId,
-          type: 'PRIMO_MERCATO',
+          status: MemberStatus.ACTIVE,
         },
       })
 
-      if (existingPrimoMercato) {
-        // Force regular market if first market already exists
-        effectiveIsRegularMarket = true
+      // Check minimum participants
+      if (activeMembersCount < league.minParticipants) {
+        return {
+          success: false,
+          message: `Servono almeno ${league.minParticipants} partecipanti. Attualmente: ${activeMembersCount}`,
+        }
       }
 
-      // Count existing market sessions to determine semester
-      const sessionCount = await tx.marketSession.count({
-        where: { leagueId },
+      // Check even number if required
+      if (league.requireEvenNumber && activeMembersCount % 2 !== 0) {
+        return {
+          success: false,
+          message: `Il numero di partecipanti deve essere pari. Attualmente: ${activeMembersCount}`,
+        }
+      }
+
+      // Usa transazione per prevenire race condition
+      // Il controllo per sessione esistente e la creazione avvengono atomicamente
+      const result = await prisma.$transaction(async tx => {
+        // Check for existing active session (dentro transazione per evitare race condition)
+        const existingSession = await tx.marketSession.findFirst({
+          where: {
+            leagueId,
+            status: 'ACTIVE',
+          },
+        })
+
+        if (existingSession) {
+          return { success: false, message: 'Esiste già una sessione attiva' }
+        }
+
+        // Check if PRIMO_MERCATO already exists (can only have one ever)
+        // Auto-correct: if frontend sends isRegularMarket=false but PRIMO_MERCATO exists,
+        // automatically treat it as a regular market
+        let effectiveIsRegularMarket = isRegularMarket
+        const existingPrimoMercato = await tx.marketSession.findFirst({
+          where: {
+            leagueId,
+            type: 'PRIMO_MERCATO',
+          },
+        })
+
+        if (existingPrimoMercato) {
+          // Force regular market if first market already exists
+          effectiveIsRegularMarket = true
+        }
+
+        // Count existing market sessions to determine semester
+        const sessionCount = await tx.marketSession.count({
+          where: { leagueId },
+        })
+
+        // Determine market type and semester
+        const marketType = effectiveIsRegularMarket ? 'MERCATO_RICORRENTE' : 'PRIMO_MERCATO'
+        const semester = sessionCount + 1
+
+        // Create market session
+        const now = new Date()
+        const session = await tx.marketSession.create({
+          data: {
+            leagueId,
+            type: marketType,
+            season: league.currentSeason,
+            semester,
+            status: 'ACTIVE',
+            currentPhase: effectiveIsRegularMarket ? 'OFFERTE_PRE_RINNOVO' : 'ASTA_LIBERA',
+            startsAt: now,
+            phaseStartedAt: now,
+          },
+        })
+
+        return { success: true, session, marketType }
       })
 
-      // Determine market type and semester
-      const marketType = effectiveIsRegularMarket ? 'MERCATO_RICORRENTE' : 'PRIMO_MERCATO'
-      const semester = sessionCount + 1
+      // Se la transazione ha fallito (sessione già esistente), ritorna l'errore
+      if (!result.success) {
+        return result as ServiceResult
+      }
 
-      // Create market session
-      const now = new Date()
-      const session = await tx.marketSession.create({
+      // For regular markets, decrement all contract durations (fuori dalla transazione)
+      // Use marketType from transaction result to determine if it's a regular market
+      const isEffectivelyRegularMarket = result.marketType === 'MERCATO_RICORRENTE'
+      let decrementResult = { decremented: 0, released: [] as string[] }
+      if (isEffectivelyRegularMarket) {
+        decrementResult = await decrementContractDurations(leagueId)
+      }
+
+      // Auto-release RITIRATO players (RETROCESSO/ESTERO handled in CONTRATTI phase)
+      let ritiratiResult = { released: 0, players: [] as string[] }
+      if (isEffectivelyRegularMarket) {
+        try {
+          ritiratiResult = await autoReleaseRitiratiPlayers(leagueId, result.session.id)
+        } catch (error) {
+          console.error('Error auto-releasing ritirato players:', error)
+        }
+      }
+
+      const message = isEffectivelyRegularMarket
+        ? `Mercato regolare aperto (fase: Scambi Pre-Rinnovo). Contratti decrementati: ${decrementResult.decremented}, Svincolati per scadenza: ${decrementResult.released.length}${ritiratiResult.released > 0 ? `, Ritirati auto-rilasciati: ${ritiratiResult.released}` : ''}`
+        : 'Sessione PRIMO MERCATO creata'
+
+      return {
+        success: true,
+        message,
         data: {
-          leagueId,
-          type: marketType as 'PRIMO_MERCATO' | 'MERCATO_RICORRENTE',
-          season: league.currentSeason,
-          semester,
-          status: 'ACTIVE',
-          currentPhase: effectiveIsRegularMarket ? 'OFFERTE_PRE_RINNOVO' : 'ASTA_LIBERA',
-          startsAt: now,
-          phaseStartedAt: now,
-        },
-      })
-
-      return { success: true, session, marketType }
-    })
-
-    // Se la transazione ha fallito (sessione già esistente), ritorna l'errore
-    if (!result.success) {
-      return result as ServiceResult
-    }
-
-    // For regular markets, decrement all contract durations (fuori dalla transazione)
-    // Use marketType from transaction result to determine if it's a regular market
-    const isEffectivelyRegularMarket = result.marketType === 'MERCATO_RICORRENTE'
-    let decrementResult = { decremented: 0, released: [] as string[] }
-    if (isEffectivelyRegularMarket) {
-      decrementResult = await decrementContractDurations(leagueId)
-    }
-
-    // Auto-release RITIRATO players (RETROCESSO/ESTERO handled in CONTRATTI phase)
-    let ritiratiResult = { released: 0, players: [] as string[] }
-    if (isEffectivelyRegularMarket) {
-      try {
-        ritiratiResult = await autoReleaseRitiratiPlayers(leagueId, result.session.id)
-      } catch (error) {
-        console.error('Error auto-releasing ritirato players:', error)
-      }
-    }
-
-    const message = isEffectivelyRegularMarket
-      ? `Mercato regolare aperto (fase: Scambi Pre-Rinnovo). Contratti decrementati: ${decrementResult.decremented}, Svincolati per scadenza: ${decrementResult.released.length}${ritiratiResult.released > 0 ? `, Ritirati auto-rilasciati: ${ritiratiResult.released}` : ''}`
-      : 'Sessione PRIMO MERCATO creata'
-
-    return {
-      success: true,
-      message,
-      data: {
-        session: result.session,
-        ...(isEffectivelyRegularMarket && {
-          contractsDecremented: decrementResult.decremented,
-          playersReleased: decrementResult.released,
-          ...(ritiratiResult.released > 0 && {
-            ritiratiAutoReleased: ritiratiResult,
+          session: result.session,
+          ...(isEffectivelyRegularMarket && {
+            contractsDecremented: decrementResult.decremented,
+            playersReleased: decrementResult.released,
+            ...(ritiratiResult.released > 0 && {
+              ritiratiAutoReleased: ritiratiResult,
+            }),
           }),
-        }),
-      },
-    }
-  }, { maxRetries: 3, initialDelayMs: 2000 })
+        },
+      }
+    },
+    { maxRetries: 3, initialDelayMs: 2000 }
+  )
 }
 
 export async function getAuctionSessions(leagueId: string, userId: string): Promise<ServiceResult> {
@@ -441,22 +463,40 @@ export async function setMarketPhase(
   // PRIMO_MERCATO: solo ASTA_LIBERA
   // MERCATO_RICORRENTE: OFFERTE_PRE_RINNOVO, PREMI, CONTRATTI, RUBATA, ASTA_SVINCOLATI, OFFERTE_POST_ASTA_SVINCOLATI
   const primoMercatoPhases = ['ASTA_LIBERA']
-  const mercatoRicorrentePhases = ['OFFERTE_PRE_RINNOVO', 'PREMI', 'CONTRATTI', 'RUBATA', 'ASTA_SVINCOLATI', 'OFFERTE_POST_ASTA_SVINCOLATI']
+  const mercatoRicorrentePhases = [
+    'OFFERTE_PRE_RINNOVO',
+    'PREMI',
+    'CONTRATTI',
+    'RUBATA',
+    'ASTA_SVINCOLATI',
+    'OFFERTE_POST_ASTA_SVINCOLATI',
+  ]
 
-  const validPhases = session.type === 'PRIMO_MERCATO' ? primoMercatoPhases : mercatoRicorrentePhases
+  const validPhases =
+    session.type === 'PRIMO_MERCATO' ? primoMercatoPhases : mercatoRicorrentePhases
 
   if (!validPhases.includes(phase)) {
     if (session.type === 'PRIMO_MERCATO') {
       return { success: false, message: 'Il Primo Mercato ha solo la fase ASTA_LIBERA' }
     }
-    return { success: false, message: `Fase non valida per Mercato Ricorrente. Fasi disponibili: ${mercatoRicorrentePhases.join(', ')}` }
+    return {
+      success: false,
+      message: `Fase non valida per Mercato Ricorrente. Fasi disponibili: ${mercatoRicorrentePhases.join(', ')}`,
+    }
   }
 
   // Check roster completion when leaving ASTA_LIBERA during PRIMO_MERCATO
-  if (session.currentPhase === 'ASTA_LIBERA' && phase !== 'ASTA_LIBERA' && session.type === 'PRIMO_MERCATO') {
+  if (
+    session.currentPhase === 'ASTA_LIBERA' &&
+    phase !== 'ASTA_LIBERA' &&
+    session.type === 'PRIMO_MERCATO'
+  ) {
     const rosterCheck = await canAdvanceFromAstaLibera(session.leagueId)
     if (!rosterCheck.canAdvance) {
-      return { success: false, message: rosterCheck.reason || 'Non tutti i manager hanno completato la rosa' }
+      return {
+        success: false,
+        message: rosterCheck.reason || 'Non tutti i manager hanno completato la rosa',
+      }
     }
   }
 
@@ -464,12 +504,13 @@ export async function setMarketPhase(
   if (session.currentPhase === 'PREMI' && phase === 'CONTRATTI') {
     const prizeConfig = await prisma.prizePhaseConfig.findUnique({
       where: { marketSessionId: sessionId },
-      select: { isFinalized: true }
+      select: { isFinalized: true },
     })
     if (!prizeConfig?.isFinalized) {
       return {
         success: false,
-        message: 'Devi prima consolidare i premi prima di passare alla fase Contratti. Clicca su "Conferma Premi" nella sezione Premi.'
+        message:
+          'Devi prima consolidare i premi prima di passare alla fase Contratti. Clicca su "Conferma Premi" nella sezione Premi.',
       }
     }
   }
@@ -478,7 +519,10 @@ export async function setMarketPhase(
   if (session.currentPhase === 'CONTRATTI' && phase !== 'CONTRATTI') {
     const consolidationCheck = await canAdvanceFromContratti(sessionId)
     if (!consolidationCheck.canAdvance) {
-      return { success: false, message: consolidationCheck.reason || 'Non tutti i manager hanno consolidato i contratti' }
+      return {
+        success: false,
+        message: consolidationCheck.reason || 'Non tutti i manager hanno consolidato i contratti',
+      }
     }
   }
 
@@ -486,7 +530,14 @@ export async function setMarketPhase(
   const updatedSession = await prisma.marketSession.update({
     where: { id: sessionId },
     data: {
-      currentPhase: phase as 'ASTA_LIBERA' | 'PREMI' | 'OFFERTE_PRE_RINNOVO' | 'CONTRATTI' | 'RUBATA' | 'ASTA_SVINCOLATI' | 'OFFERTE_POST_ASTA_SVINCOLATI',
+      currentPhase: phase as
+        | 'ASTA_LIBERA'
+        | 'PREMI'
+        | 'OFFERTE_PRE_RINNOVO'
+        | 'CONTRATTI'
+        | 'RUBATA'
+        | 'ASTA_SVINCOLATI'
+        | 'OFFERTE_POST_ASTA_SVINCOLATI',
       phaseStartedAt: new Date(),
     },
   })
@@ -575,7 +626,10 @@ export async function closeAuctionSession(
   if (session.currentPhase === 'ASTA_LIBERA' && session.type === 'PRIMO_MERCATO') {
     const rosterCheck = await canAdvanceFromAstaLibera(session.leagueId)
     if (!rosterCheck.canAdvance) {
-      return { success: false, message: rosterCheck.reason || 'Non tutti i manager hanno completato la rosa' }
+      return {
+        success: false,
+        message: rosterCheck.reason || 'Non tutti i manager hanno completato la rosa',
+      }
     }
   }
 
@@ -640,9 +694,10 @@ export async function closeAuctionSession(
 
   return {
     success: true,
-    message: session.type === 'PRIMO_MERCATO'
-      ? `Sessione chiusa. Creati ${contractsCreated} contratti automatici (10% prezzo acquisto, 2 semestri)`
-      : 'Sessione chiusa',
+    message:
+      session.type === 'PRIMO_MERCATO'
+        ? `Sessione chiusa. Creati ${contractsCreated} contratti automatici (10% prezzo acquisto, 2 semestri)`
+        : 'Sessione chiusa',
   }
 }
 
@@ -690,7 +745,10 @@ export async function nominatePlayer(
   })
 
   if (existingAuction) {
-    return { success: false, message: 'C\'è già un\'asta attiva. Chiudila prima di nominarne un\'altra.' }
+    return {
+      success: false,
+      message: "C'è già un'asta attiva. Chiudila prima di nominarne un'altra.",
+    }
   }
 
   // Check for pending acknowledgments from last auction
@@ -717,7 +775,7 @@ export async function nominatePlayer(
       const pending = totalMembers - lastCompletedAuction.acknowledgments.length
       return {
         success: false,
-        message: `Attendere che tutti i manager confermino la transazione precedente (${pending} mancanti)`
+        message: `Attendere che tutti i manager confermino la transazione precedente (${pending} mancanti)`,
       }
     }
   }
@@ -746,10 +804,15 @@ export async function nominatePlayer(
 
     // Check if player matches current role
     if (player.position !== currentRole) {
-      const roleNames: Record<string, string> = { P: 'Portieri', D: 'Difensori', C: 'Centrocampisti', A: 'Attaccanti' }
+      const roleNames: Record<string, string> = {
+        P: 'Portieri',
+        D: 'Difensori',
+        C: 'Centrocampisti',
+        A: 'Attaccanti',
+      }
       return {
         success: false,
-        message: `Fase ${roleNames[currentRole]}: puoi nominare solo giocatori di ruolo ${currentRole}`
+        message: `Fase ${roleNames[currentRole]}: puoi nominare solo giocatori di ruolo ${currentRole}`,
       }
     }
 
@@ -790,7 +853,12 @@ export async function nominatePlayer(
             where: { id: sessionId },
             data: { currentRole: nextRole },
           })
-          const roleNames: Record<string, string> = { P: 'Portieri', D: 'Difensori', C: 'Centrocampisti', A: 'Attaccanti' }
+          const roleNames: Record<string, string> = {
+            P: 'Portieri',
+            D: 'Difensori',
+            C: 'Centrocampisti',
+            A: 'Attaccanti',
+          }
           return {
             success: false,
             message: `Fase ${roleNames[currentRole] ?? currentRole} completata! Ora si passa ai ${roleNames[nextRole] ?? nextRole}. Nomina un ${nextRole}.`,
@@ -909,7 +977,14 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
   })
 
   // Check if timer expired and auto-close the auction
-  let justCompleted: { playerId: string; playerName: string; winnerId: string; winnerName: string; amount: number; movementId: string | null } | null = null
+  let justCompleted: {
+    playerId: string
+    playerName: string
+    winnerId: string
+    winnerName: string
+    amount: number
+    movementId: string | null
+  } | null = null
 
   if (auction && auction.timerExpiresAt && new Date() > auction.timerExpiresAt) {
     // Timer expired! Auto-close the auction
@@ -1035,7 +1110,12 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
     }
 
     const currentRole = session.currentRole || 'P'
-    const roleNames: Record<string, string> = { P: 'Portieri', D: 'Difensori', C: 'Centrocampisti', A: 'Attaccanti' }
+    const roleNames: Record<string, string> = {
+      P: 'Portieri',
+      D: 'Difensori',
+      C: 'Centrocampisti',
+      A: 'Attaccanti',
+    }
 
     // Calculate how many slots filled vs needed for current role
     let filledSlots = 0
@@ -1141,11 +1221,13 @@ export async function placeBid(
   // Verifica timer non scaduto (controllo server-side autoritativo)
   const serverNow = new Date()
   if (auction.timerExpiresAt && serverNow > auction.timerExpiresAt) {
-    console.log(`[PLACEBID] Bid rifiutata: timer scaduto. Server: ${serverNow.toISOString()}, Expiry: ${auction.timerExpiresAt.toISOString()}`)
+    console.log(
+      `[PLACEBID] Bid rifiutata: timer scaduto. Server: ${serverNow.toISOString()}, Expiry: ${auction.timerExpiresAt.toISOString()}`
+    )
     return {
       success: false,
       message: 'Tempo scaduto - asta chiusa',
-      data: { reason: 'TIMER_EXPIRED' }
+      data: { reason: 'TIMER_EXPIRED' },
     }
   }
 
@@ -1195,7 +1277,10 @@ export async function placeBid(
 
   const maxSlots = slotLimits[position] ?? 0
   if (rosterCount >= maxSlots) {
-    return { success: false, message: `Hai già raggiunto il limite di ${maxSlots} giocatori in questo ruolo` }
+    return {
+      success: false,
+      message: `Hai già raggiunto il limite di ${maxSlots} giocatori in questo ruolo`,
+    }
   }
 
   // Remove previous winning status
@@ -1277,10 +1362,7 @@ export async function placeBid(
   }
 }
 
-export async function closeAuction(
-  auctionId: string,
-  adminUserId: string
-): Promise<ServiceResult> {
+export async function closeAuction(auctionId: string, adminUserId: string): Promise<ServiceResult> {
   const auction = await prisma.auction.findUnique({
     where: { id: auctionId },
     include: {
@@ -1456,7 +1538,11 @@ export async function closeAuction(
 
 // ==================== ROSTER ====================
 
-export async function getRoster(leagueId: string, userId: string, targetMemberId?: string): Promise<ServiceResult> {
+export async function getRoster(
+  leagueId: string,
+  userId: string,
+  targetMemberId?: string
+): Promise<ServiceResult> {
   // Verify membership
   const member = await prisma.leagueMember.findFirst({
     where: {
@@ -1481,10 +1567,7 @@ export async function getRoster(leagueId: string, userId: string, targetMemberId
       player: true,
       contract: true,
     },
-    orderBy: [
-      { player: { position: 'asc' } },
-      { player: { name: 'asc' } },
-    ],
+    orderBy: [{ player: { position: 'asc' } }, { player: { name: 'asc' } }],
   })
 
   const targetMember = await prisma.leagueMember.findUnique({
@@ -1576,11 +1659,13 @@ export async function getLeagueRosters(leagueId: string, userId: string): Promis
       quotation: r.player.quotation,
       apiFootballStats: r.player.apiFootballStats,
       statsSyncedAt: r.player.statsSyncedAt,
-      contract: r.contract ? {
-        salary: r.contract.salary,
-        duration: r.contract.duration,
-        rescissionClause: r.contract.rescissionClause,
-      } : null,
+      contract: r.contract
+        ? {
+            salary: r.contract.salary,
+            duration: r.contract.duration,
+            rescissionClause: r.contract.rescissionClause,
+          }
+        : null,
     })),
   }))
 
@@ -1642,7 +1727,7 @@ export async function setFirstMarketTurnOrder(
   }
 
   if (memberOrder.length !== memberIds.length) {
-    return { success: false, message: 'L\'ordine deve includere tutti i membri attivi' }
+    return { success: false, message: "L'ordine deve includere tutti i membri attivi" }
   }
 
   // Update session and members
@@ -1745,7 +1830,7 @@ export async function getFirstMarketStatus(
   // Find current nominator (skip those with complete current role)
   let currentNominator = null
   if (turnOrder && turnOrder.length > 0) {
-    let searchIndex = currentTurnIndex
+    const searchIndex = currentTurnIndex
     for (let i = 0; i < turnOrder.length; i++) {
       const idx = (searchIndex + i) % turnOrder.length
       const memberId = turnOrder[idx]
@@ -2040,8 +2125,13 @@ export async function nominatePlayerByManager(
   }
 
   // Check if member already completed current role
-  if ((rosterByRole[currentRole as keyof typeof rosterByRole] ?? 0) >= (slotLimits[currentRole] ?? 0)) {
-    return { success: false, message: `Hai già completato gli slot per il ruolo ${currentRole}. Aspetta il prossimo ruolo.` }
+  if (
+    (rosterByRole[currentRole as keyof typeof rosterByRole] ?? 0) >= (slotLimits[currentRole] ?? 0)
+  ) {
+    return {
+      success: false,
+      message: `Hai già completato gli slot per il ruolo ${currentRole}. Aspetta il prossimo ruolo.`,
+    }
   }
 
   // Find current nominator (skip those with complete current role)
@@ -2089,7 +2179,7 @@ export async function nominatePlayerByManager(
   })
 
   if (existingAuction) {
-    return { success: false, message: 'C\'è già un\'asta attiva. Attendere la chiusura.' }
+    return { success: false, message: "C'è già un'asta attiva. Attendere la chiusura." }
   }
 
   // Check player exists
@@ -2186,7 +2276,7 @@ export async function acknowledgeAuction(
   }
 
   if (auction.status !== 'COMPLETED' && auction.status !== 'NO_BIDS') {
-    return { success: false, message: 'L\'asta non è ancora conclusa' }
+    return { success: false, message: "L'asta non è ancora conclusa" }
   }
 
   // Get member
@@ -2372,7 +2462,9 @@ export async function getPendingAcknowledgment(
   const recentCompletedAuction = await prisma.auction.findFirst({
     where: {
       marketSessionId: sessionId,
-      status: { in: ['COMPLETED', 'NO_BIDS', 'APPEAL_REVIEW', 'AWAITING_APPEAL_ACK', 'AWAITING_RESUME'] },
+      status: {
+        in: ['COMPLETED', 'NO_BIDS', 'APPEAL_REVIEW', 'AWAITING_APPEAL_ACK', 'AWAITING_RESUME'],
+      },
     },
     orderBy: { endsAt: 'desc' },
     include: {
@@ -2418,7 +2510,9 @@ export async function getPendingAcknowledgment(
   const userAcknowledged = acknowledgedIds.has(member.id)
 
   // For appeal-related states, always return the auction (don't check normal acknowledgments)
-  const isAppealState = ['APPEAL_REVIEW', 'AWAITING_APPEAL_ACK', 'AWAITING_RESUME'].includes(recentCompletedAuction.status)
+  const isAppealState = ['APPEAL_REVIEW', 'AWAITING_APPEAL_ACK', 'AWAITING_RESUME'].includes(
+    recentCompletedAuction.status
+  )
 
   // If all acknowledged and NOT in appeal state, no pending
   if (allAcknowledged && !isAppealState) {
@@ -2454,10 +2548,12 @@ export async function getPendingAcknowledgment(
       pendingAuction: {
         id: recentCompletedAuction.id,
         player: recentCompletedAuction.player,
-        winner: recentCompletedAuction.winner ? {
-          id: recentCompletedAuction.winnerId,
-          username: recentCompletedAuction.winner.user.username,
-        } : null,
+        winner: recentCompletedAuction.winner
+          ? {
+              id: recentCompletedAuction.winnerId,
+              username: recentCompletedAuction.winner.user.username,
+            }
+          : null,
         finalPrice: recentCompletedAuction.currentPrice,
         status: recentCompletedAuction.status,
         userAcknowledged: isAppealState ? true : userAcknowledged, // In appeal states, treat as acknowledged to show appeal modals
@@ -2666,12 +2762,12 @@ export async function setPendingNomination(
   })
 
   if (existingAuction) {
-    return { success: false, message: 'C\'è già un\'asta attiva' }
+    return { success: false, message: "C'è già un'asta attiva" }
   }
 
   // Check if there's already a pending nomination
   if (session.pendingNominationPlayerId) {
-    return { success: false, message: 'C\'è già una nomination in attesa' }
+    return { success: false, message: "C'è già una nomination in attesa" }
   }
 
   // Get member (include user for Pusher events)
@@ -2719,7 +2815,9 @@ export async function setPendingNomination(
     A: member.roster.filter(r => r.player.position === 'A').length,
   }
 
-  if ((rosterByRole[currentRole as keyof typeof rosterByRole] ?? 0) >= (slotLimits[currentRole] ?? 0)) {
+  if (
+    (rosterByRole[currentRole as keyof typeof rosterByRole] ?? 0) >= (slotLimits[currentRole] ?? 0)
+  ) {
     return { success: false, message: `Hai già completato gli slot per il ruolo ${currentRole}` }
   }
 
@@ -2823,10 +2921,7 @@ export async function setPendingNomination(
 /**
  * Confirm the nomination (nominator confirms their choice)
  */
-export async function confirmNomination(
-  sessionId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function confirmNomination(sessionId: string, userId: string): Promise<ServiceResult> {
   const session = await prisma.marketSession.findUnique({
     where: { id: sessionId },
     include: {
@@ -2887,7 +2982,7 @@ export async function confirmNomination(
     playerName: session.pendingNominationPlayer!.name,
     playerRole: session.pendingNominationPlayer!.position,
     startingPrice: 1,
-    nominatorId: session.pendingNominatorId!,
+    nominatorId: session.pendingNominatorId,
     nominatorName: member.user.username,
     timerDuration: session.auctionTimerSeconds,
     timestamp: new Date().toISOString(),
@@ -2916,10 +3011,7 @@ export async function confirmNomination(
 /**
  * Cancel the pending nomination (nominator can change their choice)
  */
-export async function cancelNomination(
-  sessionId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function cancelNomination(sessionId: string, userId: string): Promise<ServiceResult> {
   const session = await prisma.marketSession.findUnique({
     where: { id: sessionId },
     include: { league: true },
@@ -2980,10 +3072,7 @@ export async function cancelNomination(
 /**
  * Mark current user as ready for the pending auction
  */
-export async function markReady(
-  sessionId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function markReady(sessionId: string, userId: string): Promise<ServiceResult> {
   const session = await prisma.marketSession.findUnique({
     where: { id: sessionId },
     include: {
@@ -3182,10 +3271,7 @@ async function startPendingAuction(sessionId: string): Promise<ServiceResult> {
 /**
  * Get ready check status for a session
  */
-export async function getReadyStatus(
-  sessionId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function getReadyStatus(sessionId: string, userId: string): Promise<ServiceResult> {
   const session = await prisma.marketSession.findUnique({
     where: { id: sessionId },
     include: {
@@ -3343,10 +3429,7 @@ export async function cancelPendingNomination(
 /**
  * Get my roster slots (filled and empty) for the current role phase
  */
-export async function getMyRosterSlots(
-  sessionId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function getMyRosterSlots(sessionId: string, userId: string): Promise<ServiceResult> {
   const session = await prisma.marketSession.findUnique({
     where: { id: sessionId },
     include: { league: true },
@@ -3382,10 +3465,38 @@ export async function getMyRosterSlots(
   }
 
   const rosterByPosition: {
-    P: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; contract?: { salary: number; duration: number; rescissionClause: number } | null }>
-    D: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; contract?: { salary: number; duration: number; rescissionClause: number } | null }>
-    C: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; contract?: { salary: number; duration: number; rescissionClause: number } | null }>
-    A: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; contract?: { salary: number; duration: number; rescissionClause: number } | null }>
+    P: Array<{
+      id: string
+      playerId: string
+      playerName: string
+      playerTeam: string
+      acquisitionPrice: number
+      contract?: { salary: number; duration: number; rescissionClause: number } | null
+    }>
+    D: Array<{
+      id: string
+      playerId: string
+      playerName: string
+      playerTeam: string
+      acquisitionPrice: number
+      contract?: { salary: number; duration: number; rescissionClause: number } | null
+    }>
+    C: Array<{
+      id: string
+      playerId: string
+      playerName: string
+      playerTeam: string
+      acquisitionPrice: number
+      contract?: { salary: number; duration: number; rescissionClause: number } | null
+    }>
+    A: Array<{
+      id: string
+      playerId: string
+      playerName: string
+      playerTeam: string
+      acquisitionPrice: number
+      contract?: { salary: number; duration: number; rescissionClause: number } | null
+    }>
   } = {
     P: [],
     D: [],
@@ -3402,11 +3513,13 @@ export async function getMyRosterSlots(
         playerName: r.player.name,
         playerTeam: r.player.team,
         acquisitionPrice: r.acquisitionPrice,
-        contract: r.contract ? {
-          salary: r.contract.salary,
-          duration: r.contract.duration,
-          rescissionClause: r.contract.rescissionClause,
-        } : null,
+        contract: r.contract
+          ? {
+              salary: r.contract.salary,
+              duration: r.contract.duration,
+              rescissionClause: r.contract.rescissionClause,
+            }
+          : null,
       })
     }
   }
@@ -3447,10 +3560,7 @@ export async function getMyRosterSlots(
 /**
  * Get all managers with their status (slots filled, budget)
  */
-export async function getManagersStatus(
-  sessionId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function getManagersStatus(sessionId: string, userId: string): Promise<ServiceResult> {
   const session = await prisma.marketSession.findUnique({
     where: { id: sessionId },
     include: { league: true },
@@ -3553,11 +3663,13 @@ export async function getManagersStatus(
         playerTeam: r.player.team,
         position: r.player.position,
         acquisitionPrice: r.acquisitionPrice,
-        contract: r.contract ? {
-          salary: r.contract.salary,
-          duration: r.contract.duration,
-          rescissionClause: r.contract.rescissionClause,
-        } : null,
+        contract: r.contract
+          ? {
+              salary: r.contract.salary,
+              duration: r.contract.duration,
+              rescissionClause: r.contract.rescissionClause,
+            }
+          : null,
       })),
     }
   })
@@ -3642,7 +3754,7 @@ export async function submitAppeal(
 
   return {
     success: true,
-    message: 'Ricorso inviato. L\'asta è bloccata fino alla risoluzione.',
+    message: "Ricorso inviato. L'asta è bloccata fino alla risoluzione.",
     data: { appeal },
   }
 }
@@ -3800,75 +3912,77 @@ export async function resolveAppeal(
         where: { auctionId: appeal.auction.id },
       })
 
-    // 6. Metti l'asta in AWAITING_RESUME - tutti devono confermare di essere pronti
-    // Il timer NON parte ancora - partirà quando tutti saranno pronti
-    const timerSeconds = appeal.auction.marketSession?.svincolatiTimerSeconds ??
-                         appeal.auction.marketSession?.auctionTimerSeconds ?? 30
+      // 6. Metti l'asta in AWAITING_RESUME - tutti devono confermare di essere pronti
+      // Il timer NON parte ancora - partirà quando tutti saranno pronti
+      const timerSeconds =
+        appeal.auction.marketSession?.svincolatiTimerSeconds ??
+        appeal.auction.marketSession?.auctionTimerSeconds ??
+        30
 
-    await prisma.auction.update({
-      where: { id: appeal.auctionId },
-      data: {
-        status: AuctionStatus.AWAITING_RESUME,
-        winnerId: null,
-        // currentPrice rimane invariato - l'asta riprenderà dall'ultima offerta
-        timerExpiresAt: null, // Timer non parte ancora
-        timerSeconds,
-        endsAt: null,
-        appealDecisionAcks: [],
-        resumeReadyMembers: [], // Tutti devono confermare
-      },
-    })
-
-    // 7. Se è un'asta svincolati, aggiorna lo stato della sessione
-    if (appeal.auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI') {
-      await prisma.marketSession.update({
-        where: { id: appeal.auction.marketSessionId! },
+      await prisma.auction.update({
+        where: { id: appeal.auctionId },
         data: {
-          svincolatiState: 'AWAITING_RESUME',
-          svincolatiTimerStartedAt: null,
-          svincolatiPendingAck: null, // Pulisci il pending ack precedente
+          status: AuctionStatus.AWAITING_RESUME,
+          winnerId: null,
+          // currentPrice rimane invariato - l'asta riprenderà dall'ultima offerta
+          timerExpiresAt: null, // Timer non parte ancora
+          timerSeconds,
+          endsAt: null,
+          appealDecisionAcks: [],
+          resumeReadyMembers: [], // Tutti devono confermare
         },
       })
-    }
 
-    // 8. Le offerte NON vengono cancellate - l'asta riprende da dove era
+      // 7. Se è un'asta svincolati, aggiorna lo stato della sessione
+      if (appeal.auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI') {
+        await prisma.marketSession.update({
+          where: { id: appeal.auction.marketSessionId! },
+          data: {
+            svincolatiState: 'AWAITING_RESUME',
+            svincolatiTimerStartedAt: null,
+            svincolatiPendingAck: null, // Pulisci il pending ack precedente
+          },
+        })
+      }
 
-    // 9. Mark appeal as accepted
-    await prisma.auctionAppeal.update({
-      where: { id: appealId },
-      data: {
-        status: 'ACCEPTED',
-        resolvedById: admin.id,
-        resolutionNote,
-        resolvedAt: new Date(),
-      },
-    })
+      // 8. Le offerte NON vengono cancellate - l'asta riprende da dove era
 
-    // Also reject all other pending appeals for this auction
-    await prisma.auctionAppeal.updateMany({
-      where: {
-        auctionId: appeal.auctionId,
-        id: { not: appealId },
-        status: 'PENDING',
-      },
-      data: {
-        status: 'REJECTED',
-        resolvedById: admin.id,
-        resolutionNote: 'Asta riaperta per altro ricorso accettato',
-        resolvedAt: new Date(),
-      },
-    })
+      // 9. Mark appeal as accepted
+      await prisma.auctionAppeal.update({
+        where: { id: appealId },
+        data: {
+          status: 'ACCEPTED',
+          resolvedById: admin.id,
+          resolutionNote,
+          resolvedAt: new Date(),
+        },
+      })
 
-    return {
-      success: true,
-      message: 'Ricorso accettato. L\'asta riprende immediatamente.',
-      data: {
-        sessionId: appeal.auction.marketSessionId,
-        auctionId: appeal.auctionId,
-        leagueId: appeal.auction.leagueId,
-        isSvincolati: appeal.auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI',
-      },
-    }
+      // Also reject all other pending appeals for this auction
+      await prisma.auctionAppeal.updateMany({
+        where: {
+          auctionId: appeal.auctionId,
+          id: { not: appealId },
+          status: 'PENDING',
+        },
+        data: {
+          status: 'REJECTED',
+          resolvedById: admin.id,
+          resolutionNote: 'Asta riaperta per altro ricorso accettato',
+          resolvedAt: new Date(),
+        },
+      })
+
+      return {
+        success: true,
+        message: "Ricorso accettato. L'asta riprende immediatamente.",
+        data: {
+          sessionId: appeal.auction.marketSessionId,
+          auctionId: appeal.auctionId,
+          leagueId: appeal.auction.leagueId,
+          isSvincolati: appeal.auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI',
+        },
+      }
     } catch (error) {
       console.error('[resolveAppeal] Error accepting appeal:', error)
       return {
@@ -3914,7 +4028,11 @@ export async function acknowledgeAppealDecision(
   const auction = await prisma.auction.findUnique({
     where: { id: auctionId },
     include: {
-      appeals: { where: { status: { in: ['ACCEPTED', 'REJECTED'] } }, orderBy: { resolvedAt: 'desc' }, take: 1 },
+      appeals: {
+        where: { status: { in: ['ACCEPTED', 'REJECTED'] } },
+        orderBy: { resolvedAt: 'desc' },
+        take: 1,
+      },
       marketSession: true,
     },
   })
@@ -3924,7 +4042,7 @@ export async function acknowledgeAppealDecision(
   }
 
   if (auction.status !== AuctionStatus.AWAITING_APPEAL_ACK) {
-    return { success: false, message: 'L\'asta non è in attesa di conferma decisione' }
+    return { success: false, message: "L'asta non è in attesa di conferma decisione" }
   }
 
   // Get member
@@ -3968,7 +4086,8 @@ export async function acknowledgeAppealDecision(
       })
       return {
         success: true,
-        message: 'Tutti hanno confermato. Ora tutti devono dichiararsi pronti per riprendere l\'asta.',
+        message:
+          "Tutti hanno confermato. Ora tutti devono dichiararsi pronti per riprendere l'asta.",
         data: { allConfirmed: true, nextStep: 'ready_check' },
       }
     } else {
@@ -3982,10 +4101,13 @@ export async function acknowledgeAppealDecision(
       })
 
       // Se è un'asta svincolati, avanza al prossimo turno
-      if (auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI' &&
-          auction.marketSession?.svincolatiState === 'PENDING_ACK') {
+      if (
+        auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI' &&
+        auction.marketSession?.svincolatiState === 'PENDING_ACK'
+      ) {
         const turnOrder = (auction.marketSession.svincolatiTurnOrder as string[] | null) || []
-        const passedMembers = (auction.marketSession.svincolatiPassedMembers as string[] | null) || []
+        const passedMembers =
+          (auction.marketSession.svincolatiPassedMembers as string[] | null) || []
         const currentTurnIndex = auction.marketSession.svincolatiCurrentTurnIndex ?? 0
         const previousNominatorId = auction.marketSession.svincolatiPendingNominatorId
 
@@ -4037,7 +4159,7 @@ export async function acknowledgeAppealDecision(
 
       return {
         success: true,
-        message: 'Tutti hanno confermato. L\'esito dell\'asta è confermato, si prosegue.',
+        message: "Tutti hanno confermato. L'esito dell'asta è confermato, si prosegue.",
         data: { allConfirmed: true, nextStep: 'continue' },
       }
     }
@@ -4057,10 +4179,7 @@ export async function acknowledgeAppealDecision(
 /**
  * Mark ready to resume auction (dopo ricorso ACCEPTED)
  */
-export async function markReadyToResume(
-  auctionId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function markReadyToResume(auctionId: string, userId: string): Promise<ServiceResult> {
   const auction = await prisma.auction.findUnique({
     where: { id: auctionId },
     include: { marketSession: true },
@@ -4071,7 +4190,7 @@ export async function markReadyToResume(
   }
 
   if (auction.status !== AuctionStatus.AWAITING_RESUME) {
-    return { success: false, message: 'L\'asta non è in attesa di ripresa' }
+    return { success: false, message: "L'asta non è in attesa di ripresa" }
   }
 
   // Get member
@@ -4122,7 +4241,7 @@ export async function markReadyToResume(
 
     return {
       success: true,
-      message: 'Tutti pronti! L\'asta riprende.',
+      message: "Tutti pronti! L'asta riprende.",
       data: { allReady: true },
     }
   } else {
@@ -4169,7 +4288,7 @@ export async function forceAllReadyToResume(
   }
 
   if (auction.status !== AuctionStatus.AWAITING_RESUME) {
-    return { success: false, message: 'L\'asta non è in attesa di ripresa' }
+    return { success: false, message: "L'asta non è in attesa di ripresa" }
   }
 
   // Get all members and mark all as ready
@@ -4201,7 +4320,7 @@ export async function forceAllReadyToResume(
 
   return {
     success: true,
-    message: 'Tutti i manager sono stati segnati come pronti. L\'asta riprende.',
+    message: "Tutti i manager sono stati segnati come pronti. L'asta riprende.",
   }
 }
 
@@ -4215,7 +4334,11 @@ export async function forceAllAppealDecisionAcks(
   const auction = await prisma.auction.findUnique({
     where: { id: auctionId },
     include: {
-      appeals: { where: { status: { in: ['ACCEPTED', 'REJECTED'] } }, orderBy: { resolvedAt: 'desc' }, take: 1 },
+      appeals: {
+        where: { status: { in: ['ACCEPTED', 'REJECTED'] } },
+        orderBy: { resolvedAt: 'desc' },
+        take: 1,
+      },
       marketSession: true,
     },
   })
@@ -4239,7 +4362,7 @@ export async function forceAllAppealDecisionAcks(
   }
 
   if (auction.status !== AuctionStatus.AWAITING_APPEAL_ACK) {
-    return { success: false, message: 'L\'asta non è in attesa di conferma decisione' }
+    return { success: false, message: "L'asta non è in attesa di conferma decisione" }
   }
 
   // Get all members
@@ -4274,8 +4397,10 @@ export async function forceAllAppealDecisionAcks(
     })
 
     // Se è un'asta svincolati, avanza al prossimo turno
-    if (auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI' &&
-        auction.marketSession?.svincolatiState === 'PENDING_ACK') {
+    if (
+      auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI' &&
+      auction.marketSession?.svincolatiState === 'PENDING_ACK'
+    ) {
       const turnOrder = (auction.marketSession.svincolatiTurnOrder as string[] | null) || []
       const passedMembers = (auction.marketSession.svincolatiPassedMembers as string[] | null) || []
       const currentTurnIndex = auction.marketSession.svincolatiCurrentTurnIndex ?? 0
@@ -4329,7 +4454,7 @@ export async function forceAllAppealDecisionAcks(
 
     return {
       success: true,
-      message: 'Tutti confermati. L\'esito è confermato, si prosegue.',
+      message: "Tutti confermati. L'esito è confermato, si prosegue.",
     }
   }
 }
@@ -4337,10 +4462,7 @@ export async function forceAllAppealDecisionAcks(
 /**
  * Get appeal status for an auction
  */
-export async function getAppealStatus(
-  auctionId: string,
-  userId: string
-): Promise<ServiceResult> {
+export async function getAppealStatus(auctionId: string, userId: string): Promise<ServiceResult> {
   const auction = await prisma.auction.findUnique({
     where: { id: auctionId },
     include: {
@@ -4378,12 +4500,12 @@ export async function getAppealStatus(
 
   // Find the most recent appeal (PENDING or resolved)
   const latestAppeal = auction.appeals[0]
-  const hasActiveAppeal = !!latestAppeal && (
-    latestAppeal.status === 'PENDING' ||
-    auction.status === 'APPEAL_REVIEW' ||
-    auction.status === 'AWAITING_APPEAL_ACK' ||
-    auction.status === 'AWAITING_RESUME'
-  )
+  const hasActiveAppeal =
+    !!latestAppeal &&
+    (latestAppeal.status === 'PENDING' ||
+      auction.status === 'APPEAL_REVIEW' ||
+      auction.status === 'AWAITING_APPEAL_ACK' ||
+      auction.status === 'AWAITING_RESUME')
 
   return {
     success: true,
@@ -4391,20 +4513,24 @@ export async function getAppealStatus(
       auctionId: auction.id,
       auctionStatus: auction.status,
       hasActiveAppeal,
-      appeal: latestAppeal ? {
-        id: latestAppeal.id,
-        status: latestAppeal.status,
-        reason: latestAppeal.content,
-        adminNotes: latestAppeal.resolutionNote,
-        submittedBy: { username: latestAppeal.member.user.username },
-      } : null,
-      player: auction.player ? {
-        id: auction.player.id,
-        name: auction.player.name,
-        team: auction.player.team,
-        position: auction.player.position,
-        quotation: auction.player.quotation,
-      } : null,
+      appeal: latestAppeal
+        ? {
+            id: latestAppeal.id,
+            status: latestAppeal.status,
+            reason: latestAppeal.content,
+            adminNotes: latestAppeal.resolutionNote,
+            submittedBy: { username: latestAppeal.member.user.username },
+          }
+        : null,
+      player: auction.player
+        ? {
+            id: auction.player.id,
+            name: auction.player.name,
+            team: auction.player.team,
+            position: auction.player.position,
+            quotation: auction.player.quotation,
+          }
+        : null,
       winner: auction.winner ? { username: auction.winner.user.username } : null,
       finalPrice: auction.currentPrice,
       appealDecisionAcks,
@@ -4487,10 +4613,13 @@ export async function simulateAppeal(
     // Check if it's because there's already a pending appeal
     if (auctionId) {
       const existingAppeal = await prisma.auctionAppeal.findFirst({
-        where: { auctionId, status: 'PENDING' }
+        where: { auctionId, status: 'PENDING' },
       })
       if (existingAppeal) {
-        return { success: false, message: 'Esiste già un ricorso PENDING per questa asta. Gestiscilo dal pannello Admin.' }
+        return {
+          success: false,
+          message: 'Esiste già un ricorso PENDING per questa asta. Gestiscilo dal pannello Admin.',
+        }
       }
     }
     return { success: false, message: 'Nessuna asta disponibile per il test' }
@@ -4535,13 +4664,14 @@ export async function simulateAppeal(
 
   // Random appeal reasons
   const reasons = [
-    'Non avevo connessione durante l\'asta e non ho potuto fare offerte.',
-    'Il mio browser si è bloccato proprio quando stavo per fare un\'offerta.',
-    'C\'è stato un errore tecnico, il mio rilancio non è andato a buon fine.',
+    "Non avevo connessione durante l'asta e non ho potuto fare offerte.",
+    "Il mio browser si è bloccato proprio quando stavo per fare un'offerta.",
+    "C'è stato un errore tecnico, il mio rilancio non è andato a buon fine.",
     'Problemi di rete, la pagina non si aggiornava.',
     'Il timer non era sincronizzato correttamente sul mio dispositivo.',
   ]
-  const randomReason = reasons[Math.floor(Math.random() * reasons.length)] ?? 'Ricorso per verifica connessione'
+  const randomReason =
+    reasons[Math.floor(Math.random() * reasons.length)] ?? 'Ricorso per verifica connessione'
 
   // Create the appeal
   const appeal = await prisma.auctionAppeal.create({
@@ -4692,7 +4822,10 @@ export async function completeAllRosterSlots(
 
         // Check if member can afford this player
         // Need to leave at least 1 credit per remaining slot after this one
-        const remainingSlots = (needed - i - 1) +
+        const remainingSlots =
+          needed -
+          i -
+          1 +
           (slotConfig.D - (currentCount.D || 0) - (position === 'D' ? i + 1 : 0)) +
           (slotConfig.C - (currentCount.C || 0) - (position === 'C' ? i + 1 : 0)) +
           (slotConfig.A - (currentCount.A || 0) - (position === 'A' ? i + 1 : 0)) +
@@ -4755,7 +4888,9 @@ export async function completeAllRosterSlots(
     })
 
     if (memberPlayersAdded > 0) {
-      results.push(`${member.user.username}: +${memberPlayersAdded} giocatori (budget: ${memberBudget})`)
+      results.push(
+        `${member.user.username}: +${memberPlayersAdded} giocatori (budget: ${memberBudget})`
+      )
     }
   }
 
