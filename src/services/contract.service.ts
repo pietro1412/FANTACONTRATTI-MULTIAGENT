@@ -37,6 +37,10 @@ export function calculateRescissionClause(salary: number, duration: number): num
   return salary * getMultiplier(duration)
 }
 
+export function calculateDefaultSalary(auctionPrice: number): number {
+  return Math.max(1, Math.round(auctionPrice / 10))
+}
+
 // Costo taglio = (ingaggio × durata rimanente) / 2
 export function calculateReleaseCost(salary: number, duration: number): number {
   return Math.ceil((salary * duration) / 2)

@@ -1,5 +1,5 @@
 import { PrismaClient, AuctionStatus, AuctionType, MemberRole, MemberStatus, AcquisitionType, RosterStatus, Position, SessionStatus, Prisma } from '@prisma/client'
-import { calculateRescissionClause, canAdvanceFromContratti } from './contract.service'
+import { calculateRescissionClause, calculateDefaultSalary, canAdvanceFromContratti } from './contract.service'
 import { autoReleaseRitiratiPlayers } from './indemnity-phase.service'
 import { recordMovement } from './movement.service'
 import {
@@ -679,10 +679,10 @@ export async function closeAuctionSession(
       },
     })
 
-    // Create contracts: 10% of acquisition price, 2 semesters
+    // Create contracts: 10% of acquisition price, 3 semesters
     for (const roster of rostersWithoutContracts) {
-      const salary = Math.max(1, Math.round(roster.acquisitionPrice * 0.1))
-      const duration = 2
+      const salary = calculateDefaultSalary(roster.acquisitionPrice)
+      const duration = 3
       const rescissionClause = calculateRescissionClause(salary, duration)
 
       await prisma.playerContract.create({
@@ -998,10 +998,9 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
         },
       })
 
-      // Create contract: 10% salary (min 1, rounded to 0.5), 2 semesters
-      const rawSalary = winningBid.amount * 0.1
-      const salary = Math.max(1, Math.round(rawSalary * 2) / 2)
-      const duration = 2
+      // Create contract: 10% salary (integer, min 1), 3 semesters
+      const salary = calculateDefaultSalary(winningBid.amount)
+      const duration = 3
       const rescissionClause = calculateRescissionClause(salary, duration)
 
       await prisma.playerContract.create({
@@ -1441,10 +1440,9 @@ export async function closeAuction(
     },
   })
 
-  // Create contract: 10% salary (min 1, rounded to 0.5), 2 semesters
-  const rawSalary = winningBid.amount * 0.1
-  const salary = Math.max(1, Math.round(rawSalary * 2) / 2)
-  const duration = 2
+  // Create contract: 10% salary (integer, min 1), 3 semesters
+  const salary = calculateDefaultSalary(winningBid.amount)
+  const duration = 3
   const rescissionClause = calculateRescissionClause(salary, duration)
 
   await prisma.playerContract.create({
@@ -4790,11 +4788,10 @@ export async function completeAllRosterSlots(
           },
         })
 
-        // Create default contract (10% of acquisition price, minimum 1, 2 semesters)
-        const rawSalary = finalPrice * 0.1
-        const salary = Math.max(1, Math.round(rawSalary * 2) / 2) // Round to 0.5, min 1
-        const duration = 2
-        const rescissionClause = Math.round(salary * duration * 2)
+        // Create default contract (10% of acquisition price, integer min 1, 3 semesters)
+        const salary = calculateDefaultSalary(finalPrice)
+        const duration = 3
+        const rescissionClause = calculateRescissionClause(salary, duration)
 
         await prisma.playerContract.create({
           data: {

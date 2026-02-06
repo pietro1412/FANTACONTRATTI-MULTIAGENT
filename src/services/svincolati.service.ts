@@ -1,5 +1,6 @@
 import { PrismaClient, MemberStatus, AuctionStatus, Position, Prisma } from '@prisma/client'
 import { recordMovement } from './movement.service'
+import { calculateDefaultSalary, calculateRescissionClause } from './contract.service'
 
 const prisma = new PrismaClient()
 
@@ -491,10 +492,10 @@ export async function closeFreeAgentAuction(
       },
     })
 
-    // Create contract automatically: 10% salary, 3 semesters (svincolati default)
-    const salary = Math.ceil(auction.currentPrice * 0.1)
+    // Create contract automatically: 10% salary (integer, min 1), 3 semesters (svincolati default)
+    const salary = calculateDefaultSalary(auction.currentPrice)
     const duration = 3
-    const rescissionClause = salary * 9 // multiplier for 3 semesters
+    const rescissionClause = calculateRescissionClause(salary, duration)
 
     await tx.playerContract.create({
       data: {
@@ -520,9 +521,9 @@ export async function closeFreeAgentAuction(
   })
 
   // Record movement with contract values
-  const movementSalary = Math.ceil(auction.currentPrice * 0.1)
+  const movementSalary = calculateDefaultSalary(auction.currentPrice)
   const movementDuration = 3
-  const movementClause = movementSalary * 9 // multiplier for 3 semesters
+  const movementClause = calculateRescissionClause(movementSalary, movementDuration)
 
   await recordMovement({
     leagueId: auction.leagueId,
@@ -1530,10 +1531,10 @@ export async function closeSvincolatiAuction(
       },
     })
 
-    // Create contract automatically: 10% salary, 3 semesters (svincolati default)
-    const salary = Math.ceil(auction.currentPrice * 0.1)
+    // Create contract automatically: 10% salary (integer, min 1), 3 semesters (svincolati default)
+    const salary = calculateDefaultSalary(auction.currentPrice)
     const duration = 3
-    const rescissionClause = salary * 9 // multiplier for 3 semesters
+    const rescissionClause = calculateRescissionClause(salary, duration)
 
     await tx.playerContract.create({
       data: {
@@ -1578,9 +1579,9 @@ export async function closeSvincolatiAuction(
   })
 
   // Record movement with contract values
-  const movementSalary2 = Math.ceil(auction.currentPrice * 0.1)
+  const movementSalary2 = calculateDefaultSalary(auction.currentPrice)
   const movementDuration2 = 3
-  const movementClause2 = movementSalary2 * 9 // multiplier for 3 semesters
+  const movementClause2 = calculateRescissionClause(movementSalary2, movementDuration2)
 
   await recordMovement({
     leagueId: auction.leagueId,
