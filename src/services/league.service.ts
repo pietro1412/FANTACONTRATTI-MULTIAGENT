@@ -975,7 +975,7 @@ export async function searchLeagues(
  * Get financial dashboard data for all teams in a league (#190, #193)
  * Includes pre/post renewal contract costs when in CONTRATTI phase
  */
-export async function getLeagueFinancials(leagueId: string, userId: string): Promise<ServiceResult> {
+export async function getLeagueFinancials(leagueId: string, userId: string, sessionId?: string): Promise<ServiceResult> {
   try {
     // Verify user is a member of the league
     const membership = await prisma.leagueMember.findFirst({
@@ -1085,7 +1085,9 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
           where: inContrattiPhase
             ? { status: { in: ['ACTIVE', 'RELEASED'] } }
             : { status: 'ACTIVE' },
-          include: {
+          select: {
+            status: true,
+            acquisitionPrice: true,
             player: {
               select: {
                 id: true,
@@ -1309,6 +1311,11 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
       // Get snapshot data for this member (tagli, indennizzi)
       const snapshot = snapshotMap.get(member.id)
 
+      // OSS-6: Calculate total acquisition cost (sum of auction prices paid for active roster)
+      const totalAcquisitionCost = member.roster
+        .filter(r => r.status === 'ACTIVE')
+        .reduce((sum, r) => sum + (r.acquisitionPrice || 0), 0)
+
       return {
         memberId: member.id,
         teamName: member.teamName || member.user.username,
@@ -1316,6 +1323,7 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
         budget: displayBudget,
         annualContractCost,
         totalContractCost,
+        totalAcquisitionCost,
         slotCount,
         slotsFree: maxSlots - slotCount,
         maxSlots,
@@ -1342,6 +1350,27 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
       }
     })
 
+    // OSS-6: Fetch available market sessions for phase selector (storicita)
+    const marketSessions = await prisma.marketSession.findMany({
+      where: { leagueId },
+      select: {
+        id: true,
+        sessionType: true,
+        currentPhase: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    const availableSessions = marketSessions.map(s => ({
+      id: s.id,
+      sessionType: s.sessionType,
+      currentPhase: s.currentPhase,
+      status: s.status,
+      createdAt: s.createdAt,
+    }))
+
     return {
       success: true,
       data: {
@@ -1351,6 +1380,8 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
         isAdmin: membership.role === MemberRole.ADMIN,
         // #193: Phase info
         inContrattiPhase,
+        // OSS-6: Available sessions for phase selector
+        availableSessions,
       },
     }
   } catch (error) {

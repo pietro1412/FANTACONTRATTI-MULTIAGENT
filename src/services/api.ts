@@ -195,12 +195,20 @@ export const leagueApi = {
       createdAt: string
     }>>(`/api/leagues/search?q=${encodeURIComponent(query)}`),
 
-  // Get financial dashboard data (#190, #193)
-  getFinancials: (leagueId: string) =>
+  // Get financial dashboard data (#190, #193, OSS-6)
+  getFinancials: (leagueId: string, sessionId?: string) =>
     request<{
       leagueName: string
       maxSlots: number
       inContrattiPhase: boolean // #193: true if league is in CONTRATTI phase
+      // OSS-6: Available sessions for phase selector
+      availableSessions: Array<{
+        id: string
+        sessionType: string
+        currentPhase: string | null
+        status: string
+        createdAt: string
+      }>
       teams: Array<{
         memberId: string
         teamName: string
@@ -208,6 +216,7 @@ export const leagueApi = {
         budget: number
         annualContractCost: number
         totalContractCost: number
+        totalAcquisitionCost: number // OSS-6: sum of auction prices paid
         slotCount: number
         slotsFree: number
         maxSlots: number
@@ -252,7 +261,7 @@ export const leagueApi = {
         isConsolidated: boolean
         consolidatedAt: string | null
       }>
-    }>(`/api/leagues/${leagueId}/financials`),
+    }>(`/api/leagues/${leagueId}/financials${sessionId ? `?sessionId=${sessionId}` : ''}`),
 }
 
 // Invite API

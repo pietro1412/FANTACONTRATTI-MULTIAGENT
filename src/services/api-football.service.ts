@@ -349,7 +349,7 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
           })
           matchedDbIds.add(dbPlayer.id) // Don't count as unmatched
         } else {
-          // Try partial match
+          // Strategy B: Try partial last name match
           const partialMatches = apiSquad.filter((api) => {
             const apiLastName = extractLastName(api.name)
             return apiLastName.includes(dbLastName) || dbLastName.includes(apiLastName)
@@ -368,6 +368,51 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
               candidates: partialMatches.map((m) => ({ apiId: m.id, name: m.name })),
             })
             matchedDbIds.add(dbPlayer.id)
+          } else {
+            // Strategy C: Name-part match (e.g., DB "Morata" → API "Alvaro Morata")
+            const dbParts = getNameParts(dbPlayer.name)
+            const namePartMatches = apiSquad.filter((api) => {
+              const apiParts = getNameParts(api.name)
+              return dbParts.some(dp => dp.length >= 3 && apiParts.includes(dp))
+            })
+
+            if (namePartMatches.length === 1) {
+              const apiPlayer = namePartMatches[0]
+              if (!usedApiIds.has(apiPlayer.id)) {
+                matched.push({ dbId: dbPlayer.id, apiId: apiPlayer.id, name: dbPlayer.name, age: apiPlayer.age || null })
+                matchedDbIds.add(dbPlayer.id)
+                usedApiIds.add(apiPlayer.id)
+              }
+            } else if (namePartMatches.length > 1) {
+              ambiguous.push({
+                player: { id: dbPlayer.id, name: dbPlayer.name, team: dbPlayer.team },
+                candidates: namePartMatches.map((m) => ({ apiId: m.id, name: m.name })),
+              })
+              matchedDbIds.add(dbPlayer.id)
+            } else {
+              // Strategy D: Levenshtein distance <= 20% (conservative, only if unique match)
+              const levenshteinMatches = apiSquad.filter((api) => {
+                const apiLastName = extractLastName(api.name)
+                const distance = levenshteinDistance(apiLastName, dbLastName)
+                const maxLen = Math.max(apiLastName.length, dbLastName.length)
+                return maxLen > 0 && distance / maxLen <= 0.2
+              })
+
+              if (levenshteinMatches.length === 1) {
+                const apiPlayer = levenshteinMatches[0]
+                if (!usedApiIds.has(apiPlayer.id)) {
+                  matched.push({ dbId: dbPlayer.id, apiId: apiPlayer.id, name: dbPlayer.name, age: apiPlayer.age || null })
+                  matchedDbIds.add(dbPlayer.id)
+                  usedApiIds.add(apiPlayer.id)
+                }
+              } else if (levenshteinMatches.length > 1) {
+                ambiguous.push({
+                  player: { id: dbPlayer.id, name: dbPlayer.name, team: dbPlayer.team },
+                  candidates: levenshteinMatches.map((m) => ({ apiId: m.id, name: m.name })),
+                })
+                matchedDbIds.add(dbPlayer.id)
+              }
+            }
           }
         }
       }
