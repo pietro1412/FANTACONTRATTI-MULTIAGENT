@@ -972,6 +972,137 @@ export async function searchLeagues(
 }
 
 /**
+ * OSS-6: Get historical financial data from ManagerSessionSnapshot for a specific session.
+ * Returns simplified financial view based on stored snapshots.
+ */
+async function getLeagueFinancialsSnapshot(
+  leagueId: string,
+  membership: { id: string; role: string },
+  sessionId: string
+): Promise<ServiceResult | null> {
+  // Fetch all snapshots for this session (prefer PHASE_END, fallback to PHASE_START, then SESSION_START)
+  const snapshots = await prisma.managerSessionSnapshot.findMany({
+    where: { marketSessionId: sessionId },
+    include: {
+      leagueMember: {
+        select: {
+          id: true,
+          teamName: true,
+          user: { select: { username: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  if (snapshots.length === 0) {
+    // No snapshots yet (session still active, no phase transitions happened)
+    // Return null to signal caller to fall back to live data
+    return null
+  }
+
+  // Group snapshots by member, pick best available: PHASE_END > PHASE_START > SESSION_START
+  const snapshotByMember = new Map<string, typeof snapshots[0]>()
+  const priority: Record<string, number> = { PHASE_END: 3, PHASE_START: 2, SESSION_START: 1 }
+
+  for (const snap of snapshots) {
+    const existing = snapshotByMember.get(snap.leagueMemberId)
+    const snapPrio = priority[snap.snapshotType] || 0
+    const existPrio = existing ? (priority[existing.snapshotType] || 0) : 0
+    if (!existing || snapPrio > existPrio) {
+      snapshotByMember.set(snap.leagueMemberId, snap)
+    }
+  }
+
+  // Get league settings for slot limit
+  const league = await prisma.league.findUnique({
+    where: { id: leagueId },
+    select: {
+      name: true,
+      goalkeeperSlots: true,
+      defenderSlots: true,
+      midfielderSlots: true,
+      forwardSlots: true,
+    },
+  })
+  const maxSlots = league
+    ? (league.goalkeeperSlots + league.defenderSlots + league.midfielderSlots + league.forwardSlots)
+    : 25
+
+  // Get session info for the label
+  const session = await prisma.marketSession.findUnique({
+    where: { id: sessionId },
+    select: { type: true, currentPhase: true, status: true },
+  })
+
+  // Build team data from snapshots
+  const teamsData = Array.from(snapshotByMember.values()).map(snap => {
+    const budget = snap.budget
+    const annualContractCost = snap.totalSalaries
+    const slotCount = snap.contractCount
+
+    return {
+      memberId: snap.leagueMemberId,
+      teamName: snap.leagueMember.teamName || snap.leagueMember.user.username,
+      username: snap.leagueMember.user.username,
+      budget,
+      annualContractCost,
+      totalContractCost: 0, // Not available in snapshot
+      totalAcquisitionCost: 0, // Not available in snapshot
+      slotCount,
+      slotsFree: maxSlots - slotCount,
+      maxSlots,
+      ageDistribution: { under20: 0, under25: 0, under30: 0, over30: 0, unknown: 0 },
+      positionDistribution: { P: 0, D: 0, C: 0, A: 0 },
+      players: [], // Not available in snapshot
+      preRenewalContractCost: annualContractCost,
+      postRenewalContractCost: null,
+      costByPosition: {
+        P: { preRenewal: 0, postRenewal: null },
+        D: { preRenewal: 0, postRenewal: null },
+        C: { preRenewal: 0, postRenewal: null },
+        A: { preRenewal: 0, postRenewal: null },
+      },
+      isConsolidated: false,
+      consolidatedAt: null,
+      preConsolidationBudget: null,
+      totalReleaseCosts: snap.totalReleaseCosts ?? null,
+      totalIndemnities: snap.totalIndemnities ?? null,
+      totalRenewalCosts: snap.totalRenewalCosts ?? null,
+    }
+  })
+
+  // Fetch available sessions (same as main function)
+  const marketSessions = await prisma.marketSession.findMany({
+    where: { leagueId },
+    select: { id: true, type: true, currentPhase: true, status: true, createdAt: true },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  return {
+    success: true,
+    data: {
+      leagueName: league?.name,
+      maxSlots,
+      teams: teamsData,
+      isAdmin: membership.role === MemberRole.ADMIN,
+      inContrattiPhase: false,
+      availableSessions: marketSessions.map(s => ({
+        id: s.id,
+        sessionType: s.type,
+        currentPhase: s.currentPhase,
+        status: s.status,
+        createdAt: s.createdAt,
+      })),
+      // Flag per il frontend: stiamo mostrando dati storici
+      isHistorical: true,
+      historicalSessionType: session?.type,
+      historicalPhase: session?.currentPhase,
+    },
+  }
+}
+
+/**
  * Get financial dashboard data for all teams in a league (#190, #193)
  * Includes pre/post renewal contract costs when in CONTRATTI phase
  */
@@ -988,6 +1119,14 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
 
     if (!membership) {
       return { success: false, message: 'Non sei membro di questa lega' }
+    }
+
+    // OSS-6: If sessionId is provided, try to return historical snapshot data
+    // Falls back to live data if no snapshots exist (e.g. session still active)
+    if (sessionId) {
+      const snapshotResult = await getLeagueFinancialsSnapshot(leagueId, membership, sessionId)
+      if (snapshotResult) return snapshotResult
+      // No snapshots → fall through to live data
     }
 
     // Check if we're in CONTRATTI phase (#193)
@@ -1046,6 +1185,34 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
     }
     // Backwards compatibility: use phaseEndMap as snapshotMap for existing code
     const snapshotMap = phaseEndMap
+
+    // Fetch accepted trade budget transfers for this league's active session
+    const tradeBudgetMap = new Map<string, { budgetIn: number; budgetOut: number }>()
+    if (activeSession) {
+      const acceptedTrades = await prisma.tradeOffer.findMany({
+        where: {
+          marketSessionId: activeSession.id,
+          status: 'ACCEPTED',
+          OR: [{ offeredBudget: { gt: 0 } }, { requestedBudget: { gt: 0 } }],
+        },
+        select: { senderId: true, receiverId: true, offeredBudget: true, requestedBudget: true },
+      })
+      for (const trade of acceptedTrades) {
+        // senderId/receiverId are User IDs - we'll map to member IDs later
+        // offeredBudget: sender pays to receiver
+        // requestedBudget: receiver pays to sender
+        const sKey = `user:${trade.senderId}`
+        const rKey = `user:${trade.receiverId}`
+        const sExisting = tradeBudgetMap.get(sKey) || { budgetIn: 0, budgetOut: 0 }
+        sExisting.budgetOut += trade.offeredBudget
+        sExisting.budgetIn += trade.requestedBudget
+        tradeBudgetMap.set(sKey, sExisting)
+        const rExisting = tradeBudgetMap.get(rKey) || { budgetIn: 0, budgetOut: 0 }
+        rExisting.budgetIn += trade.offeredBudget
+        rExisting.budgetOut += trade.requestedBudget
+        tradeBudgetMap.set(rKey, rExisting)
+      }
+    }
 
     // Durante CONTRATTI, recupera i salari dei giocatori rilasciati da ContractHistory
     // Questi dati sono necessari per calcolare i totali pre-consolidamento
@@ -1347,6 +1514,9 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
         totalReleaseCosts: snapshot?.totalReleaseCosts ?? null,
         totalIndemnities: snapshot?.totalIndemnities ?? null,
         totalRenewalCosts: snapshot?.totalRenewalCosts ?? null,
+        // Trade budget transfers
+        tradeBudgetIn: tradeBudgetMap.get(`user:${member.userId}`)?.budgetIn ?? 0,
+        tradeBudgetOut: tradeBudgetMap.get(`user:${member.userId}`)?.budgetOut ?? 0,
       }
     })
 
@@ -1355,7 +1525,7 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
       where: { leagueId },
       select: {
         id: true,
-        sessionType: true,
+        type: true,
         currentPhase: true,
         status: true,
         createdAt: true,
@@ -1365,7 +1535,7 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
 
     const availableSessions = marketSessions.map(s => ({
       id: s.id,
-      sessionType: s.sessionType,
+      sessionType: s.type,
       currentPhase: s.currentPhase,
       status: s.status,
       createdAt: s.createdAt,

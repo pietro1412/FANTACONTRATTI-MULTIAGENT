@@ -201,6 +201,10 @@ export const leagueApi = {
       leagueName: string
       maxSlots: number
       inContrattiPhase: boolean // #193: true if league is in CONTRATTI phase
+      // OSS-6: Historical mode
+      isHistorical?: boolean
+      historicalSessionType?: string
+      historicalPhase?: string
       // OSS-6: Available sessions for phase selector
       availableSessions: Array<{
         id: string

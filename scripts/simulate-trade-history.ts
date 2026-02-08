@@ -9,9 +9,10 @@ const prisma = new PrismaClient()
 
 async function simulateTradeHistory() {
   try {
-    const league = await prisma.league.findFirst({
-      where: { name: 'Lega Fantacontratti 2025' }
-    })
+    const leagueId = process.argv[2] || null
+    const league = leagueId
+      ? await prisma.league.findUnique({ where: { id: leagueId } })
+      : await prisma.league.findFirst({ where: { name: 'Lega Fantacontratti 2025' } })
 
     if (!league) {
       console.error('League not found!')
@@ -35,7 +36,6 @@ async function simulateTradeHistory() {
     console.log(`Market session: ${marketSession.id} (${marketSession.currentPhase})`)
 
     // Get all members with their rosters
-    // Real usernames: paolo_bianchi, admin_lega, luca_gialli, marco_neri, mario_rossi, luigi_verdi, andrea_blu, giuseppe_viola
     const members = await prisma.leagueMember.findMany({
       where: { leagueId: league.id, status: 'ACTIVE' },
       include: {
@@ -47,7 +47,12 @@ async function simulateTradeHistory() {
     console.log(`Found ${members.length} managers`)
     members.forEach(m => console.log(`  - ${m.user.username}: ${m.roster.length} players`))
 
-    // Create different types of trades
+    if (members.length < 3) {
+      console.error('Need at least 3 members to simulate trades!')
+      return
+    }
+
+    // Create different types of trades dynamically using available members
     const trades: Array<{
       sender: typeof members[0]
       receiver: typeof members[0]
@@ -60,130 +65,106 @@ async function simulateTradeHistory() {
       daysAgo: number
     }> = []
 
-    // Helper to find member by username
-    const findMember = (username: string) => members.find(m => m.user.username === username)
+    const m = members // shorthand
 
-    // Trade 1: ACCEPTED - mario_rossi -> luigi_verdi (2 days ago)
-    const mario = findMember('mario_rossi')
-    const luigi = findMember('luigi_verdi')
-    if (mario && luigi && mario.roster.length >= 2 && luigi.roster.length >= 1) {
+    // Trade 1: ACCEPTED - member[0] -> member[1] (2 days ago)
+    if (m[0].roster.length >= 2 && m[1].roster.length >= 1) {
       trades.push({
-        sender: mario,
-        receiver: luigi,
-        offeredRosterIds: mario.roster.slice(0, 2).map(r => r.id),
-        requestedRosterIds: luigi.roster.slice(0, 1).map(r => r.id),
-        offeredBudget: 5,
-        requestedBudget: 0,
+        sender: m[0], receiver: m[1],
+        offeredRosterIds: m[0].roster.slice(0, 2).map(r => r.id),
+        requestedRosterIds: m[1].roster.slice(0, 1).map(r => r.id),
+        offeredBudget: 5, requestedBudget: 0,
         status: 'ACCEPTED',
         message: 'Scambio vantaggioso per entrambi!',
         daysAgo: 2
       })
     }
 
-    // Trade 2: REJECTED - paolo_bianchi -> luca_gialli (1 day ago)
-    const paolo = findMember('paolo_bianchi')
-    const luca = findMember('luca_gialli')
-    if (paolo && luca && paolo.roster.length >= 1 && luca.roster.length >= 2) {
+    // Trade 2: REJECTED - member[2] -> member[3] (1 day ago)
+    if (m.length >= 4 && m[2].roster.length >= 1 && m[3].roster.length >= 2) {
       trades.push({
-        sender: paolo,
-        receiver: luca,
-        offeredRosterIds: paolo.roster.slice(0, 1).map(r => r.id),
-        requestedRosterIds: luca.roster.slice(0, 2).map(r => r.id),
-        offeredBudget: 0,
-        requestedBudget: 20,
+        sender: m[2], receiver: m[3],
+        offeredRosterIds: m[2].roster.slice(2, 3).map(r => r.id),
+        requestedRosterIds: m[3].roster.slice(0, 2).map(r => r.id),
+        offeredBudget: 0, requestedBudget: 20,
         status: 'REJECTED',
         message: 'Ti offro il mio portiere per i tuoi due difensori',
         daysAgo: 1
       })
     }
 
-    // Trade 3: ACCEPTED - luigi_verdi -> marco_neri (3 days ago)
-    const marco = findMember('marco_neri')
-    if (luigi && marco && luigi.roster.length >= 3 && marco.roster.length >= 1) {
+    // Trade 3: ACCEPTED - member[1] -> member[2] (3 days ago)
+    if (m[1].roster.length >= 3 && m[2].roster.length >= 1) {
       trades.push({
-        sender: luigi,
-        receiver: marco,
-        offeredRosterIds: luigi.roster.slice(1, 3).map(r => r.id),
-        requestedRosterIds: marco.roster.slice(0, 1).map(r => r.id),
-        offeredBudget: 10,
-        requestedBudget: 0,
+        sender: m[1], receiver: m[2],
+        offeredRosterIds: m[1].roster.slice(3, 5).map(r => r.id),
+        requestedRosterIds: m[2].roster.slice(4, 5).map(r => r.id),
+        offeredBudget: 10, requestedBudget: 0,
         status: 'ACCEPTED',
         message: 'Affare d\'oro per te!',
         daysAgo: 3
       })
     }
 
-    // Trade 4: EXPIRED - andrea_blu -> mario_rossi (5 days ago)
-    const andrea = findMember('andrea_blu')
-    if (andrea && mario && andrea.roster.length >= 3 && mario.roster.length >= 3) {
+    // Trade 4: EXPIRED - member[3] -> member[0] (5 days ago)
+    if (m.length >= 4 && m[3].roster.length >= 3 && m[0].roster.length >= 3) {
       trades.push({
-        sender: andrea,
-        receiver: mario,
-        offeredRosterIds: andrea.roster.slice(0, 3).map(r => r.id),
-        requestedRosterIds: mario.roster.slice(2, 3).map(r => r.id),
-        offeredBudget: 0,
-        requestedBudget: 15,
+        sender: m[3], receiver: m[0],
+        offeredRosterIds: m[3].roster.slice(5, 8).map(r => r.id),
+        requestedRosterIds: m[0].roster.slice(3, 4).map(r => r.id),
+        offeredBudget: 0, requestedBudget: 15,
         status: 'EXPIRED',
         message: 'Proposta generosa, pensaci!',
         daysAgo: 5
       })
     }
 
-    // Trade 5: REJECTED - luca_gialli -> giuseppe_viola (2 days ago)
-    const giuseppe = findMember('giuseppe_viola')
-    if (luca && giuseppe && luca.roster.length >= 1 && giuseppe.roster.length >= 3) {
+    // Trade 5: REJECTED - member[4] -> member[5] (2 days ago)
+    if (m.length >= 6 && m[4].roster.length >= 1 && m[5].roster.length >= 3) {
       trades.push({
-        sender: luca,
-        receiver: giuseppe,
-        offeredRosterIds: luca.roster.slice(0, 1).map(r => r.id),
-        requestedRosterIds: giuseppe.roster.slice(1, 3).map(r => r.id),
-        offeredBudget: 8,
-        requestedBudget: 0,
+        sender: m[4], receiver: m[5],
+        offeredRosterIds: m[4].roster.slice(6, 7).map(r => r.id),
+        requestedRosterIds: m[5].roster.slice(8, 10).map(r => r.id),
+        offeredBudget: 8, requestedBudget: 0,
         status: 'REJECTED',
         message: 'Scambio interessante?',
         daysAgo: 2
       })
     }
 
-    // Trade 6: CANCELLED - giuseppe_viola -> paolo_bianchi (4 days ago)
-    if (giuseppe && paolo && giuseppe.roster.length >= 4 && paolo.roster.length >= 2) {
+    // Trade 6: CANCELLED - member[5] -> member[0] (4 days ago)
+    if (m.length >= 6 && m[5].roster.length >= 4 && m[0].roster.length >= 2) {
       trades.push({
-        sender: giuseppe,
-        receiver: paolo,
-        offeredRosterIds: giuseppe.roster.slice(2, 4).map(r => r.id),
-        requestedRosterIds: paolo.roster.slice(1, 2).map(r => r.id),
-        offeredBudget: 12,
-        requestedBudget: 0,
+        sender: m[5], receiver: m[0],
+        offeredRosterIds: m[5].roster.slice(10, 12).map(r => r.id),
+        requestedRosterIds: m[0].roster.slice(5, 6).map(r => r.id),
+        offeredBudget: 12, requestedBudget: 0,
         status: 'CANCELLED',
         message: 'Ho cambiato idea, scusa!',
         daysAgo: 4
       })
     }
 
-    // Trade 7: ACCEPTED - andrea_blu -> luca_gialli (1 day ago)
-    if (andrea && luca && andrea.roster.length >= 5 && luca.roster.length >= 3) {
+    // Trade 7: ACCEPTED - member[3] -> member[4] (1 day ago)
+    if (m.length >= 5 && m[3].roster.length >= 5 && m[4].roster.length >= 3) {
       trades.push({
-        sender: andrea,
-        receiver: luca,
-        offeredRosterIds: andrea.roster.slice(3, 5).map(r => r.id),
-        requestedRosterIds: luca.roster.slice(2, 3).map(r => r.id),
-        offeredBudget: 3,
-        requestedBudget: 0,
+        sender: m[3], receiver: m[4],
+        offeredRosterIds: m[3].roster.slice(10, 12).map(r => r.id),
+        requestedRosterIds: m[4].roster.slice(8, 9).map(r => r.id),
+        offeredBudget: 3, requestedBudget: 0,
         status: 'ACCEPTED',
         message: 'Affare fatto!',
         daysAgo: 1
       })
     }
 
-    // Trade 8: REJECTED - marco_neri -> andrea_blu (3 days ago)
-    if (marco && andrea && marco.roster.length >= 4 && andrea.roster.length >= 2) {
+    // Trade 8: REJECTED - member[2] -> member[1] (3 days ago)
+    if (m[2].roster.length >= 4 && m[1].roster.length >= 2) {
       trades.push({
-        sender: marco,
-        receiver: andrea,
-        offeredRosterIds: marco.roster.slice(3, 4).map(r => r.id),
-        requestedRosterIds: andrea.roster.slice(1, 2).map(r => r.id),
-        offeredBudget: 0,
-        requestedBudget: 5,
+        sender: m[2], receiver: m[1],
+        offeredRosterIds: m[2].roster.slice(12, 13).map(r => r.id),
+        requestedRosterIds: m[1].roster.slice(6, 7).map(r => r.id),
+        offeredBudget: 0, requestedBudget: 5,
         status: 'REJECTED',
         message: 'Ti do il mio attaccante per il tuo centrocampista?',
         daysAgo: 3

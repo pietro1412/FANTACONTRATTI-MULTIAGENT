@@ -1,7 +1,7 @@
 # BIBBIA: Finanze e Bilancio
 
 > Fonte di verita per il modello finanziario della piattaforma.
-> Ultima revisione: 2026-02-07
+> Ultima revisione: 2026-02-08
 
 ---
 
@@ -443,9 +443,53 @@ Il selettore mostra tutte le sessioni di mercato della lega, con indicazione di:
 
 ---
 
+## 13. SCAMBI NEL TABELLONE FINANZE
+
+### 13.1 Definizione
+
+Il tabellone Finanze mostra per ogni squadra i **crediti movimentati tramite scambi** nella sessione di mercato corrente.
+
+I dati provengono dalle `TradeOffer` con `status = ACCEPTED` e budget > 0:
+
+| Campo | Calcolo |
+|-------|---------|
+| `tradeBudgetIn` | Somma dei crediti **ricevuti** dal manager (come `offeredBudget` quando e' receiver, o `requestedBudget` quando e' sender) |
+| `tradeBudgetOut` | Somma dei crediti **ceduti** dal manager (come `offeredBudget` quando e' sender, o `requestedBudget` quando e' receiver) |
+| Saldo netto | `tradeBudgetIn - tradeBudgetOut` |
+
+### 13.2 Visualizzazione
+
+Nel tabellone squadre, la colonna **"Scambi"** appare solo se almeno un manager ha effettuato scambi con crediti. Mostra:
+
+- **Saldo netto** con colore semantico (verde se positivo, ambra se negativo)
+- **Dettaglio** `+ricevuti / -ceduti` in riga secondaria
+
+Sopra la tabella, tre card di riepilogo:
+
+| Card | Valore |
+|------|--------|
+| Crediti Ricevuti (lega) | Somma di tutti i `tradeBudgetIn` |
+| Crediti Ceduti (lega) | Somma di tutti i `tradeBudgetOut` |
+| Volume Scambi | `Crediti Ricevuti + Crediti Ceduti` (= doppio del totale reale, perche' ogni trasferimento ha un mittente e un destinatario) |
+
+### 13.3 Relazione con Budget
+
+I crediti scambiati sono gia' inclusi nel `currentBudget` di ogni manager (vengono trasferiti atomicamente all'accettazione dello scambio). Il tracciamento nel tabellone Finanze e' **esplicativo**: spiega quanto del budget attuale deriva da scambi.
+
+### 13.4 Zero-Sum
+
+I trasferimenti di crediti tra manager sono a somma zero per la lega:
+
+```
+SUM(tradeBudgetIn) == SUM(tradeBudgetOut)  (per l'intera lega)
+```
+
+---
+
 ## CHANGELOG
 
 | Data | Modifica |
 |------|----------|
+| 2026-02-08 | Aggiunta sezione Scambi nel Tabellone Finanze (13): tradeBudgetIn/Out, colonna Scambi, card riepilogo |
 | 2026-02-07 | Aggiunta sezione Costo Acquisti (11) e storicita fasi (12) per OSS-6 |
 | 2026-02-06 | Creazione documento con modello finanziario completo, scomposizione rubata offerta+ingaggio |

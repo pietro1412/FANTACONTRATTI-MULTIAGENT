@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
-import { tradeApi, auctionApi, leagueApi, contractApi } from '../services/api'
+import { useState, useEffect, useMemo } from 'react'
+import { tradeApi, auctionApi, leagueApi, contractApi, movementApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
+import { getPlayerPhotoUrl } from '../utils/player-images'
+import { POSITION_GRADIENTS } from '../components/ui/PositionBadge'
 import { ContractModifierModal, type PlayerInfo, type ContractData } from '../components/ContractModifier'
 
 interface TradesProps {
@@ -24,6 +26,9 @@ interface Player {
   team: string
   position: string
   contract?: PlayerContract | null
+  quotation?: number
+  age?: number | null
+  apiFootballId?: number | null
 }
 
 interface RosterEntry {
@@ -38,6 +43,9 @@ interface LeagueMember {
   id: string
   currentBudget: number
   user: { username: string }
+  // Financial data from getFinancials API
+  annualContractCost?: number
+  slotCount?: number
 }
 
 interface TradeOffer {
@@ -102,6 +110,156 @@ function getRoleStyle(position: string) {
     case 'A': return { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/40', label: 'ATT' }
     default: return { bg: 'bg-gray-500/20', text: 'text-gray-400', border: 'border-gray-500/40', label: position }
   }
+}
+
+function getAgeColor(age: number | null | undefined): string {
+  if (age === null || age === undefined) return 'text-gray-500'
+  if (age < 20) return 'text-emerald-400 font-bold'
+  if (age < 25) return 'text-green-400'
+  if (age < 30) return 'text-yellow-400'
+  if (age < 35) return 'text-orange-400'
+  return 'text-red-400'
+}
+
+// ============================================================================
+// TradeMovement interface
+// ============================================================================
+interface TradeMovement {
+  id: string
+  movementType: string
+  player: { id: string; name: string; position: string; team: string }
+  fromMember: { id: string; username: string; teamName: string } | null
+  toMember: { id: string; username: string; teamName: string } | null
+  price: number | null
+  oldSalary: number | null
+  newSalary: number | null
+  createdAt: string
+}
+
+// ============================================================================
+// SVG Chart Components for Financial Dashboard
+// ============================================================================
+
+// BilancioGauge - Semicircle gauge showing bilancio position
+function BilancioGauge({ bilancio, budget, size = 130 }: { bilancio: number; budget: number; size?: number }) {
+  const height = size * 0.58
+  const cx = size / 2
+  const cy = height - 4
+  const radius = size / 2 - 8
+
+  // ratio clamped between 0 and 1
+  const maxVal = Math.max(budget, 1)
+  const ratio = Math.max(0, Math.min(1, bilancio / maxVal))
+
+  // Semicircle from PI to 0 (left to right)
+  const startAngle = Math.PI
+  const strokeW = 10
+
+  // Three arc zones: red (0-0.15), yellow (0.15-0.35), green (0.35-1)
+  const zones = [
+    { from: 0, to: 0.15, color: '#ef4444' },     // red
+    { from: 0.15, to: 0.35, color: '#eab308' },   // yellow
+    { from: 0.35, to: 1, color: '#22c55e' },       // green
+  ]
+
+  function arcPath(fromRatio: number, toRatio: number) {
+    const a1 = startAngle - fromRatio * Math.PI
+    const a2 = startAngle - toRatio * Math.PI
+    const x1 = cx + radius * Math.cos(a1)
+    const y1 = cy + radius * Math.sin(a1)
+    const x2 = cx + radius * Math.cos(a2)
+    const y2 = cy + radius * Math.sin(a2)
+    const largeArc = toRatio - fromRatio > 0.5 ? 1 : 0
+    return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 0 ${x2} ${y2}`
+  }
+
+  // Needle angle
+  const needleAngle = startAngle - ratio * Math.PI
+  const needleLen = radius - 4
+  const nx = cx + needleLen * Math.cos(needleAngle)
+  const ny = cy + needleLen * Math.sin(needleAngle)
+
+  // Semantic color for value
+  const valueColor = bilancio < 0 ? '#ef4444' : bilancio < 30 ? '#eab308' : '#4ade80'
+
+  return (
+    <svg width={size} height={height} viewBox={`0 0 ${size} ${height}`}>
+      {/* Background track */}
+      <path d={arcPath(0, 1)} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={strokeW} strokeLinecap="round" />
+      {/* Color zones */}
+      {zones.map((z, i) => (
+        <path key={i} d={arcPath(z.from, z.to)} fill="none" stroke={z.color} strokeWidth={strokeW} strokeLinecap="round" opacity={0.35} />
+      ))}
+      {/* Active arc up to current ratio */}
+      <path d={arcPath(0, ratio)} fill="none" stroke={valueColor} strokeWidth={strokeW} strokeLinecap="round" opacity={0.9} />
+      {/* Needle */}
+      <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="white" strokeWidth={2} strokeLinecap="round" />
+      <circle cx={cx} cy={cy} r={3} fill="white" />
+      {/* Value text */}
+      <text x={cx} y={cy - 14} textAnchor="middle" fill={valueColor} fontSize={size > 120 ? 20 : 16} fontWeight="bold">{bilancio}</text>
+      <text x={cx} y={cy - 28} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize={8} style={{ textTransform: 'uppercase' }}>BILANCIO</text>
+    </svg>
+  )
+}
+
+// CompactBudgetBar - Horizontal bar for Budget vs Ingaggi
+function CompactBudgetBar({ budget, ingaggi }: { budget: number; ingaggi: number }) {
+  const maxVal = Math.max(budget, ingaggi, 1)
+  const budgetPct = (budget / maxVal) * 100
+  const ingaggiPct = (ingaggi / maxVal) * 100
+
+  return (
+    <div className="flex flex-col gap-1.5 w-full" style={{ minHeight: 44 }}>
+      <div className="flex flex-col gap-0.5">
+        <div className="flex justify-between text-[10px]">
+          <span className="text-gray-500">Budget</span>
+          <span className="text-primary-400 font-medium">{budget}</span>
+        </div>
+        <div className="h-3 bg-surface-100/50 rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-primary-600 to-primary-400 rounded-full transition-all duration-500" style={{ width: `${budgetPct}%` }} />
+        </div>
+      </div>
+      <div className="flex flex-col gap-0.5">
+        <div className="flex justify-between text-[10px]">
+          <span className="text-gray-500">Ingaggi</span>
+          <span className="text-accent-400 font-medium">{ingaggi}</span>
+        </div>
+        <div className="h-3 bg-surface-100/50 rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-accent-600 to-accent-400 rounded-full transition-all duration-500" style={{ width: `${ingaggiPct}%` }} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// DeltaBar - Shows before/after impact on bilancio
+function DeltaBar({ before, after, label }: { before: number; after: number; label?: string }) {
+  const delta = after - before
+  const maxAbs = Math.max(Math.abs(before), Math.abs(after), 1)
+  const beforePct = Math.max(0, (before / maxAbs) * 100)
+  const afterPct = Math.max(0, (after / maxAbs) * 100)
+  const improves = delta >= 0
+  const deltaColor = improves ? 'text-secondary-400' : 'text-danger-400'
+  const barColor = improves ? 'bg-secondary-500' : 'bg-danger-500'
+
+  return (
+    <div className="flex flex-col gap-1">
+      {label && <span className="text-[10px] text-gray-500 uppercase tracking-wide">{label}</span>}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-400 w-8 text-right font-medium">{before}</span>
+        <div className="flex-1 relative h-4 bg-surface-100/30 rounded-full overflow-hidden">
+          {/* Before marker */}
+          <div className="absolute top-0 h-full bg-gray-500/40 rounded-full transition-all duration-500" style={{ width: `${beforePct}%` }} />
+          {/* After marker */}
+          <div className={`absolute top-0 h-full ${barColor}/60 rounded-full transition-all duration-500`} style={{ width: `${afterPct}%` }} />
+        </div>
+        <span className={`text-xs font-semibold w-8 ${deltaColor}`}>{after}</span>
+        <span className={`text-[10px] font-bold ${deltaColor} min-w-[40px]`}>
+          {delta > 0 ? '+' : ''}{delta}
+        </span>
+      </div>
+    </div>
+  )
 }
 
 // Componente logo squadra
@@ -248,8 +406,11 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   const [myRoster, setMyRoster] = useState<RosterEntry[]>([])
   const [allOtherPlayers, setAllOtherPlayers] = useState<RosterEntry[]>([])
   const [myBudget, setMyBudget] = useState(0)
+  const [myFinancials, setMyFinancials] = useState<{ annualContractCost: number; slotCount: number }>({ annualContractCost: 0, slotCount: 0 })
   const [isInTradePhase, setIsInTradePhase] = useState(false)
   const [currentSession, setCurrentSession] = useState<MarketSession | null>(null)
+  const [tradeMovements, setTradeMovements] = useState<TradeMovement[]>([])
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'offers' | 'movements'>('all')
 
   // Create offer form
   const [selectedMemberId, setSelectedMemberId] = useState('')
@@ -310,7 +471,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     setIsLoading(true)
 
     // Load all data in parallel
-    const [receivedRes, sentRes, historyRes, membersRes, rosterRes, sessionsRes, leagueRes, allRostersRes] = await Promise.all([
+    const [receivedRes, sentRes, historyRes, membersRes, rosterRes, sessionsRes, leagueRes, allRostersRes, financialsRes, movementsRes] = await Promise.all([
       tradeApi.getReceived(leagueId),
       tradeApi.getSent(leagueId),
       tradeApi.getHistory(leagueId),
@@ -319,6 +480,8 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       auctionApi.getSessions(leagueId),
       leagueApi.getById(leagueId),
       auctionApi.getLeagueRosters(leagueId),
+      leagueApi.getFinancials(leagueId),
+      movementApi.getLeagueMovements(leagueId, { movementType: 'TRADE', limit: 50 }),
     ])
 
     if (leagueRes.success && leagueRes.data) {
@@ -340,15 +503,38 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     const rosterData = rosterRes.data as { member?: { id: string, currentBudget: number } } | undefined
     const currentMemberId = rosterData?.member?.id || ''
 
+    // Build financials lookup from getFinancials API
+    const financialsMap = new Map<string, { budget: number; annualContractCost: number; slotCount: number }>()
+    if (financialsRes.success && financialsRes.data) {
+      const fData = financialsRes.data as { teams: Array<{ memberId: string; budget: number; annualContractCost: number; slotCount: number }> }
+      for (const t of fData.teams || []) {
+        financialsMap.set(t.memberId, { budget: t.budget, annualContractCost: t.annualContractCost, slotCount: t.slotCount })
+      }
+    }
+
     if (membersRes.success && membersRes.data) {
       const allMembers = (membersRes.data as { members: LeagueMember[] }).members || []
-      setMembers(allMembers.filter(m => m.id !== currentMemberId))
+      // Merge financial data into members
+      const enriched = allMembers.map(m => {
+        const fin = financialsMap.get(m.id)
+        return fin
+          ? { ...m, currentBudget: fin.budget, annualContractCost: fin.annualContractCost, slotCount: fin.slotCount }
+          : m
+      })
+      setMembers(enriched.filter(m => m.id !== currentMemberId))
+    }
+
+    // Also fix myBudget from financials if available
+    if (currentMemberId && financialsMap.has(currentMemberId)) {
+      const myFin = financialsMap.get(currentMemberId)!
+      setMyBudget(myFin.budget)
+      setMyFinancials({ annualContractCost: myFin.annualContractCost, slotCount: myFin.slotCount })
     }
 
     if (rosterRes.success && rosterRes.data) {
       interface RosterApiEntry {
         id: string
-        player: { id: string; name: string; team: string; position: string }
+        player: { id: string; name: string; team: string; position: string; quotation?: number; age?: number | null; apiFootballId?: number | null }
         contract?: { salary: number; duration: number; rescissionClause?: number } | null
         acquisitionPrice: number
       }
@@ -356,7 +542,10 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         member: { currentBudget: number }
         roster: { P: RosterApiEntry[], D: RosterApiEntry[], C: RosterApiEntry[], A: RosterApiEntry[] }
       }
-      setMyBudget(data.member.currentBudget)
+      // Only set budget from roster if financials didn't provide it
+      if (!financialsMap.has(currentMemberId)) {
+        setMyBudget(data.member.currentBudget)
+      }
       // Map roster entries to include contract inside player
       const mapEntry = (r: RosterApiEntry): RosterEntry => ({
         id: r.id,
@@ -366,6 +555,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
           team: r.player.team,
           position: r.player.position,
           contract: r.contract,
+          quotation: r.player.quotation,
+          age: r.player.age,
+          apiFootballId: r.player.apiFootballId,
         },
         acquisitionPrice: r.acquisitionPrice,
       })
@@ -388,7 +580,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         user?: { username: string }
         roster?: Array<{
           id: string
-          player: { id: string; name: string; position: string; team: string }
+          player: { id: string; name: string; position: string; team: string; quotation?: number; age?: number | null; apiFootballId?: number | null }
           contract?: { salary: number; duration: number; rescissionClause?: number } | null
         }>
         players?: Array<{
@@ -397,6 +589,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
           name: string
           position: string
           team: string
+          quotation?: number
+          age?: number | null
+          apiFootballId?: number | null
           contract?: { salary: number; duration: number; rescissionClause?: number } | null
         }>
       }> = []
@@ -424,6 +619,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
           name: r.player.name,
           position: r.player.position,
           team: r.player.team,
+          quotation: r.player.quotation,
+          age: r.player.age,
+          apiFootballId: r.player.apiFootballId,
           contract: r.contract,
         })) || []
 
@@ -436,6 +634,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
               position: p.position,
               team: p.team,
               contract: p.contract,
+              quotation: p.quotation,
+              age: p.age,
+              apiFootballId: p.apiFootballId,
             },
             acquisitionPrice: 0,
             memberId: memberId,
@@ -454,6 +655,10 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         !!active &&
         (active.currentPhase === 'OFFERTE_PRE_RINNOVO' || active.currentPhase === 'OFFERTE_POST_ASTA_SVINCOLATI')
       )
+    }
+
+    if (movementsRes.success && movementsRes.data) {
+      setTradeMovements((movementsRes.data as { movements: TradeMovement[] }).movements || [])
     }
 
     setIsLoading(false)
@@ -504,6 +709,29 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
 
   // Get target member info
   const targetMember = members.find(m => m.id === selectedMemberId)
+
+  // Financial calculations - use API data from getFinancials for consistency with Finanze page
+  const myTotalSalary = myFinancials.annualContractCost
+  const targetTotalSalary = targetMember?.annualContractCost ?? 0
+  const targetRosterCount = targetMember?.slotCount ?? 0
+
+  // Simulated post-trade impact
+  const offeredSalaryTotal = useMemo(() =>
+    selectedOfferedPlayers.reduce((sum, id) => {
+      const r = myRoster.find(e => e.id === id)
+      return sum + (r?.player.contract?.salary || 0)
+    }, 0),
+    [selectedOfferedPlayers, myRoster]
+  )
+  const requestedSalaryTotal = useMemo(() =>
+    selectedRequestedPlayers.reduce((sum, id) => {
+      const r = allOtherPlayers.find(e => e.id === id)
+      return sum + (r?.player.contract?.salary || 0)
+    }, 0),
+    [selectedRequestedPlayers, allOtherPlayers]
+  )
+  const myPostTradeBudget = myBudget - offeredBudget + requestedBudget
+  const myPostTradeSalary = myTotalSalary - offeredSalaryTotal + requestedSalaryTotal
 
   async function handleCreateOffer(e: React.FormEvent) {
     e.preventDefault()
@@ -981,27 +1209,80 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
               </Card>
             ) : (
               <>
-                {/* Budget Overview - Always Visible */}
+                {/* Financial Dashboard - Bilancio Hero */}
                 <Card className="bg-gradient-to-r from-surface-200 to-surface-300 border-accent-500/30">
                   <CardContent className="py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-accent-500/20 flex items-center justify-center">
-                          <span className="text-accent-400 font-bold text-lg">€</span>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wide">Il tuo budget disponibile</p>
-                          <p className="text-3xl font-bold text-accent-400">{myBudget} <span className="text-lg text-gray-500">crediti</span></p>
-                        </div>
-                      </div>
-                      {selectedMemberId && targetMember && (
-                        <div className="flex items-center gap-4 pl-6 border-l border-surface-50/30">
-                          <div>
-                            <p className="text-xs text-gray-500 uppercase tracking-wide text-right">Budget di {targetMember.user.username}</p>
-                            <p className="text-3xl font-bold text-primary-400 text-right">{targetMember.currentBudget} <span className="text-lg text-gray-500">crediti</span></p>
+                    <div className="flex flex-col gap-3">
+                      {/* Row 1: My finances vs Target finances */}
+                      <div className={`flex flex-col md:flex-row items-start gap-4 ${selectedMemberId && targetMember ? 'md:justify-between' : ''}`}>
+                        {/* My finances panel */}
+                        <div className="flex items-start gap-4 flex-1 min-w-0">
+                          <div className="flex flex-col items-center flex-shrink-0">
+                            <BilancioGauge bilancio={myBudget - myTotalSalary} budget={myBudget} size={130} />
                           </div>
-                          <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center">
-                            <span className="text-primary-400 font-bold text-lg">€</span>
+                          <div className="flex flex-col gap-2 min-w-0 flex-1 pt-1">
+                            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Bilancio</p>
+                            <p className={`text-3xl font-bold ${
+                              myBudget - myTotalSalary < 0 ? 'text-danger-400' : myBudget - myTotalSalary < 30 ? 'text-warning-400' : 'text-secondary-400'
+                            }`}>
+                              {myBudget - myTotalSalary} <span className="text-sm text-gray-500">crediti</span>
+                            </p>
+                            <div className="flex gap-4 text-xs text-gray-400">
+                              <span>Budget: <span className="text-primary-400 font-medium">{myBudget}</span></span>
+                              <span>Ingaggi: <span className="text-warning-400 font-medium">{myTotalSalary}</span></span>
+                              <span>Rosa: <span className="text-white font-medium">{myRoster.length}</span></span>
+                            </div>
+                            <CompactBudgetBar budget={myBudget} ingaggi={myTotalSalary} />
+                          </div>
+                        </div>
+
+                        {/* Target finances panel */}
+                        {selectedMemberId && targetMember && (() => {
+                          const targetBilancio = targetMember.currentBudget - targetTotalSalary
+                          return (
+                            <div className="flex items-start gap-4 flex-1 min-w-0 md:pl-6 md:border-l border-surface-50/30 pt-3 md:pt-0 border-t md:border-t-0">
+                              <div className="flex flex-col items-center flex-shrink-0">
+                                <BilancioGauge bilancio={targetBilancio} budget={targetMember.currentBudget} size={130} />
+                              </div>
+                              <div className="flex flex-col gap-2 min-w-0 flex-1 pt-1">
+                                <p className="text-[10px] text-gray-500 uppercase tracking-wide">{targetMember.user.username}</p>
+                                <p className={`text-3xl font-bold ${
+                                  targetBilancio < 0 ? 'text-danger-400' : targetBilancio < 30 ? 'text-warning-400' : 'text-secondary-400'
+                                }`}>
+                                  {targetBilancio} <span className="text-sm text-gray-500">crediti</span>
+                                </p>
+                                <div className="flex gap-4 text-xs text-gray-400">
+                                  <span>Budget: <span className="text-primary-400 font-medium">{targetMember.currentBudget}</span></span>
+                                  <span>Ingaggi: <span className="text-warning-400 font-medium">{targetTotalSalary}</span></span>
+                                  <span>Rosa: <span className="text-white font-medium">{targetRosterCount}</span></span>
+                                </div>
+                                <CompactBudgetBar budget={targetMember.currentBudget} ingaggi={targetTotalSalary} />
+                              </div>
+                            </div>
+                          )
+                        })()}
+                      </div>
+
+                      {/* Row 2: Post-trade impact with DeltaBar (only when composing offer) */}
+                      {(selectedOfferedPlayers.length > 0 || selectedRequestedPlayers.length > 0 || offeredBudget > 0 || requestedBudget > 0) && (
+                        <div className="pt-3 border-t border-surface-50/20">
+                          <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Impatto post-scambio</p>
+                          <div className="flex flex-col gap-2">
+                            <DeltaBar before={myBudget - myTotalSalary} after={myPostTradeBudget - myPostTradeSalary} label="Bilancio" />
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className="text-gray-500">Budget:</span>
+                                <span className="text-primary-400 font-medium">{myBudget}</span>
+                                <span className="text-gray-600">→</span>
+                                <span className={`font-semibold ${myPostTradeBudget >= 0 ? 'text-primary-400' : 'text-danger-400'}`}>{myPostTradeBudget}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className="text-gray-500">Ingaggi:</span>
+                                <span className="text-warning-400 font-medium">{myTotalSalary}</span>
+                                <span className="text-gray-600">→</span>
+                                <span className="text-warning-400 font-semibold">{myPostTradeSalary}</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -1106,62 +1387,71 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                       </div>
 
                       {/* Players List */}
-                      <div className="max-h-96 overflow-y-auto border border-surface-50/30 rounded-lg bg-surface-300">
+                      <div className="max-h-[480px] overflow-y-auto border border-surface-50/30 rounded-lg bg-surface-300 divide-y divide-surface-50/10">
                         {filteredOtherPlayers.length === 0 ? (
                           <p className="text-gray-500 text-sm p-4 text-center">
                             {selectedMemberId ? 'Nessun giocatore trovato' : 'Cerca o seleziona un DG'}
                           </p>
                         ) : (
-                          <table className="w-full text-xs">
-                            <thead className="sticky top-0 bg-surface-300 z-10">
-                              <tr className="text-gray-500 text-[10px] uppercase">
-                                <th className="text-left font-medium py-2 px-2 w-6"></th>
-                                <th className="text-left font-medium py-2">Giocatore</th>
-                                <th className="text-center font-medium py-2 w-10">Ruolo</th>
-                                <th className="text-center font-medium py-2 w-10">Ing.</th>
-                                <th className="text-center font-medium py-2 w-8">Dur.</th>
-                                <th className="text-center font-medium py-2 w-12">Claus.</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {filteredOtherPlayers.map(entry => {
-                                const roleStyle = getRoleStyle(entry.player.position)
-                                const isSelected = selectedRequestedPlayers.includes(entry.id)
-                                return (
-                                  <tr
-                                    key={entry.id}
-                                    onClick={() => handleSelectRequestedPlayer(entry)}
-                                    className={`cursor-pointer hover:bg-surface-200 border-t border-surface-50/10 transition-colors ${
-                                      isSelected ? 'bg-primary-500/20' : ''
-                                    }`}
-                                  >
-                                    <td className="py-2 px-2 text-center">
-                                      {isSelected && <span className="text-primary-400 font-bold">✓</span>}
-                                    </td>
-                                    <td className="py-2">
-                                      <div className="flex items-center gap-1.5">
-                                        <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
-                                          <img src={getTeamLogo(entry.player.team)} alt={entry.player.team} className="w-4 h-4 object-contain" />
-                                        </div>
-                                        <div className="min-w-0">
-                                          <span className="text-gray-200 truncate block text-xs">{entry.player.name}</span>
-                                          <span className="text-[9px] text-gray-500 truncate block">{entry.memberUsername}</span>
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td className="text-center">
-                                      <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
-                                        {roleStyle.label}
-                                      </span>
-                                    </td>
-                                    <td className="text-center text-accent-400 font-semibold">{entry.player.contract?.salary ?? '-'}</td>
-                                    <td className="text-center text-white">{entry.player.contract?.duration ?? '-'}</td>
-                                    <td className="text-center text-warning-400">{entry.player.contract?.rescissionClause ?? '-'}</td>
-                                  </tr>
-                                )
-                              })}
-                            </tbody>
-                          </table>
+                          filteredOtherPlayers.map(entry => {
+                            const isSelected = selectedRequestedPlayers.includes(entry.id)
+                            return (
+                              <div
+                                key={entry.id}
+                                onClick={() => handleSelectRequestedPlayer(entry)}
+                                className={`px-3 py-2.5 cursor-pointer hover:bg-surface-200 transition-colors flex items-center justify-between ${
+                                  isSelected ? 'bg-primary-500/20' : ''
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  {isSelected && <span className="text-primary-400 font-bold text-sm">✓</span>}
+                                  {/* Player photo with position badge */}
+                                  <div className="relative flex-shrink-0">
+                                    {entry.player.apiFootballId ? (
+                                      <img
+                                        src={getPlayerPhotoUrl(entry.player.apiFootballId)}
+                                        alt={entry.player.name}
+                                        className="w-9 h-9 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).style.display = 'none'
+                                          const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                                          if (fallback) fallback.style.display = 'flex'
+                                        }}
+                                      />
+                                    ) : null}
+                                    <div
+                                      className={`w-9 h-9 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} items-center justify-center text-xs font-bold text-white ${entry.player.apiFootballId ? 'hidden' : 'flex'}`}
+                                    >
+                                      {entry.player.position}
+                                    </div>
+                                    <span
+                                      className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} flex items-center justify-center text-white font-bold text-[8px] border border-surface-200`}
+                                    >
+                                      {entry.player.position}
+                                    </span>
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="text-gray-200 text-xs font-medium block truncate">{entry.player.name}</span>
+                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                                      <span>{entry.player.team}</span>
+                                      {entry.player.age != null && (
+                                        <span className={getAgeColor(entry.player.age)}>• {entry.player.age}a</span>
+                                      )}
+                                      <span className="text-gray-600">• {entry.memberUsername}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3 text-[10px] flex-shrink-0">
+                                  {entry.player.quotation != null && (
+                                    <span className="text-gray-400" title="Quotazione">{entry.player.quotation}</span>
+                                  )}
+                                  <span className="text-accent-400 font-semibold" title="Ingaggio">{entry.player.contract?.salary ?? '-'}</span>
+                                  <span className="text-white" title="Durata">{entry.player.contract?.duration ?? '-'}A</span>
+                                  <span className="text-warning-400" title="Clausola">{entry.player.contract?.rescissionClause ?? '-'}</span>
+                                </div>
+                              </div>
+                            )
+                          })
                         )}
                       </div>
 
@@ -1180,60 +1470,68 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                       <CardTitle>I Tuoi Giocatori da Offrire</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="max-h-96 overflow-y-auto border border-surface-50/30 rounded-lg bg-surface-300">
+                      <div className="max-h-[480px] overflow-y-auto border border-surface-50/30 rounded-lg bg-surface-300 divide-y divide-surface-50/10">
                         {myRoster.length === 0 ? (
                           <p className="text-gray-500 text-sm p-4 text-center">Nessun giocatore in rosa</p>
                         ) : (
-                          <table className="w-full text-xs">
-                            <thead className="sticky top-0 bg-surface-300 z-10">
-                              <tr className="text-gray-500 text-[10px] uppercase">
-                                <th className="text-left font-medium py-2 px-2 w-6"></th>
-                                <th className="text-left font-medium py-2">Giocatore</th>
-                                <th className="text-center font-medium py-2 w-10">Ruolo</th>
-                                <th className="text-center font-medium py-2 w-10">Ing.</th>
-                                <th className="text-center font-medium py-2 w-8">Dur.</th>
-                                <th className="text-center font-medium py-2 w-12">Claus.</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {myRoster.map(entry => {
-                                const roleStyle = getRoleStyle(entry.player.position)
-                                const isSelected = selectedOfferedPlayers.includes(entry.id)
-                                return (
-                                  <tr
-                                    key={entry.id}
-                                    onClick={() => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, entry.id)}
-                                    className={`cursor-pointer hover:bg-surface-200 border-t border-surface-50/10 transition-colors ${
-                                      isSelected ? 'bg-danger-500/20' : ''
-                                    }`}
-                                  >
-                                    <td className="py-2 px-2 text-center">
-                                      {isSelected && <span className="text-danger-400 font-bold">✓</span>}
-                                    </td>
-                                    <td className="py-2">
-                                      <div className="flex items-center gap-1.5">
-                                        <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
-                                          <img src={getTeamLogo(entry.player.team)} alt={entry.player.team} className="w-4 h-4 object-contain" />
-                                        </div>
-                                        <div className="min-w-0">
-                                          <span className="text-gray-200 truncate block text-xs">{entry.player.name}</span>
-                                          <span className="text-[9px] text-gray-500 truncate block">{entry.player.team}</span>
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td className="text-center">
-                                      <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
-                                        {roleStyle.label}
-                                      </span>
-                                    </td>
-                                    <td className="text-center text-accent-400 font-semibold">{entry.player.contract?.salary ?? '-'}</td>
-                                    <td className="text-center text-white">{entry.player.contract?.duration ?? '-'}</td>
-                                    <td className="text-center text-warning-400">{entry.player.contract?.rescissionClause ?? '-'}</td>
-                                  </tr>
-                                )
-                              })}
-                            </tbody>
-                          </table>
+                          myRoster.map(entry => {
+                            const isSelected = selectedOfferedPlayers.includes(entry.id)
+                            return (
+                              <div
+                                key={entry.id}
+                                onClick={() => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, entry.id)}
+                                className={`px-3 py-2.5 cursor-pointer hover:bg-surface-200 transition-colors flex items-center justify-between ${
+                                  isSelected ? 'bg-danger-500/20' : ''
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  {isSelected && <span className="text-danger-400 font-bold text-sm">✓</span>}
+                                  {/* Player photo with position badge */}
+                                  <div className="relative flex-shrink-0">
+                                    {entry.player.apiFootballId ? (
+                                      <img
+                                        src={getPlayerPhotoUrl(entry.player.apiFootballId)}
+                                        alt={entry.player.name}
+                                        className="w-9 h-9 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).style.display = 'none'
+                                          const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                                          if (fallback) fallback.style.display = 'flex'
+                                        }}
+                                      />
+                                    ) : null}
+                                    <div
+                                      className={`w-9 h-9 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} items-center justify-center text-xs font-bold text-white ${entry.player.apiFootballId ? 'hidden' : 'flex'}`}
+                                    >
+                                      {entry.player.position}
+                                    </div>
+                                    <span
+                                      className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} flex items-center justify-center text-white font-bold text-[8px] border border-surface-200`}
+                                    >
+                                      {entry.player.position}
+                                    </span>
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="text-gray-200 text-xs font-medium block truncate">{entry.player.name}</span>
+                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                                      <span>{entry.player.team}</span>
+                                      {entry.player.age != null && (
+                                        <span className={getAgeColor(entry.player.age)}>• {entry.player.age}a</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3 text-[10px] flex-shrink-0">
+                                  {entry.player.quotation != null && (
+                                    <span className="text-gray-400" title="Quotazione">{entry.player.quotation}</span>
+                                  )}
+                                  <span className="text-accent-400 font-semibold" title="Ingaggio">{entry.player.contract?.salary ?? '-'}</span>
+                                  <span className="text-white" title="Durata">{entry.player.contract?.duration ?? '-'}A</span>
+                                  <span className="text-warning-400" title="Clausola">{entry.player.contract?.rescissionClause ?? '-'}</span>
+                                </div>
+                              </div>
+                            )
+                          })
                         )}
                       </div>
 
@@ -1486,125 +1784,280 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         )}
 
         {/* History */}
-        {activeTab === 'history' && (
-          <div className="space-y-6">
-            {tradeHistory.length === 0 ? (
-              <Card className="border-dashed border-2 border-surface-50/30">
-                <CardContent className="py-12 text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-300 flex items-center justify-center">
-                    <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <p className="text-gray-500 text-lg">Nessuno scambio nello storico</p>
-                  <p className="text-gray-600 text-sm mt-1">Gli scambi completati o rifiutati appariranno qui</p>
-                </CardContent>
-              </Card>
-            ) : (
-              tradeHistory.map(trade => (
-                <Card key={trade.id} className={`overflow-hidden border-l-4 ${trade.status === 'ACCEPTED' ? 'border-l-secondary-500' : 'border-l-danger-500'}`}>
-                  {/* Header */}
-                  <div className="bg-gradient-to-r from-surface-200 to-transparent px-5 py-4 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        trade.status === 'ACCEPTED' ? 'bg-secondary-500/20' : 'bg-danger-500/20'
-                      }`}>
-                        {trade.status === 'ACCEPTED' ? (
-                          <svg className="w-5 h-5 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        ) : (
-                          <svg className="w-5 h-5 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-white">
-                          {trade.sender?.username || trade.fromMember?.user.username} → {trade.receiver?.username || trade.toMember?.user.username}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(trade.createdAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
+        {activeTab === 'history' && (() => {
+          // Build combined timeline
+          type TimelineOffer = TradeOffer & { _type: 'offer' }
+          type TimelineMovement = TradeMovement & { _type: 'movement' }
+          type TimelineItem = TimelineOffer | TimelineMovement
+
+          const timelineItems: TimelineItem[] = []
+
+          if (historyFilter !== 'movements') {
+            for (const t of tradeHistory) {
+              timelineItems.push({ ...t, _type: 'offer' })
+            }
+          }
+          if (historyFilter !== 'offers') {
+            for (const m of tradeMovements) {
+              timelineItems.push({ ...m, _type: 'movement' })
+            }
+          }
+
+          // Sort by date descending
+          timelineItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+          return (
+            <div className="space-y-4">
+              {/* Filter pills */}
+              <div className="flex gap-2">
+                {([['all', 'Tutto'], ['offers', 'Offerte'], ['movements', 'Movimenti']] as const).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setHistoryFilter(key)}
+                    className={`px-4 py-1.5 text-xs font-semibold rounded-full border transition-colors ${
+                      historyFilter === key
+                        ? 'bg-accent-500/20 text-accent-400 border-accent-500/40'
+                        : 'bg-surface-200 text-gray-400 border-surface-50/20 hover:border-surface-50/40'
+                    }`}
+                  >
+                    {label}
+                    {key === 'offers' && <span className="ml-1 text-gray-500">({tradeHistory.length})</span>}
+                    {key === 'movements' && <span className="ml-1 text-gray-500">({tradeMovements.length})</span>}
+                  </button>
+                ))}
+              </div>
+
+              {timelineItems.length === 0 ? (
+                <Card className="border-dashed border-2 border-surface-50/30">
+                  <CardContent className="py-12 text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-300 flex items-center justify-center">
+                      <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                     </div>
-                    <span className={`px-3 py-1.5 text-xs font-semibold rounded-full uppercase tracking-wide border ${
-                      trade.status === 'ACCEPTED'
-                        ? 'bg-secondary-500/20 text-secondary-400 border-secondary-500/40'
-                        : 'bg-danger-500/20 text-danger-400 border-danger-500/40'
-                    }`}>
-                      {trade.status === 'ACCEPTED' ? 'Accettato' : 'Rifiutato'}
-                    </span>
-                  </div>
-
-                  <CardContent className="py-5">
-                    {/* Trade visualization */}
-                    <div className="grid md:grid-cols-2 gap-6">
-                      {/* Offered */}
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-danger-500/20 flex items-center justify-center">
-                            <svg className="w-3 h-3 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                            </svg>
-                          </div>
-                          <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Offerto da {trade.sender?.username}</p>
-                        </div>
-                        <div className="pl-8">
-                          <PlayersTable players={trade.offeredPlayerDetails || []} />
-                          {trade.offeredBudget > 0 && (
-                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
-                              <div className="w-6 h-6 rounded bg-danger-500/20 flex items-center justify-center">
-                                <span className="text-danger-400 font-bold text-xs">€</span>
-                              </div>
-                              <span className="text-sm text-danger-400 font-medium">+ {trade.offeredBudget} crediti</span>
-                            </div>
-                          )}
-                          {(!trade.offeredPlayerDetails?.length && trade.offeredBudget === 0) && (
-                            <p className="text-gray-600 text-sm italic py-1">Nessun giocatore o credito</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Requested */}
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-secondary-500/20 flex items-center justify-center">
-                            <svg className="w-3 h-3 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                            </svg>
-                          </div>
-                          <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Richiesto a {trade.receiver?.username}</p>
-                        </div>
-                        <div className="pl-8">
-                          <PlayersTable players={trade.requestedPlayerDetails || []} />
-                          {trade.requestedBudget > 0 && (
-                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
-                              <div className="w-6 h-6 rounded bg-secondary-500/20 flex items-center justify-center">
-                                <span className="text-secondary-400 font-bold text-xs">€</span>
-                              </div>
-                              <span className="text-sm text-secondary-400 font-medium">+ {trade.requestedBudget} crediti</span>
-                            </div>
-                          )}
-                          {(!trade.requestedPlayerDetails?.length && trade.requestedBudget === 0) && (
-                            <p className="text-gray-600 text-sm italic py-1">Nessun giocatore o credito</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Message */}
-                    {trade.message && (
-                      <div className="mt-5 p-4 bg-surface-200/50 rounded-lg border-l-2 border-gray-500">
-                        <p className="text-sm text-gray-400 italic">"{trade.message}"</p>
-                      </div>
-                    )}
+                    <p className="text-gray-500 text-lg">Nessun elemento nello storico</p>
+                    <p className="text-gray-600 text-sm mt-1">Gli scambi completati, rifiutati e i movimenti appariranno qui</p>
                   </CardContent>
                 </Card>
-              ))
-            )}
-          </div>
-        )}
+              ) : (
+                <div className="space-y-4">
+                  {timelineItems.map(item => {
+                    if (item._type === 'movement') {
+                      // Movement row - compact
+                      const mov = item as TimelineMovement
+                      const roleStyle = getRoleStyle(mov.player.position)
+                      return (
+                        <Card key={`mov-${mov.id}`} className="overflow-hidden border-l-4 border-l-secondary-500/60">
+                          <CardContent className="py-3 px-4">
+                            <div className="flex items-center gap-3">
+                              {/* Badge */}
+                              <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-secondary-500/20 text-secondary-400 uppercase tracking-wide flex-shrink-0">
+                                Trade
+                              </span>
+                              {/* Player info */}
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <div className={`w-8 h-8 rounded-full ${roleStyle.bg} flex items-center justify-center flex-shrink-0`}>
+                                  <span className={`text-xs font-bold ${roleStyle.text}`}>{mov.player.name.charAt(0)}</span>
+                                </div>
+                                <span className={`w-7 h-5 flex items-center justify-center text-[9px] font-bold rounded ${roleStyle.bg} ${roleStyle.text} flex-shrink-0`}>
+                                  {roleStyle.label}
+                                </span>
+                                <span className="text-sm text-white font-medium truncate">{mov.player.name}</span>
+                              </div>
+                              {/* From → To */}
+                              <div className="flex items-center gap-1.5 text-xs flex-shrink-0">
+                                {mov.fromMember && (
+                                  <span className="text-gray-400">{mov.fromMember.username}</span>
+                                )}
+                                <svg className="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                                {mov.toMember && (
+                                  <span className="text-white font-medium">{mov.toMember.username}</span>
+                                )}
+                              </div>
+                              {/* Contract details */}
+                              {mov.newSalary != null && (
+                                <div className="flex items-center gap-1.5 text-xs flex-shrink-0 pl-2 border-l border-surface-50/20">
+                                  <span className="text-accent-400 font-medium">{mov.newSalary}M</span>
+                                </div>
+                              )}
+                              {/* Timestamp */}
+                              <span className="text-[10px] text-gray-600 flex-shrink-0 ml-auto">
+                                {new Date(mov.createdAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    }
+
+                    // Offer card - existing rendering
+                    const trade = item as TimelineOffer
+                    return (
+                      <Card key={`offer-${trade.id}`} className={`overflow-hidden border-l-4 ${trade.status === 'ACCEPTED' ? 'border-l-secondary-500' : 'border-l-danger-500'}`}>
+                        {/* Header */}
+                        <div className="bg-gradient-to-r from-surface-200 to-transparent px-5 py-4 flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                              trade.status === 'ACCEPTED' ? 'bg-secondary-500/20' : 'bg-danger-500/20'
+                            }`}>
+                              {trade.status === 'ACCEPTED' ? (
+                                <svg className="w-5 h-5 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              ) : (
+                                <svg className="w-5 h-5 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-white">
+                                {trade.sender?.username || trade.fromMember?.user.username} → {trade.receiver?.username || trade.toMember?.user.username}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {new Date(trade.createdAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={`px-3 py-1.5 text-xs font-semibold rounded-full uppercase tracking-wide border ${
+                            trade.status === 'ACCEPTED'
+                              ? 'bg-secondary-500/20 text-secondary-400 border-secondary-500/40'
+                              : 'bg-danger-500/20 text-danger-400 border-danger-500/40'
+                          }`}>
+                            {trade.status === 'ACCEPTED' ? 'Accettato' : 'Rifiutato'}
+                          </span>
+                        </div>
+
+                        <CardContent className="py-5">
+                          {/* Trade visualization */}
+                          <div className="grid md:grid-cols-2 gap-6">
+                            {/* Offered */}
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-danger-500/20 flex items-center justify-center">
+                                  <svg className="w-3 h-3 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                                  </svg>
+                                </div>
+                                <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Offerto da {trade.sender?.username}</p>
+                              </div>
+                              <div className="pl-8">
+                                <PlayersTable players={trade.offeredPlayerDetails || []} />
+                                {trade.offeredBudget > 0 && (
+                                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
+                                    <div className="w-6 h-6 rounded bg-danger-500/20 flex items-center justify-center">
+                                      <span className="text-danger-400 font-bold text-xs">€</span>
+                                    </div>
+                                    <span className="text-sm text-danger-400 font-medium">+ {trade.offeredBudget} crediti</span>
+                                  </div>
+                                )}
+                                {(!trade.offeredPlayerDetails?.length && trade.offeredBudget === 0) && (
+                                  <p className="text-gray-600 text-sm italic py-1">Nessun giocatore o credito</p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Requested */}
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-secondary-500/20 flex items-center justify-center">
+                                  <svg className="w-3 h-3 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                  </svg>
+                                </div>
+                                <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Richiesto a {trade.receiver?.username}</p>
+                              </div>
+                              <div className="pl-8">
+                                <PlayersTable players={trade.requestedPlayerDetails || []} />
+                                {trade.requestedBudget > 0 && (
+                                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
+                                    <div className="w-6 h-6 rounded bg-secondary-500/20 flex items-center justify-center">
+                                      <span className="text-secondary-400 font-bold text-xs">€</span>
+                                    </div>
+                                    <span className="text-sm text-secondary-400 font-medium">+ {trade.requestedBudget} crediti</span>
+                                  </div>
+                                )}
+                                {(!trade.requestedPlayerDetails?.length && trade.requestedBudget === 0) && (
+                                  <p className="text-gray-600 text-sm italic py-1">Nessun giocatore o credito</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Budget transfer summary - only for accepted trades with budget movement */}
+                          {trade.status === 'ACCEPTED' && (trade.offeredBudget > 0 || trade.requestedBudget > 0) && (
+                            <div className="mt-5 p-4 bg-accent-500/5 rounded-lg border border-accent-500/20">
+                              <div className="flex items-center gap-2 mb-3">
+                                <svg className="w-4 h-4 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span className="text-xs font-semibold text-accent-400 uppercase tracking-wide">Trasferimento crediti</span>
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                {trade.offeredBudget > 0 && (
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="text-gray-400">{trade.sender?.username}</span>
+                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-danger-500/10 border border-danger-500/20">
+                                      <span className="text-danger-400 font-bold">-{trade.offeredBudget}</span>
+                                      <span className="text-danger-400/70 text-xs">crediti</span>
+                                    </div>
+                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                    </svg>
+                                    <span className="text-gray-400">{trade.receiver?.username}</span>
+                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-secondary-500/10 border border-secondary-500/20">
+                                      <span className="text-secondary-400 font-bold">+{trade.offeredBudget}</span>
+                                      <span className="text-secondary-400/70 text-xs">crediti</span>
+                                    </div>
+                                  </div>
+                                )}
+                                {trade.requestedBudget > 0 && (
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="text-gray-400">{trade.receiver?.username}</span>
+                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-danger-500/10 border border-danger-500/20">
+                                      <span className="text-danger-400 font-bold">-{trade.requestedBudget}</span>
+                                      <span className="text-danger-400/70 text-xs">crediti</span>
+                                    </div>
+                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                    </svg>
+                                    <span className="text-gray-400">{trade.sender?.username}</span>
+                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-secondary-500/10 border border-secondary-500/20">
+                                      <span className="text-secondary-400 font-bold">+{trade.requestedBudget}</span>
+                                      <span className="text-secondary-400/70 text-xs">crediti</span>
+                                    </div>
+                                  </div>
+                                )}
+                                {/* Net transfer summary */}
+                                {trade.offeredBudget > 0 && trade.requestedBudget > 0 && (
+                                  <div className="flex items-center gap-2 pt-2 mt-1 border-t border-surface-50/20 text-xs text-gray-500">
+                                    <span>Netto:</span>
+                                    <span className="text-white font-medium">
+                                      {trade.sender?.username} {trade.offeredBudget - trade.requestedBudget >= 0 ? '-' : '+'}{Math.abs(trade.offeredBudget - trade.requestedBudget)} crediti
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Message */}
+                          {trade.message && (
+                            <div className="mt-5 p-4 bg-surface-200/50 rounded-lg border-l-2 border-gray-500">
+                              <p className="text-sm text-gray-400 italic">"{trade.message}"</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </main>
 
       {/* Contract Modification Modal after Trade Acceptance */}

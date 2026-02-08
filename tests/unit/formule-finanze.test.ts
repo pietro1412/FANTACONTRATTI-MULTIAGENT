@@ -31,7 +31,7 @@ describe('OSS-6: getLeagueFinancials includes totalAcquisitionCost', () => {
   it('calculates totalAcquisitionCost from PlayerRoster.acquisitionPrice', () => {
     const fnStart = code.indexOf('export async function getLeagueFinancials')
     expect(fnStart).toBeGreaterThan(-1)
-    const fnBody = code.slice(fnStart, fnStart + 5000)
+    const fnBody = code.slice(fnStart, fnStart + 10000)
 
     // Must reference acquisitionPrice for calculation
     expect(fnBody).toContain('acquisitionPrice')
