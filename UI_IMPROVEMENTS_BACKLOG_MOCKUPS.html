@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Fantacontratti — UI Improvements Backlog</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--body:#0a0a0b;--card:#1a1c20;--s50:#2d3139;--s100:#252830;--s200:#1a1c20;--s300:#111214;
+--primary:#3b82f6;--primary-h:#2563eb;--secondary:#22c55e;--secondary-h:#16a34a;
+--accent:#f59e0b;--accent-h:#d97706;--danger:#ef4444;--danger-h:#dc2626;
+--text:#f3f4f6;--text2:#9ca3af;--dim:#6b7280;--border:rgba(42,49,66,0.2);
+--radius:0.75rem;--shadow:0 4px 20px rgba(0,0,0,0.4);
+--glow-blue:0 0 20px rgba(59,130,246,0.3);--glow-gold:0 0 20px rgba(245,158,11,0.3);
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--body);color:var(--text);line-height:1.6;overflow-x:hidden}
+h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif;font-weight:700}
+.stat,.num{font-family:'Oswald',sans-serif}
+
+/* LAYOUT */
+.page-wrapper{display:flex;min-height:100vh}
+.sidebar{position:fixed;top:0;left:0;width:260px;height:100vh;background:var(--s300);border-right:1px solid var(--border);overflow-y:auto;z-index:100;padding:1rem 0;transition:transform .3s}
+.main-content{margin-left:260px;flex:1;padding:2rem 2.5rem 4rem}
+@media(max-width:1024px){
+.sidebar{transform:translateX(-100%)}
+.sidebar.open{transform:translateX(0)}
+.main-content{margin-left:0;padding:1rem}
+.burger-btn{display:flex!important}
+.ba-grid{flex-direction:column!important}
+.ba-grid .ba-col{width:100%!important}
+}
+
+/* SIDEBAR */
+.sidebar-header{padding:0.75rem 1rem;border-bottom:1px solid var(--border);margin-bottom:0.5rem}
+.sidebar-header h3{font-size:0.85rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px}
+.nav-group{margin-bottom:0.25rem}
+.nav-group-title{display:flex;align-items:center;justify-content:space-between;padding:0.5rem 1rem;font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--dim);cursor:pointer;user-select:none}
+.nav-group-title:hover{color:var(--text2)}
+.nav-group-title .arrow{transition:transform .2s;font-size:0.6rem}
+.nav-group.collapsed .arrow{transform:rotate(-90deg)}
+.nav-group.collapsed .nav-items{display:none}
+.nav-items a{display:block;padding:0.35rem 1rem 0.35rem 1.5rem;font-size:0.8rem;color:var(--text2);text-decoration:none;border-left:2px solid transparent;transition:all .15s}
+.nav-items a:hover{color:var(--text);background:rgba(59,130,246,0.08);border-left-color:var(--primary)}
+.nav-items a.active{color:var(--primary);border-left-color:var(--primary)}
+.priority-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+
+/* HEADER */
+.page-header{text-align:center;padding:3rem 0 2rem;border-bottom:1px solid var(--border);margin-bottom:2.5rem}
+.page-header h1{font-size:2.2rem;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:0.5rem}
+.page-header .subtitle{font-size:1.1rem;color:var(--text2);margin-bottom:1.5rem}
+.priority-summary{display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap}
+.priority-badge{padding:0.4rem 1rem;border-radius:2rem;font-size:0.85rem;font-weight:600}
+.pb-critical{background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3)}
+.pb-high{background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.3)}
+.pb-medium{background:rgba(234,179,8,0.15);color:#facc15;border:1px solid rgba(234,179,8,0.3)}
+.pb-low{background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3)}
+.pb-future{background:rgba(107,114,128,0.15);color:#9ca3af;border:1px solid rgba(107,114,128,0.3)}
+
+/* SECTION DIVIDERS */
+.section-divider{margin:3rem 0 2rem;padding:1rem 1.5rem;border-radius:var(--radius);display:flex;align-items:center;gap:1rem}
+.section-divider h2{font-size:1.4rem}
+.section-divider .count{font-family:'Oswald';font-size:1.8rem;font-weight:700;opacity:0.4}
+.sd-critical{background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(239,68,68,0.03));border-left:4px solid var(--danger)}
+.sd-high{background:linear-gradient(135deg,rgba(245,158,11,0.12),rgba(245,158,11,0.03));border-left:4px solid var(--accent)}
+.sd-medium{background:linear-gradient(135deg,rgba(234,179,8,0.12),rgba(234,179,8,0.03));border-left:4px solid #eab308}
+.sd-low{background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(59,130,246,0.03));border-left:4px solid var(--primary)}
+.sd-future{background:linear-gradient(135deg,rgba(107,114,128,0.12),rgba(107,114,128,0.03));border-left:4px solid var(--dim)}
+
+/* TASK CARD */
+.task-section{margin-bottom:3rem;scroll-margin-top:1.5rem}
+.task-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.task-header{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.task-num{font-family:'Oswald';font-size:1.1rem;color:var(--accent);font-weight:600}
+.task-title{font-size:1.15rem;font-weight:600;flex:1}
+.badge{padding:0.2rem 0.65rem;border-radius:1rem;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+.badge-critical{background:rgba(239,68,68,0.2);color:#f87171}
+.badge-high{background:rgba(245,158,11,0.2);color:#fbbf24}
+.badge-medium{background:rgba(234,179,8,0.2);color:#facc15}
+.badge-low{background:rgba(59,130,246,0.2);color:#60a5fa}
+.badge-future{background:rgba(107,114,128,0.2);color:#9ca3af}
+.badge-effort{background:rgba(139,92,246,0.2);color:#a78bfa;margin-left:0.25rem}
+.task-body{padding:1.25rem 1.5rem}
+.task-motivation{color:var(--text2);font-size:0.9rem;margin-bottom:0.75rem;line-height:1.7}
+.task-issue{font-size:0.8rem;color:var(--primary);margin-bottom:1.25rem}
+
+/* BEFORE/AFTER */
+.ba-grid{display:flex;gap:1.5rem}
+.ba-col{flex:1;min-width:0}
+.ba-label{font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem}
+.ba-label.before{color:#f87171}
+.ba-label.after{color:#4ade80}
+.ba-box{border-radius:0.5rem;padding:1rem;min-height:200px;background:var(--s300);overflow:hidden}
+.ba-box.before{border-left:3px solid var(--danger)}
+.ba-box.after{border-left:3px solid var(--secondary)}
+
+/* POS BADGES */
+.pos-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;font-size:0.7rem;font-weight:700;flex-shrink:0}
+.pos-P{background:linear-gradient(135deg,#f59e0b,#d97706);color:#000}
+.pos-D{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff}
+.pos-C{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff}
+.pos-A{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff}
+
+/* MINI TABLE */
+.mini-table{width:100%;border-collapse:collapse;font-size:0.75rem}
+.mini-table th{text-align:left;padding:0.4rem 0.5rem;color:var(--dim);font-weight:600;border-bottom:1px solid var(--border);font-size:0.65rem;text-transform:uppercase}
+.mini-table td{padding:0.4rem 0.5rem;border-bottom:1px solid rgba(42,49,66,0.1);color:var(--text2)}
+.mini-table tr:hover td{background:rgba(59,130,246,0.04)}
+
+/* MINI CARD (mobile style mockups) */
+.mini-card{background:var(--s100);border:1px solid var(--border);border-radius:0.5rem;padding:0.75rem;margin-bottom:0.5rem}
+.mini-card .mc-row{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem}
+.mini-card .mc-row:last-child{margin-bottom:0}
+.mini-card .mc-name{font-weight:600;font-size:0.85rem;color:var(--text)}
+.mini-card .mc-team{font-size:0.7rem;color:var(--dim)}
+.mini-card .mc-val{font-family:'Oswald';font-size:0.85rem;color:var(--accent)}
+.mini-card .mc-detail{font-size:0.7rem;color:var(--text2)}
+.expand-btn{background:var(--s50);border:none;color:var(--primary);font-size:0.7rem;padding:0.25rem 0.6rem;border-radius:4px;cursor:pointer}
+
+/* TABS MOCKUP */
+.tabs-row{display:flex;gap:2px;overflow:hidden;background:var(--s300);border-radius:0.5rem;padding:2px}
+.tab-item{padding:0.35rem 0.4rem;font-size:0.55rem;color:var(--dim);white-space:nowrap;border-radius:4px;text-align:center;flex:1}
+.tab-item.active{background:var(--primary);color:#fff;font-weight:600}
+
+/* BOTTOM SHEET MOCKUP */
+.bsheet{background:var(--card);border-radius:0.75rem 0.75rem 0 0;border:1px solid var(--border);border-bottom:none;padding:1rem}
+.bsheet-handle{width:40px;height:4px;background:var(--s50);border-radius:2px;margin:0 auto 1rem}
+.bsheet-item{display:flex;align-items:center;gap:0.75rem;padding:0.6rem 0.5rem;border-radius:0.5rem;font-size:0.8rem;color:var(--text2);cursor:pointer}
+.bsheet-item:hover{background:rgba(59,130,246,0.08)}
+.bsheet-item .icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.9rem}
+.bsheet-item .notif{background:var(--danger);color:#fff;font-size:0.6rem;padding:1px 5px;border-radius:10px;margin-left:auto;font-weight:700}
+
+/* BURGER */
+.burger-btn{display:none;position:fixed;top:1rem;left:1rem;z-index:200;width:40px;height:40px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1.2rem;cursor:pointer;align-items:center;justify-content:center}
+
+/* BACK TO TOP */
+.btt{position:fixed;bottom:2rem;right:2rem;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-h));color:#fff;border:none;font-size:1.2rem;cursor:pointer;box-shadow:var(--glow-blue);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s,transform .2s;z-index:150}
+.btt.visible{opacity:1;pointer-events:auto}
+.btt:hover{transform:scale(1.1)}
+
+/* LAYOUT THUMBNAILS */
+.layout-thumb{background:var(--s100);border:1px solid var(--border);border-radius:0.5rem;padding:0.5rem;text-align:center;font-size:0.65rem;color:var(--dim)}
+.layout-thumb .box{background:var(--s50);border-radius:3px;margin:2px;height:12px}
+.layout-grid{display:grid;gap:0.5rem}
+
+/* MOVEMENT CARD */
+.mov-card{background:var(--s100);border:1px solid var(--border);border-radius:0.5rem;padding:0.75rem;margin-bottom:0.5rem}
+.mov-type{font-size:0.65rem;font-weight:700;text-transform:uppercase;padding:0.15rem 0.5rem;border-radius:3px;display:inline-block;margin-bottom:0.4rem}
+.mov-type.mercato{background:rgba(59,130,246,0.2);color:#60a5fa}
+.mov-type.scambio{background:rgba(245,158,11,0.2);color:#fbbf24}
+.mov-type.rubata{background:rgba(239,68,68,0.2);color:#f87171}
+.mov-arrow{color:var(--dim);font-size:0.8rem;margin:0 0.25rem}
+
+/* STEPPER */
+.stepper{display:flex;align-items:center;gap:0;margin:0.5rem 0}
+.step{display:flex;align-items:center;gap:0.3rem;font-size:0.65rem;padding:0.3rem 0.6rem;border-radius:1rem;white-space:nowrap}
+.step.done{background:rgba(34,197,94,0.15);color:#4ade80}
+.step.current{background:rgba(59,130,246,0.2);color:#60a5fa;font-weight:700}
+.step.pending{background:rgba(107,114,128,0.1);color:var(--dim)}
+.step-line{width:16px;height:2px;background:var(--s50)}
+
+/* SKELETON */
+.skel{background:linear-gradient(90deg,var(--s50) 25%,var(--s100) 50%,var(--s50) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:4px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* TIMER */
+.timer-box{text-align:center;padding:0.75rem;border-radius:0.5rem;font-family:'Oswald';font-size:1.5rem;font-weight:600}
+.timer-ok{background:rgba(34,197,94,0.12);color:#4ade80;border:1px solid rgba(34,197,94,0.3)}
+.timer-warn{background:rgba(245,158,11,0.12);color:#fbbf24;border:1px solid rgba(245,158,11,0.3)}
+.timer-danger{background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.3)}
+.timer-label{font-family:'Inter';font-size:0.7rem;font-weight:600;margin-top:0.25rem}
+.timer-bar{height:4px;border-radius:2px;margin-top:0.35rem}
+
+/* TOOLTIP MOCKUP */
+.tooltip-mock{position:relative;display:inline-block}
+.tooltip-content{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--s100);border:1px solid var(--border);border-radius:0.5rem;padding:0.6rem 0.8rem;font-size:0.7rem;white-space:nowrap;box-shadow:var(--shadow);color:var(--text2)}
+.tooltip-content::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--s100)}
+
+/* COMPACT CARDS GRID */
+.compact-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem}
+.compact-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;transition:transform .15s}
+.compact-card:hover{transform:translateY(-2px)}
+.compact-card .cc-head{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem}
+.compact-card .cc-num{font-family:'Oswald';color:var(--accent);font-weight:600;font-size:0.9rem}
+.compact-card .cc-title{font-weight:600;font-size:0.9rem;flex:1}
+.compact-card .cc-desc{font-size:0.8rem;color:var(--text2);line-height:1.5}
+
+/* BANNER MOCKUP */
+.banner-plain{background:var(--s100);padding:0.6rem 1rem;font-size:0.8rem;color:var(--text2);border-radius:0.25rem}
+.banner-card{background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(59,130,246,0.03));border:1px solid rgba(59,130,246,0.2);border-radius:var(--radius);padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .15s}
+.banner-card:hover{border-color:rgba(59,130,246,0.4);box-shadow:var(--glow-blue)}
+.banner-cta{color:var(--primary);font-size:0.8rem;font-weight:600;white-space:nowrap}
+
+/* CHART MOCKUP */
+.chart-mock{position:relative;width:120px;height:120px;margin:0 auto}
+.chart-ring{width:100%;height:100%;border-radius:50%;background:conic-gradient(var(--primary) 0% 35%,var(--secondary) 35% 55%,var(--accent) 55% 80%,var(--danger) 80% 100%);display:flex;align-items:center;justify-content:center}
+.chart-ring-inner{width:70%;height:70%;border-radius:50%;background:var(--s300);display:flex;align-items:center;justify-content:center;font-family:'Oswald';font-size:0.9rem;font-weight:600}
+.chart-legend{display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center;margin-top:0.5rem}
+.chart-legend-item{display:flex;align-items:center;gap:0.3rem;font-size:0.65rem;color:var(--text2)}
+.chart-legend-dot{width:8px;height:8px;border-radius:2px}
+
+/* ROADMAP */
+.roadmap{position:relative;padding:2rem 0}
+.roadmap-line{position:absolute;top:50%;left:0;right:0;height:3px;background:var(--s50);transform:translateY(-50%)}
+.roadmap-items{display:flex;justify-content:space-between;position:relative}
+.roadmap-item{text-align:center;flex:1}
+.roadmap-dot{width:20px;height:20px;border-radius:50%;margin:0 auto 0.5rem;position:relative;z-index:1}
+.roadmap-label{font-size:0.75rem;font-weight:600;margin-bottom:0.2rem}
+.roadmap-desc{font-size:0.65rem;color:var(--dim);max-width:140px;margin:0 auto}
+
+/* BTN */
+.btn{display:inline-flex;align-items:center;gap:0.4rem;padding:0.5rem 1rem;border-radius:0.5rem;font-size:0.8rem;font-weight:600;border:none;cursor:pointer;transition:transform .15s}
+.btn:hover{transform:scale(1.02)}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-h));color:#fff}
+.btn-secondary{background:linear-gradient(135deg,var(--secondary),var(--secondary-h));color:#fff}
+.btn-danger{background:linear-gradient(135deg,var(--danger),var(--danger-h));color:#fff}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text2)}
+
+/* PREF LIST */
+.pref-item{display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0.6rem;background:var(--s100);border:1px solid var(--border);border-radius:0.4rem;margin-bottom:0.3rem;font-size:0.75rem}
+.pref-handle{color:var(--dim);cursor:grab;font-size:0.9rem}
+.pref-arrows{display:flex;flex-direction:column;gap:1px}
+.pref-arrows button{background:var(--s50);border:none;color:var(--text2);width:18px;height:14px;font-size:0.5rem;cursor:pointer;border-radius:2px;display:flex;align-items:center;justify-content:center}
+
+/* FILE TREE */
+.file-tree{font-family:monospace;font-size:0.7rem;color:var(--text2);line-height:1.8}
+.file-tree .ft-file{padding-left:1rem}
+.file-tree .ft-dir{color:var(--accent);font-weight:600}
+.file-tree .ft-size{color:var(--dim);margin-left:0.5rem}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:1.5rem}
+.empty-icon{font-size:2.5rem;margin-bottom:0.5rem;opacity:0.5}
+.empty-title{font-size:0.9rem;font-weight:600;margin-bottom:0.25rem}
+.empty-desc{font-size:0.75rem;color:var(--dim);margin-bottom:0.75rem}
+
+/* PERF BAR */
+.perf-bar{display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0.75rem;border-radius:0.5rem;font-size:0.75rem;font-weight:600}
+.perf-bad{background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2)}
+.perf-good{background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2)}
+
+/* BOTTOM SHEET CONTRACT */
+.contract-bs{background:var(--card);border-radius:0.75rem 0.75rem 0 0;border:1px solid var(--border);padding:1.25rem}
+.slider-track{height:6px;background:var(--s50);border-radius:3px;position:relative;margin:0.5rem 0}
+.slider-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--primary-h));border-radius:3px;width:50%}
+.slider-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid var(--primary);position:absolute;right:calc(50% - 8px);top:-5px;box-shadow:0 2px 6px rgba(0,0,0,0.3)}
+.number-stepper{display:flex;align-items:center;gap:0.5rem}
+.number-stepper button{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--s50);color:var(--text);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.number-stepper .val{font-family:'Oswald';font-size:1.1rem;min-width:50px;text-align:center}
+
+.legend-bar{display:flex;gap:0.5rem;align-items:center;padding:0.5rem 0.75rem;background:var(--s300);border-radius:0.4rem;font-size:0.7rem}
+.legend-item{display:flex;align-items:center;gap:0.3rem}
+.legend-dot{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700}
+
+/* CODE BLOCK */
+.code-block{background:var(--s300);border-radius:0.4rem;padding:0.6rem 0.8rem;font-family:monospace;font-size:0.65rem;color:var(--text2);overflow-x:auto;white-space:pre;line-height:1.6}
+
+/* ICON GRID */
+.icon-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem}
+.icon-item{display:flex;flex-direction:column;align-items:center;gap:0.3rem;padding:0.5rem;background:var(--s100);border-radius:0.4rem;font-size:0.6rem;color:var(--dim)}
+.icon-item svg{width:20px;height:20px;stroke:var(--text2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+</style>
+</head>
+<body>
+
+<!-- BURGER BUTTON -->
+<button class="burger-btn" onclick="document.querySelector('.sidebar').classList.toggle('open')">&#9776;</button>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+<div class="sidebar-header"><h3>Navigazione</h3></div>
+
+<div class="nav-group" id="ng-critical">
+<div class="nav-group-title" onclick="this.parentElement.classList.toggle('collapsed')">
+<span><span class="priority-dot" style="background:#ef4444"></span> Critiche</span><span class="arrow">&#9660;</span>
+</div>
+<div class="nav-items">
+<a href="#task-001">001 DataTable Responsivo</a>
+<a href="#task-002">002 AdminPanel Mobile</a>
+<a href="#task-003">003 Layout Asta</a>
+<a href="#task-004">004 Movements Mobile</a>
+<a href="#task-005">005 Keyboard DnD</a>
+</div>
+</div>
+
+<div class="nav-group" id="ng-high">
+<div class="nav-group-title" onclick="this.parentElement.classList.toggle('collapsed')">
+<span><span class="priority-dot" style="background:#f59e0b"></span> Alte</span><span class="arrow">&#9660;</span>
+</div>
+<div class="nav-items">
+<a href="#task-006">006 Splitting Rubata</a>
+<a href="#task-007">007 Libreria Icone</a>
+<a href="#task-008">008 Timer Accessibility</a>
+<a href="#task-009">009 Recharts</a>
+<a href="#task-010">010 Banner Fasi</a>
+</div>
+</div>
+
+<div class="nav-group" id="ng-medium">
+<div class="nav-group-title" onclick="this.parentElement.classList.toggle('collapsed')">
+<span><span class="priority-dot" style="background:#eab308"></span> Medie</span><span class="arrow">&#9660;</span>
+</div>
+<div class="nav-items">
+<a href="#task-011">011 Skeleton Loader</a>
+<a href="#task-012">012 EmptyState</a>
+<a href="#task-013">013 Legenda Colori</a>
+<a href="#task-014">014 Stepper Rubata</a>
+<a href="#task-015">015 Tooltip Status</a>
+<a href="#task-016">016 Virtualizzazione</a>
+<a href="#task-017">017 BottomSheet Contratti</a>
+</div>
+</div>
+
+<div class="nav-group" id="ng-low">
+<div class="nav-group-title" onclick="this.parentElement.classList.toggle('collapsed')">
+<span><span class="priority-dot" style="background:#3b82f6"></span> Basse</span><span class="arrow">&#9660;</span>
+</div>
+<div class="nav-items">
+<a href="#task-low">018-023 Riepilogo</a>
+</div>
+</div>
+
+<div class="nav-group" id="ng-future">
+<div class="nav-group-title" onclick="this.parentElement.classList.toggle('collapsed')">
+<span><span class="priority-dot" style="background:#6b7280"></span> Future</span><span class="arrow">&#9660;</span>
+</div>
+<div class="nav-items">
+<a href="#task-future">030-034 Riepilogo</a>
+</div>
+</div>
+
+<div class="nav-group">
+<div class="nav-items" style="margin-top:1rem;border-top:1px solid var(--border);padding-top:0.75rem">
+<a href="#roadmap">Roadmap Sprint</a>
+</div>
+</div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+
+<!-- HEADER -->
+<header class="page-header" id="top">
+<h1>Fantacontratti — UI Improvements Backlog</h1>
+<p class="subtitle">Mockup Visivi — 28 Evolutive</p>
+<div class="priority-summary">
+<span class="priority-badge pb-critical">5 Critiche</span>
+<span class="priority-badge pb-high">5 Alte</span>
+<span class="priority-badge pb-medium">7 Medie</span>
+<span class="priority-badge pb-low">6 Basse</span>
+<span class="priority-badge pb-future">5 Future</span>
+</div>
+</header>
+
+<!-- ========== CRITICAL ========== -->
+<div class="section-divider sd-critical"><span class="count">01</span><h2>Priorita Critica</h2></div>
+
+<!-- TASK-001 -->
+<section class="task-section" id="task-001">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-001</span>
+<span class="task-title">DataTable Responsivo</span>
+<span class="badge badge-critical">Critica</span>
+<span class="badge badge-effort">M — 3-5gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Su mobile la tabella giocatori mostra solo 3 colonne su 10+, rendendo i dati inutilizzabili. Serve un layout card-based che mostri tutte le info in modo leggibile su ogni device.</p>
+<p class="task-issue">GitHub Issue #283</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before</div>
+<div class="ba-box before">
+<table class="mini-table">
+<thead><tr><th>Pos</th><th>Nome</th><th>Sq.</th><th style="color:var(--danger);font-style:italic">Sal...</th><th style="color:var(--danger);font-style:italic">Cl...</th><th style="color:var(--danger);font-style:italic">Du...</th></tr></thead>
+<tbody>
+<tr><td><span class="pos-badge pos-A">A</span></td><td style="color:var(--text);font-weight:500">Lautaro M...</td><td style="color:var(--dim)">Int...</td><td colspan="3" style="color:var(--danger);font-size:0.6rem;text-align:center">&#8592; dati troncati &#8594;</td></tr>
+<tr><td><span class="pos-badge pos-C">C</span></td><td style="color:var(--text);font-weight:500">Barella</td><td style="color:var(--dim)">Int...</td><td colspan="3" style="color:var(--danger);font-size:0.6rem;text-align:center">&#8592; dati troncati &#8594;</td></tr>
+<tr><td><span class="pos-badge pos-D">D</span></td><td style="color:var(--text);font-weight:500">Bastoni</td><td style="color:var(--dim)">Int...</td><td colspan="3" style="color:var(--danger);font-size:0.6rem;text-align:center">&#8592; dati troncati &#8594;</td></tr>
+</tbody>
+</table>
+<div style="text-align:center;margin-top:0.75rem;padding:0.5rem;background:rgba(239,68,68,0.08);border-radius:4px">
+<span style="font-size:0.7rem;color:#f87171">&#9888; 7+ colonne nascoste su mobile</span>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After</div>
+<div class="ba-box after">
+<div class="mini-card">
+<div class="mc-row">
+<span class="pos-badge pos-A">A</span>
+<div><span class="mc-name">Lautaro Martinez</span><br><span class="mc-team">Inter</span></div>
+<span class="mc-val" style="margin-left:auto">8.5M</span>
+</div>
+<div class="mc-row" style="justify-content:space-between">
+<span class="mc-detail">Durata: 3 anni</span>
+<span class="mc-detail">Clausola: 12M</span>
+<span class="expand-btn">Dettagli &#9660;</span>
+</div>
+</div>
+<div class="mini-card" style="border-color:rgba(59,130,246,0.3)">
+<div class="mc-row">
+<span class="pos-badge pos-C">C</span>
+<div><span class="mc-name">Barella</span><br><span class="mc-team">Inter</span></div>
+<span class="mc-val" style="margin-left:auto">7.2M</span>
+</div>
+<div class="mc-row" style="justify-content:space-between">
+<span class="mc-detail">Durata: 2 anni</span>
+<span class="mc-detail">Clausola: 10M</span>
+<span class="expand-btn">Dettagli &#9660;</span>
+</div>
+<div style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border)">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.3rem;font-size:0.7rem;color:var(--text2)">
+<span>Quotazione: <b style="color:var(--text)">42</b></span>
+<span>Crediti: <b style="color:var(--accent)">145</b></span>
+<span>Rendimento: <b style="color:var(--secondary)">+12%</b></span>
+<span>Partite: <b style="color:var(--text)">18/19</b></span>
+</div>
+</div>
+</div>
+<div class="mini-card">
+<div class="mc-row">
+<span class="pos-badge pos-D">D</span>
+<div><span class="mc-name">Bastoni</span><br><span class="mc-team">Inter</span></div>
+<span class="mc-val" style="margin-left:auto">6.0M</span>
+</div>
+<div class="mc-row" style="justify-content:space-between">
+<span class="mc-detail">Durata: 4 anni</span>
+<span class="mc-detail">Clausola: 8M</span>
+<span class="expand-btn">Dettagli &#9660;</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- TASK-002 -->
+<section class="task-section" id="task-002">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-002</span>
+<span class="task-title">AdminPanel Mobile</span>
+<span class="badge badge-critical">Critica</span>
+<span class="badge badge-effort">M — 3-5gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Su mobile le 8 tab del pannello admin sono illeggibili e si sovrappongono. Il testo viene troncato rendendo impossibile capire quale sezione si sta selezionando.</p>
+<p class="task-issue">GitHub Issue #284</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before</div>
+<div class="ba-box before">
+<div style="padding:0.5rem">
+<div style="font-size:0.75rem;color:var(--text);margin-bottom:0.5rem;font-weight:600">Admin Panel</div>
+<div class="tabs-row">
+<div class="tab-item active">Merc</div>
+<div class="tab-item">Pan</div>
+<div class="tab-item">Me</div>
+<div class="tab-item">Pr</div>
+<div class="tab-item">Ri</div>
+<div class="tab-item">In</div>
+<div class="tab-item">Se</div>
+<div class="tab-item">Ex</div>
+</div>
+<div style="text-align:center;margin-top:1rem;font-size:0.65rem;color:var(--danger)">&#9888; Tab illeggibili — testo troncato</div>
+<div style="margin-top:0.75rem;padding:0.5rem;background:rgba(239,68,68,0.06);border-radius:4px;font-size:0.6rem;color:var(--dim);text-align:center">
+Contenuto tab non raggiungibile
+</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After</div>
+<div class="ba-box after">
+<div style="padding:0.5rem">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+<span style="font-size:0.75rem;color:var(--text);font-weight:600">Admin Panel</span>
+<div style="display:flex;align-items:center;gap:0.5rem">
+<span style="font-size:0.75rem;color:var(--primary);font-weight:600">Mercato</span>
+<div style="width:30px;height:30px;background:var(--s50);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:0.8rem;cursor:pointer">&#9776;</div>
+</div>
+</div>
+<div class="bsheet">
+<div class="bsheet-handle"></div>
+<div class="bsheet-item" style="background:rgba(59,130,246,0.08)">
+<div class="icon" style="background:rgba(59,130,246,0.15);color:#60a5fa">&#128722;</div>
+<span style="color:var(--text);font-weight:500">Mercato</span>
+</div>
+<div class="bsheet-item">
+<div class="icon" style="background:rgba(139,92,246,0.15);color:#a78bfa">&#128202;</div>
+<span>Pannello</span>
+</div>
+<div class="bsheet-item">
+<div class="icon" style="background:rgba(34,197,94,0.15);color:#4ade80">&#128101;</div>
+<span>Members</span>
+<span class="notif">3</span>
+</div>
+<div class="bsheet-item">
+<div class="icon" style="background:rgba(245,158,11,0.15);color:#fbbf24">&#9881;</div>
+<span>Primo Mercato</span>
+</div>
+<div class="bsheet-item">
+<div class="icon" style="background:rgba(236,72,153,0.15);color:#f472b6">&#128260;</div>
+<span>Rinnovi</span>
+<span class="notif">5</span>
+</div>
+<div class="bsheet-item">
+<div class="icon" style="background:rgba(20,184,166,0.15);color:#2dd4bf">&#128233;</div>
+<span>Inviti</span>
+</div>
+<div class="bsheet-item">
+<div class="icon" style="background:rgba(107,114,128,0.15);color:#9ca3af">&#9881;</div>
+<span>Settings</span>
+</div>
+<div class="bsheet-item">
+<div class="icon" style="background:rgba(239,68,68,0.15);color:#f87171">&#128190;</div>
+<span>Export</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- TASK-003 -->
+<section class="task-section" id="task-003">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-003</span>
+<span class="task-title">Consolidamento Layout Asta</span>
+<span class="badge badge-critical">Critica</span>
+<span class="badge badge-effort">L — 5-8gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Esistono 6 varianti di layout asta con stili e strutture inconsistenti. Serve consolidare in 3 layout puliti e coerenti: Mobile, Desktop e Pro.</p>
+<p class="task-issue">GitHub Issue #285</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before — 6 Layout Inconsistenti</div>
+<div class="ba-box before">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem">
+<div class="layout-thumb"><div style="font-weight:600;margin-bottom:4px;color:var(--danger)">Layout A</div><div class="box"></div><div class="box" style="height:20px"></div><div class="box"></div></div>
+<div class="layout-thumb"><div style="font-weight:600;margin-bottom:4px;color:var(--danger)">Layout B</div><div class="box" style="height:18px"></div><div class="box"></div></div>
+<div class="layout-thumb"><div style="font-weight:600;margin-bottom:4px;color:var(--danger)">Layout C</div><div class="box"></div><div class="box"></div><div class="box" style="height:16px"></div></div>
+<div class="layout-thumb"><div style="font-weight:600;margin-bottom:4px;color:var(--danger)">Layout D</div><div class="box" style="height:24px"></div></div>
+<div class="layout-thumb"><div style="font-weight:600;margin-bottom:4px;color:var(--danger)">Layout E</div><div class="box" style="height:8px"></div><div class="box" style="height:8px"></div><div class="box" style="height:8px"></div></div>
+<div class="layout-thumb"><div style="font-weight:600;margin-bottom:4px;color:var(--danger)">Layout F</div><div class="box" style="height:14px"></div><div class="box" style="height:14px"></div></div>
+</div>
+<div style="text-align:center;margin-top:0.5rem;font-size:0.65rem;color:var(--danger)">&#9888; Stili diversi, spacing incoerente, duplicazione codice</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After — 3 Layout Consolidati</div>
+<div class="ba-box after">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem">
+<div class="layout-thumb" style="border-color:rgba(34,197,94,0.3)">
+<div style="font-weight:600;margin-bottom:6px;color:var(--secondary)">Mobile</div>
+<div style="background:var(--accent);height:10px;border-radius:3px;margin:2px;opacity:0.6"></div>
+<div style="font-size:0.5rem;color:var(--dim);margin:2px 0">Timer</div>
+<div style="background:var(--primary);height:28px;border-radius:3px;margin:2px;opacity:0.5"></div>
+<div style="font-size:0.5rem;color:var(--dim);margin:2px 0">Card</div>
+<div style="background:var(--secondary);height:14px;border-radius:3px;margin:2px;opacity:0.5"></div>
+<div style="font-size:0.5rem;color:var(--dim)">Bid</div>
+</div>
+<div class="layout-thumb" style="border-color:rgba(34,197,94,0.3)">
+<div style="font-weight:600;margin-bottom:6px;color:var(--secondary)">Desktop</div>
+<div style="display:flex;gap:2px;margin:2px">
+<div style="flex:6;background:var(--primary);height:36px;border-radius:3px;opacity:0.5"></div>
+<div style="flex:4;background:var(--accent);height:36px;border-radius:3px;opacity:0.5"></div>
+</div>
+<div style="font-size:0.5rem;color:var(--dim);margin-top:2px">60/40 Split</div>
+</div>
+<div class="layout-thumb" style="border-color:rgba(34,197,94,0.3)">
+<div style="font-weight:600;margin-bottom:6px;color:var(--secondary)">Pro</div>
+<div style="display:flex;gap:2px;margin:2px">
+<div style="flex:1;background:var(--s50);height:36px;border-radius:3px"></div>
+<div style="flex:2;background:var(--primary);height:36px;border-radius:3px;opacity:0.5"></div>
+<div style="flex:1;background:var(--s50);height:36px;border-radius:3px"></div>
+</div>
+<div style="font-size:0.5rem;color:var(--dim);margin-top:2px">IDE Panels</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- TASK-004 -->
+<section class="task-section" id="task-004">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-004</span>
+<span class="task-title">Movements Mobile</span>
+<span class="badge badge-critical">Critica</span>
+<span class="badge badge-effort">M — 3-5gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">La tabella movimenti e illeggibile su mobile con 12 colonne compresse. Serve un layout card per ogni movimento con tipo, data, giocatore e informazioni di trasferimento.</p>
+<p class="task-issue">GitHub Issue #286</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before</div>
+<div class="ba-box before">
+<table class="mini-table">
+<thead><tr><th>Tipo</th><th>Data</th><th>Gioc</th><th>Da</th><th>A</th><th style="color:var(--danger)">Pr...</th><th style="color:var(--danger)">Cl...</th><th style="color:var(--danger)">Du...</th></tr></thead>
+<tbody>
+<tr><td style="font-size:0.5rem">PM</td><td style="font-size:0.5rem">01/09</td><td style="font-size:0.5rem">Laut...</td><td style="font-size:0.5rem">-</td><td style="font-size:0.5rem">FC M...</td><td colspan="3" style="color:var(--danger);font-size:0.5rem">...</td></tr>
+<tr><td style="font-size:0.5rem">SC</td><td style="font-size:0.5rem">15/01</td><td style="font-size:0.5rem">Bare...</td><td style="font-size:0.5rem">AC L...</td><td style="font-size:0.5rem">FC M...</td><td colspan="3" style="color:var(--danger);font-size:0.5rem">...</td></tr>
+</tbody>
+</table>
+<div style="text-align:center;margin-top:0.5rem;font-size:0.65rem;color:var(--danger)">&#9888; 12 colonne illeggibili su mobile</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After</div>
+<div class="ba-box after">
+<div class="mov-card">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
+<span class="mov-type mercato">Primo Mercato</span>
+<span style="font-size:0.65rem;color:var(--dim)">01 Set 2025</span>
+</div>
+<div style="display:flex;align-items:center;gap:0.5rem">
+<span class="pos-badge pos-A">A</span>
+<div>
+<div style="font-size:0.8rem;font-weight:600;color:var(--text)">Lautaro Martinez</div>
+<div style="font-size:0.65rem;color:var(--dim)">Svincolati <span class="mov-arrow">&#8594;</span> FC Mario</div>
+</div>
+<span class="mc-val" style="margin-left:auto">8.5M</span>
+</div>
+</div>
+<div class="mov-card">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
+<span class="mov-type scambio">Scambio</span>
+<span style="font-size:0.65rem;color:var(--dim)">15 Gen 2026</span>
+</div>
+<div style="display:flex;align-items:center;gap:0.5rem">
+<span class="pos-badge pos-C">C</span>
+<div>
+<div style="font-size:0.8rem;font-weight:600;color:var(--text)">Barella</div>
+<div style="font-size:0.65rem;color:var(--dim)">AC Luigi <span class="mov-arrow">&#8594;</span> FC Mario</div>
+</div>
+<span class="mc-val" style="margin-left:auto">7.2M</span>
+</div>
+</div>
+<div class="mov-card">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
+<span class="mov-type rubata">Rubata</span>
+<span style="font-size:0.65rem;color:var(--dim)">20 Gen 2026</span>
+</div>
+<div style="display:flex;align-items:center;gap:0.5rem">
+<span class="pos-badge pos-A">A</span>
+<div>
+<div style="font-size:0.8rem;font-weight:600;color:var(--text)">Vlahovic</div>
+<div style="font-size:0.65rem;color:var(--dim)">AS Peach <span class="mov-arrow">&#8594;</span> FC Mario</div>
+</div>
+<span class="mc-val" style="margin-left:auto">9.0M</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- TASK-005 -->
+<section class="task-section" id="task-005">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-005</span>
+<span class="task-title">Keyboard DnD</span>
+<span class="badge badge-critical">Critica</span>
+<span class="badge badge-effort">S — 1-2gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Le liste di preferenza usano solo drag-and-drop, escludendo utenti che usano tastiera o screen reader. Servono controlli alternativi con frecce su/giu.</p>
+<p class="task-issue">GitHub Issue #287</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before — Solo Drag</div>
+<div class="ba-box before">
+<div style="font-size:0.7rem;color:var(--dim);margin-bottom:0.5rem">Preferenze Rubata</div>
+<div class="pref-item"><span class="pref-handle">&#9776;</span> <span class="pos-badge pos-A" style="width:22px;height:22px;font-size:0.6rem">A</span> <span style="font-size:0.75rem">Vlahovic</span></div>
+<div class="pref-item"><span class="pref-handle">&#9776;</span> <span class="pos-badge pos-A" style="width:22px;height:22px;font-size:0.6rem">A</span> <span style="font-size:0.75rem">Lautaro Martinez</span></div>
+<div class="pref-item"><span class="pref-handle">&#9776;</span> <span class="pos-badge pos-C" style="width:22px;height:22px;font-size:0.6rem">C</span> <span style="font-size:0.75rem">Tonali</span></div>
+<div style="text-align:center;margin-top:0.5rem;font-size:0.65rem;color:var(--danger)">&#9888; Nessuna alternativa alla tastiera</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After — Drag + Frecce</div>
+<div class="ba-box after">
+<div style="font-size:0.7rem;color:var(--dim);margin-bottom:0.5rem">Preferenze Rubata</div>
+<div class="pref-item" style="opacity:0.5"><span class="pref-handle">&#9776;</span> <span class="pos-badge pos-A" style="width:22px;height:22px;font-size:0.6rem">A</span> <span style="flex:1;font-size:0.75rem">Vlahovic</span> <div class="pref-arrows"><button>&#9650;</button><button>&#9660;</button></div></div>
+<div class="pref-item" style="border-color:rgba(59,130,246,0.4);background:rgba(59,130,246,0.05)"><span class="pref-handle">&#9776;</span> <span class="pos-badge pos-A" style="width:22px;height:22px;font-size:0.6rem">A</span> <span style="flex:1;font-size:0.75rem;color:var(--text);font-weight:500">Lautaro Martinez</span> <div class="pref-arrows"><button style="background:var(--primary);color:#fff">&#9650;</button><button style="background:var(--primary);color:#fff">&#9660;</button></div></div>
+<div class="pref-item" style="opacity:0.5"><span class="pref-handle">&#9776;</span> <span class="pos-badge pos-C" style="width:22px;height:22px;font-size:0.6rem">C</span> <span style="flex:1;font-size:0.75rem">Tonali</span> <div class="pref-arrows"><button>&#9650;</button><button>&#9660;</button></div></div>
+<div style="text-align:center;margin-top:0.5rem;font-size:0.65rem;color:var(--secondary)">&#10004; Accessibile via tastiera (Tab + Frecce)</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- ========== HIGH ========== -->
+<div class="section-divider sd-high"><span class="count">02</span><h2>Priorita Alta</h2></div>
+
+<!-- TASK-006 -->
+<section class="task-section" id="task-006">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-006</span>
+<span class="task-title">Splitting Rubata</span>
+<span class="badge badge-high">Alta</span>
+<span class="badge badge-effort">L — 5-8gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Il file Rubata.tsx supera le 2000 righe, rendendo manutenzione e debug estremamente difficili. Va suddiviso in componenti modulari con responsabilita singola.</p>
+<p class="task-issue">GitHub Issue #288</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before — Monolite</div>
+<div class="ba-box before">
+<div style="text-align:center;padding:1rem">
+<div style="width:80px;height:100px;background:var(--s50);border:2px solid var(--danger);border-radius:8px;margin:0 auto 0.5rem;display:flex;align-items:center;justify-content:center;flex-direction:column">
+<div style="font-size:1.5rem;opacity:0.5">&#128196;</div>
+<div style="font-size:0.55rem;color:var(--danger);font-weight:600;margin-top:0.25rem">2000+ righe</div>
+</div>
+<div style="font-size:0.75rem;font-weight:600;color:var(--text)">Rubata.tsx</div>
+<div style="margin-top:0.75rem;display:flex;justify-content:center;gap:0.3rem;flex-wrap:wrap">
+<span style="font-size:0.5rem;padding:2px 6px;background:rgba(239,68,68,0.1);color:#f87171;border-radius:3px">state</span>
+<span style="font-size:0.5rem;padding:2px 6px;background:rgba(239,68,68,0.1);color:#f87171;border-radius:3px">UI</span>
+<span style="font-size:0.5rem;padding:2px 6px;background:rgba(239,68,68,0.1);color:#f87171;border-radius:3px">timer</span>
+<span style="font-size:0.5rem;padding:2px 6px;background:rgba(239,68,68,0.1);color:#f87171;border-radius:3px">bid</span>
+<span style="font-size:0.5rem;padding:2px 6px;background:rgba(239,68,68,0.1);color:#f87171;border-radius:3px">admin</span>
+<span style="font-size:0.5rem;padding:2px 6px;background:rgba(239,68,68,0.1);color:#f87171;border-radius:3px">modals</span>
+<span style="font-size:0.5rem;padding:2px 6px;background:rgba(239,68,68,0.1);color:#f87171;border-radius:3px">prefs</span>
+</div>
+<div style="font-size:0.6rem;color:var(--danger);margin-top:0.5rem">Tutto mescolato in un unico file</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After — Modulare</div>
+<div class="ba-box after">
+<div class="file-tree">
+<div class="ft-dir">rubata/</div>
+<div class="ft-file" style="color:var(--secondary)">Rubata.tsx <span class="ft-size">~200 righe</span></div>
+<div class="ft-file">useRubataState.ts <span class="ft-size">hook</span></div>
+<div class="ft-file">RubataBoard.tsx <span class="ft-size">tabellone</span></div>
+<div class="ft-file">RubataBidPanel.tsx <span class="ft-size">offerte</span></div>
+<div class="ft-file">RubataTimerPanel.tsx <span class="ft-size">timer</span></div>
+<div class="ft-file">RubataAdminControls.tsx <span class="ft-size">admin</span></div>
+<div class="ft-file">RubataModals.tsx <span class="ft-size">modali</span></div>
+<div class="ft-file">RubataPreferences.tsx <span class="ft-size">preferenze</span></div>
+</div>
+<div style="margin-top:0.75rem;font-size:0.6rem;color:var(--secondary)">&#10004; Ogni file &lt; 300 righe, responsabilita singola</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- TASK-007 -->
+<section class="task-section" id="task-007">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-007</span>
+<span class="task-title">Libreria Icone</span>
+<span class="badge badge-high">Alta</span>
+<span class="badge badge-effort">S — 1-2gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Attualmente le icone sono SVG inline sparsi nel codice, rendendo difficile la coerenza visiva e la manutenzione. Serve una libreria centralizzata.</p>
+<p class="task-issue">GitHub Issue #289</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before — SVG Inline</div>
+<div class="ba-box before">
+<div class="code-block">&lt;svg viewBox="0 0 24 24"&gt;
+  &lt;path d="M3 12l2-2m0 0l7-7
+  7 7M5 10v10a1 1 0 001
+  1h3m10-11l2 2m-2-2v10
+  a1 1 0 01-1 1h-3m-4
+  0a1..."  fill="currentColor"
+  /&gt;
+&lt;/svg&gt;</div>
+<div style="font-size:0.6rem;color:var(--danger);margin-top:0.5rem">&#9888; SVG path copiati ovunque, inconsistenti</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After — Componenti</div>
+<div class="ba-box after">
+<div class="code-block" style="margin-bottom:0.75rem">import { Home, Settings, Users,
+  Trophy, Coins, Clock }
+  from '@/components/icons'</div>
+<div class="icon-grid">
+<div class="icon-item"><svg viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"/></svg>Home</div>
+<div class="icon-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33"/></svg>Settings</div>
+<div class="icon-item"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Users</div>
+<div class="icon-item"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>Trophy</div>
+<div class="icon-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Clock</div>
+<div class="icon-item"><svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Coins</div>
+<div class="icon-item"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Chart</div>
+<div class="icon-item"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>Bell</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- TASK-008 -->
+<section class="task-section" id="task-008">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-008</span>
+<span class="task-title">Timer Accessibility</span>
+<span class="badge badge-high">Alta</span>
+<span class="badge badge-effort">S — 1-2gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">I timer dell'asta comunicano lo stato solo tramite colore (verde/giallo/rosso), escludendo utenti daltonici. Servono label testuali e pattern visivi aggiuntivi.</p>
+<p class="task-issue">GitHub Issue #290</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before — Solo Colore</div>
+<div class="ba-box before">
+<div style="display:flex;gap:0.5rem">
+<div class="timer-box timer-ok" style="flex:1;border:none;background:rgba(34,197,94,0.3)"><div>0:45</div></div>
+<div class="timer-box timer-warn" style="flex:1;border:none;background:rgba(245,158,11,0.3)"><div>0:15</div></div>
+<div class="timer-box timer-danger" style="flex:1;border:none;background:rgba(239,68,68,0.3)"><div>0:05</div></div>
+</div>
+<div style="text-align:center;margin-top:0.75rem;font-size:0.65rem;color:var(--danger)">&#9888; Solo colore, nessuna distinzione per daltonici</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After — Colore + Testo + Pattern</div>
+<div class="ba-box after">
+<div style="display:flex;gap:0.5rem">
+<div class="timer-box timer-ok" style="flex:1">
+<div>0:45</div>
+<div class="timer-label" style="color:#4ade80">Tempo OK</div>
+<div class="timer-bar" style="background:linear-gradient(90deg,#22c55e 75%,var(--s50) 75%)"></div>
+</div>
+<div class="timer-box timer-warn" style="flex:1">
+<div>0:15</div>
+<div class="timer-label" style="color:#fbbf24">Affrettati!</div>
+<div class="timer-bar" style="background:repeating-linear-gradient(90deg,#f59e0b 0 4px,var(--s50) 4px 6px);height:4px;border-radius:2px;margin-top:0.35rem"></div>
+</div>
+<div class="timer-box timer-danger" style="flex:1">
+<div style="animation:pulse 0.5s ease-in-out infinite alternate">0:05</div>
+<div class="timer-label" style="color:#f87171">Ultimo sec!</div>
+<div class="timer-bar" style="background:repeating-linear-gradient(90deg,#ef4444 0 2px,var(--s50) 2px 4px);height:4px;border-radius:2px;margin-top:0.35rem"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<style>@keyframes pulse{from{opacity:1}to{opacity:0.4}}</style>
+
+<!-- TASK-009 -->
+<section class="task-section" id="task-009">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-009</span>
+<span class="task-title">Recharts</span>
+<span class="badge badge-high">Alta</span>
+<span class="badge badge-effort">M — 3-5gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">I grafici attuali sono SVG statici senza interazione. Con Recharts si ottengono tooltip, animazioni e responsive container per una visualizzazione dati professionale.</p>
+<p class="task-issue">GitHub Issue #291</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before — SVG Statico</div>
+<div class="ba-box before">
+<div style="text-align:center;padding:1rem">
+<div style="width:100px;height:100px;border-radius:50%;background:conic-gradient(var(--primary) 0% 40%,var(--s50) 40% 100%);margin:0 auto;display:flex;align-items:center;justify-content:center">
+<div style="width:60px;height:60px;border-radius:50%;background:var(--s300);display:flex;align-items:center;justify-content:center;font-family:'Oswald';font-size:0.8rem">40%</div>
+</div>
+<div style="font-size:0.65rem;color:var(--dim);margin-top:0.5rem">Grafico statico, no interazione</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After — Recharts Interattivo</div>
+<div class="ba-box after">
+<div style="text-align:center;padding:0.5rem">
+<div class="chart-mock">
+<div class="chart-ring">
+<div class="chart-ring-inner">28.2M</div>
+</div>
+</div>
+<div class="chart-legend">
+<div class="chart-legend-item"><div class="chart-legend-dot" style="background:var(--primary)"></div>Attaccanti 35%</div>
+<div class="chart-legend-item"><div class="chart-legend-dot" style="background:var(--secondary)"></div>Centrocampisti 20%</div>
+<div class="chart-legend-item"><div class="chart-legend-dot" style="background:var(--accent)"></div>Difensori 25%</div>
+<div class="chart-legend-item"><div class="chart-legend-dot" style="background:var(--danger)"></div>Portieri 20%</div>
+</div>
+<div style="margin-top:0.5rem;padding:0.4rem 0.6rem;background:var(--s100);border:1px solid var(--border);border-radius:6px;display:inline-block;font-size:0.65rem;color:var(--text2)">
+<span style="font-weight:600;color:var(--text)">Attaccanti</span> — 9.87M (35%) &#x1f4cd; tooltip on hover
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- TASK-010 -->
+<section class="task-section" id="task-010">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-010</span>
+<span class="task-title">Banner Fasi</span>
+<span class="badge badge-high">Alta</span>
+<span class="badge badge-effort">S — 1-2gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Il banner che indica la fase corrente (es. "Mercato Ricorrente - Sessione #3") e un semplice testo senza affordance. Deve sembrare cliccabile e invitare all'azione.</p>
+<p class="task-issue">GitHub Issue #292</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before — Testo Piatto</div>
+<div class="ba-box before">
+<div style="padding:1rem">
+<div class="banner-plain">Mercato Ricorrente - Sessione #3</div>
+<div style="text-align:center;margin-top:0.75rem;font-size:0.65rem;color:var(--danger)">&#9888; Nessuna affordance, sembra testo statico</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After — Banner Interattivo</div>
+<div class="ba-box after">
+<div style="padding:1rem">
+<div class="banner-card">
+<div>
+<div style="font-size:0.65rem;color:var(--primary);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.15rem">Fase Attiva</div>
+<div style="font-size:0.85rem;font-weight:600;color:var(--text)">Mercato Ricorrente - Sessione #3</div>
+<div style="font-size:0.7rem;color:var(--dim);margin-top:0.15rem">Chiusura: 15 Feb 2026</div>
+</div>
+<span class="banner-cta">Vai alla fase &#8594;</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- ========== MEDIUM ========== -->
+<div class="section-divider sd-medium"><span class="count">03</span><h2>Priorita Media</h2></div>
+
+<!-- TASK-011 -->
+<section class="task-section" id="task-011">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-011</span>
+<span class="task-title">Skeleton Loader</span>
+<span class="badge badge-medium">Media</span>
+<span class="badge badge-effort">S — 1-2gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Lo spinner generico non comunica la struttura della pagina in caricamento. Gli skeleton loader mantengono il layout e riducono il perceived loading time.</p>
+<p class="task-issue">GitHub Issue #293</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before — Spinner Generico</div>
+<div class="ba-box before">
+<div style="text-align:center;padding:3rem">
+<div style="width:40px;height:40px;border:3px solid var(--s50);border-top-color:var(--primary);border-radius:50%;margin:0 auto;animation:spin 1s linear infinite"></div>
+<div style="font-size:0.7rem;color:var(--dim);margin-top:0.75rem">Caricamento...</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After — Skeleton Layout</div>
+<div class="ba-box after">
+<div style="padding:0.5rem">
+<div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
+<div class="skel" style="width:60px;height:24px"></div>
+<div class="skel" style="width:80px;height:24px"></div>
+<div class="skel" style="width:50px;height:24px"></div>
+</div>
+<div style="background:var(--s100);border-radius:0.4rem;padding:0.6rem;margin-bottom:0.5rem">
+<div style="display:flex;gap:0.5rem;align-items:center">
+<div class="skel" style="width:28px;height:28px;border-radius:6px"></div>
+<div style="flex:1"><div class="skel" style="height:12px;width:70%;margin-bottom:4px"></div><div class="skel" style="height:10px;width:40%"></div></div>
+<div class="skel" style="width:50px;height:16px"></div>
+</div>
+</div>
+<div style="background:var(--s100);border-radius:0.4rem;padding:0.6rem;margin-bottom:0.5rem">
+<div style="display:flex;gap:0.5rem;align-items:center">
+<div class="skel" style="width:28px;height:28px;border-radius:6px"></div>
+<div style="flex:1"><div class="skel" style="height:12px;width:55%;margin-bottom:4px"></div><div class="skel" style="height:10px;width:35%"></div></div>
+<div class="skel" style="width:50px;height:16px"></div>
+</div>
+</div>
+<div style="background:var(--s100);border-radius:0.4rem;padding:0.6rem">
+<div style="display:flex;gap:0.5rem;align-items:center">
+<div class="skel" style="width:28px;height:28px;border-radius:6px"></div>
+<div style="flex:1"><div class="skel" style="height:12px;width:60%;margin-bottom:4px"></div><div class="skel" style="height:10px;width:30%"></div></div>
+<div class="skel" style="width:50px;height:16px"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<!-- TASK-012 -->
+<section class="task-section" id="task-012">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-012</span>
+<span class="task-title">EmptyState</span>
+<span class="badge badge-medium">Media</span>
+<span class="badge badge-effort">S — 1-2gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Quando non ci sono dati, l'app mostra solo un triste testo. Un empty state illustrato guida l'utente verso l'azione successiva.</p>
+<p class="task-issue">GitHub Issue #294</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before</div>
+<div class="ba-box before">
+<div style="text-align:center;padding:2.5rem 1rem">
+<div style="font-size:2rem">&#128566;</div>
+<div style="font-size:0.85rem;color:var(--dim);margin-top:0.5rem">Nessun dato</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After</div>
+<div class="ba-box after">
+<div class="empty-state">
+<div style="width:64px;height:64px;background:rgba(59,130,246,0.1);border-radius:50%;margin:0 auto 0.75rem;display:flex;align-items:center;justify-content:center">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+</div>
+<div class="empty-title">Nessun Giocatore in Rosa</div>
+<div class="empty-desc">La tua rosa e vuota. Partecipa al prossimo mercato per acquistare giocatori.</div>
+<button class="btn btn-primary" style="margin-top:0.25rem;font-size:0.75rem">Vai al Mercato</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- TASK-013 -->
+<section class="task-section" id="task-013">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-013</span>
+<span class="task-title">Legenda Colori Contratti</span>
+<span class="badge badge-medium">Media</span>
+<span class="badge badge-effort">XS — &lt;1g</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">I badge colorati dei contratti (1 anno, 2 anni, ecc.) non hanno legenda, costringendo l'utente a indovinare il significato dei colori.</p>
+<p class="task-issue">GitHub Issue #295</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before — No Legenda</div>
+<div class="ba-box before">
+<div style="padding:0.75rem">
+<div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;flex-wrap:wrap">
+<span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600;background:rgba(239,68,68,0.2);color:#f87171">1a</span>
+<span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600;background:rgba(234,179,8,0.2);color:#facc15">2a</span>
+<span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600;background:rgba(34,197,94,0.2);color:#4ade80">3a</span>
+<span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600;background:rgba(59,130,246,0.2);color:#60a5fa">4a+</span>
+</div>
+<div style="font-size:0.65rem;color:var(--danger)">&#9888; Significato colori non chiaro</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After — Con Legenda</div>
+<div class="ba-box after">
+<div style="padding:0.75rem">
+<div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;flex-wrap:wrap">
+<span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600;background:rgba(239,68,68,0.2);color:#f87171">1a</span>
+<span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600;background:rgba(234,179,8,0.2);color:#facc15">2a</span>
+<span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600;background:rgba(34,197,94,0.2);color:#4ade80">3a</span>
+<span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600;background:rgba(59,130,246,0.2);color:#60a5fa">4a+</span>
+</div>
+<div class="legend-bar">
+<span style="font-size:0.65rem;color:var(--dim);margin-right:0.25rem">Durata:</span>
+<div class="legend-item"><div class="legend-dot" style="background:rgba(239,68,68,0.2);color:#f87171">1a</div><span style="font-size:0.6rem;color:var(--text2)">Scadenza</span></div>
+<div class="legend-item"><div class="legend-dot" style="background:rgba(234,179,8,0.2);color:#facc15">2a</div><span style="font-size:0.6rem;color:var(--text2)">Medio</span></div>
+<div class="legend-item"><div class="legend-dot" style="background:rgba(34,197,94,0.2);color:#4ade80">3a</div><span style="font-size:0.6rem;color:var(--text2)">Stabile</span></div>
+<div class="legend-item"><div class="legend-dot" style="background:rgba(59,130,246,0.2);color:#60a5fa">4+</div><span style="font-size:0.6rem;color:var(--text2)">Lungo</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- TASK-014 -->
+<section class="task-section" id="task-014">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-014</span>
+<span class="task-title">Stepper Rubata</span>
+<span class="badge badge-medium">Media</span>
+<span class="badge badge-effort">S — 1-2gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Nella Rubata, l'utente non sa in che fase si trova ne quante ne mancano. Uno stepper orizzontale rende il flusso visibile e chiaro.</p>
+<p class="task-issue">GitHub Issue #296</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before — Nessun Indicatore</div>
+<div class="ba-box before">
+<div style="padding:1rem;text-align:center">
+<div style="font-size:0.8rem;color:var(--text);font-weight:600;margin-bottom:0.5rem">Rubata</div>
+<div style="background:var(--s100);border-radius:0.5rem;padding:2rem;color:var(--dim);font-size:0.75rem">
+Contenuto pagina...<br><br>
+<span style="color:var(--danger);font-size:0.65rem">&#9888; L'utente non sa in che fase si trova</span>
+</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After — Stepper Visibile</div>
+<div class="ba-box after">
+<div style="padding:0.75rem">
+<div style="font-size:0.8rem;color:var(--text);font-weight:600;margin-bottom:0.75rem">Rubata</div>
+<div class="stepper">
+<div class="step done">&#10004; Attesa</div>
+<div class="step-line" style="background:var(--secondary)"></div>
+<div class="step done">&#10004; Preview</div>
+<div class="step-line" style="background:var(--secondary)"></div>
+<div class="step current">&#9679; Pronti?</div>
+<div class="step-line"></div>
+<div class="step pending">&#9675; Offerte</div>
+<div class="step-line"></div>
+<div class="step pending">&#9675; Asta</div>
+</div>
+<div style="background:var(--s100);border-radius:0.5rem;padding:1.5rem;color:var(--text2);font-size:0.75rem;margin-top:0.5rem;text-align:center">
+Fase corrente: Conferma partecipazione
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- TASK-015 -->
+<section class="task-section" id="task-015">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-015</span>
+<span class="task-title">Tooltip Status</span>
+<span class="badge badge-medium">Media</span>
+<span class="badge badge-effort">XS — &lt;1g</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">I badge di stato ("Da impostare", "In attesa", ecc.) non spiegano cosa fare. Un tooltip con spiegazione, azione e deadline elimina la confusione.</p>
+<p class="task-issue">GitHub Issue #297</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before — Badge Senza Contesto</div>
+<div class="ba-box before">
+<div style="padding:2rem;text-align:center">
+<span style="padding:4px 12px;border-radius:1rem;font-size:0.75rem;font-weight:600;background:rgba(245,158,11,0.2);color:#fbbf24">Da impostare</span>
+<div style="font-size:0.65rem;color:var(--danger);margin-top:1rem">&#9888; Cosa devo impostare? Come? Entro quando?</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After — Badge + Tooltip</div>
+<div class="ba-box after">
+<div style="padding:2rem;text-align:center">
+<div class="tooltip-mock">
+<div class="tooltip-content">
+<div style="font-weight:600;color:var(--text);margin-bottom:0.2rem">Preferenze Rubata</div>
+<div>Imposta l'ordine dei giocatori che vuoi rubare</div>
+<div style="margin-top:0.3rem;color:var(--accent)">Scadenza: 10 Feb 2026 ore 20:00</div>
+</div>
+<span style="padding:4px 12px;border-radius:1rem;font-size:0.75rem;font-weight:600;background:rgba(245,158,11,0.2);color:#fbbf24;cursor:help;border-bottom:1px dashed rgba(245,158,11,0.4)">Da impostare &#9432;</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- TASK-016 -->
+<section class="task-section" id="task-016">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-016</span>
+<span class="task-title">Virtualizzazione Liste</span>
+<span class="badge badge-medium">Media</span>
+<span class="badge badge-effort">M — 3-5gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Con 500+ giocatori nel DOM la pagina rallenta significativamente. La virtualizzazione rende visibili solo gli elementi nello viewport, mantenendo 60fps.</p>
+<p class="task-issue">GitHub Issue #298</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before — Tutti nel DOM</div>
+<div class="ba-box before">
+<div style="padding:0.75rem">
+<div class="perf-bar perf-bad">
+<span style="font-family:'Oswald';font-size:1rem">500</span> nodi DOM
+<span style="margin-left:auto;font-family:'Oswald';font-size:1rem">45</span> fps
+</div>
+<div style="margin-top:0.75rem;height:80px;background:var(--s100);border-radius:4px;padding:0.4rem;overflow:hidden">
+<div style="font-size:0.5rem;color:var(--dim);line-height:1.3">
+Row 1 &#9632; Row 2 &#9632; Row 3 &#9632; Row 4 &#9632; Row 5 &#9632; Row 6 &#9632; Row 7 &#9632; Row 8 &#9632; Row 9 &#9632; Row 10 &#9632;
+Row 11 &#9632; Row 12 &#9632; ... &#9632; Row 498 &#9632; Row 499 &#9632; Row 500
+</div>
+</div>
+<div style="font-size:0.6rem;color:var(--danger);margin-top:0.5rem;text-align:center">&#9888; Tutti i 500 elementi renderizzati</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After — Virtualizzato</div>
+<div class="ba-box after">
+<div style="padding:0.75rem">
+<div class="perf-bar perf-good">
+<span style="font-family:'Oswald';font-size:1rem">~20</span> nodi visibili
+<span style="margin-left:auto;font-family:'Oswald';font-size:1rem">60</span> fps
+</div>
+<div style="margin-top:0.75rem;position:relative;height:80px;background:var(--s100);border-radius:4px;overflow:hidden">
+<div style="position:absolute;top:0;left:0;right:0;height:15px;background:rgba(107,114,128,0.1);display:flex;align-items:center;justify-content:center;font-size:0.45rem;color:var(--dim)">&#8593; 240 sopra (non renderizzati)</div>
+<div style="position:absolute;top:15px;left:0;right:0;height:50px;background:rgba(34,197,94,0.08);border:1px dashed rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;font-size:0.5rem;color:var(--secondary);font-weight:600">Viewport: ~20 righe visibili</div>
+<div style="position:absolute;bottom:0;left:0;right:0;height:15px;background:rgba(107,114,128,0.1);display:flex;align-items:center;justify-content:center;font-size:0.45rem;color:var(--dim)">&#8595; 240 sotto (non renderizzati)</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- TASK-017 -->
+<section class="task-section" id="task-017">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">TASK-017</span>
+<span class="task-title">BottomSheet Contratti</span>
+<span class="badge badge-medium">Media</span>
+<span class="badge badge-effort">M — 3-5gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Su mobile i campi di modifica contratto nella cella della tabella sono troppo piccoli per interagire. Un BottomSheet a tutto schermo risolve il problema.</p>
+<p class="task-issue">GitHub Issue #299</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">&#10006; Before — Campi in Cella</div>
+<div class="ba-box before">
+<div style="padding:0.75rem">
+<table class="mini-table">
+<thead><tr><th>Giocatore</th><th>Dur.</th><th>Sal.</th><th>Cl.</th></tr></thead>
+<tbody>
+<tr>
+<td style="color:var(--text);font-weight:500">Lautaro</td>
+<td><input type="number" value="3" style="width:28px;background:var(--s50);border:1px solid var(--border);color:var(--text);border-radius:3px;font-size:0.6rem;padding:1px 2px"></td>
+<td><input type="number" value="8.5" style="width:32px;background:var(--s50);border:1px solid var(--border);color:var(--text);border-radius:3px;font-size:0.6rem;padding:1px 2px"></td>
+<td><input type="number" value="12" style="width:28px;background:var(--s50);border:1px solid var(--border);color:var(--text);border-radius:3px;font-size:0.6rem;padding:1px 2px"></td>
+</tr>
+</tbody>
+</table>
+<div style="font-size:0.6rem;color:var(--danger);margin-top:0.5rem;text-align:center">&#9888; Input troppo piccoli su mobile</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">&#10004; After — BottomSheet</div>
+<div class="ba-box after">
+<div class="contract-bs">
+<div class="bsheet-handle"></div>
+<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem">
+<span class="pos-badge pos-A">A</span>
+<div><div style="font-weight:600;font-size:0.85rem">Lautaro Martinez</div><div style="font-size:0.7rem;color:var(--dim)">Inter</div></div>
+</div>
+<div style="margin-bottom:0.75rem">
+<div style="font-size:0.7rem;color:var(--dim);margin-bottom:0.3rem">Durata Contratto</div>
+<div style="display:flex;gap:0.4rem">
+<span style="padding:0.35rem 0.75rem;border-radius:0.4rem;font-size:0.75rem;background:var(--s50);color:var(--dim);border:1px solid var(--border)">1a</span>
+<span style="padding:0.35rem 0.75rem;border-radius:0.4rem;font-size:0.75rem;background:var(--s50);color:var(--dim);border:1px solid var(--border)">2a</span>
+<span style="padding:0.35rem 0.75rem;border-radius:0.4rem;font-size:0.75rem;background:rgba(59,130,246,0.15);color:var(--primary);border:1px solid rgba(59,130,246,0.3);font-weight:600">3a</span>
+<span style="padding:0.35rem 0.75rem;border-radius:0.4rem;font-size:0.75rem;background:var(--s50);color:var(--dim);border:1px solid var(--border)">4a</span>
+</div>
+</div>
+<div style="margin-bottom:0.75rem">
+<div style="font-size:0.7rem;color:var(--dim);margin-bottom:0.3rem">Stipendio (M)</div>
+<div class="number-stepper">
+<button>-</button>
+<span class="val">8.5</span>
+<button>+</button>
+</div>
+</div>
+<div style="margin-bottom:1rem">
+<div style="font-size:0.7rem;color:var(--dim);margin-bottom:0.3rem">Clausola (M)</div>
+<div class="number-stepper">
+<button>-</button>
+<span class="val">12.0</span>
+<button>+</button>
+</div>
+</div>
+<div style="display:flex;gap:0.5rem">
+<button class="btn btn-primary" style="flex:1;justify-content:center">Salva</button>
+<button class="btn btn-ghost" style="flex:1;justify-content:center">Annulla</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- ========== LOW PRIORITY ========== -->
+<div class="section-divider sd-low" id="task-low"><span class="count">04</span><h2>Priorita Bassa</h2></div>
+
+<div class="compact-grid">
+<div class="compact-card">
+<div class="cc-head"><span class="cc-num">TASK-018</span><span class="cc-title">useMediaQuery Hook</span><span class="badge badge-low">Bassa</span><span class="badge badge-effort">S</span></div>
+<div class="cc-desc">Hook centralizzato per breakpoint responsive. Elimina duplicazione di media query inline nei componenti.</div>
+</div>
+<div class="compact-card">
+<div class="cc-head"><span class="cc-num">TASK-019</span><span class="cc-title">Animazioni Micro-Interaction</span><span class="badge badge-low">Bassa</span><span class="badge badge-effort">S</span></div>
+<div class="cc-desc">Framer Motion per transizioni fluide su card, modali e cambio pagina. Migliora il perceived quality.</div>
+</div>
+<div class="compact-card">
+<div class="cc-head"><span class="cc-num">TASK-020</span><span class="cc-title">Dark/Light Toggle</span><span class="badge badge-low">Bassa</span><span class="badge badge-effort">M</span></div>
+<div class="cc-desc">Supporto tema chiaro con CSS variables. Persistenza preferenza in localStorage.</div>
+</div>
+<div class="compact-card">
+<div class="cc-head"><span class="cc-num">TASK-021</span><span class="cc-title">Keyboard Shortcuts</span><span class="badge badge-low">Bassa</span><span class="badge badge-effort">S</span></div>
+<div class="cc-desc">Scorciatoie da tastiera per azioni frequenti (navigazione, conferma offerta, cambio tab).</div>
+</div>
+<div class="compact-card">
+<div class="cc-head"><span class="cc-num">TASK-022</span><span class="cc-title">Toast Notifications Stack</span><span class="badge badge-low">Bassa</span><span class="badge badge-effort">S</span></div>
+<div class="cc-desc">Sistema di notifiche toast stackabili con auto-dismiss, azioni inline e priority levels.</div>
+</div>
+<div class="compact-card">
+<div class="cc-head"><span class="cc-num">TASK-023</span><span class="cc-title">Print-Friendly Rosa</span><span class="badge badge-low">Bassa</span><span class="badge badge-effort">XS</span></div>
+<div class="cc-desc">Foglio di stile @media print per stampare la rosa in formato leggibile (bianco/nero, tabellare).</div>
+</div>
+</div>
+
+<!-- ========== FUTURE ========== -->
+<div class="section-divider sd-future" id="task-future"><span class="count">05</span><h2>Future</h2></div>
+
+<div class="compact-grid">
+<div class="compact-card">
+<div class="cc-head"><span class="cc-num">TASK-030</span><span class="cc-title">PWA Offline</span><span class="badge badge-future">Futura</span><span class="badge badge-effort">L</span></div>
+<div class="cc-desc">Service worker per consultazione rosa e contratti offline. Cache-first per asset statici.</div>
+</div>
+<div class="compact-card">
+<div class="cc-head"><span class="cc-num">TASK-031</span><span class="cc-title">Storybook Components</span><span class="badge badge-future">Futura</span><span class="badge badge-effort">L</span></div>
+<div class="cc-desc">Catalogo componenti isolato per design review, testing visuale e documentazione interattiva.</div>
+</div>
+<div class="compact-card">
+<div class="cc-head"><span class="cc-num">TASK-032</span><span class="cc-title">i18n Multilingua</span><span class="badge badge-future">Futura</span><span class="badge badge-effort">L</span></div>
+<div class="cc-desc">Internazionalizzazione con react-intl per supporto inglese e spagnolo oltre all'italiano.</div>
+</div>
+<div class="compact-card">
+<div class="cc-head"><span class="cc-num">TASK-033</span><span class="cc-title">E2E Visual Regression</span><span class="badge badge-future">Futura</span><span class="badge badge-effort">M</span></div>
+<div class="cc-desc">Test di regressione visuale con Playwright screenshot comparison per prevenire rotture UI.</div>
+</div>
+<div class="compact-card">
+<div class="cc-head"><span class="cc-num">TASK-034</span><span class="cc-title">Design Tokens</span><span class="badge badge-future">Futura</span><span class="badge badge-effort">M</span></div>
+<div class="cc-desc">Sistema di design token esportabili (JSON/CSS/JS) per allineare design e sviluppo automaticamente.</div>
+</div>
+</div>
+
+<!-- ========== ROADMAP ========== -->
+<div class="section-divider sd-high" id="roadmap" style="margin-top:4rem"><span class="count">&#128197;</span><h2>Sprint Roadmap</h2></div>
+
+<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem 1.5rem;margin-top:1rem">
+<div class="roadmap">
+<div class="roadmap-line"></div>
+<div class="roadmap-items">
+<div class="roadmap-item">
+<div class="roadmap-dot" style="background:linear-gradient(135deg,var(--danger),var(--danger-h));box-shadow:0 0 10px rgba(239,68,68,0.4)"></div>
+<div class="roadmap-label" style="color:#f87171">Sprint 1</div>
+<div class="roadmap-desc">TASK 001-005<br>Critiche Mobile<br><span style="color:var(--text2)">2 settimane</span></div>
+</div>
+<div class="roadmap-item">
+<div class="roadmap-dot" style="background:linear-gradient(135deg,var(--accent),var(--accent-h));box-shadow:0 0 10px rgba(245,158,11,0.4)"></div>
+<div class="roadmap-label" style="color:#fbbf24">Sprint 2</div>
+<div class="roadmap-desc">TASK 006-010<br>Architettura + UX<br><span style="color:var(--text2)">2 settimane</span></div>
+</div>
+<div class="roadmap-item">
+<div class="roadmap-dot" style="background:linear-gradient(135deg,#eab308,#ca8a04);box-shadow:0 0 10px rgba(234,179,8,0.4)"></div>
+<div class="roadmap-label" style="color:#facc15">Sprint 3</div>
+<div class="roadmap-desc">TASK 011-017<br>Polish + Performance<br><span style="color:var(--text2)">2 settimane</span></div>
+</div>
+<div class="roadmap-item">
+<div class="roadmap-dot" style="background:linear-gradient(135deg,var(--primary),var(--primary-h));box-shadow:0 0 10px rgba(59,130,246,0.4)"></div>
+<div class="roadmap-label" style="color:#60a5fa">Sprint 4</div>
+<div class="roadmap-desc">TASK 018-023<br>Nice-to-have<br><span style="color:var(--text2)">2 settimane</span></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- FOOTER -->
+<div style="text-align:center;margin-top:3rem;padding:2rem 0;border-top:1px solid var(--border);color:var(--dim);font-size:0.75rem">
+Fantacontratti UI Improvements Backlog &mdash; Generato il 8 Febbraio 2026 &mdash; 28 Evolutive
+</div>
+
+</div><!-- end main-content -->
+
+<!-- BACK TO TOP -->
+<button class="btt" id="btt" onclick="window.scrollTo({top:0})">&#8593;</button>
+
+<script>
+// Back to top visibility
+window.addEventListener('scroll',function(){
+  document.getElementById('btt').classList.toggle('visible',window.scrollY>400);
+});
+
+// Close sidebar on mobile nav click
+document.querySelectorAll('.nav-items a').forEach(function(a){
+  a.addEventListener('click',function(){
+    if(window.innerWidth<=1024) document.querySelector('.sidebar').classList.remove('open');
+  });
+});
+
+// Active nav highlight on scroll
+var sections=document.querySelectorAll('.task-section');
+var navLinks=document.querySelectorAll('.nav-items a');
+window.addEventListener('scroll',function(){
+  var current='';
+  sections.forEach(function(s){
+    if(window.scrollY>=s.offsetTop-100) current=s.id;
+  });
+  navLinks.forEach(function(l){
+    l.classList.remove('active');
+    if(l.getAttribute('href')==='#'+current) l.classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>

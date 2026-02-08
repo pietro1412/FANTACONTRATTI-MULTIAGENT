@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bibbia Giocatori - Fantacontratti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0b; --bg-card: #111214; --bg-elevated: #1a1c20; --bg-hover: #252830;
+      --text: #f3f4f6; --text-muted: #9ca3af; --text-dim: #6b7280;
+      --border: rgba(55, 65, 81, 0.4); --border-light: rgba(55, 65, 81, 0.2);
+      --primary: #3b82f6; --primary-light: #60a5fa; --primary-bg: rgba(59, 130, 246, 0.15); --primary-border: rgba(59, 130, 246, 0.3);
+      --accent: #fbbf24; --accent-bg: rgba(251, 191, 36, 0.15); --accent-border: rgba(251, 191, 36, 0.3);
+      --success: #22c55e; --success-bg: rgba(34, 197, 94, 0.15); --success-border: rgba(34, 197, 94, 0.3);
+      --danger: #ef4444; --danger-bg: rgba(239, 68, 68, 0.15); --danger-border: rgba(239, 68, 68, 0.3);
+      --purple: #a78bfa; --purple-bg: rgba(167, 139, 250, 0.15); --purple-border: rgba(167, 139, 250, 0.3);
+      --teal: #2dd4bf; --teal-bg: rgba(45, 212, 191, 0.15); --teal-border: rgba(45, 212, 191, 0.3);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 9999px; }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+    .page-header { background: linear-gradient(135deg, #0f1f1a 0%, #0f1318 100%); border-bottom: 1px solid var(--border); padding: 48px 24px 40px; margin-bottom: 40px; }
+    .page-header .inner { max-width: 960px; margin: 0 auto; }
+    .page-header .badge { display: inline-flex; align-items: center; gap: 6px; background: var(--teal-bg); color: var(--teal); border: 1px solid var(--teal-border); padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+    .page-header h1 { font-family: 'Outfit', sans-serif; font-size: 36px; font-weight: 800; margin-bottom: 8px; background: linear-gradient(to right, #5eead4, #2dd4bf); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .page-header .subtitle { color: var(--text-muted); font-size: 16px; }
+    .page-header .date { color: var(--text-dim); font-size: 13px; margin-top: 12px; }
+    .toc { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 24px; margin-bottom: 32px; }
+    .toc h3 { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; }
+    .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+    .toc a { display: flex; align-items: center; gap: 8px; color: var(--teal); text-decoration: none; padding: 8px 12px; border-radius: 8px; font-size: 14px; transition: all 0.15s; }
+    .toc a:hover { background: var(--teal-bg); color: #fff; }
+    .toc a .num { color: var(--text-dim); font-family: 'Oswald', sans-serif; font-size: 13px; min-width: 20px; }
+    .section { margin-bottom: 48px; }
+    .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light); }
+    .section-num { font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600; color: var(--teal); background: var(--teal-bg); border: 1px solid var(--teal-border); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .section-header h2 { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 700; color: #fff; }
+    h3 { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 600; color: var(--teal); margin: 24px 0 12px; }
+    p { color: var(--text-muted); margin-bottom: 12px; font-size: 15px; }
+    .card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+    .card-elevated { background: linear-gradient(180deg, var(--bg-elevated), var(--bg-card)); border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    .card-accent { border-color: var(--accent-border); background: linear-gradient(135deg, rgba(251,191,36,0.05), var(--bg-card)); }
+    .card-primary { border-color: var(--primary-border); background: linear-gradient(135deg, rgba(59,130,246,0.05), var(--bg-card)); }
+    .card-danger { border-color: var(--danger-border); background: linear-gradient(135deg, rgba(239,68,68,0.05), var(--bg-card)); }
+    .card-success { border-color: var(--success-border); background: linear-gradient(135deg, rgba(34,197,94,0.05), var(--bg-card)); }
+    .card-teal { border-color: var(--teal-border); background: linear-gradient(135deg, rgba(45,212,191,0.05), var(--bg-card)); }
+    .card-title { font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .card-title .icon { font-size: 18px; }
+    .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border-light); margin: 16px 0; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--bg-elevated); }
+    th { text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 16px; font-size: 14px; color: var(--text-muted); border-bottom: 1px solid var(--border-light); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(45, 212, 191, 0.03); }
+    td.val { font-family: 'Oswald', sans-serif; font-weight: 500; color: var(--teal); font-size: 15px; }
+    .alert { display: flex; gap: 12px; padding: 16px; border-radius: 10px; margin: 16px 0; font-size: 14px; }
+    .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .alert-danger { background: var(--danger-bg); border: 1px solid var(--danger-border); color: #fca5a5; }
+    .alert-success { background: var(--success-bg); border: 1px solid var(--success-border); color: #86efac; }
+    .alert-accent { background: var(--accent-bg); border: 1px solid var(--accent-border); color: #fde68a; }
+    .alert-primary { background: var(--primary-bg); border: 1px solid var(--primary-border); color: #93c5fd; }
+    .alert-teal { background: var(--teal-bg); border: 1px solid var(--teal-border); color: #99f6e4; }
+    .alert strong { color: #fff; }
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+    @media (max-width: 640px) { .comparison { grid-template-columns: 1fr; } }
+    .tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+    .tag-blue { background: var(--primary-bg); color: var(--primary-light); border: 1px solid var(--primary-border); }
+    .tag-gold { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+    .tag-green { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .tag-red { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+    .tag-teal { background: var(--teal-bg); color: var(--teal); border: 1px solid var(--teal-border); }
+    .tag-dim { background: var(--bg-elevated); color: var(--text-dim); border: 1px solid var(--border); }
+    .flow { display: flex; flex-direction: column; gap: 2px; margin: 16px 0; }
+    .flow-item { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border-light); font-size: 14px; }
+    .flow-item .phase { font-family: 'Oswald', sans-serif; font-size: 12px; font-weight: 600; min-width: 70px; }
+    .flow-arrow { text-align: center; color: var(--text-dim); font-size: 18px; line-height: 1; }
+    /* State cards */
+    .state-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin: 16px 0; }
+    .state-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 16px; text-align: center; }
+    .state-card .state-name { font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .state-card .state-desc { font-size: 12px; color: var(--text-dim); }
+    .state-card .state-who { font-size: 11px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-light); }
+    .rule-list { list-style: none; padding: 0; }
+    .rule-list li { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-light); font-size: 14px; color: var(--text-muted); }
+    .rule-list li:last-child { border-bottom: none; }
+    .rule-list .rule-icon { flex-shrink: 0; width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; margin-top: 1px; }
+    .rule-list .rule-check { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success); }
+    .rule-list .rule-cross { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger); }
+    .rule-list .rule-info { background: var(--teal-bg); border: 1px solid var(--teal-border); color: var(--teal); }
+    @media (max-width: 640px) { .page-header h1 { font-size: 28px; } .toc-grid { grid-template-columns: 1fr; } .comparison { grid-template-columns: 1fr; } .state-grid { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="inner">
+    <div class="badge">&#9917; Fonte di Verita</div>
+    <h1>Giocatori Serie A</h1>
+    <p class="subtitle">Fonti dati, stati e gestione dei giocatori nella piattaforma</p>
+    <p class="date">Ultima revisione: 6 Febbraio 2026</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <nav class="toc">
+    <h3>Indice</h3>
+    <div class="toc-grid">
+      <a href="#s1"><span class="num">1</span> Fonti Dati</a>
+      <a href="#s2"><span class="num">2</span> Dati Fondamentali</a>
+      <a href="#s3"><span class="num">3</span> Stati di un Giocatore</a>
+      <a href="#s4"><span class="num">4</span> Aggiornamento Dati</a>
+      <a href="#s5"><span class="num">5</span> Impatto sulle Leghe</a>
+    </div>
+  </nav>
+
+  <!-- 1 -->
+  <section id="s1" class="section">
+    <div class="section-header"><div class="section-num">1</div><h2>Fonti Dati</h2></div>
+
+    <div class="comparison">
+      <div class="card card-accent">
+        <div class="card-title"><span class="icon">&#128196;</span> Fantagazzetta</div>
+        <p><strong style="color:var(--accent)">Master</strong> per lista giocatori e quotazioni.</p>
+        <div class="table-wrap" style="margin-bottom:0;">
+          <table>
+            <thead><tr><th>Dato</th><th>Aggiornamento</th></tr></thead>
+            <tbody>
+              <tr><td>Lista giocatori Serie A</td><td>Import manuale</td></tr>
+              <tr><td>Stato (in lista, svincolato)</td><td>Import manuale</td></tr>
+              <tr><td>Quotazione</td><td>Import manuale</td></tr>
+              <tr><td>Statistiche (gol, assist, voti)</td><td>Import manuale</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card card-primary">
+        <div class="card-title"><span class="icon">&#9917;</span> API Football</div>
+        <p><strong style="color:var(--primary-light)">Complementare</strong> per dati real-time e storici.</p>
+        <div class="table-wrap" style="margin-bottom:0;">
+          <table>
+            <thead><tr><th>Dato</th><th>Aggiornamento</th></tr></thead>
+            <tbody>
+              <tr><td>Statistiche dettagliate</td><td>Chiamate API</td></tr>
+              <tr><td>Foto giocatore</td><td>Chiamate API</td></tr>
+              <tr><td>Squadra di appartenenza</td><td>Chiamate API</td></tr>
+              <tr><td>Eta</td><td>Chiamate API</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <h3>Priorita in Caso di Conflitto</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Dato</th><th>Fonte Master</th></tr></thead>
+        <tbody>
+          <tr><td>Lista giocatori (chi esiste)</td><td><span class="tag tag-gold">Fantagazzetta</span></td></tr>
+          <tr><td>Stato (in lista, svincolato, ceduto)</td><td><span class="tag tag-gold">Fantagazzetta</span></td></tr>
+          <tr><td>Quotazione</td><td><span class="tag tag-gold">Fantagazzetta</span></td></tr>
+          <tr><td>Statistiche</td><td><span class="tag tag-dim">Da comparare (entrambe)</span></td></tr>
+          <tr><td>Foto, eta, squadra</td><td><span class="tag tag-blue">API Football</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section id="s2" class="section">
+    <div class="section-header"><div class="section-num">2</div><h2>Dati Fondamentali di un Giocatore</h2></div>
+
+    <h3>Anagrafica</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Campo</th><th>Fonte</th><th>Sempre presente</th></tr></thead>
+        <tbody>
+          <tr><td><strong style="color:#fff">Nome</strong></td><td>Fantagazzetta / API Football</td><td><span class="tag tag-green">Si</span></td></tr>
+          <tr><td><strong style="color:#fff">Eta</strong></td><td>API Football</td><td><span class="tag tag-green">Si</span></td></tr>
+          <tr><td><strong style="color:#fff">Foto</strong></td><td>API Football</td><td><span class="tag tag-dim">Quando disponibile</span></td></tr>
+          <tr><td><strong style="color:#fff">Squadra Serie A</strong></td><td>Fantagazzetta / API Football</td><td><span class="tag tag-green">Si</span></td></tr>
+          <tr><td><strong style="color:#fff">Ruolo</strong> (P/D/C/A)</td><td>Fantagazzetta</td><td><span class="tag tag-green">Si</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Dati Contrattuali (nella Lega)</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Campo</th><th>Calcolato da</th><th>Presente se...</th></tr></thead>
+        <tbody>
+          <tr><td><strong style="color:#fff">Ingaggio</strong> (salary)</td><td>Sistema</td><td>Sotto contratto</td></tr>
+          <tr><td><strong style="color:#fff">Durata</strong> (duration)</td><td>Sistema</td><td>Sotto contratto</td></tr>
+          <tr><td><strong style="color:#fff">Clausola rescissoria</strong></td><td>Sistema</td><td>Sotto contratto</td></tr>
+          <tr><td><strong style="color:#fff">Rosa di appartenenza</strong></td><td>Sistema</td><td>Sotto contratto (o svincolato)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Statistiche</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Campo</th><th>Fonte</th></tr></thead>
+        <tbody>
+          <tr><td>Statistiche anno in corso</td><td>API Football + Fantagazzetta</td></tr>
+          <tr><td>Statistiche anni passati</td><td>API Football</td></tr>
+          <tr><td>Voto medio</td><td>Fantagazzetta</td></tr>
+          <tr><td>Gol, assist, presenze</td><td>Entrambe le fonti</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section id="s3" class="section">
+    <div class="section-header"><div class="section-num">3</div><h2>Stati di un Giocatore</h2></div>
+
+    <h3>Stati Possibili</h3>
+    <div class="state-grid">
+      <div class="state-card" style="border-color:var(--success-border);"><div class="state-name" style="color:var(--success);">IN_LISTA</div><div class="state-desc">Giocatore attivo in Serie A</div><div class="state-who"><span class="tag tag-gold" style="font-size:10px;">Fantagazzetta</span></div></div>
+      <div class="state-card" style="border-color:var(--teal-border);"><div class="state-name" style="color:var(--teal);">SVINCOLATO</div><div class="state-desc">Senza contratto nella lega</div><div class="state-who"><span class="tag tag-blue" style="font-size:10px;">Sistema</span></div></div>
+      <div class="state-card" style="border-color:var(--danger-border);"><div class="state-name" style="color:var(--danger);">ESTERO</div><div class="state-desc">Ceduto a squadra estera</div><div class="state-who"><span class="tag tag-red" style="font-size:10px;">Super Admin</span></div></div>
+      <div class="state-card" style="border-color:var(--accent-border);"><div class="state-name" style="color:var(--accent);">RETROCESSO</div><div class="state-desc">Squadra retrocessa in B</div><div class="state-who"><span class="tag tag-red" style="font-size:10px;">Super Admin</span></div></div>
+      <div class="state-card" style="border-color:var(--text-dim);"><div class="state-name" style="color:var(--text-dim);">RITIRATO</div><div class="state-desc">Giocatore ritirato</div><div class="state-who"><span class="tag tag-red" style="font-size:10px;">Super Admin</span></div></div>
+    </div>
+
+    <h3>Transizioni di Stato</h3>
+    <div class="flow">
+      <div class="flow-item" style="border-color:var(--danger-border);"><span class="phase" style="color:var(--success);">IN_LISTA</span><span>&rarr; <span class="tag tag-red">ESTERO</span> (Super Admin, post aggiornamento quotazioni)</span></div>
+      <div class="flow-item" style="border-color:var(--accent-border);"><span class="phase" style="color:var(--success);">IN_LISTA</span><span>&rarr; <span class="tag tag-gold">RETROCESSO</span> (Super Admin, fine stagione)</span></div>
+      <div class="flow-item"><span class="phase" style="color:var(--success);">IN_LISTA</span><span>&rarr; <span class="tag tag-dim">RITIRATO</span> (Super Admin)</span></div>
+      <div class="flow-item" style="border-color:var(--teal-border);"><span class="phase" style="color:var(--success);">IN_LISTA</span><span>&rarr; <span class="tag tag-teal">SVINCOLATO</span> (Sistema: scadenza contratto o taglio)</span></div>
+      <div class="flow-item" style="border-color:var(--success-border);"><span class="phase" style="color:var(--teal);">SVINCOLATO</span><span>&rarr; <span class="tag tag-green">IN_LISTA</span> (Sistema: acquistato da un manager)</span></div>
+    </div>
+
+    <h3>Chi Gestisce gli Stati Globali</h3>
+    <div class="alert alert-danger">
+      <span class="alert-icon">&#128081;</span>
+      <div>Il <strong>Super Admin</strong> (non l'admin di lega) imposta ESTERO, RETROCESSO, RITIRATO. Questi stati valgono per <strong>tutte le leghe</strong>.</div>
+    </div>
+
+    <div class="card">
+      <p>L'aggiornamento avviene in 2 step:</p>
+      <div class="flow" style="margin-bottom:0;">
+        <div class="flow-item"><span class="phase" style="color:var(--accent);">STEP 1</span><span>Import nuovo file quotazioni Fantagazzetta &rarr; sistema rileva giocatori ceduti/assenti</span></div>
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-item"><span class="phase" style="color:var(--danger);">STEP 2</span><span>Il Super Admin conferma e imposta lo stato specifico (ESTERO vs RETROCESSO vs RITIRATO)</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section id="s4" class="section">
+    <div class="section-header"><div class="section-num">4</div><h2>Aggiornamento Dati</h2></div>
+
+    <div class="comparison">
+      <div class="card card-accent">
+        <div class="card-title"><span class="icon">&#128196;</span> File Quotazioni Fantagazzetta</div>
+        <ul class="rule-list">
+          <li><span class="rule-icon rule-info">&#128100;</span><span>Import <strong style="color:#fff">manuale</strong> da parte del Super Admin</span></li>
+          <li><span class="rule-icon rule-info">&#128260;</span><span>Aggiorna la lista giocatori (nuovi arrivi, cessioni)</span></li>
+          <li><span class="rule-icon rule-info">&#9888;</span><span>I dati possono cambiare <strong style="color:var(--accent)">durante un mercato ricorrente aperto</strong></span></li>
+        </ul>
+      </div>
+      <div class="card card-primary">
+        <div class="card-title"><span class="icon">&#9917;</span> API Football</div>
+        <ul class="rule-list">
+          <li><span class="rule-icon rule-info">&#128200;</span><span>Chiamate API per <strong style="color:#fff">statistiche aggiornate</strong></span></li>
+          <li><span class="rule-icon rule-info">&#128260;</span><span>Aggiornamento squadra (calciomercato)</span></li>
+          <li><span class="rule-icon rule-info">&#128247;</span><span>Foto e dati anagrafici</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Calciomercato Reale</h3>
+    <div class="card">
+      <p>Quando un giocatore cambia squadra nella realta:</p>
+      <div class="flow" style="margin-bottom:0;">
+        <div class="flow-item"><span class="phase" style="color:var(--accent);">1</span><span>Viene aggiornato il file quotazioni <strong style="color:#fff">Fantagazzetta</strong></span></div>
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-item"><span class="phase" style="color:var(--primary);">2</span><span>Vengono chiamate <strong style="color:#fff">API Football</strong> aggiornate</span></div>
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-item"><span class="phase" style="color:var(--success);">3</span><span>Il sistema riflette il <strong style="color:#fff">nuovo stato/squadra</strong></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section id="s5" class="section">
+    <div class="section-header"><div class="section-num">5</div><h2>Impatto sulle Leghe</h2></div>
+
+    <div class="comparison">
+      <div class="card card-danger">
+        <div class="card-title"><span class="icon">&#9992;</span> Giocatore ESTERO</div>
+        <p>In ogni lega dove e sotto contratto:</p>
+        <ul class="rule-list">
+          <li><span class="rule-icon rule-cross">&#10005;</span><span>Deve essere <strong style="color:var(--danger)">rilasciato</strong> (<code style="background:var(--bg-hover); padding:1px 4px; border-radius:3px; font-size:12px;">draftReleased: true</code> + <code style="background:var(--bg-hover); padding:1px 4px; border-radius:3px; font-size:12px;">draftExitDecision: 'RELEASE'</code>)</span></li>
+          <li><span class="rule-icon rule-check">&#10003;</span><span>Costo taglio: <span class="tag tag-green">0</span></span></li>
+          <li><span class="rule-icon rule-info">&#128176;</span><span>Indennizzo: valore impostato dall'admin (min 0)</span></li>
+        </ul>
+      </div>
+      <div class="card card-accent">
+        <div class="card-title"><span class="icon">&#128201;</span> Giocatore RETROCESSO</div>
+        <p>In ogni lega dove e sotto contratto:</p>
+        <ul class="rule-list">
+          <li><span class="rule-icon rule-cross">&#10005;</span><span>Deve essere <strong style="color:var(--danger)">rilasciato</strong></span></li>
+          <li><span class="rule-icon rule-check">&#10003;</span><span>Costo taglio: <span class="tag tag-green">0</span></span></li>
+          <li><span class="rule-icon rule-cross">&#10005;</span><span>Indennizzo: <strong style="color:var(--danger)">nessuno</strong></span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card card-teal">
+      <div class="card-title"><span class="icon">&#128100;</span> Giocatore SVINCOLATO (nella Lega)</div>
+      <ul class="rule-list">
+        <li><span class="rule-icon rule-check">&#10003;</span><span>Disponibile per acquisto nelle <strong style="color:#fff">aste svincolati</strong></span></li>
+        <li><span class="rule-icon rule-info">&#10005;</span><span>Non ha contratto attivo con nessun manager della lega</span></li>
+      </ul>
+    </div>
+
+    <div class="alert alert-teal">
+      <span class="alert-icon">&#128161;</span>
+      <div>Per il release di giocatori ESTERO/RETROCESSO servono <strong>ENTRAMBI</strong> i flag: <code style="background:var(--bg-hover); padding:1px 4px; border-radius:3px;">draftReleased: true</code> e <code style="background:var(--bg-hover); padding:1px 4px; border-radius:3px;">draftExitDecision: 'RELEASE'</code>.</div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
