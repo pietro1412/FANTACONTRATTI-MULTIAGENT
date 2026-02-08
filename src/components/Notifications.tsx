@@ -148,9 +148,13 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
     onNavigate('trades', { leagueId })
   }
 
-  function handleViewJoinRequests() {
+  function handleViewJoinRequests(e: React.MouseEvent) {
+    e.stopPropagation()
     setIsOpen(false)
-    onNavigate('adminPanel', { leagueId, tab: 'members' })
+    // Use setTimeout to ensure dropdown is closed before navigation
+    setTimeout(() => {
+      onNavigate('adminPanel', { leagueId, tab: 'members' })
+    }, 0)
   }
 
   const tradeCount = offers.length

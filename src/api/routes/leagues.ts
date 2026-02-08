@@ -302,11 +302,12 @@ router.post('/:id/cancel-request', authMiddleware, async (req: Request, res: Res
   }
 })
 
-// GET /api/leagues/:id/financials - Get financial dashboard data (#190)
+// GET /api/leagues/:id/financials - Get financial dashboard data (#190, OSS-6)
 router.get('/:id/financials', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string
-    const result = await getLeagueFinancials(id, req.user!.userId)
+    const sessionId = req.query.sessionId as string | undefined
+    const result = await getLeagueFinancials(id, req.user!.userId, sessionId)
 
     if (!result.success) {
       res.status(result.message === 'Non sei membro di questa lega' ? 403 : 404).json(result)

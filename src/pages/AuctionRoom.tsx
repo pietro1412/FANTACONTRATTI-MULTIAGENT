@@ -2313,8 +2313,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       <tr>
                         <th className="px-2 py-1.5 text-left text-gray-400 font-medium">#</th>
                         <th className="px-2 py-1.5 text-left text-gray-400 font-medium">Manager</th>
-                        <th className="px-2 py-1.5 text-center text-gray-400 font-medium" title="Budget Disponibile">Disp.</th>
-                        <th className="px-2 py-1.5 text-center text-gray-400 font-medium" title="Budget Speso">Speso</th>
+                        <th className="px-2 py-1.5 text-center text-gray-400 font-medium" title="Bilancio (Budget - Ingaggi)">Disp.</th>
+                        <th className="px-2 py-1.5 text-center text-gray-400 font-medium" title="Costo Acquisti">Acquisti</th>
+                        <th className="px-2 py-1.5 text-center text-gray-400 font-medium" title="Monte Ingaggi">Ingaggi</th>
                         <th className="px-2 py-1.5 text-center text-yellow-400 font-medium" title="Portieri">P</th>
                         <th className="px-2 py-1.5 text-center text-green-400 font-medium" title="Difensori">D</th>
                         <th className="px-2 py-1.5 text-center text-blue-400 font-medium" title="Centrocampisti">C</th>
@@ -2334,9 +2335,13 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                           const turnIndex = firstMarketStatus?.turnOrder?.indexOf(m.id) ?? -1
                           const isCurrent = m.isCurrentTurn
                           const isMe = m.id === managersStatus.myId
-                          const budgetPercent = getBudgetPercentage(m.currentBudget)
                           // Calcola budget speso sommando i prezzi di acquisizione
                           const budgetSpent = m.roster.reduce((sum, r) => sum + (r.acquisitionPrice || 0), 0)
+                          // Monte ingaggi: somma salary di tutti i contratti attivi
+                          const monteIngaggi = m.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
+                          // Bilancio reale = budget - monte ingaggi
+                          const bilancio = m.currentBudget - monteIngaggi
+                          const budgetPercent = getBudgetPercentage(bilancio)
 
                           return (
                             <tr
@@ -2374,19 +2379,26 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                                 </div>
                               </td>
 
-                              {/* Budget Disponibile */}
+                              {/* Bilancio (Budget - Monte Ingaggi) */}
                               <td className="px-2 py-2 text-center">
                                 <span className={`font-mono font-bold ${
                                   budgetPercent <= 20 ? 'text-red-400' : budgetPercent <= 40 ? 'text-amber-400' : 'text-green-400'
                                 }`}>
-                                  {m.currentBudget}
+                                  {bilancio}
                                 </span>
                               </td>
 
-                              {/* Budget Speso */}
+                              {/* Costo Acquisti */}
                               <td className="px-2 py-2 text-center">
                                 <span className="font-mono text-gray-400">
                                   {budgetSpent}
+                                </span>
+                              </td>
+
+                              {/* Monte Ingaggi */}
+                              <td className="px-2 py-2 text-center">
+                                <span className="font-mono text-gray-400">
+                                  {monteIngaggi}
                                 </span>
                               </td>
 

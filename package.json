@@ -29,6 +29,8 @@
     "db:init-prod": "tsx scripts/init-production.ts",
     "db:build-schema": "tsx scripts/build-schema.ts",
     "db:backup": "node scripts/backup-critical-data.cjs",
+    "resetta_lega": "node scripts/resetta_lega.cjs",
+    "completa_primo_mercato": "node scripts/completa_primo_mercato.cjs",
     "predeploy": "npm run db:backup",
     "deploy:main": "npm run db:backup && git checkout main && git pull origin main && git merge develop --no-edit && git push origin main && git checkout develop",
     "docker:up": "docker compose up db -d --wait",

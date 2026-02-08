@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bibbia Svincolati - Fantacontratti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0b;
+      --bg-card: #111214;
+      --bg-elevated: #1a1c20;
+      --bg-hover: #252830;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --border: rgba(55, 65, 81, 0.4);
+      --border-light: rgba(55, 65, 81, 0.2);
+      --primary: #3b82f6;
+      --primary-light: #60a5fa;
+      --primary-bg: rgba(59, 130, 246, 0.15);
+      --primary-border: rgba(59, 130, 246, 0.3);
+      --accent: #fbbf24;
+      --accent-dark: #f59e0b;
+      --accent-bg: rgba(251, 191, 36, 0.15);
+      --accent-border: rgba(251, 191, 36, 0.3);
+      --success: #22c55e;
+      --success-bg: rgba(34, 197, 94, 0.15);
+      --success-border: rgba(34, 197, 94, 0.3);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --danger-border: rgba(239, 68, 68, 0.3);
+      --purple: #a78bfa;
+      --purple-bg: rgba(167, 139, 250, 0.15);
+      --purple-border: rgba(167, 139, 250, 0.3);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+
+    .page-header {
+      background: linear-gradient(135deg, #1a1f2e 0%, #0f1318 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 48px 24px 40px; margin-bottom: 40px;
+    }
+    .page-header .inner { max-width: 960px; margin: 0 auto; }
+    .page-header .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--purple-bg); color: var(--purple);
+      border: 1px solid var(--purple-border);
+      padding: 4px 12px; border-radius: 9999px;
+      font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+    .page-header h1 {
+      font-family: 'Outfit', 'Inter', sans-serif;
+      font-size: 36px; font-weight: 800;
+      margin-bottom: 8px;
+      background: linear-gradient(to right, #c4b5fd, #a78bfa);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .page-header .subtitle { color: var(--text-muted); font-size: 16px; }
+    .page-header .date { color: var(--text-dim); font-size: 13px; margin-top: 12px; }
+
+    .toc {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 24px; margin-bottom: 32px;
+    }
+    .toc h3 { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; }
+    .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+    .toc a {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--purple); text-decoration: none;
+      padding: 8px 12px; border-radius: 8px; font-size: 14px;
+      transition: all 0.15s;
+    }
+    .toc a:hover { background: var(--purple-bg); color: #fff; }
+    .toc a .num { color: var(--text-dim); font-family: 'Oswald', sans-serif; font-size: 13px; min-width: 20px; }
+
+    .section { margin-bottom: 48px; }
+    .section-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 24px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .section-num {
+      font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600;
+      color: var(--purple); background: var(--purple-bg);
+      border: 1px solid var(--purple-border);
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .section-header h2 {
+      font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 700; color: #fff;
+    }
+
+    h3 {
+      font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 600;
+      color: var(--purple); margin: 24px 0 12px;
+    }
+
+    p { color: var(--text-muted); margin-bottom: 12px; font-size: 15px; }
+
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 24px; margin-bottom: 16px;
+    }
+    .card-elevated {
+      background: linear-gradient(180deg, var(--bg-elevated), var(--bg-card));
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .card-accent {
+      border-color: var(--accent-border);
+      background: linear-gradient(135deg, rgba(251,191,36,0.05), var(--bg-card));
+    }
+    .card-primary {
+      border-color: var(--primary-border);
+      background: linear-gradient(135deg, rgba(59,130,246,0.05), var(--bg-card));
+    }
+    .card-danger {
+      border-color: var(--danger-border);
+      background: linear-gradient(135deg, rgba(239,68,68,0.05), var(--bg-card));
+    }
+    .card-success {
+      border-color: var(--success-border);
+      background: linear-gradient(135deg, rgba(34,197,94,0.05), var(--bg-card));
+    }
+    .card-purple {
+      border-color: var(--purple-border);
+      background: linear-gradient(135deg, rgba(167,139,250,0.05), var(--bg-card));
+    }
+
+    .card-title {
+      font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700;
+      color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .card-title .icon { font-size: 18px; }
+
+    .formula {
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px 20px; margin: 12px 0;
+      font-family: 'Oswald', 'monospace'; font-size: 18px; font-weight: 500;
+      color: var(--accent); letter-spacing: 0.02em;
+    }
+    .formula .label {
+      font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 6px; display: block;
+    }
+    .formula .highlight { color: var(--primary-light); }
+    .formula .danger { color: var(--danger); }
+    .formula .success { color: var(--success); }
+
+    .table-wrap {
+      overflow-x: auto; border-radius: 12px;
+      border: 1px solid var(--border-light); margin: 16px 0;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--bg-elevated); }
+    th {
+      text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 600;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 10px 16px; font-size: 14px; color: var(--text-muted);
+      border-bottom: 1px solid var(--border-light);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(59, 130, 246, 0.03); }
+    td.val {
+      font-family: 'Oswald', sans-serif; font-weight: 500;
+      color: var(--accent); font-size: 15px;
+    }
+    td.positive { color: var(--success); }
+    td.negative { color: var(--danger); }
+
+    .alert {
+      display: flex; gap: 12px; padding: 16px;
+      border-radius: 10px; margin: 16px 0; font-size: 14px;
+    }
+    .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .alert-danger { background: var(--danger-bg); border: 1px solid var(--danger-border); color: #fca5a5; }
+    .alert-success { background: var(--success-bg); border: 1px solid var(--success-border); color: #86efac; }
+    .alert-accent { background: var(--accent-bg); border: 1px solid var(--accent-border); color: #fde68a; }
+    .alert-primary { background: var(--primary-bg); border: 1px solid var(--primary-border); color: #93c5fd; }
+    .alert-purple { background: var(--purple-bg); border: 1px solid var(--purple-border); color: #ddd6fe; }
+    .alert strong { color: #fff; }
+
+    .example {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; overflow: hidden; margin: 16px 0;
+    }
+    .example-header {
+      background: var(--bg-elevated); padding: 10px 16px;
+      font-size: 13px; font-weight: 600; color: var(--text-muted);
+      border-bottom: 1px solid var(--border-light);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .example-body { padding: 16px; }
+
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+    @media (max-width: 640px) { .comparison { grid-template-columns: 1fr; } }
+
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    }
+    .tag-blue { background: var(--primary-bg); color: var(--primary-light); border: 1px solid var(--primary-border); }
+    .tag-gold { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+    .tag-green { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .tag-red { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+    .tag-purple { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple-border); }
+
+    .flow { display: flex; flex-direction: column; gap: 2px; margin: 16px 0; }
+    .flow-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; border-radius: 8px;
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      font-size: 14px;
+    }
+    .flow-item .phase {
+      font-family: 'Oswald', sans-serif; font-size: 12px; font-weight: 600;
+      min-width: 60px;
+    }
+    .flow-arrow { text-align: center; color: var(--text-dim); font-size: 18px; line-height: 1; }
+
+    .scenario { counter-reset: step; }
+    .step {
+      display: flex; gap: 16px; margin-bottom: 2px; padding: 12px 16px;
+      border-left: 2px solid var(--border-light);
+      transition: all 0.15s;
+    }
+    .step:hover { border-left-color: var(--purple); background: rgba(167,139,250,0.03); }
+    .step-num {
+      font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600;
+      color: var(--purple); background: var(--purple-bg); border: 1px solid var(--purple-border);
+      min-width: 28px; height: 28px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .step-content { flex: 1; }
+    .step-label { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+    .step-desc { font-size: 13px; color: var(--text-dim); }
+    .step-formula {
+      font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 500;
+      color: var(--accent); margin-top: 4px;
+    }
+
+    /* Order comparison */
+    .order-comparison {
+      display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px;
+      align-items: center; margin: 16px 0;
+    }
+    .order-arrow {
+      font-size: 24px; color: var(--purple); font-family: 'Oswald', sans-serif;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .order-list {
+      list-style: none; padding: 0; display: flex; flex-direction: column; gap: 4px;
+    }
+    .order-list li {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 8px;
+      font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 500;
+    }
+    .order-list .pos {
+      width: 24px; height: 24px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+    }
+    @media (max-width: 640px) {
+      .order-comparison { grid-template-columns: 1fr; }
+      .order-arrow { transform: rotate(90deg); }
+    }
+
+    .rule-list { list-style: none; padding: 0; }
+    .rule-list li {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border-light);
+      font-size: 14px; color: var(--text-muted);
+    }
+    .rule-list li:last-child { border-bottom: none; }
+    .rule-list .rule-icon {
+      flex-shrink: 0; width: 24px; height: 24px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; margin-top: 1px;
+    }
+    .rule-list .rule-check { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success); }
+    .rule-list .rule-cross { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger); }
+    .rule-list .rule-info { background: var(--purple-bg); border: 1px solid var(--purple-border); color: var(--purple); }
+
+    @media (max-width: 640px) {
+      .page-header h1 { font-size: 28px; }
+      .toc-grid { grid-template-columns: 1fr; }
+      .comparison { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="inner">
+    <div class="badge">&#9733; Fase 5 &mdash; Mercato Ricorrente</div>
+    <h1>Asta Svincolati</h1>
+    <p class="subtitle">Asta a turni per l'acquisto di giocatori senza contratto attivo</p>
+    <p class="date">Ultima revisione: 6 Febbraio 2026</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- TOC -->
+  <nav class="toc">
+    <h3>Indice</h3>
+    <div class="toc-grid">
+      <a href="#s1"><span class="num">1</span> Panoramica</a>
+      <a href="#s2"><span class="num">2</span> Ordine di Chiamata</a>
+      <a href="#s3"><span class="num">3</span> Meccanica dell'Asta</a>
+      <a href="#s4"><span class="num">4</span> Contratto Default</a>
+      <a href="#s5"><span class="num">5</span> Impatto Finanziario</a>
+      <a href="#s6"><span class="num">6</span> Rinuncia al Turno</a>
+      <a href="#s7"><span class="num">7</span> Fine Fase</a>
+      <a href="#s8"><span class="num">8</span> Tracciamento</a>
+    </div>
+  </nav>
+
+  <!-- SECTION 1 -->
+  <section id="s1" class="section">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <h2>Panoramica</h2>
+    </div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#128100;</span> Cos'e l'Asta Svincolati</div>
+      <p>La <strong style="color:#fff">Fase 5</strong> del mercato ricorrente. I manager, a turno, possono acquistare giocatori <strong style="color:var(--purple)">svincolati</strong> (senza contratto attivo) tramite asta.</p>
+    </div>
+
+    <h3>Precondizioni</h3>
+    <ul class="rule-list">
+      <li>
+        <span class="rule-icon rule-check">&#10003;</span>
+        <span>Fase 4 (<strong style="color:#fff">Rubata</strong>) completata</span>
+      </li>
+      <li>
+        <span class="rule-icon rule-check">&#10003;</span>
+        <span>Giocatori svincolati <strong style="color:#fff">disponibili</strong> (scadenza contratto, tagli, mai acquistati)</span>
+      </li>
+      <li>
+        <span class="rule-icon rule-check">&#10003;</span>
+        <span>Almeno un manager con <strong style="color:#fff">budget sufficiente</strong></span>
+      </li>
+    </ul>
+  </section>
+
+  <!-- SECTION 2 -->
+  <section id="s2" class="section">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <h2>Ordine di Chiamata</h2>
+    </div>
+
+    <div class="card card-purple">
+      <div class="card-title"><span class="icon">&#128260;</span> Ordine Inverso alla Rubata</div>
+      <p>L'ordine di chiamata e <strong style="color:#fff">inverso</strong> all'ordine della rubata. Chi era primo nella rubata (vantaggiato) sara ultimo negli svincolati (svantaggiato) e viceversa.</p>
+    </div>
+
+    <div class="order-comparison">
+      <div>
+        <h3 style="text-align:center; margin-bottom:12px; color:var(--danger);">Ordine Rubata</h3>
+        <ul class="order-list">
+          <li style="background: var(--danger-bg); color: var(--danger);">
+            <span class="pos" style="background:var(--danger-border); color:#fff;">1</span> Manager A
+          </li>
+          <li style="background: rgba(239,68,68,0.08); color: #fca5a5;">
+            <span class="pos" style="background:var(--danger-bg); color:var(--danger);">2</span> Manager B
+          </li>
+          <li style="background: rgba(239,68,68,0.05); color: #fca5a5;">
+            <span class="pos" style="background:var(--danger-bg); color:var(--danger);">3</span> Manager C
+          </li>
+          <li style="background: rgba(239,68,68,0.03); color: #fca5a5;">
+            <span class="pos" style="background:var(--danger-bg); color:var(--danger);">4</span> Manager D
+          </li>
+          <li style="background: rgba(239,68,68,0.02); color: #fca5a5;">
+            <span class="pos" style="background:var(--danger-bg); color:var(--danger);">5</span> Manager E
+          </li>
+          <li style="background: rgba(239,68,68,0.01); color: #fca5a5;">
+            <span class="pos" style="background:var(--danger-bg); color:var(--danger);">6</span> Manager F
+          </li>
+        </ul>
+      </div>
+
+      <div class="order-arrow">&#8644;</div>
+
+      <div>
+        <h3 style="text-align:center; margin-bottom:12px;">Ordine Svincolati</h3>
+        <ul class="order-list">
+          <li style="background: var(--purple-bg); color: var(--purple);">
+            <span class="pos" style="background:var(--purple-border); color:#fff;">1</span> Manager F
+          </li>
+          <li style="background: rgba(167,139,250,0.08); color: #ddd6fe;">
+            <span class="pos" style="background:var(--purple-bg); color:var(--purple);">2</span> Manager E
+          </li>
+          <li style="background: rgba(167,139,250,0.05); color: #ddd6fe;">
+            <span class="pos" style="background:var(--purple-bg); color:var(--purple);">3</span> Manager D
+          </li>
+          <li style="background: rgba(167,139,250,0.03); color: #ddd6fe;">
+            <span class="pos" style="background:var(--purple-bg); color:var(--purple);">4</span> Manager C
+          </li>
+          <li style="background: rgba(167,139,250,0.02); color: #ddd6fe;">
+            <span class="pos" style="background:var(--purple-bg); color:var(--purple);">5</span> Manager B
+          </li>
+          <li style="background: rgba(167,139,250,0.01); color: #ddd6fe;">
+            <span class="pos" style="background:var(--purple-bg); color:var(--purple);">6</span> Manager A
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <p>Ogni manager, al proprio turno, sceglie un giocatore svincolato da mettere all'asta. Il turno ruota ciclicamente tra i manager ancora attivi.</p>
+  </section>
+
+  <!-- SECTION 3 -->
+  <section id="s3" class="section">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <h2>Meccanica dell'Asta</h2>
+    </div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#9917;</span> Come il Primo Mercato</div>
+      <p>L'asta si svolge con le stesse meccaniche del Primo Mercato:</p>
+
+      <div class="comparison" style="margin-bottom:0;">
+        <div style="text-align:center; padding:16px;">
+          <div style="font-family:'Oswald',sans-serif; font-size:48px; font-weight:700; color:var(--accent);">1</div>
+          <div style="font-size:12px; color:var(--text-dim); text-transform:uppercase;">Base d'asta</div>
+        </div>
+        <div>
+          <ul class="rule-list">
+            <li>
+              <span class="rule-icon rule-info">&#128176;</span>
+              <span><strong style="color:#fff">Offerta libera:</strong> qualsiasi manager puo rilanciare</span>
+            </li>
+            <li>
+              <span class="rule-icon rule-info">&#9201;</span>
+              <span><strong style="color:#fff">Timer:</strong> configurabile, reset ad ogni offerta</span>
+            </li>
+            <li>
+              <span class="rule-icon rule-check">&#127942;</span>
+              <span><strong style="color:#fff">Vincitore:</strong> ultimo offerente allo scadere</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <h3>Funzionalita Admin</h3>
+    <div class="comparison">
+      <div class="card">
+        <div class="card-title"><span class="icon">&#10003;</span> Conferma Chiamata</div>
+        <p>Quando un manager sceglie il giocatore, il sistema chiede <strong style="color:#fff">conferma</strong>.</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">&#9208;</span> Pausa</div>
+        <p>Un manager puo richiedere uno <strong style="color:#fff">stop temporaneo</strong>.</p>
+      </div>
+    </div>
+
+    <div class="card card-danger">
+      <div class="card-title"><span class="icon">&#9888;</span> Rettifiche Admin</div>
+      <div class="table-wrap" style="margin-top:12px; margin-bottom:0;">
+        <table>
+          <thead><tr><th>Azione</th><th>Effetto</th></tr></thead>
+          <tbody>
+            <tr><td><strong style="color:#fff">Annulla fine asta</strong></td><td>Riprende dall'ultima offerta (timer riparte)</td></tr>
+            <tr><td><strong style="color:#fff">Annulla chiamata</strong></td><td>Il giocatore torna svincolato</td></tr>
+            <tr><td><strong style="color:#fff">Rettifica transazione</strong></td><td>Giocatore torna libero, crediti restituiti</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 4 -->
+  <section id="s4" class="section">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <h2>Contratto Default</h2>
+    </div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#128221;</span> Stessa Formula del Primo Mercato</div>
+      <div class="comparison" style="margin-top:12px; margin-bottom:0;">
+        <div class="formula" style="text-align:center; margin:0;">
+          <span class="label">Ingaggio</span>
+          Math.max(1, Math.round(<span class="highlight">prezzo / 10</span>))
+        </div>
+        <div class="formula" style="text-align:center; margin:0;">
+          <span class="label">Durata</span>
+          Sempre <span class="highlight">3</span> semestri
+        </div>
+      </div>
+    </div>
+
+    <h3>Modifica Post-Acquisto</h3>
+    <div class="card">
+      <ul class="rule-list">
+        <li>
+          <span class="rule-icon rule-check">&#8593;</span>
+          <span>Solo in <strong style="color:var(--success)">aumento</strong> (increase-only)</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-check">&#8593;</span>
+          <span>Ingaggio puo <strong style="color:#fff">aumentare</strong></span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">&#8594;</span>
+          <span>Durata puo aumentare (richiede <strong style="color:var(--accent)">prima</strong> aumento ingaggio)</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">4</span>
+          <span>Max durata: <span class="tag tag-purple">4 semestri</span></span>
+        </li>
+      </ul>
+      <div class="alert alert-primary" style="margin-bottom:0;">
+        <span class="alert-icon">&#128279;</span>
+        <div>Vedi <strong>Bibbia CONTRATTI</strong> sezioni 3 e 4 per tabella fasce e regole complete.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 5 -->
+  <section id="s5" class="section">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <h2>Impatto Finanziario</h2>
+    </div>
+
+    <div class="formula" style="text-align: center; font-size: 20px;">
+      <span class="label">Costo Acquisto Svincolato</span>
+      Costo totale = <span class="highlight">prezzo_asta</span> + <span class="danger">ingaggio_effettivo</span>
+    </div>
+
+    <p>Il manager deve avere bilancio sufficiente per <strong style="color:#fff">ENTRAMBI</strong> prima di fare offerta.</p>
+
+    <div class="formula" style="text-align: center;">
+      <span class="label">Verifica Pre-Offerta</span>
+      <span class="highlight">bilancio</span> &ge; offerta + ingaggio_default
+    </div>
+
+    <div class="alert alert-accent">
+      <span class="alert-icon">&#128161;</span>
+      <div><strong>Offerta minima:</strong> Offerta 1 + ingaggio default 1 = serve bilancio &ge; <strong>2</strong>.</div>
+    </div>
+
+    <div class="example">
+      <div class="example-header">&#128202; Esempio Completo: Bernabe</div>
+      <div class="example-body">
+        <div class="scenario">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <div class="step-label">Manager A, bilancio 250</div>
+              <div class="step-desc">Vince asta svincolato Bernabe a 25</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <div class="step-label">Contratto Default</div>
+              <div class="step-formula">Ingaggio = Math.max(1, Math.round(25/10)) = <span style="color:var(--accent)">3</span>, durata <span style="color:var(--accent)">3</span></div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <div class="step-label">Costo con contratto default</div>
+              <div class="step-formula">25 + 3 = <span style="color:var(--danger)">28</span> &rarr; Bilancio = 250 &minus; 28 = <span style="color:var(--success)">222</span></div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-content">
+              <div class="step-label">Se modifica a 5x4</div>
+              <div class="step-formula">25 + 5 = <span style="color:var(--danger)">30</span> &rarr; Bilancio = 250 &minus; 30 = <span style="color:var(--success)">220</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6 -->
+  <section id="s6" class="section">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <h2>Rinuncia al Turno</h2>
+    </div>
+
+    <div class="card card-danger">
+      <div class="card-title"><span class="icon">&#10005;</span> Rinuncia Definitiva</div>
+      <p>Un manager puo dichiarare di voler <strong style="color:#fff">saltare il turno</strong>. Questa rinuncia e <strong style="color:var(--danger)">DEFINITIVA</strong>: il manager smette di partecipare all'asta svincolati anche per tutti i turni futuri.</p>
+
+      <ul class="rule-list" style="margin-top:16px;">
+        <li>
+          <span class="rule-icon rule-cross">&#10005;</span>
+          <span>Il manager <strong style="color:var(--danger)">esce dalla rotazione</strong> dei turni</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-cross">&#10005;</span>
+          <span><strong style="color:var(--danger)">Non puo piu chiamare</strong> giocatori</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">?</span>
+          <span>Puo ancora fare offerte su giocatori chiamati da altri? <span style="color:var(--text-dim)">(da definire)</span></span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SECTION 7 -->
+  <section id="s7" class="section">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <h2>Fine Fase</h2>
+    </div>
+
+    <p>La fase si conclude quando si verifica <strong style="color:#fff">una</strong> delle seguenti condizioni:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Condizione</th><th>Descrizione</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="tag tag-purple">Niente svincolati</span></td>
+            <td>Non ci sono piu giocatori svincolati disponibili</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-red">Nessun budget</span></td>
+            <td>Nessun manager ha bilancio &ge; <strong style="color:var(--accent); font-family:'Oswald',sans-serif;">2</strong> (offerta minima 1 + ingaggio minimo 1)</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-gold">Tutti rinunciano</span></td>
+            <td>Tutti i manager ancora attivi hanno rinunciato al turno</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">Admin chiude</span></td>
+            <td>L'admin puo dichiarare fine fase in qualsiasi momento</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SECTION 8 -->
+  <section id="s8" class="section">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <h2>Tracciamento</h2>
+    </div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#128203;</span> Ogni Movimento Tracciato</div>
+      <ul class="rule-list">
+        <li>
+          <span class="rule-icon rule-check">&#10003;</span>
+          <span><strong style="color:#fff">Giocatore acquistato</strong> &mdash; da quale manager, a quale prezzo</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-check">&#10003;</span>
+          <span><strong style="color:#fff">Contratto assegnato</strong> &mdash; default o modificato</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-check">&#10003;</span>
+          <span><strong style="color:#fff">Correzioni admin</strong> &mdash; annullamenti e rettifiche</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-check">&#10003;</span>
+          <span><strong style="color:#fff">Rinunce al turno</strong> &mdash; chi e quando ha rinunciato</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

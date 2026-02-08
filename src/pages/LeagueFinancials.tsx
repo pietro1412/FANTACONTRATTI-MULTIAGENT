@@ -213,6 +213,7 @@ interface TeamData {
   budget: number
   annualContractCost: number
   totalContractCost: number
+  totalAcquisitionCost: number
   slotCount: number
   slotsFree: number
   maxSlots: number
@@ -246,6 +247,17 @@ interface TeamData {
   totalReleaseCosts: number | null
   totalIndemnities: number | null
   totalRenewalCosts: number | null
+  // Trade budget transfers
+  tradeBudgetIn: number
+  tradeBudgetOut: number
+}
+
+interface SessionInfo {
+  id: string
+  sessionType: string
+  currentPhase: string | null
+  status: string
+  createdAt: string
 }
 
 interface FinancialsData {
@@ -255,10 +267,16 @@ interface FinancialsData {
   isAdmin: boolean
   // #193: Phase info
   inContrattiPhase: boolean
+  // OSS-6: Available sessions for phase selector
+  availableSessions: SessionInfo[]
+  // OSS-6: Historical mode flag
+  isHistorical?: boolean
+  historicalSessionType?: string
+  historicalPhase?: string
 }
 
 // Sort field type
-type SortField = 'teamName' | 'budget' | 'annualContractCost' | 'balance' | 'slotCount' | 'under20' | 'under25' | 'under30' | 'over30'
+type SortField = 'teamName' | 'budget' | 'totalAcquisitionCost' | 'annualContractCost' | 'balance' | 'slotCount' | 'under20' | 'under25' | 'under30' | 'over30'
 
 // Position colors (for badges)
 const POSITION_COLORS: Record<string, string> = {
@@ -307,10 +325,11 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
   const [sortField, setSortField] = useState<SortField>('teamName')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
+  const [selectedSession, setSelectedSession] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     loadFinancials()
-  }, [leagueId])
+  }, [leagueId, selectedSession])
 
   async function loadFinancials() {
     if (!leagueId) return
@@ -318,7 +337,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
     setError(null)
 
     try {
-      const result = await leagueApi.getFinancials(leagueId)
+      const result = await leagueApi.getFinancials(leagueId, selectedSession)
       if (result.success && result.data) {
         setData(result.data)
         setIsLeagueAdmin(result.data.isAdmin || false)
@@ -356,8 +375,12 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
           valueB = b.teamName.toLowerCase()
           break
         case 'budget':
-          valueA = a.budget
-          valueB = b.budget
+          valueA = a.budget + a.totalAcquisitionCost
+          valueB = b.budget + b.totalAcquisitionCost
+          break
+        case 'totalAcquisitionCost':
+          valueA = a.totalAcquisitionCost
+          valueB = b.totalAcquisitionCost
           break
         case 'annualContractCost':
           valueA = a.annualContractCost
@@ -401,7 +424,8 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
   const totals = useMemo(() => {
     if (!data?.teams) return null
 
-    const totalBudget = data.teams.reduce((sum, t) => sum + t.budget, 0)
+    const totalBudget = data.teams.reduce((sum, t) => sum + t.budget + t.totalAcquisitionCost, 0)
+    const totalAcquisitions = data.teams.reduce((sum, t) => sum + t.totalAcquisitionCost, 0)
     const totalContracts = data.teams.reduce((sum, t) => sum + t.annualContractCost, 0)
 
     // #193: Pre/Post renewal totals
@@ -410,6 +434,11 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
     const totalPostRenewal = hasPostRenewal
       ? data.teams.reduce((sum, t) => sum + (t.postRenewalContractCost ?? t.preRenewalContractCost), 0)
       : null
+
+    // Trade budget totals
+    const totalTradeBudgetIn = data.teams.reduce((sum, t) => sum + t.tradeBudgetIn, 0)
+    const totalTradeBudgetOut = data.teams.reduce((sum, t) => sum + t.tradeBudgetOut, 0)
+    const hasTradeData = totalTradeBudgetIn > 0 || totalTradeBudgetOut > 0
 
     // Aggregate tagli/indennizzi
     // Durante CONTRATTI: MAI mostrare (dati congelati, niente tagli/indennizzi)
@@ -424,13 +453,14 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
       ? data.teams.reduce((sum, t) => sum + (t.totalIndemnities ?? 0), 0)
       : null
 
-    // Bilancio: Budget - Contratti - Tagli + Indennizzi (quando disponibili)
+    // Bilancio: Budget Iniziale - Acquisti - Contratti - Tagli + Indennizzi (quando disponibili)
     const totalBalance = hasFinancialDetails
-      ? totalBudget - totalContracts - (totalReleaseCosts ?? 0) + (totalIndemnities ?? 0)
-      : totalBudget - totalContracts
+      ? totalBudget - totalAcquisitions - totalContracts - (totalReleaseCosts ?? 0) + (totalIndemnities ?? 0)
+      : totalBudget - totalAcquisitions - totalContracts
 
     return {
       totalBudget,
+      totalAcquisitions,
       totalContracts,
       totalBalance,
       totalPlayers: data.teams.reduce((sum, t) => sum + t.slotCount, 0),
@@ -447,6 +477,10 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
       totalReleaseCosts,
       totalIndemnities,
       hasFinancialDetails,
+      // Trade budget
+      totalTradeBudgetIn,
+      totalTradeBudgetOut,
+      hasTradeData,
     }
   }, [data?.teams, data?.inContrattiPhase])
 
@@ -543,13 +577,89 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
           </div>
         )}
 
+        {/* OSS-6: Phase selector for historical data */}
+        {data?.availableSessions && data.availableSessions.length > 0 && (
+          <div className="mb-4 md:mb-6">
+            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+              <span className="text-xs md:text-sm text-gray-400 font-medium">Fase:</span>
+              <button
+                onClick={() => setSelectedSession(undefined)}
+                className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm font-medium transition-colors ${
+                  !selectedSession
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-surface-300/50 text-gray-400 hover:text-white hover:bg-surface-300'
+                }`}
+              >
+                Attuale
+              </button>
+              {data.availableSessions.map((session) => (
+                <button
+                  key={session.id}
+                  onClick={() => setSelectedSession(session.id)}
+                  className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm font-medium transition-colors ${
+                    selectedSession === session.id
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-surface-300/50 text-gray-400 hover:text-white hover:bg-surface-300'
+                  }`}
+                >
+                  {session.sessionType === 'PRIMO_MERCATO' ? 'Primo Mercato' : 'Mercato Ricorrente'}
+                  {session.currentPhase ? ` - ${session.currentPhase}` : ''}
+                  <span className="ml-1 opacity-60">({session.status === 'ACTIVE' ? 'In corso' : 'Completata'})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* OSS-6: Historical mode banner */}
+        {data.isHistorical && (
+          <div className="mb-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 md:p-4">
+            <div className="flex items-center gap-2 text-amber-400 text-sm">
+              <span className="text-lg">&#128197;</span>
+              <span className="font-medium">
+                Dati storici: {data.historicalSessionType === 'PRIMO_MERCATO' ? 'Primo Mercato' : 'Mercato Ricorrente'}
+                {data.historicalPhase ? ` - ${data.historicalPhase}` : ''}
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              Stai visualizzando uno snapshot dei dati finanziari al momento di questa fase. I dettagli giocatori non sono disponibili nella vista storica.
+            </p>
+          </div>
+        )}
+
         {/* League Totals */}
         {totals && (
           <div className="mb-4 md:mb-6">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">
+            {/* OSS-6: Formula breakdown */}
+            {totals.totalAcquisitions > 0 && (
+              <div className="mb-3 md:mb-4 bg-surface-300/30 rounded-lg p-3 md:p-4 border border-surface-50/10">
+                <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider mb-2">Formula Bilancio</div>
+                <div className="flex items-center flex-wrap gap-1 text-xs md:text-sm">
+                  <span className="text-gray-400">Budget</span>
+                  <span className="text-primary-400 font-bold">({totals.totalBudget}M)</span>
+                  <span className="text-gray-500">-</span>
+                  <span className="text-gray-400">Acquisti</span>
+                  <span className="text-orange-400 font-bold">({totals.totalAcquisitions}M)</span>
+                  <span className="text-gray-500">-</span>
+                  <span className="text-gray-400">Ingaggi</span>
+                  <span className="text-accent-400 font-bold">({totals.totalContracts}M)</span>
+                  <span className="text-gray-500">=</span>
+                  <span className="text-gray-400">Bilancio</span>
+                  <span className={`font-bold ${totals.totalBalance >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
+                    ({totals.totalBalance >= 0 ? '+' : ''}{totals.totalBalance}M)
+                  </span>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-4">
               <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
                 <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Budget Totale</div>
                 <div className="text-lg md:text-xl font-bold text-primary-400">{totals.totalBudget}M</div>
+              </div>
+              {/* OSS-6: Acquisti totali */}
+              <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-orange-500/20">
+                <div className="text-[10px] md:text-xs text-orange-400/70 uppercase tracking-wider">Acquisti</div>
+                <div className="text-lg md:text-xl font-bold text-orange-400">{totals.totalAcquisitions}M</div>
               </div>
               {/* #193: Show pre/post renewal contracts during CONTRATTI phase */}
               {data?.inContrattiPhase && totals.totalPostRenewal !== null ? (
@@ -617,6 +727,25 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                 </div>
               </div>
             )}
+
+            {/* Trade budget totals row - shown when trades with budget exist */}
+            {totals.hasTradeData && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-4 mt-2 md:mt-4">
+                <div className="bg-secondary-500/10 rounded-lg p-3 md:p-4 border border-secondary-500/20">
+                  <div className="text-[10px] md:text-xs text-secondary-400/70 uppercase tracking-wider">Crediti Ricevuti (Scambi)</div>
+                  <div className="text-lg md:text-xl font-bold text-secondary-400">+{totals.totalTradeBudgetIn}M</div>
+                </div>
+                <div className="bg-amber-500/10 rounded-lg p-3 md:p-4 border border-amber-500/20">
+                  <div className="text-[10px] md:text-xs text-amber-400/70 uppercase tracking-wider">Crediti Ceduti (Scambi)</div>
+                  <div className="text-lg md:text-xl font-bold text-amber-400">-{totals.totalTradeBudgetOut}M</div>
+                </div>
+                <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10 col-span-2 sm:col-span-1">
+                  <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Volume Scambi</div>
+                  <div className="text-lg md:text-xl font-bold text-white">{totals.totalTradeBudgetIn}M</div>
+                  <div className="text-[10px] text-gray-500">totale crediti trasferiti</div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -628,12 +757,18 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                 <tr>
                   <SortableHeader field="teamName" label="Squadra" />
                   <SortableHeader field="budget" label="Budget" className="text-right" />
+                  {/* OSS-6: Acquisti column */}
+                  <SortableHeader field="totalAcquisitionCost" label="Acquisti" className="text-right" hideOnMobile />
                   {/* Show Tagli/Indennizzi columns when data is available */}
                   {totals?.hasFinancialDetails && (
                     <>
                       <th className="hidden md:table-cell px-2 md:px-3 py-3 text-right text-xs font-medium text-danger-400 uppercase tracking-wider">Tagli</th>
                       <th className="hidden md:table-cell px-2 md:px-3 py-3 text-right text-xs font-medium text-green-400 uppercase tracking-wider">Indenn.</th>
                     </>
+                  )}
+                  {/* Trade budget columns when trade data exists */}
+                  {totals?.hasTradeData && (
+                    <th className="hidden md:table-cell px-2 md:px-3 py-3 text-right text-xs font-medium text-secondary-400 uppercase tracking-wider">Scambi</th>
                   )}
                   <SortableHeader field="annualContractCost" label="Contratti" className="text-right" />
                   <SortableHeader field="balance" label="Bilancio" className="text-right" hideOnMobile />
@@ -660,8 +795,8 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                     <>
                       <tr
                         key={team.memberId}
-                        onClick={() => setExpandedTeam(isExpanded ? null : team.memberId)}
-                        className={`hover:bg-surface-300/30 transition-colors cursor-pointer ${balanceLow ? 'bg-danger-500/5' : ''} ${isExpanded ? 'bg-surface-300/20' : ''}`}
+                        onClick={() => !data.isHistorical && setExpandedTeam(isExpanded ? null : team.memberId)}
+                        className={`hover:bg-surface-300/30 transition-colors ${data.isHistorical ? '' : 'cursor-pointer'} ${balanceLow ? 'bg-danger-500/5' : ''} ${isExpanded ? 'bg-surface-300/20' : ''}`}
                       >
                         {/* Team name */}
                         <td className="px-2 md:px-4 py-3 md:py-4">
@@ -682,9 +817,14 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                           </div>
                         </td>
 
-                        {/* Budget */}
+                        {/* Budget (Iniziale = currentBudget + acquisti) */}
                         <td className="px-2 md:px-4 py-3 md:py-4 text-right font-medium text-primary-400 text-sm md:text-base whitespace-nowrap">
-                          {team.budget}M
+                          {team.budget + team.totalAcquisitionCost}M
+                        </td>
+
+                        {/* OSS-6: Acquisti column */}
+                        <td className="hidden md:table-cell px-2 md:px-3 py-3 md:py-4 text-right font-medium text-orange-400 text-sm whitespace-nowrap">
+                          {team.totalAcquisitionCost > 0 ? `${team.totalAcquisitionCost}M` : '-'}
                         </td>
 
                         {/* Tagli column - only shown when data is available */}
@@ -700,6 +840,27 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                             {team.totalIndemnities !== null && team.totalIndemnities > 0 ? `+${team.totalIndemnities}M` : '-'}
                           </td>
                         )}
+
+                        {/* Trade budget column */}
+                        {totals?.hasTradeData && (() => {
+                          const net = team.tradeBudgetIn - team.tradeBudgetOut
+                          return (
+                            <td className="hidden md:table-cell px-2 md:px-3 py-3 md:py-4 text-right text-sm whitespace-nowrap">
+                              {team.tradeBudgetIn === 0 && team.tradeBudgetOut === 0 ? (
+                                <span className="text-gray-600">-</span>
+                              ) : (
+                                <div className="flex flex-col items-end">
+                                  <span className={`font-medium ${net > 0 ? 'text-secondary-400' : net < 0 ? 'text-amber-400' : 'text-gray-400'}`}>
+                                    {net > 0 ? '+' : ''}{net}M
+                                  </span>
+                                  <span className="text-[9px] text-gray-500">
+                                    +{team.tradeBudgetIn} / -{team.tradeBudgetOut}
+                                  </span>
+                                </div>
+                              )}
+                            </td>
+                          )
+                        })()}
 
                         {/* #193: Contracts with pre/post renewal */}
                         <td className="px-2 md:px-4 py-3 md:py-4 text-right">
@@ -785,7 +946,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                       {/* Expanded aggregated view with charts */}
                       {isExpanded && (
                         <tr key={`${team.memberId}-expanded`}>
-                          <td colSpan={totals?.hasFinancialDetails ? 12 : 10} className="px-2 md:px-4 py-4 md:py-6 bg-surface-100/30">
+                          <td colSpan={(totals?.hasFinancialDetails ? 13 : 11) + (totals?.hasTradeData ? 1 : 0)} className="px-2 md:px-4 py-4 md:py-6 bg-surface-100/30">
                             {/* Header with team name and view players button */}
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
                               <div className="text-xs md:text-sm font-medium text-gray-400">
@@ -810,7 +971,11 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                             </div>
 
                             {/* Mobile: summary cards for hidden columns */}
-                            <div className="md:hidden grid grid-cols-2 gap-2 mb-4">
+                            <div className="md:hidden grid grid-cols-3 gap-2 mb-4">
+                              <div className="bg-surface-300/30 rounded-lg p-3 border border-surface-50/10">
+                                <div className="text-[10px] text-gray-500 uppercase">Acquisti</div>
+                                <div className="text-lg font-bold text-orange-400">{team.totalAcquisitionCost}M</div>
+                              </div>
                               <div className="bg-surface-300/30 rounded-lg p-3 border border-surface-50/10">
                                 <div className="text-[10px] text-gray-500 uppercase">Bilancio</div>
                                 <div className={`text-lg font-bold ${balance >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
@@ -822,6 +987,28 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                                 <div className="text-lg font-bold text-white">{team.slotCount}</div>
                               </div>
                             </div>
+
+                            {/* OSS-6: Budget formula breakdown */}
+                            {team.totalAcquisitionCost > 0 && (
+                              <div className="bg-surface-300/30 rounded-lg p-3 md:p-4 border border-surface-50/10 mb-4">
+                                <div className="text-[10px] md:text-xs text-gray-500 uppercase mb-2">Formula Bilancio</div>
+                                <div className="flex items-center flex-wrap gap-1 text-[10px] md:text-xs">
+                                  <span className="text-gray-400">Budget</span>
+                                  <span className="text-primary-400 font-bold">{team.budget + team.totalAcquisitionCost}M</span>
+                                  <span className="text-gray-500">-</span>
+                                  <span className="text-gray-400">Acquisti</span>
+                                  <span className="text-orange-400 font-bold">{team.totalAcquisitionCost}M</span>
+                                  <span className="text-gray-500">-</span>
+                                  <span className="text-gray-400">Ingaggi</span>
+                                  <span className="text-accent-400 font-bold">{team.annualContractCost}M</span>
+                                  <span className="text-gray-500">=</span>
+                                  <span className="text-gray-400">Bilancio</span>
+                                  <span className={`font-bold ${balance >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
+                                    {balance >= 0 ? '+' : ''}{balance}M
+                                  </span>
+                                </div>
+                              </div>
+                            )}
 
                             {/* Financial Breakdown Section - shows tagli, indennizzi when available */}
                             {(team.totalReleaseCosts !== null || team.totalIndemnities !== null) && (
@@ -1007,10 +1194,14 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
         {/* Legend - hidden on mobile, shown in expanded view */}
         <div className="hidden md:block mt-6 bg-surface-300/30 rounded-lg p-4 border border-surface-50/10">
           <h3 className="text-sm font-medium text-gray-400 mb-3">Legenda</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-xs">
             <div>
               <span className="text-primary-400 font-medium">Budget</span>
               <span className="text-gray-500 ml-2">Crediti disponibili</span>
+            </div>
+            <div>
+              <span className="text-orange-400 font-medium">Acquisti</span>
+              <span className="text-gray-500 ml-2">Somma prezzi asta pagati</span>
             </div>
             <div>
               <span className="text-accent-400 font-medium">Contratti</span>
