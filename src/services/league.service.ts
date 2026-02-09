@@ -1596,7 +1596,7 @@ export async function getFinancialTimeline(
       where: { leagueMemberId: targetMemberId },
       include: {
         player: { select: { id: true, name: true, position: true, quotation: true } },
-        marketSession: { select: { id: true, sessionType: true, currentPhase: true, status: true, createdAt: true } },
+        marketSession: { select: { id: true, type: true, currentPhase: true, status: true, createdAt: true } },
       },
       orderBy: { createdAt: 'desc' },
     })
@@ -1605,7 +1605,7 @@ export async function getFinancialTimeline(
     const snapshots = await prisma.managerSessionSnapshot.findMany({
       where: { leagueMemberId: targetMemberId },
       include: {
-        marketSession: { select: { id: true, sessionType: true, currentPhase: true } },
+        marketSession: { select: { id: true, type: true, currentPhase: true } },
       },
       orderBy: { createdAt: 'asc' },
     })
@@ -1623,7 +1623,7 @@ export async function getFinancialTimeline(
       include: {
         sender: { select: { id: true, username: true } },
         receiver: { select: { id: true, username: true } },
-        marketSession: { select: { id: true, sessionType: true, currentPhase: true } },
+        marketSession: { select: { id: true, type: true, currentPhase: true } },
       },
       orderBy: { respondedAt: 'desc' },
     })
@@ -1674,7 +1674,7 @@ export async function getFinancialTimeline(
       cost: ch.cost,
       income: ch.income,
       notes: ch.notes,
-      sessionType: ch.marketSession.sessionType,
+      sessionType: ch.marketSession.type,
       sessionPhase: ch.marketSession.currentPhase,
       createdAt: ch.createdAt.toISOString(),
     }))
@@ -1693,7 +1693,7 @@ export async function getFinancialTimeline(
         requestedBudget: t.requestedBudget,
         offeredPlayers: t.offeredPlayers,
         requestedPlayers: t.requestedPlayers,
-        sessionType: t.marketSession.sessionType,
+        sessionType: t.marketSession.type,
         sessionPhase: t.marketSession.currentPhase,
         createdAt: (t.respondedAt || t.createdAt).toISOString(),
       }
@@ -1709,7 +1709,7 @@ export async function getFinancialTimeline(
       totalIndemnities: s.totalIndemnities,
       totalReleaseCosts: s.totalReleaseCosts,
       contractCount: s.contractCount,
-      sessionType: s.marketSession.sessionType,
+      sessionType: s.marketSession.type,
       sessionPhase: s.marketSession.currentPhase,
       createdAt: s.createdAt.toISOString(),
     }))
@@ -1759,7 +1759,7 @@ export async function getFinancialTrends(leagueId: string, userId: string) {
         leagueMemberId: { in: league.members.map(m => m.id) },
       },
       include: {
-        marketSession: { select: { id: true, sessionType: true, currentPhase: true } },
+        marketSession: { select: { id: true, type: true, currentPhase: true } },
       },
       orderBy: { createdAt: 'asc' },
     })
@@ -1786,7 +1786,7 @@ export async function getFinancialTrends(leagueId: string, userId: string) {
         budget: snap.budget,
         totalSalaries: snap.totalSalaries,
         balance: snap.balance,
-        sessionType: snap.marketSession.sessionType,
+        sessionType: snap.marketSession.type,
         sessionPhase: snap.marketSession.currentPhase,
         createdAt: snap.createdAt.toISOString(),
       })
