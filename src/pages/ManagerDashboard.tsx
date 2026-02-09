@@ -1,10 +1,29 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { auctionApi, leagueApi, prizePhaseApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { Navigation } from '../components/Navigation'
 import { PullToRefresh } from '../components/PullToRefresh'
 import { useSwipeGesture } from '../hooks/useSwipeGesture'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { GripVertical, LayoutGrid, Bell, Settings } from 'lucide-react'
+import { AlertSettings, loadAlertConfig, evaluateAlerts } from '../components/AlertSettings'
 
 interface ManagerDashboardProps {
   leagueId: string
@@ -78,6 +97,32 @@ const POSITION_CONFIG = {
   A: { name: 'Attaccanti', color: 'red', bgClass: 'bg-red-500/20', textClass: 'text-red-400' },
 }
 
+// Sortable widget wrapper
+function SortableWidget({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+  return (
+    <div ref={setNodeRef} style={style} className="relative group">
+      <button
+        {...attributes}
+        {...listeners}
+        className="absolute -left-1 top-3 z-10 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-gray-300 cursor-grab active:cursor-grabbing hidden md:block"
+        title="Trascina per riordinare"
+      >
+        <GripVertical size={16} />
+      </button>
+      {children}
+    </div>
+  )
+}
+
+const DEFAULT_WIDGET_ORDER = ['alerts', 'stats', 'prizes', 'roster', 'expiring']
+const WIDGET_STORAGE_KEY = 'manager-dashboard-widget-order'
+
 export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
@@ -88,6 +133,46 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
   const [budgetMovements, setBudgetMovements] = useState<BudgetMovement[]>([])
   const [activeTab, setActiveTab] = useState<'overview' | 'roster' | 'contracts' | 'budget'>('overview')
   const DASHBOARD_TABS = ['overview', 'roster', 'contracts', 'budget'] as const
+
+  // Widget order for DnD
+  const [widgetOrder, setWidgetOrder] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(WIDGET_STORAGE_KEY)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed
+        } catch {}
+      }
+    }
+    return DEFAULT_WIDGET_ORDER
+  })
+  const [isEditingLayout, setIsEditingLayout] = useState(false)
+  const [alertConfig] = useState(loadAlertConfig)
+  const [showAlertSettings, setShowAlertSettings] = useState(false)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event
+    if (over && active.id !== over.id) {
+      setWidgetOrder(prev => {
+        const oldIndex = prev.indexOf(String(active.id))
+        const newIndex = prev.indexOf(String(over.id))
+        const newOrder = arrayMove(prev, oldIndex, newIndex)
+        localStorage.setItem(WIDGET_STORAGE_KEY, JSON.stringify(newOrder))
+        return newOrder
+      })
+    }
+  }, [])
+
+  const resetWidgetOrder = useCallback(() => {
+    setWidgetOrder(DEFAULT_WIDGET_ORDER)
+    localStorage.removeItem(WIDGET_STORAGE_KEY)
+  }, [])
 
   const swipeToNextTab = useCallback(() => {
     const idx = DASHBOARD_TABS.indexOf(activeTab)
@@ -227,6 +312,15 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
   const totalSalaries = allPlayers.reduce((sum, e) => sum + (e.contract?.salary || 0), 0)
   const totalClausole = allPlayers.reduce((sum, e) => sum + (e.contract?.rescissionClause || 0), 0)
 
+  const activeAlerts = useMemo(() => evaluateAlerts(alertConfig, {
+    budget: member.currentBudget,
+    totalSalaries,
+    initialBudget: member.league.initialBudget,
+    expiringCount: expiringContracts.length,
+    totalSlots,
+    filledSlots: totals.total,
+  }), [alertConfig, member, totalSalaries, expiringContracts.length, totalSlots, totals.total])
+
   return (
     <div className="min-h-screen bg-dark-300">
       <Navigation currentPage="managerDashboard" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
@@ -265,154 +359,255 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* Stats Grid */}
-            <div className="grid md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="py-4 text-center">
-                  <p className="text-3xl font-bold text-primary-600">{totals.total}/{totalSlots}</p>
-                  <p className="text-sm text-gray-500">Giocatori in rosa</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="py-4 text-center">
-                  <p className="text-3xl font-bold text-green-600">{member.currentBudget}</p>
-                  <p className="text-sm text-gray-500">Budget disponibile</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="py-4 text-center">
-                  <p className="text-3xl font-bold text-orange-600">{totalSalaries}</p>
-                  <p className="text-sm text-gray-500">Totale ingaggi</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="py-4 text-center">
-                  <p className="text-3xl font-bold text-purple-600">{totalClausole}</p>
-                  <p className="text-sm text-gray-500">Valore clausole</p>
-                </CardContent>
-              </Card>
+            {/* Edit layout toggle */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => setIsEditingLayout(prev => !prev)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                  isEditingLayout
+                    ? 'bg-primary-500/20 text-primary-400 border border-primary-500/40'
+                    : 'bg-surface-300/50 text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                <LayoutGrid size={14} />
+                {isEditingLayout ? 'Fine modifica' : 'Modifica layout'}
+              </button>
+              {isEditingLayout && (
+                <button
+                  onClick={resetWidgetOrder}
+                  className="ml-2 px-3 py-1.5 rounded-lg text-xs bg-surface-300/50 text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  Reset
+                </button>
+              )}
             </div>
 
-            {/* Prize Info Banner - Show if there's prize data */}
-            {prizeData && (
-              <div className={`rounded-xl border p-5 ${
-                prizeData.config.isFinalized
-                  ? 'bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border-yellow-500/30'
-                  : 'bg-surface-200 border-surface-50/20'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">🏆</span>
-                    <div>
-                      <h3 className="text-lg font-bold text-white">
-                        {prizeData.config.isFinalized ? 'Premi Budget Ricevuti' : 'Premi Budget in Assegnazione'}
-                      </h3>
-                      {prizeData.config.isFinalized ? (
-                        <p className="text-sm text-gray-400">
-                          I premi sono stati accreditati sul tuo budget
-                        </p>
-                      ) : (
-                        <p className="text-sm text-gray-400">
-                          L'admin sta assegnando i premi. Base: <span className="text-primary-400 font-bold">{prizeData.config.baseReincrement}M</span>
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  {prizeData.config.isFinalized && (
-                    <div className="text-right">
-                      {(() => {
-                        const myPrize = prizeData.members.find(m => m.username === member?.user?.username)
-                        return myPrize?.totalPrize ? (
-                          <div>
-                            <p className="text-2xl font-bold text-yellow-400">+{myPrize.totalPrize}M</p>
-                            <p className="text-xs text-gray-500">Premio totale</p>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={widgetOrder} strategy={verticalListSortingStrategy}>
+                {widgetOrder.map(widgetId => {
+                  // Alerts Widget
+                  if (widgetId === 'alerts') return (
+                    <SortableWidget key="alerts" id="alerts">
+                      {showAlertSettings ? (
+                        <Card>
+                          <CardContent className="py-4">
+                            <AlertSettings onClose={() => setShowAlertSettings(false)} />
+                          </CardContent>
+                        </Card>
+                      ) : activeAlerts.length > 0 ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                              <Bell size={14} />
+                              <span>{activeAlerts.length} alert attiv{activeAlerts.length === 1 ? 'o' : 'i'}</span>
+                            </div>
+                            <button
+                              onClick={() => setShowAlertSettings(true)}
+                              className="p-1 text-gray-600 hover:text-gray-300 transition-colors"
+                              title="Configura alert"
+                            >
+                              <Settings size={14} />
+                            </button>
                           </div>
-                        ) : null
-                      })()}
-                    </div>
-                  )}
-                  {activeSessionId && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onNavigate('prizes', { leagueId })}
-                    >
-                      Vedi Dettagli
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Roster Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Composizione Rosa</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-4 gap-4">
-                  {(['P', 'D', 'C', 'A'] as const).map(pos => {
-                    const config = POSITION_CONFIG[pos]
-                    const isFull = totals[pos] >= slots[pos]
-                    return (
-                      <div key={pos} className={`p-4 rounded-lg ${config.bgClass}`}>
-                        <div className="flex justify-between items-center mb-2">
-                          <span className={`font-bold ${config.textClass}`}>{config.name}</span>
-                          <span className={`text-sm ${isFull && !isAfterFirstMarket ? 'text-green-600' : 'text-gray-500'}`}>
-                            {isAfterFirstMarket ? totals[pos] : `${totals[pos]}/${slots[pos]}`}
-                          </span>
-                        </div>
-                        <div className="space-y-1">
-                          {(roster[pos] ?? []).slice(0, 3).map(entry => (
-                            <p key={entry.id} className="text-sm truncate">{entry.player.name}</p>
+                          {activeAlerts.map((alert, i) => (
+                            <div
+                              key={i}
+                              className={`p-3 rounded-lg border text-sm ${
+                                alert.type === 'danger'
+                                  ? 'bg-danger-500/10 border-danger-500/30 text-danger-400'
+                                  : alert.type === 'warning'
+                                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                                    : 'bg-primary-500/10 border-primary-500/30 text-primary-400'
+                              }`}
+                            >
+                              <div className="font-medium">{alert.title}</div>
+                              <div className="text-xs opacity-75 mt-0.5">{alert.message}</div>
+                            </div>
                           ))}
-                          {(roster[pos]?.length ?? 0) > 3 && (
-                            <p className="text-xs text-gray-400">+{(roster[pos]?.length ?? 0) - 3} altri</p>
-                          )}
-                          {(roster[pos]?.length ?? 0) === 0 && (
-                            <p className="text-xs text-gray-400">Nessun giocatore</p>
-                          )}
                         </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+                      ) : (
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-surface-300/20 border border-surface-50/10">
+                          <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <Bell size={14} />
+                            <span>Nessun alert attivo</span>
+                          </div>
+                          <button
+                            onClick={() => setShowAlertSettings(true)}
+                            className="p-1 text-gray-600 hover:text-gray-300 transition-colors"
+                            title="Configura alert"
+                          >
+                            <Settings size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </SortableWidget>
+                  )
 
-            {/* Expiring Contracts Alert */}
-            {expiringContracts.length > 0 && (
-              <Card className="border-warning-300 bg-warning-50">
-                <CardHeader>
-                  <CardTitle className="text-warning-700">Contratti in Scadenza</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {expiringContracts.map(entry => (
-                      <div key={entry.id} className="flex justify-between items-center p-2 bg-white rounded">
-                        <div>
-                          <p className="font-medium">{entry.player.name}</p>
-                          <p className="text-sm text-gray-500">{entry.player.position} - {entry.player.team}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-warning-600 font-medium">
-                            {entry.contract?.duration === 0 ? 'SCADUTO' : '1 semestre'}
-                          </p>
-                          <p className="text-sm text-gray-500">Ingaggio: {entry.contract?.salary}</p>
+                  // Stats Grid
+                  if (widgetId === 'stats') return (
+                    <SortableWidget key="stats" id="stats">
+                      <div className="grid md:grid-cols-4 gap-4">
+                        <Card>
+                          <CardContent className="py-4 text-center">
+                            <p className="text-3xl font-bold text-primary-600">{totals.total}/{totalSlots}</p>
+                            <p className="text-sm text-gray-500">Giocatori in rosa</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="py-4 text-center">
+                            <p className="text-3xl font-bold text-green-600">{member.currentBudget}</p>
+                            <p className="text-sm text-gray-500">Budget disponibile</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="py-4 text-center">
+                            <p className="text-3xl font-bold text-orange-600">{totalSalaries}</p>
+                            <p className="text-sm text-gray-500">Totale ingaggi</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="py-4 text-center">
+                            <p className="text-3xl font-bold text-purple-600">{totalClausole}</p>
+                            <p className="text-sm text-gray-500">Valore clausole</p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </SortableWidget>
+                  )
+
+                  // Prize Info Banner
+                  if (widgetId === 'prizes' && prizeData) return (
+                    <SortableWidget key="prizes" id="prizes">
+                      <div className={`rounded-xl border p-5 ${
+                        prizeData.config.isFinalized
+                          ? 'bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border-yellow-500/30'
+                          : 'bg-surface-200 border-surface-50/20'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-3xl">🏆</span>
+                            <div>
+                              <h3 className="text-lg font-bold text-white">
+                                {prizeData.config.isFinalized ? 'Premi Budget Ricevuti' : 'Premi Budget in Assegnazione'}
+                              </h3>
+                              {prizeData.config.isFinalized ? (
+                                <p className="text-sm text-gray-400">
+                                  I premi sono stati accreditati sul tuo budget
+                                </p>
+                              ) : (
+                                <p className="text-sm text-gray-400">
+                                  L'admin sta assegnando i premi. Base: <span className="text-primary-400 font-bold">{prizeData.config.baseReincrement}M</span>
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          {prizeData.config.isFinalized && (
+                            <div className="text-right">
+                              {(() => {
+                                const myPrize = prizeData.members.find(m => m.username === member?.user?.username)
+                                return myPrize?.totalPrize ? (
+                                  <div>
+                                    <p className="text-2xl font-bold text-yellow-400">+{myPrize.totalPrize}M</p>
+                                    <p className="text-xs text-gray-500">Premio totale</p>
+                                  </div>
+                                ) : null
+                              })()}
+                            </div>
+                          )}
+                          {activeSessionId && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => onNavigate('prizes', { leagueId })}
+                            >
+                              Vedi Dettagli
+                            </Button>
+                          )}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={() => onNavigate('contracts', { leagueId })}
-                  >
-                    Gestisci Contratti
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+                    </SortableWidget>
+                  )
+
+                  // Roster Summary
+                  if (widgetId === 'roster') return (
+                    <SortableWidget key="roster" id="roster">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Composizione Rosa</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-4 gap-4">
+                            {(['P', 'D', 'C', 'A'] as const).map(pos => {
+                              const config = POSITION_CONFIG[pos]
+                              const isFull = totals[pos] >= slots[pos]
+                              return (
+                                <div key={pos} className={`p-4 rounded-lg ${config.bgClass}`}>
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className={`font-bold ${config.textClass}`}>{config.name}</span>
+                                    <span className={`text-sm ${isFull && !isAfterFirstMarket ? 'text-green-600' : 'text-gray-500'}`}>
+                                      {isAfterFirstMarket ? totals[pos] : `${totals[pos]}/${slots[pos]}`}
+                                    </span>
+                                  </div>
+                                  <div className="space-y-1">
+                                    {(roster[pos] ?? []).slice(0, 3).map(entry => (
+                                      <p key={entry.id} className="text-sm truncate">{entry.player.name}</p>
+                                    ))}
+                                    {(roster[pos]?.length ?? 0) > 3 && (
+                                      <p className="text-xs text-gray-400">+{(roster[pos]?.length ?? 0) - 3} altri</p>
+                                    )}
+                                    {(roster[pos]?.length ?? 0) === 0 && (
+                                      <p className="text-xs text-gray-400">Nessun giocatore</p>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </SortableWidget>
+                  )
+
+                  // Expiring Contracts
+                  if (widgetId === 'expiring' && expiringContracts.length > 0) return (
+                    <SortableWidget key="expiring" id="expiring">
+                      <Card className="border-warning-300 bg-warning-50">
+                        <CardHeader>
+                          <CardTitle className="text-warning-700">Contratti in Scadenza</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            {expiringContracts.map(entry => (
+                              <div key={entry.id} className="flex justify-between items-center p-2 bg-white rounded">
+                                <div>
+                                  <p className="font-medium">{entry.player.name}</p>
+                                  <p className="text-sm text-gray-500">{entry.player.position} - {entry.player.team}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-warning-600 font-medium">
+                                    {entry.contract?.duration === 0 ? 'SCADUTO' : '1 semestre'}
+                                  </p>
+                                  <p className="text-sm text-gray-500">Ingaggio: {entry.contract?.salary}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <Button
+                            variant="outline"
+                            className="mt-4"
+                            onClick={() => onNavigate('contracts', { leagueId })}
+                          >
+                            Gestisci Contratti
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </SortableWidget>
+                  )
+
+                  return null
+                })}
+              </SortableContext>
+            </DndContext>
           </div>
         )}
 
