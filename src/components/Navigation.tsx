@@ -269,7 +269,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
           <div className="flex items-center gap-2">
             {/* Mobile menu button - a sinistra */}
             <button
-              className="lg:hidden text-gray-400 hover:text-white p-2 hover:bg-surface-300/50 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400/50"
+              className="lg:hidden text-gray-400 hover:text-white p-2 w-11 h-11 flex items-center justify-center hover:bg-surface-300/50 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400/50"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               data-testid="mobile-menu-toggle"
               aria-expanded={mobileMenuOpen}

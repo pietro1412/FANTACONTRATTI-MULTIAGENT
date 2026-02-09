@@ -6,6 +6,7 @@ import {
 } from 'recharts'
 import { TeamRanking } from './TeamRanking'
 import { SectionHeader } from './KPICard'
+import { LandscapeHint } from '../ui/LandscapeHint'
 import {
   type FinancialsData, type LeagueTotals,
   getTeamBalance, getHealthStatus,
@@ -134,6 +135,7 @@ export function TeamComparison({ data, onTeamClick }: TeamComparisonProps) {
       />
 
       {/* Charts grid */}
+      <LandscapeHint />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Budget vs Ingaggi stacked bar */}
         <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">

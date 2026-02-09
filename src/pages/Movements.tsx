@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { movementApi, leagueApi } from '../services/api'
 import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 
@@ -189,10 +190,19 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Caricamento storico...</p>
+      <div className="min-h-screen bg-dark-300">
+        <Navigation currentPage="movements" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
+        <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-4 space-y-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 p-3 bg-surface-200 rounded-lg animate-pulse">
+              <div className="w-8 h-8 rounded bg-surface-100" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-40 bg-surface-100 rounded" />
+                <div className="h-3 w-24 bg-surface-100 rounded" />
+              </div>
+              <div className="h-4 w-16 bg-surface-100 rounded" />
+            </div>
+          ))}
         </div>
       </div>
     )
@@ -204,7 +214,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
 
       {/* Header compatto */}
       <div className="bg-surface-200 border-b border-surface-50/20">
-        <div className="max-w-[1600px] mx-auto px-6 py-4">
+        <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
@@ -246,7 +256,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
         </div>
       </div>
 
-      <main className="max-w-[1600px] mx-auto px-6 py-4">
+      <main className="max-w-[1600px] mx-auto px-4 md:px-6 py-4">
         {error && (
           <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg mb-4 text-sm">
             {error}
@@ -254,22 +264,19 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
         )}
 
         {movements.length === 0 ? (
-          <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-12 text-center">
-            <div className="text-4xl mb-3 opacity-50">📭</div>
-            <p className="text-gray-400">Nessun movimento registrato</p>
-          </div>
+          <EmptyState icon="📭" title="Nessun movimento registrato" description="I movimenti appariranno qui dopo aste, scambi e altre operazioni." />
         ) : (
           <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
             {/* Table Header */}
-            <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-surface-300 border-b border-surface-50/20 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-              <div className="col-span-1">Tipo</div>
-              <div className="col-span-1">Stag.</div>
-              <div className="col-span-1">Sem.</div>
-              <div className="col-span-3">Giocatore</div>
-              <div className="col-span-2">Da → A</div>
-              <div className="col-span-1 text-right">Prezzo</div>
-              <div className="col-span-2">Contratto</div>
-              <div className="col-span-1 text-right">Data</div>
+            <div role="row" className="grid grid-cols-12 gap-2 px-4 py-2 bg-surface-300 border-b border-surface-50/20 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              <div role="columnheader" className="col-span-1">Tipo</div>
+              <div role="columnheader" className="col-span-1">Stag.</div>
+              <div role="columnheader" className="col-span-1">Sem.</div>
+              <div role="columnheader" className="col-span-3">Giocatore</div>
+              <div role="columnheader" className="col-span-2">Da &rarr; A</div>
+              <div role="columnheader" className="col-span-1 text-right">Prezzo</div>
+              <div role="columnheader" className="col-span-2">Contratto</div>
+              <div role="columnheader" className="col-span-1 text-right">Data</div>
             </div>
 
             {/* Table Rows */}

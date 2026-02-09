@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Navigation } from '../components/Navigation'
 import { playerApi, leagueApi } from '../services/api'
 import { Input } from '../components/ui/Input'
+import { EmptyState } from '../components/ui/EmptyState'
 import { POSITION_GRADIENTS, POSITION_FILTER_COLORS } from '../components/ui/PositionBadge'
 import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
 import { getPlayerPhotoUrl } from '../utils/player-images'
@@ -159,9 +160,9 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
     <div className="min-h-screen bg-dark-100">
       <Navigation currentPage="allPlayers" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
-      <div className="max-w-[1600px] mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white">Tutti i Giocatori</h1>
+      <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-4 md:py-6">
+        <div className="mb-4 md:mb-6">
+          <h1 className="text-xl md:text-2xl font-bold text-white">Tutti i Giocatori</h1>
           <p className="text-gray-400">{leagueName}</p>
         </div>
 
@@ -229,8 +230,17 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
 
         {/* Results */}
         {isLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 bg-surface-200/50 rounded-lg animate-pulse">
+                <div className="w-10 h-10 rounded-full bg-surface-100" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-32 bg-surface-100 rounded" />
+                  <div className="h-3 w-20 bg-surface-100 rounded" />
+                </div>
+                <div className="h-6 w-16 bg-surface-100 rounded" />
+              </div>
+            ))}
           </div>
         ) : (
           <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
@@ -239,9 +249,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
             </div>
 
             {filteredPlayers.length === 0 ? (
-              <div className="p-8 text-center text-gray-400">
-                Nessun giocatore trovato
-              </div>
+              <EmptyState icon="🔍" title="Nessun giocatore trovato" description="Prova a cambiare i filtri di ricerca." compact />
             ) : (
               <div className="divide-y divide-surface-50/10">
                 {filteredPlayers.slice(0, 100).map(player => (

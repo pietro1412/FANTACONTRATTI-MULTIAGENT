@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useSear
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { ScrollToTop } from './components/ui/ScrollToTop'
 
 // Pagine critiche - import statico (usate al primo caricamento)
 import { Login } from './pages/Login'
@@ -667,6 +668,7 @@ function App() {
       <ThemeProvider>
         <AuthProvider>
           <AppRoutes />
+          <ScrollToTop />
           <SpeedInsights />
         </AuthProvider>
       </ThemeProvider>

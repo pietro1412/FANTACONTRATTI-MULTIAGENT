@@ -106,7 +106,7 @@ export function AuctionTimer({
   // === VERSIONE COMPATTA (per sticky mobile) ===
   if (compact) {
     return (
-      <div className={`flex items-center gap-2 ${className}`}>
+      <div className={`flex items-center gap-2 ${className}`} role="timer" aria-live="polite" aria-label={`${timeLeft} secondi rimanenti`}>
         {/* Mini cerchio progress */}
         <div className="relative">
           <svg width={size} height={size} className="transform -rotate-90">
@@ -148,8 +148,10 @@ export function AuctionTimer({
   }
 
   // === VERSIONE FULL (per desktop e sezione principale) ===
+  const statusLabel = timeLeft <= 5 ? 'Ultimi secondi' : timeLeft <= 10 ? 'Affrettati' : 'Tempo OK'
+
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative ${className}`} role="timer" aria-live="assertive" aria-label={`Timer asta: ${timeLeft} secondi rimanenti. ${statusLabel}`}>
       {/* Container principale con effetto glow */}
       <div
         className={`

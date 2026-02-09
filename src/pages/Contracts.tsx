@@ -929,6 +929,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Cerca..."
+                inputMode="search"
+                enterKeyHint="search"
                 className="w-32 px-2 py-1 bg-surface-300 border border-surface-50/30 rounded text-white text-sm"
               />
               <select
@@ -942,6 +944,27 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 <option value="C">C</option>
                 <option value="A">A</option>
               </select>
+            </div>
+
+            {/* Duration color legend */}
+            <div className="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
+              <span>Durata:</span>
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded bg-gradient-to-r from-red-500 to-red-600" />
+                1 sem
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded bg-gradient-to-r from-yellow-500 to-yellow-600" />
+                2 sem
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded bg-gradient-to-r from-green-500 to-green-600" />
+                3 sem
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded bg-gradient-to-r from-blue-500 to-blue-600" />
+                4+ sem
+              </span>
             </div>
 
             {/* Azioni - Desktop only */}
@@ -1173,13 +1196,13 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-warning-500/10 text-xs text-gray-400 uppercase">
-                      <th className="text-left p-2">Giocatore</th>
-                      <th className="text-center p-2">Acquisto</th>
-                      <th className="text-center p-2">Min Ing.</th>
-                      <th className="text-center p-2 border-l border-surface-50/20">Ingaggio</th>
-                      <th className="text-center p-2">Durata</th>
-                      <th className="text-center p-2">Clausola</th>
-                      <th className="text-center p-2">Nuova Rubata</th>
+                      <th scope="col" className="text-left p-2">Giocatore</th>
+                      <th scope="col" className="text-center p-2">Acquisto</th>
+                      <th scope="col" className="text-center p-2">Min Ing.</th>
+                      <th scope="col" className="text-center p-2 border-l border-surface-50/20">Ingaggio</th>
+                      <th scope="col" className="text-center p-2">Durata</th>
+                      <th scope="col" className="text-center p-2">Clausola</th>
+                      <th scope="col" className="text-center p-2">Nuova Rubata</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2050,11 +2073,11 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-danger-500/10 text-xs text-danger-400 uppercase">
-                    <th className="text-left p-2">Giocatore</th>
-                    <th className="text-center p-2">Ing.</th>
-                    <th className="text-center p-2">Dur.</th>
-                    <th className="text-center p-2">Costo Taglio</th>
-                    <th className="text-center p-2">Note</th>
+                    <th scope="col" className="text-left p-2">Giocatore</th>
+                    <th scope="col" className="text-center p-2">Ing.</th>
+                    <th scope="col" className="text-center p-2">Dur.</th>
+                    <th scope="col" className="text-center p-2">Costo Taglio</th>
+                    <th scope="col" className="text-center p-2">Note</th>
                   </tr>
                 </thead>
                 <tbody>

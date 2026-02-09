@@ -227,10 +227,17 @@ export function Rose({ onNavigate }: RoseProps) {
     return (
       <div className="min-h-screen bg-dark-300">
         <Navigation currentPage="rose" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
-        <main className="max-w-[1600px] mx-auto px-4 py-8">
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-400"></div>
-          </div>
+        <main className="max-w-[1600px] mx-auto px-4 py-8 space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 p-3 bg-surface-200/50 rounded-lg animate-pulse">
+              <div className="w-10 h-10 rounded-full bg-surface-100" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-32 bg-surface-100 rounded" />
+                <div className="h-3 w-20 bg-surface-100 rounded" />
+              </div>
+              <div className="h-6 w-16 bg-surface-100 rounded" />
+            </div>
+          ))}
         </main>
       </div>
     )
@@ -371,7 +378,29 @@ export function Rose({ onNavigate }: RoseProps) {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Cerca giocatore..."
                     className="flex-1 min-w-[120px] px-2 py-1 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
+                    inputMode="search"
+                    enterKeyHint="search"
                   />
+                </div>
+                {/* Duration color legend */}
+                <div className="flex items-center gap-3 text-xs text-gray-400 mt-2 flex-wrap">
+                  <span>Durata:</span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded bg-gradient-to-r from-red-500 to-red-600" />
+                    1 sem
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded bg-gradient-to-r from-yellow-500 to-yellow-600" />
+                    2 sem
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded bg-gradient-to-r from-green-500 to-green-600" />
+                    3 sem
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded bg-gradient-to-r from-blue-500 to-blue-600" />
+                    4+ sem
+                  </span>
                 </div>
               </div>
 
@@ -489,17 +518,17 @@ export function Rose({ onNavigate }: RoseProps) {
                 <table className="w-full min-w-[600px] text-sm table-fixed">
                   <thead className="bg-surface-300/50">
                     <tr className="text-xs text-gray-400 uppercase">
-                      <th className="w-12 p-2 text-center">R</th>
-                      <th className="w-auto text-left p-2">Giocatore</th>
-                      <th className="w-36 text-left p-2">Squadra</th>
-                      <th className="w-10 text-center p-2" title="Presenze">Pr</th>
-                      <th className="w-10 text-center p-2" title="Gol">G</th>
-                      <th className="w-10 text-center p-2" title="Assist">A</th>
-                      <th className="w-12 text-center p-2" title="Rating">Vt</th>
-                      <th className="w-16 text-center p-2 text-accent-400">Ing</th>
-                      <th className="w-14 text-center p-2">Dur</th>
-                      <th className="w-16 text-center p-2 text-orange-400">Cls</th>
-                      <th className="w-16 text-center p-2 text-warning-400">Rub</th>
+                      <th scope="col" className="w-12 p-2 text-center">R</th>
+                      <th scope="col" className="w-auto text-left p-2">Giocatore</th>
+                      <th scope="col" className="w-36 text-left p-2">Squadra</th>
+                      <th scope="col" className="w-10 text-center p-2" title="Presenze">Pr</th>
+                      <th scope="col" className="w-10 text-center p-2" title="Gol">G</th>
+                      <th scope="col" className="w-10 text-center p-2" title="Assist">A</th>
+                      <th scope="col" className="w-12 text-center p-2" title="Rating">Vt</th>
+                      <th scope="col" className="w-16 text-center p-2 text-accent-400">Ing</th>
+                      <th scope="col" className="w-14 text-center p-2">Dur</th>
+                      <th scope="col" className="w-16 text-center p-2 text-orange-400">Cls</th>
+                      <th scope="col" className="w-16 text-center p-2 text-warning-400">Rub</th>
                     </tr>
                   </thead>
                   <tbody>

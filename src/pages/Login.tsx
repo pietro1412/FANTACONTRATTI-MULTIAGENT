@@ -86,6 +86,8 @@ export function Login({ onNavigate }: LoginProps) {
             <Input
               label="Email o Username"
               type="text"
+              inputMode="email"
+              autoComplete="email"
               value={emailOrUsername}
               onChange={e => setEmailOrUsername(e.target.value)}
               placeholder="mario@email.com"

@@ -94,6 +94,8 @@ export function Register({ onNavigate }: RegisterProps) {
             <Input
               label="Email"
               type="email"
+              inputMode="email"
+              autoComplete="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="mario@email.com"

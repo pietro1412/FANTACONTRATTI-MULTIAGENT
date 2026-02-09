@@ -35,6 +35,7 @@ export function ThemeSelector({ isOpen, onClose }: ThemeSelectorProps) {
           <button
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-theme-hover text-theme-muted hover:text-theme-text transition-colors"
+            aria-label="Chiudi selettore tema"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -182,6 +183,7 @@ export function ThemeButton({ onClick }: { onClick: () => void }) {
       onClick={onClick}
       className="flex items-center gap-2 px-3 py-2 rounded-lg bg-theme-hover border border-theme-border hover:bg-theme-primary-bg transition-colors group"
       title="Cambia tema"
+      aria-label="Cambia tema"
     >
       {theme.gradient ? (
         <div className={`w-5 h-5 rounded bg-gradient-to-br ${theme.gradient}`} />

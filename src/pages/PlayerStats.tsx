@@ -396,7 +396,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
         <div className="max-w-[1800px] mx-auto">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-white mb-2">Statistiche Serie A</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Statistiche Serie A</h1>
             <p className="text-gray-400">
               Analizza le statistiche dei giocatori della Serie A ({total} giocatori con dati)
             </p>
@@ -590,7 +590,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                   <table className="w-full min-w-[800px]">
                     <thead className="bg-surface-300 sticky top-0">
                       <tr>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-400 w-10">
+                        <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-400 w-10">
                           <input
                             type="checkbox"
                             className="rounded"
@@ -599,24 +599,32 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                           />
                         </th>
                         <th
+                          scope="col"
+                          aria-sort={sortBy === 'name' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                           className="px-3 py-3 text-left text-xs font-medium text-gray-400 cursor-pointer hover:text-white min-w-[180px]"
                           onClick={() => handleSort('name')}
                         >
                           Giocatore <SortIcon column="name" />
                         </th>
                         <th
+                          scope="col"
+                          aria-sort={sortBy === 'team' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                           className="px-3 py-3 text-left text-xs font-medium text-gray-400 cursor-pointer hover:text-white min-w-[120px]"
                           onClick={() => handleSort('team')}
                         >
                           Squadra <SortIcon column="team" />
                         </th>
                         <th
+                          scope="col"
+                          aria-sort={sortBy === 'position' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                           className="px-3 py-3 text-center text-xs font-medium text-gray-400 cursor-pointer hover:text-white w-16"
                           onClick={() => handleSort('position')}
                         >
                           Pos <SortIcon column="position" />
                         </th>
                         <th
+                          scope="col"
+                          aria-sort={sortBy === 'quotation' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                           className="px-3 py-3 text-center text-xs font-medium text-gray-400 cursor-pointer hover:text-white w-16"
                           onClick={() => handleSort('quotation')}
                         >
@@ -626,6 +634,8 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                         {visibleColumnDefs.map(col => (
                           <th
                             key={col.key}
+                            scope="col"
+                            aria-sort={col.sortable && sortBy === col.key ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                             className="px-2 py-3 text-center text-xs font-medium text-gray-400 cursor-pointer hover:text-white whitespace-nowrap"
                             onClick={() => col.sortable && handleSort(col.key)}
                             title={col.label}
