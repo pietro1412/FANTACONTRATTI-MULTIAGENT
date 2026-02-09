@@ -162,10 +162,23 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-lg text-gray-400">Caricamento lega...</p>
+      <div className="min-h-screen bg-dark-300">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 space-y-6 animate-pulse">
+          <div className="h-8 w-48 bg-surface-100 rounded" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-surface-200 rounded-xl p-4 space-y-3 border border-surface-50/20">
+                <div className="h-4 w-3/4 bg-surface-100 rounded" />
+                <div className="h-4 w-1/2 bg-surface-100 rounded" />
+                <div className="h-8 w-full bg-surface-100 rounded" />
+              </div>
+            ))}
+          </div>
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-16 bg-surface-200 rounded-lg border border-surface-50/20" />
+            ))}
+          </div>
         </div>
       </div>
     )
@@ -194,28 +207,28 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
 
       {/* League Header */}
       <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
-        <div className="max-w-[1600px] mx-auto px-6 py-6">
-          <div className="flex justify-between items-end">
-            <div className="flex items-center gap-5">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-glow">
-                <span className="text-3xl">🏟️</span>
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex justify-between items-end gap-3">
+            <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-glow flex-shrink-0">
+                <span className="text-2xl sm:text-3xl">🏟️</span>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-white">{league.name}</h1>
-                <p className="text-gray-400 mt-1">
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white truncate">{league.name}</h1>
+                <p className="text-gray-400 mt-1 text-sm">
                   {league.status === 'DRAFT' ? '📋 In preparazione' : league.status === 'ACTIVE' ? '🔥 Primo Mercato' : league.status}
                 </p>
               </div>
             </div>
-            <div className="text-right bg-surface-200 rounded-xl px-6 py-4 border border-surface-50/20">
-              <p className="text-sm text-gray-400 uppercase tracking-wide">Il tuo Budget</p>
-              <p className="text-4xl font-bold text-accent-400">{userMembership?.currentBudget || 0}</p>
+            <div className="text-right bg-surface-200 rounded-xl px-3 py-2 sm:px-6 sm:py-4 border border-surface-50/20 flex-shrink-0">
+              <p className="text-xs sm:text-sm text-gray-400 uppercase tracking-wide">Il tuo Budget</p>
+              <p className="text-2xl sm:text-4xl font-bold text-accent-400">{userMembership?.currentBudget || 0}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <main className="max-w-[1600px] mx-auto px-6 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-8">
         {error && (
           <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-xl mb-6 text-base">
             {error}
@@ -311,26 +324,40 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           const showButton = !(config.adminOnly && !isAdmin)
 
           return (
-            <div className={`bg-gradient-to-r ${colors.bg} border-2 ${colors.border} rounded-2xl p-6 mb-8 flex items-center justify-between`}>
-              <div className="flex items-center gap-4">
-                <div className={`w-14 h-14 rounded-full ${colors.iconBg} flex items-center justify-center animate-pulse`}>
-                  <span className="text-3xl">{config.icon}</span>
+            <button
+              onClick={getNavTarget()}
+              className={`bg-gradient-to-r ${colors.bg} border-2 ${colors.border} rounded-2xl p-4 sm:p-6 mb-8 flex items-center justify-between w-full text-left cursor-pointer hover:translate-x-1 hover:border-primary-500/50 transition-all duration-200 group`}
+              role="link"
+            >
+              <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full ${colors.iconBg} flex items-center justify-center animate-pulse flex-shrink-0`}>
+                  <span className="text-2xl sm:text-3xl">{config.icon}</span>
                 </div>
-                <div>
-                  <h2 className={`text-xl font-bold ${colors.text}`}>{config.title}</h2>
-                  <p className="text-gray-300">{config.description}</p>
+                <div className="min-w-0">
+                  <h2 className={`text-lg sm:text-xl font-bold ${colors.text}`}>{config.title}</h2>
+                  <p className="text-gray-300 text-sm sm:text-base">{config.description}</p>
+                  <span className={`text-xs ${colors.text} font-medium mt-1 inline-block md:hidden`}>
+                    Vai alla fase &rarr;
+                  </span>
                 </div>
               </div>
-              {showButton && (
-                <Button
-                  size="lg"
-                  variant={config.color === 'secondary' ? 'secondary' : 'primary'}
-                  onClick={getNavTarget()}
-                >
-                  {config.buttonText}
-                </Button>
-              )}
-            </div>
+              <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                {showButton && (
+                  <span className="hidden md:inline-block">
+                    <Button
+                      size="lg"
+                      variant={config.color === 'secondary' ? 'secondary' : 'primary'}
+                      tabIndex={-1}
+                    >
+                      {config.buttonText}
+                    </Button>
+                  </span>
+                )}
+                <svg className={`w-5 h-5 ${colors.text} group-hover:translate-x-1 transition-transform duration-200`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </button>
           )
         })()}
 
@@ -506,7 +533,8 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
                         default: break
                       }
                     }}
-                    className="w-full p-4 bg-primary-500/20 border border-primary-500/40 rounded-xl text-left hover:bg-primary-500/30 transition-colors group"
+                    className="w-full p-4 bg-primary-500/20 border border-primary-500/40 rounded-xl text-left hover:bg-primary-500/30 hover:translate-x-0.5 hover:border-primary-500/60 transition-all duration-200 group cursor-pointer"
+                    role="link"
                   >
                     <div className="flex justify-between items-start">
                       <div>
@@ -525,8 +553,13 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
                             })}
                           </p>
                         )}
+                        <span className="text-xs text-primary-400 font-medium mt-1 inline-block md:hidden">
+                          Vai alla fase &rarr;
+                        </span>
                       </div>
-                      <span className="text-primary-500 group-hover:text-primary-400 transition-colors text-xl">→</span>
+                      <svg className="w-5 h-5 text-primary-500 group-hover:text-primary-400 group-hover:translate-x-1 transition-all duration-200 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
                   </button>
 

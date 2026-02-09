@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
 import { movementApi, leagueApi } from '../services/api'
 import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
 import { Navigation } from '../components/Navigation'
+import { BottomSheet } from '../components/ui/BottomSheet'
 import { getTeamLogo } from '../utils/teamLogos'
+import { ChevronDown, SlidersHorizontal } from 'lucide-react'
 
 interface MovementsProps {
   leagueId: string
@@ -99,6 +102,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
   const [error, setError] = useState('')
   const [filterType, setFilterType] = useState<string>('')
   const [filterSemester, setFilterSemester] = useState<string>('')
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
 
   // Prophecy
@@ -189,10 +193,19 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Caricamento storico...</p>
+      <div className="min-h-screen bg-dark-300">
+        <Navigation currentPage="movements" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
+        <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-4 space-y-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 p-3 bg-surface-200 rounded-lg animate-pulse">
+              <div className="w-8 h-8 rounded bg-surface-100" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-40 bg-surface-100 rounded" />
+                <div className="h-3 w-24 bg-surface-100 rounded" />
+              </div>
+              <div className="h-4 w-16 bg-surface-100 rounded" />
+            </div>
+          ))}
         </div>
       </div>
     )
@@ -204,24 +217,38 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
 
       {/* Header compatto */}
       <div className="bg-surface-200 border-b border-surface-50/20">
-        <div className="max-w-[1600px] mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+        <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center flex-shrink-0">
                 <span className="text-xl">📜</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">Storico Movimenti</h1>
-                <p className="text-xs text-gray-500">Stagione {formatSeason(2025)}</p>
+                <h1 className="text-lg sm:text-xl font-bold text-white">Storico Movimenti</h1>
+                <p className="text-xs text-gray-500">Stagione {formatSeason(2025)} · {movements.length} mov.</p>
               </div>
             </div>
 
-            {/* Filtri inline */}
-            <div className="flex items-center gap-3">
+            {/* Filtri — Mobile: button, Desktop: inline */}
+            <div className="flex items-center gap-2">
+              {/* Mobile: Filtri button */}
+              <button
+                onClick={() => setFiltersOpen(true)}
+                className="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-xs text-gray-300 hover:text-white transition-colors"
+              >
+                <SlidersHorizontal size={14} />
+                Filtri{(filterType || filterSemester) && (
+                  <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-bold bg-primary-500/30 text-primary-400 rounded-full">
+                    {[filterType, filterSemester].filter(Boolean).length}
+                  </span>
+                )}
+              </button>
+
+              {/* Desktop: inline selects */}
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="bg-surface-300 border border-surface-50/30 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none"
+                className="hidden md:block bg-surface-300 border border-surface-50/30 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none"
               >
                 <option value="">Tutti i tipi</option>
                 <option value="FIRST_MARKET">Primo Mercato</option>
@@ -234,19 +261,60 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
               <select
                 value={filterSemester}
                 onChange={(e) => setFilterSemester(e.target.value)}
-                className="bg-surface-300 border border-surface-50/30 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none"
+                className="hidden md:block bg-surface-300 border border-surface-50/30 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none"
               >
-                <option value="">Tutti i semestri</option>
-                <option value="1">1° Semestre</option>
-                <option value="2">2° Semestre</option>
+                <option value="">Tutti</option>
+                <option value="1">1° Sem</option>
+                <option value="2">2° Sem</option>
               </select>
-              <span className="text-xs text-gray-500">{movements.length} mov.</span>
             </div>
           </div>
         </div>
       </div>
 
-      <main className="max-w-[1600px] mx-auto px-6 py-4">
+      {/* Mobile Filters BottomSheet */}
+      <BottomSheet isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filtri Movimenti">
+        <div className="p-4 space-y-5">
+          <div>
+            <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Tipo Movimento</label>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">Tutti i tipi</option>
+              <option value="FIRST_MARKET">Primo Mercato</option>
+              <option value="TRADE">Scambi</option>
+              <option value="RUBATA">Rubate</option>
+              <option value="SVINCOLATI">Svincolati</option>
+              <option value="RELEASE">Tagli</option>
+              <option value="CONTRACT_RENEW">Rinnovi</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Semestre</label>
+            <select
+              value={filterSemester}
+              onChange={(e) => setFilterSemester(e.target.value)}
+              className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">Tutti i semestri</option>
+              <option value="1">1° Semestre</option>
+              <option value="2">2° Semestre</option>
+            </select>
+          </div>
+
+          <button
+            onClick={() => setFiltersOpen(false)}
+            className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-xl transition-colors"
+          >
+            Applica Filtri
+          </button>
+        </div>
+      </BottomSheet>
+
+      <main className="max-w-[1600px] mx-auto px-4 md:px-6 py-4">
         {error && (
           <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg mb-4 text-sm">
             {error}
@@ -254,26 +322,11 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
         )}
 
         {movements.length === 0 ? (
-          <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-12 text-center">
-            <div className="text-4xl mb-3 opacity-50">📭</div>
-            <p className="text-gray-400">Nessun movimento registrato</p>
-          </div>
+          <EmptyState icon="📭" title="Nessun movimento registrato" description="I movimenti appariranno qui dopo aste, scambi e altre operazioni." />
         ) : (
-          <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
-            {/* Table Header */}
-            <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-surface-300 border-b border-surface-50/20 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-              <div className="col-span-1">Tipo</div>
-              <div className="col-span-1">Stag.</div>
-              <div className="col-span-1">Sem.</div>
-              <div className="col-span-3">Giocatore</div>
-              <div className="col-span-2">Da → A</div>
-              <div className="col-span-1 text-right">Prezzo</div>
-              <div className="col-span-2">Contratto</div>
-              <div className="col-span-1 text-right">Data</div>
-            </div>
-
-            {/* Table Rows */}
-            <div className="divide-y divide-surface-50/10">
+          <>
+            {/* ====== MOBILE CARD VIEW (<md) ====== */}
+            <div className="md:hidden space-y-2">
               {movements.map((movement) => {
                 const typeColor = MOVEMENT_TYPE_COLORS[movement.type] || 'bg-gray-500/20 text-gray-400'
                 const posColor = POSITION_COLORS[movement.player.position] || 'text-gray-400'
@@ -282,142 +335,288 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                 const isExpanded = expandedMovement === movement.id
 
                 return (
-                  <div key={movement.id}>
-                    {/* Main Row */}
+                  <div key={movement.id} className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
+                    {/* Card Header — always visible */}
                     <div
-                      className={`grid grid-cols-12 gap-2 px-4 py-2.5 items-center text-sm hover:bg-surface-300/30 transition-colors cursor-pointer ${isExpanded ? 'bg-surface-300/50' : ''}`}
+                      className={`px-4 py-3 cursor-pointer ${isExpanded ? 'bg-surface-300/30' : ''}`}
                       onClick={() => setExpandedMovement(isExpanded ? null : movement.id)}
                     >
-                      {/* Tipo */}
-                      <div className="col-span-1">
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${typeColor}`}>
+                      <div className="flex items-center gap-3">
+                        {/* Type badge */}
+                        <span className={`px-2 py-1 rounded text-xs font-bold flex-shrink-0 ${typeColor}`}>
                           {MOVEMENT_TYPE_SHORT[movement.type] || movement.type.slice(0, 2)}
                         </span>
-                      </div>
 
-                      {/* Stagione */}
-                      <div className="col-span-1 text-xs text-gray-500">
-                        {formatSeason(movement.season || 2025)}
-                      </div>
-
-                      {/* Semestre */}
-                      <div className="col-span-1 text-xs text-gray-500">
-                        {movement.semester || 1}°
-                      </div>
-
-                      {/* Giocatore */}
-                      <div className="col-span-3 flex items-center gap-2">
-                        <div className="w-6 h-6 bg-white rounded flex items-center justify-center p-0.5 flex-shrink-0">
-                          <img
-                            src={getTeamLogo(movement.player.team)}
-                            alt=""
-                            className="w-5 h-5 object-contain"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                          />
+                        {/* Player info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 bg-white rounded flex items-center justify-center p-0.5 flex-shrink-0">
+                              <img
+                                src={getTeamLogo(movement.player.team)}
+                                alt=""
+                                className="w-4 h-4 object-contain"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                              />
+                            </div>
+                            <span className={`font-bold text-xs ${posColor}`}>{movement.player.position}</span>
+                            <span className="text-white font-medium text-sm truncate">{movement.player.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
+                            <span>{formatDate(movement.createdAt)}</span>
+                            <span>•</span>
+                            <span>{movement.from?.username || '—'} → {movement.to?.username || '—'}</span>
+                          </div>
                         </div>
-                        <span className={`font-bold text-xs ${posColor}`}>{movement.player.position}</span>
-                        <span className="text-white font-medium truncate">{movement.player.name}</span>
-                      </div>
 
-                      {/* Da → A */}
-                      <div className="col-span-2 text-xs">
-                        <span className="text-gray-500">{movement.from?.username || '—'}</span>
-                        <span className="text-gray-600 mx-1">→</span>
-                        <span className="text-white">{movement.to?.username || '—'}</span>
-                      </div>
-
-                      {/* Prezzo */}
-                      <div className="col-span-1 text-right">
-                        {movement.price ? (
-                          <span className="text-accent-400 font-semibold">{movement.price}</span>
-                        ) : (
-                          <span className="text-gray-600">—</span>
-                        )}
-                      </div>
-
-                      {/* Contratto */}
-                      <div className="col-span-2 text-xs">
-                        {movement.newContract ? (
-                          <span className="text-gray-300">
-                            {movement.newContract.salary}M × {movement.newContract.duration}sem
-                          </span>
-                        ) : (
-                          <span className="text-gray-600">—</span>
-                        )}
-                      </div>
-
-                      {/* Data */}
-                      <div className="col-span-1 text-right text-xs text-gray-500">
-                        <div>{formatDate(movement.createdAt)}</div>
-                        <div className="text-gray-600">{formatTime(movement.createdAt)}</div>
+                        {/* Price + expand indicator */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {movement.price ? (
+                            <span className="text-accent-400 font-bold text-sm">{movement.price}cr</span>
+                          ) : (
+                            <span className="text-gray-600 text-sm">—</span>
+                          )}
+                          <ChevronDown size={16} className={`text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                        </div>
                       </div>
                     </div>
 
-                    {/* Expanded Section - Prophecies */}
+                    {/* Card Expanded Details */}
                     {isExpanded && (
-                      <div className="px-4 py-3 bg-surface-300/30 border-t border-surface-50/10">
-                        <div className="flex items-start gap-4">
-                          {/* Details */}
-                          <div className="flex-1">
-                            <div className="text-xs text-gray-400 mb-2">
-                              <span className="font-semibold">{MOVEMENT_TYPE_LABELS[movement.type]}</span>
-                              {' • '}
-                              {movement.player.team}
-                            </div>
-
-                            {/* Prophecies */}
-                            {hasProphecies && (
-                              <div className="space-y-2 mb-3">
-                                <p className="text-xs font-semibold text-accent-400 uppercase">Profezie</p>
-                                {movement.prophecies.map((p) => (
-                                  <div key={p.id} className="bg-accent-500/10 border border-accent-500/20 rounded-lg p-2">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="text-xs font-semibold text-white">{p.author.username}</span>
-                                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${p.authorRole === 'BUYER' ? 'bg-secondary-500/20 text-secondary-400' : 'bg-red-500/20 text-red-400'}`}>
-                                        {p.authorRole === 'BUYER' ? 'Acq.' : 'Ven.'}
-                                      </span>
-                                    </div>
-                                    <p className="text-gray-300 text-sm italic">"{p.content}"</p>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Add Prophecy */}
-                            {canAdd && (
-                              <div className="mt-2">
-                                <textarea
-                                  value={prophecyContent}
-                                  onChange={(e) => setProphecyContent(e.target.value)}
-                                  placeholder="Scrivi una profezia..."
-                                  className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-500/50"
-                                  rows={2}
-                                  maxLength={500}
-                                />
-                                <div className="flex justify-between items-center mt-2">
-                                  <span className="text-xs text-gray-500">
-                                    {canMakeProphecy[movement.id]?.role === 'BUYER' ? 'Acquirente' : 'Venditore'} • {prophecyContent.length}/500
-                                  </span>
-                                  <Button
-                                    size="sm"
-                                    variant="accent"
-                                    onClick={() => handleAddProphecy(movement.id)}
-                                    disabled={!prophecyContent.trim() || isSubmittingProphecy}
-                                  >
-                                    {isSubmittingProphecy ? '...' : 'Pubblica'}
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
+                      <div className="px-4 py-3 border-t border-surface-50/10 space-y-3">
+                        {/* Detail rows */}
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <span className="text-gray-500">Tipo</span>
+                            <p className="text-gray-300 font-medium">{MOVEMENT_TYPE_LABELS[movement.type]}</p>
                           </div>
+                          <div>
+                            <span className="text-gray-500">Stagione</span>
+                            <p className="text-gray-300">{formatSeason(movement.season || 2025)} · {movement.semester || 1}° sem</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Squadra reale</span>
+                            <p className="text-gray-300">{movement.player.team}</p>
+                          </div>
+                          {movement.newContract && (
+                            <div>
+                              <span className="text-gray-500">Contratto</span>
+                              <p className="text-gray-300">{movement.newContract.salary}M × {movement.newContract.duration}sem</p>
+                            </div>
+                          )}
                         </div>
+
+                        {/* Prophecies */}
+                        {hasProphecies && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold text-accent-400 uppercase">Profezie</p>
+                            {movement.prophecies.map((p) => (
+                              <div key={p.id} className="bg-accent-500/10 border border-accent-500/20 rounded-lg p-2">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-xs font-semibold text-white">{p.author.username}</span>
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${p.authorRole === 'BUYER' ? 'bg-secondary-500/20 text-secondary-400' : 'bg-red-500/20 text-red-400'}`}>
+                                    {p.authorRole === 'BUYER' ? 'Acq.' : 'Ven.'}
+                                  </span>
+                                </div>
+                                <p className="text-gray-300 text-sm italic">"{p.content}"</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Add Prophecy */}
+                        {canAdd && (
+                          <div>
+                            <textarea
+                              value={prophecyContent}
+                              onChange={(e) => setProphecyContent(e.target.value)}
+                              placeholder="Scrivi una profezia..."
+                              className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-500/50"
+                              rows={2}
+                              maxLength={500}
+                            />
+                            <div className="flex justify-between items-center mt-2">
+                              <span className="text-xs text-gray-500">
+                                {canMakeProphecy[movement.id]?.role === 'BUYER' ? 'Acquirente' : 'Venditore'} • {prophecyContent.length}/500
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="accent"
+                                onClick={() => handleAddProphecy(movement.id)}
+                                disabled={!prophecyContent.trim() || isSubmittingProphecy}
+                              >
+                                {isSubmittingProphecy ? '...' : 'Pubblica'}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 )
               })}
             </div>
-          </div>
+
+            {/* ====== DESKTOP TABLE (md+) ====== */}
+            <div className="hidden md:block bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
+              {/* Table Header */}
+              <div role="row" className="grid grid-cols-12 gap-2 px-4 py-2 bg-surface-300 border-b border-surface-50/20 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                <div role="columnheader" className="col-span-1">Tipo</div>
+                <div role="columnheader" className="col-span-1">Stag.</div>
+                <div role="columnheader" className="col-span-1">Sem.</div>
+                <div role="columnheader" className="col-span-3">Giocatore</div>
+                <div role="columnheader" className="col-span-2">Da &rarr; A</div>
+                <div role="columnheader" className="col-span-1 text-right">Prezzo</div>
+                <div role="columnheader" className="col-span-2">Contratto</div>
+                <div role="columnheader" className="col-span-1 text-right">Data</div>
+              </div>
+
+              {/* Table Rows */}
+              <div className="divide-y divide-surface-50/10">
+                {movements.map((movement) => {
+                  const typeColor = MOVEMENT_TYPE_COLORS[movement.type] || 'bg-gray-500/20 text-gray-400'
+                  const posColor = POSITION_COLORS[movement.player.position] || 'text-gray-400'
+                  const hasProphecies = movement.prophecies.length > 0
+                  const canAdd = canMakeProphecy[movement.id]?.can
+                  const isExpanded = expandedMovement === movement.id
+
+                  return (
+                    <div key={movement.id}>
+                      {/* Main Row */}
+                      <div
+                        className={`grid grid-cols-12 gap-2 px-4 py-2.5 items-center text-sm hover:bg-surface-300/30 transition-colors cursor-pointer ${isExpanded ? 'bg-surface-300/50' : ''}`}
+                        onClick={() => setExpandedMovement(isExpanded ? null : movement.id)}
+                      >
+                        {/* Tipo */}
+                        <div className="col-span-1">
+                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${typeColor}`}>
+                            {MOVEMENT_TYPE_SHORT[movement.type] || movement.type.slice(0, 2)}
+                          </span>
+                        </div>
+
+                        {/* Stagione */}
+                        <div className="col-span-1 text-xs text-gray-500">
+                          {formatSeason(movement.season || 2025)}
+                        </div>
+
+                        {/* Semestre */}
+                        <div className="col-span-1 text-xs text-gray-500">
+                          {movement.semester || 1}°
+                        </div>
+
+                        {/* Giocatore */}
+                        <div className="col-span-3 flex items-center gap-2">
+                          <div className="w-6 h-6 bg-white rounded flex items-center justify-center p-0.5 flex-shrink-0">
+                            <img
+                              src={getTeamLogo(movement.player.team)}
+                              alt=""
+                              className="w-5 h-5 object-contain"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                            />
+                          </div>
+                          <span className={`font-bold text-xs ${posColor}`}>{movement.player.position}</span>
+                          <span className="text-white font-medium truncate">{movement.player.name}</span>
+                        </div>
+
+                        {/* Da → A */}
+                        <div className="col-span-2 text-xs">
+                          <span className="text-gray-500">{movement.from?.username || '—'}</span>
+                          <span className="text-gray-600 mx-1">→</span>
+                          <span className="text-white">{movement.to?.username || '—'}</span>
+                        </div>
+
+                        {/* Prezzo */}
+                        <div className="col-span-1 text-right">
+                          {movement.price ? (
+                            <span className="text-accent-400 font-semibold">{movement.price}</span>
+                          ) : (
+                            <span className="text-gray-600">—</span>
+                          )}
+                        </div>
+
+                        {/* Contratto */}
+                        <div className="col-span-2 text-xs">
+                          {movement.newContract ? (
+                            <span className="text-gray-300">
+                              {movement.newContract.salary}M × {movement.newContract.duration}sem
+                            </span>
+                          ) : (
+                            <span className="text-gray-600">—</span>
+                          )}
+                        </div>
+
+                        {/* Data */}
+                        <div className="col-span-1 text-right text-xs text-gray-500">
+                          <div>{formatDate(movement.createdAt)}</div>
+                          <div className="text-gray-600">{formatTime(movement.createdAt)}</div>
+                        </div>
+                      </div>
+
+                      {/* Expanded Section - Prophecies */}
+                      {isExpanded && (
+                        <div className="px-4 py-3 bg-surface-300/30 border-t border-surface-50/10">
+                          <div className="flex items-start gap-4">
+                            {/* Details */}
+                            <div className="flex-1">
+                              <div className="text-xs text-gray-400 mb-2">
+                                <span className="font-semibold">{MOVEMENT_TYPE_LABELS[movement.type]}</span>
+                                {' • '}
+                                {movement.player.team}
+                              </div>
+
+                              {/* Prophecies */}
+                              {hasProphecies && (
+                                <div className="space-y-2 mb-3">
+                                  <p className="text-xs font-semibold text-accent-400 uppercase">Profezie</p>
+                                  {movement.prophecies.map((p) => (
+                                    <div key={p.id} className="bg-accent-500/10 border border-accent-500/20 rounded-lg p-2">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-xs font-semibold text-white">{p.author.username}</span>
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${p.authorRole === 'BUYER' ? 'bg-secondary-500/20 text-secondary-400' : 'bg-red-500/20 text-red-400'}`}>
+                                          {p.authorRole === 'BUYER' ? 'Acq.' : 'Ven.'}
+                                        </span>
+                                      </div>
+                                      <p className="text-gray-300 text-sm italic">"{p.content}"</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Add Prophecy */}
+                              {canAdd && (
+                                <div className="mt-2">
+                                  <textarea
+                                    value={prophecyContent}
+                                    onChange={(e) => setProphecyContent(e.target.value)}
+                                    placeholder="Scrivi una profezia..."
+                                    className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-500/50"
+                                    rows={2}
+                                    maxLength={500}
+                                  />
+                                  <div className="flex justify-between items-center mt-2">
+                                    <span className="text-xs text-gray-500">
+                                      {canMakeProphecy[movement.id]?.role === 'BUYER' ? 'Acquirente' : 'Venditore'} • {prophecyContent.length}/500
+                                    </span>
+                                    <Button
+                                      size="sm"
+                                      variant="accent"
+                                      onClick={() => handleAddProphecy(movement.id)}
+                                      disabled={!prophecyContent.trim() || isSubmittingProphecy}
+                                    >
+                                      {isSubmittingProphecy ? '...' : 'Pubblica'}
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </>
         )}
 
         {/* Legend */}

@@ -7,6 +7,7 @@ import { getTeamLogo } from '../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../utils/player-images'
 import { POSITION_GRADIENTS } from '../components/ui/PositionBadge'
 import { ContractModifierModal, type PlayerInfo, type ContractData } from '../components/ContractModifier'
+import { EmptyState } from '../components/ui/EmptyState'
 
 interface TradesProps {
   leagueId: string
@@ -920,17 +921,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         {activeTab === 'received' && (
           <div className="space-y-6">
             {receivedOffers.length === 0 ? (
-              <Card className="border-dashed border-2 border-surface-50/30">
-                <CardContent className="py-12 text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-300 flex items-center justify-center">
-                    <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                    </svg>
-                  </div>
-                  <p className="text-gray-500 text-lg">Nessuna offerta ricevuta</p>
-                  <p className="text-gray-600 text-sm mt-1">Le offerte che riceverai appariranno qui</p>
-                </CardContent>
-              </Card>
+              <EmptyState icon="📥" title="Nessuna offerta ricevuta" description="Le offerte che riceverai appariranno qui" />
             ) : (
               receivedOffers.map(offer => {
                 const timeRemaining = getTimeRemaining(offer.expiresAt)
@@ -1067,17 +1058,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         {activeTab === 'sent' && (
           <div className="space-y-6">
             {sentOffers.length === 0 ? (
-              <Card className="border-dashed border-2 border-surface-50/30">
-                <CardContent className="py-12 text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-300 flex items-center justify-center">
-                    <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                  </div>
-                  <p className="text-gray-500 text-lg">Nessuna offerta inviata</p>
-                  <p className="text-gray-600 text-sm mt-1">Le tue offerte appariranno qui</p>
-                </CardContent>
-              </Card>
+              <EmptyState icon="📤" title="Nessuna offerta inviata" description="Le tue offerte appariranno qui" />
             ) : (
               sentOffers.map(offer => {
                 const timeRemaining = getTimeRemaining(offer.expiresAt)
@@ -1828,17 +1809,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
               </div>
 
               {timelineItems.length === 0 ? (
-                <Card className="border-dashed border-2 border-surface-50/30">
-                  <CardContent className="py-12 text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-300 flex items-center justify-center">
-                      <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <p className="text-gray-500 text-lg">Nessun elemento nello storico</p>
-                    <p className="text-gray-600 text-sm mt-1">Gli scambi completati, rifiutati e i movimenti appariranno qui</p>
-                  </CardContent>
-                </Card>
+                <EmptyState icon="🕐" title="Nessun elemento nello storico" description="Gli scambi completati, rifiutati e i movimenti appariranno qui" />
               ) : (
                 <div className="space-y-4">
                   {timelineItems.map(item => {

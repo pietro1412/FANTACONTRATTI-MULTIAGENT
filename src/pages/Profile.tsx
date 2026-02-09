@@ -223,6 +223,7 @@ export function Profile({ onNavigate }: ProfileProps) {
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
+                  capture="user"
                   className="hidden"
                   onChange={handlePhotoChange}
                 />

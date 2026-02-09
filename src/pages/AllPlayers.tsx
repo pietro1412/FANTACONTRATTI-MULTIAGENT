@@ -2,9 +2,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { Navigation } from '../components/Navigation'
 import { playerApi, leagueApi } from '../services/api'
 import { Input } from '../components/ui/Input'
+import { EmptyState } from '../components/ui/EmptyState'
+import { BottomSheet } from '../components/ui/BottomSheet'
 import { POSITION_GRADIENTS, POSITION_FILTER_COLORS } from '../components/ui/PositionBadge'
 import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
 import { getPlayerPhotoUrl } from '../utils/player-images'
+import { SlidersHorizontal } from 'lucide-react'
 
 interface AllPlayersProps {
   leagueId: string
@@ -86,6 +89,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
   const [leagueName, setLeagueName] = useState('')
   const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
   const [availableTeams, setAvailableTeams] = useState<string[]>([])
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   // Map of playerId -> roster info
   const [rosterMap, setRosterMap] = useState<Map<string, RosterInfo>>(new Map())
@@ -159,15 +163,39 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
     <div className="min-h-screen bg-dark-100">
       <Navigation currentPage="allPlayers" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
-      <div className="max-w-[1600px] mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white">Tutti i Giocatori</h1>
+      <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-4 md:py-6">
+        <div className="mb-4 md:mb-6">
+          <h1 className="text-xl md:text-2xl font-bold text-white">Tutti i Giocatori</h1>
           <p className="text-gray-400">{leagueName}</p>
         </div>
 
         {/* Filters */}
         <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4 mb-6">
-          <div className="flex flex-wrap gap-4 items-center">
+          {/* Mobile: search + Filtri button */}
+          <div className="flex gap-2 items-center md:hidden">
+            <div className="flex-1">
+              <Input
+                placeholder="Cerca giocatore..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="bg-surface-300 border-surface-50/30"
+              />
+            </div>
+            <button
+              onClick={() => setFiltersOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-sm text-gray-300 hover:text-white transition-colors flex-shrink-0"
+            >
+              <SlidersHorizontal size={16} />
+              Filtri{(selectedPosition || showOnlyRostered || selectedTeamFilter) && (
+                <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-bold bg-primary-500/30 text-primary-400 rounded-full">
+                  {[selectedPosition, showOnlyRostered, selectedTeamFilter].filter(Boolean).length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Desktop: full inline filters */}
+          <div className="hidden md:flex flex-wrap gap-4 items-center">
             <div className="flex-1 min-w-[200px]">
               <Input
                 placeholder="Cerca giocatore..."
@@ -208,7 +236,6 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
               <span className="text-sm text-gray-300">Solo in rosa</span>
             </label>
 
-            {/* Team filter dropdown */}
             {availableTeams.length > 0 && (
               <select
                 value={selectedTeamFilter}
@@ -227,10 +254,86 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
           </div>
         </div>
 
+        {/* Mobile Filters BottomSheet */}
+        <BottomSheet isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filtri">
+          <div className="p-4 space-y-5">
+            <div>
+              <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Posizione</label>
+              <div className="flex gap-2">
+                {['', 'P', 'D', 'C', 'A'].map(pos => (
+                  <button
+                    key={pos}
+                    onClick={() => setSelectedPosition(pos)}
+                    className={`flex-1 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                      selectedPosition === pos
+                        ? pos === ''
+                          ? 'bg-primary-500/30 text-primary-400'
+                          : POSITION_BG[pos]
+                        : 'bg-surface-300 text-gray-400'
+                    }`}
+                  >
+                    {pos === '' ? 'Tutti' : pos}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="flex items-center gap-3 cursor-pointer py-2">
+                <input
+                  type="checkbox"
+                  checked={showOnlyRostered}
+                  onChange={e => {
+                    setShowOnlyRostered(e.target.checked)
+                    if (!e.target.checked) setSelectedTeamFilter('')
+                  }}
+                  className="w-5 h-5 rounded border-gray-600 bg-surface-300 text-primary-500 focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-300">Solo giocatori in rosa</span>
+              </label>
+            </div>
+
+            {availableTeams.length > 0 && (
+              <div>
+                <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Squadra</label>
+                <select
+                  value={selectedTeamFilter}
+                  onChange={e => {
+                    setSelectedTeamFilter(e.target.value)
+                    if (e.target.value) setShowOnlyRostered(true)
+                  }}
+                  className="w-full px-3 py-2.5 text-sm rounded-lg bg-surface-300 border border-surface-50/30 text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Tutte le squadre</option>
+                  {availableTeams.map(team => (
+                    <option key={team} value={team}>{team}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <button
+              onClick={() => setFiltersOpen(false)}
+              className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-xl transition-colors"
+            >
+              Applica Filtri
+            </button>
+          </div>
+        </BottomSheet>
+
         {/* Results */}
         {isLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 bg-surface-200/50 rounded-lg animate-pulse">
+                <div className="w-10 h-10 rounded-full bg-surface-100" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-32 bg-surface-100 rounded" />
+                  <div className="h-3 w-20 bg-surface-100 rounded" />
+                </div>
+                <div className="h-6 w-16 bg-surface-100 rounded" />
+              </div>
+            ))}
           </div>
         ) : (
           <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
@@ -239,9 +342,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
             </div>
 
             {filteredPlayers.length === 0 ? (
-              <div className="p-8 text-center text-gray-400">
-                Nessun giocatore trovato
-              </div>
+              <EmptyState icon="🔍" title="Nessun giocatore trovato" description="Prova a cambiare i filtri di ricerca." compact />
             ) : (
               <div className="divide-y divide-surface-50/10">
                 {filteredPlayers.slice(0, 100).map(player => (

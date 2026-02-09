@@ -137,6 +137,8 @@ export function SearchLeaguesModal({ isOpen, onClose, onNavigate }: SearchLeague
               <input
                 ref={inputRef}
                 type="text"
+                inputMode="search"
+                enterKeyHint="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Nome lega, codice invito, admin o membro..."

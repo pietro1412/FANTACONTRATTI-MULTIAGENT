@@ -119,9 +119,14 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         </div>
 
         {isLoading ? (
-          <div className="text-center py-20">
-            <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto"></div>
-            <p className="mt-6 text-lg text-gray-400">Caricamento leghe...</p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-surface-200 rounded-xl p-4 space-y-3 border border-surface-50/20 animate-pulse">
+                <div className="h-4 w-3/4 bg-surface-100 rounded" />
+                <div className="h-4 w-1/2 bg-surface-100 rounded" />
+                <div className="h-8 w-full bg-surface-100 rounded" />
+              </div>
+            ))}
           </div>
         ) : leagues.length === 0 ? (
           <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-16 text-center">

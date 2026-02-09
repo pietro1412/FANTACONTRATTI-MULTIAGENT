@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useSear
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { ScrollToTop } from './components/ui/ScrollToTop'
+import { BottomNavBar } from './components/BottomNavBar'
 
 // Pagine critiche - import statico (usate al primo caricamento)
 import { Login } from './pages/Login'
@@ -661,12 +663,27 @@ function AppRoutes() {
   )
 }
 
+/** Spacer to prevent content from hiding behind BottomNavBar on mobile */
+function BottomNavSpacer() {
+  const location = useLocation()
+  const isLeague = /^\/leagues\/[^/]+/.test(location.pathname)
+  if (!isLeague) return null
+  return <div className="md:hidden h-16" />
+}
+
 function App() {
+  const handleMobileMenuOpen = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('open-mobile-menu'))
+  }, [])
+
   return (
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
           <AppRoutes />
+          <BottomNavSpacer />
+          <BottomNavBar onMenuOpen={handleMobileMenuOpen} />
+          <ScrollToTop />
           <SpeedInsights />
         </AuthProvider>
       </ThemeProvider>
