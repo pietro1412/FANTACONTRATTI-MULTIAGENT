@@ -3,7 +3,7 @@
  * Uses the Vibration API where available
  */
 
-export type HapticPattern = 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' | 'bid' | 'outbid' | 'win'
+export type HapticPattern = 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' | 'bid' | 'outbid' | 'win' | 'save' | 'send' | 'approve' | 'reject'
 
 // Vibration patterns in milliseconds
 const PATTERNS: Record<HapticPattern, number | number[]> = {
@@ -20,7 +20,13 @@ const PATTERNS: Record<HapticPattern, number | number[]> = {
   // Auction-specific patterns
   bid: 50,                     // Bid sent
   outbid: [50, 30, 50],        // Someone outbid you
-  win: [100, 50, 100, 50, 200] // You won the auction!
+  win: [100, 50, 100, 50, 200], // You won the auction!
+
+  // Action patterns
+  save: [30, 30, 60],           // Save confirmation
+  send: [40, 40, 80],           // Send offer/message
+  approve: [50, 50, 100],       // Approve action
+  reject: [60, 30, 60, 30, 60]  // Reject action (staccato)
 }
 
 /**
@@ -75,6 +81,10 @@ export const haptic = {
   bid: () => vibrate('bid'),
   outbid: () => vibrate('outbid'),
   win: () => vibrate('win'),
+  save: () => vibrate('save'),
+  send: () => vibrate('send'),
+  approve: () => vibrate('approve'),
+  reject: () => vibrate('reject'),
 }
 
 export default haptic
