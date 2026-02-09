@@ -1092,6 +1092,50 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   // Check if timer is expired
   const isTimerExpired = timeLeft !== null && timeLeft <= 0
 
+  // Keyboard shortcuts for auction
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      // Skip if user is typing in an input/textarea
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+        // Only handle Enter inside bid input
+        if (e.key === 'Enter' && target.getAttribute('data-bid-input')) {
+          e.preventDefault()
+          handlePlaceBid()
+        }
+        return
+      }
+
+      if (!auction) return
+
+      switch (e.key) {
+        case 'Enter':
+          e.preventDefault()
+          handlePlaceBid()
+          break
+        case '+':
+        case '=':
+          e.preventDefault()
+          setBidAmount(prev => String((parseInt(prev) || auction.currentPrice) + 1))
+          break
+        case '-':
+          e.preventDefault()
+          setBidAmount(prev => {
+            const current = parseInt(prev) || auction.currentPrice + 1
+            return String(Math.max(auction.currentPrice + 1, current - 1))
+          })
+          break
+        case 'Escape':
+          e.preventDefault()
+          setBidAmount('')
+          break
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [auction, bidAmount])
+
   // Calculate budget percentage for progress bars
   const getBudgetPercentage = (current: number, initial: number = 500) => {
     return Math.min(100, Math.max(0, (current / initial) * 100))
@@ -1986,6 +2030,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                           disabled={isTimerExpired}
                           className="flex-1 text-xl text-center bg-surface-300 border-surface-50/30 text-white font-mono"
                           placeholder="Importo..."
+                          data-bid-input="true"
                         />
                         <button
                           type="button"
@@ -2008,6 +2053,13 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                       <div className="flex items-center justify-between text-xs text-gray-400">
                         <span>Il tuo budget:</span>
                         <span className="font-bold text-accent-400">{membership?.currentBudget || 0}</span>
+                      </div>
+
+                      {/* Keyboard shortcuts hint */}
+                      <div className="hidden md:flex items-center gap-3 text-[10px] text-gray-600 mt-1">
+                        <span><kbd className="px-1 py-0.5 bg-surface-300 rounded text-gray-500">Enter</kbd> Offri</span>
+                        <span><kbd className="px-1 py-0.5 bg-surface-300 rounded text-gray-500">+</kbd><kbd className="px-1 py-0.5 bg-surface-300 rounded text-gray-500">-</kbd> Importo</span>
+                        <span><kbd className="px-1 py-0.5 bg-surface-300 rounded text-gray-500">Esc</kbd> Reset</span>
                       </div>
 
                       {isAdmin && (

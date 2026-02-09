@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './hooks/useAuth'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { ScrollToTop } from './components/ui/ScrollToTop'
 import { BottomNavBar } from './components/BottomNavBar'
+import { CommandPalette } from './components/CommandPalette'
 
 // Pagine critiche - import statico (usate al primo caricamento)
 import { Login } from './pages/Login'
@@ -683,6 +684,7 @@ function App() {
           <AppRoutes />
           <BottomNavSpacer />
           <BottomNavBar onMenuOpen={handleMobileMenuOpen} />
+          <CommandPalette />
           <ScrollToTop />
           <SpeedInsights />
         </AuthProvider>

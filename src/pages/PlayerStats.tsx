@@ -8,6 +8,7 @@ import RadarChart from '../components/ui/RadarChart'
 import { BottomSheet } from '../components/ui/BottomSheet'
 import { getPlayerPhotoUrl, getTeamLogoUrl } from '../utils/player-images'
 import { SlidersHorizontal } from 'lucide-react'
+import { ShareButton } from '../components/ShareButton'
 
 // Position colors
 const POSITION_COLORS: Record<string, string> = {
@@ -357,6 +358,18 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
     }
   }, [])
 
+  const toggleCategory = useCallback((category: string) => {
+    const catColumns = STAT_COLUMNS.filter(c => c.category === category).map(c => c.key)
+    setVisibleColumns(prev => {
+      const allSelected = catColumns.every(k => prev.includes(k))
+      if (allSelected) {
+        return prev.filter(k => !catColumns.includes(k))
+      } else {
+        return [...new Set([...prev, ...catColumns])]
+      }
+    })
+  }, [])
+
   const playersToCompare = sortedPlayers.filter((p) => selectedForCompare.has(p.id))
 
   const SortIcon = ({ column }: { column: string }) => {
@@ -398,11 +411,14 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
       <div className="p-4 md:p-6">
         <div className="max-w-[1800px] mx-auto">
           {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Statistiche Serie A</h1>
-            <p className="text-gray-400">
-              Analizza le statistiche dei giocatori della Serie A ({total} giocatori con dati)
-            </p>
+          <div className="mb-6 flex items-start justify-between">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Statistiche Serie A</h1>
+              <p className="text-gray-400">
+                Analizza le statistiche dei giocatori della Serie A ({total} giocatori con dati)
+              </p>
+            </div>
+            <ShareButton title="Statistiche Serie A" text="Statistiche giocatori Serie A" compact />
           </div>
 
           {/* Filters */}
@@ -638,11 +654,27 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                       </div>
 
                       <div className="p-3 space-y-4">
-                        {Object.entries(columnsByCategory).map(([category, columns]) => (
+                        {Object.entries(columnsByCategory).map(([category, columns]) => {
+                          const allSelected = columns.every(c => visibleColumns.includes(c.key))
+                          const someSelected = columns.some(c => visibleColumns.includes(c.key))
+                          return (
                           <div key={category}>
-                            <h4 className="text-xs font-semibold text-primary-400 uppercase tracking-wider mb-2">
-                              {categoryLabels[category]}
-                            </h4>
+                            <button
+                              onClick={() => toggleCategory(category)}
+                              className="flex items-center gap-2 w-full text-left mb-2 group"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={allSelected}
+                                ref={el => { if (el) el.indeterminate = someSelected && !allSelected }}
+                                onChange={() => toggleCategory(category)}
+                                className="w-3.5 h-3.5 rounded border-surface-50/30 bg-surface-300 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
+                              />
+                              <h4 className="text-xs font-semibold text-primary-400 uppercase tracking-wider group-hover:text-primary-300 transition-colors">
+                                {categoryLabels[category]}
+                              </h4>
+                              <span className="text-[10px] text-gray-600 ml-auto">{columns.filter(c => visibleColumns.includes(c.key)).length}/{columns.length}</span>
+                            </button>
                             <div className="space-y-1">
                               {columns.map(col => (
                                 <label
@@ -663,7 +695,8 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                               ))}
                             </div>
                           </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     </div>
                   </>

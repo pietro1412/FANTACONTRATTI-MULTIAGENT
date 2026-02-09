@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { type TeamData, getTeamBalance, getHealthStatus, HEALTH_COLORS } from './types'
+import { Sparkline } from '../Sparkline'
 
 interface TeamRankingProps {
   teams: TeamData[]
@@ -66,6 +67,13 @@ export function TeamRanking({ teams, hasFinancialDetails, onTeamClick }: TeamRan
                   />
                 )}
               </div>
+
+              <Sparkline
+                data={team.players.map(p => p.salary).sort((a, b) => a - b)}
+                width={40}
+                height={16}
+                className="hidden md:inline-block flex-shrink-0"
+              />
 
               <span className={`text-xs md:text-sm font-bold w-16 text-right ${HEALTH_COLORS[health]}`}>
                 {team.balance >= 0 ? '+' : ''}{team.balance}M

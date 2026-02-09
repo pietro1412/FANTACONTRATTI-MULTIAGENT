@@ -6,7 +6,8 @@ import { getTeamLogo } from '../utils/teamLogos'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
 import { BottomSheet } from '../components/ui/BottomSheet'
 import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
-import { SlidersHorizontal } from 'lucide-react'
+import { SlidersHorizontal, PanelRightClose, PanelRightOpen } from 'lucide-react'
+import { ShareButton } from '../components/ShareButton'
 
 interface RoseProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
@@ -109,6 +110,21 @@ export function Rose({ onNavigate }: RoseProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
   const [filtersOpen, setFiltersOpen] = useState(false)
+
+  // Sidebar collapse
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('rose-sidebar-collapsed') === 'true'
+    }
+    return false
+  })
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem('rose-sidebar-collapsed', String(next))
+      return next
+    })
+  }, [])
 
   // Stats modal
   const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
@@ -270,14 +286,17 @@ export function Rose({ onNavigate }: RoseProps) {
 
       <main className="max-w-[1400px] mx-auto px-4 py-6">
         {/* Header */}
-        <div className="mb-4">
-          <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 mb-2">
-            <span className="text-2xl">📋</span>
-            Rose
-          </h1>
-          <p className="text-gray-400 text-sm">
-            Visualizza le rose di tutti i Direttori Generali della lega.
-          </p>
+        <div className="mb-4 flex items-start justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 mb-2">
+              <span className="text-2xl">📋</span>
+              Rose
+            </h1>
+            <p className="text-gray-400 text-sm">
+              Visualizza le rose di tutti i Direttori Generali della lega.
+            </p>
+          </div>
+          <ShareButton title="Rose" text="Rose della lega" compact />
         </div>
 
         {/* Warning for contracts phase */}
@@ -735,42 +754,75 @@ export function Rose({ onNavigate }: RoseProps) {
             </div>
           </div>
 
-          {/* Sidebar - Team Distribution */}
-          <div className="xl:w-72 flex-shrink-0">
+          {/* Sidebar - Team Distribution (collapsible on desktop) */}
+          <div className={`flex-shrink-0 transition-all duration-200 ${sidebarCollapsed ? 'xl:w-14' : 'xl:w-72'}`}>
             <div className="xl:sticky xl:top-4 space-y-4">
+              {/* Toggle button - visible only on xl */}
+              <button
+                onClick={toggleSidebar}
+                className="hidden xl:flex items-center justify-center w-full p-2 bg-surface-200 rounded-xl border border-surface-50/20 text-gray-400 hover:text-white transition-colors"
+                title={sidebarCollapsed ? 'Espandi sidebar' : 'Comprimi sidebar'}
+              >
+                {sidebarCollapsed ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}
+              </button>
+
               {/* Team Counts */}
               {teamCounts.length > 0 && (
                 <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
-                  <div className="p-3 border-b border-surface-50/20 bg-surface-300/30">
-                    <h2 className="font-bold text-gray-300 text-sm flex items-center gap-2">
-                      <span>🏟️</span>
-                      Giocatori per Squadra
-                    </h2>
-                  </div>
-                  <div className="p-3">
-                    <div className="flex flex-wrap gap-2">
-                      {teamCounts.map(({ team, count }) => (
-                        <button
-                          key={team}
-                          onClick={() => setTeamFilter(teamFilter === team ? 'ALL' : team)}
-                          className={`flex items-center gap-1.5 rounded-lg px-2 py-1 transition-all ${
-                            teamFilter === team
-                              ? 'bg-primary-500/30 border border-primary-500/50'
-                              : 'bg-surface-300 hover:bg-surface-50/20'
-                          }`}
-                        >
-                          <TeamLogo team={team} />
-                          <span className="text-xs text-gray-400 max-w-[60px] truncate">{team}</span>
-                          <span className="text-xs font-bold text-white">{count}</span>
-                        </button>
-                      ))}
+                  {!sidebarCollapsed && (
+                    <div className="p-3 border-b border-surface-50/20 bg-surface-300/30">
+                      <h2 className="font-bold text-gray-300 text-sm flex items-center gap-2">
+                        <span>🏟️</span>
+                        Giocatori per Squadra
+                      </h2>
                     </div>
+                  )}
+                  <div className="p-2">
+                    {sidebarCollapsed ? (
+                      /* Collapsed: only logos with count */
+                      <div className="flex flex-col gap-1.5 items-center">
+                        {teamCounts.map(({ team, count }) => (
+                          <button
+                            key={team}
+                            onClick={() => setTeamFilter(teamFilter === team ? 'ALL' : team)}
+                            className={`relative rounded-lg p-1 transition-all ${
+                              teamFilter === team
+                                ? 'bg-primary-500/30 ring-1 ring-primary-500/50'
+                                : 'hover:bg-surface-50/20'
+                            }`}
+                            title={`${team}: ${count}`}
+                          >
+                            <TeamLogo team={team} />
+                            <span className="absolute -top-1 -right-1 text-[9px] font-bold text-white bg-surface-300 rounded-full w-4 h-4 flex items-center justify-center">{count}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      /* Expanded: full chips */
+                      <div className="flex flex-wrap gap-2 p-1">
+                        {teamCounts.map(({ team, count }) => (
+                          <button
+                            key={team}
+                            onClick={() => setTeamFilter(teamFilter === team ? 'ALL' : team)}
+                            className={`flex items-center gap-1.5 rounded-lg px-2 py-1 transition-all ${
+                              teamFilter === team
+                                ? 'bg-primary-500/30 border border-primary-500/50'
+                                : 'bg-surface-300 hover:bg-surface-50/20'
+                            }`}
+                          >
+                            <TeamLogo team={team} />
+                            <span className="text-xs text-gray-400 max-w-[60px] truncate">{team}</span>
+                            <span className="text-xs font-bold text-white">{count}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* Quick Stats Card */}
-              {selectedMember && (
+              {selectedMember && !sidebarCollapsed && (
                 <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
                   <div className="p-3 border-b border-surface-50/20 bg-surface-300/30">
                     <h2 className="font-bold text-gray-300 text-sm flex items-center gap-2">
@@ -803,6 +855,20 @@ export function Rose({ onNavigate }: RoseProps) {
                         <span className="text-warning-400 font-bold">{stats.salary}M</span>
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Collapsed stats - icons only */}
+              {selectedMember && sidebarCollapsed && (
+                <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-2 space-y-2 text-center">
+                  <div title={`Budget: ${selectedMember.currentBudget}M`}>
+                    <div className="text-[10px] text-gray-500">Bdg</div>
+                    <div className="text-xs text-accent-400 font-bold">{selectedMember.currentBudget}</div>
+                  </div>
+                  <div title={`Ingaggi: ${stats.salary}M`}>
+                    <div className="text-[10px] text-gray-500">Ing</div>
+                    <div className="text-xs text-warning-400 font-bold">{stats.salary}</div>
                   </div>
                 </div>
               )}
