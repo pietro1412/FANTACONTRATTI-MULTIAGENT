@@ -81,7 +81,7 @@ async function refreshAccessToken(): Promise<boolean> {
 
 // Auth API
 export const authApi = {
-  register: (data: { email: string; username: string; password: string; confirmPassword: string }) =>
+  register: (data: { email: string; username: string; password: string; confirmPassword: string; turnstileToken?: string }) =>
     request('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
 
   login: (data: { emailOrUsername: string; password: string }) =>
@@ -492,10 +492,10 @@ export const playerApi = {
 // Auction API
 export const auctionApi = {
   // Sessions
-  createSession: (leagueId: string, isRegularMarket: boolean = false) =>
+  createSession: (leagueId: string, isRegularMarket: boolean = false, auctionMode: 'REMOTE' | 'IN_PRESENCE' = 'REMOTE') =>
     request(`/api/leagues/${leagueId}/auctions`, {
       method: 'POST',
-      body: JSON.stringify({ isRegularMarket }),
+      body: JSON.stringify({ isRegularMarket, auctionMode }),
     }),
 
   getSessions: (leagueId: string) =>

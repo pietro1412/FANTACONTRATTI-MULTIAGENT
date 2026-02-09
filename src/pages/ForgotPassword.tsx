@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { Turnstile } from '../components/ui/Turnstile'
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3003')
 
@@ -10,6 +11,8 @@ export function ForgotPassword() {
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const handleTurnstileVerify = useCallback((token: string) => setTurnstileToken(token), [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -20,7 +23,7 @@ export function ForgotPassword() {
       const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email, turnstileToken })
       })
 
       const data = await response.json()
@@ -96,6 +99,8 @@ export function ForgotPassword() {
               autoComplete="email"
             />
           </div>
+
+          <Turnstile onVerify={handleTurnstileVerify} />
 
           <Button
             type="submit"

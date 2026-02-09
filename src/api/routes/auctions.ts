@@ -58,8 +58,8 @@ const router = Router()
 router.post('/leagues/:leagueId/auctions', authMiddleware, async (req: Request, res: Response) => {
   try {
     const leagueId = req.params.leagueId as string
-    const { isRegularMarket } = req.body as { isRegularMarket?: boolean }
-    const result = await createAuctionSession(leagueId, req.user!.userId, isRegularMarket ?? false)
+    const { isRegularMarket, auctionMode } = req.body as { isRegularMarket?: boolean, auctionMode?: 'REMOTE' | 'IN_PRESENCE' }
+    const result = await createAuctionSession(leagueId, req.user!.userId, isRegularMarket ?? false, auctionMode ?? 'REMOTE')
 
     if (!result.success) {
       res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)

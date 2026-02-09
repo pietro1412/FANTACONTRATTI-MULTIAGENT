@@ -723,9 +723,32 @@ model User {
   feedbackResponses      FeedbackResponse[]  @relation("FeedbackAdmin")  // see: feedback.prisma
   feedbackNotifications  FeedbackNotification[]     // see: feedback.prisma
 
+  // Token rotation
+  refreshTokens           RefreshToken[]
+
   // Push notifications
   pushSubscriptions       PushSubscription[]
   notificationPreference  NotificationPreference?
+}
+
+// =============================================================================
+// Refresh Token Rotation
+// =============================================================================
+
+model RefreshToken {
+  id          String   @id @default(cuid())
+  userId      String
+  tokenHash   String   @unique    // SHA-256 hash del refresh token
+  familyId    String              // Identifica la catena di token (per detect reuse)
+  isRevoked   Boolean  @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
 }
 
 // =============================================================================
@@ -916,6 +939,9 @@ model MarketSession {
 
   status      SessionStatus @default(SCHEDULED)  // see: _base.prisma
   currentPhase MarketPhase?                       // see: _base.prisma
+
+  // Modalita asta: REMOTE (default) o IN_PRESENCE (skip ready-check, admin gestisce)
+  auctionMode  String   @default("REMOTE")  // "REMOTE" | "IN_PRESENCE"
 
   // ===== PRIMO MERCATO ASSOLUTO =====
   // Ruolo attualmente in asta (P, D, C, A)

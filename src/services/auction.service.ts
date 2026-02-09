@@ -276,7 +276,8 @@ async function decrementContractDurations(leagueId: string, marketSessionId: str
 export async function createAuctionSession(
   leagueId: string,
   adminUserId: string,
-  isRegularMarket: boolean = false
+  isRegularMarket: boolean = false,
+  auctionMode: 'REMOTE' | 'IN_PRESENCE' = 'REMOTE'
 ): Promise<ServiceResult> {
   // Usa retry per gestire cold start del database
   return withRetry(async () => {
@@ -382,6 +383,7 @@ export async function createAuctionSession(
           semester,
           status: 'ACTIVE',
           currentPhase: effectiveIsRegularMarket ? 'OFFERTE_PRE_RINNOVO' : 'ASTA_LIBERA',
+          auctionMode,
           startsAt: now,
           phaseStartedAt: now,
         },
@@ -1192,6 +1194,7 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
         currentRole: session.currentRole,
         currentPhase: session.currentPhase,
         auctionTimerSeconds: session.auctionTimerSeconds,
+        auctionMode: session.auctionMode,
       },
       marketProgress,
       justCompleted, // Info about just-completed auction for prophecy modal
@@ -3326,7 +3329,7 @@ export async function confirmNomination(
     timestamp: new Date().toISOString(),
   })
 
-  // Check if we're the only member (auto-start)
+  // Check if we're the only member or IN_PRESENCE mode (auto-start)
   const totalMembers = await prisma.leagueMember.count({
     where: {
       leagueId: session.leagueId,
@@ -3334,8 +3337,8 @@ export async function confirmNomination(
     },
   })
 
-  if (totalMembers === 1) {
-    // Solo member, start auction immediately
+  if (totalMembers === 1 || session.auctionMode === 'IN_PRESENCE') {
+    // Solo member or in-presence mode: start auction immediately (skip ready-check)
     return await startPendingAuction(sessionId)
   }
 

@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useCallback, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { Turnstile } from '../components/ui/Turnstile'
 
 interface RegisterProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
@@ -26,6 +27,8 @@ export function Register({ onNavigate }: RegisterProps) {
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [isLoading, setIsLoading] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const handleTurnstileVerify = useCallback((token: string) => setTurnstileToken(token), [])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -39,7 +42,7 @@ export function Register({ onNavigate }: RegisterProps) {
 
     setIsLoading(true)
 
-    const result = await register(email, username, password, confirmPassword)
+    const result = await register(email, username, password, confirmPassword, turnstileToken)
 
     if (result.success) {
       if (inviteToken) {
@@ -155,6 +158,8 @@ export function Register({ onNavigate }: RegisterProps) {
             <p className="text-sm text-gray-400 bg-surface-300 p-3 rounded-lg">
               La password deve contenere almeno 8 caratteri, una lettera maiuscola e un numero.
             </p>
+
+            <Turnstile onVerify={handleTurnstileVerify} />
 
             <Button type="submit" size="xl" variant="accent" className="w-full" isLoading={isLoading}>
               Crea Account

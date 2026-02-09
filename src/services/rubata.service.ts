@@ -2508,8 +2508,6 @@ export async function setRubataReady(
     return { success: true, message: 'Già pronto' }
   }
 
-  const updatedReadyMembers = [...rubataReadyMembers, member.id]
-
   // Get member username for Pusher notification
   const memberWithUser = await prisma.leagueMember.findUnique({
     where: { id: member.id },
@@ -2520,6 +2518,11 @@ export async function setRubataReady(
   const allMembers = await prisma.leagueMember.findMany({
     where: { leagueId, status: MemberStatus.ACTIVE },
   })
+
+  // In IN_PRESENCE mode, auto-mark all members as ready (skip ready-check)
+  const updatedReadyMembers = activeSession.auctionMode === 'IN_PRESENCE'
+    ? allMembers.map(m => m.id)
+    : [...rubataReadyMembers, member.id]
 
   const allReady = allMembers.every(m => updatedReadyMembers.includes(m.id))
 

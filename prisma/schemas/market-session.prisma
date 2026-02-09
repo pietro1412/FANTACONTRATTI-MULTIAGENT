@@ -22,6 +22,9 @@ model MarketSession {
   status      SessionStatus @default(SCHEDULED)  // see: _base.prisma
   currentPhase MarketPhase?                       // see: _base.prisma
 
+  // Modalita asta: REMOTE (default) o IN_PRESENCE (skip ready-check, admin gestisce)
+  auctionMode  String   @default("REMOTE")  // "REMOTE" | "IN_PRESENCE"
+
   // ===== PRIMO MERCATO ASSOLUTO =====
   // Ruolo attualmente in asta (P, D, C, A)
   currentRole       Position?            // see: _base.prisma

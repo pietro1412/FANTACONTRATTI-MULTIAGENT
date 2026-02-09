@@ -1088,6 +1088,12 @@ export async function confirmSvincolatiNomination(
     },
   })
 
+  // In IN_PRESENCE mode, auto-start auction (skip ready-check)
+  if (activeSession.auctionMode === 'IN_PRESENCE') {
+    const turnOrder = (activeSession.svincolatiTurnOrder as string[] | null) || []
+    return await startSvincolatiAuction(activeSession.id, turnOrder)
+  }
+
   return {
     success: true,
     message: 'Nominazione confermata. Attendi che gli altri siano pronti.',
@@ -1197,10 +1203,14 @@ export async function markReadyForSvincolati(
     return { success: false, message: 'Sei già pronto' }
   }
 
-  const newReadyMembers = [...readyMembers, member.id]
-
   // Check if all members are ready
   const turnOrder = (activeSession.svincolatiTurnOrder as string[] | null) || []
+
+  // In IN_PRESENCE mode, auto-mark all members as ready (skip ready-check)
+  const newReadyMembers = activeSession.auctionMode === 'IN_PRESENCE'
+    ? [...turnOrder]
+    : [...readyMembers, member.id]
+
   const allReady = turnOrder.every(id => newReadyMembers.includes(id))
 
   if (allReady) {

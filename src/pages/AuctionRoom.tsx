@@ -94,6 +94,7 @@ interface SessionInfo {
   currentRole: string | null
   currentPhase: string | null
   auctionTimerSeconds: number
+  auctionMode?: string
 }
 
 interface MarketProgress {
@@ -1240,6 +1241,9 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 <h1 className="text-2xl font-bold text-white">Sala Asta</h1>
                 <div className="flex items-center gap-2">
                   <p className="text-gray-400 text-sm">Primo Mercato</p>
+                  {sessionInfo?.auctionMode === 'IN_PRESENCE' && (
+                    <span className="text-xs bg-accent-500/20 text-accent-400 px-2 py-0.5 rounded-full">In Presenza</span>
+                  )}
                   {/* Pusher connection status */}
                   <div className={`text-xs ${isConnected ? 'text-green-400' : 'text-yellow-400'}`}>
                     {isConnected ? '🟢 Real-time' : '🟡 ' + connectionStatus}

@@ -154,6 +154,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [auctionMode, setAuctionMode] = useState<'REMOTE' | 'IN_PRESENCE'>('REMOTE')
   const [consolidationStatus, setConsolidationStatus] = useState<ConsolidationStatus | null>(null)
 
   // Prize state
@@ -318,7 +319,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     setSuccess('')
     setIsSubmitting(true)
 
-    const res = await auctionApi.createSession(leagueId, isRegularMarket)
+    const res = await auctionApi.createSession(leagueId, isRegularMarket, auctionMode)
     if (res.success) {
       setSuccess(isRegularMarket ? 'Mercato ricorrente creato!' : 'Primo mercato creato!')
       loadData()
@@ -942,6 +943,41 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                     ) : (
                       <>
                         <p className="text-gray-400 mb-5">Nessuna sessione attiva</p>
+
+                        {/* Auction Mode Selector */}
+                        <div className="mb-4 p-4 bg-surface-300 rounded-lg">
+                          <p className="text-sm text-gray-400 mb-2">Modalità asta:</p>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setAuctionMode('REMOTE')}
+                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                auctionMode === 'REMOTE'
+                                  ? 'bg-primary-500 text-white'
+                                  : 'bg-surface-200 text-gray-400 hover:text-white'
+                              }`}
+                            >
+                              Remoto
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAuctionMode('IN_PRESENCE')}
+                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                auctionMode === 'IN_PRESENCE'
+                                  ? 'bg-accent-500 text-white'
+                                  : 'bg-surface-200 text-gray-400 hover:text-white'
+                              }`}
+                            >
+                              In Presenza
+                            </button>
+                          </div>
+                          {auctionMode === 'IN_PRESENCE' && (
+                            <p className="text-xs text-accent-400 mt-2">
+                              Ready-check disabilitato: le aste partono subito dopo la nomina.
+                            </p>
+                          )}
+                        </div>
+
                         {(() => {
                           const hasPrimoMercato = sessions.some(s => s.type === 'PRIMO_MERCATO')
                           return (
