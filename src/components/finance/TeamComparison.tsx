@@ -3,6 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ScatterChart, Scatter, Cell, ZAxis,
+  LineChart, Line,
 } from 'recharts'
 import { TeamRanking } from './TeamRanking'
 import { SectionHeader } from './KPICard'
@@ -14,9 +15,20 @@ import {
   computeLeagueTotals,
 } from './types'
 
+interface TrendPoint {
+  snapshotType: string
+  budget: number
+  totalSalaries: number
+  balance: number
+  sessionType: string
+  sessionPhase: string | null
+  createdAt: string
+}
+
 interface TeamComparisonProps {
   data: FinancialsData
   onTeamClick: (memberId: string) => void
+  trends?: Record<string, TrendPoint[]> | null
 }
 
 // Recharts theme for dark mode
@@ -28,7 +40,7 @@ const TEAM_COLORS = [
   '#f97316', '#14b8a6', '#a855f7',
 ]
 
-export function TeamComparison({ data, onTeamClick }: TeamComparisonProps) {
+export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProps) {
   const totals: LeagueTotals = useMemo(() => computeLeagueTotals(data), [data])
   const [sortBy, setSortBy] = useState<'balance' | 'budget' | 'contracts' | 'acquisitions'>('balance')
 
@@ -86,6 +98,28 @@ export function TeamComparison({ data, onTeamClick }: TeamComparisonProps) {
       }
     })
   }, [sortedTeams, totals.hasFinancialDetails])
+
+  // Historical trends: flatten to array of { date, [teamName]: balance }
+  const trendsChartData = useMemo(() => {
+    if (!trends) return null
+    const teamNames = Object.keys(trends)
+    if (teamNames.length === 0) return null
+
+    // Build a map of date -> { date, team1: balance, team2: balance, ... }
+    const dateMap = new Map<string, Record<string, string | number>>()
+
+    for (const [teamName, points] of Object.entries(trends)) {
+      for (const point of points) {
+        const dateKey = new Date(point.createdAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })
+        if (!dateMap.has(dateKey)) {
+          dateMap.set(dateKey, { date: dateKey })
+        }
+        dateMap.get(dateKey)![teamName] = point.balance
+      }
+    }
+
+    return { data: Array.from(dateMap.values()), teamNames }
+  }, [trends])
 
   // Contract duration averages
   const durationData = useMemo(() => {
@@ -277,6 +311,41 @@ export function TeamComparison({ data, onTeamClick }: TeamComparisonProps) {
           </div>
         </div>
       </div>
+
+      {/* Historical trends line chart */}
+      {trendsChartData && (
+        <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
+          <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider mb-3">
+            Andamento Storico Bilancio
+          </div>
+          <div style={{ height: 320 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={trendsChartData.data} margin={{ left: 10, right: 10, top: 5, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#2d3139" />
+                <XAxis dataKey="date" tick={{ fill: '#9ca3af', fontSize: 10 }} />
+                <YAxis tick={{ fill: '#9ca3af', fontSize: 10 }} />
+                <Tooltip
+                  contentStyle={TOOLTIP_STYLE}
+                  itemStyle={{ color: '#fff' }}
+                  formatter={((value: number) => [`${value}M`, '']) as any}
+                />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+                {trendsChartData.teamNames.map((name, i) => (
+                  <Line
+                    key={name}
+                    type="monotone"
+                    dataKey={name}
+                    stroke={TEAM_COLORS[i % TEAM_COLORS.length]}
+                    strokeWidth={2}
+                    dot={false}
+                    connectNulls
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Navigation } from '../components/Navigation'
 import { PullToRefresh } from '../components/PullToRefresh'
 import { ShareButton } from '../components/ShareButton'
@@ -38,6 +38,15 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
   const [selectedSession, setSelectedSession] = useState<string | undefined>(undefined)
   const [view, setView] = useState<ViewLevel>({ level: 'panoramica' })
+  const [trendsData, setTrendsData] = useState<Record<string, Array<{
+    snapshotType: string
+    budget: number
+    totalSalaries: number
+    balance: number
+    sessionType: string
+    sessionPhase: string | null
+    createdAt: string
+  }>> | null>(null)
 
   useEffect(() => {
     loadFinancials()
@@ -63,10 +72,26 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
     }
   }
 
+  // Load trends data (lazy, once)
+  const loadTrends = useCallback(async () => {
+    if (trendsData || !leagueId) return
+    try {
+      const result = await leagueApi.getFinancialTrends(leagueId)
+      if (result.success && result.data) {
+        setTrendsData(result.data.trends)
+      }
+    } catch {
+      // non-critical, silently ignore
+    }
+  }, [leagueId, trendsData])
+
   // Navigation handlers
   const handleTabClick = (tab: string) => {
     if (tab === 'panoramica') setView({ level: 'panoramica' })
-    else if (tab === 'squadre') setView({ level: 'squadre' })
+    else if (tab === 'squadre') {
+      setView({ level: 'squadre' })
+      loadTrends()
+    }
     else if (tab === 'movimenti') setView({ level: 'movimenti' })
   }
 
@@ -257,6 +282,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
           <TeamComparison
             data={data}
             onTeamClick={handleTeamClick}
+            trends={trendsData}
           />
         )}
 

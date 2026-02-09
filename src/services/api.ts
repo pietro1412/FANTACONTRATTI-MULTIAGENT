@@ -1864,6 +1864,44 @@ export const feedbackApi = {
     request('/api/feedback/notifications/read-all', { method: 'PATCH' }),
 }
 
+// Push Notification API
+export const pushApi = {
+  getVapidKey: () =>
+    request<{ publicKey: string }>('/api/push/vapid-key'),
+
+  subscribe: (subscription: PushSubscriptionJSON) =>
+    request('/api/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ subscription }),
+    }),
+
+  unsubscribe: (endpoint: string) =>
+    request('/api/push/unsubscribe', {
+      method: 'DELETE',
+      body: JSON.stringify({ endpoint }),
+    }),
+
+  getPreferences: () =>
+    request<{
+      pushEnabled: boolean
+      tradeOffers: boolean
+      contractExpiry: boolean
+      auctionStart: boolean
+      phaseChange: boolean
+    }>('/api/push/preferences'),
+
+  updatePreferences: (prefs: {
+    tradeOffers?: boolean
+    contractExpiry?: boolean
+    auctionStart?: boolean
+    phaseChange?: boolean
+  }) =>
+    request('/api/push/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(prefs),
+    }),
+}
+
 // Contract History API
 export const contractHistoryApi = {
   // Get contract phase prospetto (real-time summary during CONTRATTI)

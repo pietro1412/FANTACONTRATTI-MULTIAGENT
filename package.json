@@ -76,6 +76,7 @@
     "recharts": "^3.7.0",
     "resend": "^6.7.0",
     "vite-plugin-pwa": "^1.2.0",
+    "web-push": "^3.6.7",
     "xlsx": "^0.18.5",
     "zod": "^4.2.1"
   },
@@ -96,6 +97,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@types/supertest": "^6.0.3",
+    "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^5.1.2",
     "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",

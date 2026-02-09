@@ -1,5 +1,6 @@
 import { PrismaClient, MemberStatus, RosterStatus, TradeStatus } from '@prisma/client'
 import { recordMovement } from './movement.service'
+import { notifyTradeOffer } from './notification.service'
 
 const prisma = new PrismaClient()
 
@@ -161,6 +162,14 @@ export async function createTradeOffer(
       receiver: { select: { id: true, username: true } },
     },
   })
+
+  // Send push notification to receiver (fire-and-forget)
+  const league = await prisma.league.findUnique({ where: { id: leagueId }, select: { name: true } })
+  notifyTradeOffer(
+    toMember.userId,
+    trade.sender.username,
+    league?.name || 'Lega'
+  ).catch(() => {}) // non-blocking
 
   return {
     success: true,

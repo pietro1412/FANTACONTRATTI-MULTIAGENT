@@ -16,6 +16,7 @@ import {
   triggerAuctionClosed,
 } from './pusher.service'
 import { withRetry } from '../utils/db-retry'
+import { notifyAuctionStart, notifyPhaseChange } from './notification.service'
 
 const prisma = new PrismaClient()
 
@@ -424,6 +425,9 @@ export async function createAuctionSession(
       ? `Mercato regolare aperto (fase: Scambi Pre-Rinnovo). Contratti decrementati: ${decrementResult.decremented}, Svincolati per scadenza: ${decrementResult.released.length}${ritiratiResult.released > 0 ? `, Ritirati auto-rilasciati: ${ritiratiResult.released}` : ''}`
       : 'Sessione PRIMO MERCATO creata'
 
+    // Push notification: auction started (fire-and-forget)
+    notifyAuctionStart(leagueId, result.marketType).catch(() => {})
+
     return {
       success: true,
       message,
@@ -574,6 +578,9 @@ export async function setMarketPhase(
       phaseStartedAt: new Date(),
     },
   })
+
+  // Push notification: phase changed (fire-and-forget)
+  notifyPhaseChange(session.leagueId, phase).catch(() => {})
 
   return {
     success: true,

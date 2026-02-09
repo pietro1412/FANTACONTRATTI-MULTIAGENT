@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, type ChangeEvent, type FormEvent } from 'react'
-import { userApi } from '../services/api'
+import { userApi, pushApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
 
@@ -24,8 +24,6 @@ interface UserProfile {
   }>
 }
 
-const NOTIF_PREFS_KEY = 'notification-preferences'
-
 interface NotifPrefs {
   pushEnabled: boolean
   tradeOffers: boolean
@@ -42,17 +40,11 @@ const DEFAULT_NOTIF_PREFS: NotifPrefs = {
   phaseChange: true,
 }
 
-function loadNotifPrefs(): NotifPrefs {
-  try {
-    const saved = localStorage.getItem(NOTIF_PREFS_KEY)
-    if (saved) return { ...DEFAULT_NOTIF_PREFS, ...JSON.parse(saved) }
-  } catch {}
-  return DEFAULT_NOTIF_PREFS
-}
-
 function NotificationPreferences() {
-  const [prefs, setPrefs] = useState<NotifPrefs>(loadNotifPrefs)
+  const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_NOTIF_PREFS)
   const [pushStatus, setPushStatus] = useState<'default' | 'granted' | 'denied' | 'unsupported'>('default')
+  const [vapidKey, setVapidKey] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
@@ -60,31 +52,64 @@ function NotificationPreferences() {
     } else {
       setPushStatus(Notification.permission as 'default' | 'granted' | 'denied')
     }
-  }, [])
 
-  const save = useCallback((updated: NotifPrefs) => {
-    setPrefs(updated)
-    localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(updated))
+    // Load VAPID key and preferences from backend
+    Promise.all([
+      pushApi.getVapidKey(),
+      pushApi.getPreferences(),
+    ]).then(([vapidRes, prefsRes]) => {
+      if (vapidRes.success && vapidRes.data) {
+        setVapidKey(vapidRes.data.publicKey)
+      }
+      if (prefsRes.success && prefsRes.data) {
+        setPrefs(prefsRes.data as NotifPrefs)
+      }
+    }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
   const handlePushToggle = useCallback(async () => {
-    if (pushStatus === 'unsupported') return
+    if (pushStatus === 'unsupported' || !vapidKey) return
 
     if (!prefs.pushEnabled) {
       if (pushStatus === 'denied') return
+
       const permission = await Notification.requestPermission()
       setPushStatus(permission as 'granted' | 'denied' | 'default')
+
       if (permission === 'granted') {
-        save({ ...prefs, pushEnabled: true })
+        try {
+          const registration = await navigator.serviceWorker.ready
+          const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: vapidKey,
+          })
+          await pushApi.subscribe(subscription.toJSON())
+          setPrefs(p => ({ ...p, pushEnabled: true }))
+        } catch {
+          // Subscription failed, keep disabled
+        }
       }
     } else {
-      save({ ...prefs, pushEnabled: false })
+      // Disable push: unsubscribe
+      try {
+        const registration = await navigator.serviceWorker.ready
+        const subscription = await registration.pushManager.getSubscription()
+        if (subscription) {
+          await pushApi.unsubscribe(subscription.endpoint)
+          await subscription.unsubscribe()
+        }
+        setPrefs(p => ({ ...p, pushEnabled: false }))
+      } catch {
+        setPrefs(p => ({ ...p, pushEnabled: false }))
+      }
     }
-  }, [prefs, pushStatus, save])
+  }, [prefs, pushStatus, vapidKey])
 
-  const toggle = (key: keyof Omit<NotifPrefs, 'pushEnabled'>) => {
-    save({ ...prefs, [key]: !prefs[key] })
-  }
+  const toggle = useCallback(async (key: keyof Omit<NotifPrefs, 'pushEnabled'>) => {
+    const updated = { [key]: !prefs[key] }
+    setPrefs(p => ({ ...p, ...updated }))
+    await pushApi.updatePreferences(updated).catch(() => {})
+  }, [prefs])
 
   const NOTIF_OPTIONS = [
     { key: 'tradeOffers' as const, label: 'Offerte scambio', desc: 'Nuove offerte ricevute' },
@@ -92,6 +117,19 @@ function NotificationPreferences() {
     { key: 'auctionStart' as const, label: 'Inizio aste', desc: 'Quando inizia una nuova sessione d\'asta' },
     { key: 'phaseChange' as const, label: 'Cambio fase', desc: 'Transizioni di fase della lega' },
   ]
+
+  if (loading) {
+    return (
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold text-white mb-4">Notifiche</h3>
+        <div className="animate-pulse space-y-3">
+          <div className="h-16 bg-surface-300 rounded-lg" />
+          <div className="h-12 bg-surface-300 rounded-lg" />
+          <div className="h-12 bg-surface-300 rounded-lg" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="mb-8">
@@ -105,9 +143,11 @@ function NotificationPreferences() {
             <p className="text-xs text-gray-500 mt-0.5">
               {pushStatus === 'unsupported'
                 ? 'Non supportate dal browser'
-                : pushStatus === 'denied'
-                  ? 'Bloccate dal browser - abilita dalle impostazioni'
-                  : 'Ricevi notifiche anche quando l\'app non e aperta'}
+                : !vapidKey
+                  ? 'Push non configurate sul server'
+                  : pushStatus === 'denied'
+                    ? 'Bloccate dal browser - abilita dalle impostazioni'
+                    : 'Ricevi notifiche anche quando l\'app non e aperta'}
             </p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
@@ -115,11 +155,11 @@ function NotificationPreferences() {
               type="checkbox"
               checked={prefs.pushEnabled}
               onChange={handlePushToggle}
-              disabled={pushStatus === 'unsupported' || pushStatus === 'denied'}
+              disabled={pushStatus === 'unsupported' || pushStatus === 'denied' || !vapidKey}
               className="sr-only peer"
             />
             <div className={`w-10 h-5 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[3px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-500 ${
-              pushStatus === 'unsupported' || pushStatus === 'denied'
+              pushStatus === 'unsupported' || pushStatus === 'denied' || !vapidKey
                 ? 'bg-surface-400 opacity-50 cursor-not-allowed'
                 : 'bg-surface-400'
             }`} />
@@ -150,10 +190,6 @@ function NotificationPreferences() {
           </div>
         ))}
       </div>
-
-      <p className="text-[10px] text-gray-600 mt-3">
-        Le notifiche push richiedono un backend configurato. Le preferenze vengono salvate localmente per ora.
-      </p>
     </div>
   )
 }

@@ -24,6 +24,8 @@ import timeRoutes from './routes/time'
 import objectivesRoutes from './routes/objectives'
 import feedbackRoutes from './routes/feedback'
 import contractHistoryRoutes from './routes/contract-history'
+import pushRoutes from './routes/push'
+import { initWebPush } from '../services/notification.service'
 
 const app = express()
 const PORT = process.env.API_PORT || 3003
@@ -125,6 +127,7 @@ app.use('/api/time', timeRoutes) // Time sync endpoint for client clock calibrat
 app.use('/api', objectivesRoutes) // Objectives routes for pre-auction targets
 app.use('/api/feedback', feedbackRoutes) // Feedback/segnalazioni routes
 app.use('/api', contractHistoryRoutes) // Contract history routes for tracking changes
+app.use('/api/push', pushRoutes) // Push notification routes
 
 // 404 handler
 app.use((_req, res) => {
@@ -136,6 +139,9 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   console.error('Unhandled error:', err)
   res.status(500).json({ success: false, message: 'Errore interno del server' })
 })
+
+// Initialize web push notifications
+initWebPush()
 
 // Start server
 if (process.env.NODE_ENV !== 'test') {

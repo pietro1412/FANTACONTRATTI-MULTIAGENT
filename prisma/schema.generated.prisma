@@ -717,6 +717,41 @@ model User {
   userFeedback           UserFeedback[]             // see: feedback.prisma
   feedbackResponses      FeedbackResponse[]  @relation("FeedbackAdmin")  // see: feedback.prisma
   feedbackNotifications  FeedbackNotification[]     // see: feedback.prisma
+
+  // Push notifications
+  pushSubscriptions       PushSubscription[]
+  notificationPreference  NotificationPreference?
+}
+
+// =============================================================================
+// Push Notification Models
+// =============================================================================
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+}
+
+model NotificationPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  pushEnabled     Boolean  @default(false)
+  tradeOffers     Boolean  @default(true)
+  contractExpiry  Boolean  @default(true)
+  auctionStart    Boolean  @default(true)
+  phaseChange     Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 
@@ -787,7 +822,7 @@ model LeagueMember {
   // Come e entrato nella lega
   joinType    JoinType @default(REQUEST)      // see: _base.prisma
 
-  // Budget
+  // Budget (M-12: runtime validated >= 0, see validateBudgetNotNegative)
   currentBudget Int    @default(0)
   preConsolidationBudget Int?  // Budget prima del consolidamento (per fase CONTRATTI)
 
