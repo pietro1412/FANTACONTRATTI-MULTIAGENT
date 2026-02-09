@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Navigation } from '../components/Navigation'
 import { PullToRefresh } from '../components/PullToRefresh'
+import { ShareButton } from '../components/ShareButton'
 import { leagueApi } from '../services/api'
 import { FinanceDashboard } from '../components/finance/FinanceDashboard'
 import { TeamComparison } from '../components/finance/TeamComparison'
@@ -156,11 +157,14 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
       <PullToRefresh onRefresh={loadFinancials}>
       <div className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6">
         {/* Header */}
-        <div className="mb-4 md:mb-6">
-          <h1 className="text-xl md:text-2xl font-bold text-white">Finanze Lega</h1>
-          <p className="text-gray-400 mt-1 text-sm md:text-base">
-            {data.leagueName}
-          </p>
+        <div className="mb-4 md:mb-6 flex items-start justify-between">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-white">Finanze Lega</h1>
+            <p className="text-gray-400 mt-1 text-sm md:text-base">
+              {data.leagueName}
+            </p>
+          </div>
+          <ShareButton title="Finanze Lega" text={`Finanze - ${data.leagueName}`} compact />
         </div>
 
         {/* Tab navigation + Session selector */}

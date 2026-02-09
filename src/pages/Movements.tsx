@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { movementApi, leagueApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -103,6 +103,8 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
   const [error, setError] = useState('')
   const [filterType, setFilterType] = useState<string>('')
   const [filterSemester, setFilterSemester] = useState<string>('')
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('')
+  const [filterDateTo, setFilterDateTo] = useState<string>('')
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
 
@@ -192,6 +194,23 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
     })
   }
 
+  // Client-side date range filtering
+  const filteredMovements = useMemo(() => {
+    if (!filterDateFrom && !filterDateTo) return movements
+    return movements.filter(m => {
+      const date = new Date(m.createdAt)
+      if (filterDateFrom && date < new Date(filterDateFrom)) return false
+      if (filterDateTo) {
+        const endOfDay = new Date(filterDateTo)
+        endOfDay.setHours(23, 59, 59, 999)
+        if (date > endOfDay) return false
+      }
+      return true
+    })
+  }, [movements, filterDateFrom, filterDateTo])
+
+  const activeFilterCount = [filterType, filterSemester, filterDateFrom, filterDateTo].filter(Boolean).length
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-dark-300">
@@ -227,7 +246,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
               </div>
               <div>
                 <h1 className="text-lg sm:text-xl font-bold text-white">Storico Movimenti</h1>
-                <p className="text-xs text-gray-500">Stagione {formatSeason(2025)} · {movements.length} mov.</p>
+                <p className="text-xs text-gray-500">Stagione {formatSeason(2025)} · {filteredMovements.length} mov.{filteredMovements.length !== movements.length ? ` (${movements.length} tot.)` : ''}</p>
               </div>
             </div>
 
@@ -239,9 +258,9 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                 className="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-xs text-gray-300 hover:text-white transition-colors"
               >
                 <SlidersHorizontal size={14} />
-                Filtri{(filterType || filterSemester) && (
+                Filtri{activeFilterCount > 0 && (
                   <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-bold bg-primary-500/30 text-primary-400 rounded-full">
-                    {[filterType, filterSemester].filter(Boolean).length}
+                    {activeFilterCount}
                   </span>
                 )}
               </button>
@@ -269,6 +288,31 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                 <option value="1">1° Sem</option>
                 <option value="2">2° Sem</option>
               </select>
+              <div className="hidden md:flex items-center gap-1.5">
+                <span className="text-xs text-gray-500">Dal</span>
+                <input
+                  type="date"
+                  value={filterDateFrom}
+                  onChange={(e) => setFilterDateFrom(e.target.value)}
+                  className="bg-surface-300 border border-surface-50/30 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none [color-scheme:dark]"
+                />
+                <span className="text-xs text-gray-500">al</span>
+                <input
+                  type="date"
+                  value={filterDateTo}
+                  onChange={(e) => setFilterDateTo(e.target.value)}
+                  className="bg-surface-300 border border-surface-50/30 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none [color-scheme:dark]"
+                />
+                {(filterDateFrom || filterDateTo) && (
+                  <button
+                    onClick={() => { setFilterDateFrom(''); setFilterDateTo('') }}
+                    className="text-xs text-gray-500 hover:text-white px-1"
+                    title="Reset date"
+                  >
+                    x
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -307,6 +351,30 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
             </select>
           </div>
 
+          <div>
+            <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Periodo</label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <span className="text-xs text-gray-500 mb-1 block">Dal</span>
+                <input
+                  type="date"
+                  value={filterDateFrom}
+                  onChange={(e) => setFilterDateFrom(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm [color-scheme:dark]"
+                />
+              </div>
+              <div>
+                <span className="text-xs text-gray-500 mb-1 block">Al</span>
+                <input
+                  type="date"
+                  value={filterDateTo}
+                  onChange={(e) => setFilterDateTo(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm [color-scheme:dark]"
+                />
+              </div>
+            </div>
+          </div>
+
           <button
             onClick={() => setFiltersOpen(false)}
             className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-xl transition-colors"
@@ -329,7 +397,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
           <>
             {/* ====== MOBILE CARD VIEW (<md) ====== */}
             <div className="md:hidden space-y-2">
-              {movements.map((movement) => {
+              {filteredMovements.map((movement) => {
                 const typeColor = MOVEMENT_TYPE_COLORS[movement.type] || 'bg-gray-500/20 text-gray-400'
                 const posColor = POSITION_COLORS[movement.player.position] || 'text-gray-400'
                 const hasProphecies = movement.prophecies.length > 0
@@ -474,7 +542,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
 
               {/* Table Rows */}
               <div className="divide-y divide-surface-50/10">
-                {movements.map((movement) => {
+                {filteredMovements.map((movement) => {
                   const typeColor = MOVEMENT_TYPE_COLORS[movement.type] || 'bg-gray-500/20 text-gray-400'
                   const posColor = POSITION_COLORS[movement.player.position] || 'text-gray-400'
                   const hasProphecies = movement.prophecies.length > 0
