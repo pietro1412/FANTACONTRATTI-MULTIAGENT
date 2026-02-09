@@ -1,7 +1,7 @@
 import { PrismaClient, MemberStatus, RosterStatus, AuctionStatus, Position } from '@prisma/client'
 import { recordMovement } from './movement.service'
 import { triggerRubataBidPlaced, triggerRubataStealDeclared, triggerRubataReadyChanged, triggerAuctionClosed } from './pusher.service'
-import { computeSeasonStatsBatch, type ComputedSeasonStats } from './player-stats.service'
+import { computeSeasonStatsBatch, computeAutoTagsBatch, type ComputedSeasonStats, type AutoTagId } from './player-stats.service'
 
 const prisma = new PrismaClient()
 
@@ -3660,6 +3660,7 @@ export async function setRubataPreference(
     maxBid?: number | null
     priority?: number | null
     notes?: string | null
+    watchlistCategory?: string | null
   }
 ): Promise<ServiceResult> {
   const member = await prisma.leagueMember.findFirst({
@@ -3740,6 +3741,7 @@ export async function setRubataPreference(
       maxBid: preference.maxBid,
       priority: preference.priority,
       notes: preference.notes,
+      watchlistCategory: preference.watchlistCategory,
     },
     update: {
       isWatchlist: preference.isWatchlist,
@@ -3747,6 +3749,7 @@ export async function setRubataPreference(
       maxBid: preference.maxBid,
       priority: preference.priority,
       notes: preference.notes,
+      watchlistCategory: preference.watchlistCategory,
     },
     include: {
       player: {
@@ -3890,6 +3893,7 @@ export async function getAllPlayersForStrategies(
     notes: string | null
     isWatchlist: boolean
     isAutoPass: boolean
+    watchlistCategory: string | null
   }>()
 
   if (preferenceSession) {
@@ -3948,6 +3952,17 @@ export async function getAllPlayersForStrategies(
   // Compute season stats for all players in batch (efficient single query)
   const statsMap = await computeSeasonStatsBatch(allPlayerIds)
 
+  // Compute auto-tags for all players in batch
+  const tagInputs = allMembers.flatMap(m =>
+    m.roster.filter(r => r.contract).map(r => ({
+      playerId: r.playerId,
+      age: r.player.age,
+      position: r.player.position,
+      apiFootballStats: r.player.apiFootballStats as Record<string, unknown> | null,
+    }))
+  )
+  const tagsMap = await computeAutoTagsBatch(tagInputs)
+
   // Build the players list with all info
   const players: Array<{
     rosterId: string
@@ -3961,6 +3976,7 @@ export async function getAllPlayersForStrategies(
     playerApiFootballId: number | null
     playerApiFootballStats: unknown
     playerComputedStats: ComputedSeasonStats | null
+    playerAutoTags: AutoTagId[]
     ownerUsername: string
     ownerTeamName: string | null
     ownerRubataOrder: number | null
@@ -3990,6 +4006,7 @@ export async function getAllPlayersForStrategies(
         playerApiFootballId: rosterEntry.player.apiFootballId,
         playerApiFootballStats: rosterEntry.player.apiFootballStats,
         playerComputedStats: statsMap.get(rosterEntry.playerId) || null,
+        playerAutoTags: tagsMap.get(rosterEntry.playerId) || [],
         ownerUsername: memberData.user.username,
         ownerTeamName: memberData.teamName,
         ownerRubataOrder: memberData.rubataOrder,
@@ -4092,6 +4109,7 @@ export async function getAllSvincolatiForStrategies(
     notes: string | null
     isWatchlist: boolean
     isAutoPass: boolean
+    watchlistCategory: string | null
   }>()
 
   if (preferenceSession) {
@@ -4127,6 +4145,17 @@ export async function getAllSvincolatiForStrategies(
     ],
   })
 
+  // Compute season stats and auto-tags for svincolati
+  const svincolatiIds = svincolati.map(p => p.id)
+  const svincolatiStatsMap = await computeSeasonStatsBatch(svincolatiIds)
+  const svincolatiTagInputs = svincolati.map(p => ({
+    playerId: p.id,
+    age: p.age,
+    position: p.position,
+    apiFootballStats: p.apiFootballStats as Record<string, unknown> | null,
+  }))
+  const svincolatiTagsMap = await computeAutoTagsBatch(svincolatiTagInputs)
+
   // Build the players list
   const players = svincolati.map(player => ({
     playerId: player.id,
@@ -4136,6 +4165,8 @@ export async function getAllSvincolatiForStrategies(
     playerAge: player.age,  // #190: include age
     playerApiFootballId: player.apiFootballId,
     playerApiFootballStats: player.apiFootballStats,
+    playerComputedStats: svincolatiStatsMap.get(player.id) || null,
+    playerAutoTags: svincolatiTagsMap.get(player.id) || [],
     preference: preferencesMap.get(player.id) || null,
   }))
 

@@ -1565,11 +1565,12 @@ model RubataPreference {
   player      SerieAPlayer @relation(fields: [playerId], references: [id])
 
   // Preferenze
-  isWatchlist Boolean  @default(false)  // Giocatore nella watchlist
-  isAutoPass  Boolean  @default(false)  // Salta automaticamente (non fare offerte)
-  maxBid      Int?                       // Budget massimo per questo giocatore
-  priority    Int?                       // Priorità (1 = più alta)
-  notes       String?                    // Note private del manager
+  isWatchlist         Boolean  @default(false)  // Giocatore nella watchlist
+  isAutoPass          Boolean  @default(false)  // Salta automaticamente (non fare offerte)
+  maxBid              Int?                       // Budget massimo per questo giocatore
+  priority            Int?                       // Priorità (1 = più alta)
+  notes               String?                    // Note private del manager
+  watchlistCategory   String?                    // Categoria watchlist: DA_RUBARE, SOTTO_OSSERVAZIONE, POTENZIALE_ACQUISTO, SCAMBIO, DA_VENDERE
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

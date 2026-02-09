@@ -1002,6 +1002,7 @@ export const rubataApi = {
     maxBid?: number | null
     priority?: number | null
     notes?: string | null
+    watchlistCategory?: string | null
   }) =>
     request(`/api/leagues/${leagueId}/rubata/preferences/${playerId}`, {
       method: 'PUT',
