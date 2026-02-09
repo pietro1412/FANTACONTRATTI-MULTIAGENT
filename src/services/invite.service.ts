@@ -22,9 +22,21 @@ function generateInviteToken(): string {
 export async function createEmailInvite(
   leagueId: string,
   adminUserId: string,
-  email: string,
+  emailOrUsername: string,
   expiresInDays: number = 7
 ): Promise<ServiceResult> {
+  // Se l'input non contiene @, cerca per username e usa la sua email
+  let email = emailOrUsername
+  if (!emailOrUsername.includes('@')) {
+    const userByUsername = await prisma.user.findFirst({
+      where: { username: { equals: emailOrUsername, mode: 'insensitive' } },
+    })
+    if (!userByUsername) {
+      return { success: false, message: `Utente "${emailOrUsername}" non trovato` }
+    }
+    email = userByUsername.email
+  }
+
   // Verifica che l'utente sia admin della lega
   const adminMember = await prisma.leagueMember.findFirst({
     where: {

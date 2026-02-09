@@ -1,6 +1,8 @@
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
+import helmet from 'helmet'
+import rateLimit from 'express-rate-limit'
 import { PrismaClient } from '@prisma/client'
 import { pusher } from '../services/pusher.service'
 
@@ -38,10 +40,62 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 }
 
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: false, // CSP managed by frontend/Vercel
+  crossOriginEmbedderPolicy: false, // Allow cross-origin requests
+}))
+
 // Middleware - cors handles OPTIONS preflight automatically
 app.use(cors(corsOptions))
 app.use(express.json())
 app.use(cookieParser())
+
+// Rate limiting - general API
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minuti
+  max: 500, // max 500 richieste per IP per finestra
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Troppe richieste. Riprova tra qualche minuto.' },
+})
+app.use('/api', apiLimiter)
+
+// Rate limiting - auth endpoints (più restrittivo)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minuti
+  max: 20, // max 20 tentativi login per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Troppi tentativi di accesso. Riprova tra 15 minuti.' },
+})
+app.use('/api/auth/login', authLimiter)
+app.use('/api/auth/register', authLimiter)
+
+// Input sanitization middleware - strip HTML tags from all string inputs
+function sanitizeValue(value: unknown): unknown {
+  if (typeof value === 'string') {
+    return value.replace(/<[^>]*>/g, '').trim()
+  }
+  if (Array.isArray(value)) {
+    return value.map(sanitizeValue)
+  }
+  if (value && typeof value === 'object') {
+    const sanitized: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value)) {
+      sanitized[k] = sanitizeValue(v)
+    }
+    return sanitized
+  }
+  return value
+}
+
+app.use((req, _res, next) => {
+  if (req.body && typeof req.body === 'object') {
+    req.body = sanitizeValue(req.body)
+  }
+  next()
+})
 
 // Health check
 app.get('/api/health', (_req, res) => {

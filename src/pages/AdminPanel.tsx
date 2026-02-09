@@ -1095,16 +1095,16 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
               </div>
               <div className="p-5">
                 <div className="flex flex-col gap-5">
-                  {/* Email Input */}
+                  {/* Email/Username Input */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-300 mb-2">
-                      Email del nuovo partecipante
+                      Email o username del nuovo partecipante
                     </label>
                     <Input
-                      type="email"
+                      type="text"
                       value={newInviteEmail}
                       onChange={(e) => setNewInviteEmail(e.target.value)}
-                      placeholder="Email dell'invitato..."
+                      placeholder="Email o username..."
                     />
                   </div>
 

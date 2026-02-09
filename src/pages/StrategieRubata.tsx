@@ -761,9 +761,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           ? 'bg-violet-500 text-white shadow-md'
                           : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
                       }`}
-                      title="Vista mista"
+                      title="Vista mista contratti e statistiche"
                     >
-                      🔀 Merge
+                      🔀 Contratti e Stats
                     </button>
                   </div>
                   <div className="text-sm text-gray-400">
@@ -1119,6 +1119,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           Contratto
                         </th>
                       )}
+                      {dataViewMode === 'contracts' && (
+                        <th className="text-center py-1 px-3 bg-cyan-500/10 border-l border-surface-50/20">Stat</th>
+                      )}
                       {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
                         <th colSpan={dataViewMode === 'stats' ? STATS_COLUMNS.length : MERGE_STATS_KEYS.length} className="text-center py-1 px-3 bg-cyan-500/10 border-l border-surface-50/20">
                           Statistiche
@@ -1152,6 +1155,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           <th className="text-center p-2 text-orange-400">Cls</th>
                           <SortableHeader field="rubata" label="Rub." className="text-center p-2" />
                         </>
+                      )}
+                      {dataViewMode === 'contracts' && (
+                        <th className="text-center p-2 text-cyan-400 border-l border-surface-50/20" title="Rating medio">Rat</th>
                       )}
                       {/* Stats columns */}
                       {dataViewMode === 'stats' && STATS_COLUMNS.map((col, idx) => (
@@ -1328,6 +1334,15 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             </>
                           )}
 
+                          {/* Rating column in contracts view */}
+                          {dataViewMode === 'contracts' && (
+                            <td className="p-2 text-center text-xs text-cyan-400 border-l border-surface-50/10">
+                              {player.playerComputedStats?.avgRating != null
+                                ? player.playerComputedStats.avgRating.toFixed(1)
+                                : '-'}
+                            </td>
+                          )}
+
                           {/* Stats columns - full set for stats view (using computedStats for main stats) */}
                           {dataViewMode === 'stats' && STATS_COLUMNS.map((col, idx) => {
                             // Use computedStats for main stats (more accurate data)
@@ -1447,6 +1462,18 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     Nessun giocatore trovato
                   </div>
                 )}
+              </div>
+
+              {/* Legend */}
+              <div className="p-3 border-t border-surface-50/20 bg-surface-300/20 text-[10px] text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
+                <span><b className="text-accent-400">Ing.</b> = Ingaggio</span>
+                <span><b>Dur.</b> = Durata contratto (semestri)</span>
+                <span><b className="text-orange-400">Cls</b> = Clausola rescissoria</span>
+                <span><b>Rub.</b> = Prezzo rubata</span>
+                <span><b>Max</b> = Offerta massima</span>
+                <span><b>★</b> = Priorità (1-3)</span>
+                <span><b>Rat</b> = Rating medio</span>
+                <span><b>Gol</b> / <b>Ass</b> = Gol / Assist</span>
               </div>
 
               {/* Footer */}
