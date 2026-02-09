@@ -4,7 +4,9 @@ import { leagueApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
+import { BottomSheet } from '../components/ui/BottomSheet'
 import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
+import { SlidersHorizontal } from 'lucide-react'
 
 interface RoseProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
@@ -106,6 +108,7 @@ export function Rose({ onNavigate }: RoseProps) {
   const [positionFilter, setPositionFilter] = useState<string>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   // Stats modal
   const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
@@ -332,9 +335,34 @@ export function Rose({ onNavigate }: RoseProps) {
                 </div>
               </div>
 
-              {/* Filters Row */}
+              {/* Filters Row — Mobile: compact search + Filtri button */}
               <div className="p-3 border-b border-surface-50/20 bg-surface-300/20">
-                <div className="flex flex-wrap gap-2 items-center">
+                {/* Mobile compact */}
+                <div className="flex gap-2 items-center md:hidden">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cerca giocatore..."
+                    className="flex-1 min-w-0 px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
+                    inputMode="search"
+                    enterKeyHint="search"
+                  />
+                  <button
+                    onClick={() => setFiltersOpen(true)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-xs text-gray-300 hover:text-white transition-colors flex-shrink-0"
+                  >
+                    <SlidersHorizontal size={14} />
+                    Filtri{(positionFilter !== 'ALL' || teamFilter !== 'ALL') && (
+                      <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-bold bg-primary-500/30 text-primary-400 rounded-full">
+                        {[positionFilter !== 'ALL', teamFilter !== 'ALL'].filter(Boolean).length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {/* Desktop: full inline filters */}
+                <div className="hidden md:flex flex-wrap gap-2 items-center">
                   {/* Position Filter */}
                   <div className="flex gap-1">
                     {['ALL', 'P', 'D', 'C', 'A'].map(pos => {
@@ -403,6 +431,58 @@ export function Rose({ onNavigate }: RoseProps) {
                   </span>
                 </div>
               </div>
+
+              {/* Mobile Filters BottomSheet */}
+              <BottomSheet isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filtri">
+                <div className="p-4 space-y-5">
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Posizione</label>
+                    <div className="flex gap-2">
+                      {['ALL', 'P', 'D', 'C', 'A'].map(pos => {
+                        const colors = POSITION_COLORS[pos]
+                        return (
+                          <button
+                            key={pos}
+                            onClick={() => setPositionFilter(pos)}
+                            className={`flex-1 px-3 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                              positionFilter === pos
+                                ? pos === 'ALL'
+                                  ? 'bg-white/20 text-white'
+                                  : `${colors?.bg} ${colors?.text}`
+                                : 'bg-surface-300 text-gray-500'
+                            }`}
+                          >
+                            {pos === 'ALL' ? 'Tutti' : pos}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {uniqueTeams.length > 0 && (
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Squadra Serie A</label>
+                      <select
+                        value={teamFilter}
+                        onChange={(e) => setTeamFilter(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm"
+                      >
+                        <option value="ALL">Tutte le squadre</option>
+                        {uniqueTeams.map(team => (
+                          <option key={team} value={team}>{team}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => setFiltersOpen(false)}
+                    className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-xl transition-colors"
+                  >
+                    Applica Filtri
+                  </button>
+                </div>
+              </BottomSheet>
 
               {/* Stats Bar */}
               {selectedMember && (

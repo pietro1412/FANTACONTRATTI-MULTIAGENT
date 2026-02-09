@@ -5,7 +5,9 @@ import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import RadarChart from '../components/ui/RadarChart'
+import { BottomSheet } from '../components/ui/BottomSheet'
 import { getPlayerPhotoUrl, getTeamLogoUrl } from '../utils/player-images'
+import { SlidersHorizontal } from 'lucide-react'
 
 // Position colors
 const POSITION_COLORS: Record<string, string> = {
@@ -168,6 +170,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
   const [search, setSearch] = useState('')
   const [positionFilter, setPositionFilter] = useState<string>('')
   const [teamFilter, setTeamFilter] = useState<string>('')
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [sortBy, setSortBy] = useState<string>('name')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
@@ -404,9 +407,55 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
 
           {/* Filters */}
           <Card className="p-3 md:p-4 mb-4 overflow-x-auto">
-            <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4 items-stretch sm:items-end min-w-0">
-              {/* Search */}
-              <div className="flex-1 min-w-0 sm:min-w-[180px]">
+            {/* Mobile: search + Filtri button */}
+            <div className="flex flex-col gap-3 md:hidden">
+              <div className="flex gap-2 items-end">
+                <div className="flex-1 min-w-0">
+                  <label className="block text-xs text-gray-400 mb-1">Cerca giocatore</label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Nome..."
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                      className="min-w-0 flex-1"
+                    />
+                    <Button onClick={handleSearch} variant="outline" className="flex-shrink-0">
+                      🔍
+                    </Button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setFiltersOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-sm text-gray-300 hover:text-white transition-colors flex-shrink-0 mb-px"
+                >
+                  <SlidersHorizontal size={16} />
+                  Filtri{(positionFilter || teamFilter) && (
+                    <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-bold bg-primary-500/30 text-primary-400 rounded-full">
+                      {[positionFilter, teamFilter].filter(Boolean).length}
+                    </span>
+                  )}
+                </button>
+              </div>
+              {selectedForCompare.size > 0 && (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => setShowCompareModal(true)}
+                    className="btn-primary flex-1"
+                    disabled={selectedForCompare.size < 2}
+                  >
+                    Confronta ({selectedForCompare.size})
+                  </Button>
+                  <Button onClick={clearComparison} variant="outline" className="flex-shrink-0">
+                    ✕
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Desktop: full inline filters */}
+            <div className="hidden md:flex flex-wrap gap-4 items-end min-w-0">
+              <div className="flex-1 min-w-0 min-w-[180px]">
                 <label className="block text-xs text-gray-400 mb-1">Cerca giocatore</label>
                 <div className="flex gap-2">
                   <Input
@@ -422,9 +471,8 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                 </div>
               </div>
 
-              {/* Position + Team filters in row on mobile */}
-              <div className="flex gap-2 sm:gap-4">
-                <div className="flex-1 sm:flex-none sm:w-32">
+              <div className="flex gap-4">
+                <div className="w-32">
                   <label className="block text-xs text-gray-400 mb-1">Ruolo</label>
                   <select
                     value={positionFilter}
@@ -442,7 +490,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                   </select>
                 </div>
 
-                <div className="flex-1 sm:flex-none sm:w-40">
+                <div className="w-40">
                   <label className="block text-xs text-gray-400 mb-1">Squadra</label>
                   <select
                     value={teamFilter}
@@ -462,12 +510,11 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                 </div>
               </div>
 
-              {/* Compare buttons */}
               {selectedForCompare.size > 0 && (
-                <div className="flex gap-2 w-full sm:w-auto">
+                <div className="flex gap-2">
                   <Button
                     onClick={() => setShowCompareModal(true)}
-                    className="btn-primary flex-1 sm:flex-none"
+                    className="btn-primary"
                     disabled={selectedForCompare.size < 2}
                   >
                     Confronta ({selectedForCompare.size})
@@ -479,6 +526,57 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
               )}
             </div>
           </Card>
+
+          {/* Mobile Filters BottomSheet */}
+          <BottomSheet isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filtri Statistiche">
+            <div className="p-4 space-y-5">
+              <div>
+                <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Ruolo</label>
+                <div className="flex gap-2">
+                  {['', 'P', 'D', 'C', 'A'].map(pos => (
+                    <button
+                      key={pos}
+                      onClick={() => {
+                        setPositionFilter(pos)
+                        setPage(1)
+                      }}
+                      className={`flex-1 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                        positionFilter === pos
+                          ? 'bg-primary-500/30 text-primary-400'
+                          : 'bg-surface-300 text-gray-400'
+                      }`}
+                    >
+                      {pos === '' ? 'Tutti' : pos}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Squadra</label>
+                <select
+                  value={teamFilter}
+                  onChange={(e) => {
+                    setTeamFilter(e.target.value)
+                    setPage(1)
+                  }}
+                  className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Tutte le squadre</option>
+                  {teams.map((team) => (
+                    <option key={team} value={team}>{team}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                onClick={() => setFiltersOpen(false)}
+                className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-xl transition-colors"
+              >
+                Applica Filtri
+              </button>
+            </div>
+          </BottomSheet>
 
           {/* Column Selector & Presets */}
           <Card className="p-3 md:p-4 mb-4 overflow-x-auto">

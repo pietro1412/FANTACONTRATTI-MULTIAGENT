@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { contractApi, leagueApi } from '../services/api'
 import { Button } from '../components/ui/Button'
+import { Tooltip } from '../components/ui/Tooltip'
+import { StickyActionBar } from '../components/ui/StickyActionBar'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
@@ -1504,28 +1506,30 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     </button>
                     {contract.canSpalmare && !isMarkedForRelease && (
                       newSalary < contract.salary ? (
-                        <span
-                          className="px-1.5 py-0.5 bg-secondary-500/20 border border-secondary-500/40 rounded text-secondary-400 text-[10px] font-bold"
-                          title={`Spalma applicato: ${newSalary}M × ${newDuration}s = ${newSalary * newDuration} ≥ ${contract.initialSalary}`}
-                        >
-                          SPALMATO
-                        </span>
+                        <Tooltip content={`Spalma applicato: ingaggio ridotto a ${newSalary}M allungando la durata a ${newDuration}s. Il costo totale (${newSalary * newDuration}M) resta ≥ ${contract.initialSalary}M.`}>
+                          <span className="px-1.5 py-0.5 bg-secondary-500/20 border border-secondary-500/40 rounded text-secondary-400 text-[10px] font-bold cursor-help">
+                            SPALMATO
+                          </span>
+                        </Tooltip>
                       ) : (
-                        <span
-                          className="px-1.5 py-0.5 bg-warning-500/20 border border-warning-500/40 rounded text-warning-400 text-[10px] font-bold"
-                          title={`Spalma disponibile: Nuovo Ing. × Nuova Dur. ≥ ${contract.initialSalary}M`}
-                        >
-                          SPALMABILE
-                        </span>
+                        <Tooltip content={`Puoi ridurre l'ingaggio allungando la durata. Regola: Nuovo Ing. × Nuova Dur. ≥ ${contract.initialSalary}M.`}>
+                          <span className="px-1.5 py-0.5 bg-warning-500/20 border border-warning-500/40 rounded text-warning-400 text-[10px] font-bold cursor-help">
+                            SPALMABILE
+                          </span>
+                        </Tooltip>
                       )
                     )}
                     {isMarkedForRelease && (
-                      <span className="text-danger-400 text-[10px] font-bold">DA TAGLIARE</span>
+                      <Tooltip content="Questo giocatore verrà tagliato al consolidamento. Il costo del taglio è (Ingaggio × Durata) / 2.">
+                        <span className="text-danger-400 text-[10px] font-bold cursor-help">DA TAGLIARE</span>
+                      </Tooltip>
                     )}
                     {isKeptExited && (
-                      <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 rounded text-green-400 text-[10px] font-bold">
-                        MANTENUTO
-                      </span>
+                      <Tooltip content="Contratto scaduto ma hai scelto di mantenere il giocatore. Rinnova ingaggio e durata.">
+                        <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 rounded text-green-400 text-[10px] font-bold cursor-help">
+                          MANTENUTO
+                        </span>
+                      </Tooltip>
                     )}
                   </div>
 
@@ -1549,9 +1553,11 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
                   {/* Trade info badge */}
                   {contract.roster.acquisitionType === 'TRADE' && (
-                    <div className="bg-purple-500/20 border border-purple-500/50 rounded px-2 py-1 mb-2 text-center">
-                      <span className="text-purple-400 text-xs font-bold">↔️ SCAMBIO</span>
-                    </div>
+                    <Tooltip content="Giocatore acquisito tramite scambio. Il contratto originale viene mantenuto." position="bottom">
+                      <div className="bg-purple-500/20 border border-purple-500/50 rounded px-2 py-1 mb-2 text-center cursor-help">
+                        <span className="text-purple-400 text-xs font-bold">↔️ SCAMBIO</span>
+                      </div>
+                    </Tooltip>
                   )}
 
                   {/* Current contract info */}
@@ -1855,32 +1861,35 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                             </button>
                             {contract.canSpalmare && !isMarkedForRelease && (
                               newSalary < contract.salary ? (
-                                <span
-                                  className="px-1.5 py-0.5 bg-secondary-500/20 border border-secondary-500/40 rounded text-secondary-400 text-[10px] font-bold cursor-help"
-                                  title={`Spalma applicato: ${newSalary}M × ${newDuration}s = ${newSalary * newDuration} ≥ ${contract.initialSalary}`}
-                                >
-                                  SPALMATO
-                                </span>
+                                <Tooltip content={`Spalma applicato: ingaggio ridotto a ${newSalary}M allungando la durata a ${newDuration}s. Costo totale (${newSalary * newDuration}M) ≥ ${contract.initialSalary}M.`}>
+                                  <span className="px-1.5 py-0.5 bg-secondary-500/20 border border-secondary-500/40 rounded text-secondary-400 text-[10px] font-bold cursor-help">
+                                    SPALMATO
+                                  </span>
+                                </Tooltip>
                               ) : (
-                                <span
-                                  className="px-1.5 py-0.5 bg-warning-500/20 border border-warning-500/40 rounded text-warning-400 text-[10px] font-bold cursor-help"
-                                  title={`Spalma disponibile: Nuovo Ing. × Nuova Dur. ≥ ${contract.initialSalary}M`}
-                                >
-                                  SPALMABILE
-                                </span>
+                                <Tooltip content={`Puoi ridurre l'ingaggio allungando la durata. Regola: Nuovo Ing. × Nuova Dur. ≥ ${contract.initialSalary}M.`}>
+                                  <span className="px-1.5 py-0.5 bg-warning-500/20 border border-warning-500/40 rounded text-warning-400 text-[10px] font-bold cursor-help">
+                                    SPALMABILE
+                                  </span>
+                                </Tooltip>
                               )
                             )}
                             {contract.roster.acquisitionType === 'TRADE' && (
-                              <span className="text-purple-400 text-[10px] font-bold px-1 py-0.5 bg-purple-500/20 rounded">↔️ SCAMBIO</span>
+                              <Tooltip content="Acquisito tramite scambio. Il contratto originale viene mantenuto.">
+                                <span className="text-purple-400 text-[10px] font-bold px-1 py-0.5 bg-purple-500/20 rounded cursor-help">↔️ SCAMBIO</span>
+                              </Tooltip>
                             )}
                             {isMarkedForRelease && (
-                              <span className="text-danger-400 text-xs font-medium">DA TAGLIARE</span>
+                              <Tooltip content="Verrà tagliato al consolidamento. Costo: (Ingaggio × Durata) / 2.">
+                                <span className="text-danger-400 text-xs font-medium cursor-help">DA TAGLIARE</span>
+                              </Tooltip>
                             )}
                             {isKeptExited && (
-                              <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 rounded text-green-400 text-[10px] font-bold cursor-help"
-                                title="Giocatore uscito mantenuto in rosa">
-                                MANTENUTO
-                              </span>
+                              <Tooltip content="Contratto scaduto ma mantenuto in rosa. Rinnova ingaggio e durata.">
+                                <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 rounded text-green-400 text-[10px] font-bold cursor-help">
+                                  MANTENUTO
+                                </span>
+                              </Tooltip>
                             )}
                           </div>
                         </td>
@@ -2280,7 +2289,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       </main>
 
       {/* Sticky Budget Bar - Prominente */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-surface-200 via-surface-200 to-surface-200 border-t-2 border-primary-500/50 z-40 shadow-lg shadow-black/30">
+      <StickyActionBar>
         <div className="max-w-[1600px] mx-auto px-4 py-3">
           {/* Mobile: layout con pulsanti azione fissi */}
           <div className="md:hidden">
@@ -2407,7 +2416,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
             </div>
           </div>
         </div>
-      </div>
+      </StickyActionBar>
 
       {/* Player Stats Modal */}
       <PlayerStatsModal
