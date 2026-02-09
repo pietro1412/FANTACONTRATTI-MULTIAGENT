@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { svincolatiApi, leagueApi, auctionApi, contractApi } from '../services/api'
+import { usePusherAuction } from '../services/pusher.client'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Navigation } from '../components/Navigation'
@@ -78,6 +79,7 @@ interface PendingAck {
 }
 
 interface BoardState {
+  sessionId: string
   isActive: boolean
   state: string
   turnOrder: TurnMember[]
@@ -242,11 +244,61 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     loadFreeAgents()
   }, [loadFreeAgents])
 
-  // Poll for board updates
+  // Poll for board updates (fallback, Pusher handles instant updates)
   useEffect(() => {
-    const interval = setInterval(loadBoard, 3000)
+    const interval = setInterval(loadBoard, 8000)
     return () => clearInterval(interval)
   }, [loadBoard])
+
+  // Pusher real-time updates (#110, #113)
+  const { isConnected: isPusherConnected } = usePusherAuction(board?.sessionId, {
+    onSvincolatiStateChanged: () => {
+      console.log('[Pusher] Svincolati state changed')
+      loadBoard()
+    },
+    onSvincolatiNomination: () => {
+      console.log('[Pusher] Svincolati nomination')
+      loadBoard()
+    },
+    onSvincolatiBidPlaced: (data) => {
+      console.log('[Pusher] Svincolati bid placed', data)
+      // Instant UI update for bids from others
+      if (data.bidderId !== board?.myMemberId) {
+        setBoard(prev => {
+          if (!prev?.activeAuction) return prev
+          return {
+            ...prev,
+            activeAuction: {
+              ...prev.activeAuction,
+              currentPrice: data.amount,
+              bids: [
+                { amount: data.amount, bidder: data.bidderUsername, bidderId: data.bidderId, isWinning: true },
+                ...prev.activeAuction.bids.map(b => ({ ...b, isWinning: false })),
+              ],
+            },
+          }
+        })
+      }
+      setTimeout(() => loadBoard(), 100)
+    },
+    onSvincolatiReadyChanged: (data) => {
+      console.log('[Pusher] Svincolati ready changed', data)
+      setBoard(prev => prev ? { ...prev, readyMembers: data.readyMembers } : prev)
+    },
+    onBidPlaced: (data) => {
+      // Also listen to generic bid events (used by svincolati auction engine)
+      console.log('[Pusher] Generic bid placed in svincolati', data)
+      loadBoard()
+    },
+    onAuctionClosed: () => {
+      console.log('[Pusher] Svincolati auction closed')
+      loadBoard()
+    },
+    onMemberReady: () => {
+      console.log('[Pusher] Svincolati member ready')
+      loadBoard()
+    },
+  })
 
   // Send heartbeat every 3 seconds to track connection status
   useEffect(() => {
@@ -1211,7 +1263,10 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                 <span className="text-2xl">🔓</span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Asta Svincolati</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-white">Asta Svincolati</h1>
+                  <span className={`w-2 h-2 rounded-full ${isPusherConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`} title={isPusherConnected ? 'Real-time attivo' : 'Real-time disconnesso'} />
+                </div>
                 <p className="text-gray-400 text-sm">
                   {state === 'COMPLETED' ? 'Fase completata' : 'Mercato libero'}
                 </p>

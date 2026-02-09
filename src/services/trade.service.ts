@@ -1,6 +1,7 @@
 import { PrismaClient, MemberStatus, RosterStatus, TradeStatus } from '@prisma/client'
 import { recordMovement } from './movement.service'
 import { notifyTradeOffer } from './notification.service'
+import { triggerTradeOfferReceived, triggerTradeUpdated } from './pusher.service'
 
 const prisma = new PrismaClient()
 
@@ -170,6 +171,14 @@ export async function createTradeOffer(
     trade.sender.username,
     league?.name || 'Lega'
   ).catch(() => {}) // non-blocking
+
+  // Real-time Pusher notification (fire-and-forget)
+  triggerTradeOfferReceived(leagueId, {
+    tradeId: trade.id,
+    senderUsername: trade.sender.username,
+    receiverUserId: toMember.userId,
+    timestamp: new Date().toISOString(),
+  }).catch(() => {})
 
   return {
     success: true,
@@ -596,6 +605,13 @@ export async function acceptTrade(tradeId: string, userId: string): Promise<Serv
     } : null,
   }))
 
+  // Real-time Pusher notification (fire-and-forget)
+  triggerTradeUpdated(leagueId, {
+    tradeId,
+    newStatus: 'ACCEPTED',
+    timestamp: new Date().toISOString(),
+  }).catch(() => {})
+
   return {
     success: true,
     message: 'Scambio completato!',
@@ -625,13 +641,21 @@ export async function rejectTrade(tradeId: string, userId: string): Promise<Serv
     return { success: false, message: 'Questa offerta non è più valida' }
   }
 
-  await prisma.tradeOffer.update({
+  const updatedTrade = await prisma.tradeOffer.update({
     where: { id: tradeId },
     data: {
       status: TradeStatus.REJECTED,
       respondedAt: new Date(),
     },
+    include: { marketSession: { select: { leagueId: true } } },
   })
+
+  // Real-time Pusher notification (fire-and-forget)
+  triggerTradeUpdated(updatedTrade.marketSession.leagueId, {
+    tradeId,
+    newStatus: 'REJECTED',
+    timestamp: new Date().toISOString(),
+  }).catch(() => {})
 
   return {
     success: true,
@@ -825,12 +849,20 @@ export async function cancelTradeOffer(tradeId: string, userId: string): Promise
     return { success: false, message: 'Questa offerta non può essere cancellata' }
   }
 
-  await prisma.tradeOffer.update({
+  const cancelledTrade = await prisma.tradeOffer.update({
     where: { id: tradeId },
     data: {
       status: TradeStatus.CANCELLED,
     },
+    include: { marketSession: { select: { leagueId: true } } },
   })
+
+  // Real-time Pusher notification (fire-and-forget)
+  triggerTradeUpdated(cancelledTrade.marketSession.leagueId, {
+    tradeId,
+    newStatus: 'CANCELLED',
+    timestamp: new Date().toISOString(),
+  }).catch(() => {})
 
   return {
     success: true,

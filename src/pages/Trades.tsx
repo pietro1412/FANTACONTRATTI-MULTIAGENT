@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { tradeApi, auctionApi, leagueApi, contractApi, movementApi } from '../services/api'
+import { usePusherTrades } from '../services/pusher.client'
 import { Button } from '../components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { Navigation } from '../components/Navigation'
@@ -469,6 +470,16 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     }
   }, [highlightedOfferId, isLoading])
 
+  // Pusher real-time: auto-refresh when trade events arrive
+  const { isConnected: pusherConnected } = usePusherTrades(leagueId, {
+    onTradeOfferReceived: useCallback(() => {
+      loadData()
+    }, [leagueId]),
+    onTradeUpdated: useCallback(() => {
+      loadData()
+    }, [leagueId]),
+  })
+
   async function loadData() {
     setIsLoading(true)
 
@@ -879,12 +890,15 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                   {currentSession ? currentSession.currentPhase : 'Nessuna sessione attiva'}
                 </p>
               </div>
-              <div className={`px-2.5 md:px-3 py-1 rounded-full text-xs md:text-sm font-medium flex-shrink-0 ${
-                isInTradePhase
-                  ? 'bg-secondary-500/20 text-secondary-400 border border-secondary-500/40'
-                  : 'bg-surface-300 text-gray-400'
-              }`}>
-                {isInTradePhase ? 'Scambi Attivi' : 'Non Disponibili'}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className={`px-2.5 md:px-3 py-1 rounded-full text-xs md:text-sm font-medium ${
+                  isInTradePhase
+                    ? 'bg-secondary-500/20 text-secondary-400 border border-secondary-500/40'
+                    : 'bg-surface-300 text-gray-400'
+                }`}>
+                  {isInTradePhase ? 'Scambi Attivi' : 'Non Disponibili'}
+                </div>
+                <div className={`w-2 h-2 rounded-full ${pusherConnected ? 'bg-green-400' : 'bg-red-400'}`} title={pusherConnected ? 'Real-time connesso' : 'Real-time disconnesso'} />
               </div>
             </div>
           </CardContent>

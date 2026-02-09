@@ -910,6 +910,7 @@ export async function getSvincolatiBoard(
   return {
     success: true,
     data: {
+      sessionId: activeSession.id,
       isActive: true,
       state: activeSession.svincolatiState || 'SETUP',
       turnOrder: orderedMembers.map(m => ({
