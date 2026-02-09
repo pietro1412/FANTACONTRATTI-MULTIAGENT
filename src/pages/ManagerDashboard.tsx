@@ -412,31 +412,55 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                     {(roster[pos]?.length ?? 0) === 0 ? (
                       <p className="p-4 text-gray-400 text-sm text-center">Nessun giocatore</p>
                     ) : (
-                      <table className="w-full">
-                        <thead className="bg-gray-50">
+                      <>
+                      {/* Mobile: card list */}
+                      <div className="md:hidden divide-y divide-surface-50/20">
+                        {(roster[pos] ?? []).map(entry => (
+                          <div key={entry.id} className="px-4 py-3 flex items-center justify-between">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-white truncate">{entry.player.name}</p>
+                              <p className="text-xs text-gray-500">{entry.player.team}</p>
+                            </div>
+                            <div className="flex gap-4 text-sm flex-shrink-0">
+                              <div className="text-right">
+                                <div className="text-[10px] text-gray-500">Costo</div>
+                                <div className="font-mono text-white">{entry.acquisitionPrice}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-[10px] text-gray-500">Quot.</div>
+                                <div className="font-mono text-gray-400">{entry.player.quotation}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Desktop: table */}
+                      <table className="w-full hidden md:table">
+                        <thead className="bg-surface-300">
                           <tr>
-                            <th className="px-4 py-2 text-left text-xs text-gray-500">Giocatore</th>
-                            <th className="px-4 py-2 text-right text-xs text-gray-500">Costo</th>
-                            <th className="px-4 py-2 text-right text-xs text-gray-500">Quot.</th>
+                            <th className="px-4 py-2 text-left text-xs text-gray-400">Giocatore</th>
+                            <th className="px-4 py-2 text-right text-xs text-gray-400">Costo</th>
+                            <th className="px-4 py-2 text-right text-xs text-gray-400">Quot.</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y">
+                        <tbody className="divide-y divide-surface-50/20">
                           {(roster[pos] ?? []).map(entry => (
-                            <tr key={entry.id} className="hover:bg-gray-50">
+                            <tr key={entry.id} className="hover:bg-surface-300/30">
                               <td className="px-4 py-3">
-                                <p className="font-medium">{entry.player.name}</p>
+                                <p className="font-medium text-white">{entry.player.name}</p>
                                 <p className="text-xs text-gray-500">{entry.player.team}</p>
                               </td>
-                              <td className="px-4 py-3 text-right font-mono">
+                              <td className="px-4 py-3 text-right font-mono text-white">
                                 {entry.acquisitionPrice}
                               </td>
-                              <td className="px-4 py-3 text-right font-mono text-gray-500">
+                              <td className="px-4 py-3 text-right font-mono text-gray-400">
                                 {entry.player.quotation}
                               </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
+                      </>
                     )}
                   </CardContent>
                 </Card>
@@ -452,22 +476,53 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
               <CardTitle>Tutti i Contratti</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <table className="w-full">
-                <thead className="bg-gray-50">
+              {/* Mobile: contract cards */}
+              <div className="md:hidden divide-y divide-surface-50/20">
+                {allPlayers.map(entry => {
+                  const posConfig = POSITION_CONFIG[entry.player.position as keyof typeof POSITION_CONFIG]
+                  const statusBadge = !entry.contract
+                    ? <span className="px-2 py-0.5 bg-danger-500/20 text-danger-400 rounded text-xs">Da impostare</span>
+                    : entry.contract.duration === 0
+                      ? <span className="px-2 py-0.5 bg-danger-500/20 text-danger-400 rounded text-xs">Scaduto</span>
+                      : entry.contract.duration === 1
+                        ? <span className="px-2 py-0.5 bg-warning-500/20 text-warning-400 rounded text-xs">In scadenza</span>
+                        : <span className="px-2 py-0.5 bg-secondary-500/20 text-secondary-400 rounded text-xs">Attivo</span>
+                  return (
+                    <div key={entry.id} className="px-4 py-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${posConfig.bgClass} ${posConfig.textClass}`}>{entry.player.position}</span>
+                        <span className="font-medium text-white flex-1 truncate">{entry.player.name}</span>
+                        {statusBadge}
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-400">
+                        <span>{entry.player.team}</span>
+                        <div className="flex gap-3">
+                          <span>Ing. <span className="text-white font-medium">{entry.contract?.salary || '-'}</span></span>
+                          <span>Dur. <span className={`font-medium ${entry.contract && entry.contract.duration <= 1 ? 'text-warning-400' : 'text-white'}`}>{entry.contract ? `${entry.contract.duration}s` : '-'}</span></span>
+                          <span>Cl. <span className="text-accent-400 font-medium">{entry.contract?.rescissionClause || '-'}</span></span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              {/* Desktop: table */}
+              <table className="w-full hidden md:table">
+                <thead className="bg-surface-300">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs text-gray-500">Giocatore</th>
-                    <th className="px-4 py-3 text-center text-xs text-gray-500">Ruolo</th>
-                    <th className="px-4 py-3 text-right text-xs text-gray-500">Ingaggio</th>
-                    <th className="px-4 py-3 text-right text-xs text-gray-500">Durata</th>
-                    <th className="px-4 py-3 text-right text-xs text-gray-500">Clausola</th>
-                    <th className="px-4 py-3 text-right text-xs text-gray-500">Stato</th>
+                    <th className="px-4 py-3 text-left text-xs text-gray-400">Giocatore</th>
+                    <th className="px-4 py-3 text-center text-xs text-gray-400">Ruolo</th>
+                    <th className="px-4 py-3 text-right text-xs text-gray-400">Ingaggio</th>
+                    <th className="px-4 py-3 text-right text-xs text-gray-400">Durata</th>
+                    <th className="px-4 py-3 text-right text-xs text-gray-400">Clausola</th>
+                    <th className="px-4 py-3 text-right text-xs text-gray-400">Stato</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-surface-50/20">
                   {allPlayers.map(entry => (
-                    <tr key={entry.id} className="hover:bg-gray-50">
+                    <tr key={entry.id} className="hover:bg-surface-300/30">
                       <td className="px-4 py-3">
-                        <p className="font-medium">{entry.player.name}</p>
+                        <p className="font-medium text-white">{entry.player.name}</p>
                         <p className="text-xs text-gray-500">{entry.player.team}</p>
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -475,30 +530,30 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                           {entry.player.position}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-mono">
+                      <td className="px-4 py-3 text-right font-mono text-white">
                         {entry.contract?.salary || '-'}
                       </td>
                       <td className="px-4 py-3 text-right">
                         {entry.contract ? (
-                          <span className={entry.contract.duration <= 1 ? 'text-warning-600 font-medium' : ''}>
+                          <span className={entry.contract.duration <= 1 ? 'text-warning-400 font-medium' : 'text-white'}>
                             {entry.contract.duration} sem.
                           </span>
                         ) : (
-                          <span className="text-danger-500">No contratto</span>
+                          <span className="text-danger-400">No contratto</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono">
+                      <td className="px-4 py-3 text-right font-mono text-white">
                         {entry.contract?.rescissionClause || '-'}
                       </td>
                       <td className="px-4 py-3 text-right">
                         {!entry.contract ? (
-                          <span className="px-2 py-1 bg-danger-100 text-danger-700 rounded text-xs">Da impostare</span>
+                          <span className="px-2 py-1 bg-danger-500/20 text-danger-400 rounded text-xs">Da impostare</span>
                         ) : entry.contract.duration === 0 ? (
-                          <span className="px-2 py-1 bg-danger-100 text-danger-700 rounded text-xs">Scaduto</span>
+                          <span className="px-2 py-1 bg-danger-500/20 text-danger-400 rounded text-xs">Scaduto</span>
                         ) : entry.contract.duration === 1 ? (
-                          <span className="px-2 py-1 bg-warning-100 text-warning-700 rounded text-xs">In scadenza</span>
+                          <span className="px-2 py-1 bg-warning-500/20 text-warning-400 rounded text-xs">In scadenza</span>
                         ) : (
-                          <span className="px-2 py-1 bg-success-100 text-success-700 rounded text-xs">Attivo</span>
+                          <span className="px-2 py-1 bg-secondary-500/20 text-secondary-400 rounded text-xs">Attivo</span>
                         )}
                       </td>
                     </tr>

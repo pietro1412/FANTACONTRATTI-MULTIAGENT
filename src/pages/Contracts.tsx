@@ -8,6 +8,7 @@ import { getTeamLogo } from '../utils/teamLogos'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
 import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
 import { getPlayerPhotoUrl } from '../utils/player-images'
+import haptic from '../utils/haptics'
 
 interface ContractsProps {
   leagueId: string
@@ -462,6 +463,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     }))
     const result = await contractApi.saveDrafts(leagueId, renewals, newContracts, Array.from(localReleases), exitDecisionsArray)
     if (result.success) {
+      haptic.save()
       setSuccess('Bozze salvate! Puoi tornare a modificarle in qualsiasi momento.')
       await loadContracts() // Ricarica per aggiornare i draft
     } else {
@@ -508,6 +510,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     // Invia al backend
     const result = await contractApi.consolidateAll(leagueId, renewals, newContracts)
     if (result.success) {
+      haptic.success()
       setSuccess(result.message || 'Contratti consolidati!')
       setIsConsolidated(true)
       const data = result.data as { consolidatedAt?: string }
@@ -1144,15 +1147,15 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                           <button
                             onClick={() => updatePendingEdit(pending.rosterId, 'newSalary', String(Math.max(pending.minSalary, currentSalary - 1)))}
                             disabled={!inContrattiPhase || isConsolidated || currentSalary <= pending.minSalary}
-                            className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
+                            className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
                           >−</button>
-                          <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
+                          <div className="flex-1 px-2 py-2 min-h-[44px] flex items-center justify-center bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
                             {currentSalary}M
                           </div>
                           <button
                             onClick={() => updatePendingEdit(pending.rosterId, 'newSalary', String(currentSalary + 1))}
                             disabled={!inContrattiPhase || isConsolidated}
-                            className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold disabled:opacity-30"
+                            className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold disabled:opacity-30"
                           >+</button>
                         </div>
                       </div>
@@ -1162,15 +1165,15 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                           <button
                             onClick={() => updatePendingEdit(pending.rosterId, 'newDuration', String(Math.max(1, currentDuration - 1)))}
                             disabled={!inContrattiPhase || isConsolidated || currentDuration <= 1}
-                            className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
+                            className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
                           >−</button>
-                          <div className={`flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-center font-medium ${getDurationColor(currentDuration)}`}>
+                          <div className={`flex-1 px-2 py-2 min-h-[44px] flex items-center justify-center bg-surface-300 border-y border-primary-500/30 text-center font-medium ${getDurationColor(currentDuration)}`}>
                             {currentDuration}s
                           </div>
                           <button
                             onClick={() => updatePendingEdit(pending.rosterId, 'newDuration', String(Math.min(4, currentDuration + 1)))}
                             disabled={!inContrattiPhase || isConsolidated || currentDuration >= 4}
-                            className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold disabled:opacity-30"
+                            className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold disabled:opacity-30"
                           >+</button>
                         </div>
                       </div>
@@ -1609,15 +1612,15 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                             <button
                               onClick={() => updateLocalEdit(contract.id, 'newSalary', String(Math.max(minSalaryAllowed, newSalary - 1)))}
                               disabled={!canDecreaseSalary}
-                              className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
+                              className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
                               title={!canDecreaseSalary ? (contract.canSpalmare ? 'Ingaggio minimo raggiunto' : 'Riduci prima la durata per diminuire l\'ingaggio') : undefined}
                             >−</button>
-                            <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
+                            <div className="flex-1 px-2 py-2 min-h-[44px] flex items-center justify-center bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
                               {newSalary}M
                             </div>
                             <button
                               onClick={() => updateLocalEdit(contract.id, 'newSalary', String(newSalary + 1))}
-                              className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold"
+                              className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold"
                             >+</button>
                           </div>
                         </div>
@@ -1627,16 +1630,16 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                             <button
                               onClick={() => updateLocalEdit(contract.id, 'newDuration', String(newDuration - 1))}
                               disabled={!canDecreaseDuration}
-                              className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
+                              className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
                               title={!canDecreaseDuration && contract.canSpalmare ? 'Aumenta l\'ingaggio per ridurre la durata' : undefined}
                             >−</button>
-                            <div className={`flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-center font-medium ${getDurationColor(newDuration)}`}>
+                            <div className={`flex-1 px-2 py-2 min-h-[44px] flex items-center justify-center bg-surface-300 border-y border-primary-500/30 text-center font-medium ${getDurationColor(newDuration)}`}>
                               {newDuration}s
                             </div>
                             <button
                               onClick={() => updateLocalEdit(contract.id, 'newDuration', String(newDuration + 1))}
                               disabled={newDuration >= 4 || !canIncreaseDuration}
-                              className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold disabled:opacity-30"
+                              className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold disabled:opacity-30"
                               title={!canIncreaseDuration ? 'Aumenta prima l\'ingaggio per estendere la durata' : undefined}
                             >+</button>
                           </div>

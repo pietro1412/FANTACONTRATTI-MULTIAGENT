@@ -135,7 +135,7 @@ export function BottomSheet({
               </h2>
               <button
                 onClick={onClose}
-                className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-surface-100 transition-colors"
+                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-400 hover:text-white rounded-lg hover:bg-surface-100 transition-colors"
                 aria-label="Chiudi"
               >
                 <X size={20} />

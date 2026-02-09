@@ -6,6 +6,7 @@ import { Input } from '../components/ui/Input'
 import { NumberStepper } from '../components/ui/NumberStepper'
 import { Navigation } from '../components/Navigation'
 import { MarketPhaseManager } from '../components/MarketPhaseManager'
+import haptic from '../utils/haptics'
 
 interface AdminPanelProps {
   leagueId: string
@@ -356,6 +357,8 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
 
     const res = await leagueApi.updateMember(leagueId, memberId, action)
     if (res.success) {
+      if (action === 'accept') haptic.approve()
+      else haptic.reject()
       setSuccess(action === 'accept' ? 'Membro accettato' : action === 'reject' ? 'Richiesta rifiutata' : 'Membro espulso')
       loadData()
     } else {
@@ -615,38 +618,38 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
         </div>
       </div>
 
-      <main className="max-w-[1600px] mx-auto px-6 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 md:px-6 py-4 md:py-8">
         {/* Alerts */}
         {error && (
-          <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-xl mb-6">{error}</div>
+          <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 md:p-4 rounded-xl mb-4 md:mb-6 text-sm">{error}</div>
         )}
         {success && (
-          <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-4 rounded-xl mb-6">{success}</div>
+          <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-3 md:p-4 rounded-xl mb-4 md:mb-6 text-sm">{success}</div>
         )}
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-8 flex-wrap">
+        {/* Tabs - scrollable on mobile, flex-wrap on desktop */}
+        <div className="flex gap-2 mb-6 md:mb-8 overflow-x-auto md:overflow-x-visible md:flex-wrap scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
           {TABS.map(tab => (
             <button
               key={tab.id}
               onClick={() => {
-                // Prizes tab navigates to dedicated prizes page
                 if (tab.id === 'prizes') {
                   onNavigate('prizes', { leagueId })
                 } else {
                   setActiveTab(tab.id)
                 }
               }}
-              className={`px-5 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all ${
+              className={`whitespace-nowrap flex-shrink-0 px-3 md:px-5 py-2 md:py-3 rounded-xl font-semibold flex items-center gap-1.5 md:gap-2 transition-all text-sm md:text-base min-h-[44px] ${
                 activeTab === tab.id
                   ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-glow'
                   : 'bg-surface-200 text-gray-400 border border-surface-50/20 hover:border-primary-500/50 hover:text-white'
               }`}
             >
               <span>{tab.icon}</span>
-              {tab.label}
-              {tab.id === 'members' && <span className="bg-surface-300 px-2 py-0.5 rounded-full text-xs">{activeMembers.length}</span>}
-              {tab.id === 'invites' && invites.length > 0 && <span className="bg-accent-500/20 text-accent-400 px-2 py-0.5 rounded-full text-xs">{invites.length}</span>}
+              <span className="hidden md:inline">{tab.label}</span>
+              <span className="md:hidden">{tab.label.slice(0, 6)}{tab.label.length > 6 ? '.' : ''}</span>
+              {tab.id === 'members' && <span className="bg-surface-300 px-1.5 py-0.5 rounded-full text-xs">{activeMembers.length}</span>}
+              {tab.id === 'invites' && invites.length > 0 && <span className="bg-accent-500/20 text-accent-400 px-1.5 py-0.5 rounded-full text-xs">{invites.length}</span>}
             </button>
           ))}
         </div>
@@ -983,7 +986,36 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                   </Button>
                 )}
               </div>
-              <div className="overflow-x-auto">
+              {/* Mobile: card list */}
+              <div className="md:hidden divide-y divide-surface-50/10">
+                {activeMembers.map(member => (
+                  <div key={member.id} className="px-4 py-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          member.role === 'ADMIN'
+                            ? 'bg-accent-500/20 text-accent-400 border border-accent-500/40'
+                            : 'bg-surface-50/20 text-gray-400 border border-surface-50/30'
+                        }`}>
+                          {member.role === 'ADMIN' ? 'Pres.' : 'DG'}
+                        </span>
+                        <span className="font-semibold text-white truncate">{member.user.username}</span>
+                      </div>
+                      <span className="font-mono text-accent-400 font-bold">{member.currentBudget}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>{member.teamName || '-'}</span>
+                      {member.role !== 'ADMIN' && (
+                        <Button size="sm" variant="outline" className="border-danger-500/50 text-danger-400 !px-2 !py-1 !text-xs !min-h-[36px]" onClick={() => handleMemberAction(member.id, 'kick')} disabled={isSubmitting}>
+                          Espelli
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop: table */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-surface-300">
                     <tr>

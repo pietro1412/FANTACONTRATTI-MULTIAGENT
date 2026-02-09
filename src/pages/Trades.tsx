@@ -8,6 +8,7 @@ import { getPlayerPhotoUrl } from '../utils/player-images'
 import { POSITION_GRADIENTS } from '../components/ui/PositionBadge'
 import { ContractModifierModal, type PlayerInfo, type ContractData } from '../components/ContractModifier'
 import { EmptyState } from '../components/ui/EmptyState'
+import haptic from '../utils/haptics'
 
 interface TradesProps {
   leagueId: string
@@ -751,6 +752,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     })
 
     if (res.success) {
+      haptic.send()
       setSuccess('Offerta inviata!')
       // Reset form
       setSelectedMemberId('')
@@ -866,55 +868,50 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     <div className="min-h-screen bg-dark-300">
       <Navigation currentPage="trades" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
-      <main className="max-w-[1600px] mx-auto px-4 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 py-4 md:py-8">
         {/* Phase Status */}
-        <Card className="mb-6">
-          <CardContent className="py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-white">Fase corrente</p>
-                <p className={`text-sm ${isInTradePhase ? 'text-secondary-400' : 'text-gray-400'}`}>
+        <Card className="mb-4 md:mb-6">
+          <CardContent className="py-3 md:py-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-medium text-white text-sm md:text-base">Fase corrente</p>
+                <p className={`text-xs md:text-sm ${isInTradePhase ? 'text-secondary-400' : 'text-gray-400'} truncate`}>
                   {currentSession ? currentSession.currentPhase : 'Nessuna sessione attiva'}
                 </p>
               </div>
-              <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+              <div className={`px-2.5 md:px-3 py-1 rounded-full text-xs md:text-sm font-medium flex-shrink-0 ${
                 isInTradePhase
                   ? 'bg-secondary-500/20 text-secondary-400 border border-secondary-500/40'
                   : 'bg-surface-300 text-gray-400'
               }`}>
-                {isInTradePhase ? 'Scambi Attivi' : 'Scambi Non Disponibili'}
+                {isInTradePhase ? 'Scambi Attivi' : 'Non Disponibili'}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 flex-wrap">
-          <Button
-            variant={activeTab === 'create' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('create')}
-            disabled={!isInTradePhase}
-          >
-            + Nuova Offerta
-          </Button>
-          <Button
-            variant={activeTab === 'received' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('received')}
-          >
-            Ricevute ({receivedOffers.length})
-          </Button>
-          <Button
-            variant={activeTab === 'sent' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('sent')}
-          >
-            Inviate ({sentOffers.length})
-          </Button>
-          <Button
-            variant={activeTab === 'history' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('history')}
-          >
-            Storico
-          </Button>
+        {/* Tabs - compact scrollable on mobile, flex-wrap on desktop */}
+        <div className="flex gap-2 mb-6 overflow-x-auto md:overflow-x-visible md:flex-wrap scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+          {([
+            { key: 'create' as const, label: '+ Nuova', labelDesktop: '+ Nuova Offerta', disabled: !isInTradePhase },
+            { key: 'received' as const, label: `Ricevute (${receivedOffers.length})`, disabled: false },
+            { key: 'sent' as const, label: `Inviate (${sentOffers.length})`, disabled: false },
+            { key: 'history' as const, label: 'Storico', disabled: false },
+          ]).map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              disabled={tab.disabled}
+              className={`whitespace-nowrap flex-shrink-0 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all min-h-[44px] ${
+                activeTab === tab.key
+                  ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+                  : 'bg-surface-200 text-gray-400 border border-surface-50/30 hover:text-white hover:border-primary-500/50'
+              } ${tab.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <span className="md:hidden">{tab.label}</span>
+              <span className="hidden md:inline">{tab.labelDesktop || tab.label}</span>
+            </button>
+          ))}
         </div>
 
         {/* Received Offers */}
@@ -1795,7 +1792,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                   <button
                     key={key}
                     onClick={() => setHistoryFilter(key)}
-                    className={`px-4 py-1.5 text-xs font-semibold rounded-full border transition-colors ${
+                    className={`px-4 py-1.5 min-h-[44px] text-xs font-semibold rounded-full border transition-colors ${
                       historyFilter === key
                         ? 'bg-accent-500/20 text-accent-400 border-accent-500/40'
                         : 'bg-surface-200 text-gray-400 border-surface-50/20 hover:border-surface-50/40'
