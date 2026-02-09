@@ -200,6 +200,7 @@ export const leagueApi = {
     request<{
       leagueName: string
       maxSlots: number
+      isAdmin: boolean
       inContrattiPhase: boolean // #193: true if league is in CONTRATTI phase
       // OSS-6: Historical mode
       isHistorical?: boolean
@@ -264,8 +265,74 @@ export const leagueApi = {
         }
         isConsolidated: boolean
         consolidatedAt: string | null
+        preConsolidationBudget: number | null
+        totalReleaseCosts: number | null
+        totalIndemnities: number | null
+        totalRenewalCosts: number | null
+        tradeBudgetIn: number
+        tradeBudgetOut: number
       }>
     }>(`/api/leagues/${leagueId}/financials${sessionId ? `?sessionId=${sessionId}` : ''}`),
+
+  // Get financial timeline for a team member
+  getFinancialTimeline: (leagueId: string, memberId?: string) =>
+    request<{
+      memberId: string
+      teamName: string
+      username: string
+      events: Array<{
+        id: string
+        type: 'contract' | 'trade'
+        eventType: string
+        label: string
+        color: string
+        playerName?: string
+        playerPosition?: string
+        previousSalary?: number | null
+        previousDuration?: number | null
+        previousClause?: number | null
+        newSalary?: number | null
+        newDuration?: number | null
+        newClause?: number | null
+        cost?: number | null
+        income?: number | null
+        notes?: string | null
+        isSender?: boolean
+        counterpart?: string
+        offeredBudget?: number
+        requestedBudget?: number
+        sessionType: string
+        sessionPhase: string | null
+        createdAt: string
+      }>
+      trendData: Array<{
+        id: string
+        type: string
+        budget: number
+        totalSalaries: number
+        balance: number
+        totalIndemnities: number | null
+        totalReleaseCosts: number | null
+        contractCount: number
+        sessionType: string
+        sessionPhase: string | null
+        createdAt: string
+      }>
+    }>(`/api/leagues/${leagueId}/financials/timeline${memberId ? `?memberId=${memberId}` : ''}`),
+
+  // Get financial trends for all teams
+  getFinancialTrends: (leagueId: string) =>
+    request<{
+      trends: Record<string, Array<{
+        snapshotType: string
+        budget: number
+        totalSalaries: number
+        balance: number
+        sessionType: string
+        sessionPhase: string | null
+        createdAt: string
+      }>>
+    }>(`/api/leagues/${leagueId}/financials/trends`),
 }
 
 // Invite API

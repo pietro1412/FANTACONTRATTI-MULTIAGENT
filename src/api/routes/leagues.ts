@@ -17,6 +17,8 @@ import {
   getAllRosters,
   searchLeagues,
   getLeagueFinancials,
+  getFinancialTimeline,
+  getFinancialTrends,
 } from '../../services/league.service'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth'
 
@@ -298,6 +300,44 @@ router.post('/:id/cancel-request', authMiddleware, async (req: Request, res: Res
     res.json(result)
   } catch (error) {
     console.error('Cancel join request error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:id/financials/timeline - Financial timeline for a team member
+// NOTE: More specific routes must come BEFORE the generic /:id/financials
+router.get('/:id/financials/timeline', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const memberId = req.query.memberId as string | undefined
+    const result = await getFinancialTimeline(id, req.user!.userId, memberId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non sei membro di questa lega' ? 403 : 404).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get financial timeline error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:id/financials/trends - Financial trends for all teams
+router.get('/:id/financials/trends', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const result = await getFinancialTrends(id, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non sei membro di questa lega' ? 403 : 404).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get financial trends error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

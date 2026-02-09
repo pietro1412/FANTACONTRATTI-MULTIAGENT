@@ -1,4 +1,4 @@
-import { PrismaClient, MemberRole, MemberStatus, JoinType } from '@prisma/client'
+import { PrismaClient, MemberRole, MemberStatus, JoinType, TradeStatus } from '@prisma/client'
 import type { CreateLeagueInput, UpdateLeagueInput } from '../utils/validation'
 import type { IEmailService } from '../modules/identity/domain/services/email.service.interface'
 import { computeSeasonStatsBatch, type ComputedSeasonStats } from './player-stats.service'
@@ -1557,5 +1557,247 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
   } catch (error) {
     console.error('[getLeagueFinancials] Error:', error)
     return { success: false, message: `Errore nel caricamento dati finanziari: ${(error as Error).message}` }
+  }
+}
+
+// ============================================================================
+// Financial Timeline - Level 4 drill-down
+// ============================================================================
+
+export async function getFinancialTimeline(
+  leagueId: string,
+  userId: string,
+  memberId?: string,
+) {
+  try {
+    // Verify membership
+    const league = await prisma.league.findUnique({
+      where: { id: leagueId },
+      include: {
+        members: {
+          where: { status: MemberStatus.ACTIVE },
+          include: { user: { select: { id: true, username: true } } },
+        },
+      },
+    })
+
+    if (!league) return { success: false, message: 'Lega non trovata' }
+
+    const membership = league.members.find(m => m.userId === userId)
+    if (!membership) return { success: false, message: 'Non sei membro di questa lega' }
+
+    // Get target member (default to self if not specified)
+    const targetMemberId = memberId || membership.id
+    const targetMember = league.members.find(m => m.id === targetMemberId)
+    if (!targetMember) return { success: false, message: 'Membro non trovato' }
+
+    // Fetch contract history for this member
+    const contractHistory = await prisma.contractHistory.findMany({
+      where: { leagueMemberId: targetMemberId },
+      include: {
+        player: { select: { id: true, name: true, position: true, quotation: true } },
+        marketSession: { select: { id: true, sessionType: true, currentPhase: true, status: true, createdAt: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    // Fetch session snapshots for this member
+    const snapshots = await prisma.managerSessionSnapshot.findMany({
+      where: { leagueMemberId: targetMemberId },
+      include: {
+        marketSession: { select: { id: true, sessionType: true, currentPhase: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    // Fetch accepted trades involving this member
+    const trades = await prisma.tradeOffer.findMany({
+      where: {
+        marketSession: { leagueId },
+        status: TradeStatus.ACCEPTED,
+        OR: [
+          { senderId: targetMember.userId },
+          { receiverId: targetMember.userId },
+        ],
+      },
+      include: {
+        sender: { select: { id: true, username: true } },
+        receiver: { select: { id: true, username: true } },
+        marketSession: { select: { id: true, sessionType: true, currentPhase: true } },
+      },
+      orderBy: { respondedAt: 'desc' },
+    })
+
+    // Build timeline entries
+    const EVENT_TYPE_LABELS: Record<string, string> = {
+      SESSION_START_SNAPSHOT: 'Inizio Sessione',
+      DURATION_DECREMENT: 'Decremento Durata',
+      AUTO_RELEASE_EXPIRED: 'Svincolo Automatico',
+      RENEWAL: 'Rinnovo',
+      SPALMA: 'Spalma',
+      RELEASE_NORMAL: 'Taglio',
+      RELEASE_ESTERO: 'Taglio (Estero)',
+      RELEASE_RETROCESSO: 'Taglio (Retrocesso)',
+      KEEP_ESTERO: 'Mantenuto (Estero)',
+      KEEP_RETROCESSO: 'Mantenuto (Retrocesso)',
+      INDEMNITY_RECEIVED: 'Indennizzo Ricevuto',
+    }
+
+    const EVENT_TYPE_COLORS: Record<string, string> = {
+      SESSION_START_SNAPSHOT: 'blue',
+      DURATION_DECREMENT: 'gray',
+      AUTO_RELEASE_EXPIRED: 'red',
+      RENEWAL: 'amber',
+      SPALMA: 'purple',
+      RELEASE_NORMAL: 'red',
+      RELEASE_ESTERO: 'red',
+      RELEASE_RETROCESSO: 'red',
+      KEEP_ESTERO: 'green',
+      KEEP_RETROCESSO: 'green',
+      INDEMNITY_RECEIVED: 'green',
+    }
+
+    const timelineEvents = contractHistory.map(ch => ({
+      id: ch.id,
+      type: 'contract' as const,
+      eventType: ch.eventType,
+      label: EVENT_TYPE_LABELS[ch.eventType] || ch.eventType,
+      color: EVENT_TYPE_COLORS[ch.eventType] || 'gray',
+      playerName: ch.player.name,
+      playerPosition: ch.player.position,
+      previousSalary: ch.previousSalary,
+      previousDuration: ch.previousDuration,
+      previousClause: ch.previousClause,
+      newSalary: ch.newSalary,
+      newDuration: ch.newDuration,
+      newClause: ch.newClause,
+      cost: ch.cost,
+      income: ch.income,
+      notes: ch.notes,
+      sessionType: ch.marketSession.sessionType,
+      sessionPhase: ch.marketSession.currentPhase,
+      createdAt: ch.createdAt.toISOString(),
+    }))
+
+    const tradeEvents = trades.map(t => {
+      const isSender = t.senderId === targetMember.userId
+      return {
+        id: t.id,
+        type: 'trade' as const,
+        eventType: 'TRADE',
+        label: 'Scambio',
+        color: 'purple',
+        isSender,
+        counterpart: isSender ? t.receiver.username : t.sender.username,
+        offeredBudget: t.offeredBudget,
+        requestedBudget: t.requestedBudget,
+        offeredPlayers: t.offeredPlayers,
+        requestedPlayers: t.requestedPlayers,
+        sessionType: t.marketSession.sessionType,
+        sessionPhase: t.marketSession.currentPhase,
+        createdAt: (t.respondedAt || t.createdAt).toISOString(),
+      }
+    })
+
+    // Snapshot trend data
+    const trendData = snapshots.map(s => ({
+      id: s.id,
+      type: s.snapshotType,
+      budget: s.budget,
+      totalSalaries: s.totalSalaries,
+      balance: s.balance,
+      totalIndemnities: s.totalIndemnities,
+      totalReleaseCosts: s.totalReleaseCosts,
+      contractCount: s.contractCount,
+      sessionType: s.marketSession.sessionType,
+      sessionPhase: s.marketSession.currentPhase,
+      createdAt: s.createdAt.toISOString(),
+    }))
+
+    return {
+      success: true,
+      data: {
+        memberId: targetMemberId,
+        teamName: targetMember.teamName,
+        username: targetMember.user.username,
+        events: [...timelineEvents, ...tradeEvents].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        ),
+        trendData,
+      },
+    }
+  } catch (error) {
+    console.error('[getFinancialTimeline] Error:', error)
+    return { success: false, message: `Errore nel caricamento timeline: ${(error as Error).message}` }
+  }
+}
+
+// ============================================================================
+// Financial Trends - historical balance data for all teams
+// ============================================================================
+
+export async function getFinancialTrends(leagueId: string, userId: string) {
+  try {
+    const league = await prisma.league.findUnique({
+      where: { id: leagueId },
+      include: {
+        members: {
+          where: { status: MemberStatus.ACTIVE },
+          select: { id: true, userId: true, teamName: true },
+        },
+      },
+    })
+
+    if (!league) return { success: false, message: 'Lega non trovata' }
+
+    const membership = league.members.find(m => m.userId === userId)
+    if (!membership) return { success: false, message: 'Non sei membro di questa lega' }
+
+    // Get all snapshots for all members
+    const allSnapshots = await prisma.managerSessionSnapshot.findMany({
+      where: {
+        leagueMemberId: { in: league.members.map(m => m.id) },
+      },
+      include: {
+        marketSession: { select: { id: true, sessionType: true, currentPhase: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    // Group by member
+    const memberMap = new Map(league.members.map(m => [m.id, m]))
+    const trends: Record<string, Array<{
+      snapshotType: string
+      budget: number
+      totalSalaries: number
+      balance: number
+      sessionType: string
+      sessionPhase: string | null
+      createdAt: string
+    }>> = {}
+
+    for (const snap of allSnapshots) {
+      const member = memberMap.get(snap.leagueMemberId)
+      if (!member) continue
+      const key = member.teamName
+      if (!trends[key]) trends[key] = []
+      trends[key].push({
+        snapshotType: snap.snapshotType,
+        budget: snap.budget,
+        totalSalaries: snap.totalSalaries,
+        balance: snap.balance,
+        sessionType: snap.marketSession.sessionType,
+        sessionPhase: snap.marketSession.currentPhase,
+        createdAt: snap.createdAt.toISOString(),
+      })
+    }
+
+    return {
+      success: true,
+      data: { trends },
+    }
+  } catch (error) {
+    console.error('[getFinancialTrends] Error:', error)
+    return { success: false, message: `Errore nel caricamento trends: ${(error as Error).message}` }
   }
 }
