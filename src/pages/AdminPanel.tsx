@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import * as XLSX from 'xlsx'
 import { leagueApi, auctionApi, adminApi, inviteApi, contractApi } from '../services/api'
 import { Button } from '../components/ui/Button'
@@ -6,6 +6,7 @@ import { Input } from '../components/ui/Input'
 import { NumberStepper } from '../components/ui/NumberStepper'
 import { Navigation } from '../components/Navigation'
 import { MarketPhaseManager } from '../components/MarketPhaseManager'
+import { useSwipeGesture } from '../hooks/useSwipeGesture'
 import haptic from '../utils/haptics'
 
 interface AdminPanelProps {
@@ -131,6 +132,22 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       onNavigate('prizes', { leagueId })
     }
   }, [initialTab, leagueId, onNavigate])
+
+  // Swipe gesture for tab navigation (mobile)
+  const swipeToNextTab = useCallback(() => {
+    const idx = TABS.findIndex(t => t.id === activeTab)
+    if (idx < TABS.length - 1) setActiveTab(TABS[idx + 1].id)
+  }, [activeTab])
+
+  const swipeToPrevTab = useCallback(() => {
+    const idx = TABS.findIndex(t => t.id === activeTab)
+    if (idx > 0) setActiveTab(TABS[idx - 1].id)
+  }, [activeTab])
+
+  const { handlers: swipeHandlers } = useSwipeGesture({
+    onSwipeLeft: swipeToNextTab,
+    onSwipeRight: swipeToPrevTab,
+  })
 
   const [newInviteEmail, setNewInviteEmail] = useState('')
   const [inviteDuration, setInviteDuration] = useState(7)
@@ -653,6 +670,9 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
             </button>
           ))}
         </div>
+
+        {/* Tab content with swipe gesture */}
+        <div onTouchStart={swipeHandlers.onTouchStart} onTouchEnd={swipeHandlers.onTouchEnd}>
 
         {/* Market Tab */}
         {activeTab === 'market' && (
@@ -1558,6 +1578,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
             </div>
           </div>
         )}
+        </div>{/* end swipe gesture wrapper */}
       </main>
 
       {/* Roster Incomplete Modal */}

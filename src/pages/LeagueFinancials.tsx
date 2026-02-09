@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Navigation } from '../components/Navigation'
+import { PullToRefresh } from '../components/PullToRefresh'
 import { leagueApi } from '../services/api'
 import { FinanceDashboard } from '../components/finance/FinanceDashboard'
 import { TeamComparison } from '../components/finance/TeamComparison'
@@ -152,6 +153,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
         onNavigate={onNavigate}
       />
 
+      <PullToRefresh onRefresh={loadFinancials}>
       <div className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6">
         {/* Header */}
         <div className="mb-4 md:mb-6">
@@ -282,6 +284,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
           />
         )}
       </div>
+      </PullToRefresh>
     </div>
   )
 }

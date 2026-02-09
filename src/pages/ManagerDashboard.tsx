@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { auctionApi, leagueApi, prizePhaseApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { Navigation } from '../components/Navigation'
+import { PullToRefresh } from '../components/PullToRefresh'
+import { useSwipeGesture } from '../hooks/useSwipeGesture'
 
 interface ManagerDashboardProps {
   leagueId: string
@@ -85,6 +87,22 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
   const [slots, setSlots] = useState({ P: 0, D: 0, C: 0, A: 0 })
   const [budgetMovements, setBudgetMovements] = useState<BudgetMovement[]>([])
   const [activeTab, setActiveTab] = useState<'overview' | 'roster' | 'contracts' | 'budget'>('overview')
+  const DASHBOARD_TABS = ['overview', 'roster', 'contracts', 'budget'] as const
+
+  const swipeToNextTab = useCallback(() => {
+    const idx = DASHBOARD_TABS.indexOf(activeTab)
+    if (idx < DASHBOARD_TABS.length - 1) setActiveTab(DASHBOARD_TABS[idx + 1])
+  }, [activeTab])
+
+  const swipeToPrevTab = useCallback(() => {
+    const idx = DASHBOARD_TABS.indexOf(activeTab)
+    if (idx > 0) setActiveTab(DASHBOARD_TABS[idx - 1])
+  }, [activeTab])
+
+  const { handlers: swipeHandlers } = useSwipeGesture({
+    onSwipeLeft: swipeToNextTab,
+    onSwipeRight: swipeToPrevTab,
+  })
   const [isAfterFirstMarket, setIsAfterFirstMarket] = useState(false)
   const [prizeData, setPrizeData] = useState<PrizeData | null>(null)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
@@ -213,6 +231,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
     <div className="min-h-screen bg-dark-300">
       <Navigation currentPage="managerDashboard" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
+      <PullToRefresh onRefresh={loadData}>
       <main className="max-w-[1600px] mx-auto px-4 py-8">
         {/* Tabs */}
         <div className="flex gap-2 mb-6 flex-wrap">
@@ -242,6 +261,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
           </Button>
         </div>
 
+        <div onTouchStart={swipeHandlers.onTouchStart} onTouchEnd={swipeHandlers.onTouchEnd}>
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
@@ -619,7 +639,9 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
             </Card>
           </div>
         )}
+        </div>{/* end swipe gesture wrapper */}
       </main>
+      </PullToRefresh>
     </div>
   )
 }

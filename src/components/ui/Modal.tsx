@@ -2,6 +2,8 @@ import {
   forwardRef,
   useEffect,
   useCallback,
+  useRef,
+  useState,
   type ReactNode,
   type HTMLAttributes,
 } from 'react'
@@ -51,6 +53,11 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
     },
     ref
   ) => {
+    // Swipe-to-dismiss state (mobile)
+    const [dragOffset, setDragOffset] = useState(0)
+    const isDragging = useRef(false)
+    const startY = useRef(0)
+
     // Handle escape key press
     const handleEscapeKey = useCallback(
       (event: KeyboardEvent) => {
@@ -66,6 +73,33 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
       if (event.target === event.currentTarget && closeOnBackdrop) {
         onClose()
       }
+    }
+
+    // Touch handlers for swipe-to-dismiss
+    const handleTouchStart = (e: React.TouchEvent) => {
+      const touch = e.touches[0]
+      if (touch) {
+        startY.current = touch.clientY
+        isDragging.current = true
+      }
+    }
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+      if (!isDragging.current) return
+      const touch = e.touches[0]
+      if (!touch) return
+      const diff = touch.clientY - startY.current
+      if (diff > 0) {
+        setDragOffset(diff)
+      }
+    }
+
+    const handleTouchEnd = () => {
+      isDragging.current = false
+      if (dragOffset > 100) {
+        onClose()
+      }
+      setDragOffset(0)
     }
 
     // Add/remove event listeners and manage body scroll
@@ -119,8 +153,21 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
             ${modalAnimation}
             ${className}
           `.replace(/\s+/g, ' ').trim()}
+          style={dragOffset > 0 ? {
+            transform: `translateY(${dragOffset}px)`,
+            opacity: Math.max(0.5, 1 - dragOffset / 300),
+            transition: isDragging.current ? 'none' : 'transform 0.3s ease, opacity 0.3s ease',
+          } : undefined}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           {...props}
         >
+          {/* Swipe handle (mobile only) */}
+          <div className="md:hidden flex justify-center pt-2 pb-1">
+            <div className="w-10 h-1 bg-gray-500 rounded-full" />
+          </div>
+
           {/* Close button */}
           {showCloseButton && (
             <button

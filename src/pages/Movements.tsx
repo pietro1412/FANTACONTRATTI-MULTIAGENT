@@ -3,6 +3,7 @@ import { movementApi, leagueApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Navigation } from '../components/Navigation'
+import { PullToRefresh } from '../components/PullToRefresh'
 import { BottomSheet } from '../components/ui/BottomSheet'
 import { getTeamLogo } from '../utils/teamLogos'
 import { ChevronDown, SlidersHorizontal } from 'lucide-react'
@@ -215,6 +216,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
     <div className="min-h-screen bg-dark-300">
       <Navigation currentPage="movements" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
+      <PullToRefresh onRefresh={loadMovements}>
       {/* Header compatto */}
       <div className="bg-surface-200 border-b border-surface-50/20">
         <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-4">
@@ -631,6 +633,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
           ))}
         </div>
       </main>
+      </PullToRefresh>
     </div>
   )
 }
