@@ -902,194 +902,191 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
             )}
           </Card>
 
-          {/* Compare Modal */}
+          {/* Full-page Compare View */}
           {showCompareModal && playersToCompare.length >= 2 && (
-            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-surface-200 rounded-xl border border-surface-50/20 max-w-4xl w-full max-h-[90vh] overflow-hidden">
-                {/* Modal Header */}
-                <div className="p-6 border-b border-surface-50/20 bg-gradient-to-r from-primary-500/10 to-surface-200">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-white">Confronto Giocatori</h2>
-                    <button
-                      onClick={() => setShowCompareModal(false)}
-                      className="w-10 h-10 rounded-lg bg-surface-300 hover:bg-surface-50/20 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
-                    >
-                      ✕
-                    </button>
+            <div className="fixed inset-0 z-50 bg-dark-300 overflow-y-auto">
+              {/* Sticky Header */}
+              <div className="sticky top-0 z-10 bg-surface-200 border-b border-surface-50/20">
+                <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
+                  <button
+                    onClick={() => setShowCompareModal(false)}
+                    className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors min-h-[44px]"
+                  >
+                    <span className="text-xl">←</span>
+                    <span className="text-sm md:text-base">Torna alla lista</span>
+                  </button>
+                  <h2 className="text-lg md:text-xl font-bold text-white">Confronto Giocatori</h2>
+                  <div className="w-20" />
+                </div>
+              </div>
+
+              <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+                {/* Player Cards - responsive grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+                  {playersToCompare.map((player, idx) => {
+                    const playerPhotoUrl = getPlayerPhotoUrl(player.apiFootballId)
+                    const teamLogoUrl = getTeamLogoUrl(player.team)
+
+                    return (
+                      <div key={player.id} className="flex flex-col items-center gap-1.5 md:gap-2 bg-surface-200 rounded-xl p-3 md:p-4 border border-surface-50/20">
+                        <div
+                          className="w-3 h-3 md:w-4 md:h-4 rounded-full"
+                          style={{ backgroundColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
+                        />
+                        <div className="relative">
+                          {playerPhotoUrl ? (
+                            <img
+                              src={playerPhotoUrl}
+                              alt={player.name}
+                              className="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover bg-surface-300 border-3 border-surface-50/20"
+                              style={{ borderColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none'
+                              }}
+                            />
+                          ) : (
+                            <div
+                              className={`w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-lg md:text-xl`}
+                            >
+                              {player.position}
+                            </div>
+                          )}
+                          <span
+                            className={`absolute -bottom-1 -right-1 w-5 h-5 md:w-6 md:h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-[10px] md:text-xs border-2 border-surface-200`}
+                          >
+                            {player.position}
+                          </span>
+                        </div>
+                        <span className="font-medium text-white text-sm md:text-base text-center truncate w-full">{player.name}</span>
+                        <div className="flex items-center gap-1">
+                          {teamLogoUrl && (
+                            <img
+                              src={teamLogoUrl}
+                              alt={player.team}
+                              className="w-4 h-4 md:w-5 md:h-5 object-contain"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none'
+                              }}
+                            />
+                          )}
+                          <span className="text-xs md:text-sm text-gray-400">{player.team}</span>
+                        </div>
+                        <span className="text-base md:text-lg font-bold text-primary-400">Quot. {player.quotation}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Radar Charts - full width */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mb-6 md:mb-8">
+                  <div className="bg-surface-200 rounded-xl p-4 md:p-6 border border-surface-50/20">
+                    <h3 className="text-center text-white font-semibold mb-4">Statistiche Offensive</h3>
+                    <RadarChart
+                      size={320}
+                      players={playersToCompare.map((p, i) => ({
+                        name: p.name,
+                        color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                      }))}
+                      data={[
+                        { label: 'Gol', values: playersToCompare.map(p => p.stats?.goals ?? 0) },
+                        { label: 'Assist', values: playersToCompare.map(p => p.stats?.assists ?? 0) },
+                        { label: 'Tiri', values: playersToCompare.map(p => p.stats?.shotsTotal ?? 0) },
+                        { label: 'Tiri Porta', values: playersToCompare.map(p => p.stats?.shotsOn ?? 0) },
+                        { label: 'Dribbling', values: playersToCompare.map(p => p.stats?.dribblesSuccess ?? 0) },
+                        { label: 'Pass Chiave', values: playersToCompare.map(p => p.stats?.passesKey ?? 0) },
+                      ]}
+                    />
+                  </div>
+
+                  <div className="bg-surface-200 rounded-xl p-4 md:p-6 border border-surface-50/20">
+                    <h3 className="text-center text-white font-semibold mb-4">Statistiche Difensive</h3>
+                    <RadarChart
+                      size={320}
+                      players={playersToCompare.map((p, i) => ({
+                        name: p.name,
+                        color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                      }))}
+                      data={[
+                        { label: 'Contrasti', values: playersToCompare.map(p => p.stats?.tacklesTotal ?? 0) },
+                        { label: 'Intercetti', values: playersToCompare.map(p => p.stats?.interceptions ?? 0) },
+                        { label: 'Passaggi', values: playersToCompare.map(p => Math.round((p.stats?.passesTotal ?? 0) / 10)) },
+                        { label: 'Presenze', values: playersToCompare.map(p => p.stats?.appearances ?? 0) },
+                        { label: 'Rating', values: playersToCompare.map(p => Math.round((p.stats?.rating ?? 0) * 10)) },
+                        { label: 'Minuti', values: playersToCompare.map(p => Math.round((p.stats?.minutes ?? 0) / 100)) },
+                      ]}
+                    />
                   </div>
                 </div>
 
-                {/* Modal Content */}
-                <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-                  {/* Player Cards Header */}
-                  <div className="flex justify-center gap-6 mb-8">
-                    {playersToCompare.map((player, idx) => {
-                      const playerPhotoUrl = getPlayerPhotoUrl(player.apiFootballId)
-                      const teamLogoUrl = getTeamLogoUrl(player.team)
-
-                      return (
-                        <div key={player.id} className="flex flex-col items-center gap-2">
-                          <div
-                            className="w-4 h-4 rounded-full mb-1"
-                            style={{ backgroundColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
-                          />
-                          <div className="relative">
-                            {playerPhotoUrl ? (
-                              <img
-                                src={playerPhotoUrl}
-                                alt={player.name}
-                                className="w-16 h-16 rounded-full object-cover bg-surface-300 border-3 border-surface-50/20"
-                                style={{ borderColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none'
-                                }}
-                              />
-                            ) : (
-                              <div
-                                className={`w-16 h-16 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xl`}
-                              >
-                                {player.position}
+                {/* Detailed Stats Table - full width */}
+                <div className="bg-surface-200 rounded-xl overflow-hidden border border-surface-50/20">
+                  <h3 className="text-white font-semibold p-4 border-b border-surface-50/10">Dettaglio Statistiche</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-surface-300/50">
+                        <tr>
+                          <th className="px-3 md:px-4 py-3 text-left text-sm font-medium text-gray-400">Statistica</th>
+                          {playersToCompare.map((player, idx) => (
+                            <th key={player.id} className="px-3 md:px-4 py-3 text-center">
+                              <div className="flex items-center justify-center gap-1 md:gap-2">
+                                <div
+                                  className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
+                                />
+                                <span className="text-xs md:text-sm font-medium text-white truncate">{player.name}</span>
                               </div>
-                            )}
-                            <span
-                              className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xs border-2 border-surface-200`}
-                            >
-                              {player.position}
-                            </span>
-                          </div>
-                          <span className="font-medium text-white">{player.name}</span>
-                          <div className="flex items-center gap-1">
-                            {teamLogoUrl && (
-                              <img
-                                src={teamLogoUrl}
-                                alt={player.team}
-                                className="w-5 h-5 object-contain"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none'
-                                }}
-                              />
-                            )}
-                            <span className="text-sm text-gray-400">{player.team}</span>
-                          </div>
-                          <span className="text-lg font-bold text-primary-400">Quot. {player.quotation}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-surface-50/10">
+                        {[
+                          { key: 'quotation', label: 'Quotazione', format: (v: number) => v },
+                          ...STAT_COLUMNS.map(col => ({
+                            key: col.key,
+                            label: col.label,
+                            stat: true,
+                            format: col.format,
+                            getValue: col.getValue,
+                          }))
+                        ].map((row) => {
+                          const values = playersToCompare.map((p) => {
+                            if ('getValue' in row && row.getValue) {
+                              const val = row.getValue(p)
+                              return typeof val === 'number' ? val : 0
+                            }
+                            if (row.key === 'quotation') return p.quotation
+                            return 0
+                          })
+                          const maxVal = Math.max(...values.filter((v): v is number => v !== null && v > 0))
 
-                  {/* Radar Charts */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    {/* Offensive Stats Radar */}
-                    <div className="bg-surface-300/50 rounded-xl p-4">
-                      <h3 className="text-center text-white font-semibold mb-4">Statistiche Offensive</h3>
-                      <RadarChart
-                        size={280}
-                        players={playersToCompare.map((p, i) => ({
-                          name: p.name,
-                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
-                        }))}
-                        data={[
-                          { label: 'Gol', values: playersToCompare.map(p => p.stats?.goals ?? 0) },
-                          { label: 'Assist', values: playersToCompare.map(p => p.stats?.assists ?? 0) },
-                          { label: 'Tiri', values: playersToCompare.map(p => p.stats?.shotsTotal ?? 0) },
-                          { label: 'Tiri Porta', values: playersToCompare.map(p => p.stats?.shotsOn ?? 0) },
-                          { label: 'Dribbling', values: playersToCompare.map(p => p.stats?.dribblesSuccess ?? 0) },
-                          { label: 'Pass Chiave', values: playersToCompare.map(p => p.stats?.passesKey ?? 0) },
-                        ]}
-                      />
-                    </div>
+                          return (
+                            <tr key={row.key} className="hover:bg-surface-300/30">
+                              <td className="px-3 md:px-4 py-3 text-xs md:text-sm text-gray-300">{row.label}</td>
+                              {playersToCompare.map((player, idx) => {
+                                const val = values[idx]
+                                const isMax = val === maxVal && maxVal > 0
+                                const formatted = row.format ? row.format(val) : val
 
-                    {/* Defensive/General Stats Radar */}
-                    <div className="bg-surface-300/50 rounded-xl p-4">
-                      <h3 className="text-center text-white font-semibold mb-4">Statistiche Difensive</h3>
-                      <RadarChart
-                        size={280}
-                        players={playersToCompare.map((p, i) => ({
-                          name: p.name,
-                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
-                        }))}
-                        data={[
-                          { label: 'Contrasti', values: playersToCompare.map(p => p.stats?.tacklesTotal ?? 0) },
-                          { label: 'Intercetti', values: playersToCompare.map(p => p.stats?.interceptions ?? 0) },
-                          { label: 'Passaggi', values: playersToCompare.map(p => Math.round((p.stats?.passesTotal ?? 0) / 10)) },
-                          { label: 'Presenze', values: playersToCompare.map(p => p.stats?.appearances ?? 0) },
-                          { label: 'Rating', values: playersToCompare.map(p => Math.round((p.stats?.rating ?? 0) * 10)) },
-                          { label: 'Minuti', values: playersToCompare.map(p => Math.round((p.stats?.minutes ?? 0) / 100)) },
-                        ]}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Detailed Stats Table */}
-                  <div className="bg-surface-300/30 rounded-xl overflow-hidden">
-                    <h3 className="text-white font-semibold p-4 border-b border-surface-50/10">Dettaglio Statistiche</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-surface-300/50">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Statistica</th>
-                            {playersToCompare.map((player, idx) => (
-                              <th key={player.id} className="px-4 py-3 text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
-                                  />
-                                  <span className="text-sm font-medium text-white">{player.name}</span>
-                                </div>
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-surface-50/10">
-                          {[
-                            { key: 'quotation', label: 'Quotazione', format: (v: number) => v },
-                            ...STAT_COLUMNS.map(col => ({
-                              key: col.key,
-                              label: col.label,
-                              stat: true,
-                              format: col.format,
-                              getValue: col.getValue,
-                            }))
-                          ].map((row) => {
-                            const values = playersToCompare.map((p) => {
-                              if ('getValue' in row && row.getValue) {
-                                const val = row.getValue(p)
-                                return typeof val === 'number' ? val : 0
-                              }
-                              if (row.key === 'quotation') return p.quotation
-                              return 0
-                            })
-                            const maxVal = Math.max(...values.filter((v): v is number => v !== null && v > 0))
-
-                            return (
-                              <tr key={row.key} className="hover:bg-surface-300/30">
-                                <td className="px-4 py-3 text-sm text-gray-300">{row.label}</td>
-                                {playersToCompare.map((player, idx) => {
-                                  const val = values[idx]
-                                  const isMax = val === maxVal && maxVal > 0
-                                  const formatted = row.format ? row.format(val) : val
-
-                                  return (
-                                    <td
-                                      key={player.id}
-                                      className={`px-4 py-3 text-center font-medium ${
-                                        isMax ? 'text-secondary-400' : 'text-white'
-                                      }`}
-                                    >
-                                      {isMax && maxVal > 0 && (
-                                        <span className="inline-block w-2 h-2 rounded-full bg-secondary-400 mr-2" />
-                                      )}
-                                      {formatted}
-                                    </td>
-                                  )
-                                })}
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                                return (
+                                  <td
+                                    key={player.id}
+                                    className={`px-3 md:px-4 py-3 text-center text-sm md:text-base font-medium ${
+                                      isMax ? 'text-secondary-400' : 'text-white'
+                                    }`}
+                                  >
+                                    {isMax && maxVal > 0 && (
+                                      <span className="inline-block w-2 h-2 rounded-full bg-secondary-400 mr-1 md:mr-2" />
+                                    )}
+                                    {formatted}
+                                  </td>
+                                )
+                              })}
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>

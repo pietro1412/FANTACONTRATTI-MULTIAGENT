@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { Navigation } from '../components/Navigation'
+import { PullToRefresh } from '../components/PullToRefresh'
 import { playerApi, leagueApi } from '../services/api'
 import { Input } from '../components/ui/Input'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -159,10 +161,20 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
     return true
   })
 
+  // Virtualization
+  const listRef = useRef<HTMLDivElement>(null)
+  const virtualizer = useVirtualizer({
+    count: filteredPlayers.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: () => 72,
+    overscan: 10,
+  })
+
   return (
     <div className="min-h-screen bg-dark-100">
       <Navigation currentPage="allPlayers" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
+      <PullToRefresh onRefresh={loadData}>
       <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-4 md:py-6">
         <div className="mb-4 md:mb-6">
           <h1 className="text-xl md:text-2xl font-bold text-white">Tutti i Giocatori</h1>
@@ -344,11 +356,15 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
             {filteredPlayers.length === 0 ? (
               <EmptyState icon="🔍" title="Nessun giocatore trovato" description="Prova a cambiare i filtri di ricerca." compact />
             ) : (
-              <div className="divide-y divide-surface-50/10">
-                {filteredPlayers.slice(0, 100).map(player => (
+              <div ref={listRef} className="max-h-[70vh] overflow-y-auto">
+                <div style={{ height: `${virtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+                {virtualizer.getVirtualItems().map(virtualRow => {
+                  const player = filteredPlayers[virtualRow.index]
+                  return (
                   <div
                     key={player.id}
-                    className={`p-4 ${player.rosterInfo ? 'bg-surface-300/30' : ''}`}
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)` }}
+                    className={`p-4 border-b border-surface-50/10 ${player.rosterInfo ? 'bg-surface-300/30' : ''}`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -439,13 +455,9 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
                       </div>
                     </div>
                   </div>
-                ))}
-
-                {filteredPlayers.length > 100 && (
-                  <div className="p-4 text-center text-gray-500 text-sm">
-                    Mostrati i primi 100 risultati. Affina la ricerca per vedere altri giocatori.
-                  </div>
-                )}
+                  )
+                })}
+                </div>
               </div>
             )}
           </div>
@@ -458,6 +470,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
         onClose={() => setSelectedPlayerStats(null)}
         player={selectedPlayerStats}
       />
+      </PullToRefresh>
     </div>
   )
 }

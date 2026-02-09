@@ -22,12 +22,9 @@ import { AuctionTimer } from '../components/AuctionTimer'
 import {
   AuctionLayoutSelector,
   useAuctionLayout,
-  LayoutA,
-  LayoutB,
-  LayoutC,
-  LayoutD,
-  LayoutE,
-  LayoutF
+  LayoutMobile,
+  LayoutDesktop,
+  LayoutPro
 } from '../components/auction'
 import type { AuctionLayout, ManagerData as LayoutManagerData } from '../components/auction/types'
 import {
@@ -1286,10 +1283,10 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
          * lasciare solo il grid classico sotto
          * =======================================================
          */}
-        {/* Layout F (Pro) - Sempre visibile, gestisce internamente gli stati */}
-        {auctionLayout === 'F' && (
+        {/* Layout Pro - Completo con obiettivi, ready check, acknowledgment */}
+        {auctionLayout === 'pro' && (
           <div className="mb-4">
-            <LayoutF
+            <LayoutPro
               auction={auction}
               timeLeft={timeLeft}
               timerSetting={timerSetting}
@@ -1333,199 +1330,90 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           </div>
         )}
 
-        {/* Altri Layout (A-E) - Sempre visibili, gestiscono internamente lo stato */}
-        {auctionLayout !== 'classic' && auctionLayout !== 'F' && (
+        {/* Layout Mobile - Card stack con tab, touch-friendly */}
+        {auctionLayout === 'mobile' && (
           <div className="mb-4">
-            {auctionLayout === 'A' && (
-              <LayoutA
-                auction={auction}
-                timeLeft={timeLeft}
-                timerSetting={timerSetting}
-                isTimerExpired={isTimerExpired}
-                membership={membership}
-                isAdmin={isAdmin}
-                isMyTurn={isMyTurn}
-                isUserWinning={isUserWinning}
-                currentUsername={currentUsername}
-                managersStatus={managersStatus as any}
-                currentTurnManager={currentTurnManager}
-                myRosterSlots={myRosterSlots as any}
-                marketProgress={marketProgress}
-                bidAmount={bidAmount}
-                setBidAmount={setBidAmount}
-                onPlaceBid={handlePlaceBid}
-                isConnected={isConnected}
-                connectionStatus={connectionStatus}
-                onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
-                onCloseAuction={handleCloseAuction}
-                sessionId={sessionId}
-                players={players}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                onNominatePlayer={handleNominatePlayer}
-                onUpdateTimer={handleUpdateTimer}
-                onBotNominate={handleBotNominate}
-                onBotConfirmNomination={handleBotConfirmNomination}
-                onBotBid={handleBotBid}
-                onForceAllReady={handleForceAllReady}
-                onForceAcknowledgeAll={handleForceAcknowledgeAll}
-                onCompleteAllSlots={handleCompleteAllSlots}
-                onResetFirstMarket={handleResetFirstMarket}
-              />
-            )}
-            {auctionLayout === 'B' && (
-              <LayoutB
-                auction={auction}
-                timeLeft={timeLeft}
-                timerSetting={timerSetting}
-                isTimerExpired={isTimerExpired}
-                membership={membership}
-                isAdmin={isAdmin}
-                isMyTurn={isMyTurn}
-                isUserWinning={isUserWinning}
-                currentUsername={currentUsername}
-                managersStatus={managersStatus as any}
-                currentTurnManager={currentTurnManager}
-                myRosterSlots={myRosterSlots as any}
-                marketProgress={marketProgress}
-                bidAmount={bidAmount}
-                setBidAmount={setBidAmount}
-                onPlaceBid={handlePlaceBid}
-                isConnected={isConnected}
-                connectionStatus={connectionStatus}
-                onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
-                onCloseAuction={handleCloseAuction}
-                sessionId={sessionId}
-                players={players}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                onNominatePlayer={handleNominatePlayer}
-                onUpdateTimer={handleUpdateTimer}
-                onBotNominate={handleBotNominate}
-                onBotConfirmNomination={handleBotConfirmNomination}
-                onBotBid={handleBotBid}
-                onForceAllReady={handleForceAllReady}
-                onForceAcknowledgeAll={handleForceAcknowledgeAll}
-                onCompleteAllSlots={handleCompleteAllSlots}
-                onResetFirstMarket={handleResetFirstMarket}
-              />
-            )}
-            {auctionLayout === 'C' && (
-              <LayoutC
-                auction={auction}
-                timeLeft={timeLeft}
-                timerSetting={timerSetting}
-                isTimerExpired={isTimerExpired}
-                membership={membership}
-                isAdmin={isAdmin}
-                isMyTurn={isMyTurn}
-                isUserWinning={isUserWinning}
-                currentUsername={currentUsername}
-                managersStatus={managersStatus as any}
-                currentTurnManager={currentTurnManager}
-                myRosterSlots={myRosterSlots as any}
-                marketProgress={marketProgress}
-                bidAmount={bidAmount}
-                setBidAmount={setBidAmount}
-                onPlaceBid={handlePlaceBid}
-                isConnected={isConnected}
-                connectionStatus={connectionStatus}
-                onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
-                onCloseAuction={handleCloseAuction}
-                sessionId={sessionId}
-                players={players}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                onNominatePlayer={handleNominatePlayer}
-                onUpdateTimer={handleUpdateTimer}
-                onBotNominate={handleBotNominate}
-                onBotConfirmNomination={handleBotConfirmNomination}
-                onBotBid={handleBotBid}
-                onForceAllReady={handleForceAllReady}
-                onForceAcknowledgeAll={handleForceAcknowledgeAll}
-                onCompleteAllSlots={handleCompleteAllSlots}
-                onResetFirstMarket={handleResetFirstMarket}
-              />
-            )}
-            {auctionLayout === 'D' && (
-              <LayoutD
-                auction={auction}
-                timeLeft={timeLeft}
-                timerSetting={timerSetting}
-                isTimerExpired={isTimerExpired}
-                membership={membership}
-                isAdmin={isAdmin}
-                isMyTurn={isMyTurn}
-                isUserWinning={isUserWinning}
-                currentUsername={currentUsername}
-                managersStatus={managersStatus as any}
-                currentTurnManager={currentTurnManager}
-                myRosterSlots={myRosterSlots as any}
-                marketProgress={marketProgress}
-                bidAmount={bidAmount}
-                setBidAmount={setBidAmount}
-                onPlaceBid={handlePlaceBid}
-                isConnected={isConnected}
-                connectionStatus={connectionStatus}
-                onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
-                onCloseAuction={handleCloseAuction}
-                sessionId={sessionId}
-                players={players}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                onNominatePlayer={handleNominatePlayer}
-                onUpdateTimer={handleUpdateTimer}
-                onBotNominate={handleBotNominate}
-                onBotConfirmNomination={handleBotConfirmNomination}
-                onBotBid={handleBotBid}
-                onForceAllReady={handleForceAllReady}
-                onForceAcknowledgeAll={handleForceAcknowledgeAll}
-                onCompleteAllSlots={handleCompleteAllSlots}
-                onResetFirstMarket={handleResetFirstMarket}
-              />
-            )}
-            {auctionLayout === 'E' && (
-              <LayoutE
-                auction={auction}
-                timeLeft={timeLeft}
-                timerSetting={timerSetting}
-                isTimerExpired={isTimerExpired}
-                membership={membership}
-                isAdmin={isAdmin}
-                isMyTurn={isMyTurn}
-                isUserWinning={isUserWinning}
-                currentUsername={currentUsername}
-                managersStatus={managersStatus as any}
-                currentTurnManager={currentTurnManager}
-                myRosterSlots={myRosterSlots as any}
-                marketProgress={marketProgress}
-                bidAmount={bidAmount}
-                setBidAmount={setBidAmount}
-                onPlaceBid={handlePlaceBid}
-                isConnected={isConnected}
-                connectionStatus={connectionStatus}
-                onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
-                onCloseAuction={handleCloseAuction}
-                sessionId={sessionId}
-                players={players}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                onNominatePlayer={handleNominatePlayer}
-                onUpdateTimer={handleUpdateTimer}
-                onBotNominate={handleBotNominate}
-                onBotConfirmNomination={handleBotConfirmNomination}
-                onBotBid={handleBotBid}
-                onForceAllReady={handleForceAllReady}
-                onForceAcknowledgeAll={handleForceAcknowledgeAll}
-                onCompleteAllSlots={handleCompleteAllSlots}
-                onResetFirstMarket={handleResetFirstMarket}
-              />
-            )}
+            <LayoutMobile
+              auction={auction}
+              timeLeft={timeLeft}
+              timerSetting={timerSetting}
+              isTimerExpired={isTimerExpired}
+              membership={membership}
+              isAdmin={isAdmin}
+              isMyTurn={isMyTurn}
+              isUserWinning={isUserWinning}
+              currentUsername={currentUsername}
+              managersStatus={managersStatus as any}
+              currentTurnManager={currentTurnManager}
+              myRosterSlots={myRosterSlots as any}
+              marketProgress={marketProgress}
+              bidAmount={bidAmount}
+              setBidAmount={setBidAmount}
+              onPlaceBid={handlePlaceBid}
+              isConnected={isConnected}
+              connectionStatus={connectionStatus}
+              onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
+              onCloseAuction={handleCloseAuction}
+              sessionId={sessionId}
+              players={players}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onNominatePlayer={handleNominatePlayer}
+              onUpdateTimer={handleUpdateTimer}
+              onBotNominate={handleBotNominate}
+              onBotConfirmNomination={handleBotConfirmNomination}
+              onBotBid={handleBotBid}
+              onForceAllReady={handleForceAllReady}
+              onForceAcknowledgeAll={handleForceAcknowledgeAll}
+              onCompleteAllSlots={handleCompleteAllSlots}
+              onResetFirstMarket={handleResetFirstMarket}
+            />
           </div>
         )}
 
-        {/* Mobile-first grid layout - Classic Layout (nascosto quando LayoutF è selezionato) */}
-        <div className={`grid grid-cols-1 lg:grid-cols-12 gap-4 ${auctionLayout === 'F' || (auctionLayout !== 'classic' && auction) ? 'hidden' : ''}`}>
+        {/* Layout Desktop - Best mix responsive (default) */}
+        {auctionLayout === 'desktop' && (
+          <div className="mb-4">
+            <LayoutDesktop
+              auction={auction}
+              timeLeft={timeLeft}
+              timerSetting={timerSetting}
+              isTimerExpired={isTimerExpired}
+              membership={membership}
+              isAdmin={isAdmin}
+              isMyTurn={isMyTurn}
+              isUserWinning={isUserWinning}
+              currentUsername={currentUsername}
+              managersStatus={managersStatus as any}
+              currentTurnManager={currentTurnManager}
+              myRosterSlots={myRosterSlots as any}
+              marketProgress={marketProgress}
+              bidAmount={bidAmount}
+              setBidAmount={setBidAmount}
+              onPlaceBid={handlePlaceBid}
+              isConnected={isConnected}
+              connectionStatus={connectionStatus}
+              onSelectManager={(m: LayoutManagerData) => setSelectedManager(m as any)}
+              onCloseAuction={handleCloseAuction}
+              sessionId={sessionId}
+              players={players}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onNominatePlayer={handleNominatePlayer}
+              onUpdateTimer={handleUpdateTimer}
+              onBotNominate={handleBotNominate}
+              onBotConfirmNomination={handleBotConfirmNomination}
+              onBotBid={handleBotBid}
+              onForceAllReady={handleForceAllReady}
+              onForceAcknowledgeAll={handleForceAcknowledgeAll}
+              onCompleteAllSlots={handleCompleteAllSlots}
+              onResetFirstMarket={handleResetFirstMarket}
+            />
+          </div>
+        )}
+
+        {/* Mobile-first grid layout - Classic Layout (nascosto quando un layout consolidato è selezionato) */}
+        <div className={`grid grid-cols-1 lg:grid-cols-12 gap-4 ${auctionLayout !== 'classic' && auction ? 'hidden' : ''}`}>
           {/* LEFT: My Roster - Hidden on mobile during active auction, collapsible */}
           <div className={`lg:col-span-3 space-y-4 ${auction ? 'hidden lg:block' : ''}`}>
             <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">

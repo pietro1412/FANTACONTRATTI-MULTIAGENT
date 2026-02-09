@@ -1,18 +1,17 @@
 /**
  * AuctionLayoutSelector.tsx - Selettore Layout Asta
  *
- * Permette di scegliere tra 4 layout diversi per la sala asta:
- * - A: Split Screen Focus
- * - B: Card Stack Mobile-First
- * - C: Dashboard Real-Time
- * - D: Best Mix (combinazione migliori caratteristiche)
+ * 3 layout consolidati:
+ * - Mobile: Card Stack con tab (ottimizzato touchscreen)
+ * - Desktop: Best Mix responsive (default)
+ * - Pro: Completo con obiettivi, ready check, acknowledgment
  *
- * Creato il: 24/01/2026
+ * Sprint 4: Consolidato da 6 layout (A-F) a 3
  */
 
 import { useState, useEffect } from 'react'
 
-export type AuctionLayout = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'classic'
+export type AuctionLayout = 'mobile' | 'desktop' | 'pro' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'classic'
 
 interface LayoutOption {
   id: AuctionLayout
@@ -23,48 +22,40 @@ interface LayoutOption {
 
 const LAYOUT_OPTIONS: LayoutOption[] = [
   {
-    id: 'classic',
-    name: 'Classico',
-    description: 'Layout originale a 3 colonne',
-    icon: '📋'
-  },
-  {
-    id: 'A',
-    name: 'Split Focus',
-    description: 'Timer gigante, sidebar info',
-    icon: '🎯'
-  },
-  {
-    id: 'B',
-    name: 'Card Stack',
-    description: 'Mobile-first, una card',
+    id: 'mobile',
+    name: 'Mobile',
+    description: 'Card stack, tab, touch-friendly',
     icon: '📱'
   },
   {
-    id: 'C',
-    name: 'Dashboard',
-    description: 'Stile trading, max info',
-    icon: '📊'
+    id: 'desktop',
+    name: 'Desktop',
+    description: 'Best mix, timer + grid info',
+    icon: '🖥️'
   },
   {
-    id: 'D',
-    name: 'Best Mix',
-    description: 'Migliori caratteristiche',
-    icon: '⭐'
-  },
-  {
-    id: 'E',
-    name: 'Compatto',
-    description: 'Stile pro, info dense',
-    icon: '🎮'
-  },
-  {
-    id: 'F',
+    id: 'pro',
     name: 'Pro',
-    description: 'Completo con tutti i flussi',
+    description: 'Obiettivi, flussi completi',
     icon: '🏆'
   }
 ]
+
+// Map old layout IDs to new consolidated ones
+function migrateLayout(layout: string): AuctionLayout {
+  switch (layout) {
+    case 'B': return 'mobile'
+    case 'A':
+    case 'C':
+    case 'D':
+    case 'classic': return 'desktop'
+    case 'E':
+    case 'F': return 'pro'
+    default:
+      if (['mobile', 'desktop', 'pro'].includes(layout)) return layout as AuctionLayout
+      return 'desktop'
+  }
+}
 
 interface AuctionLayoutSelectorProps {
   currentLayout: AuctionLayout
@@ -86,7 +77,7 @@ export function AuctionLayoutSelector({
           <button
             key={opt.id}
             onClick={() => onLayoutChange(opt.id)}
-            className={`w-7 h-7 rounded flex items-center justify-center text-sm transition-all ${
+            className={`w-8 h-8 min-h-[44px] min-w-[44px] rounded flex items-center justify-center text-sm transition-all ${
               currentLayout === opt.id
                 ? 'bg-primary-500 text-white shadow-lg'
                 : 'bg-surface-300 text-gray-400 hover:bg-surface-200'
@@ -106,7 +97,7 @@ export function AuctionLayoutSelector({
         <span>🎨</span>
         Seleziona Layout
       </h3>
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {LAYOUT_OPTIONS.map(opt => (
           <button
             key={opt.id}
@@ -133,10 +124,10 @@ export function AuctionLayoutSelector({
 export function useAuctionLayout(): [AuctionLayout, (layout: AuctionLayout) => void] {
   const [layout, setLayout] = useState<AuctionLayout>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('auction-layout') as AuctionLayout
-      return saved || 'D'
+      const saved = localStorage.getItem('auction-layout')
+      return saved ? migrateLayout(saved) : 'desktop'
     }
-    return 'D'
+    return 'desktop'
   })
 
   useEffect(() => {
