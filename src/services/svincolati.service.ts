@@ -322,14 +322,15 @@ export async function bidOnFreeAgent(
     return { success: false, message: `L'offerta deve essere maggiore di ${auction.currentPrice}` }
   }
 
-  // Check budget using bilancio (budget - monteIngaggi)
+  // Check budget using bilancio (budget - monteIngaggi), reserve 1 for minimum operations
   const monteIngaggiBid = await prisma.playerContract.aggregate({
     where: { leagueMemberId: bidder.id },
     _sum: { salary: true },
   })
   const bilancioBid = bidder.currentBudget - (monteIngaggiBid._sum.salary || 0)
-  if (amount + calculateDefaultSalary(amount) > bilancioBid) {
-    return { success: false, message: `Budget insufficiente. Bilancio disponibile: ${bilancioBid}` }
+  const maxBidSvinc = bilancioBid - 1
+  if (amount + calculateDefaultSalary(amount) > maxBidSvinc) {
+    return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBidSvinc}` }
   }
 
   // Check if this is a turn-based svincolati auction (no slot limits)

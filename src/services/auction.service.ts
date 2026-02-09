@@ -1216,6 +1216,7 @@ export async function placeBid(
     include: {
       player: true,
       league: true,
+      marketSession: true,
     },
   })
   console.log(`[PLACEBID-TIMING] Query auction: ${Date.now() - t1}ms`)
@@ -1260,8 +1261,23 @@ export async function placeBid(
     _sum: { salary: true },
   })
   const bilancio = member.currentBudget - (monteIngaggiAuction._sum.salary || 0)
-  if (amount + calculateDefaultSalary(amount) > bilancio) {
-    return { success: false, message: `Budget insufficiente. Bilancio disponibile: ${bilancio}` }
+
+  // Primo Mercato: reserve budget for remaining empty slots (2 per slot = 1 min bid + 1 min salary)
+  const isPrimoMercato = auction.marketSession?.type === 'PRIMO_MERCATO'
+  let slotReserve = 0
+  if (isPrimoMercato) {
+    const totalSlots = auction.league.goalkeeperSlots + auction.league.defenderSlots
+      + auction.league.midfielderSlots + auction.league.forwardSlots
+    const filledSlots = await prisma.playerRoster.count({
+      where: { leagueMemberId: member.id, status: 'ACTIVE' },
+    })
+    const remainingAfter = Math.max(0, totalSlots - filledSlots - 1)
+    slotReserve = remainingAfter * 2
+  }
+
+  if (amount + calculateDefaultSalary(amount) > bilancio - slotReserve) {
+    const maxBid = bilancio - slotReserve
+    return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBid}${isPrimoMercato && slotReserve > 0 ? ` (riservati ${slotReserve} per ${slotReserve / 2} slot rimanenti)` : ''}` }
   }
 
   // Check minimum bid

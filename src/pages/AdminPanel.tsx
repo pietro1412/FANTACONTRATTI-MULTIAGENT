@@ -384,6 +384,12 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     setIsSubmitting(false)
   }
 
+  function confirmKick(memberId: string, username: string) {
+    if (window.confirm(`Sei sicuro di voler espellere ${username}? Questa azione non può essere annullata.`)) {
+      handleMemberAction(memberId, 'kick')
+    }
+  }
+
   async function handleCreateInvite() {
     if (!newInviteEmail.trim()) return
 
@@ -1026,7 +1032,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                     <div className="flex items-center justify-between text-xs text-gray-500">
                       <span>{member.teamName || '-'}</span>
                       {member.role !== 'ADMIN' && (
-                        <Button size="sm" variant="outline" className="border-danger-500/50 text-danger-400 !px-2 !py-1 !text-xs !min-h-[36px]" onClick={() => handleMemberAction(member.id, 'kick')} disabled={isSubmitting}>
+                        <Button size="sm" variant="outline" className="border-danger-500/50 text-danger-400 !px-2 !py-1 !text-xs !min-h-[36px]" onClick={() => confirmKick(member.id, member.user.username)} disabled={isSubmitting}>
                           Espelli
                         </Button>
                       )}
@@ -1066,7 +1072,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                         <td className="px-5 py-4 text-right font-mono text-accent-400 text-lg">{member.currentBudget}</td>
                         <td className="px-5 py-4 text-right">
                           {member.role !== 'ADMIN' && (
-                            <Button size="sm" variant="outline" className="border-danger-500/50 text-danger-400" onClick={() => handleMemberAction(member.id, 'kick')} disabled={isSubmitting}>
+                            <Button size="sm" variant="outline" className="border-danger-500/50 text-danger-400" onClick={() => confirmKick(member.id, member.user.username)} disabled={isSubmitting}>
                               Espelli
                             </Button>
                           )}

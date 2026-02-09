@@ -472,14 +472,15 @@ export async function bidOnRubata(
     return { success: false, message: `L'offerta deve essere maggiore di ${auction.currentPrice}` }
   }
 
-  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
+  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary. Reserve 1.
   const monteIngaggiOld = await prisma.playerContract.aggregate({
     where: { leagueMemberId: bidder.id },
     _sum: { salary: true },
   })
   const bilancioOld = bidder.currentBudget - (monteIngaggiOld._sum.salary || 0)
-  if (amount > bilancioOld) {
-    return { success: false, message: `Budget insufficiente. Bilancio disponibile: ${bilancioOld}` }
+  const maxBidOld = bilancioOld - 1
+  if (amount > maxBidOld) {
+    return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBidOld}` }
   }
 
   // Place bid
@@ -1727,14 +1728,15 @@ export async function bidOnRubataAuction(
     return { success: false, message: `L'offerta deve essere maggiore di ${activeAuction.currentPrice}` }
   }
 
-  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
+  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary. Reserve 1.
   const monteIngaggiBidR = await prisma.playerContract.aggregate({
     where: { leagueMemberId: member.id },
     _sum: { salary: true },
   })
   const bilancioBidR = member.currentBudget - (monteIngaggiBidR._sum.salary || 0)
-  if (amount > bilancioBidR) {
-    return { success: false, message: `Budget insufficiente. Bilancio disponibile: ${bilancioBidR}` }
+  const maxBidR = bilancioBidR - 1
+  if (amount > maxBidR) {
+    return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBidR}` }
   }
 
   // Get member username and player info for Pusher notification
@@ -3306,14 +3308,15 @@ export async function simulateRubataBid(
     return { success: false, message: `L'offerta deve essere maggiore di ${activeAuction.currentPrice}` }
   }
 
-  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
+  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary. Reserve 1.
   const monteIngaggiSimBid = await prisma.playerContract.aggregate({
     where: { leagueMemberId: targetMember.id },
     _sum: { salary: true },
   })
   const bilancioSimBid = targetMember.currentBudget - (monteIngaggiSimBid._sum.salary || 0)
-  if (amount > bilancioSimBid) {
-    return { success: false, message: `Budget insufficiente. Bilancio disponibile: ${bilancioSimBid}` }
+  const maxBidSim = bilancioSimBid - 1
+  if (amount > maxBidSim) {
+    return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBidSim}` }
   }
 
   // Place simulated bid
