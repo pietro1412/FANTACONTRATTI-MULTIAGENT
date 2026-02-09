@@ -137,7 +137,10 @@ export async function createEmailInvite(
 
   // Invia email di invito
   const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
-  const inviteUrl = `${baseUrl}/join`
+  // Se l'utente non esiste, usa URL di registrazione con token invito
+  const inviteUrl = existingUser
+    ? `${baseUrl}/join`
+    : `${baseUrl}/register?invite=${token}`
 
   try {
     await emailService.sendLeagueInviteEmail(
@@ -148,7 +151,7 @@ export async function createEmailInvite(
       inviteUrl,
       expiresAt
     )
-    console.log(`[InviteService] Email sent to ${email} for league ${invite.league.name}`)
+    console.log(`[InviteService] Email sent to ${email} for league ${invite.league.name}${!existingUser ? ' (unregistered user)' : ''}`)
   } catch (err) {
     console.error('[InviteService] Failed to send invite email:', err)
     // Non blocchiamo la creazione dell'invito se l'email fallisce
@@ -156,15 +159,15 @@ export async function createEmailInvite(
 
   return {
     success: true,
-    message: 'Invito creato con successo',
+    message: existingUser ? 'Invito creato con successo' : 'Invito creato. L\'utente dovra registrarsi prima di accettare.',
     data: {
       id: invite.id,
       email: invite.email,
       token: invite.token,
       expiresAt: invite.expiresAt,
       leagueName: invite.league.name,
-      // URL da usare per l'invito (frontend costruirà l'URL completo)
       inviteLink: `/join/${invite.token}`,
+      isNewUser: !existingUser,
     },
   }
 }

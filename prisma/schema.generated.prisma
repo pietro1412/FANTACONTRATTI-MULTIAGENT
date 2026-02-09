@@ -704,6 +704,11 @@ model User {
   passwordResetToken    String?   @unique
   passwordResetExpires  DateTime?
 
+  // Account lockout
+  failedLoginAttempts  Int       @default(0)
+  lockedUntil          DateTime?
+  lastFailedLogin      DateTime?
+
   // Relazioni
   leagueMemberships LeagueMember[]         // see: league.prisma
   sentOffers        TradeOffer[]     @relation("OfferSender")   // see: trade.prisma

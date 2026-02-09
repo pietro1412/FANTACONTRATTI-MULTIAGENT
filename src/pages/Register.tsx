@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -16,6 +17,8 @@ interface FieldErrors {
 
 export function Register({ onNavigate }: RegisterProps) {
   const { register } = useAuth()
+  const [searchParams] = useSearchParams()
+  const inviteToken = searchParams.get('invite')
   const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -39,7 +42,12 @@ export function Register({ onNavigate }: RegisterProps) {
     const result = await register(email, username, password, confirmPassword)
 
     if (result.success) {
-      onNavigate('login')
+      if (inviteToken) {
+        // Redirect to invite acceptance after registration
+        onNavigate('inviteDetail', { token: inviteToken })
+      } else {
+        onNavigate('login')
+      }
     } else {
       // Parse validation errors from API response
       if (result.errors && result.errors.length > 0) {
@@ -79,6 +87,14 @@ export function Register({ onNavigate }: RegisterProps) {
           <h1 className="text-3xl font-bold text-white mb-1">Unisciti a Fantacontratti</h1>
           <p className="text-base text-gray-400">Crea il tuo account e inizia a competere</p>
         </div>
+
+        {/* Invite banner */}
+        {inviteToken && (
+          <div className="bg-accent-500/10 border border-accent-500/30 rounded-xl p-4 mb-4 text-center">
+            <p className="text-accent-400 font-semibold">Sei stato invitato a una lega!</p>
+            <p className="text-sm text-gray-400 mt-1">Registrati per accettare l'invito</p>
+          </div>
+        )}
 
         {/* Card */}
         <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-8 shadow-2xl">
