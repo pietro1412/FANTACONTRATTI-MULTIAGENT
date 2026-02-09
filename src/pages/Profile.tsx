@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ChangeEvent, type FormEvent } from 'react'
+import { useState, useEffect, useRef, useCallback, type ChangeEvent, type FormEvent } from 'react'
 import { userApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
@@ -22,6 +22,140 @@ interface UserProfile {
     currentBudget: number
     league: { id: string; name: string; status: string }
   }>
+}
+
+const NOTIF_PREFS_KEY = 'notification-preferences'
+
+interface NotifPrefs {
+  pushEnabled: boolean
+  tradeOffers: boolean
+  contractExpiry: boolean
+  auctionStart: boolean
+  phaseChange: boolean
+}
+
+const DEFAULT_NOTIF_PREFS: NotifPrefs = {
+  pushEnabled: false,
+  tradeOffers: true,
+  contractExpiry: true,
+  auctionStart: true,
+  phaseChange: true,
+}
+
+function loadNotifPrefs(): NotifPrefs {
+  try {
+    const saved = localStorage.getItem(NOTIF_PREFS_KEY)
+    if (saved) return { ...DEFAULT_NOTIF_PREFS, ...JSON.parse(saved) }
+  } catch {}
+  return DEFAULT_NOTIF_PREFS
+}
+
+function NotificationPreferences() {
+  const [prefs, setPrefs] = useState<NotifPrefs>(loadNotifPrefs)
+  const [pushStatus, setPushStatus] = useState<'default' | 'granted' | 'denied' | 'unsupported'>('default')
+
+  useEffect(() => {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      setPushStatus('unsupported')
+    } else {
+      setPushStatus(Notification.permission as 'default' | 'granted' | 'denied')
+    }
+  }, [])
+
+  const save = useCallback((updated: NotifPrefs) => {
+    setPrefs(updated)
+    localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(updated))
+  }, [])
+
+  const handlePushToggle = useCallback(async () => {
+    if (pushStatus === 'unsupported') return
+
+    if (!prefs.pushEnabled) {
+      if (pushStatus === 'denied') return
+      const permission = await Notification.requestPermission()
+      setPushStatus(permission as 'granted' | 'denied' | 'default')
+      if (permission === 'granted') {
+        save({ ...prefs, pushEnabled: true })
+      }
+    } else {
+      save({ ...prefs, pushEnabled: false })
+    }
+  }, [prefs, pushStatus, save])
+
+  const toggle = (key: keyof Omit<NotifPrefs, 'pushEnabled'>) => {
+    save({ ...prefs, [key]: !prefs[key] })
+  }
+
+  const NOTIF_OPTIONS = [
+    { key: 'tradeOffers' as const, label: 'Offerte scambio', desc: 'Nuove offerte ricevute' },
+    { key: 'contractExpiry' as const, label: 'Scadenze contratti', desc: 'Contratti in scadenza imminente' },
+    { key: 'auctionStart' as const, label: 'Inizio aste', desc: 'Quando inizia una nuova sessione d\'asta' },
+    { key: 'phaseChange' as const, label: 'Cambio fase', desc: 'Transizioni di fase della lega' },
+  ]
+
+  return (
+    <div className="mb-8">
+      <h3 className="text-lg font-semibold text-white mb-4">Notifiche</h3>
+
+      {/* Push notification master toggle */}
+      <div className="bg-surface-300 rounded-lg p-4 mb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-white">Notifiche Push</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {pushStatus === 'unsupported'
+                ? 'Non supportate dal browser'
+                : pushStatus === 'denied'
+                  ? 'Bloccate dal browser - abilita dalle impostazioni'
+                  : 'Ricevi notifiche anche quando l\'app non e aperta'}
+            </p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={prefs.pushEnabled}
+              onChange={handlePushToggle}
+              disabled={pushStatus === 'unsupported' || pushStatus === 'denied'}
+              className="sr-only peer"
+            />
+            <div className={`w-10 h-5 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[3px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-500 ${
+              pushStatus === 'unsupported' || pushStatus === 'denied'
+                ? 'bg-surface-400 opacity-50 cursor-not-allowed'
+                : 'bg-surface-400'
+            }`} />
+          </label>
+        </div>
+      </div>
+
+      {/* Individual notification types */}
+      <div className="space-y-2">
+        {NOTIF_OPTIONS.map(opt => (
+          <div
+            key={opt.key}
+            className="bg-surface-300 rounded-lg px-4 py-3 flex items-center justify-between"
+          >
+            <div>
+              <p className="text-sm font-medium text-white">{opt.label}</p>
+              <p className="text-xs text-gray-500">{opt.desc}</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={prefs[opt.key]}
+                onChange={() => toggle(opt.key)}
+                className="sr-only peer"
+              />
+              <div className="w-8 h-4 bg-surface-400 peer-focus:ring-2 peer-focus:ring-primary-500/50 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary-500" />
+            </label>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-[10px] text-gray-600 mt-3">
+        Le notifiche push richiedono un backend configurato. Le preferenze vengono salvate localmente per ora.
+      </p>
+    </div>
+  )
 }
 
 export function Profile({ onNavigate }: ProfileProps) {
@@ -327,6 +461,9 @@ export function Profile({ onNavigate }: ProfileProps) {
                 </p>
               )}
             </div>
+
+            {/* Notification Preferences (MOB-016) */}
+            <NotificationPreferences />
 
             {/* Team Names in Leagues */}
             {profile?.leagueMemberships && profile.leagueMemberships.length > 0 && (
