@@ -9,6 +9,12 @@ import { ContractModifierModal } from '../components/ContractModifier'
 import { PlayerStatsModal, type PlayerInfo, type ComputedSeasonStats } from '../components/PlayerStatsModal'
 import { RubataStepper } from '../components/rubata/RubataStepper'
 import { PreferenceModal } from '../components/rubata/PreferenceModal'
+import type {
+  LeagueMember, BoardPlayer, ActiveAuction, AuctionReadyInfo,
+  RubataPreference, MemberBudgetInfo, BoardPlayerWithPreference,
+  BoardData, PreviewBoardData, ReadyStatus, PendingAck,
+  ContractForModification, AppealStatus,
+} from '../types/rubata.types'
 
 // Componente logo squadra
 function TeamLogo({ team }: { team: string }) {
@@ -29,162 +35,8 @@ interface RubataProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
 }
 
-interface LeagueMember {
-  id: string
-  teamName?: string
-  rubataOrder?: number
-  currentBudget: number
-  user: {
-    id: string
-    username: string
-  }
-}
-
-interface BoardPlayer {
-  rosterId: string
-  memberId: string
-  playerId: string
-  playerName: string
-  playerPosition: 'P' | 'D' | 'C' | 'A'
-  playerTeam: string
-  playerQuotation?: number
-  playerAge?: number | null
-  playerApiFootballId?: number | null
-  playerApiFootballStats?: unknown
-  playerComputedStats?: ComputedSeasonStats | null
-  ownerUsername: string
-  ownerTeamName: string | null
-  rubataPrice: number
-  contractSalary: number
-  contractDuration: number
-  contractClause: number
-  stolenById?: string | null
-  stolenByUsername?: string | null
-  stolenPrice?: number | null
-}
-
-interface ActiveAuction {
-  id: string
-  player: {
-    id: string
-    name: string
-    team: string
-    position: string
-  }
-  basePrice: number
-  currentPrice: number
-  sellerId: string
-  bids: Array<{
-    amount: number
-    bidder: string
-    bidderId: string
-    isWinning: boolean
-  }>
-}
-
-interface AuctionReadyInfo {
-  bidderUsername: string
-  playerName: string
-  playerTeam: string
-  playerPosition: string
-  ownerUsername: string
-  basePrice: number
-}
-
-interface RubataPreference {
-  id: string
-  playerId: string
-  isWatchlist: boolean
-  isAutoPass: boolean
-  maxBid: number | null
-  priority: number | null
-  notes: string | null
-}
-
-interface MemberBudgetInfo {
-  memberId: string
-  teamName: string
-  username: string
-  currentBudget: number
-  totalSalaries: number
-  residuo: number
-}
-
-interface BoardPlayerWithPreference extends BoardPlayer {
-  preference?: RubataPreference | null
-}
-
-interface BoardData {
-  isRubataPhase: boolean
-  board: BoardPlayer[] | null
-  currentIndex: number | null
-  currentPlayer: BoardPlayer | null
-  totalPlayers: number
-  rubataState: 'WAITING' | 'PREVIEW' | 'READY_CHECK' | 'OFFERING' | 'AUCTION_READY_CHECK' | 'AUCTION' | 'PENDING_ACK' | 'PAUSED' | 'COMPLETED' | null
-  remainingSeconds: number | null
-  offerTimerSeconds: number
-  auctionTimerSeconds: number
-  activeAuction: ActiveAuction | null
-  auctionReadyInfo: AuctionReadyInfo | null
-  // Pause info for resume ready check
-  pausedRemainingSeconds: number | null
-  pausedFromState: string | null
-  memberBudgets?: MemberBudgetInfo[]
-  sessionId: string | null
-  myMemberId: string
-  isAdmin: boolean
-}
-
-interface PreviewBoardData {
-  board: BoardPlayerWithPreference[]
-  totalPlayers: number
-  rubataState: string
-  isPreview: boolean
-  myMemberId: string
-  watchlistCount: number
-  autoPassCount: number
-}
-
-interface ReadyStatus {
-  rubataState: string | null
-  readyMembers: Array<{ id: string; username: string; isConnected?: boolean }>
-  pendingMembers: Array<{ id: string; username: string; isConnected?: boolean }>
-  totalMembers: number
-  readyCount: number
-  allReady: boolean
-  userIsReady: boolean
-  myMemberId: string
-  isAdmin: boolean
-}
-
-interface PendingAck {
-  auctionId: string
-  player: {
-    id: string
-    name: string
-    team: string
-    position: string
-  }
-  winner: { id: string; username: string } | null
-  seller: { id: string; username: string }
-  finalPrice: number
-  acknowledgedMembers: Array<{ id: string; username: string }>
-  pendingMembers: Array<{ id: string; username: string }>
-  totalMembers: number
-  totalAcknowledged: number
-  userAcknowledged: boolean
-  allAcknowledged: boolean
-  prophecies?: Array<{ memberId: string; username: string; content: string; createdAt: string }>
-}
-
-const POSITION_COLORS: Record<string, string> = {
-  P: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  D: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  C: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  A: 'bg-red-500/20 text-red-400 border-red-500/30',
-}
-
-// PreferenceModal è ora estratto in ../components/rubata/PreferenceModal.tsx
+// Types imported from ../types/rubata.types
+import { POSITION_COLORS } from '../types/rubata.types'
 
 export function Rubata({ leagueId, onNavigate }: RubataProps) {
   const [isLoading, setIsLoading] = useState(true)
@@ -224,26 +76,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   // Appeal / Ricorso state
   const [isAppealMode, setIsAppealMode] = useState(false)
   const [appealContent, setAppealContent] = useState('')
-  const [appealStatus, setAppealStatus] = useState<{
-    auctionId: string
-    auctionStatus: string
-    hasActiveAppeal: boolean
-    appeal: {
-      id: string
-      status: string
-      reason: string
-      adminNotes?: string
-      submittedBy?: { username: string }
-    } | null
-    winner?: { username: string }
-    finalPrice?: number
-    player?: { name: string; team: string; position: string }
-    userHasAcked: boolean
-    appealDecisionAcks: string[]
-    allMembers: Array<{ id: string; username: string }>
-    userIsReady: boolean
-    resumeReadyMembers: string[]
-  } | null>(null)
+  const [appealStatus, setAppealStatus] = useState<AppealStatus | null>(null)
 
   // Session ID for Pusher subscription (we'll get this from boardData)
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -260,18 +93,6 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   const [selectedPlayerForPrefs, setSelectedPlayerForPrefs] = useState<BoardPlayerWithPreference | null>(null)
 
   // Contract modification after rubata win
-  interface ContractForModification {
-    contractId: string
-    rosterId: string
-    playerId: string
-    playerName: string
-    playerTeam?: string
-    playerPosition?: string
-    salary: number
-    duration: number
-    initialSalary: number
-    rescissionClause: number
-  }
   const [pendingContractModification, setPendingContractModification] = useState<ContractForModification | null>(null)
 
   // Ref for current player row/card to scroll into view
@@ -908,7 +729,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     if (pendingAck?.auctionId) {
       const result = await auctionApi.getAppealStatus(pendingAck.auctionId)
       if (result.success && result.data) {
-        setAppealStatus(result.data as typeof appealStatus)
+        setAppealStatus(result.data as AppealStatus)
       } else {
         setAppealStatus(null)
       }
