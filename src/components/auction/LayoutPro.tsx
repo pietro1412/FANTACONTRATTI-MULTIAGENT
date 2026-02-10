@@ -672,6 +672,7 @@ export function LayoutPro({
                 >−</button>
                 <input
                   type="number"
+                  inputMode="decimal"
                   value={bidAmount}
                   onChange={e => setBidAmount(e.target.value)}
                   disabled={!canBid}

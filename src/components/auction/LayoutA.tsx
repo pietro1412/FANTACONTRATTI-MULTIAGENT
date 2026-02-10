@@ -294,6 +294,7 @@ export function LayoutA({
               </button>
               <input
                 type="number"
+                inputMode="decimal"
                 value={bidAmount}
                 onChange={e => setBidAmount(e.target.value)}
                 disabled={isTimerExpired}

@@ -9,6 +9,7 @@ import { BottomSheet } from '../components/ui/BottomSheet'
 import { getPlayerPhotoUrl, getTeamLogoUrl } from '../utils/player-images'
 import { SlidersHorizontal } from 'lucide-react'
 import { ShareButton } from '../components/ShareButton'
+import { LandscapeHint } from '../components/ui/LandscapeHint'
 
 // Position colors
 const POSITION_COLORS: Record<string, string> = {
@@ -1011,6 +1012,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                 </div>
 
                 {/* Radar Charts - full width */}
+                <LandscapeHint />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mb-6 md:mb-8">
                   <div className="bg-surface-200 rounded-xl p-4 md:p-6 border border-surface-50/20">
                     <h3 className="text-center text-white font-semibold mb-4">Statistiche Offensive</h3>

@@ -186,7 +186,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
     <div className="min-h-screen bg-dark-300">
       <Navigation currentPage="inviteDetail" onNavigate={onNavigate} />
 
-      <main className="max-w-4xl mx-auto px-6 py-10">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         {/* Header */}
         <div className="mb-8">
           <button
@@ -198,7 +198,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
             </svg>
             Torna alla Dashboard
           </button>
-          <h1 className="text-3xl font-bold text-white mb-2">Sei stato invitato!</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">Sei stato invitato!</h1>
           <p className="text-gray-400">
             <span className="text-primary-400">{invite.inviter.username}</span> ti ha invitato a unirti alla lega
           </p>

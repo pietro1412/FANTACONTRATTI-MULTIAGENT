@@ -332,15 +332,15 @@ export function Profile({ onNavigate }: ProfileProps) {
     <div className="min-h-screen bg-dark-300">
       <Navigation currentPage="profile" onNavigate={onNavigate} />
 
-      <main className="max-w-2xl mx-auto px-6 py-10">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
           {/* Header */}
-          <div className="p-8 border-b border-surface-50/20 bg-gradient-to-r from-surface-300 to-surface-200">
-            <h1 className="text-3xl font-bold text-white">Il tuo Profilo</h1>
+          <div className="p-4 sm:p-6 md:p-8 border-b border-surface-50/20 bg-gradient-to-r from-surface-300 to-surface-200">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Il tuo Profilo</h1>
             <p className="text-gray-400 mt-1">Gestisci le impostazioni del tuo account</p>
           </div>
 
-          <div className="p-8">
+          <div className="p-4 sm:p-6 md:p-8">
             {error && (
               <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-xl mb-6">
                 {error}

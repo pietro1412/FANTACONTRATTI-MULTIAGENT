@@ -87,7 +87,7 @@ export function Register({ onNavigate }: RegisterProps) {
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center mx-auto mb-4 shadow-glow-gold">
             <span className="text-4xl">🏆</span>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-1">Unisciti a Fantacontratti</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1">Unisciti a Fantacontratti</h1>
           <p className="text-base text-gray-400">Crea il tuo account e inizia a competere</p>
         </div>
 

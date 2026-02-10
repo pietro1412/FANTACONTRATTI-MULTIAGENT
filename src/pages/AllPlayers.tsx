@@ -10,6 +10,7 @@ import { POSITION_GRADIENTS, POSITION_FILTER_COLORS } from '../components/ui/Pos
 import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
 import { getPlayerPhotoUrl } from '../utils/player-images'
 import { SlidersHorizontal } from 'lucide-react'
+import { SkeletonPlayerRow } from '../components/ui/Skeleton'
 
 interface AllPlayersProps {
   leagueId: string
@@ -337,14 +338,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
         {isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 bg-surface-200/50 rounded-lg animate-pulse">
-                <div className="w-10 h-10 rounded-full bg-surface-100" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 w-32 bg-surface-100 rounded" />
-                  <div className="h-3 w-20 bg-surface-100 rounded" />
-                </div>
-                <div className="h-6 w-16 bg-surface-100 rounded" />
-              </div>
+              <SkeletonPlayerRow key={i} />
             ))}
           </div>
         ) : (
