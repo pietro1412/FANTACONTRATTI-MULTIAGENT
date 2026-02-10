@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { getTeamLogo } from '../../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../../utils/player-images'
 import { POSITION_GRADIENTS, POSITION_FILTER_COLORS, POSITION_NAMES } from '../ui/PositionBadge'
+import { PlayerStatsModal } from '../PlayerStatsModal'
+import type { PlayerInfo } from '../PlayerStatsModal'
 import type { Player, MarketProgress } from '../../types/auctionroom.types'
 
 interface NominationPanelProps {
@@ -36,11 +38,19 @@ export function NominationPanel({
   isPrimoMercato,
   disabled = false,
 }: NominationPanelProps) {
-  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
+  const [statsModalOpen, setStatsModalOpen] = useState(false)
 
-  const handleSelectAndNominate = (playerId: string) => {
-    setSelectedPlayer(playerId)
-    onNominatePlayer(playerId)
+  const handlePlayerClick = (player: Player) => {
+    setSelectedPlayer(player)
+    setStatsModalOpen(true)
+  }
+
+  const handleNominateFromModal = () => {
+    if (selectedPlayer && !disabled) {
+      onNominatePlayer(selectedPlayer.id)
+      setStatsModalOpen(false)
+    }
   }
 
   return (
@@ -152,18 +162,11 @@ export function NominationPanel({
             {players.slice(0, 50).map(player => {
               const photoUrl = getPlayerPhotoUrl(player.apiFootballId)
               const posGradient = POSITION_GRADIENTS[player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
-              const Wrapper = disabled ? 'div' : 'button'
               return (
-                <Wrapper
+                <button
                   key={player.id}
-                  {...(!disabled ? { onClick: () => handleSelectAndNominate(player.id) } : {})}
-                  className={`relative rounded-xl p-2.5 text-left transition-all border group ${
-                    disabled
-                      ? 'bg-slate-800/40 border-white/5 opacity-60 cursor-default'
-                      : selectedPlayer === player.id
-                        ? 'bg-sky-500/15 border-sky-500/50 scale-[1.02]'
-                        : 'bg-slate-800/40 border-white/5 hover:border-sky-500/40 hover:scale-[1.02]'
-                  }`}
+                  onClick={() => handlePlayerClick(player)}
+                  className={`relative rounded-xl p-2.5 text-left transition-all border group bg-slate-800/40 border-white/5 hover:border-sky-500/40 hover:scale-[1.02]`}
                 >
                   <div className="flex items-start gap-2">
                     {/* Player Photo / Position fallback */}
@@ -200,12 +203,38 @@ export function NominationPanel({
                       <span className="text-xs font-mono font-bold text-accent-400">{player.quotation}</span>
                     </div>
                   )}
-                </Wrapper>
+                </button>
               )
             })}
           </div>
         )}
       </div>
+
+      {/* Player Stats Modal */}
+      <PlayerStatsModal
+        isOpen={statsModalOpen}
+        onClose={() => setStatsModalOpen(false)}
+        player={selectedPlayer ? {
+          name: selectedPlayer.name,
+          team: selectedPlayer.team,
+          position: selectedPlayer.position,
+          quotation: selectedPlayer.quotation,
+          age: selectedPlayer.age,
+          apiFootballId: selectedPlayer.apiFootballId,
+        } as PlayerInfo : null}
+      />
+
+      {/* Nominate button overlay when modal is open and it's my turn */}
+      {statsModalOpen && selectedPlayer && !disabled && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60]">
+          <button
+            onClick={handleNominateFromModal}
+            className="px-8 py-3 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-xl shadow-lg shadow-sky-500/30 transition-all hover:scale-105 text-sm"
+          >
+            Nomina {selectedPlayer.name.split(' ').pop()}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
