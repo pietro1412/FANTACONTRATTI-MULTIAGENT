@@ -1802,3 +1802,54 @@ export async function getFinancialTrends(leagueId: string, userId: string) {
     return { success: false, message: `Errore nel caricamento trends: ${(error as Error).message}` }
   }
 }
+
+// ==================== STRATEGY SUMMARY ====================
+
+export async function getStrategySummary(leagueId: string, userId: string): Promise<ServiceResult> {
+  try {
+    const member = await prisma.leagueMember.findFirst({
+      where: {
+        leagueId,
+        userId,
+        status: MemberStatus.ACTIVE,
+      },
+    })
+
+    if (!member) {
+      return { success: false, message: 'Non sei membro di questa lega' }
+    }
+
+    const counts = await prisma.rubataPlayerPreference.groupBy({
+      by: ['watchlistCategory'],
+      where: { memberId: member.id, isWatchlist: true },
+      _count: true,
+    })
+
+    const topPriority = await prisma.rubataPlayerPreference.count({
+      where: { memberId: member.id, priority: { gte: 8 } },
+    })
+
+    let targets = 0
+    let watching = 0
+    let toSell = 0
+    let total = 0
+
+    for (const row of counts) {
+      const count = row._count
+      total += count
+      switch (row.watchlistCategory) {
+        case 'DA_RUBARE': targets += count; break
+        case 'SOTTO_OSSERVAZIONE': watching += count; break
+        case 'DA_VENDERE': toSell += count; break
+      }
+    }
+
+    return {
+      success: true,
+      data: { targets, topPriority, watching, toSell, total },
+    }
+  } catch (error) {
+    console.error('[getStrategySummary] Error:', error)
+    return { success: false, message: `Errore nel caricamento strategie: ${(error as Error).message}` }
+  }
+}

@@ -333,6 +333,16 @@ export const leagueApi = {
         createdAt: string
       }>>
     }>(`/api/leagues/${leagueId}/financials/trends`),
+
+  // Get strategy summary for dashboard
+  getStrategySummary: (leagueId: string) =>
+    request<{
+      targets: number
+      topPriority: number
+      watching: number
+      toSell: number
+      total: number
+    }>(`/api/leagues/${leagueId}/strategy-summary`),
 }
 
 // Invite API

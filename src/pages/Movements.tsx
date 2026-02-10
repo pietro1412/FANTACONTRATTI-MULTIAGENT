@@ -8,6 +8,7 @@ import { BottomSheet } from '../components/ui/BottomSheet'
 import { getTeamLogo } from '../utils/teamLogos'
 import { ChevronDown, SlidersHorizontal } from 'lucide-react'
 import { SkeletonPlayerRow } from '../components/ui/Skeleton'
+import { MOVEMENT_TYPE_LABELS, MOVEMENT_TYPE_SHORT, MOVEMENT_TYPE_COLORS } from '../utils/movement-constants'
 
 interface MovementsProps {
   leagueId: string
@@ -55,33 +56,6 @@ interface Movement {
   // Aggiunti per stagione/semestre
   season?: number
   semester?: number
-}
-
-const MOVEMENT_TYPE_LABELS: Record<string, string> = {
-  FIRST_MARKET: 'Primo Mercato',
-  TRADE: 'Scambio',
-  RUBATA: 'Rubata',
-  SVINCOLATI: 'Svincolati',
-  RELEASE: 'Taglio',
-  CONTRACT_RENEW: 'Rinnovo',
-}
-
-const MOVEMENT_TYPE_SHORT: Record<string, string> = {
-  FIRST_MARKET: 'PM',
-  TRADE: 'SC',
-  RUBATA: 'RB',
-  SVINCOLATI: 'SV',
-  RELEASE: 'TG',
-  CONTRACT_RENEW: 'RN',
-}
-
-const MOVEMENT_TYPE_COLORS: Record<string, string> = {
-  FIRST_MARKET: 'bg-primary-500/20 text-primary-400',
-  TRADE: 'bg-secondary-500/20 text-secondary-400',
-  RUBATA: 'bg-red-500/20 text-red-400',
-  SVINCOLATI: 'bg-accent-500/20 text-accent-400',
-  RELEASE: 'bg-gray-500/20 text-gray-400',
-  CONTRACT_RENEW: 'bg-purple-500/20 text-purple-400',
 }
 
 const POSITION_COLORS: Record<string, string> = {

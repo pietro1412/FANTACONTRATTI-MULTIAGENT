@@ -19,6 +19,7 @@ import {
   getLeagueFinancials,
   getFinancialTimeline,
   getFinancialTrends,
+  getStrategySummary,
 } from '../../services/league.service'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth'
 
@@ -357,6 +358,24 @@ router.get('/:id/financials', authMiddleware, async (req: Request, res: Response
     res.json(result)
   } catch (error) {
     console.error('Get league financials error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:id/strategy-summary - Get strategy summary for current user
+router.get('/:id/strategy-summary', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const result = await getStrategySummary(id, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non sei membro di questa lega' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get strategy summary error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })
