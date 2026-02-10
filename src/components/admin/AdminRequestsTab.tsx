@@ -1,45 +1,85 @@
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { NumberStepper } from '../ui/NumberStepper'
+import type { Member, Invite } from './types'
 
-interface Invite {
-  id: string
-  email: string
-  status: string
-  createdAt: string
-  expiresAt: string
-}
-
-export interface AdminInvitesTabProps {
+export interface AdminRequestsTabProps {
+  pendingMembers: Member[]
   invites: Invite[]
   newInviteEmail: string
   setNewInviteEmail: (email: string) => void
   inviteDuration: number
   setInviteDuration: (duration: number) => void
   isSubmitting: boolean
+  handleMemberAction: (memberId: string, action: 'accept' | 'reject') => void
   handleCreateInvite: () => void
   handleCancelInvite: (inviteId: string) => void
 }
 
-export function AdminInvitesTab({
+export function AdminRequestsTab({
+  pendingMembers,
   invites,
   newInviteEmail,
   setNewInviteEmail,
   inviteDuration,
   setInviteDuration,
   isSubmitting,
+  handleMemberAction,
   handleCreateInvite,
   handleCancelInvite,
-}: AdminInvitesTabProps) {
+}: AdminRequestsTabProps) {
   return (
     <div className="space-y-6">
+      {/* Pending Members */}
       <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
         <div className="p-5 border-b border-surface-50/20">
-          <h3 className="text-xl font-bold text-white">Invia Nuovo Invito</h3>
+          <h3 className="text-xl font-bold text-white flex items-center gap-3">
+            <span>👤</span> Richieste di Adesione
+            {pendingMembers.length > 0 && (
+              <span className="bg-accent-500/20 text-accent-400 px-2.5 py-0.5 rounded-full text-sm font-bold border border-accent-500/40">
+                {pendingMembers.length}
+              </span>
+            )}
+          </h3>
+        </div>
+        <div className="p-5">
+          {pendingMembers.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-3 opacity-50">✅</div>
+              <p className="text-gray-500">Nessuna richiesta in attesa</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {pendingMembers.map(member => (
+                <div key={member.id} className="flex justify-between items-center p-4 bg-surface-300 rounded-lg">
+                  <div>
+                    <p className="font-semibold text-white text-lg">{member.user.username}</p>
+                    <p className="text-sm text-gray-400">{member.user.email}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={() => handleMemberAction(member.id, 'accept')} disabled={isSubmitting}>
+                      Accetta
+                    </Button>
+                    <Button variant="outline" onClick={() => handleMemberAction(member.id, 'reject')} disabled={isSubmitting}>
+                      Rifiuta
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Invite Form */}
+      <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
+        <div className="p-5 border-b border-surface-50/20">
+          <h3 className="text-xl font-bold text-white flex items-center gap-3">
+            <span>✉️</span> Invia Nuovo Invito
+          </h3>
         </div>
         <div className="p-5">
           <div className="flex flex-col gap-5">
-            {/* Email/Username Input */}
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">
                 Email o username del nuovo partecipante
@@ -52,7 +92,6 @@ export function AdminInvitesTab({
               />
             </div>
 
-            {/* Duration Selector */}
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">
                 Validità dell'invito (giorni)
@@ -84,7 +123,6 @@ export function AdminInvitesTab({
               </div>
             </div>
 
-            {/* Submit Button */}
             <div className="flex justify-end">
               <Button onClick={handleCreateInvite} disabled={!newInviteEmail.trim() || isSubmitting}>
                 {isSubmitting ? 'Invio...' : 'Invia Invito'}
@@ -94,9 +132,17 @@ export function AdminInvitesTab({
         </div>
       </div>
 
+      {/* Pending Invites */}
       <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
         <div className="p-5 border-b border-surface-50/20">
-          <h3 className="text-xl font-bold text-white">Inviti in Attesa ({invites.length})</h3>
+          <h3 className="text-xl font-bold text-white flex items-center gap-3">
+            <span>📨</span> Inviti in Attesa
+            {invites.length > 0 && (
+              <span className="bg-surface-300 px-2.5 py-0.5 rounded-full text-sm text-gray-400">
+                {invites.length}
+              </span>
+            )}
+          </h3>
         </div>
         <div className="p-5">
           {invites.length === 0 ? (

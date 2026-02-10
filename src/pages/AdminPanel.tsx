@@ -5,16 +5,12 @@ import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
 import { useSwipeGesture } from '../hooks/useSwipeGesture'
 import haptic from '../utils/haptics'
-import type { League, Member, MarketSession, Invite, ConsolidationStatus, Appeal, PrizeHistoryItem } from '../components/admin/types'
+import type { League, Member, MarketSession, Invite, ConsolidationStatus, Appeal } from '../components/admin/types'
 
 // Lazy-loaded tab components
-const AdminMarketTab = lazy(() => import('../components/admin/AdminMarketTab').then(m => ({ default: m.AdminMarketTab })))
-const AdminOverviewTab = lazy(() => import('../components/admin/AdminOverviewTab').then(m => ({ default: m.AdminOverviewTab })))
+const AdminPhasesTab = lazy(() => import('../components/admin/AdminPhasesTab').then(m => ({ default: m.AdminPhasesTab })))
 const AdminMembersTab = lazy(() => import('../components/admin/AdminMembersTab').then(m => ({ default: m.AdminMembersTab })))
-const AdminPrizesTab = lazy(() => import('../components/admin/AdminPrizesTab').then(m => ({ default: m.AdminPrizesTab })))
-const AdminAppealsTab = lazy(() => import('../components/admin/AdminAppealsTab').then(m => ({ default: m.AdminAppealsTab })))
-const AdminInvitesTab = lazy(() => import('../components/admin/AdminInvitesTab').then(m => ({ default: m.AdminInvitesTab })))
-const AdminSessionsTab = lazy(() => import('../components/admin/AdminSessionsTab').then(m => ({ default: m.AdminSessionsTab })))
+const AdminRequestsTab = lazy(() => import('../components/admin/AdminRequestsTab').then(m => ({ default: m.AdminRequestsTab })))
 const AdminExportTab = lazy(() => import('../components/admin/AdminExportTab').then(m => ({ default: m.AdminExportTab })))
 
 interface AdminPanelProps {
@@ -24,14 +20,10 @@ interface AdminPanelProps {
 }
 
 const TABS = [
-  { id: 'market', label: 'Mercato', icon: '🏪' },
-  { id: 'overview', label: 'Panoramica', icon: '📊' },
-  { id: 'members', label: 'Membri', icon: '👥' },
-  { id: 'prizes', label: 'Premi', icon: '🏆' },
-  { id: 'appeals', label: 'Ricorsi', icon: '⚖️' },
-  { id: 'invites', label: 'Inviti', icon: '✉️' },
-  { id: 'sessions', label: 'Storico', icon: '📅' },
-  { id: 'export', label: 'Export', icon: '📤' },
+  { id: 'phases', label: 'Fasi & Stato', icon: '🎯' },
+  { id: 'members', label: 'Gestione Membri', icon: '👥' },
+  { id: 'requests', label: 'Richieste', icon: '📨' },
+  { id: 'export', label: 'Export Dati', icon: '📤' },
 ] as const
 
 function TabLoadingFallback() {
@@ -50,9 +42,29 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   const [invites, setInvites] = useState<Invite[]>([])
   const [isAdmin, setIsAdmin] = useState(false)
 
-  const [activeTab, setActiveTab] = useState<typeof TABS[number]['id']>(
-    (initialTab as typeof TABS[number]['id']) || 'market'
-  )
+  // Map old tab IDs to new ones for backwards compatibility
+  const mapTab = (tab?: string): typeof TABS[number]['id'] => {
+    switch (tab) {
+      case 'market':
+      case 'overview':
+      case 'sessions':
+        return 'phases'
+      case 'members':
+      case 'appeals':
+        return 'members'
+      case 'invites':
+        return 'requests'
+      case 'export':
+        return 'export'
+      case 'phases':
+      case 'requests':
+        return tab
+      default:
+        return 'phases'
+    }
+  }
+
+  const [activeTab, setActiveTab] = useState<typeof TABS[number]['id']>(mapTab(initialTab))
 
   // Redirect to prizes page if initialTab is 'prizes'
   useEffect(() => {
@@ -85,13 +97,6 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   const [auctionMode, setAuctionMode] = useState<'REMOTE' | 'IN_PRESENCE'>('REMOTE')
   const [consolidationStatus, setConsolidationStatus] = useState<ConsolidationStatus | null>(null)
 
-  // Prize state
-  const [selectedPrizeMemberId, setSelectedPrizeMemberId] = useState('')
-  const [prizeAmount, setPrizeAmount] = useState('')
-  const [prizeReason, setPrizeReason] = useState('')
-  const [prizeHistory, setPrizeHistory] = useState<PrizeHistoryItem[]>([])
-  const [isLoadingPrizes, setIsLoadingPrizes] = useState(false)
-
   // Appeals state
   const [appeals, setAppeals] = useState<Appeal[]>([])
   const [isLoadingAppeals, setIsLoadingAppeals] = useState(false)
@@ -108,13 +113,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   }, [leagueId])
 
   useEffect(() => {
-    if (activeTab === 'prizes') {
-      loadPrizeHistory()
-    }
-  }, [activeTab, leagueId])
-
-  useEffect(() => {
-    if (activeTab === 'appeals') {
+    if (activeTab === 'members') {
       loadAppeals()
     }
   }, [activeTab, leagueId, appealFilter])
@@ -223,15 +222,6 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     }
 
     setIsLoading(false)
-  }
-
-  async function loadPrizeHistory() {
-    setIsLoadingPrizes(true)
-    const res = await adminApi.getPrizeHistory(leagueId)
-    if (res.success && res.data) {
-      setPrizeHistory(res.data as typeof prizeHistory)
-    }
-    setIsLoadingPrizes(false)
   }
 
   async function handleCreateSession(isRegularMarket: boolean) {
@@ -443,35 +433,6 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     setIsSubmitting(false)
   }
 
-  async function handleAssignPrize() {
-    if (!selectedPrizeMemberId || !prizeAmount) {
-      setError('Seleziona un Direttore Generale e inserisci un importo')
-      return
-    }
-
-    const amount = parseInt(prizeAmount)
-    if (isNaN(amount) || amount <= 0) {
-      setError('L\'importo deve essere un numero intero positivo')
-      return
-    }
-
-    setError('')
-    setIsSubmitting(true)
-
-    const res = await adminApi.assignPrize(leagueId, selectedPrizeMemberId, amount, prizeReason || undefined)
-    if (res.success) {
-      setSuccess(res.message || 'Premio assegnato!')
-      setSelectedPrizeMemberId('')
-      setPrizeAmount('')
-      setPrizeReason('')
-      loadData()
-      loadPrizeHistory()
-    } else {
-      setError(res.message || 'Errore nell\'assegnazione del premio')
-    }
-    setIsSubmitting(false)
-  }
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-dark-300 flex items-center justify-center">
@@ -497,6 +458,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   const activeSession = sessions.find(s => s.status === 'ACTIVE')
   const pendingMembers = members.filter(m => m.status === 'PENDING')
   const activeMembers = members.filter(m => m.status === 'ACTIVE')
+  const requestsBadge = pendingMembers.length + invites.length
 
   return (
     <div className="min-h-screen bg-dark-300">
@@ -511,7 +473,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                 <span className="text-3xl">⚙️</span>
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Pannello Admin</h1>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Pannello Amministratore</h1>
                 <p className="text-gray-400 mt-1">{league?.name}</p>
               </div>
             </div>
@@ -531,18 +493,12 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
           <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-3 md:p-4 rounded-xl mb-4 md:mb-6 text-sm">{success}</div>
         )}
 
-        {/* Tabs - scrollable on mobile, flex-wrap on desktop */}
+        {/* Tabs - scrollable on mobile */}
         <div className="flex gap-2 mb-6 md:mb-8 overflow-x-auto md:overflow-x-visible md:flex-wrap scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
           {TABS.map(tab => (
             <button
               key={tab.id}
-              onClick={() => {
-                if (tab.id === 'prizes') {
-                  onNavigate('prizes', { leagueId })
-                } else {
-                  setActiveTab(tab.id)
-                }
-              }}
+              onClick={() => setActiveTab(tab.id)}
               className={`whitespace-nowrap flex-shrink-0 px-3 md:px-5 py-2 md:py-3 rounded-xl font-semibold flex items-center gap-1.5 md:gap-2 transition-all text-sm md:text-base min-h-[44px] ${
                 activeTab === tab.id
                   ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-glow'
@@ -550,10 +506,13 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
               }`}
             >
               <span>{tab.icon}</span>
-              <span className="hidden md:inline">{tab.label}</span>
-              <span className="md:hidden">{tab.label.slice(0, 6)}{tab.label.length > 6 ? '.' : ''}</span>
+              <span>{tab.label}</span>
               {tab.id === 'members' && <span className="bg-surface-300 px-1.5 py-0.5 rounded-full text-xs">{activeMembers.length}</span>}
-              {tab.id === 'invites' && invites.length > 0 && <span className="bg-accent-500/20 text-accent-400 px-1.5 py-0.5 rounded-full text-xs">{invites.length}</span>}
+              {tab.id === 'requests' && requestsBadge > 0 && (
+                <span className="bg-accent-500/20 text-accent-400 px-1.5 py-0.5 rounded-full text-xs font-bold border border-accent-500/40">
+                  {requestsBadge}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -561,26 +520,8 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
         {/* Tab content with swipe gesture */}
         <div onTouchStart={swipeHandlers.onTouchStart} onTouchEnd={swipeHandlers.onTouchEnd}>
           <Suspense fallback={<TabLoadingFallback />}>
-            {activeTab === 'market' && (
-              <AdminMarketTab
-                league={league}
-                activeMembers={activeMembers}
-                activeSession={activeSession}
-                sessions={sessions}
-                consolidationStatus={consolidationStatus}
-                isSubmitting={isSubmitting}
-                handleStartLeague={handleStartLeague}
-                handleSetPhase={handleSetPhase}
-                handleCloseSession={handleCloseSession}
-                handleCreateSession={handleCreateSession}
-                handleSimulateAllConsolidation={handleSimulateAllConsolidation}
-                auctionMode={auctionMode}
-                setAuctionMode={setAuctionMode}
-              />
-            )}
-
-            {activeTab === 'overview' && (
-              <AdminOverviewTab
+            {activeTab === 'phases' && (
+              <AdminPhasesTab
                 league={league}
                 activeMembers={activeMembers}
                 pendingMembers={pendingMembers}
@@ -601,35 +542,11 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
             {activeTab === 'members' && (
               <AdminMembersTab
                 activeMembers={activeMembers}
-                pendingMembers={pendingMembers}
                 isSubmitting={isSubmitting}
-                handleMemberAction={handleMemberAction}
                 confirmKick={confirmKick}
                 handleCompleteWithTestUsers={handleCompleteWithTestUsers}
-              />
-            )}
-
-            {activeTab === 'prizes' && (
-              <AdminPrizesTab
-                activeMembers={activeMembers}
-                selectedPrizeMemberId={selectedPrizeMemberId}
-                setSelectedPrizeMemberId={setSelectedPrizeMemberId}
-                prizeAmount={prizeAmount}
-                setPrizeAmount={setPrizeAmount}
-                prizeReason={prizeReason}
-                setPrizeReason={setPrizeReason}
-                prizeHistory={prizeHistory}
-                isLoadingPrizes={isLoadingPrizes}
-                isSubmitting={isSubmitting}
-                handleAssignPrize={handleAssignPrize}
-              />
-            )}
-
-            {activeTab === 'appeals' && (
-              <AdminAppealsTab
                 appeals={appeals}
                 isLoadingAppeals={isLoadingAppeals}
-                isSubmitting={isSubmitting}
                 appealFilter={appealFilter}
                 setAppealFilter={setAppealFilter}
                 resolutionNote={resolutionNote}
@@ -641,21 +558,19 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
               />
             )}
 
-            {activeTab === 'invites' && (
-              <AdminInvitesTab
+            {activeTab === 'requests' && (
+              <AdminRequestsTab
+                pendingMembers={pendingMembers}
                 invites={invites}
                 newInviteEmail={newInviteEmail}
                 setNewInviteEmail={setNewInviteEmail}
                 inviteDuration={inviteDuration}
                 setInviteDuration={setInviteDuration}
                 isSubmitting={isSubmitting}
+                handleMemberAction={handleMemberAction}
                 handleCreateInvite={handleCreateInvite}
                 handleCancelInvite={handleCancelInvite}
               />
-            )}
-
-            {activeTab === 'sessions' && (
-              <AdminSessionsTab sessions={sessions} />
             )}
 
             {activeTab === 'export' && (
