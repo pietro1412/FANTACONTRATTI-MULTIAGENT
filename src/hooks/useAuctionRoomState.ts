@@ -3,7 +3,6 @@ import { auctionApi, playerApi, firstMarketApi, adminApi, contractApi } from '..
 import { usePusherAuction } from '../services/pusher.client'
 import { useServerTime } from './useServerTime'
 import haptic from '../utils/haptics'
-import { useAuctionLayout } from '../components/auction'
 import {
   useSensor,
   useSensors,
@@ -72,8 +71,6 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
 
   const [appealStatus, setAppealStatus] = useState<AppealStatus | null>(null)
 
-  // Layout asta - Nuovo selettore layout 24/01/2026
-  const [auctionLayout, setAuctionLayout] = useAuctionLayout()
 
   // Contract modification after winning auction
   const [pendingContractModification, setPendingContractModification] = useState<ContractForModification | null>(null)
@@ -895,7 +892,6 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     managersStatus,
     selectedManager, setSelectedManager,
     appealStatus,
-    auctionLayout, setAuctionLayout,
     pendingContractModification,
 
     // Derived state
