@@ -25,6 +25,11 @@ import { CSS } from '@dnd-kit/utilities'
 import { useAuctionRoomState } from '../hooks/useAuctionRoomState'
 import { POSITION_COLORS, POSITION_BG } from '../types/auctionroom.types'
 import type { AuctionRoomProps } from '../types/auctionroom.types'
+import {
+  ManagerDetailModal, AcknowledgmentModal, WaitingModal,
+  AppealReviewModal, AppealAckModal, AwaitingResumeModal,
+  ManagersTable, MobileBidControls,
+} from '../components/auction-room'
 
 // Sortable item component for drag & drop
 function SortableManagerItem({ id, member, index }: { id: string; member: { username: string; teamName: string | null }; index: number }) {
@@ -1196,887 +1201,86 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             </div>
           </div>
 
+
           {/* RIGHT: DGs + Chat - Collapsible on mobile */}
           <div className={`lg:col-span-4 space-y-4 ${auction ? 'hidden lg:block' : ''}`}>
-            {/*
-             * MANAGERS TABLE v2 - Formato Tabellare con Budget Speso e Slot - 24/01/2026
-             * Per ROLLBACK: sostituire con OLD_MANAGERS_LIST commentato sotto
-             */}
-            <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
-              <div className="p-2 border-b border-surface-50/20 bg-surface-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span>👔</span>
-                    <h3 className="font-bold text-white text-sm">Direttori Generali</h3>
-                  </div>
-                  {managersStatus?.allConnected === false && (
-                    <span className="text-xs text-red-400 flex items-center gap-1">
-                      <span className="connection-dot connection-dot-offline"></span>
-                      Offline
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Tabella Manager */}
-              <div className="overflow-x-auto">
-                {!managersStatus && (
-                  <div className="p-3 text-center">
-                    <div className="w-6 h-6 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto"></div>
-                  </div>
-                )}
-                {managersStatus?.managers && (
-                  <table className="w-full text-xs">
-                    {/* Header */}
-                    <thead className="bg-surface-300/50">
-                      <tr>
-                        <th className="px-2 py-1.5 text-left text-gray-400 font-medium">#</th>
-                        <th className="px-2 py-1.5 text-left text-gray-400 font-medium">Manager</th>
-                        <th className="px-2 py-1.5 text-center text-gray-400 font-medium" title="Bilancio (Budget - Ingaggi)">Disp.</th>
-                        <th className="px-2 py-1.5 text-center text-gray-400 font-medium" title="Costo Acquisti">Acquisti</th>
-                        <th className="px-2 py-1.5 text-center text-gray-400 font-medium" title="Monte Ingaggi">Ingaggi</th>
-                        <th className="px-2 py-1.5 text-center text-yellow-400 font-medium" title="Portieri">P</th>
-                        <th className="px-2 py-1.5 text-center text-green-400 font-medium" title="Difensori">D</th>
-                        <th className="px-2 py-1.5 text-center text-blue-400 font-medium" title="Centrocampisti">C</th>
-                        <th className="px-2 py-1.5 text-center text-red-400 font-medium" title="Attaccanti">A</th>
-                      </tr>
-                    </thead>
-                    {/* Body */}
-                    <tbody className="divide-y divide-surface-50/10">
-                      {(() => {
-                        const sortedManagers = [...managersStatus.managers].sort((a, b) => {
-                          if (!firstMarketStatus?.turnOrder) return 0
-                          const aIndex = firstMarketStatus.turnOrder.indexOf(a.id)
-                          const bIndex = firstMarketStatus.turnOrder.indexOf(b.id)
-                          return aIndex - bIndex
-                        })
-                        return sortedManagers.map(m => {
-                          const turnIndex = firstMarketStatus?.turnOrder?.indexOf(m.id) ?? -1
-                          const isCurrent = m.isCurrentTurn
-                          const isMe = m.id === managersStatus.myId
-                          // Calcola budget speso sommando i prezzi di acquisizione
-                          const budgetSpent = m.roster.reduce((sum, r) => sum + (r.acquisitionPrice || 0), 0)
-                          // Monte ingaggi: somma salary di tutti i contratti attivi
-                          const monteIngaggi = m.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
-                          // Bilancio reale = budget - monte ingaggi
-                          const bilancio = m.currentBudget - monteIngaggi
-                          const budgetPercent = getBudgetPercentage(bilancio)
-
-                          return (
-                            <tr
-                              key={m.id}
-                              onClick={() => setSelectedManager(m)}
-                              className={`cursor-pointer hover:bg-surface-300/50 transition-colors ${
-                                isCurrent ? 'bg-accent-500/10' : ''
-                              } ${isMe && !isCurrent ? 'bg-primary-500/5' : ''}`}
-                            >
-                              {/* Turno + Connessione */}
-                              <td className="px-2 py-2">
-                                <div className="relative inline-flex">
-                                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                                    isCurrent
-                                      ? 'bg-accent-500 text-dark-900'
-                                      : 'bg-surface-300 text-gray-400'
-                                  }`}>
-                                    {turnIndex >= 0 ? turnIndex + 1 : '-'}
-                                  </span>
-                                  <span
-                                    className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-surface-200 ${
-                                      m.isConnected === true ? 'bg-green-500' : m.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
-                                    }`}
-                                  />
-                                </div>
-                              </td>
-
-                              {/* Nome Manager */}
-                              <td className="px-2 py-2">
-                                <div className={`truncate max-w-[80px] font-medium ${
-                                  isMe ? 'text-primary-400' : isCurrent ? 'text-accent-400' : 'text-gray-200'
-                                }`}>
-                                  {m.username}
-                                  {isMe && <span className="text-primary-300 ml-0.5">•</span>}
-                                </div>
-                              </td>
-
-                              {/* Bilancio (Budget - Monte Ingaggi) */}
-                              <td className="px-2 py-2 text-center">
-                                <span className={`font-mono font-bold ${
-                                  budgetPercent <= 20 ? 'text-red-400' : budgetPercent <= 40 ? 'text-amber-400' : 'text-green-400'
-                                }`}>
-                                  {bilancio}
-                                </span>
-                              </td>
-
-                              {/* Costo Acquisti */}
-                              <td className="px-2 py-2 text-center">
-                                <span className="font-mono text-gray-400">
-                                  {budgetSpent}
-                                </span>
-                              </td>
-
-                              {/* Monte Ingaggi */}
-                              <td className="px-2 py-2 text-center">
-                                <span className="font-mono text-gray-400">
-                                  {monteIngaggi}
-                                </span>
-                              </td>
-
-                              {/* Slot Portieri */}
-                              <td className="px-2 py-2 text-center">
-                                <span className={`font-mono ${
-                                  m.slotsByPosition.P.filled >= m.slotsByPosition.P.total ? 'text-yellow-400' : 'text-gray-500'
-                                }`}>
-                                  {m.slotsByPosition.P.filled}/{m.slotsByPosition.P.total}
-                                </span>
-                              </td>
-
-                              {/* Slot Difensori */}
-                              <td className="px-2 py-2 text-center">
-                                <span className={`font-mono ${
-                                  m.slotsByPosition.D.filled >= m.slotsByPosition.D.total ? 'text-green-400' : 'text-gray-500'
-                                }`}>
-                                  {m.slotsByPosition.D.filled}/{m.slotsByPosition.D.total}
-                                </span>
-                              </td>
-
-                              {/* Slot Centrocampisti */}
-                              <td className="px-2 py-2 text-center">
-                                <span className={`font-mono ${
-                                  m.slotsByPosition.C.filled >= m.slotsByPosition.C.total ? 'text-blue-400' : 'text-gray-500'
-                                }`}>
-                                  {m.slotsByPosition.C.filled}/{m.slotsByPosition.C.total}
-                                </span>
-                              </td>
-
-                              {/* Slot Attaccanti */}
-                              <td className="px-2 py-2 text-center">
-                                <span className={`font-mono ${
-                                  m.slotsByPosition.A.filled >= m.slotsByPosition.A.total ? 'text-red-400' : 'text-gray-500'
-                                }`}>
-                                  {m.slotsByPosition.A.filled}/{m.slotsByPosition.A.total}
-                                </span>
-                              </td>
-                            </tr>
-                          )
-                        })
-                      })()}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </div>
-
-            {/*
-             * OLD_MANAGERS_LIST_START - Versione precedente per rollback
-             *
-            <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
-              <div className="p-2 border-b border-surface-50/20 bg-surface-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span>👔</span>
-                    <h3 className="font-bold text-white text-sm">Direttori Generali</h3>
-                  </div>
-                  {managersStatus?.allConnected === false && (
-                    <span className="text-xs text-red-400 flex items-center gap-1">
-                      <span className="connection-dot connection-dot-offline"></span>
-                      Offline
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="divide-y divide-surface-50/10">
-                {!managersStatus && (
-                  <div className="p-3 text-center">
-                    <div className="w-6 h-6 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto"></div>
-                  </div>
-                )}
-                {managersStatus?.managers && (() => {
-                  const sortedManagers = [...managersStatus.managers].sort((a, b) => {
-                    if (!firstMarketStatus?.turnOrder) return 0
-                    const aIndex = firstMarketStatus.turnOrder.indexOf(a.id)
-                    const bIndex = firstMarketStatus.turnOrder.indexOf(b.id)
-                    return aIndex - bIndex
-                  })
-                  return sortedManagers.map(m => {
-                    const turnIndex = firstMarketStatus?.turnOrder?.indexOf(m.id) ?? -1
-                    const isCurrent = m.isCurrentTurn
-                    const isMe = m.id === managersStatus.myId
-                    const budgetPercent = getBudgetPercentage(m.currentBudget)
-                    return (
-                      <button
-                        key={m.id}
-                        onClick={() => setSelectedManager(m)}
-                        className={`w-full px-2 py-1.5 hover:bg-surface-300/50 text-left ${
-                          isCurrent ? 'bg-accent-500/10 border-l-2 border-accent-500' : ''
-                        } ${isMe && !isCurrent ? 'border-l-2 border-primary-500 bg-primary-500/5' : ''}`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="relative flex-shrink-0">
-                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                              isCurrent ? 'bg-accent-500 text-dark-900' : 'bg-surface-300 text-gray-400'
-                            }`}>{turnIndex >= 0 ? turnIndex + 1 : '-'}</span>
-                            <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-surface-200 ${
-                              m.isConnected === true ? 'bg-green-500' : m.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
-                            }`}/>
-                          </div>
-                          <span className={`flex-1 text-sm truncate ${
-                            isMe ? 'text-primary-400 font-medium' : isCurrent ? 'text-accent-400 font-bold' : 'text-gray-200'
-                          }`}>
-                            {m.username}
-                            {isMe && <span className="text-xs text-primary-300 ml-1">(tu)</span>}
-                            {isCurrent && <span className="text-xs text-accent-400 ml-1">TURNO</span>}
-                          </span>
-                          <span className={`text-sm font-mono font-bold ${
-                            budgetPercent <= 20 ? 'text-red-400' : budgetPercent <= 40 ? 'text-amber-400' : 'text-green-400'
-                          }`}>{m.currentBudget}M</span>
-                          <span className="text-xs text-gray-500">{m.slotsFilled}/{m.totalSlots}</span>
-                        </div>
-                      </button>
-                    )
-                  })
-                })()}
-              </div>
-            </div>
-             * OLD_MANAGERS_LIST_END
-             */}
-
+            <ManagersTable
+              managersStatus={managersStatus}
+              firstMarketStatus={firstMarketStatus}
+              onSelectManager={setSelectedManager}
+              getBudgetPercentage={getBudgetPercentage}
+            />
           </div>
         </div>
       </main>
 
-      {/* Mobile Sticky Bid Controls - Only visible during active auction on mobile */}
-      {auction && (
-        <div className="bid-controls-sticky lg:hidden">
-          <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-3 shadow-lg">
-            {/*
-             * NUOVO TIMER MOBILE v2 con Progress Bar Circolare - 24/01/2026
-             * Per ROLLBACK: scommentare il blocco OLD_MOBILE_TIMER sotto
-             */}
-            {/* Timer + Current Price Row */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                {auction.timerExpiresAt && (
-                  <AuctionTimer
-                    timeLeft={timeLeft}
-                    totalSeconds={timerSetting}
-                    compact={true}
-                  />
-                )}
-                <div>
-                  <p className="text-xs text-gray-400">{auction.player.name}</p>
-                  <p className="text-lg font-bold text-white">{auction.currentPrice}</p>
-                </div>
-              </div>
-              {isUserWinning && (
-                <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">
-                  Vincendo
-                </span>
-              )}
-            </div>
+      <MobileBidControls
+        auction={auction}
+        timeLeft={timeLeft}
+        timerSetting={timerSetting}
+        isTimerExpired={isTimerExpired}
+        isUserWinning={isUserWinning}
+        membership={membership}
+        bidAmount={bidAmount}
+        setBidAmount={setBidAmount}
+        onPlaceBid={handlePlaceBid}
+      />
 
-            {/*
-             * OLD_MOBILE_TIMER_START - Per rollback scommentare questo blocco
-             *
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                {auction.timerExpiresAt && (
-                  <div className={`px-3 py-1 rounded-lg ${
-                    timeLeft !== null && timeLeft <= 5 ? 'bg-red-500/20 border border-red-500/50' :
-                    timeLeft !== null && timeLeft <= 10 ? 'bg-amber-500/20 border border-amber-500/50' :
-                    'bg-surface-300'
-                  }`}>
-                    <span className={`font-mono font-bold text-xl ${
-                      timeLeft !== null && timeLeft <= 5 ? 'text-red-400' :
-                      timeLeft !== null && timeLeft <= 10 ? 'text-amber-400' :
-                      'text-secondary-400'
-                    }`}>
-                      {timeLeft ?? '--'}s
-                    </span>
-                  </div>
-                )}
-                <div>
-                  <p className="text-xs text-gray-400">{auction.player.name}</p>
-                  <p className="text-lg font-bold text-white">{auction.currentPrice}</p>
-                </div>
-              </div>
-              {isUserWinning && (
-                <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">
-                  Vincendo
-                </span>
-              )}
-            </div>
-             * OLD_MOBILE_TIMER_END
-             */}
+      <ManagerDetailModal
+        selectedManager={selectedManager}
+        onClose={() => setSelectedManager(null)}
+      />
 
-            {/* Quick Bid Buttons */}
-            <div className="grid grid-cols-5 gap-1.5 mb-2">
-              {[1, 5, 10, 20].map(n => {
-                const newBid = parseInt(bidAmount || '0') + n
-                return (
-                  <button
-                    key={n}
-                    onClick={() => setBidAmount(String(newBid))}
-                    disabled={isTimerExpired || (membership?.currentBudget || 0) < newBid}
-                    className={`py-2 rounded-lg text-sm font-bold transition-all min-h-[44px] ${
-                      isTimerExpired || (membership?.currentBudget || 0) < newBid
-                        ? 'bg-surface-400/50 text-gray-600 cursor-not-allowed'
-                        : 'bg-primary-500/20 text-primary-400 border border-primary-500/30 active:scale-95'
-                    }`}
-                  >
-                    +{n}
-                  </button>
-                )
-              })}
-              <button
-                onClick={() => setBidAmount(String(membership?.currentBudget || 0))}
-                disabled={isTimerExpired || !membership?.currentBudget}
-                className={`py-2 rounded-lg text-sm font-bold transition-all min-h-[44px] ${
-                  isTimerExpired || !membership?.currentBudget
-                    ? 'bg-surface-400/50 text-gray-600 cursor-not-allowed'
-                    : 'bg-accent-500 text-dark-900 active:scale-95'
-                }`}
-              >
-                MAX
-              </button>
-            </div>
+      <AcknowledgmentModal
+        pendingAck={pendingAck}
+        appealStatus={appealStatus}
+        isAppealMode={isAppealMode}
+        setIsAppealMode={setIsAppealMode}
+        appealContent={appealContent}
+        setAppealContent={setAppealContent}
+        prophecyContent={prophecyContent}
+        setProphecyContent={setProphecyContent}
+        ackSubmitting={ackSubmitting}
+        isAdmin={isAdmin}
+        error={error}
+        onAcknowledge={handleAcknowledge}
+        onSimulateAppeal={handleSimulateAppeal}
+        onNavigate={onNavigate}
+        leagueId={leagueId}
+      />
 
-            {/* Custom Bid Input with +/- */}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setBidAmount(String(Math.max(auction.currentPrice + 1, parseInt(bidAmount || '0') - 1)))}
-                disabled={isTimerExpired || parseInt(bidAmount || '0') <= auction.currentPrice + 1}
-                className="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                −
-              </button>
-              <input
-                type="number"
-                value={bidAmount}
-                onChange={e => setBidAmount(e.target.value)}
-                disabled={isTimerExpired}
-                className="flex-1 bg-surface-300 border border-surface-50/30 rounded-lg px-3 py-2 text-white text-center font-mono"
-                placeholder="Importo..."
-              />
-              <button
-                type="button"
-                onClick={() => setBidAmount(String(parseInt(bidAmount || '0') + 1))}
-                disabled={isTimerExpired || parseInt(bidAmount || '0') + 1 > (membership?.currentBudget || 0)}
-                className="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                +
-              </button>
-              <button
-                onClick={handlePlaceBid}
-                disabled={isTimerExpired || !membership || membership.currentBudget < (parseInt(bidAmount) || 0)}
-                className={`px-6 py-2 rounded-lg font-bold transition-all ${
-                  isTimerExpired || !membership || membership.currentBudget < (parseInt(bidAmount) || 0)
-                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                    : 'btn-primary active:scale-95'
-                }`}
-              >
-                {isTimerExpired ? 'Scaduto' : 'Offri'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <WaitingModal
+        pendingAck={pendingAck}
+        appealStatus={appealStatus}
+        isAdmin={isAdmin}
+        onForceAcknowledgeAll={handleForceAcknowledgeAll}
+      />
 
-      {/* Manager Detail Modal */}
-      {selectedManager && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setSelectedManager(null)}>
-          <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20" onClick={e => e.stopPropagation()}>
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h2 className="text-xl font-bold text-white">{selectedManager.username}</h2>
-                  {selectedManager.teamName && <p className="text-gray-400">{selectedManager.teamName}</p>}
-                </div>
-                <button onClick={() => setSelectedManager(null)} className="text-gray-400 hover:text-white text-2xl">×</button>
-              </div>
-              <div className="flex gap-4 mb-6">
-                <div className="bg-surface-300 rounded-lg px-4 py-3 flex-1 text-center">
-                  <p className="text-xs text-gray-400 uppercase">Budget</p>
-                  <p className="text-2xl font-bold text-accent-400">{selectedManager.currentBudget}</p>
-                </div>
-                <div className="bg-surface-300 rounded-lg px-4 py-3 flex-1 text-center">
-                  <p className="text-xs text-gray-400 uppercase">Rosa</p>
-                  <p className="text-2xl font-bold text-white">{selectedManager.slotsFilled}/{selectedManager.totalSlots}</p>
-                </div>
-              </div>
-              {(['P', 'D', 'C', 'A'] as const).map(pos => {
-                const slot = selectedManager.slotsByPosition[pos]
-                const posPlayers = selectedManager.roster.filter(r => r.position === pos)
-                return (
-                  <div key={pos} className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos]} flex items-center justify-center text-xs font-bold text-white`}>{pos}</span>
-                        <span className="text-gray-300">{POSITION_NAMES[pos]}</span>
-                      </div>
-                      <span className={`text-sm font-bold ${slot.filled >= slot.total ? 'text-secondary-400' : 'text-gray-500'}`}>{slot.filled}/{slot.total}</span>
-                    </div>
-                    {posPlayers.length > 0 ? (
-                      <table className="w-full text-xs ml-2">
-                        <thead>
-                          <tr className="text-gray-500 text-[10px] uppercase">
-                            <th className="text-left font-medium pb-1">Giocatore</th>
-                            <th className="text-center font-medium pb-1 w-14">Prezzo</th>
-                            <th className="text-center font-medium pb-1 w-12">Ing.</th>
-                            <th className="text-center font-medium pb-1 w-10">Dur.</th>
-                            <th className="text-center font-medium pb-1 w-14">Claus.</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {posPlayers.map(p => (
-                            <tr key={p.id} className="border-t border-surface-50/10">
-                              <td className="py-1.5">
-                                <div className="flex items-center gap-1.5">
-                                  <div className="w-4 h-4 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
-                                    <img src={getTeamLogo(p.playerTeam)} alt={p.playerTeam} className="w-3 h-3 object-contain" />
-                                  </div>
-                                  <span className="text-gray-200 truncate">{p.playerName}</span>
-                                </div>
-                              </td>
-                              <td className="text-center text-accent-400 font-bold">{p.acquisitionPrice}</td>
-                              <td className="text-center text-white">{p.contract?.salary ?? '-'}</td>
-                              <td className="text-center text-white">{p.contract?.duration ?? '-'}</td>
-                              <td className="text-center text-primary-400">{p.contract?.rescissionClause ?? '-'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <p className="text-gray-600 italic text-sm ml-8">Nessuno</p>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      <AppealReviewModal
+        appealStatus={appealStatus}
+        pendingAck={pendingAck}
+        isAdmin={isAdmin}
+        onNavigate={onNavigate}
+        leagueId={leagueId}
+      />
 
-      {/* Acknowledgment Modal - Non mostrare se c'è un ricorso attivo */}
-      {pendingAck && !pendingAck.userAcknowledged && appealStatus?.auctionStatus !== 'APPEAL_REVIEW' && appealStatus?.auctionStatus !== 'AWAITING_APPEAL_ACK' && appealStatus?.auctionStatus !== 'AWAITING_RESUME' && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20">
-            <div className="p-6">
-              <div className="text-center mb-6">
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${pendingAck.winner ? 'bg-secondary-500/20' : 'bg-surface-300'}`}>
-                  <span className="text-3xl">{pendingAck.winner ? '✅' : '❌'}</span>
-                </div>
-                <h2 className="text-2xl font-bold text-white">{pendingAck.winner ? 'Transazione Completata' : 'Asta Conclusa'}</h2>
-              </div>
-              <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-                <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[pendingAck.player.position]} flex items-center justify-center text-white font-bold flex-shrink-0`}>{pendingAck.player.position}</span>
-                <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
-                  <img
-                    src={getTeamLogo(pendingAck.player.team)}
-                    alt={pendingAck.player.team}
-                    className="w-7 h-7 object-contain"
-                  />
-                </div>
-                <div>
-                  <p className="font-bold text-white">{pendingAck.player.name}</p>
-                  <p className="text-sm text-gray-400">{pendingAck.player.team}</p>
-                </div>
-              </div>
-              {pendingAck.winner ? (
-                <div className="bg-primary-500/10 rounded-lg p-4 mb-4 border border-primary-500/30">
-                  <div className="text-center mb-3">
-                    <p className="text-sm text-primary-400">Acquistato da</p>
-                    <p className="text-xl font-bold text-white">{pendingAck.winner.username}</p>
-                    <p className="text-3xl font-bold text-accent-400 mt-1">{pendingAck.finalPrice}M</p>
-                  </div>
-                  {pendingAck.contractInfo && (
-                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-primary-500/20">
-                      <div className="text-center">
-                        <p className="text-[10px] text-gray-500 uppercase">Ingaggio</p>
-                        <p className="text-sm font-bold text-white">{pendingAck.contractInfo.salary}M</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-[10px] text-gray-500 uppercase">Durata</p>
-                        <p className="text-sm font-bold text-white">{pendingAck.contractInfo.duration}s</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-[10px] text-gray-500 uppercase">Clausola</p>
-                        <p className="text-sm font-bold text-primary-400">{pendingAck.contractInfo.rescissionClause}M</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="bg-surface-300 rounded-lg p-4 mb-4 text-center"><p className="text-gray-400">Nessuna offerta</p></div>
-              )}
-              <div className="mb-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-400">Conferme</span>
-                  <span className="text-white">{pendingAck.totalAcknowledged}/{pendingAck.totalMembers}</span>
-                </div>
-                <div className="w-full bg-surface-400 rounded-full h-2">
-                  <div className="h-2 rounded-full bg-secondary-500 transition-all" style={{ width: `${(pendingAck.totalAcknowledged / pendingAck.totalMembers) * 100}%` }}></div>
-                </div>
-              </div>
+      <AppealAckModal
+        appealStatus={appealStatus}
+        pendingAck={pendingAck}
+        ackSubmitting={ackSubmitting}
+        isAdmin={isAdmin}
+        onAcknowledgeAppealDecision={handleAcknowledgeAppealDecision}
+        onForceAllAppealAcks={handleForceAllAppealAcks}
+      />
 
-              {/* Profezia opzionale */}
-              <textarea
-                value={prophecyContent}
-                onChange={e => setProphecyContent(e.target.value)}
-                className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-3 text-white placeholder-gray-500 mb-4"
-                rows={2}
-                placeholder="Profezia (opzionale)..."
-                maxLength={500}
-              />
-
-              {/* Ricorso (espandibile) */}
-              {isAppealMode && (
-                <div className="mb-4">
-                  <p className="text-xs text-danger-400 mb-2">
-                    Indica il motivo per cui contesti questa conclusione d'asta (es. problemi di connessione)
-                  </p>
-                  <textarea
-                    value={appealContent}
-                    onChange={e => setAppealContent(e.target.value)}
-                    className="w-full bg-surface-300 border border-danger-500/50 rounded-lg p-3 text-white placeholder-gray-500"
-                    rows={3}
-                    placeholder="Descrivi il motivo del ricorso..."
-                    maxLength={500}
-                  />
-                </div>
-              )}
-
-              {/* Bottoni Azione */}
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => handleAcknowledge(!!prophecyContent.trim())}
-                  disabled={ackSubmitting}
-                  className="flex-1 bg-secondary-500 hover:bg-secondary-600 text-white font-bold py-3"
-                >
-                  {ackSubmitting ? 'Invio...' : 'Conferma'}
-                </Button>
-                {!isAppealMode ? (
-                  <Button
-                    onClick={() => setIsAppealMode(true)}
-                    disabled={ackSubmitting}
-                    variant="outline"
-                    className="flex-1 border-danger-500 text-danger-400 hover:bg-danger-500/10 py-3"
-                  >
-                    Ricorso
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => handleAcknowledge(false, true)}
-                    disabled={ackSubmitting || !appealContent.trim()}
-                    className="flex-1 bg-danger-500 hover:bg-danger-600 text-white py-3"
-                  >
-                    {ackSubmitting ? 'Invio...' : 'Invia Ricorso'}
-                  </Button>
-                )}
-              </div>
-
-              {/* Admin: Simula ricorso */}
-              {isAdmin && (
-                <>
-                  {error && (
-                    <div className="mt-3 p-2 bg-danger-500/20 border border-danger-500/50 rounded text-danger-400 text-xs">
-                      {error}
-                      {error.includes('PENDING') && (
-                        <Button
-                          onClick={() => onNavigate('admin', { leagueId, tab: 'appeals' })}
-                          size="sm"
-                          className="w-full mt-2 bg-danger-500 hover:bg-danger-600 text-white text-xs"
-                        >
-                          Gestisci Ricorsi
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                  <Button
-                    onClick={handleSimulateAppeal}
-                    size="sm"
-                    variant="outline"
-                    className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
-                  >
-                    [TEST] Simula ricorso di un DG
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Waiting Modal - Solo per stati normali (COMPLETED, NO_BIDS), non per stati di ricorso */}
-      {pendingAck && pendingAck.userAcknowledged &&
-       !['APPEAL_REVIEW', 'AWAITING_APPEAL_ACK', 'AWAITING_RESUME'].includes(pendingAck.status) &&
-       !['APPEAL_REVIEW', 'AWAITING_APPEAL_ACK', 'AWAITING_RESUME'].includes(appealStatus?.auctionStatus || '') && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-200 rounded-xl max-w-sm w-full p-6 text-center border border-surface-50/20">
-            <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
-            <h3 className="font-bold text-white mb-2">In attesa degli altri</h3>
-            <p className="text-sm text-gray-400 mb-3">{pendingAck.totalAcknowledged}/{pendingAck.totalMembers} confermati</p>
-            <p className="text-xs text-gray-500 mb-4">Mancano: {pendingAck.pendingMembers.map(m => m.username).join(', ')}</p>
-            {isAdmin && <Button size="sm" variant="outline" onClick={handleForceAcknowledgeAll} className="border-accent-500/50 text-accent-400">[TEST] Forza Conferme</Button>}
-          </div>
-        </div>
-      )}
-
-      {/* APPEAL_REVIEW Modal - Asta bloccata in attesa decisione admin */}
-      {(appealStatus?.auctionStatus === 'APPEAL_REVIEW' || pendingAck?.status === 'APPEAL_REVIEW') && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-danger-500/50">
-            <div className="p-6">
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 rounded-full bg-danger-500/20 flex items-center justify-center mx-auto mb-4">
-                  <span className="text-3xl">⚠️</span>
-                </div>
-                <h2 className="text-2xl font-bold text-white">Ricorso in Corso</h2>
-                <p className="text-gray-400 mt-1">L'asta è sospesa in attesa della decisione dell'admin</p>
-              </div>
-
-              {/* Player info */}
-              {(appealStatus?.player || pendingAck?.player) && (
-                <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-                  <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}>
-                    {(appealStatus?.player || pendingAck?.player)?.position}
-                  </span>
-                  <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
-                    <img
-                      src={getTeamLogo((appealStatus?.player || pendingAck?.player)?.team || '')}
-                      alt={(appealStatus?.player || pendingAck?.player)?.team}
-                      className="w-7 h-7 object-contain"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-bold text-white">{(appealStatus?.player || pendingAck?.player)?.name}</p>
-                    <p className="text-sm text-gray-400">{(appealStatus?.player || pendingAck?.player)?.team}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Appeal details */}
-              {appealStatus?.appeal && (
-                <div className="bg-danger-500/10 border border-danger-500/30 rounded-lg p-4 mb-4">
-                  <p className="text-xs text-danger-400 uppercase font-bold mb-2">Motivo del ricorso</p>
-                  <p className="text-gray-300">{appealStatus.appeal.reason}</p>
-                  <p className="text-sm text-gray-500 mt-2">Presentato da: <span className="text-white">{appealStatus.appeal.submittedBy?.username}</span></p>
-                </div>
-              )}
-
-              {/* Transaction info */}
-              {(appealStatus?.winner || pendingAck?.winner) && (
-                <div className="bg-primary-500/10 rounded-lg p-4 mb-4 text-center border border-primary-500/30">
-                  <p className="text-sm text-primary-400">Transazione contestata</p>
-                  <p className="text-lg font-bold text-white">{(appealStatus?.winner || pendingAck?.winner)?.username}</p>
-                  <p className="text-2xl font-bold text-accent-400 mt-1">{appealStatus?.finalPrice || pendingAck?.finalPrice}</p>
-                </div>
-              )}
-
-              <div className="text-center py-4">
-                <div className="w-10 h-10 border-4 border-danger-500/30 border-t-danger-500 rounded-full animate-spin mx-auto mb-3"></div>
-                <p className="text-gray-400">In attesa della decisione dell'admin...</p>
-              </div>
-
-              {/* Admin button */}
-              {isAdmin && (
-                <Button
-                  onClick={() => onNavigate('admin', { leagueId, tab: 'appeals' })}
-                  className="w-full bg-danger-500 hover:bg-danger-600 text-white font-bold py-3"
-                >
-                  Gestisci Ricorso
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* AWAITING_APPEAL_ACK Modal - Tutti devono confermare di aver visto la decisione */}
-      {(appealStatus?.auctionStatus === 'AWAITING_APPEAL_ACK' || pendingAck?.status === 'AWAITING_APPEAL_ACK') && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20">
-            <div className="p-6">
-              <div className="text-center mb-6">
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${appealStatus?.appeal?.status === 'ACCEPTED' ? 'bg-warning-500/20' : 'bg-secondary-500/20'}`}>
-                  <span className="text-3xl">{appealStatus?.appeal?.status === 'ACCEPTED' ? '🔄' : '✅'}</span>
-                </div>
-                <h2 className="text-2xl font-bold text-white">
-                  Ricorso {appealStatus?.appeal?.status === 'ACCEPTED' ? 'Accolto' : 'Respinto'}
-                </h2>
-                <p className="text-gray-400 mt-1">
-                  {appealStatus?.appeal?.status === 'ACCEPTED'
-                    ? 'La transazione è stata annullata, l\'asta riprenderà'
-                    : 'La transazione è confermata'}
-                </p>
-              </div>
-
-              {/* Player info */}
-              {(appealStatus?.player || pendingAck?.player) && (
-                <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-                  <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}>
-                    {(appealStatus?.player || pendingAck?.player)?.position}
-                  </span>
-                  <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
-                    <img
-                      src={getTeamLogo((appealStatus?.player || pendingAck?.player)?.team || '')}
-                      alt={(appealStatus?.player || pendingAck?.player)?.team}
-                      className="w-7 h-7 object-contain"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-bold text-white">{(appealStatus?.player || pendingAck?.player)?.name}</p>
-                    <p className="text-sm text-gray-400">{(appealStatus?.player || pendingAck?.player)?.team}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Admin notes */}
-              {appealStatus?.appeal?.adminNotes && (
-                <div className="bg-surface-300 border border-surface-50/30 rounded-lg p-4 mb-4">
-                  <p className="text-xs text-gray-400 uppercase font-bold mb-2">Note dell'admin</p>
-                  <p className="text-gray-300">{appealStatus.appeal.adminNotes}</p>
-                </div>
-              )}
-
-              {/* Ack progress */}
-              <div className="mb-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-400">Conferme presa visione</span>
-                  <span className="text-white">{appealStatus?.appealDecisionAcks?.length || 0}/{appealStatus?.allMembers?.length || pendingAck?.totalMembers || 0}</span>
-                </div>
-                <div className="w-full bg-surface-400 rounded-full h-2">
-                  <div
-                    className="h-2 rounded-full bg-secondary-500 transition-all"
-                    style={{ width: `${((appealStatus?.appealDecisionAcks?.length || 0) / (appealStatus?.allMembers?.length || pendingAck?.totalMembers || 1)) * 100}%` }}
-                  ></div>
-                </div>
-                {appealStatus?.allMembers && appealStatus.allMembers.filter(m => !appealStatus.appealDecisionAcks?.includes(m.id)).length > 0 && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Mancano: {appealStatus.allMembers.filter(m => !appealStatus.appealDecisionAcks?.includes(m.id)).map(m => m.username).join(', ')}
-                  </p>
-                )}
-              </div>
-
-              {/* Action buttons */}
-              {!appealStatus?.userHasAcked ? (
-                <Button
-                  onClick={handleAcknowledgeAppealDecision}
-                  disabled={ackSubmitting}
-                  className="w-full bg-secondary-500 hover:bg-secondary-600 text-white font-bold py-3"
-                >
-                  {ackSubmitting ? 'Invio...' : 'Ho preso visione'}
-                </Button>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-secondary-400 font-medium mb-2">✓ Hai confermato - In attesa degli altri</p>
-                </div>
-              )}
-
-              {/* Admin test button - sempre visibile per admin */}
-              {isAdmin && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleForceAllAppealAcks}
-                  className="w-full mt-3 border-accent-500/50 text-accent-400"
-                >
-                  [TEST] Forza Tutte Conferme Ricorso
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* AWAITING_RESUME Modal - Ready check prima di riprendere l'asta */}
-      {(appealStatus?.auctionStatus === 'AWAITING_RESUME' || pendingAck?.status === 'AWAITING_RESUME') && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border-2 border-accent-500/50 animate-pulse-slow">
-            <div className="p-6">
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 rounded-full bg-accent-500/20 flex items-center justify-center mx-auto mb-4">
-                  <span className="text-3xl">🔔</span>
-                </div>
-                <h2 className="text-2xl font-bold text-white">Pronto a Riprendere?</h2>
-                <p className="text-gray-400 mt-1">L'asta sta per riprendere, conferma la tua presenza</p>
-              </div>
-
-              {/* Player info */}
-              {(appealStatus?.player || pendingAck?.player) && (
-                <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-                  <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}>
-                    {(appealStatus?.player || pendingAck?.player)?.position}
-                  </span>
-                  <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
-                    <img
-                      src={getTeamLogo((appealStatus?.player || pendingAck?.player)?.team || '')}
-                      alt={(appealStatus?.player || pendingAck?.player)?.team}
-                      className="w-7 h-7 object-contain"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-bold text-white">{(appealStatus?.player || pendingAck?.player)?.name}</p>
-                    <p className="text-sm text-gray-400">{(appealStatus?.player || pendingAck?.player)?.team}</p>
-                  </div>
-                </div>
-              )}
-
-              <div className="bg-warning-500/10 border border-warning-500/30 rounded-lg p-4 mb-4 text-center">
-                <p className="text-warning-400 font-medium">
-                  Il ricorso è stato accolto. L'asta riprenderà dall'ultima offerta valida.
-                </p>
-              </div>
-
-              {/* Ready progress */}
-              <div className="mb-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-400">DG pronti</span>
-                  <span className="text-white">{appealStatus?.resumeReadyMembers?.length || 0}/{appealStatus?.allMembers?.length || pendingAck?.totalMembers || 0}</span>
-                </div>
-                <div className="w-full bg-surface-400 rounded-full h-2">
-                  <div
-                    className="h-2 rounded-full bg-accent-500 transition-all"
-                    style={{ width: `${((appealStatus?.resumeReadyMembers?.length || 0) / (appealStatus?.allMembers?.length || pendingAck?.totalMembers || 1)) * 100}%` }}
-                  ></div>
-                </div>
-                {appealStatus?.allMembers && appealStatus.allMembers.filter(m => !appealStatus.resumeReadyMembers?.includes(m.id)).length > 0 && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Mancano: {appealStatus.allMembers.filter(m => !appealStatus.resumeReadyMembers?.includes(m.id)).map(m => m.username).join(', ')}
-                  </p>
-                )}
-              </div>
-
-              {/* Action buttons */}
-              {!appealStatus?.userIsReady ? (
-                <Button
-                  onClick={handleReadyToResume}
-                  disabled={markingReady}
-                  className="w-full btn-accent py-3 text-lg font-bold"
-                >
-                  {markingReady ? 'Attendi...' : 'SONO PRONTO'}
-                </Button>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-secondary-400 font-medium mb-2">✓ Pronto - In attesa degli altri</p>
-                </div>
-              )}
-
-              {/* Admin test button - sempre visibile per admin */}
-              {isAdmin && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleForceAllReadyResume}
-                  className="w-full mt-3 border-accent-500/50 text-accent-400"
-                >
-                  [TEST] Forza Tutti Pronti
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <AwaitingResumeModal
+        appealStatus={appealStatus}
+        pendingAck={pendingAck}
+        markingReady={markingReady}
+        isAdmin={isAdmin}
+        onReadyToResume={handleReadyToResume}
+        onForceAllReadyResume={handleForceAllReadyResume}
+      />
 
       {/* Contract Modification Modal after Primo Mercato Win */}
       {pendingContractModification && (
