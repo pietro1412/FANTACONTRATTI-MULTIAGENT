@@ -21,6 +21,7 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
         isPrimoMercato={props.isPrimoMercato}
         membership={props.membership}
         currentPhase={phase}
+        myRosterSlots={props.myRosterSlots}
       />
 
       {/* Error/Success messages */}

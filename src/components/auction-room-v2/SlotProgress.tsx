@@ -20,7 +20,7 @@ export function SlotProgress({ position, filled, total, isCurrent }: SlotProgres
         {position}
       </span>
       <span className="text-xs text-gray-400 w-6 hidden sm:inline">{posName.slice(0, 3)}</span>
-      <div className="flex-1 h-2 bg-surface-400/50 rounded-full overflow-hidden">
+      <div className="flex-1 h-2 bg-slate-700/50 rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-500 bg-gradient-to-r ${gradient}`}
           style={{ width: `${percent}%` }}

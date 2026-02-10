@@ -29,7 +29,7 @@ export function MobileBottomBar({
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-      <div className="bg-surface-200 border-t border-surface-50/20 p-3 shadow-2xl">
+      <div className="bg-slate-900/95 backdrop-blur-xl border-t border-white/10 p-3 shadow-2xl">
         {/* Timer + Current Info */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
@@ -38,11 +38,11 @@ export function MobileBottomBar({
             )}
             <div>
               <p className="text-[10px] text-gray-400 truncate max-w-[120px]">{auction.player.name}</p>
-              <p className="text-lg font-bold text-white">{auction.currentPrice}</p>
+              <p className="text-2xl font-mono font-bold text-white">{auction.currentPrice}</p>
             </div>
           </div>
           {isUserWinning && (
-            <span className="px-2 py-1 bg-green-500/20 text-green-400 text-[10px] rounded-full font-medium">
+            <span className="px-2 py-1 bg-green-500/20 text-green-400 text-[10px] rounded-full font-medium border border-green-500/30">
               Vincendo
             </span>
           )}

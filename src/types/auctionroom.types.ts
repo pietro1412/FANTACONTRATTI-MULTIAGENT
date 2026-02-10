@@ -12,6 +12,8 @@ export interface Player {
   team: string
   position: string
   quotation: number
+  age?: number | null
+  apiFootballId?: number | null
 }
 
 export interface Bid {

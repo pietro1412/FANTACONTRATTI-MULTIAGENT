@@ -131,6 +131,7 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
         display: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
         sport: ['Oswald', 'Inter', 'system-ui', 'sans-serif'], // Stadium scoreboard style
         theme: ['var(--font-family)', 'system-ui', 'sans-serif'], // Dynamic theme font

@@ -22,7 +22,7 @@ export function CenterStage(props: CenterStageProps) {
   const colors = PHASE_COLORS[phase]
 
   return (
-    <div className={`bg-surface-200 rounded-xl border-2 ${colors.border} overflow-hidden`}>
+    <div className={`bg-slate-900/80 backdrop-blur-xl border-2 ${colors.border} rounded-xl border-white/10 overflow-hidden`}>
       {/* Phase header strip */}
       <div className={`px-4 py-2 ${colors.bg} border-b ${colors.border} flex items-center justify-between`}>
         <span className={`text-xs font-bold uppercase tracking-wider ${colors.text}`}>
@@ -38,8 +38,8 @@ export function CenterStage(props: CenterStageProps) {
         )}
       </div>
 
-      {/* Content */}
-      <div className="p-4 lg:p-5">
+      {/* Content with fadeIn transition */}
+      <div className="p-4 lg:p-5 animate-fade-in">
         {phase === 'acknowledgment' && props.pendingAck && (
           <AcknowledgmentPanel
             pendingAck={props.pendingAck}
@@ -105,7 +105,7 @@ export function CenterStage(props: CenterStageProps) {
 
       {/* Admin Controls - collapsible at bottom */}
       {props.isAdmin && (
-        <div className="border-t border-surface-50/20">
+        <div className="border-t border-white/10">
           <AdminControlsPanel
             isAdmin={props.isAdmin}
             timerSetting={props.timerSetting}
