@@ -16,8 +16,8 @@ export interface ServiceResult {
 // In-memory storage for heartbeats (leagueId -> memberId -> timestamp)
 const rubataHeartbeats = new Map<string, Map<string, number>>()
 
-// Heartbeat timeout in milliseconds (10 seconds)
-const RUBATA_HEARTBEAT_TIMEOUT = 10000
+// Heartbeat timeout in milliseconds (45 seconds — 1.5× the 30s client interval)
+const RUBATA_HEARTBEAT_TIMEOUT = 45000
 
 export function registerRubataHeartbeat(leagueId: string, memberId: string): void {
   if (!rubataHeartbeats.has(leagueId)) {

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Button } from '../ui/Button'
 import { POSITION_NAMES } from '../ui/PositionBadge'
 import { getTeamLogo } from '../../utils/teamLogos'
@@ -443,7 +444,23 @@ export function AppealAckModal({
   onAcknowledgeAppealDecision,
   onForceAllAppealAcks,
 }: AppealAckModalProps) {
+  const autoAckedRef = useRef(false)
+
+  // Admin auto-ack: automatically acknowledge and force all when modal opens
+  useEffect(() => {
+    if (!isAdmin || autoAckedRef.current) return
+    const isVisible = appealStatus?.auctionStatus === 'AWAITING_APPEAL_ACK' || pendingAck?.status === 'AWAITING_APPEAL_ACK'
+    if (!isVisible) return
+    autoAckedRef.current = true
+    // Auto-ack own, then force all
+    if (!appealStatus?.userHasAcked) {
+      onAcknowledgeAppealDecision()
+    }
+    setTimeout(() => onForceAllAppealAcks(), 500)
+  }, [isAdmin, appealStatus?.auctionStatus, pendingAck?.status, appealStatus?.userHasAcked, onAcknowledgeAppealDecision, onForceAllAppealAcks])
+
   if (!(appealStatus?.auctionStatus === 'AWAITING_APPEAL_ACK' || pendingAck?.status === 'AWAITING_APPEAL_ACK')) {
+    autoAckedRef.current = false
     return null
   }
 
@@ -554,7 +571,23 @@ export function AwaitingResumeModal({
   onReadyToResume,
   onForceAllReadyResume,
 }: AwaitingResumeModalProps) {
+  const autoReadyRef = useRef(false)
+
+  // Admin auto-ready: automatically mark ready and force all when modal opens
+  useEffect(() => {
+    if (!isAdmin || autoReadyRef.current) return
+    const isVisible = appealStatus?.auctionStatus === 'AWAITING_RESUME' || pendingAck?.status === 'AWAITING_RESUME'
+    if (!isVisible) return
+    autoReadyRef.current = true
+    // Auto-ready own, then force all
+    if (!appealStatus?.userIsReady) {
+      onReadyToResume()
+    }
+    setTimeout(() => onForceAllReadyResume(), 500)
+  }, [isAdmin, appealStatus?.auctionStatus, pendingAck?.status, appealStatus?.userIsReady, onReadyToResume, onForceAllReadyResume])
+
   if (!(appealStatus?.auctionStatus === 'AWAITING_RESUME' || pendingAck?.status === 'AWAITING_RESUME')) {
+    autoReadyRef.current = false
     return null
   }
 

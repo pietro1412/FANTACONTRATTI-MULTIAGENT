@@ -33,6 +33,7 @@ import type {
 
 export function useAuctionRoomState(sessionId: string, leagueId: string) {
   const [auction, setAuction] = useState<Auction | null>(null)
+  const auctionRef = useRef<Auction | null>(null)
   const [membership, setMembership] = useState<Membership | null>(null)
   const [players, setPlayers] = useState<Player[]>([])
   const [bidAmount, setBidAmount] = useState('')
@@ -74,6 +75,9 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
 
   // Contract modification after winning auction
   const [pendingContractModification, setPendingContractModification] = useState<ContractForModification | null>(null)
+
+  // Keep auction ref in sync for polling phase-awareness (avoids useEffect dependency)
+  useEffect(() => { auctionRef.current = auction }, [auction])
 
   // Pusher real-time updates - update state directly from Pusher data (no HTTP calls)
   const { connectionStatus, isConnected } = usePusherAuction(sessionId, {
@@ -372,16 +376,21 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     loadManagersStatus()
     loadTeams()
     // Polling as fallback - real-time updates come from Pusher
-    // When Pusher is connected, poll slowly (fallback only); otherwise poll faster
-    const pollingMs = isConnected ? 10000 : 5000
+    // When Pusher is connected, poll slowly (safety net only); otherwise poll faster
+    const pollingMs = isConnected ? 30000 : 5000
     const interval = setInterval(() => {
       if (document.hidden) return // Skip polling when tab is hidden
+      // Always poll current auction state (lightweight)
       loadCurrentAuction()
-      loadFirstMarketStatus()
       loadPendingAcknowledgment()
       loadReadyStatus()
-      loadMyRosterSlots()
-      loadManagersStatus()
+      // Heavy endpoints (all managers + rosters) only when NOT in active bidding
+      // During active bidding, Pusher handles bid updates in real-time
+      if (!auctionRef.current || auctionRef.current.status !== 'ACTIVE') {
+        loadFirstMarketStatus()
+        loadMyRosterSlots()
+        loadManagersStatus()
+      }
     }, pollingMs)
 
     // Page Visibility API: refresh immediately when tab becomes visible
@@ -407,7 +416,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
   useEffect(() => {
     loadAppealStatus()
     // Polling as fallback - real-time updates come from Pusher
-    const appealPollingMs = isConnected ? 10000 : 5000
+    const appealPollingMs = isConnected ? 30000 : 5000
     const interval = setInterval(() => {
       if (document.hidden) return
       loadAppealStatus()
@@ -445,8 +454,8 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     // Send immediately on mount
     sendHeartbeat()
 
-    // Then send every 10 seconds
-    const interval = setInterval(sendHeartbeat, 10000)
+    // Then send every 30 seconds
+    const interval = setInterval(sendHeartbeat, 30000)
 
     return () => clearInterval(interval)
   }, [sessionId, managersStatus?.myId])

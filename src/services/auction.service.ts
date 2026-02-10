@@ -31,8 +31,8 @@ export interface ServiceResult {
 // In-memory storage for heartbeats (sessionId -> memberId -> timestamp)
 const heartbeats = new Map<string, Map<string, number>>()
 
-// Heartbeat timeout in milliseconds (10 seconds)
-const HEARTBEAT_TIMEOUT = 10000
+// Heartbeat timeout in milliseconds (45 seconds — 1.5× the 30s client interval)
+const HEARTBEAT_TIMEOUT = 45000
 
 export function registerHeartbeat(sessionId: string, memberId: string): void {
   if (!heartbeats.has(sessionId)) {

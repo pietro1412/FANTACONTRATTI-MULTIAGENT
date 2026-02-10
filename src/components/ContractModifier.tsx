@@ -42,8 +42,8 @@ function isValidModification(
     if (newDuration < currentDuration) {
       return { valid: false, reason: `Durata non può diminuire: ${newDuration} < ${currentDuration}` }
     }
-    if (newDuration > currentDuration && newSalary <= currentSalary) {
-      return { valid: false, reason: `Per aumentare la durata devi prima aumentare l'ingaggio` }
+    if (newDuration > currentDuration && newSalary < currentSalary) {
+      return { valid: false, reason: `Per aumentare la durata non puoi diminuire l'ingaggio` }
     }
     return { valid: true }
   }
