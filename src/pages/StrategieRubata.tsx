@@ -1,148 +1,24 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { rubataApi, leagueApi } from '../services/api'
-import { AUTO_TAG_DEFS, type AutoTagId } from '../services/player-stats.service'
-
-// Watchlist categories (#219)
-const WATCHLIST_CATEGORIES = {
-  DA_RUBARE: { label: 'Da Rubare', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: 'T' },
-  SOTTO_OSSERVAZIONE: { label: 'Osservazione', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: 'O' },
-  POTENZIALE_ACQUISTO: { label: 'Pot. Acquisto', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: 'A' },
-  SCAMBIO: { label: 'Scambio', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: 'S' },
-  DA_VENDERE: { label: 'Da Vendere', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', icon: 'V' },
-} as const
-type WatchlistCategoryId = keyof typeof WATCHLIST_CATEGORIES
+import { AUTO_TAG_DEFS } from '../services/player-stats.service'
+import {
+  WATCHLIST_CATEGORIES,
+  PLAYER_CHART_COLORS,
+  STATS_COLUMNS,
+  MERGE_STATS_KEYS,
+  getAgeColor,
+  getAgeBgColor,
+  type WatchlistCategoryId,
+  type DisplayPlayer,
+  type StrategyPlayerWithPreference,
+  type SortField,
+} from '../types/strategierubata.types'
+import { useStrategieRubataState } from '../hooks/useStrategieRubataState'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../utils/player-images'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
-import { PlayerStatsModal, type PlayerInfo, type PlayerStats, type ComputedSeasonStats } from '../components/PlayerStatsModal'
+import { PlayerStatsModal } from '../components/PlayerStatsModal'
 import RadarChart from '../components/ui/RadarChart'
-
-// Player colors for radar chart comparison
-const PLAYER_CHART_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#a855f7']
-
-// Age color coding - younger is better
-function getAgeColor(age: number | null | undefined): string {
-  if (age === null || age === undefined) return 'text-gray-500'
-  if (age < 20) return 'text-emerald-400 font-bold' // Very young - excellent
-  if (age < 25) return 'text-green-400' // Young - good
-  if (age < 30) return 'text-yellow-400' // Prime - neutral
-  if (age < 35) return 'text-orange-400' // Aging - caution
-  return 'text-red-400' // Old - warning
-}
-
-function getAgeBgColor(age: number | null | undefined): string {
-  if (age === null || age === undefined) return 'bg-gray-500/20 text-gray-400'
-  if (age < 20) return 'bg-emerald-500/20 text-emerald-400 font-bold'
-  if (age < 25) return 'bg-green-500/20 text-green-400'
-  if (age < 30) return 'bg-yellow-500/20 text-yellow-400'
-  if (age < 35) return 'bg-orange-500/20 text-orange-400'
-  return 'bg-red-500/20 text-red-400'
-}
-
-interface StrategyPlayer {
-  rosterId: string
-  memberId: string
-  playerId: string
-  playerName: string
-  playerPosition: string
-  playerTeam: string
-  playerQuotation: number
-  playerAge?: number | null
-  playerApiFootballId?: number | null
-  playerApiFootballStats?: PlayerStats | null
-  playerComputedStats?: ComputedSeasonStats | null
-  playerAutoTags?: AutoTagId[]
-  ownerUsername: string
-  ownerTeamName: string | null
-  ownerRubataOrder: number | null
-  rubataPrice: number
-  contractSalary: number
-  contractDuration: number
-  contractClause: number
-}
-
-interface SvincolatoPlayer {
-  playerId: string
-  playerName: string
-  playerPosition: string
-  playerTeam: string
-  playerAge?: number | null
-  playerApiFootballId?: number | null
-  playerApiFootballStats?: PlayerStats | null
-  playerComputedStats?: ComputedSeasonStats | null
-  playerAutoTags?: AutoTagId[]
-}
-
-interface RubataPreference {
-  id: string
-  playerId: string
-  memberId: string
-  maxBid: number | null
-  priority: number | null
-  notes: string | null
-  isWatchlist: boolean
-  isAutoPass: boolean
-  watchlistCategory: string | null
-}
-
-interface StrategyPlayerWithPreference extends StrategyPlayer {
-  preference?: RubataPreference | null
-}
-
-interface SvincolatoPlayerWithPreference extends SvincolatoPlayer {
-  preference?: RubataPreference | null
-}
-
-// Union type for display - can be my roster, owned player, or svincolato
-type DisplayPlayer = (StrategyPlayerWithPreference & { type: 'myRoster' | 'owned' }) | (SvincolatoPlayerWithPreference & { type: 'svincolato' })
-
-interface StrategiesData {
-  players: StrategyPlayerWithPreference[]
-  myMemberId: string
-  hasRubataBoard: boolean
-  hasRubataOrder: boolean
-  rubataState: string | null
-  sessionId: string | null
-  totalPlayers: number
-}
-
-interface SvincolatiData {
-  players: SvincolatoPlayerWithPreference[]
-  myMemberId: string
-  sessionId: string | null
-  totalPlayers: number
-}
-
-type ViewMode = 'myRoster' | 'owned' | 'svincolati' | 'all' | 'overview'
-type DataViewMode = 'contracts' | 'stats' | 'merge'
-
-// Stats column definitions for stats/merge views
-interface StatsColumn {
-  key: string
-  label: string
-  shortLabel: string
-  getValue: (stats: PlayerStats | null | undefined) => number | string | null
-  format?: (val: number | null) => string
-  colorClass?: string
-}
-
-const STATS_COLUMNS: StatsColumn[] = [
-  { key: 'appearances', label: 'Presenze', shortLabel: 'Pres', getValue: s => s?.games?.appearences ?? null },
-  { key: 'rating', label: 'Rating', shortLabel: 'Rat', getValue: s => s?.games?.rating ?? null, format: v => v?.toFixed(2) ?? '-' },
-  { key: 'goals', label: 'Gol', shortLabel: 'Gol', getValue: s => s?.goals?.total ?? null, colorClass: 'text-secondary-400' },
-  { key: 'assists', label: 'Assist', shortLabel: 'Ass', getValue: s => s?.goals?.assists ?? null, colorClass: 'text-primary-400' },
-  { key: 'minutes', label: 'Minuti', shortLabel: 'Min', getValue: s => s?.games?.minutes ?? null },
-  { key: 'shotsOn', label: 'Tiri Porta', shortLabel: 'TiP', getValue: s => s?.shots?.on ?? null },
-  { key: 'passKey', label: 'Key Pass', shortLabel: 'KeyP', getValue: s => s?.passes?.key ?? null },
-  { key: 'tackles', label: 'Contrasti', shortLabel: 'Tckl', getValue: s => s?.tackles?.total ?? null },
-  { key: 'interceptions', label: 'Intercetti', shortLabel: 'Int', getValue: s => s?.tackles?.interceptions ?? null },
-  { key: 'yellowCards', label: 'Amm.', shortLabel: 'Amm', getValue: s => s?.cards?.yellow ?? null, colorClass: 'text-warning-400' },
-]
-
-// Essential stats for merge view
-const MERGE_STATS_KEYS = ['rating', 'goals', 'assists']
 
 // Team logo component
 function TeamLogo({ team }: { team: string }) {
@@ -158,562 +34,51 @@ function TeamLogo({ team }: { team: string }) {
   )
 }
 
-// Sort configuration
-// - role: Position (P,D,C,A) > Alphabetical
-// - manager: Manager team name > Position > Alphabetical
-// - rubata: Rubata order > Position > Alphabetical (only when order is set)
-type SortMode = 'role' | 'manager' | 'rubata'
-type SortField = 'position' | 'name' | 'owner' | 'team' | 'contract' | 'rubata' | 'maxBid' | 'priority'
-type SortDirection = 'asc' | 'desc'
-
-// Local strategy state for a player (with debounce)
-interface LocalStrategy {
-  maxBid: string
-  priority: number
-  notes: string
-  isDirty: boolean
-}
-
 export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => void }) {
   const { leagueId } = useParams<{ leagueId: string }>()
 
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const [savingPlayerIds, setSavingPlayerIds] = useState<Set<string>>(new Set())
-  const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
-
-  const [strategiesData, setStrategiesData] = useState<StrategiesData | null>(null)
-  const [svincolatiData, setSvincolatiData] = useState<SvincolatiData | null>(null)
-
-  // View mode: my roster, owned players, svincolati, or all
-  const [viewMode, setViewMode] = useState<ViewMode>('myRoster')
-
-  // Data view mode: contracts, stats, or merge
-  const [dataViewMode, setDataViewMode] = useState<DataViewMode>('contracts')
-
-  // Filter state
-  const [positionFilter, setPositionFilter] = useState<string>('ALL')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [showOnlyWithStrategy, setShowOnlyWithStrategy] = useState(false)
-  const [ownerFilter, setOwnerFilter] = useState<string>('ALL')
-  const [teamFilter, setTeamFilter] = useState<string>('ALL')
-
-  // Sort state
-  const [sortMode, setSortMode] = useState<SortMode>('role')
-  const [sortField, setSortField] = useState<SortField>('position')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
-
-  // Player stats modal
-  const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
-
-  // Player comparison feature (#187)
-  const [selectedForCompare, setSelectedForCompare] = useState<Set<string>>(new Set())
-  const [showCompareModal, setShowCompareModal] = useState(false)
-
-  // Local edits with debounce
-  const [localStrategies, setLocalStrategies] = useState<Record<string, LocalStrategy>>({})
-  const localStrategiesRef = useRef<Record<string, LocalStrategy>>({})
-  const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({})
-
-  // Keep ref in sync with state (for stale closure fix)
-  useEffect(() => {
-    localStrategiesRef.current = localStrategies
-  }, [localStrategies])
-
-  const myMemberId = strategiesData?.myMemberId
-
-  // Load data
-  const loadData = useCallback(async () => {
-    if (!leagueId) return
-    setLoading(true)
-
-    try {
-      // Fetch league info for admin status
-      const leagueResponse = await leagueApi.getById(leagueId)
-      if (leagueResponse.success && leagueResponse.data) {
-        const data = leagueResponse.data as { userMembership?: { role: string } }
-        setIsLeagueAdmin(data.userMembership?.role === 'ADMIN')
-      }
-
-      // Fetch both owned players and svincolati in parallel
-      const [ownedRes, svincolatiRes] = await Promise.all([
-        rubataApi.getAllPlayersForStrategies(leagueId),
-        rubataApi.getAllSvincolatiForStrategies(leagueId),
-      ])
-
-      // Initialize local strategies
-      const locals: Record<string, LocalStrategy> = {}
-
-      if (ownedRes.success && ownedRes.data) {
-        // DEBUG: Check what API returns
-        const withPrefs = ownedRes.data.players.filter(p => p.preference)
-        console.log('[Strategie DEBUG]', {
-          totalPlayers: ownedRes.data.players.length,
-          withPreferences: withPrefs.length,
-          samplePrefs: withPrefs.slice(0, 3).map(p => ({ name: p.playerName, pref: p.preference }))
-        })
-
-        setStrategiesData(ownedRes.data)
-        ownedRes.data.players.forEach(p => {
-          if (p.preference) {
-            locals[p.playerId] = {
-              maxBid: p.preference.maxBid?.toString() || '',
-              priority: p.preference.priority || 0,
-              notes: p.preference.notes || '',
-              isDirty: false,
-            }
-          }
-        })
-      } else {
-        setError(ownedRes.message || 'Errore nel caricamento giocatori')
-      }
-
-      if (svincolatiRes.success && svincolatiRes.data) {
-        setSvincolatiData(svincolatiRes.data)
-        svincolatiRes.data.players.forEach(p => {
-          if (p.preference) {
-            locals[p.playerId] = {
-              maxBid: p.preference.maxBid?.toString() || '',
-              priority: p.preference.priority || 0,
-              notes: p.preference.notes || '',
-              isDirty: false,
-            }
-          }
-        })
-      }
-
-      setLocalStrategies(locals)
-    } catch (err) {
-      setError('Errore nel caricamento')
-    } finally {
-      setLoading(false)
-    }
-  }, [leagueId])
-
-  useEffect(() => {
-    loadData()
-  }, [loadData])
-
-  // Cleanup debounce timers
-  useEffect(() => {
-    return () => {
-      Object.values(debounceTimers.current).forEach(timer => clearTimeout(timer))
-    }
-  }, [])
-
-  // Clear messages
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => setSuccess(''), 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [success])
-
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => setError(''), 4000)
-      return () => clearTimeout(timer)
-    }
-  }, [error])
-
-  // Get unique owners for filter
-  const uniqueOwners = useMemo(() => {
-    if (!strategiesData?.players) return []
-    const owners = new Map<string, string>() // username -> teamName
-    strategiesData.players.forEach(p => {
-      if (p.memberId !== myMemberId) {
-        owners.set(p.ownerUsername, p.ownerTeamName || p.ownerUsername)
-      }
-    })
-    return Array.from(owners.entries())
-      .map(([username, teamName]) => ({ username, teamName }))
-      .sort((a, b) => a.teamName.localeCompare(b.teamName))
-  }, [strategiesData?.players, myMemberId])
-
-  // Get unique Serie A teams for filter
-  const uniqueTeams = useMemo(() => {
-    const teams = new Set<string>()
-    if (strategiesData?.players) {
-      strategiesData.players.forEach(p => teams.add(p.playerTeam))
-    }
-    if (svincolatiData?.players) {
-      svincolatiData.players.forEach(p => teams.add(p.playerTeam))
-    }
-    return Array.from(teams).sort()
-  }, [strategiesData?.players, svincolatiData?.players])
-
-  // Get local strategy or create empty
-  const getLocalStrategy = useCallback((playerId: string): LocalStrategy => {
-    return localStrategies[playerId] || { maxBid: '', priority: 0, notes: '', isDirty: false }
-  }, [localStrategies])
-
-  // Save strategy to server (defined before updateLocalStrategy to avoid reference error)
-  const saveStrategy = useCallback(async (playerId: string) => {
-    if (!leagueId) return
-
-    // Use ref to get current value (avoids stale closure)
-    const local = localStrategiesRef.current[playerId]
-    if (!local || !local.isDirty) {
-      console.log('[Strategie SAVE skipped]', { playerId, local, isDirty: local?.isDirty })
-      return
-    }
-
-    setSavingPlayerIds(prev => new Set(prev).add(playerId))
-
-    const maxBid = local.maxBid ? parseInt(local.maxBid) : null
-    const priority = local.priority || null
-    const notes = local.notes.trim() || null
-    const hasStrategy = maxBid !== null || priority !== null || !!notes
-
-    try {
-      console.log('[Strategie SAVE]', { playerId, maxBid, priority, notes, hasStrategy })
-      const res = await rubataApi.setPreference(leagueId, playerId, {
-        maxBid,
-        priority,
-        notes,
-        isWatchlist: hasStrategy,
-        isAutoPass: false,
-      })
-      console.log('[Strategie SAVE result]', res)
-
-      if (res.success) {
-        // Mark as not dirty
-        setLocalStrategies(prev => ({
-          ...prev,
-          [playerId]: {
-            ...prev[playerId],
-            isDirty: false,
-          }
-        }))
-
-        // Update server data optimistically
-        setStrategiesData(prev => {
-          if (!prev) return prev
-          return {
-            ...prev,
-            players: prev.players.map(p => {
-              if (p.playerId === playerId) {
-                return {
-                  ...p,
-                  preference: hasStrategy ? {
-                    id: p.preference?.id || 'temp',
-                    playerId,
-                    memberId: prev.myMemberId,
-                    maxBid,
-                    priority,
-                    notes,
-                    isWatchlist: hasStrategy,
-                    isAutoPass: false,
-                    watchlistCategory: p.preference?.watchlistCategory || null,
-                  } : null
-                }
-              }
-              return p
-            })
-          }
-        })
-      }
-    } catch {
-      // Ignore errors, just log
-      console.error('Error saving strategy for', playerId)
-    } finally {
-      setSavingPlayerIds(prev => {
-        const next = new Set(prev)
-        next.delete(playerId)
-        return next
-      })
-    }
-  }, [leagueId])
-
-  // Set watchlist category for a player (immediate save, no debounce) (#219)
-  const setWatchlistCategory = useCallback(async (playerId: string, category: string | null) => {
-    if (!leagueId) return
-    setSavingPlayerIds(prev => new Set(prev).add(playerId))
-    try {
-      await rubataApi.setPreference(leagueId, playerId, {
-        watchlistCategory: category,
-        isWatchlist: category !== null,
-      })
-      // Optimistic update for both datasets
-      const updatePlayer = (p: StrategyPlayerWithPreference | SvincolatoPlayerWithPreference) => {
-        if (p.playerId !== playerId) return p
-        return {
-          ...p,
-          preference: {
-            id: p.preference?.id || 'temp',
-            playerId,
-            memberId: strategiesData?.myMemberId || '',
-            maxBid: p.preference?.maxBid ?? null,
-            priority: p.preference?.priority ?? null,
-            notes: p.preference?.notes ?? null,
-            isWatchlist: category !== null,
-            isAutoPass: p.preference?.isAutoPass ?? false,
-            watchlistCategory: category,
-          }
-        }
-      }
-      setStrategiesData(prev => prev ? { ...prev, players: prev.players.map(updatePlayer) } : prev)
-      setSvincolatiData(prev => prev ? { ...prev, players: prev.players.map(updatePlayer) } : prev)
-    } catch {
-      console.error('Error setting watchlist category for', playerId)
-    } finally {
-      setSavingPlayerIds(prev => { const next = new Set(prev); next.delete(playerId); return next })
-    }
-  }, [leagueId, strategiesData?.myMemberId])
-
-  // Update local strategy with debounced save
-  const updateLocalStrategy = useCallback((
-    playerId: string,
-    field: keyof Omit<LocalStrategy, 'isDirty'>,
-    value: string | number
-  ) => {
-    console.log('[Strategie UPDATE]', { playerId, field, value })
-    setLocalStrategies(prev => {
-      const current = prev[playerId] || { maxBid: '', priority: 0, notes: '', isDirty: false }
-      return {
-        ...prev,
-        [playerId]: {
-          ...current,
-          [field]: value,
-          isDirty: true,
-        }
-      }
-    })
-
-    // Clear existing timer for this player
-    if (debounceTimers.current[playerId]) {
-      clearTimeout(debounceTimers.current[playerId])
-    }
-
-    // Set new debounce timer (2 seconds)
-    debounceTimers.current[playerId] = setTimeout(() => {
-      console.log('[Strategie DEBOUNCE fired]', playerId)
-      saveStrategy(playerId)
-    }, 2000)
-  }, [saveStrategy])
-
-  // Handle column sort
-  const handleSort = useCallback((field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDirection('asc')
-    }
-  }, [sortField])
-
-  // Toggle player for comparison (#187)
-  const togglePlayerForCompare = useCallback((playerId: string) => {
-    setSelectedForCompare((prev) => {
-      const next = new Set(prev)
-      if (next.has(playerId)) {
-        next.delete(playerId)
-      } else if (next.size < 4) {
-        next.add(playerId)
-      }
-      return next
-    })
-  }, [])
-
-  // Clear comparison selection
-  const clearComparison = useCallback(() => {
-    setSelectedForCompare(new Set())
-  }, [])
-
-  // Filtered and sorted players - supports myRoster, owned, svincolati, and all
-  const filteredPlayers = useMemo((): DisplayPlayer[] => {
-    const result: DisplayPlayer[] = []
-
-    // Position order: P (0) > D (1) > C (2) > A (3)
-    const getPositionOrder = (pos: string): number => {
-      const normalized = (pos || '').toString().trim().toUpperCase()
-      const order: Record<string, number> = { P: 0, D: 1, C: 2, A: 3 }
-      return order[normalized] ?? 99
-    }
-
-    // Add MY players if viewMode is 'myRoster' or 'all'
-    if ((viewMode === 'myRoster' || viewMode === 'all') && strategiesData?.players) {
-      strategiesData.players.forEach(player => {
-        // Only include own players
-        if (player.memberId !== myMemberId) return
-
-        // Position filter
-        if (positionFilter !== 'ALL' && player.playerPosition !== positionFilter) return
-
-        // Team filter (Serie A team)
-        if (teamFilter !== 'ALL' && player.playerTeam !== teamFilter) return
-
-        // Search filter
-        if (searchQuery) {
-          const query = searchQuery.toLowerCase()
-          if (!player.playerName.toLowerCase().includes(query) &&
-              !player.playerTeam.toLowerCase().includes(query)) {
-            return
-          }
-        }
-
-        // Strategy filter
-        if (showOnlyWithStrategy) {
-          const local = getLocalStrategy(player.playerId)
-          if (!local.maxBid && !local.priority && !local.notes) return
-        }
-
-        result.push({ ...player, type: 'myRoster' })
-      })
-    }
-
-    // Add OTHER owned players if viewMode is 'owned' or 'all'
-    if ((viewMode === 'owned' || viewMode === 'all') && strategiesData?.players) {
-      strategiesData.players.forEach(player => {
-        // Exclude own players
-        if (player.memberId === myMemberId) return
-
-        // Position filter
-        if (positionFilter !== 'ALL' && player.playerPosition !== positionFilter) return
-
-        // Team filter (Serie A team)
-        if (teamFilter !== 'ALL' && player.playerTeam !== teamFilter) return
-
-        // Owner filter (only for owned)
-        if (ownerFilter !== 'ALL' && player.ownerUsername !== ownerFilter) return
-
-        // Search filter
-        if (searchQuery) {
-          const query = searchQuery.toLowerCase()
-          if (!player.playerName.toLowerCase().includes(query) &&
-              !player.playerTeam.toLowerCase().includes(query) &&
-              !player.ownerUsername.toLowerCase().includes(query) &&
-              !(player.ownerTeamName?.toLowerCase().includes(query))) {
-            return
-          }
-        }
-
-        // Strategy filter
-        if (showOnlyWithStrategy) {
-          const local = getLocalStrategy(player.playerId)
-          if (!local.maxBid && !local.priority && !local.notes) return
-        }
-
-        result.push({ ...player, type: 'owned' })
-      })
-    }
-
-    // Add svincolati if viewMode is 'svincolati' or 'all'
-    if ((viewMode === 'svincolati' || viewMode === 'all') && svincolatiData?.players) {
-      svincolatiData.players.forEach(player => {
-        // Position filter
-        if (positionFilter !== 'ALL' && player.playerPosition !== positionFilter) return
-
-        // Team filter (Serie A team)
-        if (teamFilter !== 'ALL' && player.playerTeam !== teamFilter) return
-
-        // Owner filter doesn't apply to svincolati, skip them if a specific owner is selected
-        if (viewMode === 'all' && ownerFilter !== 'ALL') return
-
-        // Search filter
-        if (searchQuery) {
-          const query = searchQuery.toLowerCase()
-          if (!player.playerName.toLowerCase().includes(query) &&
-              !player.playerTeam.toLowerCase().includes(query)) {
-            return
-          }
-        }
-
-        // Strategy filter (not for myRoster view)
-        if (showOnlyWithStrategy) {
-          const local = getLocalStrategy(player.playerId)
-          if (!local.maxBid && !local.priority && !local.notes) return
-        }
-
-        result.push({ ...player, type: 'svincolato' })
-      })
-    }
-
-    // Sort
-    result.sort((a, b) => {
-      let cmp = 0
-
-      // Compare by position
-      const comparePosition = () => getPositionOrder(a.playerPosition) - getPositionOrder(b.playerPosition)
-
-      // Compare alphabetically
-      const compareName = () => a.playerName.localeCompare(b.playerName)
-
-      // Compare by manager (only for owned)
-      const compareManager = () => {
-        if (a.type === 'svincolato' && b.type === 'svincolato') return 0
-        if (a.type === 'svincolato') return 1 // Svincolati after owned
-        if (b.type === 'svincolato') return -1
-        const teamA = a.ownerTeamName || a.ownerUsername
-        const teamB = b.ownerTeamName || b.ownerUsername
-        return teamA.localeCompare(teamB)
-      }
-
-      // Compare by rubata order (only for owned)
-      const compareRubataOrder = () => {
-        if (a.type === 'svincolato' && b.type === 'svincolato') return 0
-        if (a.type === 'svincolato') return 1
-        if (b.type === 'svincolato') return -1
-        const orderA = a.ownerRubataOrder ?? 999
-        const orderB = b.ownerRubataOrder ?? 999
-        return orderA - orderB
-      }
-
-      // Sort by mode
-      if (sortMode === 'rubata') {
-        cmp = compareRubataOrder()
-        if (cmp !== 0) return cmp
-        cmp = comparePosition()
-        if (cmp !== 0) return cmp
-        return compareName()
-      }
-
-      if (sortMode === 'manager') {
-        cmp = compareManager()
-        if (cmp !== 0) return cmp
-        cmp = comparePosition()
-        if (cmp !== 0) return cmp
-        return compareName()
-      }
-
-      // Default: role mode
-      cmp = comparePosition()
-      if (cmp !== 0) return cmp
-      return compareName()
-    })
-
-    return result
-  }, [strategiesData?.players, svincolatiData?.players, myMemberId, viewMode, positionFilter, teamFilter, ownerFilter, searchQuery, showOnlyWithStrategy, sortMode, getLocalStrategy])
-
-  // Players selected for comparison (#187) - must be after filteredPlayers
-  const playersToCompare = useMemo(() => {
-    return filteredPlayers.filter(p => selectedForCompare.has(p.playerId))
-  }, [filteredPlayers, selectedForCompare])
-
-  // My strategies count (for footer) - includes both owned and svincolati
-  const myStrategiesCount = useMemo(() => {
-    let count = 0
-
-    // Count owned strategies
-    if (strategiesData?.players) {
-      count += strategiesData.players.filter(p => {
-        if (p.memberId === myMemberId) return false
-        const local = getLocalStrategy(p.playerId)
-        return local.maxBid || local.priority || local.notes
-      }).length
-    }
-
-    // Count svincolati strategies
-    if (svincolatiData?.players) {
-      count += svincolatiData.players.filter(p => {
-        const local = getLocalStrategy(p.playerId)
-        return local.maxBid || local.priority || local.notes
-      }).length
-    }
-
-    return count
-  }, [strategiesData?.players, svincolatiData?.players, myMemberId, getLocalStrategy])
+  const {
+    loading,
+    error,
+    success,
+    savingPlayerIds,
+    isLeagueAdmin,
+    strategiesData,
+    svincolatiData,
+    myMemberId,
+    viewMode,
+    setViewMode,
+    dataViewMode,
+    setDataViewMode,
+    positionFilter,
+    setPositionFilter,
+    searchQuery,
+    setSearchQuery,
+    showOnlyWithStrategy,
+    setShowOnlyWithStrategy,
+    ownerFilter,
+    setOwnerFilter,
+    teamFilter,
+    setTeamFilter,
+    sortField,
+    sortDirection,
+    handleSort,
+    selectedPlayerStats,
+    setSelectedPlayerStats,
+    selectedForCompare,
+    showCompareModal,
+    setShowCompareModal,
+    togglePlayerForCompare,
+    clearComparison,
+    getLocalStrategy,
+    updateLocalStrategy,
+    setWatchlistCategory,
+    uniqueOwners,
+    uniqueTeams,
+    filteredPlayers,
+    playersToCompare,
+    myStrategiesCount,
+  } = useStrategieRubataState(leagueId)
 
   // Sortable column header component
   const SortableHeader = ({ field, label, className = '' }: { field: SortField; label: string; className?: string }) => (
