@@ -16,6 +16,8 @@ interface NominationPanelProps {
   onNominatePlayer: (playerId: string) => void
   marketProgress: MarketProgress | null
   isPrimoMercato: boolean
+  /** When true, players are visible but not clickable (not my turn) */
+  disabled?: boolean
 }
 
 const ROLE_TABS = ['P', 'D', 'C', 'A'] as const
@@ -32,6 +34,7 @@ export function NominationPanel({
   onNominatePlayer,
   marketProgress,
   isPrimoMercato,
+  disabled = false,
 }: NominationPanelProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
 
@@ -48,9 +51,9 @@ export function NominationPanel({
           <svg className="w-6 h-6 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <p className="text-lg font-bold text-sky-400">Cerca e Nomina</p>
+          <p className="text-lg font-bold text-sky-400">{disabled ? 'Giocatori disponibili' : 'Cerca e Nomina'}</p>
         </div>
-        <p className="text-sm text-gray-400">Seleziona un giocatore per l'asta</p>
+        <p className="text-sm text-gray-400">{disabled ? 'Attendi il tuo turno per nominare' : 'Seleziona un giocatore per l\'asta'}</p>
       </div>
 
       {/* Search bar - glass panel style */}
@@ -149,14 +152,17 @@ export function NominationPanel({
             {players.slice(0, 50).map(player => {
               const photoUrl = getPlayerPhotoUrl(player.apiFootballId)
               const posGradient = POSITION_GRADIENTS[player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
+              const Wrapper = disabled ? 'div' : 'button'
               return (
-                <button
+                <Wrapper
                   key={player.id}
-                  onClick={() => handleSelectAndNominate(player.id)}
+                  {...(!disabled ? { onClick: () => handleSelectAndNominate(player.id) } : {})}
                   className={`relative rounded-xl p-2.5 text-left transition-all border group ${
-                    selectedPlayer === player.id
-                      ? 'bg-sky-500/15 border-sky-500/50 scale-[1.02]'
-                      : 'bg-slate-800/40 border-white/5 hover:border-sky-500/40 hover:scale-[1.02]'
+                    disabled
+                      ? 'bg-slate-800/40 border-white/5 opacity-60 cursor-default'
+                      : selectedPlayer === player.id
+                        ? 'bg-sky-500/15 border-sky-500/50 scale-[1.02]'
+                        : 'bg-slate-800/40 border-white/5 hover:border-sky-500/40 hover:scale-[1.02]'
                   }`}
                 >
                   <div className="flex items-start gap-2">
@@ -194,7 +200,7 @@ export function NominationPanel({
                       <span className="text-xs font-mono font-bold text-accent-400">{player.quotation}</span>
                     </div>
                   )}
-                </button>
+                </Wrapper>
               )
             })}
           </div>

@@ -96,10 +96,26 @@ export function CenterStage(props: CenterStageProps) {
         )}
 
         {phase === 'waiting' && (
-          <WaitingPanel
-            currentTurnManager={props.currentTurnManager}
-            marketProgress={props.marketProgress}
-          />
+          <>
+            <WaitingPanel
+              currentTurnManager={props.currentTurnManager}
+              marketProgress={props.marketProgress}
+            />
+            <NominationPanel
+              players={props.players}
+              searchQuery={props.searchQuery}
+              onSearchChange={props.onSearchChange}
+              selectedTeam={props.selectedTeam}
+              onTeamChange={props.onTeamChange}
+              availableTeams={props.availableTeams}
+              teamDropdownOpen={props.teamDropdownOpen}
+              setTeamDropdownOpen={props.setTeamDropdownOpen}
+              onNominatePlayer={props.onNominatePlayer}
+              marketProgress={props.marketProgress}
+              isPrimoMercato={props.isPrimoMercato}
+              disabled
+            />
+          </>
         )}
       </div>
 
