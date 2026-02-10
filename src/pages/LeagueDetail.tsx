@@ -121,8 +121,8 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
     // Se il primo mercato è completato, crea un mercato ricorrente
     const isRegularMarket = isFirstMarketCompleted()
     const result = await auctionApi.createSession(leagueId, isRegularMarket)
+    setShowAuctionConfirm(false)
     if (result.success) {
-      setShowAuctionConfirm(false)
       loadSessions()
     } else {
       setError(result.message || 'Errore nella creazione della sessione')
@@ -230,8 +230,14 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
 
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-8">
         {error && (
-          <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-xl mb-6 text-base">
-            {error}
+          <div className="bg-surface-200 border border-danger-500/50 rounded-xl mb-6 p-4 flex items-center gap-3 shadow-lg animate-in fade-in slide-in-from-top-2">
+            <div className="w-8 h-8 rounded-full bg-danger-500/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-danger-400 text-sm">!</span>
+            </div>
+            <p className="text-gray-300 text-sm flex-1">{error}</p>
+            <button onClick={() => setError('')} className="text-gray-500 hover:text-white transition-colors flex-shrink-0 p-1">
+              <span className="text-lg leading-none">&times;</span>
+            </button>
           </div>
         )}
 

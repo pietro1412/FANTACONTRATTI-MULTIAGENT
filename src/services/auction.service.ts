@@ -317,11 +317,12 @@ export async function createAuctionSession(
       },
     })
 
-    // Check minimum participants
-    if (activeMembersCount < league.minParticipants) {
+    // Check minimum participants (platform rule: min 6, league.minParticipants is the target max)
+    const PLATFORM_MIN_PARTICIPANTS = 6
+    if (activeMembersCount < PLATFORM_MIN_PARTICIPANTS) {
       return {
         success: false,
-        message: `Servono almeno ${league.minParticipants} partecipanti. Attualmente: ${activeMembersCount}`
+        message: `Servono almeno ${PLATFORM_MIN_PARTICIPANTS} partecipanti. Attualmente: ${activeMembersCount}`
       }
     }
 
