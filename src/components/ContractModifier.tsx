@@ -181,7 +181,7 @@ export function ContractModifier({
   const canSpalma = !isSvincolatiMode && !increaseOnly && contract.duration === 1
 
   async function handleConfirm() {
-    if (!preview.isValid || !preview.hasChanges) return
+    if (!preview.isValid) return
 
     setIsSubmitting(true)
     setError(null)
@@ -370,7 +370,7 @@ export function ContractModifier({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={!preview.isValid || !preview.hasChanges || isLoading || isSubmitting}
+            disabled={!preview.isValid || isLoading || isSubmitting}
             isLoading={isSubmitting}
             className="flex-1"
           >
