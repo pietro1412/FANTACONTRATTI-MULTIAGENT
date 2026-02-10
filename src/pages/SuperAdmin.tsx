@@ -791,7 +791,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
               <span className="text-3xl">👑</span>
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white">Pannello Super Admin</h1>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Pannello Super Admin</h1>
               <p className="text-gray-400 mt-1">Gestione piattaforma Fantacontratti</p>
             </div>
           </div>

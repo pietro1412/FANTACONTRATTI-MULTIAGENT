@@ -126,6 +126,7 @@ export function AlertSettings({ onClose }: AlertSettingsProps) {
           <div className="flex items-center gap-1 ml-3">
             <input
               type="number"
+              inputMode="numeric"
               value={config.budgetLow.threshold}
               onChange={e => update('budgetLow', 'threshold', parseInt(e.target.value) || 0)}
               className="w-16 px-2 py-1 text-xs text-right bg-surface-400 border border-surface-50/20 rounded text-white"
@@ -157,6 +158,7 @@ export function AlertSettings({ onClose }: AlertSettingsProps) {
             <span className="text-xs text-gray-500">&le;</span>
             <input
               type="number"
+              inputMode="numeric"
               value={config.contractExpiring.threshold}
               onChange={e => update('contractExpiring', 'threshold', parseInt(e.target.value) || 1)}
               className="w-12 px-2 py-1 text-xs text-right bg-surface-400 border border-surface-50/20 rounded text-white"
@@ -190,6 +192,7 @@ export function AlertSettings({ onClose }: AlertSettingsProps) {
             <span className="text-xs text-gray-500">&gt;</span>
             <input
               type="number"
+              inputMode="numeric"
               value={config.salaryHigh.threshold}
               onChange={e => update('salaryHigh', 'threshold', parseInt(e.target.value) || 0)}
               className="w-12 px-2 py-1 text-xs text-right bg-surface-400 border border-surface-50/20 rounded text-white"

@@ -1168,7 +1168,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             <button onClick={() => onNavigate('leagueDetail', { leagueId })} className="text-primary-400 hover:text-primary-300 text-sm mb-2 flex items-center gap-1">
               <span>←</span> Torna alla lega
             </button>
-            <h1 className="text-3xl font-bold text-white">Ordine di Chiamata</h1>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Ordine di Chiamata</h1>
             <p className="text-gray-400 mt-1">Trascina i Direttori Generali per definire l'ordine dei turni</p>
           </div>
         </header>
@@ -1238,7 +1238,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
                 <span className="text-2xl">🔨</span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Sala Asta</h1>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Sala Asta</h1>
                 <div className="flex items-center gap-2">
                   <p className="text-gray-400 text-sm">Primo Mercato</p>
                   {sessionInfo?.auctionMode === 'IN_PRESENCE' && (

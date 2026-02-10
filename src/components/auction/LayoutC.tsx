@@ -246,6 +246,7 @@ export function LayoutC({
                   </button>
                   <input
                     type="number"
+                    inputMode="decimal"
                     value={bidAmount}
                     onChange={e => setBidAmount(e.target.value)}
                     className="flex-1 bg-transparent text-center text-2xl font-bold text-white outline-none"

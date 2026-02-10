@@ -192,6 +192,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   // State for player stats modal
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerInfo | null>(null)
 
+
   useEffect(() => {
     loadData()
   }, [leagueId])
@@ -2427,6 +2428,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         onClose={() => setSelectedPlayer(null)}
         player={selectedPlayer}
       />
+
     </div>
   )
 }

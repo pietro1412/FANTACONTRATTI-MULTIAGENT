@@ -1288,7 +1288,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           <div className="flex items-center gap-1">
                             <span className="text-[10px] text-gray-500 uppercase">Max:</span>
                             <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, (parseInt(local.maxBid) || 0) - 1).toString())} className="w-6 h-6 min-h-[44px] min-w-[44px] rounded bg-surface-300/70 text-gray-400 text-sm font-bold flex items-center justify-center">−</button>
-                            <input type="number" value={local.maxBid} onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)} placeholder="-" className="w-12 px-1 py-1 min-h-[44px] bg-surface-300/50 border border-surface-50/30 rounded text-white text-center text-sm" />
+                            <input type="number" inputMode="decimal" value={local.maxBid} onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)} placeholder="-" className="w-12 px-1 py-1 min-h-[44px] bg-surface-300/50 border border-surface-50/30 rounded text-white text-center text-sm" />
                             <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', ((parseInt(local.maxBid) || 0) + 1).toString())} className="w-6 h-6 min-h-[44px] min-w-[44px] rounded bg-surface-300/70 text-gray-400 text-sm font-bold flex items-center justify-center">+</button>
                           </div>
                           {/* Priority - increased size #186 */}
@@ -1632,6 +1632,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               </button>
                               <input
                                 type="number"
+                                inputMode="decimal"
                                 value={local.maxBid}
                                 onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)}
                                 placeholder="-"

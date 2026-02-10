@@ -7,6 +7,7 @@ import { POSITION_COLORS } from '../components/ui/PositionBadge'
 import { BottomSheet } from '../components/ui/BottomSheet'
 import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
 import { SlidersHorizontal, PanelRightClose, PanelRightOpen } from 'lucide-react'
+import { SkeletonPlayerRow } from '../components/ui/Skeleton'
 import { ShareButton } from '../components/ShareButton'
 
 interface RoseProps {
@@ -248,14 +249,7 @@ export function Rose({ onNavigate }: RoseProps) {
         <Navigation currentPage="rose" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <main className="max-w-[1600px] mx-auto px-4 py-8 space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 p-3 bg-surface-200/50 rounded-lg animate-pulse">
-              <div className="w-10 h-10 rounded-full bg-surface-100" />
-              <div className="flex-1 space-y-2">
-                <div className="h-4 w-32 bg-surface-100 rounded" />
-                <div className="h-3 w-20 bg-surface-100 rounded" />
-              </div>
-              <div className="h-6 w-16 bg-surface-100 rounded" />
-            </div>
+            <SkeletonPlayerRow key={i} />
           ))}
         </main>
       </div>
@@ -762,6 +756,7 @@ export function Rose({ onNavigate }: RoseProps) {
                 onClick={toggleSidebar}
                 className="hidden xl:flex items-center justify-center w-full p-2 bg-surface-200 rounded-xl border border-surface-50/20 text-gray-400 hover:text-white transition-colors"
                 title={sidebarCollapsed ? 'Espandi sidebar' : 'Comprimi sidebar'}
+                aria-label={sidebarCollapsed ? 'Espandi sidebar' : 'Comprimi sidebar'}
               >
                 {sidebarCollapsed ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}
               </button>

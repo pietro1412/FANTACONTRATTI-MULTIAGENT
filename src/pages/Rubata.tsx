@@ -1947,6 +1947,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                           <button
                             onClick={() => moveInOrder(index, 'up')}
                             disabled={index === 0}
+                            aria-label={`Sposta ${member?.user?.username || 'giocatore'} in su`}
                             className="w-8 h-8 flex items-center justify-center bg-surface-50/10 hover:bg-surface-50/20 rounded-lg text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                           >
                             ↑
@@ -1954,6 +1955,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                           <button
                             onClick={() => moveInOrder(index, 'down')}
                             disabled={index === orderDraft.length - 1}
+                            aria-label={`Sposta ${member?.user?.username || 'giocatore'} in giù`}
                             className="w-8 h-8 flex items-center justify-center bg-surface-50/10 hover:bg-surface-50/20 rounded-lg text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                           >
                             ↓

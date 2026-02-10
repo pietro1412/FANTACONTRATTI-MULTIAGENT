@@ -3,6 +3,7 @@ import { leagueApi, superadminApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
 import { SearchLeaguesModal } from '../components/SearchLeaguesModal'
+import { SkeletonCard } from '../components/ui/Skeleton'
 
 interface DashboardProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
@@ -95,10 +96,10 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       <Navigation currentPage="dashboard" onNavigate={onNavigate} />
 
       {/* Main content */}
-      <main className="max-w-[1600px] mx-auto px-6 py-10">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h2 className="text-3xl font-bold text-white mb-1">Le mie Leghe</h2>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1">Le mie Leghe</h2>
             <p className="text-gray-400">
               {isSuperAdmin ? 'Sei un superadmin - usa il pannello di controllo per gestire la piattaforma' : 'Gestisci le tue leghe fantasy'}
             </p>
@@ -121,11 +122,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         {isLoading ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="bg-surface-200 rounded-xl p-4 space-y-3 border border-surface-50/20 animate-pulse">
-                <div className="h-4 w-3/4 bg-surface-100 rounded" />
-                <div className="h-4 w-1/2 bg-surface-100 rounded" />
-                <div className="h-8 w-full bg-surface-100 rounded" />
-              </div>
+              <SkeletonCard key={i} />
             ))}
           </div>
         ) : leagues.length === 0 ? (

@@ -97,6 +97,7 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
               <div className="flex-1 text-center">
                 <input
                   type="number"
+                  inputMode="decimal"
                   value={formData.maxBid}
                   onChange={e => setFormData(p => ({ ...p, maxBid: e.target.value }))}
                   placeholder="—"

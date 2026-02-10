@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { KPICard, SectionHeader } from './KPICard'
+import { LandscapeHint } from '../ui/LandscapeHint'
 import { HealthIndicator, HealthIndicatorCompact } from './HealthIndicator'
 import { type FinancialsData, type LeagueTotals, computeLeagueTotals } from './types'
 
@@ -106,6 +107,7 @@ export function FinanceDashboard({ data }: FinanceDashboardProps) {
             title="Distribuzione Budget Lega"
             description="Come e suddiviso il budget complessivo della lega tra residuo, ingaggi, acquisti alle aste, tagli e scambi."
           />
+          <LandscapeHint />
           <div className="flex flex-col md:flex-row items-center gap-4">
             <div className="w-full md:w-1/2" style={{ height: 200 }}>
               <ResponsiveContainer width="100%" height="100%">

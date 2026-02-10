@@ -7,6 +7,7 @@ import { PullToRefresh } from '../components/PullToRefresh'
 import { BottomSheet } from '../components/ui/BottomSheet'
 import { getTeamLogo } from '../utils/teamLogos'
 import { ChevronDown, SlidersHorizontal } from 'lucide-react'
+import { SkeletonPlayerRow } from '../components/ui/Skeleton'
 
 interface MovementsProps {
   leagueId: string
@@ -217,14 +218,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
         <Navigation currentPage="movements" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-4 space-y-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 p-3 bg-surface-200 rounded-lg animate-pulse">
-              <div className="w-8 h-8 rounded bg-surface-100" />
-              <div className="flex-1 space-y-2">
-                <div className="h-4 w-40 bg-surface-100 rounded" />
-                <div className="h-3 w-24 bg-surface-100 rounded" />
-              </div>
-              <div className="h-4 w-16 bg-surface-100 rounded" />
-            </div>
+            <SkeletonPlayerRow key={i} />
           ))}
         </div>
       </div>
@@ -308,6 +302,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                     onClick={() => { setFilterDateFrom(''); setFilterDateTo('') }}
                     className="text-xs text-gray-500 hover:text-white px-1"
                     title="Reset date"
+                    aria-label="Ripristina filtro date"
                   >
                     x
                   </button>

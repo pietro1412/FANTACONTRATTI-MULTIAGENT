@@ -983,7 +983,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
             <button onClick={() => onNavigate('leagueDetail', { leagueId })} className="text-primary-400 hover:text-primary-300 text-sm mb-2 flex items-center gap-1">
               <span>←</span> Torna alla lega
             </button>
-            <h1 className="text-3xl font-bold text-white">Asta Svincolati - Ordine Turni</h1>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Asta Svincolati - Ordine Turni</h1>
             <p className="text-gray-400 mt-1">Trascina i Direttori Generali per definire l'ordine dei turni</p>
           </div>
         </header>
@@ -1100,7 +1100,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                 <span className="text-2xl">🔓</span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Giocatori Svincolati</h1>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Giocatori Svincolati</h1>
                 <p className="text-gray-400 text-sm">Giocatori attualmente non in rosa</p>
               </div>
             </div>
@@ -1264,7 +1264,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-white">Asta Svincolati</h1>
+                  <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Asta Svincolati</h1>
                   <span className={`w-2 h-2 rounded-full ${isPusherConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`} title={isPusherConnected ? 'Real-time attivo' : 'Real-time disconnesso'} />
                 </div>
                 <p className="text-gray-400 text-sm">
