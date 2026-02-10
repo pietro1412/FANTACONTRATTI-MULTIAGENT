@@ -371,26 +371,51 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     loadMyRosterSlots()
     loadManagersStatus()
     loadTeams()
-    // Polling at 1.5s as fallback - real-time updates come from Pusher
-    // Reduced from 3s for faster sync when Pusher events are missed
+    // Polling as fallback - real-time updates come from Pusher
+    // When Pusher is connected, poll slowly (fallback only); otherwise poll faster
+    const pollingMs = isConnected ? 10000 : 5000
     const interval = setInterval(() => {
+      if (document.hidden) return // Skip polling when tab is hidden
       loadCurrentAuction()
       loadFirstMarketStatus()
       loadPendingAcknowledgment()
       loadReadyStatus()
       loadMyRosterSlots()
       loadManagersStatus()
-    }, 1500)
-    return () => clearInterval(interval)
-  }, [loadCurrentAuction, loadFirstMarketStatus, loadPendingAcknowledgment, loadReadyStatus, loadMyRosterSlots, loadManagersStatus, loadTeams])
+    }, pollingMs)
+
+    // Page Visibility API: refresh immediately when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadCurrentAuction()
+        loadFirstMarketStatus()
+        loadPendingAcknowledgment()
+        loadReadyStatus()
+        loadMyRosterSlots()
+        loadManagersStatus()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [loadCurrentAuction, loadFirstMarketStatus, loadPendingAcknowledgment, loadReadyStatus, loadMyRosterSlots, loadManagersStatus, loadTeams, isConnected])
 
   // Carica stato ricorso quando cambia pendingAck
   useEffect(() => {
     loadAppealStatus()
-    // Polling at 1.5s as fallback - real-time updates come from Pusher
-    const interval = setInterval(loadAppealStatus, 1500)
-    return () => clearInterval(interval)
-  }, [loadAppealStatus])
+    // Polling as fallback - real-time updates come from Pusher
+    const appealPollingMs = isConnected ? 10000 : 5000
+    const interval = setInterval(() => {
+      if (document.hidden) return
+      loadAppealStatus()
+    }, appealPollingMs)
+    return () => {
+      clearInterval(interval)
+    }
+  }, [loadAppealStatus, isConnected])
 
   useEffect(() => {
     // Wait until sessionInfo is loaded to know the session type
@@ -405,7 +430,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     }
   }, [selectedPosition, searchQuery, selectedTeam, loadPlayers, sessionInfo])
 
-  // Send heartbeat every 3 seconds to track connection status
+  // Send heartbeat every 10 seconds to track connection status
   useEffect(() => {
     if (!managersStatus?.myId) return
 
@@ -420,8 +445,8 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     // Send immediately on mount
     sendHeartbeat()
 
-    // Then send every 3 seconds
-    const interval = setInterval(sendHeartbeat, 3000)
+    // Then send every 10 seconds
+    const interval = setInterval(sendHeartbeat, 10000)
 
     return () => clearInterval(interval)
   }, [sessionId, managersStatus?.myId])
