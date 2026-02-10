@@ -2009,9 +2009,9 @@ export async function modifyContractPostAcquisition(
     return { success: false, message: `Durata massima: ${MAX_DURATION} semestri` }
   }
 
-  // Check if there are actual changes
+  // If no changes, return success immediately (user confirms contract as-is)
   if (newSalary === contract.salary && newDuration === contract.duration) {
-    return { success: false, message: 'Nessuna modifica rilevata' }
+    return { success: true, data: { contract, message: 'Contratto confermato senza modifiche' } }
   }
 
   // Calculate new rescission clause
