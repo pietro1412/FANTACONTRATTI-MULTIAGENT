@@ -26,6 +26,7 @@ export interface Bid {
   amount: number
   placedAt: string
   bidder: {
+    teamName: string | null
     user: { username: string }
   }
 }

@@ -88,7 +88,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="rubata" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
         <div className="flex items-center justify-center h-[80vh]">
           <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
@@ -98,7 +98,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   }
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="rubata" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
 
 

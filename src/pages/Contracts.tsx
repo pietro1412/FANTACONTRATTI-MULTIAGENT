@@ -871,7 +871,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="contracts" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <div className="flex items-center justify-center h-[80vh]">
           <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
@@ -881,7 +881,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   }
 
   return (
-    <div className="min-h-screen bg-dark-300 pb-20">
+    <div className="min-h-screen pb-20">
       <Navigation currentPage="contracts" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
       {/* Header compatto - sticky sotto la Navigation su desktop */}

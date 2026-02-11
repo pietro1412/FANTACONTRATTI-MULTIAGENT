@@ -76,7 +76,7 @@ export function Rules() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-surface-200/95 backdrop-blur-sm border-b border-surface-50/20 shadow-lg">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">

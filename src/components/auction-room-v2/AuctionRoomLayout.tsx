@@ -30,6 +30,9 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
         onExit={props.onNavigate && props.leagueId ? () => props.onNavigate!('leagueDetail', { leagueId: props.leagueId! }) : undefined}
         isAdmin={props.isAdmin}
         teamInitial={teamInitial}
+        onRequestPause={props.onRequestPause}
+        pauseRequest={props.pauseRequest}
+        dismissPauseRequest={props.dismissPauseRequest}
       />
 
       {/* Mobile: side panel triggers */}

@@ -222,7 +222,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
   const hasActiveFilters = selectedPlayerId || selectedAuthorId || debouncedSearch
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="prophecies" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
       <main className="max-w-[1600px] mx-auto px-4 md:px-6 py-4 md:py-6">

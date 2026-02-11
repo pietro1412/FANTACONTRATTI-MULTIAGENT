@@ -732,7 +732,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="strategie-rubata" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <main className="max-w-[1600px] mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-20">
@@ -744,7 +744,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   }
 
   return (
-    <div className="min-h-screen bg-dark-300 pb-6">
+    <div className="min-h-screen pb-6">
       <Navigation currentPage="strategie-rubata" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
       <main className="max-w-[1600px] mx-auto px-4 py-6">

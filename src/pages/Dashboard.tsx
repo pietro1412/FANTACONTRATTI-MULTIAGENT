@@ -92,7 +92,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   }
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="dashboard" onNavigate={onNavigate} />
 
       {/* Main content */}

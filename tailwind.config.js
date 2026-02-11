@@ -7,23 +7,6 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ============ DYNAMIC THEME COLORS (CSS Variables) ============
-        // These colors are set dynamically via ThemeContext
-        theme: {
-          bg: 'var(--bg)',
-          card: 'var(--bg-card)',
-          hover: 'var(--bg-hover)',
-          text: 'var(--text)',
-          muted: 'var(--text-muted)',
-          dim: 'var(--text-dim)',
-          border: 'var(--border)',
-          primary: 'var(--primary)',
-          'primary-bg': 'var(--primary-bg)',
-          accent: 'var(--accent)',
-          'accent-bg': 'var(--accent-bg)',
-          success: 'var(--success)',
-          danger: 'var(--danger)',
-        },
         // Dark backgrounds - Stadium Nights theme (deeper, more immersive)
         dark: {
           50: '#252830',   // Lighter surface
@@ -134,7 +117,6 @@ export default {
         mono: ['JetBrains Mono', 'monospace'],
         display: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
         sport: ['Oswald', 'Inter', 'system-ui', 'sans-serif'], // Stadium scoreboard style
-        theme: ['var(--font-family)', 'system-ui', 'sans-serif'], // Dynamic theme font
       },
       backgroundImage: {
         'pitch-gradient': 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',

@@ -188,6 +188,15 @@ export interface AuctionEventHandlers {
   // Indemnity events
   onIndemnityDecisionSubmitted?: (data: IndemnityDecisionSubmittedData) => void;
   onIndemnityAllDecided?: (data: IndemnityAllDecidedData) => void;
+  // Pause request event
+  onPauseRequested?: (data: PauseRequestedData) => void;
+}
+
+export interface PauseRequestedData {
+  memberId: string;
+  username: string;
+  type: 'nomination' | 'auction';
+  serverTimestamp: number;
 }
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'failed' | 'unavailable';
@@ -305,6 +314,11 @@ export function subscribeToAuction(
     channel.bind('indemnity-all-decided', handlers.onIndemnityAllDecided);
   }
 
+  // Pause request event
+  if (handlers.onPauseRequested) {
+    channel.bind('pause-requested', handlers.onPauseRequested);
+  }
+
   return channel;
 }
 
@@ -392,6 +406,10 @@ export function unbindAuctionHandlers(
     if (handlers.onIndemnityAllDecided) {
       channel.unbind('indemnity-all-decided', handlers.onIndemnityAllDecided);
     }
+    // Pause request event
+    if (handlers.onPauseRequested) {
+      channel.unbind('pause-requested', handlers.onPauseRequested);
+    }
   }
 }
 
@@ -417,6 +435,8 @@ export interface UsePusherAuctionOptions {
   // Indemnity events
   onIndemnityDecisionSubmitted?: (data: IndemnityDecisionSubmittedData) => void;
   onIndemnityAllDecided?: (data: IndemnityAllDecidedData) => void;
+  // Pause request event
+  onPauseRequested?: (data: PauseRequestedData) => void;
 }
 
 export interface UsePusherAuctionResult {
@@ -486,6 +506,8 @@ export function usePusherAuction(
       onSvincolatiNomination: (data) => handlersRef.current.onSvincolatiNomination?.(data),
       onSvincolatiBidPlaced: (data) => handlersRef.current.onSvincolatiBidPlaced?.(data),
       onSvincolatiReadyChanged: (data) => handlersRef.current.onSvincolatiReadyChanged?.(data),
+      // Pause request event
+      onPauseRequested: (data) => handlersRef.current.onPauseRequested?.(data),
     };
 
     const subscribedChannel = subscribeToAuction(sessionId, handlers);

@@ -55,7 +55,7 @@ export function Login({ onNavigate }: LoginProps) {
   }
 
   return (
-    <div className="min-h-screen bg-dark-300 flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-6">
       {/* Background pattern */}
       <div className="absolute inset-0 pitch-overlay opacity-30"></div>
 

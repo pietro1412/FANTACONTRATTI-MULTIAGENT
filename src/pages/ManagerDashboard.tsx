@@ -286,7 +286,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="managerDashboard" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <div className="flex items-center justify-center h-[80vh]">
           <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
@@ -297,7 +297,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
 
   if (!member) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="managerDashboard" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <div className="flex items-center justify-center h-[80vh]">
           <p className="text-danger-500">Errore nel caricamento dei dati</p>
@@ -322,7 +322,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
   }), [alertConfig, member, totalSalaries, expiringContracts.length, totalSlots, totals.total])
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="managerDashboard" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
       <PullToRefresh onRefresh={loadData}>

@@ -195,6 +195,8 @@ export const PUSHER_EVENTS = {
   // Indemnity phase events
   INDEMNITY_DECISION_SUBMITTED: 'indemnity-decision-submitted',
   INDEMNITY_ALL_DECIDED: 'indemnity-all-decided',
+  // Pause request events
+  PAUSE_REQUESTED: 'pause-requested',
   // Trade events (league channel)
   TRADE_OFFER_RECEIVED: 'trade-offer-received',
   TRADE_UPDATED: 'trade-updated',
@@ -302,6 +304,16 @@ export async function triggerTimerUpdate(
   data: TimerUpdateData
 ): Promise<boolean> {
   return triggerEvent(sessionId, PUSHER_EVENTS.TIMER_UPDATE, data)
+}
+
+/**
+ * Trigger when a manager requests a pause
+ */
+export async function triggerPauseRequested(
+  sessionId: string,
+  data: { memberId: string; username: string; type: 'nomination' | 'auction' }
+): Promise<boolean> {
+  return triggerEvent(sessionId, PUSHER_EVENTS.PAUSE_REQUESTED, data)
 }
 
 // ==================== UTILITY FUNCTIONS ====================

@@ -730,7 +730,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-400">Verifica permessi...</p>
@@ -741,7 +741,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
 
   if (!isSuperAdmin) {
     return (
-      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <Card className="max-w-md text-center p-8">
           <div className="text-6xl mb-4">🔒</div>
           <h1 className="text-2xl font-bold text-white mb-2">Accesso Negato</h1>
@@ -776,7 +776,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
   }
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation
         currentPage="superadmin"
         activeTab={activeTab}

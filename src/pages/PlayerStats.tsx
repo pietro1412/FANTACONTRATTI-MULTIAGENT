@@ -938,7 +938,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
 
           {/* Full-page Compare View */}
           {showCompareModal && playersToCompare.length >= 2 && (
-            <div className="fixed inset-0 z-50 bg-dark-300 overflow-y-auto">
+            <div className="fixed inset-0 z-50 overflow-y-auto">
               {/* Sticky Header */}
               <div className="sticky top-0 z-10 bg-surface-200 border-b border-surface-50/20">
                 <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between">

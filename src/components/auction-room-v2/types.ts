@@ -76,6 +76,9 @@ export interface AuctionViewProps {
   onResetFirstMarket?: () => void
   onPauseAuction?: () => void
   onResumeAuction?: () => void
+  onRequestPause?: () => void
+  pauseRequest?: { username: string; type: string } | null
+  dismissPauseRequest?: () => void
 
   // Session info
   isPrimoMercato: boolean

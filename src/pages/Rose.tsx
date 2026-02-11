@@ -245,7 +245,7 @@ export function Rose({ onNavigate }: RoseProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="rose" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <main className="max-w-[1600px] mx-auto px-4 py-8 space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -258,7 +258,7 @@ export function Rose({ onNavigate }: RoseProps) {
 
   if (!leagueData) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="rose" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <main className="max-w-[1600px] mx-auto px-4 py-8">
           <div className="text-center text-gray-400 py-20">
@@ -270,7 +270,7 @@ export function Rose({ onNavigate }: RoseProps) {
   }
 
   return (
-    <div className="min-h-screen bg-dark-300 pb-6">
+    <div className="min-h-screen pb-6">
       <Navigation
         currentPage="rose"
         leagueId={leagueId}

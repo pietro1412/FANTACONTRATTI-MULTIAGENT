@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { AuthProvider, useAuth } from './hooks/useAuth'
-import { ThemeProvider } from './contexts/ThemeContext'
+
 import { ScrollToTop } from './components/ui/ScrollToTop'
 import { BottomNavBar } from './components/BottomNavBar'
 import { CommandPalette } from './components/CommandPalette'
@@ -60,7 +60,7 @@ function LoadingScreen() {
 // Page loader per Suspense fallback (lazy loading)
 function PageLoader() {
   return (
-    <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center">
       <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin"></div>
     </div>
   )
@@ -679,16 +679,14 @@ function App() {
 
   return (
     <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <AppRoutes />
-          <BottomNavSpacer />
-          <BottomNavBar onMenuOpen={handleMobileMenuOpen} />
-          <CommandPalette />
-          <ScrollToTop />
-          <SpeedInsights />
-        </AuthProvider>
-      </ThemeProvider>
+      <AuthProvider>
+        <AppRoutes />
+        <BottomNavSpacer />
+        <BottomNavBar onMenuOpen={handleMobileMenuOpen} />
+        <CommandPalette />
+        <ScrollToTop />
+        <SpeedInsights />
+      </AuthProvider>
     </BrowserRouter>
   )
 }

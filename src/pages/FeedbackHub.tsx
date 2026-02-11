@@ -185,7 +185,7 @@ export function FeedbackHub({ leagueId, feedbackId: initialFeedbackId, onNavigat
   }
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation
         currentPage="feedbackHub"
         leagueId={leagueId}

@@ -320,7 +320,7 @@ export function Profile({ onNavigate }: ProfileProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin"></div>
       </div>
     )
@@ -329,7 +329,7 @@ export function Profile({ onNavigate }: ProfileProps) {
   const currentPhoto = photoPreview || profile?.profilePhoto
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="profile" onNavigate={onNavigate} />
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10">

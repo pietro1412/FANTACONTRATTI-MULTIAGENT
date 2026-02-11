@@ -188,7 +188,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="movements" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-4 space-y-3">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -200,7 +200,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
   }
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="movements" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
       <PullToRefresh onRefresh={loadMovements}>

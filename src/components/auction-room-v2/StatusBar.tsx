@@ -16,6 +16,9 @@ interface StatusBarProps {
   onExit?: () => void
   isAdmin: boolean
   teamInitial?: string
+  onRequestPause?: () => void
+  pauseRequest?: { username: string; type: string } | null
+  dismissPauseRequest?: () => void
 }
 
 function computeMaxBid(budget: number, myRosterSlots: MyRosterSlots | null | undefined): number | null {
@@ -45,6 +48,9 @@ export function StatusBar({
   onExit,
   isAdmin,
   teamInitial = 'FC',
+  onRequestPause,
+  pauseRequest,
+  dismissPauseRequest,
 }: StatusBarProps) {
   const budget = membership?.currentBudget || 0
   const maxBid = computeMaxBid(budget, myRosterSlots)
@@ -133,6 +139,17 @@ export function StatusBar({
               </svg>
             </button>
           )}
+          {!isAdmin && onRequestPause && (
+            <button
+              onClick={onRequestPause}
+              className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400/70 hover:bg-amber-500/20 hover:text-amber-400 transition-colors"
+              title="Richiedi Pausa"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </button>
+          )}
           {onExit && (
             <button
               onClick={onExit}
@@ -146,6 +163,36 @@ export function StatusBar({
           )}
         </div>
       </div>
+
+      {/* Pause Request Notification (admin only) */}
+      {isAdmin && pauseRequest && (
+        <div className="mt-2 flex items-center justify-between gap-3 rounded-lg bg-amber-500/15 border border-amber-500/30 px-4 py-2 animate-pulse">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-amber-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <span className="text-sm text-amber-300 font-medium">
+              <strong>{pauseRequest.username}</strong> ha richiesto una pausa
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {onPauseAuction && (
+              <button
+                onClick={() => { onPauseAuction(); dismissPauseRequest?.() }}
+                className="px-3 py-1 text-sm font-bold rounded-lg bg-amber-500/30 text-amber-300 hover:bg-amber-500/50 transition-colors"
+              >
+                Pausa
+              </button>
+            )}
+            <button
+              onClick={dismissPauseRequest}
+              className="px-2 py-1 text-sm rounded-lg text-gray-400 hover:text-white transition-colors"
+            >
+              Ignora
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

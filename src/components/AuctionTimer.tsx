@@ -20,6 +20,8 @@ interface AuctionTimerProps {
   totalSeconds: number
   /** Se true, mostra versione compatta per mobile sticky */
   compact?: boolean
+  /** Dimensione cerchio: 'sm' (48px), 'md' (80px) — solo per compact mode */
+  compactSize?: 'sm' | 'md'
   /** Classe CSS aggiuntiva */
   className?: string
 }
@@ -75,6 +77,7 @@ export function AuctionTimer({
   timeLeft,
   totalSeconds,
   compact = false,
+  compactSize = 'sm',
   className = ''
 }: AuctionTimerProps) {
 
@@ -88,8 +91,8 @@ export function AuctionTimer({
   const colors = useMemo(() => getTimerColor(percentage), [percentage])
 
   // Parametri del cerchio SVG
-  const size = compact ? 48 : 120
-  const strokeWidth = compact ? 4 : 8
+  const size = compact ? (compactSize === 'md' ? 80 : 48) : 120
+  const strokeWidth = compact ? (compactSize === 'md' ? 6 : 4) : 8
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const strokeDashoffset = circumference * (1 - percentage / 100)
@@ -138,7 +141,7 @@ export function AuctionTimer({
           </svg>
           {/* Numero al centro */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className={`font-mono font-bold text-lg ${colors.text}`}>
+            <span className={`font-mono font-bold ${compactSize === 'md' ? 'text-2xl' : 'text-lg'} ${colors.text}`}>
               {timeLeft}
             </span>
           </div>

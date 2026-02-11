@@ -435,7 +435,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-accent-500/30 border-t-accent-500 rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-lg text-gray-400">Caricamento pannello admin...</p>
@@ -446,7 +446,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-5xl mb-4">🔒</div>
           <p className="text-xl text-danger-400">Accesso non autorizzato</p>
@@ -461,7 +461,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   const requestsBadge = pendingMembers.length + invites.length
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="adminPanel" leagueId={leagueId} isLeagueAdmin={true} onNavigate={onNavigate} />
 
       {/* Page Header */}

@@ -49,7 +49,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-400">Caricamento sala asta svincolati...</p>
@@ -64,7 +64,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
   // ==================== SETUP: Turn Order ====================
   if (board?.isActive && state === 'SETUP' && isAdmin) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <header className="py-6 border-b border-surface-50/20 bg-surface-200">
           <div className="max-w-2xl mx-auto px-4">
             <button onClick={() => onNavigate('leagueDetail', { leagueId })} className="text-primary-400 hover:text-primary-300 text-sm mb-2 flex items-center gap-1">
@@ -164,7 +164,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
   // Non-admin waiting for setup
   if (board?.isActive && state === 'SETUP' && !isAdmin) {
     return (
-      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="bg-surface-200 rounded-xl p-8 text-center max-w-md border border-surface-50/20">
           <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
           <h2 className="text-xl font-bold text-white mb-2">Sala Riunioni Svincolati</h2>
@@ -177,7 +177,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
   // Phase not active - show free agents in read-only mode
   if (!board?.isActive) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="svincolati" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
         <main className="max-w-[1600px] mx-auto px-4 py-6">
           {/* Header */}
@@ -338,7 +338,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
   // ==================== MAIN AUCTION ROOM ====================
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="svincolati" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
 
       {/* Header */}

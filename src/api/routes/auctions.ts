@@ -41,6 +41,7 @@ import {
   forceAllAppealDecisionAcks,
   getAppealStatus,
   completeAllRosterSlots,
+  requestPause,
   pauseAuction,
   resumeAuction,
   cancelActiveAuction,
@@ -952,6 +953,26 @@ router.post('/leagues/:leagueId/appeals/simulate', authMiddleware, async (req: R
     res.status(201).json(result)
   } catch (error) {
     console.error('Simulate appeal error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== MANAGER: REQUEST PAUSE ====================
+
+router.post('/auctions/sessions/:sessionId/request-pause', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params
+    const { type } = req.body as { type: 'nomination' | 'auction' }
+    const result = await requestPause(sessionId, req.user!.userId, type || 'auction')
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Request pause error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

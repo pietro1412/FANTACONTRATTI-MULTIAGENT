@@ -208,7 +208,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
   // Loading states
   if (isSuperAdmin === null) {
     return (
-      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
       </div>
     )
@@ -216,7 +216,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 space-y-6 animate-pulse">
           <div className="h-8 w-48 bg-surface-100 rounded" />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -246,7 +246,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
 
   if (!league) {
     return (
-      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-xl text-danger-400 mb-4">Lega non trovata</p>
           <Button variant="outline" onClick={() => onNavigate('dashboard')}>
@@ -261,7 +261,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
   const activeMembers = league.members.filter(m => m.status === 'ACTIVE')
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="leagueDetail" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
 
       {/* Header: nome + stepper + budget */}

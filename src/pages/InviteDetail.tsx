@@ -143,7 +143,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="inviteDetail" onNavigate={onNavigate} />
         <div className="flex items-center justify-center py-32">
           <div className="text-center">
@@ -157,7 +157,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
 
   if (error || !invite) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="inviteDetail" onNavigate={onNavigate} />
         <div className="max-w-2xl mx-auto px-6 py-16">
           <div className="bg-surface-200 rounded-2xl border border-danger-500/30 p-8 text-center">
@@ -183,7 +183,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
     invite.league.config.slots.midfielder + invite.league.config.slots.forward
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="inviteDetail" onNavigate={onNavigate} />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">

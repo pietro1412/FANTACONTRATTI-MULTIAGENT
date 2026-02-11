@@ -8,7 +8,7 @@ export default function Offline() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-300 flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4">
       <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-8 max-w-md w-full text-center">
         <div className="w-20 h-20 rounded-full bg-surface-300 flex items-center justify-center mx-auto mb-6">
           <span className="text-4xl">📡</span>

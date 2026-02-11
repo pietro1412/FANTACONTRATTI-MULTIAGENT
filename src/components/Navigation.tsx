@@ -6,12 +6,11 @@ import { Notifications } from './Notifications'
 import { PendingInvites } from './PendingInvites'
 import { FeedbackBadge } from './FeedbackBadge'
 import { pusherClient } from '../services/pusher.client'
-import { ThemeSelector, ThemeButton } from './ThemeSelector'
 import {
   Home, Settings, User, Users, UserPlus, Clock, Lightbulb,
   ArrowLeft, Trophy, CircleUserRound, BookOpen, CloudUpload,
   CircleDollarSign, ChevronRight, ChevronDown, ShieldCheck,
-  BarChart3, FileText, MessageSquare, Menu, X, Star, LogOut, Palette,
+  BarChart3, FileText, MessageSquare, Menu, X, Star, LogOut,
 } from 'lucide-react'
 
 interface NavigationProps {
@@ -94,7 +93,6 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const [pusherConnected, setPusherConnected] = useState(false)
-  const [themeSelectorOpen, setThemeSelectorOpen] = useState(false)
   const profileDropdownRef = useRef<HTMLDivElement>(null)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
 
@@ -378,9 +376,6 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
               </a>
             )}
 
-            {/* Theme Selector Button */}
-            <ThemeButton onClick={() => setThemeSelectorOpen(true)} />
-
             {/* Pending Invites - shown globally */}
             <PendingInvites onNavigate={onNavigate} />
 
@@ -527,9 +522,6 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
       </div>
 
     </header>
-
-    {/* Theme Selector Modal */}
-    <ThemeSelector isOpen={themeSelectorOpen} onClose={() => setThemeSelectorOpen(false)} />
 
     {/* Mobile Navigation - FUORI dall'header per evitare vincoli di altezza */}
     {mobileMenuOpen && (
@@ -710,18 +702,6 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                 )}
               </>
             )}
-
-            {/* Theme Selector for Mobile */}
-            <div className="border-t my-3 pt-3 border-gray-600">
-              <button
-                onClick={() => { setThemeSelectorOpen(true); setMobileMenuOpen(false) }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-surface-300/60 hover:text-white transition-colors"
-                data-testid="mobile-theme-selector"
-              >
-                <Palette size={20} />
-                Personalizza Tema
-              </button>
-            </div>
 
             {/* Mobile Logout */}
             <div className="border-t my-3 pt-3 border-gray-600">

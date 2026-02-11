@@ -75,7 +75,7 @@ export function PlayerCard({ name, team, position, quotation, age, apiFootballId
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-white/10">
+    <div className="relative overflow-hidden rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-white/10 h-full">
       <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${posGradient}`} />
       <div className="relative p-4">
         {/* Horizontal layout: photo left, info right */}

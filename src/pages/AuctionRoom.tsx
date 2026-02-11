@@ -106,7 +106,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     handleForceAcknowledgeAll, handleSimulateAppeal,
     handleAcknowledgeAppealDecision, handleReadyToResume,
     handleForceAllAppealAcks, handleForceAllReadyResume,
-    handleResetFirstMarket, handlePauseAuction, handleResumeAuction,
+    handleResetFirstMarket, handleRequestPause, handlePauseAuction, handleResumeAuction,
+    pauseRequest, dismissPauseRequest,
     handleCompleteAllSlots, handlePlaceBid, handleCloseAuction,
     handleUpdateTimer, handleAcknowledge,
     handleContractModification, handleSkipContractModification,
@@ -114,7 +115,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'radial-gradient(ellipse at center, #1e1b4b 0%, #020617 70%)' }}>
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-400">Caricamento sala asta...</p>
@@ -126,7 +127,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   // ==================== SETUP: Turn Order with Drag & Drop ====================
   if (isPrimoMercato && !hasTurnOrder && isAdmin) {
     return (
-      <div className="min-h-screen" style={{ background: 'radial-gradient(ellipse at center, #1e1b4b 0%, #020617 70%)' }}>
+      <div className="min-h-screen">
         <header className="fm-header py-6">
           <div className="max-w-2xl mx-auto px-4">
             <button onClick={() => onNavigate('leagueDetail', { leagueId })} className="text-primary-400 hover:text-primary-300 text-sm mb-2 flex items-center gap-1">
@@ -178,7 +179,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
   // Non-admin waiting
   if (isPrimoMercato && !hasTurnOrder && !isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'radial-gradient(ellipse at center, #1e1b4b 0%, #020617 70%)' }}>
+      <div className="min-h-screen flex items-center justify-center">
         <div className="bg-surface-200 rounded-xl p-8 text-center max-w-md border border-surface-50/20">
           <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
           <h2 className="text-xl font-bold text-white mb-2">Sala Riunioni</h2>
@@ -190,7 +191,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
 
   // ==================== MAIN AUCTION ROOM ====================
   return (
-    <div className="min-h-screen" style={{ background: 'radial-gradient(ellipse at center, #1e1b4b 0%, #020617 70%)' }}>
+    <div className="min-h-screen">
       <Navigation currentPage="auction" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
 
       <main className={`max-w-full mx-auto px-3 py-3 lg:px-4 lg:py-4 ${auction ? 'pb-40 lg:pb-4' : ''}`}>
@@ -260,7 +261,12 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           onResetFirstMarket={handleResetFirstMarket}
           onPauseAuction={handlePauseAuction}
           onResumeAuction={handleResumeAuction}
+          onRequestPause={handleRequestPause}
+          pauseRequest={pauseRequest}
+          dismissPauseRequest={dismissPauseRequest}
           isPrimoMercato={isPrimoMercato}
+          onNavigate={onNavigate}
+          leagueId={leagueId}
         />
       </main>
 

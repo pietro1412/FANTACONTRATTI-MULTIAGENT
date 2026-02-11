@@ -107,14 +107,14 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
   // Show loading while checking superadmin status
   if (isSuperAdmin === null) {
     return (
-      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="create-league" onNavigate={onNavigate} />
 
       {/* Main content */}

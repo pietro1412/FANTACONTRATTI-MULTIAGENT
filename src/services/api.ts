@@ -683,6 +683,13 @@ export const auctionApi = {
       method: 'POST',
     }),
 
+  // Manager: Request pause (non-admin)
+  requestPause: (sessionId: string, type: 'nomination' | 'auction') =>
+    request(`/api/leagues/auctions/sessions/${sessionId}/request-pause`, {
+      method: 'POST',
+      body: JSON.stringify({ type }),
+    }),
+
   // Admin: Pause/Resume auction timer
   pauseAuction: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/auctions/pause`, { method: 'POST' }),

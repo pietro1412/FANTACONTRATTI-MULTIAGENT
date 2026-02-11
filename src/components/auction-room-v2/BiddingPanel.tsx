@@ -43,68 +43,76 @@ export function BiddingPanel({
 
   return (
     <div className="space-y-4">
-      {/* 2-column layout on desktop */}
-      <div className="lg:grid lg:grid-cols-2 lg:gap-4 space-y-4 lg:space-y-0">
-        {/* Left: Player Card with photo */}
-        <div>
-          <PlayerCard
-            name={auction.player.name}
-            team={auction.player.team}
-            position={auction.player.position}
-            quotation={auction.player.quotation}
-            age={auction.player.age}
-            apiFootballId={auction.player.apiFootballId}
-            appearances={auction.player.appearances}
-            goals={auction.player.goals}
-            assists={auction.player.assists}
-            avgRating={auction.player.avgRating}
-            size="lg"
-          />
+      {/* 2-column layout on desktop — equal height */}
+      <div className="lg:grid lg:grid-cols-2 lg:gap-4 space-y-4 lg:space-y-0 items-stretch">
+        {/* Left: Player Card with photo — stretch to fill */}
+        <div className="flex">
+          <div className="w-full">
+            <PlayerCard
+              name={auction.player.name}
+              team={auction.player.team}
+              position={auction.player.position}
+              quotation={auction.player.quotation}
+              age={auction.player.age}
+              apiFootballId={auction.player.apiFootballId}
+              appearances={auction.player.appearances}
+              goals={auction.player.goals}
+              assists={auction.player.assists}
+              avgRating={auction.player.avgRating}
+              size="lg"
+            />
+          </div>
         </div>
 
-        {/* Right: Timer + Price in ONE unified box */}
-        <div className="flex flex-col items-center justify-center">
-          <div className={`relative rounded-xl p-5 text-center w-full border-2 overflow-hidden ${
+        {/* Right: Timer (left) + Price (right) in ONE unified box */}
+        <div className="flex">
+          <div className={`relative rounded-xl p-5 w-full border-2 overflow-hidden flex items-center ${
             isTimerCritical
               ? 'border-red-500/50 bg-gradient-to-br from-red-950/30 to-slate-900/80'
               : 'border-sky-500/30 bg-gradient-to-br from-slate-800/50 to-slate-900/80'
           }`}>
-            {/* Timer inline with label */}
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <p className="text-sm text-sky-400 uppercase tracking-wider font-bold">Offerta Corrente</p>
+            {/* Left side: Timer (bigger) */}
+            <div className="flex-shrink-0 mr-5">
               {auction.timerExpiresAt && (
-                <AuctionTimer timeLeft={timeLeft} totalSeconds={timerSetting} compact />
+                <AuctionTimer timeLeft={timeLeft} totalSeconds={timerSetting} compact compactSize="md" />
               )}
             </div>
 
-            {/* Price — sized to match WaitingPanel / ReadyCheckPanel */}
-            <p className={`text-5xl lg:text-smxl font-mono font-black text-transparent bg-clip-text bg-gradient-to-r mb-3 ${
-              isTimerCritical
-                ? 'from-red-400 via-white to-red-400 animate-pulse'
-                : 'from-sky-400 via-white to-sky-400'
-            }`}>
-              {auction.currentPrice}
-            </p>
-            {auction.bids.length > 0 && auction.bids[0] && (
-              <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${
-                auction.bids[0].bidder.user.username === currentUsername
-                  ? 'bg-green-500/20 border border-green-500/50'
-                  : 'bg-sky-500/20 border border-sky-500/30'
+            {/* Right side: Label + Price + Bidder (manager + team) */}
+            <div className="flex-1 text-center">
+              <p className="text-sm text-sky-400 uppercase tracking-wider font-bold mb-1">Offerta Corrente</p>
+
+              <p className={`text-5xl lg:text-6xl font-mono font-black text-transparent bg-clip-text bg-gradient-to-r mb-2 ${
+                isTimerCritical
+                  ? 'from-red-400 via-white to-red-400 animate-pulse'
+                  : 'from-sky-400 via-white to-sky-400'
               }`}>
-                <span className={`font-bold text-sm ${
-                  auction.bids[0].bidder.user.username === currentUsername ? 'text-green-400' : 'text-sky-300'
+                {auction.currentPrice}
+              </p>
+              {auction.bids.length > 0 && auction.bids[0] && (
+                <div className={`inline-flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl ${
+                  auction.bids[0].bidder.user.username === currentUsername
+                    ? 'bg-green-500/20 border border-green-500/50'
+                    : 'bg-sky-500/20 border border-sky-500/30'
                 }`}>
-                  {auction.bids[0].bidder.user.username}
-                  {auction.bids[0].bidder.user.username === currentUsername && ' (SEI TU!)'}
-                </span>
-              </div>
-            )}
-            {auction.bids.length === 0 && (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/50">
-                <span className="text-gray-400 text-sm">Base d'asta:</span>
-                <span className="text-white font-bold font-mono">{auction.basePrice}</span>
-              </div>
-            )}
+                  <span className={`font-bold text-sm ${
+                    auction.bids[0].bidder.user.username === currentUsername ? 'text-green-400' : 'text-sky-300'
+                  }`}>
+                    {auction.bids[0].bidder.user.username}
+                    {auction.bids[0].bidder.user.username === currentUsername && ' (SEI TU!)'}
+                  </span>
+                  {auction.bids[0].bidder.teamName && (
+                    <span className="text-sm text-gray-400">{auction.bids[0].bidder.teamName}</span>
+                  )}
+                </div>
+              )}
+              {auction.bids.length === 0 && (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/50">
+                  <span className="text-gray-400 text-sm">Base d'asta:</span>
+                  <span className="text-white font-bold font-mono">{auction.basePrice}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -158,6 +166,7 @@ export function BiddingPanel({
                   bid.bidder.user.username === currentUsername ? 'text-secondary-400' : ''
                 }`}>
                   {bid.bidder.user.username}
+                  {bid.bidder.teamName && <span className="text-gray-500 ml-1">({bid.bidder.teamName})</span>}
                   {bid.bidder.user.username === currentUsername && ' (tu)'}
                 </span>
                 <div className="flex items-center gap-2">

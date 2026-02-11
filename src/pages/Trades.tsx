@@ -866,7 +866,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="trades" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <div className="flex items-center justify-center h-[80vh]">
           <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
@@ -876,7 +876,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   }
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="trades" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
       <main className="max-w-[1600px] mx-auto px-4 py-4 md:py-8">

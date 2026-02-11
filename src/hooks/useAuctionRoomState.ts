@@ -76,6 +76,9 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
   // Contract modification after winning auction
   const [pendingContractModification, setPendingContractModification] = useState<ContractForModification | null>(null)
 
+  // Pause request notification (shown to admin)
+  const [pauseRequest, setPauseRequest] = useState<{ username: string; type: string } | null>(null)
+
   // Keep auction ref in sync for polling phase-awareness (avoids useEffect dependency)
   useEffect(() => { auctionRef.current = auction }, [auction])
 
@@ -164,6 +167,12 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
       loadFirstMarketStatus()
       loadMyRosterSlots()
       loadManagersStatus()
+    },
+    onPauseRequested: (data) => {
+      console.log('[Pusher] Pause requested:', data)
+      setPauseRequest({ username: data.username, type: data.type })
+      // Auto-dismiss after 10 seconds
+      setTimeout(() => setPauseRequest(null), 10000)
     },
   })
 
@@ -285,7 +294,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
 
   const loadPlayers = useCallback(async () => {
     const filters: { available: boolean; leagueId: string; position?: string; search?: string; team?: string } = { available: true, leagueId }
-    if (selectedPosition) filters.position = selectedPosition
+    // Don't filter by position server-side — NominationPanel handles role tabs locally
     if (searchQuery) filters.search = searchQuery
     if (selectedTeam) filters.team = selectedTeam
     const result = await playerApi.getAll(filters)
@@ -294,7 +303,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
       const sortedPlayers = (result.data as Player[]).sort((a, b) => a.name.localeCompare(b.name))
       setPlayers(sortedPlayers)
     }
-  }, [leagueId, selectedPosition, searchQuery, selectedTeam])
+  }, [leagueId, searchQuery, selectedTeam])
 
   const loadTeams = useCallback(async () => {
     const result = await playerApi.getTeams()
@@ -429,15 +438,8 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
   useEffect(() => {
     // Wait until sessionInfo is loaded to know the session type
     if (!sessionInfo) return
-
-    if (sessionInfo.type !== 'PRIMO_MERCATO') {
-      // Not PRIMO_MERCATO: load all players (no position filter required)
-      loadPlayers()
-    } else if (selectedPosition) {
-      // PRIMO_MERCATO: only load when we have the position filter from currentRole
-      loadPlayers()
-    }
-  }, [selectedPosition, searchQuery, selectedTeam, loadPlayers, sessionInfo])
+    loadPlayers()
+  }, [searchQuery, selectedTeam, loadPlayers, sessionInfo])
 
   // Send heartbeat every 10 seconds to track connection status
   useEffect(() => {
@@ -675,6 +677,18 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
       loadPlayers()
     } else {
       setError(result.message || 'Errore')
+    }
+  }
+
+  async function handleRequestPause() {
+    setError('')
+    const currentPhase = auction?.status === 'ACTIVE' ? 'auction' : 'nomination'
+    const res = await auctionApi.requestPause(sessionId, currentPhase as 'nomination' | 'auction')
+    if (res.success) {
+      setSuccessMessage('Richiesta di pausa inviata')
+      setTimeout(() => setSuccessMessage(''), 3000)
+    } else {
+      setError(res.message || 'Errore')
     }
   }
 
@@ -967,8 +981,11 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     handleForceAllAppealAcks,
     handleForceAllReadyResume,
     handleResetFirstMarket,
+    handleRequestPause,
     handlePauseAuction,
     handleResumeAuction,
+    pauseRequest,
+    dismissPauseRequest: () => setPauseRequest(null),
     handleCompleteAllSlots,
     handlePlaceBid,
     handleCloseAuction,

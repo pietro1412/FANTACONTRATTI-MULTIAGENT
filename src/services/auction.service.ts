@@ -14,6 +14,7 @@ import {
   triggerMemberReady,
   triggerAuctionStarted,
   triggerAuctionClosed,
+  triggerPauseRequested,
 } from './pusher.service'
 import { withRetry } from '../utils/db-retry'
 import { notifyAuctionStart, notifyPhaseChange } from './notification.service'
@@ -24,6 +25,24 @@ export interface ServiceResult {
   success: boolean
   message?: string
   data?: unknown
+}
+
+// ==================== PLAYER STATS ENRICHMENT ====================
+
+/** Enrich a raw SerieAPlayer record with mini-stats extracted from apiFootballStats JSON blob */
+function enrichPlayerWithStats<T extends Record<string, unknown>>(player: T): T & { appearances: number | null; goals: number | null; assists: number | null; avgRating: number | null } {
+  const stats = (player as Record<string, unknown>).apiFootballStats as {
+    games?: { appearences?: number; rating?: number }
+    goals?: { total?: number; assists?: number }
+  } | null | undefined
+
+  return {
+    ...player,
+    appearances: stats?.games?.appearences ?? null,
+    goals: stats?.goals?.total ?? null,
+    assists: stats?.goals?.assists ?? null,
+    avgRating: stats?.games?.rating ? Math.round(stats.games.rating * 10) / 10 : null,
+  }
 }
 
 // ==================== HEARTBEAT / CONNECTION STATUS ====================
@@ -984,7 +1003,9 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
         take: 10,
         include: {
           bidder: {
-            include: {
+            select: {
+              id: true,
+              teamName: true,
               user: {
                 select: { username: true },
               },
@@ -1184,10 +1205,15 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
     isWinning: auction?.bids[0]?.bidderId === m.id,
   }))
 
+  // Enrich auction player with mini-stats from apiFootballStats JSON blob
+  const enrichedAuction = auction && auction.player
+    ? { ...auction, player: enrichPlayerWithStats(auction.player as unknown as Record<string, unknown>) }
+    : auction
+
   return {
     success: true,
     data: {
-      auction,
+      auction: enrichedAuction,
       userMembership: member,
       session: {
         id: session.id,
@@ -1821,7 +1847,7 @@ export async function getFirstMarketStatus(
       user: { select: { username: true } },
       roster: {
         where: { status: 'ACTIVE' },
-        include: { player: true },
+        include: { player: true, contract: true },
       },
     },
     orderBy: { firstMarketOrder: 'asc' },
@@ -1847,18 +1873,24 @@ export async function getFirstMarketStatus(
       A: session.league.forwardSlots - rosterByRole.A,
     }
 
+    // Calculate bilancio for turn eligibility (bilancio < 2 → excluded)
+    const monteIngaggi = m.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
+    const bilancio = m.currentBudget - monteIngaggi
+
     return {
       memberId: m.id,
       username: m.user.username,
       teamName: m.teamName,
       rosterByRole,
       slotsNeeded,
+      bilancio,
       isComplete: Object.values(slotsNeeded).every(s => s <= 0),
       isCurrentRoleComplete: slotsNeeded[currentRole as keyof typeof slotsNeeded] <= 0,
+      isExcludedBudget: bilancio < 2,
     }
   })
 
-  // Find current nominator (skip those with complete current role)
+  // Find current nominator (skip those with complete current role OR insufficient budget)
   let currentNominator = null
   if (turnOrder && turnOrder.length > 0) {
     let searchIndex = currentTurnIndex
@@ -1866,7 +1898,7 @@ export async function getFirstMarketStatus(
       const idx = (searchIndex + i) % turnOrder.length
       const memberId = turnOrder[idx]
       const status = memberStatus.find(m => m.memberId === memberId)
-      if (status && !status.isCurrentRoleComplete) {
+      if (status && !status.isCurrentRoleComplete && !status.isExcludedBudget) {
         currentNominator = {
           memberId,
           username: status.username,
@@ -2020,6 +2052,47 @@ export async function advanceToNextTurn(
     success: true,
     message: 'Turno avanzato',
     data: { previousIndex: currentIndex, currentIndex: nextIndex, skippedMembers },
+  }
+}
+
+// ==================== MANAGER PAUSE REQUEST ====================
+
+export async function requestPause(
+  sessionId: string,
+  userId: string,
+  pauseType: 'nomination' | 'auction'
+): Promise<ServiceResult> {
+  const session = await prisma.marketSession.findUnique({
+    where: { id: sessionId },
+  })
+
+  if (!session) {
+    return { success: false, message: 'Sessione non trovata' }
+  }
+
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: session.leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+    include: { user: { select: { username: true } } },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Send Pusher notification to all (admin will see the request)
+  triggerPauseRequested(sessionId, {
+    memberId: member.id,
+    username: member.user.username,
+    type: pauseType,
+  })
+
+  return {
+    success: true,
+    message: 'Richiesta di pausa inviata all\'admin',
   }
 }
 
@@ -2481,19 +2554,19 @@ export async function nominatePlayerByManager(
     return { success: false, message: `Hai già completato gli slot per il ruolo ${currentRole}. Aspetta il prossimo ruolo.` }
   }
 
-  // Find current nominator (skip those with complete current role)
+  // Find current nominator (skip those with complete current role OR insufficient budget)
   let currentNominatorId: string | null = null
   for (let i = 0; i < turnOrder.length; i++) {
     const idx = (currentTurnIndex + i) % turnOrder.length
     const memberId = turnOrder[idx]
 
-    // Get this member's roster
+    // Get this member's roster with contracts
     const m = await prisma.leagueMember.findUnique({
       where: { id: memberId },
       include: {
         roster: {
           where: { status: 'ACTIVE' },
-          include: { player: true },
+          include: { player: true, contract: true },
         },
       },
     })
@@ -2506,7 +2579,11 @@ export async function nominatePlayerByManager(
         A: m.roster.filter(r => r.player.position === 'A').length,
       }
 
-      if ((mRoster[currentRole as keyof typeof mRoster] ?? 0) < (slotLimits[currentRole] ?? 0)) {
+      // Check bilancio >= 2 (min bid 1 + min salary 1)
+      const monteIngaggi = m.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
+      const bilancio = m.currentBudget - monteIngaggi
+
+      if ((mRoster[currentRole as keyof typeof mRoster] ?? 0) < (slotLimits[currentRole] ?? 0) && bilancio >= 2) {
         currentNominatorId = memberId ?? null
         break
       }
@@ -2885,12 +2962,15 @@ export async function getPendingAcknowledgment(
     }
   }
 
+  // Enrich player with stats
+  const enrichedPlayer = enrichPlayerWithStats(recentCompletedAuction.player as unknown as Record<string, unknown>)
+
   return {
     success: true,
     data: {
       pendingAuction: {
         id: recentCompletedAuction.id,
-        player: recentCompletedAuction.player,
+        player: enrichedPlayer,
         winner: recentCompletedAuction.winner ? {
           id: recentCompletedAuction.winnerId,
           username: recentCompletedAuction.winner.user.username,
@@ -3160,7 +3240,7 @@ export async function setPendingNomination(
     return { success: false, message: `Hai già completato gli slot per il ruolo ${currentRole}` }
   }
 
-  // Find current nominator (who should call)
+  // Find current nominator (who should call — skip completed role OR insufficient budget)
   let currentNominatorId: string | null = null
   const currentTurnIndex = session.currentTurnIndex ?? 0
 
@@ -3173,7 +3253,7 @@ export async function setPendingNomination(
       include: {
         roster: {
           where: { status: 'ACTIVE' },
-          include: { player: true },
+          include: { player: true, contract: true },
         },
       },
     })
@@ -3186,7 +3266,11 @@ export async function setPendingNomination(
         A: m.roster.filter(r => r.player.position === 'A').length,
       }
 
-      if ((mRoster[currentRole as keyof typeof mRoster] ?? 0) < (slotLimits[currentRole] ?? 0)) {
+      // Check bilancio >= 2 (min bid 1 + min salary 1)
+      const monteIngaggi = m.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
+      const bilancio = m.currentBudget - monteIngaggi
+
+      if ((mRoster[currentRole as keyof typeof mRoster] ?? 0) < (slotLimits[currentRole] ?? 0) && bilancio >= 2) {
         currentNominatorId = memberId ?? null
         break
       }
@@ -3699,12 +3783,17 @@ export async function getReadyStatus(
   const readyMemberIds = (session.readyMembers as string[]) || []
   const nominator = allMembers.find(m => m.id === session.pendingNominatorId)
 
+  // Enrich player with stats
+  const enrichedPlayer = session.pendingNominationPlayer
+    ? enrichPlayerWithStats(session.pendingNominationPlayer as unknown as Record<string, unknown>)
+    : null
+
   return {
     success: true,
     data: {
       hasPendingNomination: true,
       nominatorConfirmed: session.nominatorConfirmed,
-      player: session.pendingNominationPlayer,
+      player: enrichedPlayer,
       nominatorId: session.pendingNominatorId,
       nominatorUsername: nominator?.user.username || 'Unknown',
       readyMembers: allMembers
@@ -3951,7 +4040,10 @@ export async function getManagersStatus(
       const m = members.find(x => x.id === memberId)
       if (m) {
         const roleCount = m.roster.filter(r => r.player.position === currentRole).length
-        if (roleCount < slotLimits[currentRole as keyof typeof slotLimits]) {
+        // Also check bilancio >= 2 (min bid 1 + min salary 1)
+        const monteIngaggi = m.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
+        const bilancio = m.currentBudget - monteIngaggi
+        if (roleCount < slotLimits[currentRole as keyof typeof slotLimits] && bilancio >= 2) {
           currentTurnMemberId = memberId
           break
         }

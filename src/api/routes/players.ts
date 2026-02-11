@@ -39,9 +39,25 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     const players = await getPlayers(filters)
 
+    // Enrich with mini-stats from apiFootballStats JSON blob
+    const enrichedPlayers = players.map((p: Record<string, unknown>) => {
+      const stats = p.apiFootballStats as {
+        games?: { appearences?: number; rating?: number }
+        goals?: { total?: number; assists?: number }
+      } | null | undefined
+
+      return {
+        ...p,
+        appearances: stats?.games?.appearences ?? null,
+        goals: stats?.goals?.total ?? null,
+        assists: stats?.goals?.assists ?? null,
+        avgRating: stats?.games?.rating ? Math.round(stats.games.rating * 10) / 10 : null,
+      }
+    })
+
     res.json({
       success: true,
-      data: players,
+      data: enrichedPlayers,
     })
   } catch (error) {
     console.error('Get players error:', error)
