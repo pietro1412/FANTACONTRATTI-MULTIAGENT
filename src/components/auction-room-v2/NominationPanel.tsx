@@ -74,6 +74,7 @@ export function NominationPanel({
 }: NominationPanelProps) {
   const [focalPlayer, setFocalPlayer] = useState<Player | null>(null)
   const [statsModalOpen, setStatsModalOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card')
   const [selectedRole, setSelectedRole] = useState<string>(
     isPrimoMercato && marketProgress?.currentRole ? marketProgress.currentRole : 'TUTTI'
   )
@@ -156,6 +157,41 @@ export function NominationPanel({
             onChange={e => onSearchChange(e.target.value)}
             className="w-full bg-slate-800/60 backdrop-blur border border-white/10 text-white rounded-lg pl-8 pr-3 py-1.5 text-sms placeholder-gray-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 focus:outline-none transition-colors"
           />
+        </div>
+
+        {/* View mode toggle (desktop only) */}
+        <div className="hidden lg:flex gap-0.5 flex-shrink-0 bg-slate-800/40 rounded-lg p-0.5 border border-white/5">
+          <button
+            onClick={() => setViewMode('card')}
+            className={`p-1.5 rounded-md transition-all ${
+              viewMode === 'card'
+                ? 'bg-white/10 text-white border border-white/30'
+                : 'text-gray-500 hover:text-gray-300 border border-transparent'
+            }`}
+            title="Vista card"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+              <rect x="1" y="1" width="6" height="6" rx="1" />
+              <rect x="9" y="1" width="6" height="6" rx="1" />
+              <rect x="1" y="9" width="6" height="6" rx="1" />
+              <rect x="9" y="9" width="6" height="6" rx="1" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`p-1.5 rounded-md transition-all ${
+              viewMode === 'table'
+                ? 'bg-white/10 text-white border border-white/30'
+                : 'text-gray-500 hover:text-gray-300 border border-transparent'
+            }`}
+            title="Vista tabella"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+              <rect x="1" y="2" width="14" height="2" rx="0.5" />
+              <rect x="1" y="7" width="14" height="2" rx="0.5" />
+              <rect x="1" y="12" width="14" height="2" rx="0.5" />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -318,74 +354,183 @@ export function NominationPanel({
         )
       })()}
 
-      {/* Player Grid */}
+      {/* Player Grid / Table */}
       <div className="max-h-[45vh] overflow-y-auto">
         {filteredPlayers.length === 0 ? (
           <p className="text-gray-500 text-center py-4">Nessun giocatore</p>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-            {filteredPlayers.slice(0, 50).map(player => {
-              const photoUrl = getPlayerPhotoUrl(player.apiFootballId)
-              const posGradient = POSITION_GRADIENTS[player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
-              const isSelected = focalPlayer?.id === player.id
-              const ageBadge = getAgeBadge(player.age)
-              return (
-                <button
-                  key={player.id}
-                  onClick={() => handlePlayerClick(player)}
-                  className={`relative rounded-xl p-3 text-left transition-all border group ${
-                    isSelected
-                      ? 'bg-sky-500/10 border-sky-500/40 ring-1 ring-sky-500/30'
-                      : 'bg-slate-800/40 border-white/5 hover:border-sky-500/40 hover:scale-[1.02]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Photo / Position fallback */}
-                    {photoUrl ? (
-                      <img
-                        src={photoUrl}
-                        alt={player.name}
-                        className="w-12 h-12 rounded-xl object-cover bg-slate-700 flex-shrink-0"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.style.display = 'none'
-                          target.nextElementSibling?.classList.remove('hidden')
-                        }}
-                      />
-                    ) : null}
-                    <span className={`w-12 h-12 rounded-xl bg-gradient-to-br ${posGradient} flex items-center justify-center text-sm font-bold text-white flex-shrink-0 ${photoUrl ? 'hidden' : ''}`}>
-                      {player.position}
-                    </span>
+          <>
+            {/* Card Grid - always on mobile, conditional on desktop */}
+            <div className={`grid grid-cols-2 gap-2 ${viewMode === 'table' ? 'lg:hidden' : 'lg:grid-cols-3'}`}>
+              {filteredPlayers.slice(0, 50).map(player => {
+                const photoUrl = getPlayerPhotoUrl(player.apiFootballId)
+                const posGradient = POSITION_GRADIENTS[player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
+                const isSelected = focalPlayer?.id === player.id
+                const ageBadge = getAgeBadge(player.age)
+                return (
+                  <button
+                    key={player.id}
+                    onClick={() => handlePlayerClick(player)}
+                    className={`relative rounded-xl p-3 text-left transition-all border group ${
+                      isSelected
+                        ? 'bg-sky-500/10 border-sky-500/40 ring-1 ring-sky-500/30'
+                        : 'bg-slate-800/40 border-white/5 hover:border-sky-500/40 hover:scale-[1.02]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* Photo / Position fallback */}
+                      {photoUrl ? (
+                        <img
+                          src={photoUrl}
+                          alt={player.name}
+                          className="w-12 h-12 rounded-xl object-cover bg-slate-700 flex-shrink-0"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.style.display = 'none'
+                            target.nextElementSibling?.classList.remove('hidden')
+                          }}
+                        />
+                      ) : null}
+                      <span className={`w-12 h-12 rounded-xl bg-gradient-to-br ${posGradient} flex items-center justify-center text-sm font-bold text-white flex-shrink-0 ${photoUrl ? 'hidden' : ''}`}>
+                        {player.position}
+                      </span>
 
-                    {/* Info */}
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold text-white text-sm truncate leading-tight">{player.name}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <div className="w-4 h-4 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
-                          <img src={getTeamLogo(player.team)} alt={player.team} className="w-3 h-3 object-contain" />
+                      {/* Info */}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-white text-sm truncate leading-tight">{player.name}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className="w-4 h-4 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
+                            <img src={getTeamLogo(player.team)} alt={player.team} className="w-3 h-3 object-contain" />
+                          </div>
+                          <span className="text-sm text-gray-400 truncate">{player.team}</span>
                         </div>
-                        <span className="text-sm text-gray-400 truncate">{player.team}</span>
+                        {/* Age badge + mini stats */}
+                        <div className="flex items-center gap-1.5 mt-1">
+                          {player.age != null && (
+                            <span className={`text-sm font-bold px-1.5 py-0.5 rounded border ${ageBadge.bg} ${ageBadge.text}`}>
+                              {player.age}a
+                            </span>
+                          )}
+                          <MiniStats player={player} />
+                        </div>
                       </div>
-                      {/* Age badge + mini stats */}
-                      <div className="flex items-center gap-1.5 mt-1">
-                        {player.age != null && (
-                          <span className={`text-sm font-bold px-1.5 py-0.5 rounded border ${ageBadge.bg} ${ageBadge.text}`}>
-                            {player.age}a
-                          </span>
-                        )}
-                        <MiniStats player={player} />
-                      </div>
-                    </div>
 
-                    {/* Quotation */}
-                    {player.quotation > 0 && (
-                      <span className="text-sm font-mono font-bold text-accent-400 flex-shrink-0">{player.quotation}</span>
-                    )}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
+                      {/* Quotation */}
+                      {player.quotation > 0 && (
+                        <span className="text-sm font-mono font-bold text-accent-400 flex-shrink-0">{player.quotation}</span>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Table View - desktop only when table mode selected */}
+            {viewMode === 'table' && (
+              <table className="hidden lg:table w-full">
+                <thead>
+                  <tr className="bg-slate-800/50 text-sm text-gray-500 uppercase tracking-wider font-semibold">
+                    <th className="py-2 px-3 text-left w-10"></th>
+                    <th className="py-2 px-3 text-left">Nome</th>
+                    <th className="py-2 px-3 text-left">Squadra</th>
+                    <th className="py-2 px-3 text-center">Eta</th>
+                    <th className="py-2 px-3 text-center">P</th>
+                    <th className="py-2 px-3 text-center">G</th>
+                    <th className="py-2 px-3 text-center">A</th>
+                    <th className="py-2 px-3 text-center">MV</th>
+                    <th className="py-2 px-3 text-right">Quot</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPlayers.slice(0, 50).map(player => {
+                    const photoUrl = getPlayerPhotoUrl(player.apiFootballId)
+                    const posGradient = POSITION_GRADIENTS[player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
+                    const isSelected = focalPlayer?.id === player.id
+                    const ageBadge = getAgeBadge(player.age)
+                    const mvC = getMvColor(player.avgRating)
+                    return (
+                      <tr
+                        key={player.id}
+                        onClick={() => handlePlayerClick(player)}
+                        className={`border-b border-white/5 cursor-pointer transition-colors ${
+                          isSelected
+                            ? 'bg-sky-500/10 border-sky-500/30'
+                            : 'hover:bg-slate-800/30'
+                        }`}
+                      >
+                        {/* Photo + Badge */}
+                        <td className="py-2 px-3">
+                          <div className="relative w-10 h-10">
+                            {photoUrl ? (
+                              <img
+                                src={photoUrl}
+                                alt={player.name}
+                                className="w-10 h-10 rounded-full object-cover bg-slate-700"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement
+                                  target.style.display = 'none'
+                                  target.nextElementSibling?.classList.remove('hidden')
+                                }}
+                              />
+                            ) : null}
+                            <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${posGradient} flex items-center justify-center text-xs font-bold text-white ${photoUrl ? 'hidden' : ''}`}>
+                              {player.position}
+                            </span>
+                            <span className={`absolute -bottom-0.5 -right-0.5 text-[10px] font-bold px-1 rounded bg-gradient-to-br ${posGradient} text-white leading-tight`}>
+                              {player.position}
+                            </span>
+                          </div>
+                        </td>
+                        {/* Nome */}
+                        <td className="py-2 px-3">
+                          <span className="font-medium text-white">{player.name}</span>
+                        </td>
+                        {/* Squadra */}
+                        <td className="py-2 px-3">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-4 h-4 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
+                              <img src={getTeamLogo(player.team)} alt={player.team} className="w-3 h-3 object-contain" />
+                            </div>
+                            <span className="text-sm text-gray-400">{player.team}</span>
+                          </div>
+                        </td>
+                        {/* Eta */}
+                        <td className="py-2 px-3 text-center">
+                          {player.age != null ? (
+                            <span className={`text-sm font-bold ${ageBadge.text}`}>{player.age}</span>
+                          ) : (
+                            <span className="text-sm text-gray-600">-</span>
+                          )}
+                        </td>
+                        {/* Presenze */}
+                        <td className="py-2 px-3 text-center">
+                          <span className="text-sm text-gray-400 font-mono">{player.appearances ?? '-'}</span>
+                        </td>
+                        {/* Gol */}
+                        <td className="py-2 px-3 text-center">
+                          <span className="text-sm text-gray-400 font-mono">{player.goals ?? '-'}</span>
+                        </td>
+                        {/* Assist */}
+                        <td className="py-2 px-3 text-center">
+                          <span className="text-sm text-gray-400 font-mono">{player.assists ?? '-'}</span>
+                        </td>
+                        {/* MV */}
+                        <td className="py-2 px-3 text-center">
+                          <span className={`text-sm font-mono font-bold ${mvC.text}`}>
+                            {player.avgRating ?? '-'}
+                          </span>
+                        </td>
+                        {/* Quotazione */}
+                        <td className="py-2 px-3 text-right">
+                          <span className="font-mono text-accent-400">{player.quotation > 0 ? player.quotation : '-'}</span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </>
         )}
       </div>
 
