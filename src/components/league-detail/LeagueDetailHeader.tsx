@@ -1,9 +1,10 @@
 import { PhaseStepper } from './PhaseStepper'
+import { PhaseCalendar } from './PhaseCalendar'
 
 interface LeagueDetailHeaderProps {
   leagueName: string
   leagueStatus: string
-  sessions: Array<{ type: string; status: string }>
+  sessions: Array<{ type: string; status: string; currentPhase: string; phaseStartedAt: string | null }>
   userBudget: number
 }
 
@@ -22,6 +23,7 @@ export function LeagueDetailHeader({ leagueName, leagueStatus, sessions, userBud
                 <p className="text-gray-400 mt-0.5 text-xs sm:text-sm uppercase tracking-wide">Stagione 2025/26</p>
               </div>
               <PhaseStepper leagueStatus={leagueStatus} sessions={sessions} />
+              <PhaseCalendar sessions={sessions} />
             </div>
           </div>
           <div className="text-right bg-surface-200 rounded-xl px-3 py-2 sm:px-6 sm:py-4 border border-surface-50/20 flex-shrink-0">

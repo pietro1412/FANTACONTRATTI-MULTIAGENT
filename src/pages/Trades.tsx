@@ -1326,10 +1326,73 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                 )}
 
                 <div className="grid lg:grid-cols-2 gap-6">
-                  {/* Left Column - Search and Request Players */}
-                  <Card>
+                  {/* T-021: Left Column - MY players to OFFER (Offro) */}
+                  <Card className="border-danger-500/20">
                     <CardHeader>
-                      <CardTitle>Cerca Giocatori da Richiedere</CardTitle>
+                      <CardTitle>
+                        <span className="flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-full bg-danger-500/20 flex items-center justify-center text-xs">↑</span>
+                          <span className="text-danger-400">OFFRO</span>
+                          <span className="text-gray-500 font-normal text-sm">— I tuoi giocatori</span>
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="max-h-[480px] overflow-y-auto border border-surface-50/30 rounded-lg bg-surface-300 divide-y divide-surface-50/10">
+                        {myRoster.length === 0 ? (
+                          <p className="text-gray-500 text-sm p-4 text-center">Nessun giocatore in rosa</p>
+                        ) : (
+                          myRoster.map(entry => {
+                            const isSelected = selectedOfferedPlayers.includes(entry.id)
+                            return (
+                              <div
+                                key={entry.id}
+                                onClick={() => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, entry.id)}
+                                className={`px-3 py-2.5 cursor-pointer hover:bg-surface-200 transition-colors flex items-center justify-between ${
+                                  isSelected ? 'bg-danger-500/20 border-l-2 border-danger-500' : ''
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-6 h-6 rounded-full bg-gradient-to-br ${
+                                    entry.player.position === 'P' ? 'from-yellow-500 to-yellow-600' :
+                                    entry.player.position === 'D' ? 'from-green-500 to-green-600' :
+                                    entry.player.position === 'C' ? 'from-blue-500 to-blue-600' :
+                                    'from-red-500 to-red-600'
+                                  } flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0`}>{entry.player.position}</span>
+                                  <div>
+                                    <p className="text-sm text-white font-medium">{entry.player.name}</p>
+                                    <p className="text-[10px] text-gray-500">{entry.player.team}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs">
+                                  {entry.player.contract && (
+                                    <span className="text-gray-400">{entry.player.contract.salary}M</span>
+                                  )}
+                                  {isSelected && <span className="text-danger-400 font-bold">✓</span>}
+                                </div>
+                              </div>
+                            )
+                          })
+                        )}
+                      </div>
+                      {selectedOfferedPlayers.length > 0 && (
+                        <div className="mt-2 text-xs text-danger-400">
+                          {selectedOfferedPlayers.length} giocator{selectedOfferedPlayers.length === 1 ? 'e' : 'i'} selezionat{selectedOfferedPlayers.length === 1 ? 'o' : 'i'}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* T-021: Right Column - SEARCH and REQUEST players (Chiedo) */}
+                  <Card className="border-primary-500/20">
+                    <CardHeader>
+                      <CardTitle>
+                        <span className="flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-full bg-primary-500/20 flex items-center justify-center text-xs">↓</span>
+                          <span className="text-primary-400">CHIEDO</span>
+                          <span className="text-gray-500 font-normal text-sm">— Cerca giocatori</span>
+                        </span>
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       {/* Search Filters */}
@@ -1456,85 +1519,6 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                     </CardContent>
                   </Card>
 
-                  {/* Right Column - My Players to Offer */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>I Tuoi Giocatori da Offrire</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="max-h-[480px] overflow-y-auto border border-surface-50/30 rounded-lg bg-surface-300 divide-y divide-surface-50/10">
-                        {myRoster.length === 0 ? (
-                          <p className="text-gray-500 text-sm p-4 text-center">Nessun giocatore in rosa</p>
-                        ) : (
-                          myRoster.map(entry => {
-                            const isSelected = selectedOfferedPlayers.includes(entry.id)
-                            return (
-                              <div
-                                key={entry.id}
-                                onClick={() => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, entry.id)}
-                                className={`px-3 py-2.5 cursor-pointer hover:bg-surface-200 transition-colors flex items-center justify-between ${
-                                  isSelected ? 'bg-danger-500/20' : ''
-                                }`}
-                              >
-                                <div className="flex items-center gap-2.5">
-                                  {isSelected && <span className="text-danger-400 font-bold text-sm">✓</span>}
-                                  {/* Player photo with position badge */}
-                                  <div className="relative flex-shrink-0">
-                                    {entry.player.apiFootballId ? (
-                                      <img
-                                        src={getPlayerPhotoUrl(entry.player.apiFootballId)}
-                                        alt={entry.player.name}
-                                        className="w-9 h-9 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
-                                        onError={(e) => {
-                                          (e.target as HTMLImageElement).style.display = 'none'
-                                          const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
-                                          if (fallback) fallback.style.display = 'flex'
-                                        }}
-                                      />
-                                    ) : null}
-                                    <div
-                                      className={`w-9 h-9 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} items-center justify-center text-xs font-bold text-white ${entry.player.apiFootballId ? 'hidden' : 'flex'}`}
-                                    >
-                                      {entry.player.position}
-                                    </div>
-                                    <span
-                                      className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} flex items-center justify-center text-white font-bold text-[8px] border border-surface-200`}
-                                    >
-                                      {entry.player.position}
-                                    </span>
-                                  </div>
-                                  <div className="min-w-0">
-                                    <span className="text-gray-200 text-xs font-medium block truncate">{entry.player.name}</span>
-                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                                      <span>{entry.player.team}</span>
-                                      {entry.player.age != null && (
-                                        <span className={getAgeColor(entry.player.age)}>• {entry.player.age}a</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-3 text-[10px] flex-shrink-0">
-                                  {entry.player.quotation != null && (
-                                    <span className="text-gray-400" title="Quotazione">{entry.player.quotation}</span>
-                                  )}
-                                  <span className="text-accent-400 font-semibold" title="Ingaggio">{entry.player.contract?.salary ?? '-'}</span>
-                                  <span className="text-white" title="Durata">{entry.player.contract?.duration ?? '-'}A</span>
-                                  <span className="text-warning-400" title="Clausola">{entry.player.contract?.rescissionClause ?? '-'}</span>
-                                </div>
-                              </div>
-                            )
-                          })
-                        )}
-                      </div>
-
-                      {/* Selected count */}
-                      {selectedOfferedPlayers.length > 0 && (
-                        <p className="text-sm text-danger-400 mt-2">
-                          {selectedOfferedPlayers.length} giocatore/i da cedere
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
                 </div>
 
                 {/* Budget, Duration and Message */}

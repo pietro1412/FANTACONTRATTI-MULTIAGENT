@@ -11,6 +11,21 @@ interface CommandItem {
   keywords?: string
 }
 
+const RECENTS_KEY = 'fantacontratti-command-recents'
+const MAX_RECENTS = 5
+
+function getRecents(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(RECENTS_KEY) || '[]')
+  } catch { return [] }
+}
+
+function addRecent(id: string) {
+  const recents = getRecents().filter(r => r !== id)
+  recents.unshift(id)
+  localStorage.setItem(RECENTS_KEY, JSON.stringify(recents.slice(0, MAX_RECENTS)))
+}
+
 export function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -73,15 +88,27 @@ export function CommandPalette() {
     )
   }, [commands, query])
 
-  // Group by category
+  // T-024: Build "Recenti" section when query is empty
   const grouped = useMemo(() => {
     const groups: Record<string, CommandItem[]> = {}
+
+    // Show recent items first when no search query
+    if (!query.trim()) {
+      const recentIds = getRecents()
+      const recentItems = recentIds
+        .map(id => commands.find(c => c.id === id))
+        .filter((c): c is CommandItem => c !== undefined)
+      if (recentItems.length > 0) {
+        groups['Recenti'] = recentItems
+      }
+    }
+
     for (const item of filtered) {
       if (!groups[item.category]) groups[item.category] = []
       groups[item.category].push(item)
     }
     return groups
-  }, [filtered])
+  }, [filtered, query, commands])
 
   // Keyboard listener for Ctrl+K / Cmd+K
   useEffect(() => {
@@ -117,6 +144,7 @@ export function CommandPalette() {
       setSelectedIndex(prev => Math.max(prev - 1, 0))
     } else if (e.key === 'Enter' && filtered[selectedIndex]) {
       e.preventDefault()
+      addRecent(filtered[selectedIndex].id)
       filtered[selectedIndex].action()
       setIsOpen(false)
     }
@@ -183,6 +211,7 @@ export function CommandPalette() {
                       key={item.id}
                       data-index={idx}
                       onClick={() => {
+                        addRecent(item.id)
                         item.action()
                         setIsOpen(false)
                       }}

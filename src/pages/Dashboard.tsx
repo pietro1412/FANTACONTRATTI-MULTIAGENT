@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { leagueApi, superadminApi } from '../services/api'
+import { leagueApi, superadminApi, movementApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
 import { SearchLeaguesModal } from '../components/SearchLeaguesModal'
@@ -28,6 +28,17 @@ interface LeagueData {
   league: League
 }
 
+function getTimeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'ora'
+  if (mins < 60) return `${mins}m fa`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h fa`
+  const days = Math.floor(hours / 24)
+  return `${days}g fa`
+}
+
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'In preparazione',
   ACTIVE: 'Attiva',
@@ -45,6 +56,20 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [showSearchModal, setShowSearchModal] = useState(false)
   const [cancellingLeagueId, setCancellingLeagueId] = useState<string | null>(null)
+
+  // T-022: Activity feed
+  interface ActivityItem {
+    id: string
+    type: string
+    playerName: string
+    playerPosition: string
+    fromUser: string | null
+    toUser: string | null
+    price: number | null
+    createdAt: string
+    leagueName: string
+  }
+  const [activities, setActivities] = useState<ActivityItem[]>([])
 
   async function handleCancelRequest(e: React.MouseEvent, leagueId: string) {
     e.stopPropagation()
@@ -86,7 +111,34 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   async function loadLeagues() {
     const response = await leagueApi.getAll()
     if (response.success && response.data) {
-      setLeagues(response.data as LeagueData[])
+      const leagueData = response.data as LeagueData[]
+      setLeagues(leagueData)
+
+      // T-022: Load recent activity from active leagues
+      const activeLeagues = leagueData.filter(l => l.membership.status === 'ACTIVE')
+      if (activeLeagues.length > 0) {
+        const movementPromises = activeLeagues.slice(0, 3).map(async ({ league }) => {
+          const res = await movementApi.getLeagueMovements(league.id, { limit: 5 })
+          if (res.success && res.data) {
+            const movements = (res.data as { movements: Array<{ id: string; type: string; player: { name: string; position: string }; from: { username: string } | null; to: { username: string } | null; price: number | null; createdAt: string }> }).movements || []
+            return movements.map(m => ({
+              id: m.id,
+              type: m.type,
+              playerName: m.player.name,
+              playerPosition: m.player.position,
+              fromUser: m.from?.username || null,
+              toUser: m.to?.username || null,
+              price: m.price,
+              createdAt: m.createdAt,
+              leagueName: league.name,
+            }))
+          }
+          return []
+        })
+        const allMovements = (await Promise.all(movementPromises)).flat()
+        allMovements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        setActivities(allMovements.slice(0, 10))
+      }
     }
     setIsLoading(false)
   }
@@ -336,6 +388,40 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 </div>
               )
             })}
+          </div>
+        )}
+
+        {/* T-022: Activity Feed */}
+        {activities.length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-lg font-bold text-white mb-4">Attivita Recente</h3>
+            <div className="bg-surface-200 rounded-xl border border-surface-50/20 divide-y divide-surface-50/10">
+              {activities.map(activity => {
+                const timeAgo = getTimeAgo(activity.createdAt)
+                const typeIcon = activity.type === 'ACQUISITION' ? '🔨' :
+                  activity.type === 'TRADE' ? '🔄' :
+                  activity.type === 'RUBATA' ? '🎯' :
+                  activity.type === 'RELEASE' ? '📤' : '📋'
+
+                return (
+                  <div key={activity.id} className="px-4 py-3 flex items-center gap-3">
+                    <span className="text-base flex-shrink-0">{typeIcon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white truncate">
+                        <span className="font-medium">{activity.playerName}</span>
+                        {activity.toUser && (
+                          <span className="text-gray-400"> → {activity.toUser}</span>
+                        )}
+                        {activity.price != null && (
+                          <span className="text-accent-400 ml-1">{activity.price}M</span>
+                        )}
+                      </p>
+                      <p className="text-[10px] text-gray-500">{activity.leagueName} · {timeAgo}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
       </main>
