@@ -1352,23 +1352,50 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                                   isSelected ? 'bg-danger-500/20 border-l-2 border-danger-500' : ''
                                 }`}
                               >
-                                <div className="flex items-center gap-2">
-                                  <span className={`w-6 h-6 rounded-full bg-gradient-to-br ${
-                                    entry.player.position === 'P' ? 'from-yellow-500 to-yellow-600' :
-                                    entry.player.position === 'D' ? 'from-green-500 to-green-600' :
-                                    entry.player.position === 'C' ? 'from-blue-500 to-blue-600' :
-                                    'from-red-500 to-red-600'
-                                  } flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0`}>{entry.player.position}</span>
-                                  <div>
-                                    <p className="text-sm text-white font-medium">{entry.player.name}</p>
-                                    <p className="text-[10px] text-gray-500">{entry.player.team}</p>
+                                <div className="flex items-center gap-2.5">
+                                  {isSelected && <span className="text-danger-400 font-bold text-sm">✓</span>}
+                                  {/* Player photo with position badge */}
+                                  <div className="relative flex-shrink-0">
+                                    {entry.player.apiFootballId ? (
+                                      <img
+                                        src={getPlayerPhotoUrl(entry.player.apiFootballId)}
+                                        alt={entry.player.name}
+                                        className="w-9 h-9 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).style.display = 'none'
+                                          const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                                          if (fallback) fallback.style.display = 'flex'
+                                        }}
+                                      />
+                                    ) : null}
+                                    <div
+                                      className={`w-9 h-9 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} items-center justify-center text-xs font-bold text-white ${entry.player.apiFootballId ? 'hidden' : 'flex'}`}
+                                    >
+                                      {entry.player.position}
+                                    </div>
+                                    <span
+                                      className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} flex items-center justify-center text-white font-bold text-[8px] border border-surface-200`}
+                                    >
+                                      {entry.player.position}
+                                    </span>
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="text-gray-200 text-xs font-medium block truncate">{entry.player.name}</span>
+                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                                      <span>{entry.player.team}</span>
+                                      {entry.player.age != null && (
+                                        <span className={getAgeColor(entry.player.age)}>• {entry.player.age}a</span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-xs">
-                                  {entry.player.contract && (
-                                    <span className="text-gray-400">{entry.player.contract.salary}M</span>
+                                <div className="flex items-center gap-3 text-[10px] flex-shrink-0">
+                                  {entry.player.quotation != null && (
+                                    <span className="text-gray-400"><span className="text-gray-600">Q</span> {entry.player.quotation}</span>
                                   )}
-                                  {isSelected && <span className="text-danger-400 font-bold">✓</span>}
+                                  <span className="text-accent-400 font-semibold"><span className="text-gray-600 font-normal">I</span> {entry.player.contract?.salary ?? '-'}</span>
+                                  <span className="text-white"><span className="text-gray-600">D</span> {entry.player.contract?.duration ?? '-'}A</span>
+                                  <span className="text-warning-400"><span className="text-gray-600 font-normal">C</span> {entry.player.contract?.rescissionClause ?? '-'}</span>
                                 </div>
                               </div>
                             )
@@ -1498,11 +1525,11 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                                 </div>
                                 <div className="flex items-center gap-3 text-[10px] flex-shrink-0">
                                   {entry.player.quotation != null && (
-                                    <span className="text-gray-400" title="Quotazione">{entry.player.quotation}</span>
+                                    <span className="text-gray-400" title="Quotazione"><span className="text-gray-600">Q</span> {entry.player.quotation}</span>
                                   )}
-                                  <span className="text-accent-400 font-semibold" title="Ingaggio">{entry.player.contract?.salary ?? '-'}</span>
-                                  <span className="text-white" title="Durata">{entry.player.contract?.duration ?? '-'}A</span>
-                                  <span className="text-warning-400" title="Clausola">{entry.player.contract?.rescissionClause ?? '-'}</span>
+                                  <span className="text-accent-400 font-semibold" title="Ingaggio"><span className="text-gray-600 font-normal">I</span> {entry.player.contract?.salary ?? '-'}</span>
+                                  <span className="text-white" title="Durata"><span className="text-gray-600">D</span> {entry.player.contract?.duration ?? '-'}A</span>
+                                  <span className="text-warning-400" title="Clausola"><span className="text-gray-600 font-normal">C</span> {entry.player.contract?.rescissionClause ?? '-'}</span>
                                 </div>
                               </div>
                             )
