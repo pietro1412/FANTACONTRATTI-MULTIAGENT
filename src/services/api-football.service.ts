@@ -56,6 +56,44 @@ interface ApiPlayerStats {
   }>
 }
 
+interface ApiFixture {
+  fixture: {
+    id: number
+    date: string
+    status: { short: string; long: string }
+  }
+  league: {
+    id: number
+    round: string
+  }
+  teams: {
+    home: { id: number; name: string }
+    away: { id: number; name: string }
+  }
+}
+
+interface ApiFixturePlayerEntry {
+  team: { id: number; name: string }
+  players: Array<{
+    player: { id: number; name: string }
+    statistics: Array<{
+      games: { minutes: number | null; rating: string | null }
+      goals: { total: number | null; assists: number | null }
+    }>
+  }>
+}
+
+export interface SyncMatchRatingsResult {
+  success: boolean
+  message?: string
+  data?: {
+    fixturesProcessed: number
+    ratingsUpserted: number
+    apiCallsUsed: number
+    remainingFixtures: number
+  }
+}
+
 export interface MatchResult {
   success: boolean
   message?: string
@@ -1092,6 +1130,372 @@ export async function getMatchedPlayers(userId: string, search?: string): Promis
   } catch (error) {
     console.error('getMatchedPlayers error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
+  }
+}
+
+// ==================== INTERNAL FUNCTIONS (no auth, for scheduler) ====================
+
+/**
+ * Internal: Sync season stats without auth check.
+ * Used by scheduler jobs and standalone scripts.
+ */
+export async function syncStatsInternal(): Promise<SyncResult> {
+  try {
+    const dbPlayers = await prisma.serieAPlayer.findMany({
+      where: { apiFootballId: { not: null } },
+      select: { id: true, apiFootballId: true, name: true },
+    })
+
+    if (dbPlayers.length === 0) {
+      return {
+        success: true,
+        message: 'Nessun giocatore con API-Football ID.',
+        data: { synced: 0, notFound: 0, noApiId: 0, apiCallsUsed: 0 },
+      }
+    }
+
+    const apiIdMap = new Map<number, { id: string; name: string }>()
+    for (const p of dbPlayers) {
+      if (p.apiFootballId) {
+        apiIdMap.set(p.apiFootballId, { id: p.id, name: p.name })
+      }
+    }
+
+    let page = 1
+    let totalPages = 1
+    let apiCallsUsed = 0
+    let synced = 0
+    let notFound = 0
+    const now = new Date()
+
+    while (page <= totalPages) {
+      const data = await apiFootballFetch<ApiPlayerStats>('/players', {
+        league: String(SERIE_A_LEAGUE_ID),
+        season: String(CURRENT_SEASON),
+        page: String(page),
+      })
+      apiCallsUsed++
+      totalPages = data.paging.total
+
+      for (const apiPlayer of data.response) {
+        const dbPlayer = apiIdMap.get(apiPlayer.player.id)
+        if (!dbPlayer) continue
+
+        const serieAStats = apiPlayer.statistics.find(
+          (s) => s.league.id === SERIE_A_LEAGUE_ID
+        )
+        if (!serieAStats) { notFound++; continue }
+
+        const stats = {
+          games: {
+            appearences: serieAStats.games.appearences,
+            minutes: serieAStats.games.minutes,
+            rating: serieAStats.games.rating ? parseFloat(serieAStats.games.rating) : null,
+          },
+          goals: {
+            total: serieAStats.goals.total,
+            assists: serieAStats.goals.assists,
+            conceded: serieAStats.goals.conceded,
+            saves: serieAStats.goals.saves,
+          },
+          shots: { total: serieAStats.shots.total, on: serieAStats.shots.on },
+          passes: { total: serieAStats.passes.total, key: serieAStats.passes.key, accuracy: serieAStats.passes.accuracy },
+          tackles: { total: serieAStats.tackles.total, interceptions: serieAStats.tackles.interceptions },
+          dribbles: { attempts: serieAStats.dribbles.attempts, success: serieAStats.dribbles.success },
+          cards: { yellow: serieAStats.cards.yellow, red: serieAStats.cards.red },
+          penalty: { scored: serieAStats.penalty.scored, missed: serieAStats.penalty.missed, saved: serieAStats.penalty.saved },
+        }
+
+        await prisma.serieAPlayer.update({
+          where: { id: dbPlayer.id },
+          data: { apiFootballStats: stats, statsSyncedAt: now, age: apiPlayer.player.age || null },
+        })
+        synced++
+      }
+
+      page++
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+
+    const noApiId = dbPlayers.length - synced - notFound
+    return {
+      success: true,
+      message: `Sync completato: ${synced} aggiornati, ${notFound} senza stats Serie A, ${apiCallsUsed} chiamate API`,
+      data: { synced, notFound, noApiId, apiCallsUsed },
+    }
+  } catch (error) {
+    console.error('syncStatsInternal error:', error)
+    return { success: false, message: `Errore sync: ${(error as Error).message}` }
+  }
+}
+
+/**
+ * Internal: Refresh API-Football player cache without auth check.
+ */
+export async function refreshCacheInternal(): Promise<{ success: boolean; message?: string; apiCallsUsed: number }> {
+  try {
+    const teams = await getSerieATeams()
+    let apiCallsUsed = 1
+
+    const allPlayers: Array<{ id: number; name: string; team: string; teamId: number; position: string; photo: string | null }> = []
+
+    for (const team of teams) {
+      const squadData = await apiFootballFetch<ApiSquad>('/players/squads', { team: String(team.id) })
+      apiCallsUsed++
+
+      if (squadData.results > 0 && squadData.response[0]) {
+        const dbTeamName = normalizeTeamName(team.name)
+        for (const player of squadData.response[0].players) {
+          allPlayers.push({
+            id: player.id,
+            name: player.name,
+            team: dbTeamName,
+            teamId: team.id,
+            position: player.position || 'Unknown',
+            photo: player.photo || null,
+          })
+        }
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+
+    const now = new Date()
+    for (const player of allPlayers) {
+      await prisma.apiFootballPlayerCache.upsert({
+        where: { id: player.id },
+        update: { name: player.name, team: player.team, teamId: player.teamId, position: player.position, photo: player.photo, cachedAt: now },
+        create: { id: player.id, name: player.name, team: player.team, teamId: player.teamId, position: player.position, photo: player.photo, cachedAt: now },
+      })
+    }
+
+    return { success: true, message: `Cache aggiornata: ${allPlayers.length} giocatori da ${teams.length} squadre`, apiCallsUsed }
+  } catch (error) {
+    console.error('refreshCacheInternal error:', error)
+    return { success: false, message: `Errore: ${(error as Error).message}`, apiCallsUsed: 0 }
+  }
+}
+
+/**
+ * Sync match-by-match ratings from API-Football /fixtures/players endpoint.
+ * Processes completed fixtures not yet synced, in batches.
+ *
+ * @param options.maxFixtures - Max fixtures to process in one run (default 5)
+ */
+export async function syncMatchRatings(options: { maxFixtures?: number } = {}): Promise<SyncMatchRatingsResult> {
+  const maxFixtures = options.maxFixtures ?? 5
+  const startedAt = new Date()
+
+  try {
+    // 1. Check quota
+    const { getRemainingQuota } = await import('./api-football-quota')
+    const remaining = await getRemainingQuota()
+    // Need at least 1 (fixtures list) + 1 (one fixture players) = 2 calls minimum
+    if (remaining < 2) {
+      return { success: false, message: `Quota API giornaliera esaurita (rimanenti: ${remaining})` }
+    }
+
+    // 2. Fetch all fixtures for the season (1 API call)
+    const fixturesData = await apiFootballFetch<ApiFixture>('/fixtures', {
+      league: String(SERIE_A_LEAGUE_ID),
+      season: String(CURRENT_SEASON),
+    })
+    let apiCallsUsed = 1
+
+    // Filter only finished matches
+    const finishedStatuses = new Set(['FT', 'AET', 'PEN'])
+    const finishedFixtures = fixturesData.response.filter(
+      (f) => finishedStatuses.has(f.fixture.status.short)
+    )
+
+    // 3. Get already synced fixture IDs
+    const syncedFixtures = await prisma.apiFootballFixtureSync.findMany({
+      select: { apiFixtureId: true },
+    })
+    const syncedIds = new Set(syncedFixtures.map((f) => f.apiFixtureId))
+
+    // 4. Find delta (finished but not yet synced)
+    const pendingFixtures = finishedFixtures
+      .filter((f) => !syncedIds.has(f.fixture.id))
+      .sort((a, b) => new Date(b.fixture.date).getTime() - new Date(a.fixture.date).getTime())
+
+    const totalRemaining = pendingFixtures.length
+
+    if (totalRemaining === 0) {
+      // Log success with 0 processed
+      await prisma.apiFootballSyncLog.create({
+        data: {
+          jobType: 'MATCH_RATINGS',
+          status: 'SUCCESS',
+          fixturesProcessed: 0,
+          apiCallsUsed,
+          details: { message: 'Nessuna nuova partita da sincronizzare' },
+          startedAt,
+          completedAt: new Date(),
+        },
+      })
+      return {
+        success: true,
+        message: 'Nessuna nuova partita da sincronizzare',
+        data: { fixturesProcessed: 0, ratingsUpserted: 0, apiCallsUsed, remainingFixtures: 0 },
+      }
+    }
+
+    // Cap by quota (each fixture = 1 API call) and maxFixtures
+    const maxByQuota = remaining - apiCallsUsed // already used 1 for fixtures list
+    const fixturesToProcess = pendingFixtures.slice(0, Math.min(maxFixtures, maxByQuota))
+
+    // 5. Build lookup map: apiFootballId → playerId
+    const dbPlayers = await prisma.serieAPlayer.findMany({
+      where: { apiFootballId: { not: null } },
+      select: { id: true, apiFootballId: true },
+    })
+    const apiIdToPlayerId = new Map<number, string>()
+    for (const p of dbPlayers) {
+      if (p.apiFootballId) apiIdToPlayerId.set(p.apiFootballId, p.id)
+    }
+
+    // 6. Process each fixture
+    let totalRatingsUpserted = 0
+    let fixturesProcessed = 0
+
+    for (const fixture of fixturesToProcess) {
+      try {
+        const fixturePlayersData = await apiFootballFetch<ApiFixturePlayerEntry>(
+          '/fixtures/players',
+          { fixture: String(fixture.fixture.id) }
+        )
+        apiCallsUsed++
+
+        let playersProcessed = 0
+        const matchDate = new Date(fixture.fixture.date)
+        const season = `${CURRENT_SEASON}-${CURRENT_SEASON + 1}`
+
+        for (const teamEntry of fixturePlayersData.response) {
+          for (const playerEntry of teamEntry.players) {
+            const playerId = apiIdToPlayerId.get(playerEntry.player.id)
+            if (!playerId) continue
+
+            const stats = playerEntry.statistics[0]
+            if (!stats) continue
+
+            const rating = stats.games.rating ? parseFloat(stats.games.rating) : null
+            const minutesPlayed = stats.games.minutes || null
+
+            await prisma.playerMatchRating.upsert({
+              where: {
+                playerId_apiFixtureId: {
+                  playerId,
+                  apiFixtureId: fixture.fixture.id,
+                },
+              },
+              update: {
+                rating,
+                minutesPlayed,
+                goals: stats.goals.total || 0,
+                assists: stats.goals.assists || 0,
+                matchDate,
+                round: fixture.league.round || null,
+                season,
+              },
+              create: {
+                playerId,
+                apiFixtureId: fixture.fixture.id,
+                matchDate,
+                season,
+                round: fixture.league.round || null,
+                rating,
+                minutesPlayed,
+                goals: stats.goals.total || 0,
+                assists: stats.goals.assists || 0,
+              },
+            })
+
+            playersProcessed++
+            totalRatingsUpserted++
+          }
+        }
+
+        // Mark fixture as synced
+        await prisma.apiFootballFixtureSync.create({
+          data: {
+            apiFixtureId: fixture.fixture.id,
+            round: fixture.league.round || null,
+            matchDate,
+            playersProcessed,
+          },
+        })
+
+        fixturesProcessed++
+
+        // Rate limiting between fixtures
+        await new Promise((resolve) => setTimeout(resolve, 150))
+      } catch (fixtureError) {
+        console.error(`[SYNC] Error processing fixture ${fixture.fixture.id}:`, fixtureError)
+        // Continue with next fixture
+      }
+    }
+
+    // 7. Log results
+    const status = fixturesProcessed === fixturesToProcess.length ? 'SUCCESS' : 'PARTIAL'
+    await prisma.apiFootballSyncLog.create({
+      data: {
+        jobType: 'MATCH_RATINGS',
+        status,
+        fixturesProcessed,
+        apiCallsUsed,
+        details: {
+          ratingsUpserted: totalRatingsUpserted,
+          remainingFixtures: totalRemaining - fixturesProcessed,
+        },
+        startedAt,
+        completedAt: new Date(),
+      },
+    })
+
+    return {
+      success: true,
+      message: `Sync completato: ${fixturesProcessed} partite, ${totalRatingsUpserted} ratings, ${apiCallsUsed} API calls`,
+      data: {
+        fixturesProcessed,
+        ratingsUpserted: totalRatingsUpserted,
+        apiCallsUsed,
+        remainingFixtures: totalRemaining - fixturesProcessed,
+      },
+    }
+  } catch (error) {
+    console.error('syncMatchRatings error:', error)
+
+    // Log failure
+    try {
+      await prisma.apiFootballSyncLog.create({
+        data: {
+          jobType: 'MATCH_RATINGS',
+          status: 'FAILED',
+          details: { error: (error as Error).message },
+          startedAt,
+          completedAt: new Date(),
+        },
+      })
+    } catch { /* ignore logging error */ }
+
+    return { success: false, message: `Errore sync match ratings: ${(error as Error).message}` }
+  }
+}
+
+/**
+ * Get sync history for the admin panel.
+ */
+export async function getSyncHistory(): Promise<{ success: boolean; data?: unknown[] }> {
+  try {
+    const logs = await prisma.apiFootballSyncLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    })
+    return { success: true, data: logs }
+  } catch (error) {
+    console.error('getSyncHistory error:', error)
+    return { success: false }
   }
 }
 

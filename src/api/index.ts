@@ -27,7 +27,9 @@ import objectivesRoutes from './routes/objectives'
 import feedbackRoutes from './routes/feedback'
 import contractHistoryRoutes from './routes/contract-history'
 import pushRoutes from './routes/push'
+import cronRoutes from './routes/cron'
 import { initWebPush } from '../services/notification.service'
+import { registerApiFootballSyncJob, startApiFootballSyncJob } from '../shared/infrastructure/cron'
 
 const app = express()
 const PORT = process.env.API_PORT || 3003
@@ -182,6 +184,7 @@ app.use('/api', objectivesRoutes) // Objectives routes for pre-auction targets
 app.use('/api/feedback', feedbackRoutes) // Feedback/segnalazioni routes
 app.use('/api', contractHistoryRoutes) // Contract history routes for tracking changes
 app.use('/api/push', pushRoutes) // Push notification routes
+app.use('/api', cronRoutes) // Cron endpoints for Vercel Cron
 
 // 404 handler
 app.use((_req, res) => {
@@ -202,6 +205,13 @@ if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`🚀 API Server running on http://localhost:${PORT}`)
     console.log(`📋 Health check: http://localhost:${PORT}/api/health`)
+
+    // Start cron jobs only in local dev (persistent server)
+    if (!process.env.VERCEL) {
+      registerApiFootballSyncJob()
+      startApiFootballSyncJob()
+      console.log('[CRON] API-Football sync job started (hourly check)')
+    }
   })
 }
 
