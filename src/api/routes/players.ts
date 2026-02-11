@@ -194,6 +194,57 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
   }
 })
 
+// GET /api/players/:apiFootballId/match-history - Get player match history
+router.get('/:apiFootballId/match-history', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const apiFootballId = parseInt(req.params.apiFootballId)
+
+    if (isNaN(apiFootballId)) {
+      res.status(400).json({ success: false, message: 'apiFootballId non valido' })
+      return
+    }
+
+    // Find the player by apiFootballId
+    const player = await prisma.serieAPlayer.findFirst({
+      where: { apiFootballId },
+      select: { id: true },
+    })
+
+    if (!player) {
+      res.status(404).json({ success: false, message: 'Giocatore non trovato' })
+      return
+    }
+
+    const matches = await prisma.playerMatchRating.findMany({
+      where: { playerId: player.id },
+      orderBy: { matchDate: 'desc' },
+      select: {
+        matchDate: true,
+        round: true,
+        rating: true,
+        minutesPlayed: true,
+        goals: true,
+        assists: true,
+      },
+    })
+
+    res.json({
+      success: true,
+      data: matches.map(m => ({
+        matchDate: m.matchDate.toISOString().split('T')[0],
+        round: m.round ?? '',
+        rating: m.rating,
+        minutesPlayed: m.minutesPlayed ?? 0,
+        goals: m.goals ?? 0,
+        assists: m.assists ?? 0,
+      })),
+    })
+  } catch (error) {
+    console.error('Get player match history error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
 // GET /api/players/:id - Get player by ID
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {

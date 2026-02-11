@@ -1819,13 +1819,13 @@ export async function getStrategySummary(leagueId: string, userId: string): Prom
       return { success: false, message: 'Non sei membro di questa lega' }
     }
 
-    const counts = await prisma.rubataPlayerPreference.groupBy({
+    const counts = await prisma.rubataPreference.groupBy({
       by: ['watchlistCategory'],
       where: { memberId: member.id, isWatchlist: true },
       _count: true,
     })
 
-    const topPriority = await prisma.rubataPlayerPreference.count({
+    const topPriority = await prisma.rubataPreference.count({
       where: { memberId: member.id, priority: { gte: 8 } },
     })
 
