@@ -63,6 +63,30 @@ export async function computeSeasonStats(
   })
 
   if (ratings.length === 0) {
+    // Fallback to apiFootballStats if no match ratings available
+    const player = await prisma.serieAPlayer.findUnique({
+      where: { id: playerId },
+      select: { apiFootballStats: true },
+    })
+
+    const s = player?.apiFootballStats as {
+      games?: { appearences?: number; minutes?: number; rating?: number }
+      goals?: { total?: number; assists?: number }
+    } | null
+
+    if (s?.games?.appearences && s.games.appearences > 0) {
+      return {
+        season: '2024-2025',
+        appearances: s.games.appearences ?? 0,
+        totalMinutes: s.games.minutes ?? 0,
+        avgRating: s.games.rating ? Math.round(s.games.rating * 100) / 100 : null,
+        totalGoals: s.goals?.total ?? 0,
+        totalAssists: s.goals?.assists ?? 0,
+        startingXI: 0,
+        matchesInSquad: s.games.appearences ?? 0,
+      }
+    }
+
     return null
   }
 
@@ -125,11 +149,15 @@ export async function computeSeasonStatsBatch(
   // Calcola stats per ogni giocatore
   const result = new Map<string, ComputedSeasonStats>()
 
+  // Collect IDs without match ratings for apiFootballStats fallback
+  const missingIds: string[] = []
+
   for (const playerId of playerIds) {
     const ratings = ratingsByPlayer.get(playerId) || []
 
     if (ratings.length === 0) {
-      continue // Non aggiungiamo giocatori senza dati
+      missingIds.push(playerId)
+      continue
     }
 
     const playedMatches = ratings.filter(r => r.minutesPlayed && r.minutesPlayed > 0)
@@ -148,6 +176,34 @@ export async function computeSeasonStatsBatch(
       startingXI: playedMatches.filter(r => (r.minutesPlayed || 0) >= 60).length,
       matchesInSquad: ratings.length,
     })
+  }
+
+  // Fallback: for players without PlayerMatchRating data, use apiFootballStats JSON
+  if (missingIds.length > 0) {
+    const fallbackPlayers = await prisma.serieAPlayer.findMany({
+      where: { id: { in: missingIds }, apiFootballStats: { not: null } },
+      select: { id: true, apiFootballStats: true },
+    })
+
+    for (const p of fallbackPlayers) {
+      const s = p.apiFootballStats as {
+        games?: { appearences?: number; minutes?: number; rating?: number }
+        goals?: { total?: number; assists?: number }
+      } | null
+
+      if (s?.games?.appearences && s.games.appearences > 0) {
+        result.set(p.id, {
+          season: '2024-2025',
+          appearances: s.games.appearences ?? 0,
+          totalMinutes: s.games.minutes ?? 0,
+          avgRating: s.games.rating ? Math.round(s.games.rating * 100) / 100 : null,
+          totalGoals: s.goals?.total ?? 0,
+          totalAssists: s.goals?.assists ?? 0,
+          startingXI: 0,
+          matchesInSquad: s.games.appearences ?? 0,
+        })
+      }
+    }
   }
 
   return result
