@@ -42,7 +42,7 @@ function SlotPlayerPhoto({ apiFootballId, playerName, position, posGradient }: {
     )
   }
   return (
-    <span className={`w-5 h-5 rounded-full bg-gradient-to-br ${posGradient} flex items-center justify-center text-[7px] font-bold text-white flex-shrink-0`}>
+    <span className={`w-5 h-5 rounded-full bg-gradient-to-br ${posGradient} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>
       {position}
     </span>
   )
@@ -105,12 +105,12 @@ export function MyPortfolio({ myRosterSlots, budget }: MyPortfolioProps) {
           </div>
           <h3 className="font-black text-white text-sm uppercase tracking-wide">Board Strategica</h3>
         </div>
-        <span className="text-xs font-mono font-bold text-sky-400">{totalFilled}/{totalSlots} SLOT</span>
+        <span className="text-sms font-mono font-bold text-sky-400">{totalFilled}/{totalSlots} SLOT</span>
       </div>
 
       {/* Budget spent summary */}
       <div className="px-3 pt-2 pb-1 flex-shrink-0">
-        <div className="flex items-center justify-between text-[11px] mb-1">
+        <div className="flex items-center justify-between text-sm mb-1">
           <span className="text-gray-400">Budget Speso:</span>
           <span className="font-bold font-mono text-accent-400">{totalSpent}M</span>
         </div>
@@ -130,12 +130,12 @@ export function MyPortfolio({ myRosterSlots, budget }: MyPortfolioProps) {
               {/* Position header */}
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-1.5">
-                  <span className={`w-5 h-5 rounded-full bg-gradient-to-br ${colors.badge} flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0`}>
+                  <span className={`w-5 h-5 rounded-full bg-gradient-to-br ${colors.badge} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>
                     {pos}
                   </span>
-                  <span className="text-[11px] font-bold text-gray-300 uppercase">{posName}</span>
+                  <span className="text-sm font-bold text-gray-300 uppercase">{posName}</span>
                 </div>
-                <span className={`text-[10px] font-mono font-bold flex-shrink-0 ${
+                <span className={`text-sm font-mono font-bold flex-shrink-0 ${
                   slot.filled >= slot.total ? 'text-green-400' : 'text-gray-500'
                 }`}>
                   {slot.filled}/{slot.total}
@@ -167,16 +167,16 @@ export function MyPortfolio({ myRosterSlots, budget }: MyPortfolioProps) {
                           </div>
                         </div>
                         {/* Name */}
-                        <p className="text-[10px] text-gray-200 font-semibold truncate text-center">
+                        <p className="text-sm text-gray-200 font-semibold truncate text-center">
                           {player.playerName.length > 8 ? player.playerName.slice(0, 7) + '.' : player.playerName}
                         </p>
                         {/* Price + age color */}
                         <div className="flex items-center justify-center gap-1">
-                          <span className={`text-xs font-mono font-bold ${colors.text}`}>
+                          <span className={`text-sms font-mono font-bold ${colors.text}`}>
                             {player.acquisitionPrice}M
                           </span>
                           {player.age != null && (
-                            <span className={`text-[8px] font-bold ${getAgeColor(player.age)}`}>{player.age}a</span>
+                            <span className={`text-sm font-bold ${getAgeColor(player.age)}`}>{player.age}a</span>
                           )}
                         </div>
                       </button>
@@ -200,21 +200,21 @@ export function MyPortfolio({ myRosterSlots, budget }: MyPortfolioProps) {
       {/* ANALISI OBIETTIVI */}
       {totalFilled > 0 && (
         <div className="p-3 border-t border-white/10 flex-shrink-0 space-y-2">
-          <h4 className="text-[11px] font-bold text-white uppercase tracking-wider">Analisi Obiettivi</h4>
+          <h4 className="text-sm font-bold text-white uppercase tracking-wider">Analisi Obiettivi</h4>
 
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-slate-800/50 rounded-lg px-2 py-1.5">
-              <p className="text-[9px] text-gray-500 uppercase font-semibold">Costo Medio</p>
+              <p className="text-sm text-gray-500 uppercase font-semibold">Costo Medio</p>
               <p className="text-sm font-mono font-bold text-white">{avgCostPerSlot}M</p>
             </div>
             <div className="bg-slate-800/50 rounded-lg px-2 py-1.5">
-              <p className="text-[9px] text-gray-500 uppercase font-semibold">Liquidita</p>
+              <p className="text-sm text-gray-500 uppercase font-semibold">Liquidita</p>
               <p className="text-sm font-mono font-bold text-sky-400">{liquidityForAttack}M</p>
             </div>
           </div>
 
           {savingsPercent !== 0 && (
-            <p className={`text-[10px] leading-relaxed ${savingsPercent > 0 ? 'text-green-400' : 'text-amber-400'}`}>
+            <p className={`text-sm leading-relaxed ${savingsPercent > 0 ? 'text-green-400' : 'text-amber-400'}`}>
               {savingsPercent > 0
                 ? `Stai risparmiando il ${savingsPercent}% del budget previsto.`
                 : `Stai spendendo il ${Math.abs(savingsPercent)}% in piu del previsto.`

@@ -54,7 +54,7 @@ export function ReadyCheckPanel({
               <p className="text-5xl lg:text-6xl font-mono font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-white to-sky-400 mb-1">
                 {readyStatus.readyCount}/{readyStatus.totalMembers}
               </p>
-              <p className="text-xs text-gray-500 uppercase tracking-wider">DG Pronti</p>
+              <p className="text-sms text-gray-500 uppercase tracking-wider">DG Pronti</p>
             </div>
 
             {/* Progress bar */}
@@ -77,7 +77,7 @@ export function ReadyCheckPanel({
                     Cambia
                   </Button>
                 </div>
-                <p className="text-[10px] text-gray-500">Dopo la conferma, gli altri DG potranno dichiararsi pronti</p>
+                <p className="text-sm text-gray-500">Dopo la conferma, gli altri DG potranno dichiararsi pronti</p>
               </div>
             )}
 
@@ -89,7 +89,7 @@ export function ReadyCheckPanel({
                 </div>
                 {isAdmin && onForceAllReady && (
                   <div>
-                    <Button size="sm" variant="outline" onClick={onForceAllReady} className="border-accent-500/50 text-accent-400 text-xs">
+                    <Button size="sm" variant="outline" onClick={onForceAllReady} className="border-accent-500/50 text-accent-400 text-sms">
                       [TEST] Forza Tutti Pronti
                     </Button>
                   </div>
@@ -118,7 +118,7 @@ export function ReadyCheckPanel({
                 )}
                 {isAdmin && onForceAllReady && (
                   <div>
-                    <Button size="sm" variant="outline" onClick={onForceAllReady} className="border-accent-500/50 text-accent-400 text-xs">
+                    <Button size="sm" variant="outline" onClick={onForceAllReady} className="border-accent-500/50 text-accent-400 text-sms">
                       [TEST] Forza Tutti Pronti
                     </Button>
                   </div>
@@ -150,19 +150,19 @@ function ReadyMembersList({ readyMembers, pendingMembers }: {
     <div className="bg-surface-300/50 rounded-lg p-3">
       <div className="grid grid-cols-2 gap-2 text-sm">
         <div>
-          <p className="text-secondary-400 font-semibold mb-1 text-xs">Pronti</p>
+          <p className="text-secondary-400 font-semibold mb-1 text-sms">Pronti</p>
           {readyMembers.length > 0 ? (
-            readyMembers.map(m => <p key={m.id} className="text-gray-300 text-xs">{m.username}</p>)
+            readyMembers.map(m => <p key={m.id} className="text-gray-300 text-sms">{m.username}</p>)
           ) : (
-            <p className="text-gray-500 italic text-xs">Nessuno</p>
+            <p className="text-gray-500 italic text-sms">Nessuno</p>
           )}
         </div>
         <div>
-          <p className="text-amber-400 font-semibold mb-1 text-xs">In attesa</p>
+          <p className="text-amber-400 font-semibold mb-1 text-sms">In attesa</p>
           {pendingMembers.length > 0 ? (
-            pendingMembers.map(m => <p key={m.id} className="text-gray-400 text-xs">{m.username}</p>)
+            pendingMembers.map(m => <p key={m.id} className="text-gray-400 text-sms">{m.username}</p>)
           ) : (
-            <p className="text-gray-500 italic text-xs">Nessuno</p>
+            <p className="text-gray-500 italic text-sms">Nessuno</p>
           )}
         </div>
       </div>

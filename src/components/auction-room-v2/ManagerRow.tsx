@@ -60,12 +60,12 @@ export function ManagerRow({ manager: m, turnIndex, isCurrent, isMe, onClick, av
 
         {/* Name + Phase */}
         <div className="min-w-0 flex-1">
-          <p className={`text-xs font-bold truncate ${
+          <p className={`text-sms font-bold truncate ${
             isMe ? 'text-sky-400' : isCurrent ? 'text-accent-400' : 'text-gray-200'
           }`}>
             {m.teamName || m.username}
           </p>
-          <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide">
+          <p className="text-sm text-gray-500 font-semibold uppercase tracking-wide">
             {phaseLabel}
           </p>
         </div>
@@ -78,7 +78,7 @@ export function ManagerRow({ manager: m, turnIndex, isCurrent, isMe, onClick, av
             const barColors = POS_BAR_COLORS[pos]
             return (
               <div key={pos} className="flex flex-col items-center gap-0.5" title={`${pos} ${slot.filled}/${slot.total}`}>
-                <span className={`text-[7px] font-bold ${barColors.label}`}>{pos}</span>
+                <span className={`text-sm font-bold ${barColors.label}`}>{pos}</span>
                 <div className={`w-2.5 h-8 rounded-sm ${barColors.empty} overflow-hidden flex flex-col-reverse`}>
                   <div
                     className={`w-full rounded-sm ${barColors.filled} transition-all`}
@@ -95,16 +95,16 @@ export function ManagerRow({ manager: m, turnIndex, isCurrent, isMe, onClick, av
       <div className="grid grid-cols-3 gap-1">
         {/* Max Bid */}
         <div className="bg-slate-800/60 rounded-lg px-1.5 py-1" title={`Max Bid: offerta massima possibile.\nBudget (${bilancio}M) - Slot vuoti rimanenti (${Math.max(0, emptySlots - 1)}) = ${maxBid}M`}>
-          <p className="text-[8px] text-gray-500 uppercase font-semibold">Max Bid</p>
-          <p className="text-xs font-mono font-bold text-amber-400">
+          <p className="text-sm text-gray-500 uppercase font-semibold">Max Bid</p>
+          <p className="text-sms font-mono font-bold text-amber-400">
             {maxBid}M
           </p>
         </div>
 
         {/* CMS */}
         <div className="bg-slate-800/60 rounded-lg px-1.5 py-1" title={`C.M.S. (Costo Medio Slot): budget medio per ogni acquisto rimanente.\nBudget (${bilancio}M) / Slot vuoti (${emptySlots}) = ${cms}M`}>
-          <p className="text-[8px] text-gray-500 uppercase font-semibold">C.M.S.</p>
-          <p className={`text-xs font-mono font-bold ${
+          <p className="text-sm text-gray-500 uppercase font-semibold">C.M.S.</p>
+          <p className={`text-sms font-mono font-bold ${
             cms <= 5 ? 'text-red-400' : cms <= 15 ? 'text-amber-400' : 'text-green-400'
           }`}>
             {cms}M
@@ -113,8 +113,8 @@ export function ManagerRow({ manager: m, turnIndex, isCurrent, isMe, onClick, av
 
         {/* PAR */}
         <div className="bg-slate-800/60 rounded-lg px-1.5 py-1" title={`P.A.R. (Potere d'Acquisto Relativo): forza del budget rispetto alla media.\nBudget (${bilancio}M) / Media lega (${avgBudget}M) = ${par}%`}>
-          <p className="text-[8px] text-gray-500 uppercase font-semibold">P.A.R.</p>
-          <p className={`text-xs font-mono font-bold ${
+          <p className="text-sm text-gray-500 uppercase font-semibold">P.A.R.</p>
+          <p className={`text-sms font-mono font-bold ${
             par < 80 ? 'text-red-400' : par < 100 ? 'text-amber-400' : par < 120 ? 'text-sky-400' : 'text-emerald-400'
           }`}>
             {par}%

@@ -44,12 +44,12 @@ export function MobileBottomBar({
               <AuctionTimer timeLeft={timeLeft} totalSeconds={timerSetting} compact />
             )}
             <div>
-              <p className="text-[10px] text-gray-400 truncate max-w-[120px]">{auction.player.name}</p>
+              <p className="text-sm text-gray-400 truncate max-w-[120px]">{auction.player.name}</p>
               <p className="text-2xl font-mono font-bold text-white">{auction.currentPrice}</p>
             </div>
           </div>
           {isUserWinning && (
-            <span className="px-2 py-1 bg-green-500/20 text-green-400 text-[10px] rounded-full font-medium border border-green-500/30">
+            <span className="px-2 py-1 bg-green-500/20 text-green-400 text-sm rounded-full font-medium border border-green-500/30">
               Vincendo
             </span>
           )}
@@ -58,8 +58,8 @@ export function MobileBottomBar({
         {/* Bid Controls or Slot Full Banner */}
         {isRoleFull ? (
           <div className="rounded-lg p-3 bg-amber-500/10 border border-amber-500/30 text-center">
-            <p className="text-amber-400 font-bold text-xs">Slot Ruolo Completo</p>
-            <p className="text-gray-400 text-[10px] mt-0.5">
+            <p className="text-amber-400 font-bold text-sms">Slot Ruolo Completo</p>
+            <p className="text-gray-400 text-sm mt-0.5">
               Hai completato tutti gli slot per questo ruolo. Non puoi fare offerte.
             </p>
           </div>

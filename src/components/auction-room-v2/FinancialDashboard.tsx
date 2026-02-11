@@ -50,7 +50,7 @@ function MarketPulseWidget({ managersStatus }: { managersStatus: ManagersStatusD
   return (
     <div className="mx-2 mb-2 p-3 rounded-xl border border-white/5 bg-slate-800/40">
       <div className="flex items-center justify-between mb-2">
-        <h4 className="text-xs font-bold text-white uppercase tracking-wider">Market Pulse</h4>
+        <h4 className="text-sms font-bold text-white uppercase tracking-wider">Market Pulse</h4>
         <span className={`text-sm font-mono font-bold ${
           isPositive ? 'text-red-400' : 'text-green-400'
         }`}>
@@ -67,14 +67,14 @@ function MarketPulseWidget({ managersStatus }: { managersStatus: ManagersStatusD
       </div>
 
       {/* Stats row */}
-      <div className="flex items-center justify-between text-[10px] text-gray-500 font-mono mb-2">
+      <div className="flex items-center justify-between text-sm text-gray-500 font-mono mb-2">
         <span>Media Pagata: <span className="text-gray-300">{avgPaid}M</span></span>
         <span>Quotazione: <span className="text-gray-300">{avgQuot}M</span></span>
       </div>
 
       {/* Role insight text */}
       {roleInflation !== 0 && (
-        <p className="text-[10px] text-gray-400 leading-relaxed">
+        <p className="text-sm text-gray-400 leading-relaxed">
           I prezzi per il reparto <span className="text-white font-semibold">{roleName}</span> sono{' '}
           {roleInflation > 0 ? (
             <span className="text-red-400">superiori del {Math.abs(roleInflation)}%</span>
@@ -127,14 +127,14 @@ export function FinancialDashboard({ managersStatus, firstMarketStatus, onSelect
           </div>
           <h3 className="font-black text-white text-sm uppercase tracking-wide">Spy Financials</h3>
         </div>
-        <span className="text-[11px] text-gray-400 font-semibold bg-slate-800/60 px-2 py-0.5 rounded-full">
+        <span className="text-sm text-gray-400 font-semibold bg-slate-800/60 px-2 py-0.5 rounded-full">
           Lega a {leagueSize}
         </span>
       </div>
 
       {/* Legend */}
       <div className="px-3 py-1.5 border-b border-white/5 flex-shrink-0">
-        <div className="flex items-start gap-3 text-[9px] text-gray-500 leading-relaxed">
+        <div className="flex items-start gap-3 text-sm text-gray-500 leading-relaxed">
           <span><span className="text-amber-400 font-bold">Max Bid</span> = offerta max (budget - slot vuoti)</span>
           <span><span className="text-green-400 font-bold">C.M.S.</span> = costo medio per slot</span>
           <span><span className="text-sky-400 font-bold">P.A.R.</span> = potere vs media lega</span>
@@ -165,7 +165,7 @@ export function FinancialDashboard({ managersStatus, firstMarketStatus, onSelect
       {/* Turn Queue */}
       {firstMarketStatus?.turnOrder && (
         <div className="p-2 border-t border-white/10 flex-shrink-0">
-          <p className="text-[10px] text-gray-500 mb-1 font-semibold uppercase">Coda turni</p>
+          <p className="text-sm text-gray-500 mb-1 font-semibold uppercase">Coda turni</p>
           <div className="flex gap-1 flex-wrap">
             {firstMarketStatus.turnOrder.map((memberId, i) => {
               const mgr = managersStatus.managers.find(m => m.id === memberId)
@@ -174,7 +174,7 @@ export function FinancialDashboard({ managersStatus, firstMarketStatus, onSelect
               return (
                 <span
                   key={memberId}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                  className={`px-1.5 py-0.5 rounded text-sm font-medium ${
                     isCurrentTurn
                       ? 'bg-accent-500 text-dark-900'
                       : 'bg-slate-800/50 text-gray-400'

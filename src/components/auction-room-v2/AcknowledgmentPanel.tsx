@@ -39,7 +39,7 @@ export function AcknowledgmentPanel({
 
       {/* Progress */}
       <div>
-        <div className="flex justify-between text-xs mb-1">
+        <div className="flex justify-between text-sms mb-1">
           <span className="text-gray-400">Conferme</span>
           <span className="font-bold text-white">{pendingAck.totalAcknowledged}/{pendingAck.totalMembers}</span>
         </div>
@@ -51,7 +51,7 @@ export function AcknowledgmentPanel({
       {/* Members status */}
       {(pendingAck.acknowledgedMembers.length > 0 || pendingAck.pendingMembers.length > 0) && (
         <div className="bg-surface-300/50 rounded-lg p-3">
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="grid grid-cols-2 gap-2 text-sms">
             <div className="text-left">
               <p className="text-teal-400 font-semibold mb-1">Confermato</p>
               {pendingAck.acknowledgedMembers.map(m => (
@@ -78,7 +78,7 @@ export function AcknowledgmentPanel({
       {isAdmin && onForceAcknowledgeAll && (
         <button
           onClick={onForceAcknowledgeAll}
-          className="px-4 py-1.5 text-xs border border-accent-500/50 text-accent-400 rounded-lg hover:bg-accent-500/10"
+          className="px-4 py-1.5 text-sms border border-accent-500/50 text-accent-400 rounded-lg hover:bg-accent-500/10"
         >
           [TEST] Forza Conferme
         </button>

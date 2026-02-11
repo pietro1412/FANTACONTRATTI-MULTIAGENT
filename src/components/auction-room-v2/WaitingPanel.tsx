@@ -31,7 +31,7 @@ export function WaitingPanel({ currentTurnManager, marketProgress }: WaitingPane
               </div>
               {/* Position badge */}
               {currentRole && (
-                <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded bg-gradient-to-r ${posGradient} text-white opacity-70`}>
+                <span className={`inline-block text-sms font-bold px-2.5 py-1 rounded bg-gradient-to-r ${posGradient} text-white opacity-70`}>
                   {posName}
                 </span>
               )}
@@ -45,14 +45,14 @@ export function WaitingPanel({ currentTurnManager, marketProgress }: WaitingPane
         <div className="flex flex-col items-center justify-center">
           <div className="relative rounded-xl p-5 text-center w-full border-2 border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-900/80 overflow-hidden">
             <p className="text-sm text-gray-500 uppercase tracking-wider font-bold mb-2">Prossima Offerta</p>
-            <p className="text-7xl lg:text-8xl font-mono font-black text-white/10 mb-3 select-none">
+            <p className="text-smxl lg:text-smxl font-mono font-black text-white/10 mb-3 select-none">
               ?
             </p>
             {currentTurnManager && (
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-500/10 border border-primary-500/30">
                 <span className="w-2 h-2 rounded-full bg-primary-400 animate-pulse" />
                 <span className="text-sm text-gray-400">
-                  Turno di <strong className="text-primary-400">{currentTurnManager.username}</strong>
+                  Turno di <strong className="text-smrimary-400">{currentTurnManager.username}</strong>
                 </span>
               </div>
             )}
@@ -65,7 +65,7 @@ export function WaitingPanel({ currentTurnManager, marketProgress }: WaitingPane
       {/* Waiting message */}
       {marketProgress && (
         <div className="mt-3 text-center">
-          <p className="text-xs text-gray-500">
+          <p className="text-sms text-gray-500">
             In attesa della nomina per il reparto <span className="font-bold text-gray-400">{posName}</span>
             {' '}({marketProgress.filledSlots}/{marketProgress.totalSlots} slot completati)
           </p>

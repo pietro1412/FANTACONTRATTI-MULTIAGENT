@@ -78,7 +78,7 @@ export function BiddingPanel({
             </div>
 
             {/* Price — sized to match WaitingPanel / ReadyCheckPanel */}
-            <p className={`text-5xl lg:text-7xl font-mono font-black text-transparent bg-clip-text bg-gradient-to-r mb-3 ${
+            <p className={`text-5xl lg:text-smxl font-mono font-black text-transparent bg-clip-text bg-gradient-to-r mb-3 ${
               isTimerCritical
                 ? 'from-red-400 via-white to-red-400 animate-pulse'
                 : 'from-sky-400 via-white to-sky-400'
@@ -119,7 +119,7 @@ export function BiddingPanel({
               </svg>
               <span className="text-amber-400 font-bold text-sm">Slot Ruolo Completo</span>
             </div>
-            <p className="text-gray-400 text-xs">
+            <p className="text-gray-400 text-sms">
               Hai completato tutti gli slot per questo ruolo ({roleSlot?.filled}/{roleSlot?.total}). Non puoi fare offerte.
             </p>
           </div>
@@ -141,14 +141,14 @@ export function BiddingPanel({
       {auction.bids.length > 0 && (
         <div className="border-t border-white/10 pt-3">
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-xs text-gray-400 font-medium">Storico Offerte</h4>
-            <span className="text-[10px] text-gray-500 font-mono">{auction.bids.length} offerte</span>
+            <h4 className="text-sms text-gray-400 font-medium">Storico Offerte</h4>
+            <span className="text-sm text-gray-500 font-mono">{auction.bids.length} offerte</span>
           </div>
           <div className="space-y-1 max-h-32 overflow-y-auto">
             {auction.bids.map((bid, i) => (
               <div
                 key={bid.id}
-                className={`flex items-center justify-between py-1.5 px-2 rounded-lg text-xs ${
+                className={`flex items-center justify-between py-1.5 px-2 rounded-lg text-sms ${
                   i === 0
                     ? 'bg-sky-500/15 border border-sky-500/25'
                     : 'bg-slate-800/40'
@@ -164,7 +164,7 @@ export function BiddingPanel({
                   <span className={`font-mono font-bold ${i === 0 ? 'text-sky-400' : 'text-white'}`}>
                     {bid.amount}
                   </span>
-                  <span className="text-[10px] text-gray-600 font-mono">
+                  <span className="text-sm text-gray-600 font-mono">
                     {new Date(bid.placedAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
                 </div>

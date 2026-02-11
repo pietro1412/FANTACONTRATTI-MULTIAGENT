@@ -64,7 +64,7 @@ export function PlayerCard({ name, team, position, quotation, age, apiFootballId
             onError={() => setImgError(true)}
           />
         ) : (
-          <span className={`w-7 h-7 rounded-full bg-gradient-to-br ${posGradient} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>{position}</span>
+          <span className={`w-7 h-7 rounded-full bg-gradient-to-br ${posGradient} flex items-center justify-center text-sms font-bold text-white flex-shrink-0`}>{position}</span>
         )}
         <div className="w-6 h-6 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
           <img src={getTeamLogo(team)} alt={team} className="w-5 h-5 object-contain" />
@@ -103,11 +103,11 @@ export function PlayerCard({ name, team, position, quotation, age, apiFootballId
               </div>
               <span className="text-sm text-gray-400">{team}</span>
               <span className="text-gray-600">·</span>
-              <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${posBg}`}>{posName}</span>
+              <span className={`text-sms font-bold px-2.5 py-0.5 rounded-full border ${posBg}`}>{posName}</span>
               {age != null && age > 0 && (
                 <>
                   <span className="text-gray-600">·</span>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded border ${getAgeBg(age)} ${getAgeColor(age)}`}>
+                  <span className={`text-sms font-bold px-2 py-0.5 rounded border ${getAgeBg(age)} ${getAgeColor(age)}`}>
                     {age} anni
                   </span>
                 </>
@@ -117,7 +117,7 @@ export function PlayerCard({ name, team, position, quotation, age, apiFootballId
             {/* Quotation */}
             {quotation != null && quotation > 0 && (
               <div className="inline-flex items-center gap-2 mt-2 px-3 py-1 bg-accent-500/15 rounded-lg border border-accent-500/25">
-                <span className="text-[10px] text-gray-400 uppercase tracking-wider">Quot.</span>
+                <span className="text-sm text-gray-400 uppercase tracking-wider">Quot.</span>
                 <span className="text-lg font-black font-mono text-accent-400">{quotation}</span>
               </div>
             )}
@@ -129,25 +129,25 @@ export function PlayerCard({ name, team, position, quotation, age, apiFootballId
           <div className="grid grid-cols-4 gap-2 mt-3">
             {appearances != null && (
               <div className="bg-slate-700/40 rounded-lg p-2 text-center">
-                <p className="text-[9px] text-gray-500 uppercase font-semibold">Presenze</p>
+                <p className="text-sm text-gray-500 uppercase font-semibold">Presenze</p>
                 <p className="text-sm font-mono font-bold text-white">{appearances}</p>
               </div>
             )}
             {goals != null && (
               <div className="bg-slate-700/40 rounded-lg p-2 text-center">
-                <p className="text-[9px] text-gray-500 uppercase font-semibold">Gol</p>
+                <p className="text-sm text-gray-500 uppercase font-semibold">Gol</p>
                 <p className="text-sm font-mono font-bold text-white">{goals}</p>
               </div>
             )}
             {assists != null && (
               <div className="bg-slate-700/40 rounded-lg p-2 text-center">
-                <p className="text-[9px] text-gray-500 uppercase font-semibold">Assist</p>
+                <p className="text-sm text-gray-500 uppercase font-semibold">Assist</p>
                 <p className="text-sm font-mono font-bold text-white">{assists}</p>
               </div>
             )}
             {avgRating != null && (
               <div className={`${mvColor.bg} rounded-lg p-2 text-center ${mvColor.border}`}>
-                <p className={`text-[9px] uppercase font-semibold ${mvColor.text}`}>MV</p>
+                <p className={`text-sm uppercase font-semibold ${mvColor.text}`}>MV</p>
                 <p className={`text-sm font-mono font-bold ${mvColor.text}`}>{avgRating}</p>
               </div>
             )}

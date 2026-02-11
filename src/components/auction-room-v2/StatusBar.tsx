@@ -63,14 +63,14 @@ export function StatusBar({
           <div className="flex items-center gap-2 mt-0.5">
             {/* Connection dot */}
             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isConnected ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`} />
-            {!isConnected && <span className="text-[10px] text-yellow-400">{connectionStatus}</span>}
+            {!isConnected && <span className="text-sm text-yellow-400">{connectionStatus}</span>}
             {/* Turn info */}
             {currentTurnManager && (
-              <span className="text-[11px] text-gray-400">
+              <span className="text-sm text-gray-400">
                 {isMyTurn ? (
                   <span className="text-accent-400 font-bold">IL TUO TURNO</span>
                 ) : (
-                  <>Turno di: <strong className="text-primary-400">{currentTurnManager.username}</strong></>
+                  <>Turno di: <strong className="text-smrimary-400">{currentTurnManager.username}</strong></>
                 )}
               </span>
             )}
@@ -84,7 +84,7 @@ export function StatusBar({
           {marketProgress.roleSequence.map(role => (
             <span
               key={role}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+              className={`px-1.5 py-0.5 rounded text-sm font-bold border ${
                 role === marketProgress.currentRole
                   ? POSITION_FILTER_COLORS[role as keyof typeof POSITION_FILTER_COLORS] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'
                   : 'bg-slate-800/50 text-gray-500 border-white/5'
@@ -93,7 +93,7 @@ export function StatusBar({
               {(POSITION_NAMES[role as keyof typeof POSITION_NAMES] || role).slice(0, 3)}
             </span>
           ))}
-          <span className="text-[10px] text-gray-400 ml-1 font-mono">
+          <span className="text-sm text-gray-400 ml-1 font-mono">
             {marketProgress.filledSlots}/{marketProgress.totalSlots}
           </span>
         </div>
@@ -103,8 +103,8 @@ export function StatusBar({
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
         {/* Budget */}
         <div className="flex flex-col items-end">
-          <span className="text-[9px] text-gray-500 uppercase tracking-wider font-semibold leading-none">Budget</span>
-          <span className="text-xl sm:text-2xl font-mono font-black gradient-text-gold leading-tight">{budget}</span>
+          <span className="text-sm text-gray-500 uppercase tracking-wider font-semibold leading-none">Budget</span>
+          <span className="text-sml sm:text-2xl font-mono font-black gradient-text-gold leading-tight">{budget}</span>
         </div>
 
         {/* Max Bid Box */}
@@ -112,7 +112,7 @@ export function StatusBar({
           <>
             <div className="w-px h-8 bg-white/10 hidden sm:block" />
             <div className="border border-sky-500/40 bg-sky-500/10 rounded-lg px-2.5 py-1.5 flex flex-col items-center">
-              <span className="text-[9px] text-sky-300 uppercase font-semibold leading-none">Offerta Max</span>
+              <span className="text-sm text-sky-300 uppercase font-semibold leading-none">Offerta Max</span>
               <span className={`text-lg font-mono font-bold leading-tight ${
                 maxBid <= 10 ? 'text-red-400' : maxBid <= 50 ? 'text-amber-400' : 'text-sky-400'
               }`}>{maxBid}</span>

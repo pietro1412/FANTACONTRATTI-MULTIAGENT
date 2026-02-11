@@ -49,7 +49,7 @@ function MiniStats({ player }: { player: Player }) {
   const mvC = getMvColor(player.avgRating)
 
   return (
-    <div className="flex items-center gap-1.5 text-[9px] font-mono text-gray-500">
+    <div className="flex items-center gap-1.5 text-sm font-mono text-gray-500">
       {player.appearances != null && <span>P:{player.appearances}</span>}
       {player.goals != null && player.goals > 0 && <span>G:{player.goals}</span>}
       {player.assists != null && player.assists > 0 && <span>A:{player.assists}</span>}
@@ -125,7 +125,7 @@ export function NominationPanel({
               <button
                 key={role}
                 onClick={() => setSelectedRole(role)}
-                className={`relative text-center px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                className={`relative text-center px-3 py-1.5 rounded-lg text-sms font-bold border transition-all ${
                   isActive
                     ? role === 'TUTTI'
                       ? 'bg-white/10 text-white border-white/30'
@@ -154,7 +154,7 @@ export function NominationPanel({
             placeholder="Nome giocatore, squadra..."
             value={searchQuery}
             onChange={e => onSearchChange(e.target.value)}
-            className="w-full bg-slate-800/60 backdrop-blur border border-white/10 text-white rounded-lg pl-8 pr-3 py-1.5 text-xs placeholder-gray-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 focus:outline-none transition-colors"
+            className="w-full bg-slate-800/60 backdrop-blur border border-white/10 text-white rounded-lg pl-8 pr-3 py-1.5 text-sms placeholder-gray-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 focus:outline-none transition-colors"
           />
         </div>
       </div>
@@ -164,7 +164,7 @@ export function NominationPanel({
         {/* "All" button */}
         <button
           onClick={() => onTeamChange('')}
-          className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+          className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-sm font-bold border transition-all ${
             !selectedTeam
               ? 'bg-sky-500/20 text-sky-400 border-sky-500/40'
               : 'bg-slate-800/40 text-gray-500 border-white/5 hover:border-white/15'
@@ -224,13 +224,13 @@ export function NominationPanel({
                     </div>
                     <span className="text-sm text-gray-400">{focalPlayer.team}</span>
                     <span className="text-gray-600">·</span>
-                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${POSITION_FILTER_COLORS[focalPlayer.position as keyof typeof POSITION_FILTER_COLORS] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}>
+                    <span className={`text-sms font-bold px-2.5 py-0.5 rounded-full border ${POSITION_FILTER_COLORS[focalPlayer.position as keyof typeof POSITION_FILTER_COLORS] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}>
                       {POSITION_NAMES[focalPlayer.position as keyof typeof POSITION_NAMES] || focalPlayer.position}
                     </span>
                     {focalPlayer.age != null && (
                       <>
                         <span className="text-gray-600">·</span>
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded border ${focalAgeBadge.bg} ${focalAgeBadge.text}`}>
+                        <span className={`text-sms font-bold px-2 py-0.5 rounded border ${focalAgeBadge.bg} ${focalAgeBadge.text}`}>
                           {focalPlayer.age} anni
                         </span>
                       </>
@@ -240,7 +240,7 @@ export function NominationPanel({
                   {/* Quotation */}
                   {focalPlayer.quotation > 0 && (
                     <div className="inline-flex items-center gap-2 mt-2 px-3 py-1 bg-accent-500/15 rounded-lg border border-accent-500/25">
-                      <span className="text-[10px] text-gray-400 uppercase tracking-wider">Quot.</span>
+                      <span className="text-sm text-gray-400 uppercase tracking-wider">Quot.</span>
                       <span className="text-lg font-black font-mono text-accent-400">{focalPlayer.quotation}</span>
                     </div>
                   )}
@@ -262,19 +262,19 @@ export function NominationPanel({
                 <div className="grid grid-cols-4 gap-2 mt-3">
                   {focalPlayer.appearances != null && (
                     <div className="bg-slate-700/40 rounded-lg p-2 text-center">
-                      <p className="text-[9px] text-gray-500 uppercase font-semibold">Presenze</p>
+                      <p className="text-sm text-gray-500 uppercase font-semibold">Presenze</p>
                       <p className="text-sm font-mono font-bold text-white">{focalPlayer.appearances}</p>
                     </div>
                   )}
                   {focalPlayer.goals != null && (
                     <div className="bg-slate-700/40 rounded-lg p-2 text-center">
-                      <p className="text-[9px] text-gray-500 uppercase font-semibold">Gol</p>
+                      <p className="text-sm text-gray-500 uppercase font-semibold">Gol</p>
                       <p className="text-sm font-mono font-bold text-white">{focalPlayer.goals}</p>
                     </div>
                   )}
                   {focalPlayer.assists != null && (
                     <div className="bg-slate-700/40 rounded-lg p-2 text-center">
-                      <p className="text-[9px] text-gray-500 uppercase font-semibold">Assist</p>
+                      <p className="text-sm text-gray-500 uppercase font-semibold">Assist</p>
                       <p className="text-sm font-mono font-bold text-white">{focalPlayer.assists}</p>
                     </div>
                   )}
@@ -282,7 +282,7 @@ export function NominationPanel({
                     const mvC = getMvColor(focalPlayer.avgRating)
                     return (
                       <div className={`${mvC.bg} rounded-lg p-2 text-center ${mvC.border}`}>
-                        <p className={`text-[9px] uppercase font-semibold ${mvC.text}`}>MV</p>
+                        <p className={`text-sm uppercase font-semibold ${mvC.text}`}>MV</p>
                         <p className={`text-sm font-mono font-bold ${mvC.text}`}>{focalPlayer.avgRating}</p>
                       </div>
                     )
@@ -364,12 +364,12 @@ export function NominationPanel({
                         <div className="w-4 h-4 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
                           <img src={getTeamLogo(player.team)} alt={player.team} className="w-3 h-3 object-contain" />
                         </div>
-                        <span className="text-[11px] text-gray-400 truncate">{player.team}</span>
+                        <span className="text-sm text-gray-400 truncate">{player.team}</span>
                       </div>
                       {/* Age badge + mini stats */}
                       <div className="flex items-center gap-1.5 mt-1">
                         {player.age != null && (
-                          <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border ${ageBadge.bg} ${ageBadge.text}`}>
+                          <span className={`text-sm font-bold px-1.5 py-0.5 rounded border ${ageBadge.bg} ${ageBadge.text}`}>
                             {player.age}a
                           </span>
                         )}

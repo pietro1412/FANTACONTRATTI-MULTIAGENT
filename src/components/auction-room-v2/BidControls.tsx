@@ -106,7 +106,7 @@ export function BidControls({
             value={bidAmount}
             onChange={e => setBidAmount(e.target.value)}
             disabled={isTimerExpired}
-            className="flex-1 text-xl text-center bg-slate-800/60 border-white/10 text-white font-mono"
+            className="flex-1 text-sml text-center bg-slate-800/60 border-white/10 text-white font-mono"
             placeholder="Importo..."
             data-bid-input="true"
           />
@@ -134,7 +134,7 @@ export function BidControls({
 
       {/* Budget reminder */}
       {!compact && (
-        <div className="flex items-center justify-between text-xs text-gray-400">
+        <div className="flex items-center justify-between text-sms text-gray-400">
           <span>Il tuo budget:</span>
           <span className="font-bold font-mono text-accent-400">{budget}</span>
         </div>
