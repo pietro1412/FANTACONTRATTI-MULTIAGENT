@@ -95,6 +95,21 @@ export default {
           500: '#0ea5e9',
           600: '#0284c7',
         },
+        // Gray overrides for WCAG AA contrast (T-004)
+        // Ensures min 4.5:1 against dark backgrounds (#1a1c20, #0a0a0b)
+        gray: {
+          50: '#f9fafb',
+          100: '#f3f4f6',
+          200: '#e5e7eb',
+          300: '#d1d5db',
+          400: '#9ca3af',  // default — passes AA (5.7:1)
+          500: '#8b919d',  // was #6b7280 — now passes AA (4.6:1 vs #1a1c20)
+          600: '#6b7280',  // was #4b5563 — now 3.4:1 (AA large text OK)
+          700: '#4b5563',
+          800: '#374151',
+          900: '#1f2937',
+          950: '#111827',
+        },
         // Surface colors for cards (adjusted for Stadium Nights)
         surface: {
           50: '#2d3139',   // Border color

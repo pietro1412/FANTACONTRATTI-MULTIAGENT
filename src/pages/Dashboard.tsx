@@ -229,11 +229,54 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                         <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
                           {isPending ? 'Stato' : 'Budget'}
                         </p>
-                        <p className={`text-base font-bold ${isPending ? 'text-amber-400' : 'text-accent-400'}`}>
-                          {isPending ? 'In attesa' : membership.currentBudget}
-                        </p>
+                        {isPending ? (
+                          <p className="text-base font-bold text-amber-400">In attesa</p>
+                        ) : (
+                          <div>
+                            <p className={`text-base font-bold ${
+                              membership.currentBudget > 200 ? 'text-secondary-400' :
+                              membership.currentBudget > 50 ? 'text-accent-400' : 'text-danger-400'
+                            }`}>
+                              {membership.currentBudget}M
+                            </p>
+                            {/* T-011: Budget progress bar */}
+                            <div className="mt-2 h-1.5 bg-surface-400 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${
+                                  membership.currentBudget > 200 ? 'bg-secondary-400' :
+                                  membership.currentBudget > 50 ? 'bg-accent-400' : 'bg-danger-400'
+                                }`}
+                                style={{ width: `${Math.min(100, Math.max(5, (membership.currentBudget / 500) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
+
+                    {/* T-010: Quick action buttons */}
+                    {!isPending && !isSuperAdmin && league.status === 'ACTIVE' && (
+                      <div className="flex gap-2 mb-4">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onNavigate('rose', { leagueId: league.id }) }}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-surface-300 hover:bg-surface-100 text-gray-300 hover:text-white text-xs font-medium transition-colors border border-surface-50/20"
+                        >
+                          <span>📋</span> Rosa
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onNavigate('contracts', { leagueId: league.id }) }}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-surface-300 hover:bg-surface-100 text-gray-300 hover:text-white text-xs font-medium transition-colors border border-surface-50/20"
+                        >
+                          <span>📝</span> Contratti
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onNavigate('financials', { leagueId: league.id }) }}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-surface-300 hover:bg-surface-100 text-gray-300 hover:text-white text-xs font-medium transition-colors border border-surface-50/20"
+                        >
+                          <span>💰</span> Finanze
+                        </button>
+                      </div>
+                    )}
 
                     {isSuperAdmin ? (
                       <p className="text-center text-gray-500 text-sm">
