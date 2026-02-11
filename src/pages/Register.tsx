@@ -30,6 +30,49 @@ export function Register({ onNavigate }: RegisterProps) {
   const [turnstileToken, setTurnstileToken] = useState('')
   const handleTurnstileVerify = useCallback((token: string) => setTurnstileToken(token), [])
 
+  function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
+    let score = 0
+    if (pw.length >= 8) score++
+    if (/[A-Z]/.test(pw)) score++
+    if (/[0-9]/.test(pw)) score++
+    if (/[^A-Za-z0-9]/.test(pw)) score++
+    if (score <= 1) return { score, label: 'Debole', color: 'bg-red-500' }
+    if (score === 2) return { score, label: 'Media', color: 'bg-yellow-500' }
+    if (score === 3) return { score, label: 'Buona', color: 'bg-blue-500' }
+    return { score, label: 'Forte', color: 'bg-green-500' }
+  }
+
+  const passwordStrength = password ? getPasswordStrength(password) : null
+
+  function validateField(field: keyof FieldErrors) {
+    setFieldErrors(prev => {
+      const next = { ...prev }
+      if (field === 'email') {
+        if (!email.trim()) next.email = 'Inserisci la tua email'
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = 'Formato email non valido'
+        else next.email = undefined
+      }
+      if (field === 'username') {
+        if (!username.trim()) next.username = 'Inserisci un username'
+        else if (username.length < 3) next.username = 'Minimo 3 caratteri'
+        else if (username.length > 20) next.username = 'Massimo 20 caratteri'
+        else next.username = undefined
+      }
+      if (field === 'password') {
+        if (!password) next.password = 'Inserisci una password'
+        else if (password.length < 8) next.password = 'Minimo 8 caratteri'
+        else if (!/[A-Z]/.test(password)) next.password = 'Serve almeno una lettera maiuscola'
+        else if (!/[0-9]/.test(password)) next.password = 'Serve almeno un numero'
+        else next.password = undefined
+      }
+      if (field === 'confirmPassword') {
+        if (confirmPassword && confirmPassword !== password) next.confirmPassword = 'Le password non corrispondono'
+        else next.confirmPassword = undefined
+      }
+      return next
+    })
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
@@ -116,7 +159,8 @@ export function Register({ onNavigate }: RegisterProps) {
               inputMode="email"
               autoComplete="email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={e => { setEmail(e.target.value); if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: undefined })) }}
+              onBlur={() => validateField('email')}
               placeholder="mario@email.com"
               required
               error={fieldErrors.email}
@@ -126,7 +170,8 @@ export function Register({ onNavigate }: RegisterProps) {
               label="Username"
               type="text"
               value={username}
-              onChange={e => setUsername(e.target.value)}
+              onChange={e => { setUsername(e.target.value); if (fieldErrors.username) setFieldErrors(prev => ({ ...prev, username: undefined })) }}
+              onBlur={() => validateField('username')}
               placeholder="MisterRossi"
               required
               minLength={3}
@@ -134,22 +179,43 @@ export function Register({ onNavigate }: RegisterProps) {
               error={fieldErrors.username}
             />
 
-            <Input
-              label="Password"
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              minLength={8}
-              error={fieldErrors.password}
-            />
+            <div>
+              <Input
+                label="Password"
+                type="password"
+                value={password}
+                onChange={e => { setPassword(e.target.value); if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: undefined })) }}
+                onBlur={() => validateField('password')}
+                placeholder="••••••••"
+                required
+                minLength={8}
+                error={fieldErrors.password}
+              />
+              {passwordStrength && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4].map(i => (
+                      <div
+                        key={i}
+                        className={`h-1 flex-1 rounded-full transition-colors ${
+                          i <= passwordStrength.score ? passwordStrength.color : 'bg-surface-50/20'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p className={`text-xs ${passwordStrength.color.replace('bg-', 'text-')}`}>
+                    {passwordStrength.label}
+                  </p>
+                </div>
+              )}
+            </div>
 
             <Input
               label="Conferma Password"
               type="password"
               value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
+              onChange={e => { setConfirmPassword(e.target.value); if (fieldErrors.confirmPassword) setFieldErrors(prev => ({ ...prev, confirmPassword: undefined })) }}
+              onBlur={() => validateField('confirmPassword')}
               placeholder="••••••••"
               required
               error={fieldErrors.confirmPassword}

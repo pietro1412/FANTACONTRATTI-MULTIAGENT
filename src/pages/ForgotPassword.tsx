@@ -11,8 +11,19 @@ export function ForgotPassword() {
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+  const [emailError, setEmailError] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
   const handleTurnstileVerify = useCallback((token: string) => setTurnstileToken(token), [])
+
+  function validateEmail() {
+    if (!email.trim()) {
+      setEmailError('Inserisci la tua email')
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailError('Formato email non valido')
+    } else {
+      setEmailError('')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -93,10 +104,12 @@ export function ForgotPassword() {
               type="email"
               inputMode="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError('') }}
+              onBlur={validateEmail}
               placeholder="La tua email"
               required
               autoComplete="email"
+              error={emailError || undefined}
             />
           </div>
 

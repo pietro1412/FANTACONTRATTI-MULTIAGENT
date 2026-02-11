@@ -20,6 +20,19 @@ export function Login({ onNavigate }: LoginProps) {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [isLoading, setIsLoading] = useState(false)
 
+  function validateField(field: keyof FieldErrors) {
+    setFieldErrors(prev => {
+      const next = { ...prev }
+      if (field === 'emailOrUsername') {
+        next.emailOrUsername = emailOrUsername.trim() ? undefined : 'Inserisci email o username'
+      }
+      if (field === 'password') {
+        next.password = password ? undefined : 'Inserisci la password'
+      }
+      return next
+    })
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
@@ -89,7 +102,8 @@ export function Login({ onNavigate }: LoginProps) {
               inputMode="email"
               autoComplete="email"
               value={emailOrUsername}
-              onChange={e => setEmailOrUsername(e.target.value)}
+              onChange={e => { setEmailOrUsername(e.target.value); if (fieldErrors.emailOrUsername) setFieldErrors(prev => ({ ...prev, emailOrUsername: undefined })) }}
+              onBlur={() => validateField('emailOrUsername')}
               placeholder="mario@email.com"
               required
               error={fieldErrors.emailOrUsername}
@@ -99,7 +113,8 @@ export function Login({ onNavigate }: LoginProps) {
               label="Password"
               type="password"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={e => { setPassword(e.target.value); if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: undefined })) }}
+              onBlur={() => validateField('password')}
               placeholder="••••••••"
               required
               error={fieldErrors.password}

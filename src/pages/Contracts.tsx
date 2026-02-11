@@ -189,9 +189,13 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   const [filterRole, setFilterRole] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Tab contratti (T-006)
+  const [contractTab, setContractTab] = useState<'rinnovi' | 'nuovi' | 'usciti'>('rinnovi')
+
   // State for player stats modal
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerInfo | null>(null)
-
+  // Auto-select initial tab based on data (T-006)
+  const [tabInitialized, setTabInitialized] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -288,6 +292,21 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         }
       })
       setLocalReleases(releases)
+
+      // T-006: Auto-select initial tab
+      if (!tabInitialized) {
+        if (data.pendingContracts.length > 0) {
+          setContractTab('nuovi')
+        } else {
+          const hasUndecidedExited = data.contracts.some(c => c.isExitedPlayer && !c.draftExitDecision)
+          if (hasUndecidedExited) {
+            setContractTab('usciti')
+          } else {
+            setContractTab('rinnovi')
+          }
+        }
+        setTabInitialized(true)
+      }
     }
     setIsLoading(false)
   }
@@ -1018,6 +1037,42 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         </div>
       )}
 
+      {/* T-006: Tab bar */}
+      {inContrattiPhase && !isConsolidated && (
+        <div className="max-w-[1600px] mx-auto px-4 pt-3">
+          <div className="flex gap-1 bg-surface-300/30 p-1 rounded-xl border border-surface-50/20">
+            {([
+              { key: 'rinnovi' as const, label: 'Rinnovi', count: filteredContracts.length, icon: '📝' },
+              { key: 'nuovi' as const, label: 'Nuovi', count: filteredPending.length, icon: '⚡', alert: filteredPending.length > 0 },
+              { key: 'usciti' as const, label: 'Usciti', count: exitedContracts.length, icon: '⚖️', alert: exitedContracts.length > 0 },
+            ]).map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setContractTab(tab.key)}
+                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  contractTab === tab.key
+                    ? 'bg-surface-200 text-white shadow-md border border-surface-50/20'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-surface-300/30'
+                }`}
+              >
+                <span className="hidden sm:inline">{tab.icon}</span>
+                <span>{tab.label}</span>
+                {tab.count > 0 && (
+                  <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                    tab.alert && contractTab !== tab.key
+                      ? 'bg-warning-500/30 text-warning-400'
+                      : contractTab === tab.key
+                        ? 'bg-primary-500/30 text-primary-400'
+                        : 'bg-surface-50/20 text-gray-500'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Box Regole Rinnovi */}
       {inContrattiPhase && !isConsolidated && (
@@ -1077,8 +1132,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         <div className="flex flex-col xl:flex-row gap-4">
           {/* Colonna principale - Contratti */}
           <div className="flex-1 min-w-0">
-        {/* Pending Contracts - Da impostare */}
-        {filteredPending.length > 0 && (
+        {/* Pending Contracts - Da impostare (T-006: tab 'nuovi' or always when consolidated) */}
+        {filteredPending.length > 0 && (contractTab === 'nuovi' || isConsolidated || !inContrattiPhase) && (
           <div className="mb-6">
             <h2 className="text-sm font-bold text-warning-400 uppercase tracking-wide mb-2">
               Da Impostare ({filteredPending.length})
@@ -1311,8 +1366,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
           </div>
         )}
 
-        {/* Giocatori Usciti dalla Serie A - Solo INDECISI */}
-        {exitedContracts.length > 0 && (
+        {/* Giocatori Usciti dalla Serie A - Solo INDECISI (T-006: tab 'usciti' or always when consolidated) */}
+        {exitedContracts.length > 0 && (contractTab === 'usciti' || isConsolidated || !inContrattiPhase) && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-lg">⚖️</span>
@@ -1424,8 +1479,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
           </div>
         )}
 
-        {/* Contratti Esistenti */}
-        <div>
+        {/* Contratti Esistenti (T-006: tab 'rinnovi' or always when consolidated) */}
+        {(contractTab === 'rinnovi' || isConsolidated || !inContrattiPhase) && <div>
           <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-2">
             Contratti ({filteredContracts.length})
           </h2>
@@ -2036,7 +2091,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
               </table>
             </div>
           </div>
-        </div>
+        </div>}
         {/* Fine sezione contratti esistenti */}
 
         {/* Sezione Giocatori Rilasciati (solo dopo consolidamento) */}

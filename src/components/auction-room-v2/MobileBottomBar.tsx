@@ -50,6 +50,11 @@ export function MobileBottomBar({
             <div>
               <p className="text-sm text-gray-400 truncate max-w-[120px]">{auction.player.name}</p>
               <p className="text-2xl font-mono font-bold text-white">{auction.currentPrice}</p>
+              {auction.bids.length > 0 && (
+                <p className="text-xs text-gray-500 truncate max-w-[140px]">
+                  {auction.bids[auction.bids.length - 1]?.bidder.teamName || auction.bids[auction.bids.length - 1]?.bidder.user.username}
+                </p>
+              )}
             </div>
           </div>
           {isUserWinning && (

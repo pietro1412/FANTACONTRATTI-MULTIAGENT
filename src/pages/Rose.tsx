@@ -112,6 +112,19 @@ export function Rose({ onNavigate }: RoseProps) {
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
   const [filtersOpen, setFiltersOpen] = useState(false)
 
+  // Sorting
+  const [sortColumn, setSortColumn] = useState<string>('position')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  function handleSort(column: string) {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortColumn(column)
+      setSortDirection('asc')
+    }
+  }
+
   // Sidebar collapse
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -202,17 +215,64 @@ export function Rose({ onNavigate }: RoseProps) {
       return true
     })
 
-    // Sort by position (P, D, C, A) then alphabetically
+    // Sort by selected column
     const posOrder: Record<string, number> = { P: 0, D: 1, C: 2, A: 3 }
+    const dir = sortDirection === 'asc' ? 1 : -1
+
     players.sort((a, b) => {
-      const posA = posOrder[a.player.position] ?? 99
-      const posB = posOrder[b.player.position] ?? 99
-      if (posA !== posB) return posA - posB
-      return a.player.name.localeCompare(b.player.name)
+      let cmp = 0
+      switch (sortColumn) {
+        case 'position': {
+          const posA = posOrder[a.player.position] ?? 99
+          const posB = posOrder[b.player.position] ?? 99
+          cmp = posA - posB
+          if (cmp === 0) cmp = a.player.name.localeCompare(b.player.name)
+          break
+        }
+        case 'name':
+          cmp = a.player.name.localeCompare(b.player.name)
+          break
+        case 'team':
+          cmp = a.player.team.localeCompare(b.player.team)
+          break
+        case 'appearances':
+          cmp = (a.player.computedStats?.appearances ?? 0) - (b.player.computedStats?.appearances ?? 0)
+          break
+        case 'goals':
+          cmp = (a.player.computedStats?.totalGoals ?? 0) - (b.player.computedStats?.totalGoals ?? 0)
+          break
+        case 'assists':
+          cmp = (a.player.computedStats?.totalAssists ?? 0) - (b.player.computedStats?.totalAssists ?? 0)
+          break
+        case 'rating':
+          cmp = (a.player.computedStats?.avgRating ?? 0) - (b.player.computedStats?.avgRating ?? 0)
+          break
+        case 'salary':
+          cmp = (a.contract?.salary ?? 0) - (b.contract?.salary ?? 0)
+          break
+        case 'duration':
+          cmp = (a.contract?.duration ?? 0) - (b.contract?.duration ?? 0)
+          break
+        case 'clause':
+          cmp = (a.contract?.rescissionClause ?? 0) - (b.contract?.rescissionClause ?? 0)
+          break
+        case 'rubata': {
+          const rubA = a.contract?.rescissionClause != null ? (a.contract.rescissionClause + a.contract.salary) : 0
+          const rubB = b.contract?.rescissionClause != null ? (b.contract.rescissionClause + b.contract.salary) : 0
+          cmp = rubA - rubB
+          break
+        }
+        default: {
+          const posA2 = posOrder[a.player.position] ?? 99
+          const posB2 = posOrder[b.player.position] ?? 99
+          cmp = posA2 - posB2
+        }
+      }
+      return cmp * dir
     })
 
     return players
-  }, [selectedMember, positionFilter, teamFilter, searchQuery])
+  }, [selectedMember, positionFilter, teamFilter, searchQuery, sortColumn, sortDirection])
 
   // Stats
   const stats = useMemo(() => {
@@ -597,11 +657,42 @@ export function Rose({ onNavigate }: RoseProps) {
                   )
                 })}
                 {filteredPlayers.length === 0 && (
-                  <div className="text-center text-gray-500 py-8">
-                    {selectedMember?.roster.length === 0
-                      ? 'Nessun giocatore in rosa'
-                      : 'Nessun giocatore trovato con i filtri selezionati'
-                    }
+                  <div className="text-center py-12 px-4">
+                    {selectedMember?.roster.length === 0 ? (
+                      <div className="space-y-4">
+                        <div className="w-16 h-16 rounded-full bg-surface-300 flex items-center justify-center mx-auto">
+                          <span className="text-3xl">📋</span>
+                        </div>
+                        <div>
+                          <p className="text-gray-300 font-semibold text-base">Rosa vuota</p>
+                          <p className="text-gray-500 text-sm mt-1">
+                            {isOwnRoster
+                              ? 'Non hai ancora acquistato giocatori. Partecipa a un\'asta per costruire la tua squadra!'
+                              : 'Questo manager non ha ancora acquistato giocatori.'
+                            }
+                          </p>
+                        </div>
+                        {isOwnRoster && leagueId && (
+                          <button
+                            onClick={() => onNavigate('league-detail', { leagueId })}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium text-sm transition-colors"
+                          >
+                            <span>⚡</span>
+                            Vai alla Lega
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-gray-500">Nessun giocatore trovato con i filtri selezionati</p>
+                        <button
+                          onClick={() => { setPositionFilter('ALL'); setTeamFilter('ALL'); setSearchQuery('') }}
+                          className="text-primary-400 hover:text-primary-300 text-sm font-medium transition-colors"
+                        >
+                          Resetta filtri
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -611,17 +702,34 @@ export function Rose({ onNavigate }: RoseProps) {
                 <table className="w-full min-w-[600px] text-sm table-fixed">
                   <thead className="bg-surface-300/50">
                     <tr className="text-xs text-gray-400 uppercase">
-                      <th scope="col" className="w-12 p-2 text-center">R</th>
-                      <th scope="col" className="w-auto text-left p-2">Giocatore</th>
-                      <th scope="col" className="w-36 text-left p-2">Squadra</th>
-                      <th scope="col" className="w-10 text-center p-2" title="Presenze">Pr</th>
-                      <th scope="col" className="w-10 text-center p-2" title="Gol">G</th>
-                      <th scope="col" className="w-10 text-center p-2" title="Assist">A</th>
-                      <th scope="col" className="w-12 text-center p-2" title="Rating">Vt</th>
-                      <th scope="col" className="w-16 text-center p-2 text-accent-400">Ing</th>
-                      <th scope="col" className="w-14 text-center p-2">Dur</th>
-                      <th scope="col" className="w-16 text-center p-2 text-orange-400">Cls</th>
-                      <th scope="col" className="w-16 text-center p-2 text-warning-400">Rub</th>
+                      {[
+                        { key: 'position', label: 'R', width: 'w-12', align: 'text-center', color: '' },
+                        { key: 'name', label: 'Giocatore', width: 'w-auto', align: 'text-left', color: '' },
+                        { key: 'team', label: 'Squadra', width: 'w-36', align: 'text-left', color: '' },
+                        { key: 'appearances', label: 'Pr', width: 'w-10', align: 'text-center', color: '', title: 'Presenze' },
+                        { key: 'goals', label: 'G', width: 'w-10', align: 'text-center', color: '', title: 'Gol' },
+                        { key: 'assists', label: 'A', width: 'w-10', align: 'text-center', color: '', title: 'Assist' },
+                        { key: 'rating', label: 'Vt', width: 'w-12', align: 'text-center', color: '', title: 'Rating' },
+                        { key: 'salary', label: 'Ing', width: 'w-16', align: 'text-center', color: 'text-accent-400' },
+                        { key: 'duration', label: 'Dur', width: 'w-14', align: 'text-center', color: '' },
+                        { key: 'clause', label: 'Cls', width: 'w-16', align: 'text-center', color: 'text-orange-400' },
+                        { key: 'rubata', label: 'Rub', width: 'w-16', align: 'text-center', color: 'text-warning-400' },
+                      ].map(col => (
+                        <th
+                          key={col.key}
+                          scope="col"
+                          className={`${col.width} ${col.align} p-2 ${col.color} cursor-pointer select-none hover:text-gray-200 transition-colors`}
+                          title={col.title || col.label}
+                          onClick={() => handleSort(col.key)}
+                        >
+                          <span className="inline-flex items-center gap-0.5">
+                            {col.label}
+                            {sortColumn === col.key && (
+                              <span className="text-primary-400">{sortDirection === 'asc' ? '▲' : '▼'}</span>
+                            )}
+                          </span>
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -731,11 +839,42 @@ export function Rose({ onNavigate }: RoseProps) {
                 </table>
 
                 {filteredPlayers.length === 0 && (
-                  <div className="text-center text-gray-500 py-12">
-                    {selectedMember?.roster.length === 0
-                      ? 'Nessun giocatore in rosa'
-                      : 'Nessun giocatore trovato con i filtri selezionati'
-                    }
+                  <div className="text-center py-16 px-4">
+                    {selectedMember?.roster.length === 0 ? (
+                      <div className="space-y-4">
+                        <div className="w-20 h-20 rounded-full bg-surface-300 flex items-center justify-center mx-auto">
+                          <span className="text-4xl">📋</span>
+                        </div>
+                        <div>
+                          <p className="text-gray-300 font-semibold text-lg">Rosa vuota</p>
+                          <p className="text-gray-500 text-sm mt-1 max-w-sm mx-auto">
+                            {isOwnRoster
+                              ? 'Non hai ancora acquistato giocatori. Partecipa a un\'asta per costruire la tua squadra!'
+                              : 'Questo manager non ha ancora acquistato giocatori.'
+                            }
+                          </p>
+                        </div>
+                        {isOwnRoster && leagueId && (
+                          <button
+                            onClick={() => onNavigate('league-detail', { leagueId })}
+                            className="inline-flex items-center gap-2 px-5 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors"
+                          >
+                            <span>⚡</span>
+                            Vai alla Lega
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-gray-500">Nessun giocatore trovato con i filtri selezionati</p>
+                        <button
+                          onClick={() => { setPositionFilter('ALL'); setTeamFilter('ALL'); setSearchQuery('') }}
+                          className="text-primary-400 hover:text-primary-300 text-sm font-medium transition-colors"
+                        >
+                          Resetta filtri
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

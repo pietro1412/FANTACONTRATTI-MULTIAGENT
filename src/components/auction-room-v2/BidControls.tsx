@@ -152,7 +152,7 @@ export function BidControls({
           type="button"
           onClick={() => setBidAmount(String(Math.max(currentPrice + 1, bidNum - 1)))}
           disabled={isDisabled || bidNum <= currentPrice + 1}
-          className="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg bg-slate-700/50 text-white hover:bg-slate-700/70 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] border border-white/5"
+          className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-slate-700/50 text-white hover:bg-slate-700/70 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] border border-white/5 active:scale-95 transition-transform"
         >
           -
         </button>
@@ -170,6 +170,7 @@ export function BidControls({
         ) : (
           <Input
             type="number"
+            inputMode="numeric"
             value={bidAmount}
             onChange={e => setBidAmount(e.target.value)}
             disabled={isDisabled}
@@ -182,7 +183,7 @@ export function BidControls({
           type="button"
           onClick={() => setBidAmount(String(bidNum + 1))}
           disabled={isDisabled || bidNum + 1 > budget}
-          className="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg bg-slate-700/50 text-white hover:bg-slate-700/70 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] border border-white/5"
+          className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-slate-700/50 text-white hover:bg-slate-700/70 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] border border-white/5 active:scale-95 transition-transform"
         >
           +
         </button>
