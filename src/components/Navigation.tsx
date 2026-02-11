@@ -263,6 +263,21 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             </div>
           </div>
 
+          {/* T-023: Mobile breadcrumbs - compact, shown only on small screens */}
+          {leagueId && leagueName && currentPage !== 'leagueDetail' && (
+            <nav className="flex md:hidden items-center gap-1 text-[11px] mt-1" aria-label="Mobile breadcrumb">
+              <button
+                onClick={() => onNavigate('leagueDetail', { leagueId })}
+                className="text-gray-500 hover:text-primary-300 transition-colors truncate max-w-[100px]"
+                title={leagueName}
+              >
+                {leagueName}
+              </button>
+              {MenuIcons.chevronRight}
+              <span className="text-primary-300 font-medium truncate max-w-[100px]">{getPageDisplayName(currentPage)}</span>
+            </nav>
+          )}
+
           {/* Breadcrumbs - shown on medium screens only (hidden on lg where menu is visible) */}
           {leagueId && leagueName && (
             <nav className="hidden md:flex lg:hidden items-center gap-1.5 text-xs" aria-label="Breadcrumb" data-testid="breadcrumbs">

@@ -126,26 +126,62 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             ))}
           </div>
         ) : leagues.length === 0 ? (
-          <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-16 text-center">
+          <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-8 sm:p-16 text-center">
             <div className="w-24 h-24 rounded-full bg-surface-300 flex items-center justify-center mx-auto mb-6">
               <span className="text-5xl">{isSuperAdmin ? '🛡️' : '🏆'}</span>
             </div>
             <h3 className="text-2xl font-bold text-white mb-3">
-              {isSuperAdmin ? 'Nessuna lega da visualizzare' : 'Nessuna lega ancora'}
+              {isSuperAdmin ? 'Nessuna lega da visualizzare' : 'Benvenuto su Fantacontratti!'}
             </h3>
             <p className="text-lg text-gray-400 mb-8 max-w-md mx-auto">
               {isSuperAdmin
                 ? 'Come superadmin, puoi gestire la piattaforma dal pannello di controllo. Non partecipi direttamente alle leghe.'
-                : 'Non sei ancora membro di nessuna lega. Crea la tua prima lega e inizia a competere!'}
+                : 'Inizia la tua avventura dynasty in 3 semplici passi.'}
             </p>
+
             {isSuperAdmin ? (
               <Button size="xl" onClick={() => onNavigate('superadmin')}>
                 Vai al Pannello di Controllo
               </Button>
             ) : (
-              <Button size="xl" onClick={() => onNavigate('create-league')}>
-                Crea la tua prima lega
-              </Button>
+              <>
+                {/* T-019: Onboarding steps */}
+                <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
+                  <div className="bg-surface-300 rounded-xl p-5 border border-surface-50/20">
+                    <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center mx-auto mb-3">
+                      <span className="text-lg font-bold text-primary-400">1</span>
+                    </div>
+                    <h4 className="font-semibold text-white text-sm mb-1">Crea o Cerca</h4>
+                    <p className="text-xs text-gray-400">Crea una nuova lega o cerca una lega esistente a cui unirti</p>
+                  </div>
+                  <div className="bg-surface-300 rounded-xl p-5 border border-surface-50/20">
+                    <div className="w-10 h-10 rounded-full bg-accent-500/20 flex items-center justify-center mx-auto mb-3">
+                      <span className="text-lg font-bold text-accent-400">2</span>
+                    </div>
+                    <h4 className="font-semibold text-white text-sm mb-1">Invita Amici</h4>
+                    <p className="text-xs text-gray-400">Invita i tuoi amici a unirsi alla lega per competere insieme</p>
+                  </div>
+                  <div className="bg-surface-300 rounded-xl p-5 border border-surface-50/20">
+                    <div className="w-10 h-10 rounded-full bg-secondary-500/20 flex items-center justify-center mx-auto mb-3">
+                      <span className="text-lg font-bold text-secondary-400">3</span>
+                    </div>
+                    <h4 className="font-semibold text-white text-sm mb-1">Inizia l'Asta</h4>
+                    <p className="text-xs text-gray-400">L'admin avvia l'asta e tutti competono per costruire la rosa</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button size="xl" onClick={() => onNavigate('create-league')}>
+                    <span className="mr-2">+</span> Crea la tua prima lega
+                  </Button>
+                  <Button size="xl" variant="outline" onClick={() => setShowSearchModal(true)}>
+                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Cerca Lega Esistente
+                  </Button>
+                </div>
+              </>
             )}
           </div>
         ) : (

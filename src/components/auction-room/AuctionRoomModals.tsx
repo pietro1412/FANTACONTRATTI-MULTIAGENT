@@ -4,6 +4,7 @@ import { POSITION_NAMES } from '../ui/PositionBadge'
 import { getTeamLogo } from '../../utils/teamLogos'
 import { POSITION_COLORS } from '../../types/auctionroom.types'
 import type { ManagerData, PendingAcknowledgment, AppealStatus } from '../../types/auctionroom.types'
+import { celebrateWin, celebrateBigWin } from '../../utils/confetti'
 
 // ─── Props Interfaces ────────────────────────────────────────────────
 
@@ -162,6 +163,22 @@ export function AcknowledgmentModal({
   onNavigate,
   leagueId,
 }: AcknowledgmentModalProps) {
+  // T-007: Celebration confetti when auction is won
+  const celebratedRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!pendingAck?.winner || pendingAck.userAcknowledged) return
+    // Only celebrate once per auction
+    const ackId = pendingAck.id || pendingAck.player?.name
+    if (celebratedRef.current === ackId) return
+    celebratedRef.current = ackId
+    // Big celebration for expensive players (>= 100M), normal otherwise
+    if (pendingAck.finalPrice >= 100) {
+      celebrateBigWin()
+    } else {
+      celebrateWin()
+    }
+  }, [pendingAck?.winner, pendingAck?.id, pendingAck?.player?.name, pendingAck?.userAcknowledged, pendingAck?.finalPrice])
+
   if (
     !(
       pendingAck &&
@@ -179,7 +196,7 @@ export function AcknowledgmentModal({
       <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20">
         <div className="p-6">
           <div className="text-center mb-6">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${pendingAck.winner ? 'bg-secondary-500/20' : 'bg-surface-300'}`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce-in ${pendingAck.winner ? 'bg-secondary-500/20' : 'bg-surface-300'}`}>
               <span className="text-3xl">{pendingAck.winner ? '\u2705' : '\u274C'}</span>
             </div>
             <h2 className="text-2xl font-bold text-white">{pendingAck.winner ? 'Transazione Completata' : 'Asta Conclusa'}</h2>

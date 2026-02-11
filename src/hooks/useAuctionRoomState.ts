@@ -3,6 +3,7 @@ import { auctionApi, playerApi, firstMarketApi, adminApi, contractApi } from '..
 import { usePusherAuction } from '../services/pusher.client'
 import { useServerTime } from './useServerTime'
 import haptic from '../utils/haptics'
+import sounds from '../utils/sounds'
 import {
   useSensor,
   useSensors,
@@ -333,6 +334,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
       if (remaining <= 5 && remaining > 0 && lastWarningAt !== remaining) {
         lastWarningAt = remaining
         haptic.warning() // Rapid vibration for danger zone
+        sounds.warning() // T-020: Audio warning
       } else if (remaining === 10 && lastWarningAt !== remaining) {
         lastWarningAt = remaining
         haptic.light() // Light vibration for warning zone
@@ -766,6 +768,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
       setSuccessMessage(`Offerta di ${amount} registrata!`)
       setBidAmount(String(amount + 1))
       haptic.bid() // Haptic feedback for successful bid
+      sounds.bid() // T-020: Audio feedback
       loadCurrentAuction()
     } else {
       setError(result.message || 'Errore')
@@ -852,6 +855,40 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
   function handleSkipContractModification() {
     setPendingContractModification(null)
   }
+
+  // T-020: Sound on outbid — detect when user was leading and gets outbid
+  const prevLeadBidderRef = useRef<string | null>(null)
+  useEffect(() => {
+    const topBidder = auction?.bids?.[0]?.bidder?.user?.username || null
+    const myUsername = managersStatus?.managers.find(m => m.id === managersStatus?.myId)?.username
+    if (
+      myUsername &&
+      prevLeadBidderRef.current === myUsername &&
+      topBidder !== null &&
+      topBidder !== myUsername
+    ) {
+      sounds.outbid()
+      haptic.outbid()
+    }
+    prevLeadBidderRef.current = topBidder
+  }, [auction?.bids?.[0]?.bidder?.user?.username, managersStatus])
+
+  // T-020: Sound on win/lose — detect when pendingAck appears with result
+  const prevPendingAckIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!pendingAck || !membership) return
+    const ackId = pendingAck.id
+    if (prevPendingAckIdRef.current === ackId) return
+    prevPendingAckIdRef.current = ackId
+    if (pendingAck.winner) {
+      const myUsername = managersStatus?.managers.find(m => m.id === managersStatus?.myId)?.username
+      if (pendingAck.winner.username === myUsername) {
+        sounds.win()
+      } else {
+        sounds.lose()
+      }
+    }
+  }, [pendingAck?.id, pendingAck?.winner, membership, managersStatus])
 
   const isMyTurn = firstMarketStatus?.isUserTurn || false
   const currentTurnManager = firstMarketStatus?.currentNominator
