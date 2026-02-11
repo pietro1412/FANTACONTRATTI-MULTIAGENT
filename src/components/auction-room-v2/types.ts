@@ -33,6 +33,7 @@ export interface AuctionViewProps {
   bidAmount: string
   setBidAmount: (amount: string) => void
   onPlaceBid: () => void
+  isBidding?: boolean
 
   // Connection
   isConnected: boolean

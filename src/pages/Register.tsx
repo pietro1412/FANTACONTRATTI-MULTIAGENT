@@ -100,7 +100,7 @@ export function Register({ onNavigate }: RegisterProps) {
         )}
 
         {/* Card */}
-        <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-8 shadow-2xl">
+        <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-4 sm:p-8 shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className={`min-h-[56px] transition-all duration-200 ${error ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
               {error && (

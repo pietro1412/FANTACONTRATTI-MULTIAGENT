@@ -108,7 +108,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     handleForceAllAppealAcks, handleForceAllReadyResume,
     handleResetFirstMarket, handleRequestPause, handlePauseAuction, handleResumeAuction,
     pauseRequest, dismissPauseRequest,
-    handleCompleteAllSlots, handlePlaceBid, handleCloseAuction,
+    handleCompleteAllSlots, handlePlaceBid, handleCloseAuction, isBidding,
     handleUpdateTimer, handleAcknowledge,
     handleContractModification, handleSkipContractModification,
   } = useAuctionRoomState(sessionId, leagueId)
@@ -230,6 +230,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           bidAmount={bidAmount}
           setBidAmount={setBidAmount}
           onPlaceBid={handlePlaceBid}
+          isBidding={isBidding}
           isConnected={isConnected}
           connectionStatus={connectionStatus}
           readyStatus={readyStatus}

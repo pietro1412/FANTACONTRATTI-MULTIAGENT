@@ -73,6 +73,10 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
   const [appealStatus, setAppealStatus] = useState<AppealStatus | null>(null)
 
 
+  // Bid submission guard (T-001: debounce + loading, T-003: offline block)
+  const [isBidding, setIsBidding] = useState(false)
+  const lastBidTimeRef = useRef<number>(0)
+
   // Contract modification after winning auction
   const [pendingContractModification, setPendingContractModification] = useState<ContractForModification | null>(null)
 
@@ -731,6 +735,20 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
 
   async function handlePlaceBid() {
     if (!auction) return
+
+    // T-003: Block bid when disconnected
+    if (!isConnected) {
+      setError('Connessione persa — riconnessione in corso...')
+      haptic.error()
+      return
+    }
+
+    // T-001: Debounce — reject rapid taps within 1000ms
+    const now = Date.now()
+    if (now - lastBidTimeRef.current < 1000) return
+    if (isBidding) return
+    lastBidTimeRef.current = now
+
     setError('')
     const amount = parseInt(bidAmount)
     if (isNaN(amount) || amount <= 0) {
@@ -738,7 +756,12 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
       haptic.error()
       return
     }
+
+    // T-001: Loading state during submission
+    setIsBidding(true)
     const result = await auctionApi.placeBid(auction.id, amount)
+    setIsBidding(false)
+
     if (result.success) {
       setSuccessMessage(`Offerta di ${amount} registrata!`)
       setBidAmount(String(amount + 1))
@@ -941,6 +964,9 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     selectedManager, setSelectedManager,
     appealStatus,
     pendingContractModification,
+
+    // Bid submission state (T-001)
+    isBidding,
 
     // Derived state
     isAdmin,

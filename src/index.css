@@ -675,3 +675,15 @@ body {
 .animate-nomination-glow {
   animation: nominationGlow 2s ease-in-out infinite;
 }
+
+/* T-005: Respect user motion preferences (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

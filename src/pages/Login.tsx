@@ -71,7 +71,7 @@ export function Login({ onNavigate }: LoginProps) {
         </div>
 
         {/* Card */}
-        <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-8 shadow-2xl">
+        <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-4 sm:p-8 shadow-2xl">
           <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white text-center mb-8">Accedi al tuo account</h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">

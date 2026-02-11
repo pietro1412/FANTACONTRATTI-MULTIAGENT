@@ -355,7 +355,7 @@ export function Profile({ onNavigate }: ProfileProps) {
             {/* Profile Photo Section */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold text-white mb-4">Foto Profilo</h3>
-              <div className="flex items-center gap-6">
+              <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
                 <div className="relative">
                   <div
                     onClick={handlePhotoClick}

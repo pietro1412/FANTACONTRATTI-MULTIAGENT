@@ -13,6 +13,8 @@ interface MobileBottomBarProps {
   setBidAmount: (val: string) => void
   onPlaceBid: () => void
   myRosterSlots?: MyRosterSlots | null
+  isBidding?: boolean
+  isConnected?: boolean
 }
 
 export function MobileBottomBar({
@@ -26,6 +28,8 @@ export function MobileBottomBar({
   setBidAmount,
   onPlaceBid,
   myRosterSlots,
+  isBidding = false,
+  isConnected = true,
 }: MobileBottomBarProps) {
   if (!auction) return null
 
@@ -72,6 +76,8 @@ export function MobileBottomBar({
             isTimerExpired={isTimerExpired}
             budget={membership?.currentBudget || 0}
             compact
+            isBidding={isBidding}
+            isConnected={isConnected}
           />
         )}
       </div>

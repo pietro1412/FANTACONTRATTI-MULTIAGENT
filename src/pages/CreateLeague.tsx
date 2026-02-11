@@ -134,7 +134,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
           </div>
 
           {/* Card Content */}
-          <div className="p-8">
+          <div className="p-4 sm:p-6 md:p-8">
             {success ? (
               <div className="text-center py-12">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-secondary-500 to-secondary-700 flex items-center justify-center mx-auto mb-6 shadow-lg">
@@ -214,7 +214,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                     <h3 className="text-xl font-bold text-white">Configurazione</h3>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div className="bg-surface-300 rounded-xl p-5 border border-surface-50/20">
                       <NumberStepper
                         label="Max Partecipanti"

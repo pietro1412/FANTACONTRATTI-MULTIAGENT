@@ -17,6 +17,8 @@ interface BiddingPanelProps {
   isAdmin: boolean
   onCloseAuction?: () => void
   myRosterSlots?: MyRosterSlots | null
+  isBidding?: boolean
+  isConnected?: boolean
 }
 
 export function BiddingPanel({
@@ -33,6 +35,8 @@ export function BiddingPanel({
   isAdmin,
   onCloseAuction,
   myRosterSlots,
+  isBidding = false,
+  isConnected = true,
 }: BiddingPanelProps) {
   const isTimerCritical = timeLeft !== null && timeLeft <= 10
 
@@ -141,6 +145,8 @@ export function BiddingPanel({
             budget={membership?.currentBudget || 0}
             isAdmin={isAdmin}
             onCloseAuction={onCloseAuction}
+            isBidding={isBidding}
+            isConnected={isConnected}
           />
         )}
       </div>

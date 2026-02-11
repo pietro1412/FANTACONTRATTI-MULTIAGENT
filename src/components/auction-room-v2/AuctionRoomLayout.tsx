@@ -85,6 +85,8 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
         setBidAmount={props.setBidAmount}
         onPlaceBid={props.onPlaceBid}
         myRosterSlots={props.myRosterSlots}
+        isBidding={props.isBidding}
+        isConnected={props.isConnected}
       />
     </div>
   )

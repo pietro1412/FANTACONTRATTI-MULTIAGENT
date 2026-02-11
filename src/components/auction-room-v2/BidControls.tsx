@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 
@@ -11,6 +12,8 @@ interface BidControlsProps {
   isAdmin?: boolean
   onCloseAuction?: () => void
   compact?: boolean
+  isBidding?: boolean
+  isConnected?: boolean
 }
 
 export function BidControls({
@@ -23,14 +26,76 @@ export function BidControls({
   isAdmin,
   onCloseAuction,
   compact,
+  isBidding = false,
+  isConnected = true,
 }: BidControlsProps) {
   const bidNum = parseInt(bidAmount || '0')
+  const [showMaxConfirm, setShowMaxConfirm] = useState(false)
 
   // Massive = +20 or whatever brings to budget (max)
   const massiveBid = Math.min(bidNum + 20, budget)
 
+  // T-001/T-003: disable all controls when bidding or disconnected
+  const isDisabled = isTimerExpired || isBidding || !isConnected
+
+  // T-002: Check if bid is high (>= 75% of budget)
+  function handleBidClick() {
+    if (bidNum >= budget * 0.75) {
+      setShowMaxConfirm(true)
+    } else {
+      onPlaceBid()
+    }
+  }
+
+  function handleMaxClick() {
+    setBidAmount(String(budget))
+    setShowMaxConfirm(true)
+  }
+
+  function confirmHighBid() {
+    setShowMaxConfirm(false)
+    onPlaceBid()
+  }
+
   return (
     <div className={`space-y-2 ${compact ? '' : 'bg-slate-800/40 backdrop-blur rounded-xl p-4 border border-white/5'}`}>
+      {/* T-003: Connection lost banner */}
+      {!isConnected && (
+        <div className="rounded-lg p-2.5 bg-red-500/10 border border-red-500/30 flex items-center gap-2">
+          <span className="text-red-400 text-sm">&#9889;</span>
+          <span className="text-red-400 text-sm font-semibold">Connessione persa — riconnessione in corso...</span>
+        </div>
+      )}
+
+      {/* T-002: MAX bid confirmation modal */}
+      {showMaxConfirm && (
+        <div className="rounded-xl p-4 bg-surface-300 border-2 border-amber-500/50 space-y-3">
+          <div className="text-center">
+            <p className="text-amber-400 font-bold text-base">Conferma offerta elevata</p>
+            <p className="text-gray-300 text-sm mt-1">
+              Stai per offrire <span className="text-white font-mono font-bold">{bidNum}</span> crediti
+              {bidNum >= budget && ' (tutto il budget)'}
+              {bidNum < budget && bidNum >= budget * 0.75 && ` (${Math.round(bidNum / budget * 100)}% del budget)`}
+            </p>
+            <p className="text-gray-400 text-xs mt-1">Budget residuo: {budget - bidNum}</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowMaxConfirm(false)}
+              className="flex-1 py-2 rounded-lg text-sm font-bold bg-slate-700/50 text-gray-300 hover:bg-slate-700/70 border border-white/10 min-h-[44px]"
+            >
+              Annulla
+            </button>
+            <button
+              onClick={confirmHighBid}
+              className="flex-1 py-2 rounded-lg text-sm font-bold bg-gradient-to-r from-red-500 to-orange-500 text-white active:scale-95 min-h-[44px]"
+            >
+              Conferma {bidNum}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Quick Bid Buttons */}
       <div className="grid grid-cols-6 gap-1.5">
         {[1, 5, 10].map(n => {
@@ -39,9 +104,9 @@ export function BidControls({
             <button
               key={n}
               onClick={() => setBidAmount(String(newBid))}
-              disabled={isTimerExpired || budget < newBid}
+              disabled={isDisabled || budget < newBid}
               className={`py-2 rounded-lg text-sm font-bold font-mono transition-all min-h-[44px] ${
-                isTimerExpired || budget < newBid
+                isDisabled || budget < newBid
                   ? 'bg-slate-700/30 text-gray-600 cursor-not-allowed'
                   : 'bg-sky-500/20 text-sky-400 border border-sky-500/30 active:scale-95 hover:bg-sky-500/30'
               }`}
@@ -53,9 +118,9 @@ export function BidControls({
         {/* Massive button */}
         <button
           onClick={() => setBidAmount(String(massiveBid))}
-          disabled={isTimerExpired || budget < bidNum + 1}
+          disabled={isDisabled || budget < bidNum + 1}
           className={`py-2 rounded-lg text-sm font-bold font-mono transition-all min-h-[44px] col-span-1 ${
-            isTimerExpired || budget < bidNum + 1
+            isDisabled || budget < bidNum + 1
               ? 'bg-slate-700/30 text-gray-600 cursor-not-allowed'
               : 'bg-gradient-to-r from-red-500 to-orange-500 text-white active:scale-95 hover:from-red-400 hover:to-orange-400 shadow-lg shadow-red-500/20'
           }`}
@@ -67,11 +132,12 @@ export function BidControls({
             +20
           </span>
         </button>
+        {/* T-002: MAX button triggers confirmation */}
         <button
-          onClick={() => setBidAmount(String(budget))}
-          disabled={isTimerExpired || !budget}
+          onClick={handleMaxClick}
+          disabled={isDisabled || !budget}
           className={`py-2 rounded-lg text-sm font-bold font-mono transition-all min-h-[44px] col-span-2 ${
-            isTimerExpired || !budget
+            isDisabled || !budget
               ? 'bg-slate-700/30 text-gray-600 cursor-not-allowed'
               : 'bg-accent-500 text-dark-900 active:scale-95 hover:bg-accent-400'
           }`}
@@ -85,7 +151,7 @@ export function BidControls({
         <button
           type="button"
           onClick={() => setBidAmount(String(Math.max(currentPrice + 1, bidNum - 1)))}
-          disabled={isTimerExpired || bidNum <= currentPrice + 1}
+          disabled={isDisabled || bidNum <= currentPrice + 1}
           className="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg bg-slate-700/50 text-white hover:bg-slate-700/70 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] border border-white/5"
         >
           -
@@ -93,9 +159,10 @@ export function BidControls({
         {compact ? (
           <input
             type="number"
+            inputMode="numeric"
             value={bidAmount}
             onChange={e => setBidAmount(e.target.value)}
-            disabled={isTimerExpired}
+            disabled={isDisabled}
             className="flex-1 bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2 text-white text-center font-mono focus:border-sky-500 focus:outline-none"
             placeholder="Importo..."
             data-bid-input="true"
@@ -105,7 +172,7 @@ export function BidControls({
             type="number"
             value={bidAmount}
             onChange={e => setBidAmount(e.target.value)}
-            disabled={isTimerExpired}
+            disabled={isDisabled}
             className="flex-1 text-sml text-center bg-slate-800/60 border-white/10 text-white font-mono"
             placeholder="Importo..."
             data-bid-input="true"
@@ -114,21 +181,26 @@ export function BidControls({
         <button
           type="button"
           onClick={() => setBidAmount(String(bidNum + 1))}
-          disabled={isTimerExpired || bidNum + 1 > budget}
+          disabled={isDisabled || bidNum + 1 > budget}
           className="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg bg-slate-700/50 text-white hover:bg-slate-700/70 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] border border-white/5"
         >
           +
         </button>
+        {/* T-001: Main bid button with loading state */}
         <button
-          onClick={onPlaceBid}
-          disabled={isTimerExpired || budget < bidNum}
+          onClick={handleBidClick}
+          disabled={isDisabled || budget < bidNum}
           className={`px-6 py-2 rounded-lg font-bold font-mono transition-all min-h-[44px] ${
-            isTimerExpired || budget < bidNum
+            isDisabled || budget < bidNum
               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
               : 'bg-sky-500 hover:bg-sky-400 text-white active:scale-95 shadow-lg shadow-sky-500/20'
           }`}
         >
-          {isTimerExpired ? 'Scaduto' : `${bidNum}`}
+          {isBidding ? (
+            <span className="flex items-center gap-1.5">
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+            </span>
+          ) : isTimerExpired ? 'Scaduto' : `${bidNum}`}
         </button>
       </div>
 
