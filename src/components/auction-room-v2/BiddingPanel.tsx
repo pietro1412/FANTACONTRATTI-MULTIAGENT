@@ -1,7 +1,7 @@
 import { AuctionTimer } from '../AuctionTimer'
 import { PlayerCard } from './PlayerCard'
 import { BidControls } from './BidControls'
-import type { Auction, Membership } from '../../types/auctionroom.types'
+import type { Auction, Membership, MyRosterSlots } from '../../types/auctionroom.types'
 
 interface BiddingPanelProps {
   auction: Auction
@@ -16,6 +16,7 @@ interface BiddingPanelProps {
   onPlaceBid: () => void
   isAdmin: boolean
   onCloseAuction?: () => void
+  myRosterSlots?: MyRosterSlots | null
 }
 
 export function BiddingPanel({
@@ -31,8 +32,14 @@ export function BiddingPanel({
   onPlaceBid,
   isAdmin,
   onCloseAuction,
+  myRosterSlots,
 }: BiddingPanelProps) {
   const isTimerCritical = timeLeft !== null && timeLeft <= 10
+
+  // Check if role slot is full
+  const auctionRole = auction.player.position as 'P' | 'D' | 'C' | 'A'
+  const roleSlot = myRosterSlots?.slots[auctionRole]
+  const isRoleFull = roleSlot ? roleSlot.filled >= roleSlot.total : false
 
   return (
     <div className="space-y-4">
@@ -47,27 +54,31 @@ export function BiddingPanel({
             quotation={auction.player.quotation}
             age={auction.player.age}
             apiFootballId={auction.player.apiFootballId}
+            appearances={auction.player.appearances}
+            goals={auction.player.goals}
+            assists={auction.player.assists}
+            avgRating={auction.player.avgRating}
             size="lg"
           />
         </div>
 
-        {/* Right: Price + Timer */}
+        {/* Right: Timer + Price in ONE unified box */}
         <div className="flex flex-col items-center justify-center">
-          {/* Timer */}
-          {auction.timerExpiresAt && (
-            <div className="w-full mb-3">
-              <AuctionTimer timeLeft={timeLeft} totalSeconds={timerSetting} className="w-full" />
-            </div>
-          )}
-
-          {/* Current Price - HUGE */}
           <div className={`relative rounded-xl p-5 text-center w-full border-2 overflow-hidden ${
             isTimerCritical
               ? 'border-red-500/50 bg-gradient-to-br from-red-950/30 to-slate-900/80'
               : 'border-sky-500/30 bg-gradient-to-br from-slate-800/50 to-slate-900/80'
           }`}>
-            <p className="text-sm text-sky-400 uppercase tracking-wider font-bold mb-2">Offerta Corrente</p>
-            <p className={`text-7xl lg:text-9xl font-mono font-black text-transparent bg-clip-text bg-gradient-to-r mb-3 ${
+            {/* Timer inline with label */}
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <p className="text-sm text-sky-400 uppercase tracking-wider font-bold">Offerta Corrente</p>
+              {auction.timerExpiresAt && (
+                <AuctionTimer timeLeft={timeLeft} totalSeconds={timerSetting} compact />
+              )}
+            </div>
+
+            {/* Price — sized to match WaitingPanel / ReadyCheckPanel */}
+            <p className={`text-5xl lg:text-7xl font-mono font-black text-transparent bg-clip-text bg-gradient-to-r mb-3 ${
               isTimerCritical
                 ? 'from-red-400 via-white to-red-400 animate-pulse'
                 : 'from-sky-400 via-white to-sky-400'
@@ -100,16 +111,30 @@ export function BiddingPanel({
 
       {/* Bid Controls - Hidden on mobile (MobileBottomBar handles it) */}
       <div className="hidden lg:block">
-        <BidControls
-          bidAmount={bidAmount}
-          setBidAmount={setBidAmount}
-          onPlaceBid={onPlaceBid}
-          currentPrice={auction.currentPrice}
-          isTimerExpired={isTimerExpired}
-          budget={membership?.currentBudget || 0}
-          isAdmin={isAdmin}
-          onCloseAuction={onCloseAuction}
-        />
+        {isRoleFull ? (
+          <div className="rounded-xl p-4 bg-amber-500/10 border border-amber-500/30 text-center">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <svg className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <span className="text-amber-400 font-bold text-sm">Slot Ruolo Completo</span>
+            </div>
+            <p className="text-gray-400 text-xs">
+              Hai completato tutti gli slot per questo ruolo ({roleSlot?.filled}/{roleSlot?.total}). Non puoi fare offerte.
+            </p>
+          </div>
+        ) : (
+          <BidControls
+            bidAmount={bidAmount}
+            setBidAmount={setBidAmount}
+            onPlaceBid={onPlaceBid}
+            currentPrice={auction.currentPrice}
+            isTimerExpired={isTimerExpired}
+            budget={membership?.currentBudget || 0}
+            isAdmin={isAdmin}
+            onCloseAuction={onCloseAuction}
+          />
+        )}
       </div>
 
       {/* Bid History */}

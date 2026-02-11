@@ -79,6 +79,10 @@ export interface AuctionViewProps {
 
   // Session info
   isPrimoMercato: boolean
+
+  // Navigation
+  onNavigate?: (page: string, params?: Record<string, string>) => void
+  leagueId?: string
 }
 
 export type AuctionPhase = 'nomination' | 'readyCheck' | 'bidding' | 'acknowledgment' | 'waiting'

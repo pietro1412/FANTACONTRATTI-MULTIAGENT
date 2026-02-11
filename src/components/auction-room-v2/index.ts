@@ -7,7 +7,7 @@ export { MobileSidePanel } from './MobileSidePanel'
 export { MobileBottomBar } from './MobileBottomBar'
 export { PlayerCard } from './PlayerCard'
 export { BidControls } from './BidControls'
-export { SlotProgress } from './SlotProgress'
+
 export { PhaseIndicator } from './PhaseIndicator'
 export { NominationPanel } from './NominationPanel'
 export { ReadyCheckPanel } from './ReadyCheckPanel'

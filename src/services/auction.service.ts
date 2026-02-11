@@ -3818,11 +3818,12 @@ export async function getMyRosterSlots(
     A: session.league.forwardSlots,
   }
 
+  type RosterSlotData = { id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; age?: number | null; apiFootballId?: number | null; contract?: { salary: number; duration: number; rescissionClause: number } | null }
   const rosterByPosition: {
-    P: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; contract?: { salary: number; duration: number; rescissionClause: number } | null }>
-    D: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; contract?: { salary: number; duration: number; rescissionClause: number } | null }>
-    C: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; contract?: { salary: number; duration: number; rescissionClause: number } | null }>
-    A: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; contract?: { salary: number; duration: number; rescissionClause: number } | null }>
+    P: RosterSlotData[]
+    D: RosterSlotData[]
+    C: RosterSlotData[]
+    A: RosterSlotData[]
   } = {
     P: [],
     D: [],
@@ -3839,6 +3840,8 @@ export async function getMyRosterSlots(
         playerName: r.player.name,
         playerTeam: r.player.team,
         acquisitionPrice: r.acquisitionPrice,
+        age: r.player.age ?? null,
+        apiFootballId: r.player.apiFootballId ?? null,
         contract: r.contract ? {
           salary: r.contract.salary,
           duration: r.contract.duration,
@@ -3990,6 +3993,7 @@ export async function getManagersStatus(
         playerTeam: r.player.team,
         position: r.player.position,
         acquisitionPrice: r.acquisitionPrice,
+        quotation: r.player.quotation,
         contract: r.contract ? {
           salary: r.contract.salary,
           duration: r.contract.duration,

@@ -1,6 +1,6 @@
 import { AuctionTimer } from '../AuctionTimer'
 import { BidControls } from './BidControls'
-import type { Auction, Membership } from '../../types/auctionroom.types'
+import type { Auction, Membership, MyRosterSlots } from '../../types/auctionroom.types'
 
 interface MobileBottomBarProps {
   auction: Auction | null
@@ -12,6 +12,7 @@ interface MobileBottomBarProps {
   bidAmount: string
   setBidAmount: (val: string) => void
   onPlaceBid: () => void
+  myRosterSlots?: MyRosterSlots | null
 }
 
 export function MobileBottomBar({
@@ -24,8 +25,14 @@ export function MobileBottomBar({
   bidAmount,
   setBidAmount,
   onPlaceBid,
+  myRosterSlots,
 }: MobileBottomBarProps) {
   if (!auction) return null
+
+  // Check if role slot is full
+  const auctionRole = auction.player.position as 'P' | 'D' | 'C' | 'A'
+  const roleSlot = myRosterSlots?.slots[auctionRole]
+  const isRoleFull = roleSlot ? roleSlot.filled >= roleSlot.total : false
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
@@ -48,16 +55,25 @@ export function MobileBottomBar({
           )}
         </div>
 
-        {/* Bid Controls */}
-        <BidControls
-          bidAmount={bidAmount}
-          setBidAmount={setBidAmount}
-          onPlaceBid={onPlaceBid}
-          currentPrice={auction.currentPrice}
-          isTimerExpired={isTimerExpired}
-          budget={membership?.currentBudget || 0}
-          compact
-        />
+        {/* Bid Controls or Slot Full Banner */}
+        {isRoleFull ? (
+          <div className="rounded-lg p-3 bg-amber-500/10 border border-amber-500/30 text-center">
+            <p className="text-amber-400 font-bold text-xs">Slot Ruolo Completo</p>
+            <p className="text-gray-400 text-[10px] mt-0.5">
+              Hai completato tutti gli slot per questo ruolo. Non puoi fare offerte.
+            </p>
+          </div>
+        ) : (
+          <BidControls
+            bidAmount={bidAmount}
+            setBidAmount={setBidAmount}
+            onPlaceBid={onPlaceBid}
+            currentPrice={auction.currentPrice}
+            isTimerExpired={isTimerExpired}
+            budget={membership?.currentBudget || 0}
+            compact
+          />
+        )}
       </div>
     </div>
   )

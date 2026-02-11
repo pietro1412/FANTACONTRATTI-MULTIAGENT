@@ -9,6 +9,10 @@ import type { AuctionViewProps } from './types'
 export function AuctionRoomLayout(props: AuctionViewProps) {
   const phase = getAuctionPhase(props)
 
+  // Find current user's team initial from managersStatus
+  const myManager = props.managersStatus?.managers.find(m => m.id === props.managersStatus?.myId)
+  const teamInitial = myManager?.teamName?.charAt(0)?.toUpperCase() || myManager?.username?.charAt(0)?.toUpperCase() || 'F'
+
   return (
     <div className="space-y-3">
       {/* Status Bar - always visible */}
@@ -22,10 +26,11 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
         membership={props.membership}
         currentPhase={phase}
         myRosterSlots={props.myRosterSlots}
+        onPauseAuction={props.onPauseAuction}
+        onExit={props.onNavigate && props.leagueId ? () => props.onNavigate!('leagueDetail', { leagueId: props.leagueId! }) : undefined}
+        isAdmin={props.isAdmin}
+        teamInitial={teamInitial}
       />
-
-      {/* Error/Success messages */}
-      {/* (handled by parent AuctionRoom.tsx) */}
 
       {/* Mobile: side panel triggers */}
       <MobileSidePanel
@@ -76,6 +81,7 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
         bidAmount={props.bidAmount}
         setBidAmount={props.setBidAmount}
         onPlaceBid={props.onPlaceBid}
+        myRosterSlots={props.myRosterSlots}
       />
     </div>
   )

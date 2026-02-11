@@ -76,6 +76,7 @@ export function CenterStage(props: CenterStageProps) {
             onPlaceBid={props.onPlaceBid}
             isAdmin={props.isAdmin}
             onCloseAuction={props.onCloseAuction}
+            myRosterSlots={props.myRosterSlots}
           />
         )}
 

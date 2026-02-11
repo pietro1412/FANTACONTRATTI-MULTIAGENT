@@ -14,6 +14,11 @@ export interface Player {
   quotation: number
   age?: number | null
   apiFootballId?: number | null
+  // Mini-stats (computed from apiFootballStats)
+  appearances?: number | null
+  goals?: number | null
+  assists?: number | null
+  avgRating?: number | null
 }
 
 export interface Bid {
@@ -124,6 +129,8 @@ export interface RosterSlot {
   playerName: string
   playerTeam: string
   acquisitionPrice: number
+  age?: number | null
+  apiFootballId?: number | null
   contract?: {
     salary: number
     duration: number
@@ -149,6 +156,7 @@ export interface ManagerRosterPlayer {
   playerTeam: string
   position: string
   acquisitionPrice: number
+  quotation?: number
   contract?: {
     salary: number
     duration: number
