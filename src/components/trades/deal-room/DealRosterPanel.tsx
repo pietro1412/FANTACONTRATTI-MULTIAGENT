@@ -69,30 +69,30 @@ export function DealRosterPanel(props: DealRosterPanelProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
             </svg>
           )}
-          <h3 className="text-sm font-bold text-white">
+          <h3 className="text-base font-bold text-white">
             {isMine ? 'La Mia Rosa' : (targetMember ? targetMember.user.username : 'Rosa Partner')}
           </h3>
           {selectedCount > 0 && (
-            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${isMine ? 'bg-danger-500/20 text-danger-400' : 'bg-primary-500/20 text-primary-400'}`}>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isMine ? 'bg-danger-500/20 text-danger-400' : 'bg-primary-500/20 text-primary-400'}`}>
               {selectedCount}
             </span>
           )}
         </div>
         {isMine && myBudget != null && (
-          <span className="text-xs text-gray-400">
-            Budget: <span className="text-white font-mono font-medium">{myBudget}</span>
+          <span className="text-sm text-gray-400">
+            Budget: <span className="text-white font-mono font-semibold">{myBudget}</span>
           </span>
         )}
       </div>
 
       {/* Partner filters */}
       {!isMine && (
-        <div className="px-3 py-2 border-b border-white/5 space-y-2">
+        <div className="px-3 py-2.5 border-b border-white/5 space-y-2">
           {/* DG selector */}
           <select
             value={selectedMemberId}
             onChange={e => onMemberChange?.(e.target.value)}
-            className="w-full px-2.5 py-1.5 bg-surface-300 border border-white/10 rounded-lg text-white text-xs focus:border-primary-500 focus:outline-none"
+            className="w-full px-2.5 py-2 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
           >
             <option value="">Seleziona DG...</option>
             {members.map(m => (
@@ -106,7 +106,7 @@ export function DealRosterPanel(props: DealRosterPanelProps) {
             value={searchQuery}
             onChange={e => onSearchChange?.(e.target.value)}
             placeholder="Cerca giocatore..."
-            className="w-full px-2.5 py-1.5 bg-surface-300 border border-white/10 rounded-lg text-white text-xs focus:border-primary-500 focus:outline-none placeholder:text-gray-600"
+            className="w-full px-2.5 py-2 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none placeholder:text-gray-600"
           />
 
           {/* Role tabs */}
@@ -118,7 +118,7 @@ export function DealRosterPanel(props: DealRosterPanelProps) {
                 <button
                   key={r.key}
                   onClick={() => onFilterRoleChange?.(r.key)}
-                  className={`flex-1 py-1 rounded text-[10px] font-bold transition-colors border ${
+                  className={`flex-1 py-1.5 rounded text-xs font-bold transition-colors border ${
                     isActive
                       ? (r.key ? filterColor : 'bg-white/10 text-white border-white/20')
                       : 'text-gray-500 border-transparent hover:text-gray-300'
@@ -135,7 +135,7 @@ export function DealRosterPanel(props: DealRosterPanelProps) {
       {/* Scrollable list */}
       <div className="flex-1 overflow-y-auto divide-y divide-white/5">
         {roster.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-gray-500 text-xs">
+          <div className="flex items-center justify-center h-32 text-gray-500 text-sm">
             {isMine ? 'Nessun giocatore in rosa' : (selectedMemberId ? 'Nessun giocatore trovato' : 'Seleziona un DG')}
           </div>
         ) : (
@@ -159,7 +159,7 @@ export function DealRosterPanel(props: DealRosterPanelProps) {
 
       {/* Footer count */}
       {selectedCount > 0 && (
-        <div className={`px-4 py-2 border-t border-white/5 text-xs font-medium ${isMine ? 'text-danger-400' : 'text-primary-400'}`}>
+        <div className={`px-4 py-2.5 border-t border-white/5 text-sm font-medium ${isMine ? 'text-danger-400' : 'text-primary-400'}`}>
           {selectedCount} giocator{selectedCount === 1 ? 'e' : 'i'} selezionat{selectedCount === 1 ? 'o' : 'i'}
         </div>
       )}

@@ -67,14 +67,14 @@ function PlayerChip({ entry, onRemove, accent }: { entry: RosterEntry; onRemove:
   const cs = CHIP_STYLES[accent]
 
   return (
-    <div className={`flex items-center gap-2 px-2.5 py-2 rounded-lg ${cs.container} group`}>
+    <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg ${cs.container} group`}>
       {/* Photo */}
       <div className="relative flex-shrink-0">
         {p.apiFootballId ? (
           <img
             src={getPlayerPhotoUrl(p.apiFootballId)}
             alt={p.name}
-            className="w-8 h-8 rounded-full object-cover bg-surface-300"
+            className="w-9 h-9 rounded-full object-cover bg-surface-300"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none'
               const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
@@ -83,7 +83,7 @@ function PlayerChip({ entry, onRemove, accent }: { entry: RosterEntry; onRemove:
           />
         ) : null}
         <div
-          className={`w-8 h-8 rounded-full bg-gradient-to-br ${gradient} items-center justify-center text-[10px] font-bold text-white ${p.apiFootballId ? 'hidden' : 'flex'}`}
+          className={`w-9 h-9 rounded-full bg-gradient-to-br ${gradient} items-center justify-center text-[10px] font-bold text-white ${p.apiFootballId ? 'hidden' : 'flex'}`}
         >
           {p.position}
         </div>
@@ -92,12 +92,12 @@ function PlayerChip({ entry, onRemove, accent }: { entry: RosterEntry; onRemove:
       {/* Info */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-sm font-medium text-white truncate">{p.name}</span>
-          <span className={`px-1 py-0.5 text-[9px] font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
+          <span className="text-sm font-semibold text-white truncate">{p.name}</span>
+          <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
             {roleStyle.label}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-[11px] text-gray-500">
+        <div className="flex items-center gap-2 text-xs text-gray-500">
           <div className="flex items-center gap-1">
             <div className="w-3.5 h-3.5 bg-white/90 rounded-sm flex items-center justify-center flex-shrink-0">
               <img src={getTeamLogo(p.team)} alt="" className="w-3 h-3 object-contain" />
@@ -115,7 +115,7 @@ function PlayerChip({ entry, onRemove, accent }: { entry: RosterEntry; onRemove:
         className={`p-1 rounded-full opacity-60 hover:opacity-100 ${cs.removeHover} transition-all flex-shrink-0`}
         title="Rimuovi"
       >
-        <svg className={`w-3.5 h-3.5 ${cs.removeIcon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`w-4 h-4 ${cs.removeIcon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
@@ -136,16 +136,16 @@ function BudgetStepper({ value, onChange, max, accent }: { value: number; onChan
         type="button"
         onClick={() => onChange(Math.max(0, value - 1))}
         disabled={value <= 0}
-        className={`px-2.5 py-1.5 bg-surface-300 border ${border} rounded-l-lg text-white font-bold text-sm disabled:opacity-30 hover:bg-surface-300/80 transition-colors`}
+        className={`px-3 py-2 bg-surface-300 border ${border} rounded-l-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors`}
       >-</button>
-      <div className={`flex-1 min-w-[48px] px-2 py-1.5 bg-surface-300 border-y ${border} text-white text-center font-mono font-bold text-sm`}>
+      <div className={`flex-1 min-w-[56px] px-3 py-2 bg-surface-300 border-y ${border} text-white text-center font-mono font-bold text-base`}>
         {value}
       </div>
       <button
         type="button"
         onClick={() => onChange(max != null ? Math.min(max, value + 1) : value + 1)}
         disabled={max != null && value >= max}
-        className={`px-2.5 py-1.5 bg-surface-300 border ${border} rounded-r-lg text-white font-bold text-sm disabled:opacity-30 hover:bg-surface-300/80 transition-colors`}
+        className={`px-3 py-2 bg-surface-300 border ${border} rounded-r-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors`}
       >+</button>
     </div>
   )
@@ -187,14 +187,14 @@ export function DealTable(props: DealTableProps) {
   return (
     <form onSubmit={onSubmit} className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
       {/* Header: DG Target + Budget */}
-      <div className="px-4 py-3 border-b border-white/5">
+      <div className="px-4 py-4 border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="flex-1">
-            <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">Destinatario</label>
+            <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1.5 block">Destinatario</label>
             <select
               value={selectedMemberId}
               onChange={e => onMemberChange(e.target.value)}
-              className="w-full px-3 py-2 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
+              className="w-full px-3 py-2.5 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
             >
               <option value="">Seleziona DG target...</option>
               {members.map(m => (
@@ -203,36 +203,36 @@ export function DealTable(props: DealTableProps) {
             </select>
           </div>
           <div className="text-right flex-shrink-0">
-            <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">Il tuo Budget</label>
-            <span className="text-xl font-mono font-bold text-white">{myBudget}</span>
+            <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1.5 block">Il tuo Budget</label>
+            <span className="text-2xl font-mono font-bold text-white">{myBudget}</span>
           </div>
         </div>
         {targetMember && (
-          <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
+          <div className="mt-2 flex items-center gap-2 text-sm text-gray-400">
             <span>Budget {targetMember.user.username}:</span>
-            <span className="font-mono text-white">{targetMember.currentBudget}</span>
+            <span className="font-mono text-white font-medium">{targetMember.currentBudget}</span>
           </div>
         )}
       </div>
 
       {/* TU CEDI (danger/red) */}
-      <div className="px-4 py-3 border-b border-white/5">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-6 h-6 rounded-full bg-danger-500/20 flex items-center justify-center">
-            <svg className="w-3 h-3 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="px-4 py-4 border-b border-white/5">
+        <div className="flex items-center gap-2 mb-2.5">
+          <div className="w-7 h-7 rounded-full bg-danger-500/20 flex items-center justify-center">
+            <svg className="w-3.5 h-3.5 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
             </svg>
           </div>
-          <span className="text-xs font-bold text-danger-400 uppercase tracking-wider">Tu Cedi</span>
+          <span className="text-sm font-bold text-danger-400 uppercase tracking-wider">Tu Cedi</span>
           {offeredEntries.length > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-danger-500/20 text-danger-400">
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-danger-500/20 text-danger-400">
               {offeredEntries.length}
             </span>
           )}
         </div>
 
         {offeredEntries.length > 0 ? (
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {offeredEntries.map(entry => (
               <PlayerChip key={entry.id} entry={entry} onRemove={() => onRemoveOffered(entry.id)} accent="danger" />
             ))}
@@ -241,18 +241,18 @@ export function DealTable(props: DealTableProps) {
           <button
             type="button"
             onClick={onOpenMyRoster}
-            className="lg:hidden w-full py-3 border border-dashed border-danger-500/30 rounded-lg text-danger-400 text-xs font-medium hover:bg-danger-500/5 transition-colors"
+            className="lg:hidden w-full py-3 border border-dashed border-danger-500/30 rounded-lg text-danger-400 text-sm font-medium hover:bg-danger-500/5 transition-colors"
           >
             Scegli dalla Rosa
           </button>
         )}
         {offeredEntries.length === 0 && (
-          <p className="hidden lg:block text-xs text-gray-600 italic mt-1">Seleziona giocatori dalla colonna sinistra</p>
+          <p className="hidden lg:block text-sm text-gray-600 italic mt-1">Seleziona giocatori dalla colonna sinistra</p>
         )}
 
         {/* Budget offerto */}
         <div className="mt-3">
-          <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">
+          <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1.5 block">
             Crediti offerti (max: {myBudget})
           </label>
           <BudgetStepper value={offeredBudget} onChange={onOfferedBudgetChange} max={myBudget} accent="danger" />
@@ -260,32 +260,32 @@ export function DealTable(props: DealTableProps) {
       </div>
 
       {/* Swap divider */}
-      <div className="flex items-center justify-center py-2 border-b border-white/5">
-        <div className="w-8 h-8 rounded-full bg-surface-300 border border-white/10 flex items-center justify-center">
-          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex items-center justify-center py-2.5 border-b border-white/5">
+        <div className="w-9 h-9 rounded-full bg-surface-300 border border-white/10 flex items-center justify-center">
+          <svg className="w-4.5 h-4.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
           </svg>
         </div>
       </div>
 
       {/* TU OTTIENI (primary/green) */}
-      <div className="px-4 py-3 border-b border-white/5">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-6 h-6 rounded-full bg-primary-500/20 flex items-center justify-center">
-            <svg className="w-3 h-3 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="px-4 py-4 border-b border-white/5">
+        <div className="flex items-center gap-2 mb-2.5">
+          <div className="w-7 h-7 rounded-full bg-primary-500/20 flex items-center justify-center">
+            <svg className="w-3.5 h-3.5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
             </svg>
           </div>
-          <span className="text-xs font-bold text-primary-400 uppercase tracking-wider">Tu Ottieni</span>
+          <span className="text-sm font-bold text-primary-400 uppercase tracking-wider">Tu Ottieni</span>
           {requestedEntries.length > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-primary-500/20 text-primary-400">
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-primary-500/20 text-primary-400">
               {requestedEntries.length}
             </span>
           )}
         </div>
 
         {requestedEntries.length > 0 ? (
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {requestedEntries.map(entry => (
               <PlayerChip key={entry.id} entry={entry} onRemove={() => onRemoveRequested(entry.id)} accent="primary" />
             ))}
@@ -294,18 +294,18 @@ export function DealTable(props: DealTableProps) {
           <button
             type="button"
             onClick={onOpenPartnerRoster}
-            className="lg:hidden w-full py-3 border border-dashed border-primary-500/30 rounded-lg text-primary-400 text-xs font-medium hover:bg-primary-500/5 transition-colors"
+            className="lg:hidden w-full py-3 border border-dashed border-primary-500/30 rounded-lg text-primary-400 text-sm font-medium hover:bg-primary-500/5 transition-colors"
           >
             Scegli dal Partner
           </button>
         )}
         {requestedEntries.length === 0 && (
-          <p className="hidden lg:block text-xs text-gray-600 italic mt-1">Seleziona giocatori dalla colonna destra</p>
+          <p className="hidden lg:block text-sm text-gray-600 italic mt-1">Seleziona giocatori dalla colonna destra</p>
         )}
 
         {/* Budget richiesto */}
         <div className="mt-3">
-          <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">
+          <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1.5 block">
             Crediti richiesti
           </label>
           <BudgetStepper value={requestedBudget} onChange={onRequestedBudgetChange} accent="primary" />
@@ -313,45 +313,45 @@ export function DealTable(props: DealTableProps) {
       </div>
 
       {/* Duration + Message */}
-      <div className="px-4 py-3 border-b border-white/5 space-y-3">
+      <div className="px-4 py-4 border-b border-white/5 space-y-4">
         <div>
-          <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">Durata offerta</label>
+          <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1.5 block">Durata offerta</label>
           <div className="flex items-center">
             <button
               type="button"
               onClick={() => { if (durationIndex > 0) onDurationChange(DURATIONS[durationIndex - 1]!) }}
               disabled={durationIndex <= 0}
-              className="px-2.5 py-1.5 bg-surface-300 border border-accent-500/30 rounded-l-lg text-white font-bold text-sm disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
+              className="px-3 py-2 bg-surface-300 border border-accent-500/30 rounded-l-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
             >-</button>
-            <div className="flex-1 min-w-[48px] px-2 py-1.5 bg-surface-300 border-y border-accent-500/30 text-white text-center font-mono font-bold text-sm">
+            <div className="flex-1 min-w-[56px] px-3 py-2 bg-surface-300 border-y border-accent-500/30 text-white text-center font-mono font-bold text-base">
               {formatDuration(offerDuration)}
             </div>
             <button
               type="button"
               onClick={() => { if (durationIndex < DURATIONS.length - 1) onDurationChange(DURATIONS[durationIndex + 1]!) }}
               disabled={durationIndex >= DURATIONS.length - 1}
-              className="px-2.5 py-1.5 bg-surface-300 border border-accent-500/30 rounded-r-lg text-white font-bold text-sm disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
+              className="px-3 py-2 bg-surface-300 border border-accent-500/30 rounded-r-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
             >+</button>
           </div>
         </div>
         <div>
-          <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">Messaggio (opzionale)</label>
+          <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1.5 block">Messaggio (opzionale)</label>
           <input
             type="text"
             value={message}
             onChange={e => onMessageChange(e.target.value)}
-            className="w-full px-3 py-2 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none placeholder:text-gray-600"
+            className="w-full px-3 py-2.5 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none placeholder:text-gray-600"
             placeholder="Aggiungi un messaggio..."
           />
         </div>
       </div>
 
       {/* Desktop submit */}
-      <div className="hidden lg:block px-4 py-3">
+      <div className="hidden lg:block px-4 py-4">
         <button
           type="submit"
           disabled={!canSubmit || isSubmitting}
-          className="w-full py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.98]"
+          className="w-full py-3.5 rounded-xl font-bold text-base transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.98]"
         >
           {isSubmitting ? (
             <span className="flex items-center justify-center gap-2">

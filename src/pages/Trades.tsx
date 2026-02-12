@@ -531,7 +531,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         <div className="flex items-center gap-1 mt-3 mb-4 border-b border-surface-50/20">
           <button
             onClick={() => setActiveTab('create')}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
+            className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
               activeTab === 'create'
                 ? 'border-primary-500 text-primary-400'
                 : 'border-transparent text-gray-500 hover:text-gray-300'
@@ -545,7 +545,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
           </button>
           <button
             onClick={() => setActiveTab('received')}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
+            className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
               activeTab === 'received'
                 ? 'border-accent-500 text-accent-400'
                 : 'border-transparent text-gray-500 hover:text-gray-300'
@@ -553,7 +553,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
           >
             Ricevute
             {receivedOffers.length > 0 && (
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                 activeTab === 'received' ? 'bg-accent-500/20 text-accent-400' : 'bg-surface-300 text-gray-400'
               }`}>
                 {receivedOffers.length}
@@ -562,7 +562,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
           </button>
           <button
             onClick={() => setActiveTab('sent')}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
+            className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
               activeTab === 'sent'
                 ? 'border-primary-500 text-primary-400'
                 : 'border-transparent text-gray-500 hover:text-gray-300'
@@ -570,7 +570,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
           >
             Inviate
             {sentOffers.length > 0 && (
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                 activeTab === 'sent' ? 'bg-primary-500/20 text-primary-400' : 'bg-surface-300 text-gray-400'
               }`}>
                 {sentOffers.length}
@@ -621,7 +621,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                     </svg>
                     La Mia Rosa
                     {selectedOfferedPlayers.length > 0 && (
-                      <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-danger-500/20 text-danger-400">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-danger-500/20 text-danger-400">
                         {selectedOfferedPlayers.length}
                       </span>
                     )}
@@ -635,7 +635,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                     </svg>
                     Rosa Partner
                     {selectedRequestedPlayers.length > 0 && (
-                      <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-primary-500/20 text-primary-400">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-primary-500/20 text-primary-400">
                         {selectedRequestedPlayers.length}
                       </span>
                     )}

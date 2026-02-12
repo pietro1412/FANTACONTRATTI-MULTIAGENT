@@ -29,7 +29,7 @@ export function DealAssetCard({ entry, isSelected, onToggle, side }: DealAssetCa
   return (
     <div
       onClick={onToggle}
-      className={`px-3 py-2.5 cursor-pointer hover:bg-white/5 transition-colors flex items-center justify-between ${
+      className={`px-3 py-3 cursor-pointer hover:bg-white/5 transition-colors flex items-center justify-between ${
         isSelected ? styles.selected : ''
       }`}
     >
@@ -69,7 +69,7 @@ export function DealAssetCard({ entry, isSelected, onToggle, side }: DealAssetCa
 
         {/* Name + team/age */}
         <div className="min-w-0">
-          <span className="text-gray-200 text-sm font-medium block truncate">{p.name}</span>
+          <span className="text-white text-sm font-semibold block truncate">{p.name}</span>
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             <span className="truncate">{p.team}</span>
             {p.age != null && (
@@ -80,10 +80,10 @@ export function DealAssetCard({ entry, isSelected, onToggle, side }: DealAssetCa
       </div>
 
       {/* Contract info */}
-      <div className="flex items-center gap-2 text-xs flex-shrink-0 ml-2">
-        <span className="text-accent-400 font-mono">{p.contract?.salary ?? '-'}M</span>
+      <div className="flex items-center gap-2 text-sm flex-shrink-0 ml-2">
+        <span className="text-accent-400 font-mono font-medium">{p.contract?.salary ?? '-'}M</span>
         <span className="text-gray-500">x</span>
-        <span className="text-white font-mono">{p.contract?.duration ?? '-'}A</span>
+        <span className="text-white font-mono font-medium">{p.contract?.duration ?? '-'}A</span>
       </div>
     </div>
   )

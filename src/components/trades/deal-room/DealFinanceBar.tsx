@@ -32,11 +32,11 @@ export function DealFinanceBar({
   const hasImpact = postTradeImpact && (postTradeImpact.budgetDelta !== 0 || postTradeImpact.rosterDelta !== 0)
 
   return (
-    <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-2 mb-3">
-      <div className="flex items-center gap-3 md:gap-4 flex-wrap">
+    <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 mb-3">
+      <div className="flex items-center gap-4 md:gap-5 flex-wrap">
         {/* Phase badge */}
         <div className="flex items-center gap-2">
-          <div className={`px-2 py-0.5 rounded-full text-[10px] md:text-xs font-semibold ${
+          <div className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
             isInTradePhase
               ? 'bg-secondary-500/20 text-secondary-400 border border-secondary-500/40'
               : 'bg-surface-300 text-gray-400'
@@ -53,13 +53,13 @@ export function DealFinanceBar({
         <div className="hidden md:block w-px h-5 bg-white/10" />
 
         {/* KPIs */}
-        <div className="flex items-center gap-3 md:gap-4 flex-wrap">
+        <div className="flex items-center gap-4 md:gap-5 flex-wrap">
           {/* Budget */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] md:text-xs uppercase text-gray-500 tracking-wide">Budget</span>
-            <span className="font-mono font-bold text-xs md:text-sm text-white">{myTeam.budget}</span>
+            <span className="text-xs uppercase text-gray-500 tracking-wide">Budget</span>
+            <span className="font-mono font-bold text-sm md:text-base text-white">{myTeam.budget}</span>
             {hasImpact && (
-              <span className={`font-mono text-[10px] md:text-xs font-semibold ${postTradeImpact.budgetDelta >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
+              <span className={`font-mono text-xs font-semibold ${postTradeImpact.budgetDelta >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
                 {postTradeImpact.budgetDelta >= 0 ? '+' : ''}{postTradeImpact.budgetDelta}
               </span>
             )}
@@ -67,10 +67,10 @@ export function DealFinanceBar({
 
           {/* Salary */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] md:text-xs uppercase text-gray-500 tracking-wide">Ingaggi</span>
-            <span className="font-mono font-bold text-xs md:text-sm text-white">{myTeam.annualContractCost}</span>
+            <span className="text-xs uppercase text-gray-500 tracking-wide">Ingaggi</span>
+            <span className="font-mono font-bold text-sm md:text-base text-white">{myTeam.annualContractCost}</span>
             {hasImpact && postTradeImpact.newSalary !== myTeam.annualContractCost && (
-              <span className={`font-mono text-[10px] md:text-xs font-semibold ${postTradeImpact.newSalary <= myTeam.annualContractCost ? 'text-green-400' : 'text-danger-400'}`}>
+              <span className={`font-mono text-xs font-semibold ${postTradeImpact.newSalary <= myTeam.annualContractCost ? 'text-green-400' : 'text-danger-400'}`}>
                 &rarr;{postTradeImpact.newSalary}
               </span>
             )}
@@ -78,20 +78,20 @@ export function DealFinanceBar({
 
           {/* Balance */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] md:text-xs uppercase text-gray-500 tracking-wide">Bilancio</span>
-            <span className={`font-mono font-bold text-xs md:text-sm ${healthColor}`}>
+            <span className="text-xs uppercase text-gray-500 tracking-wide">Bilancio</span>
+            <span className={`font-mono font-bold text-sm md:text-base ${healthColor}`}>
               {balance >= 0 ? '+' : ''}{balance}
             </span>
           </div>
 
           {/* Roster count */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] md:text-xs uppercase text-gray-500 tracking-wide">Rosa</span>
-            <span className="font-mono font-bold text-xs md:text-sm text-white">
+            <span className="text-xs uppercase text-gray-500 tracking-wide">Rosa</span>
+            <span className="font-mono font-bold text-sm md:text-base text-white">
               {myTeam.slotCount}/{myTeam.maxSlots}
             </span>
             {hasImpact && postTradeImpact.rosterDelta !== 0 && (
-              <span className={`font-mono text-[10px] md:text-xs font-semibold ${postTradeImpact.rosterDelta > 0 ? 'text-primary-400' : 'text-danger-400'}`}>
+              <span className={`font-mono text-xs font-semibold ${postTradeImpact.rosterDelta > 0 ? 'text-primary-400' : 'text-danger-400'}`}>
                 {postTradeImpact.rosterDelta > 0 ? '+' : ''}{postTradeImpact.rosterDelta}
               </span>
             )}
@@ -101,7 +101,7 @@ export function DealFinanceBar({
         {/* Phase name - show on larger screens */}
         {currentPhase && (
           <div className="hidden lg:flex items-center ml-auto">
-            <span className="text-[10px] text-gray-600 truncate max-w-[200px]">{currentPhase}</span>
+            <span className="text-xs text-gray-600 truncate max-w-[200px]">{currentPhase}</span>
           </div>
         )}
       </div>
