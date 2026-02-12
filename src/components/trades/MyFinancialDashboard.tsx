@@ -34,7 +34,7 @@ export function MyFinancialDashboard({ myTeam, hasFinancialDetails, postTradeImp
           <div className="flex flex-col md:flex-row items-start gap-4">
             {/* Gauge */}
             <div className="flex flex-col items-center flex-shrink-0 self-center md:self-start">
-              <BilancioGauge bilancio={balance} budget={myTeam.budget} ingaggi={myTeam.annualContractCost} size={220} />
+              <BilancioGauge bilancio={balance} budget={myTeam.budget} size={220} />
             </div>
             {/* KPIs + Bar */}
             <div className="flex flex-col gap-3 min-w-0 flex-1 w-full">

@@ -1,5 +1,5 @@
 // BilancioGauge - Semicircle gauge showing bilancio position
-export function BilancioGauge({ bilancio, budget, ingaggi, size = 200 }: { bilancio: number; budget: number; ingaggi?: number; size?: number }) {
+export function BilancioGauge({ bilancio, budget, size = 200 }: { bilancio: number; budget: number; size?: number }) {
   const height = size * 0.58
   const cx = size / 2
   const cy = height - 4
@@ -40,11 +40,8 @@ export function BilancioGauge({ bilancio, budget, ingaggi, size = 200 }: { bilan
   // Semantic color for value
   const valueColor = bilancio < 0 ? '#ef4444' : bilancio < 30 ? '#eab308' : '#4ade80'
 
-  // Sub-text for Budget | Ingaggi
-  const subText = ingaggi != null ? `Budget: ${budget} | Ingaggi: ${ingaggi}` : null
-
   return (
-    <svg width={size} height={height + (subText ? Math.round(size * 0.09) : 0)} viewBox={`0 0 ${size} ${height + (subText ? Math.round(size * 0.09) : 0)}`}>
+    <svg width={size} height={height} viewBox={`0 0 ${size} ${height}`}>
       {/* Background track */}
       <path d={arcPath(0, 1)} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={strokeW} strokeLinecap="round" />
       {/* Color zones */}
@@ -56,13 +53,9 @@ export function BilancioGauge({ bilancio, budget, ingaggi, size = 200 }: { bilan
       {/* Needle */}
       <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="white" strokeWidth={2} strokeLinecap="round" />
       <circle cx={cx} cy={cy} r={3} fill="white" />
-      {/* Value text */}
-      <text x={cx} y={cy - size * 0.085} textAnchor="middle" fill={valueColor} fontSize={Math.round(size * 0.14)} fontWeight="bold" fontFamily="ui-monospace, SFMono-Regular, monospace">{bilancio}</text>
-      <text x={cx} y={cy - size * 0.17} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize={Math.round(size * 0.055)} style={{ textTransform: 'uppercase' }}>BILANCIO</text>
-      {/* Sub-text: Budget | Ingaggi */}
-      {subText && (
-        <text x={cx} y={cy + 4} textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize={Math.round(size * 0.045)}>{subText}</text>
-      )}
+      {/* Value text - positioned proportionally inside the semicircle */}
+      <text x={cx} y={cy - size * 0.11} textAnchor="middle" fill={valueColor} fontSize={Math.round(size * 0.14)} fontWeight="bold" fontFamily="ui-monospace, SFMono-Regular, monospace">{bilancio}</text>
+      <text x={cx} y={cy - size * 0.22} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize={Math.round(size * 0.055)} style={{ textTransform: 'uppercase' }}>BILANCIO</text>
     </svg>
   )
 }
