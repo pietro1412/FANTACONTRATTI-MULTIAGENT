@@ -86,9 +86,9 @@ export function TradeActivityFeed({ receivedOffers, sentOffers, tradeHistory, tr
           <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
-          <span className="text-sm font-semibold text-white">Attivit&agrave; Scambi</span>
+          <span className="text-base font-bold text-white">Attivit&agrave; Scambi</span>
           {pendingCount > 0 && (
-            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-accent-500/20 text-accent-400 rounded-full">{pendingCount}</span>
+            <span className="px-2 py-1 text-xs font-bold bg-accent-500/20 text-accent-400 rounded-full">{pendingCount}</span>
           )}
         </div>
         <svg className={`w-4 h-4 text-gray-400 transition-transform ${collapsed ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,7 +104,7 @@ export function TradeActivityFeed({ receivedOffers, sentOffers, tradeHistory, tr
               <button
                 key={f.key}
                 onClick={() => onFilterChange(f.key)}
-                className={`whitespace-nowrap px-3 py-1.5 min-h-[36px] text-xs font-semibold rounded-full border transition-colors ${
+                className={`whitespace-nowrap px-4 py-2 min-h-[40px] text-sm font-semibold rounded-full border transition-colors ${
                   filter === f.key
                     ? 'bg-accent-500/20 text-accent-400 border-accent-500/40'
                     : 'bg-surface-200 text-gray-400 border-surface-50/20 hover:border-surface-50/40'
@@ -161,29 +161,29 @@ function OfferRow({ offer, onView }: { offer: TimelineOffer; onView: (id: string
   return (
     <div className={`border-l-4 ${borderColor} bg-surface-300/40 rounded-lg overflow-hidden`}>
       {/* Compact header */}
-      <div className="px-3 py-2.5 flex items-center gap-2">
-        <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${statusBadge.bg} ${statusBadge.text} uppercase tracking-wide flex-shrink-0`}>
+      <div className="px-4 py-3 flex items-center gap-2">
+        <span className={`px-2 py-0.5 text-xs font-bold rounded ${statusBadge.bg} ${statusBadge.text} uppercase tracking-wide flex-shrink-0`}>
           {statusBadge.label}
         </span>
-        <span className="text-xs text-gray-300 truncate">
+        <span className="text-sm text-gray-300 truncate">
           {offer._subtype === 'received' ? `da ${senderName}` : offer._subtype === 'sent' ? `a ${receiverName}` : `${senderName} → ${receiverName}`}
         </span>
         {timeRemaining && (
-          <span className={`ml-auto text-[10px] font-medium flex-shrink-0 ${
+          <span className={`ml-auto text-xs font-medium font-mono flex-shrink-0 ${
             timeRemaining.isExpired ? 'text-danger-400' : timeRemaining.isUrgent ? 'text-warning-400' : 'text-gray-500'
           }`}>
             {timeRemaining.text}
           </span>
         )}
         {!timeRemaining && (
-          <span className="ml-auto text-[10px] text-gray-600 flex-shrink-0">
+          <span className="ml-auto text-xs text-gray-600 flex-shrink-0">
             {new Date(offer.createdAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
           </span>
         )}
         {isPending && (
           <button
             onClick={() => onView(offer.id, offer._subtype as 'received' | 'sent')}
-            className="text-[10px] text-primary-400 font-semibold hover:underline flex-shrink-0 ml-1"
+            className="text-xs text-primary-400 font-semibold hover:underline flex-shrink-0 ml-1"
           >
             Vedi
           </button>
@@ -192,11 +192,11 @@ function OfferRow({ offer, onView }: { offer: TimelineOffer; onView: (id: string
 
       {/* Concluded offer details */}
       {offer._subtype === 'history' && (
-        <div className="px-3 pb-2.5">
+        <div className="px-4 pb-3">
           <div className="grid md:grid-cols-2 gap-3">
             {/* Offered */}
             <div>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-1">Offerto</p>
+              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Offerto</p>
               <PlayersTable players={offer.offeredPlayerDetails || []} />
               {offer.offeredBudget > 0 && (
                 <p className="text-xs text-danger-400 mt-1">+ {offer.offeredBudget} crediti</p>
@@ -204,7 +204,7 @@ function OfferRow({ offer, onView }: { offer: TimelineOffer; onView: (id: string
             </div>
             {/* Requested */}
             <div>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-1">Richiesto</p>
+              <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Richiesto</p>
               <PlayersTable players={offer.requestedPlayerDetails || []} />
               {offer.requestedBudget > 0 && (
                 <p className="text-xs text-secondary-400 mt-1">+ {offer.requestedBudget} crediti</p>
@@ -221,16 +221,16 @@ function MovementRow({ movement }: { movement: TimelineMovement }) {
   const roleStyle = getRoleStyle(movement.player.position)
 
   return (
-    <div className="border-l-4 border-l-secondary-500/60 bg-surface-300/40 rounded-lg px-3 py-2">
+    <div className="border-l-4 border-l-secondary-500/60 bg-surface-300/40 rounded-lg px-4 py-3">
       <div className="flex items-center gap-2">
-        <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-secondary-500/20 text-secondary-400 uppercase tracking-wide flex-shrink-0">
+        <span className="px-2 py-0.5 text-xs font-bold rounded bg-secondary-500/20 text-secondary-400 uppercase tracking-wide flex-shrink-0">
           Trade
         </span>
-        <span className={`w-6 h-5 flex items-center justify-center text-[9px] font-bold rounded ${roleStyle.bg} ${roleStyle.text} flex-shrink-0`}>
+        <span className={`w-6 h-5 flex items-center justify-center text-xs font-bold rounded ${roleStyle.bg} ${roleStyle.text} flex-shrink-0`}>
           {roleStyle.label}
         </span>
-        <span className="text-xs text-white font-medium truncate">{movement.player.name}</span>
-        <div className="flex items-center gap-1 text-[11px] flex-shrink-0 ml-auto">
+        <span className="text-sm text-white font-medium truncate">{movement.player.name}</span>
+        <div className="flex items-center gap-1 text-sm flex-shrink-0 ml-auto">
           {movement.fromMember && <span className="text-gray-400">{movement.fromMember.username}</span>}
           <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -238,9 +238,9 @@ function MovementRow({ movement }: { movement: TimelineMovement }) {
           {movement.toMember && <span className="text-white font-medium">{movement.toMember.username}</span>}
         </div>
         {movement.newSalary != null && (
-          <span className="text-[10px] text-accent-400 font-medium flex-shrink-0 ml-1">{movement.newSalary}M</span>
+          <span className="text-xs font-mono text-accent-400 font-medium flex-shrink-0 ml-1">{movement.newSalary}M</span>
         )}
-        <span className="text-[10px] text-gray-600 flex-shrink-0 ml-1">
+        <span className="text-xs text-gray-600 flex-shrink-0 ml-1">
           {new Date(movement.createdAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>

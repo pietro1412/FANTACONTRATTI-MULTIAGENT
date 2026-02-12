@@ -32,8 +32,8 @@ export function ManagerGrid({ teams, myMemberId, selectedMemberId, hasFinancialD
           <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
-          <span className="text-sm font-semibold text-white">Manager della Lega</span>
-          <span className="text-xs text-gray-500">({otherTeams.length})</span>
+          <span className="text-base font-bold text-white">Manager della Lega</span>
+          <span className="text-sm text-gray-400">({otherTeams.length})</span>
         </div>
         <svg className={`w-4 h-4 text-gray-400 transition-transform ${collapsed ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -42,7 +42,7 @@ export function ManagerGrid({ teams, myMemberId, selectedMemberId, hasFinancialD
 
       {/* Grid */}
       {!collapsed && (
-        <div className="p-3 grid grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {otherTeams.map(team => (
             <ManagerCard
               key={team.memberId}

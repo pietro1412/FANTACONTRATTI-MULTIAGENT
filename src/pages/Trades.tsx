@@ -993,7 +993,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                                       <img
                                         src={getPlayerPhotoUrl(entry.player.apiFootballId)}
                                         alt={entry.player.name}
-                                        className="w-9 h-9 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+                                        className="w-10 h-10 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
                                         onError={(e) => {
                                           (e.target as HTMLImageElement).style.display = 'none'
                                           const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
@@ -1002,19 +1002,19 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                                       />
                                     ) : null}
                                     <div
-                                      className={`w-9 h-9 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} items-center justify-center text-xs font-bold text-white ${entry.player.apiFootballId ? 'hidden' : 'flex'}`}
+                                      className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} items-center justify-center text-xs font-bold text-white ${entry.player.apiFootballId ? 'hidden' : 'flex'}`}
                                     >
                                       {entry.player.position}
                                     </div>
                                     <span
-                                      className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} flex items-center justify-center text-white font-bold text-[8px] border border-surface-200`}
+                                      className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} flex items-center justify-center text-white font-bold text-[9px] border border-surface-200`}
                                     >
                                       {entry.player.position}
                                     </span>
                                   </div>
                                   <div className="min-w-0">
-                                    <span className="text-gray-200 text-xs font-medium block truncate">{entry.player.name}</span>
-                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                                    <span className="text-gray-200 text-sm font-medium block truncate">{entry.player.name}</span>
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
                                       <span>{entry.player.team}</span>
                                       {entry.player.age != null && (
                                         <span className={getAgeColor(entry.player.age)}>• {entry.player.age}a</span>
@@ -1022,13 +1022,13 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                                     </div>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-3 text-[10px] flex-shrink-0">
+                                <div className="flex items-center gap-3 text-xs flex-shrink-0">
                                   {entry.player.quotation != null && (
-                                    <span className="text-gray-400"><span className="text-gray-600">Q</span> {entry.player.quotation}</span>
+                                    <span className="text-gray-400"><span className="text-gray-600">Q</span> <span className="font-mono">{entry.player.quotation}</span></span>
                                   )}
-                                  <span className="text-accent-400 font-semibold"><span className="text-gray-600 font-normal">I</span> {entry.player.contract?.salary ?? '-'}</span>
-                                  <span className="text-white"><span className="text-gray-600">D</span> {entry.player.contract?.duration ?? '-'}A</span>
-                                  <span className="text-warning-400"><span className="text-gray-600 font-normal">C</span> {entry.player.contract?.rescissionClause ?? '-'}</span>
+                                  <span className="text-accent-400 font-semibold"><span className="text-gray-600 font-normal">I</span> <span className="font-mono">{entry.player.contract?.salary ?? '-'}</span></span>
+                                  <span className="text-white"><span className="text-gray-600">D</span> <span className="font-mono">{entry.player.contract?.duration ?? '-'}A</span></span>
+                                  <span className="text-warning-400"><span className="text-gray-600 font-normal">C</span> <span className="font-mono">{entry.player.contract?.rescissionClause ?? '-'}</span></span>
                                 </div>
                               </div>
                             )
@@ -1126,7 +1126,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                                       <img
                                         src={getPlayerPhotoUrl(entry.player.apiFootballId)}
                                         alt={entry.player.name}
-                                        className="w-9 h-9 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+                                        className="w-10 h-10 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
                                         onError={(e) => {
                                           (e.target as HTMLImageElement).style.display = 'none'
                                           const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
@@ -1135,19 +1135,19 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                                       />
                                     ) : null}
                                     <div
-                                      className={`w-9 h-9 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} items-center justify-center text-xs font-bold text-white ${entry.player.apiFootballId ? 'hidden' : 'flex'}`}
+                                      className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} items-center justify-center text-xs font-bold text-white ${entry.player.apiFootballId ? 'hidden' : 'flex'}`}
                                     >
                                       {entry.player.position}
                                     </div>
                                     <span
-                                      className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} flex items-center justify-center text-white font-bold text-[8px] border border-surface-200`}
+                                      className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} flex items-center justify-center text-white font-bold text-[9px] border border-surface-200`}
                                     >
                                       {entry.player.position}
                                     </span>
                                   </div>
                                   <div className="min-w-0">
-                                    <span className="text-gray-200 text-xs font-medium block truncate">{entry.player.name}</span>
-                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                                    <span className="text-gray-200 text-sm font-medium block truncate">{entry.player.name}</span>
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
                                       <span>{entry.player.team}</span>
                                       {entry.player.age != null && (
                                         <span className={getAgeColor(entry.player.age)}>• {entry.player.age}a</span>
@@ -1156,13 +1156,13 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                                     </div>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-3 text-[10px] flex-shrink-0">
+                                <div className="flex items-center gap-3 text-xs flex-shrink-0">
                                   {entry.player.quotation != null && (
-                                    <span className="text-gray-400" title="Quotazione"><span className="text-gray-600">Q</span> {entry.player.quotation}</span>
+                                    <span className="text-gray-400" title="Quotazione"><span className="text-gray-600">Q</span> <span className="font-mono">{entry.player.quotation}</span></span>
                                   )}
-                                  <span className="text-accent-400 font-semibold" title="Ingaggio"><span className="text-gray-600 font-normal">I</span> {entry.player.contract?.salary ?? '-'}</span>
-                                  <span className="text-white" title="Durata"><span className="text-gray-600">D</span> {entry.player.contract?.duration ?? '-'}A</span>
-                                  <span className="text-warning-400" title="Clausola"><span className="text-gray-600 font-normal">C</span> {entry.player.contract?.rescissionClause ?? '-'}</span>
+                                  <span className="text-accent-400 font-semibold" title="Ingaggio"><span className="text-gray-600 font-normal">I</span> <span className="font-mono">{entry.player.contract?.salary ?? '-'}</span></span>
+                                  <span className="text-white" title="Durata"><span className="text-gray-600">D</span> <span className="font-mono">{entry.player.contract?.duration ?? '-'}A</span></span>
+                                  <span className="text-warning-400" title="Clausola"><span className="text-gray-600 font-normal">C</span> <span className="font-mono">{entry.player.contract?.rescissionClause ?? '-'}</span></span>
                                 </div>
                               </div>
                             )
@@ -1197,7 +1197,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                               disabled={offeredBudget <= 0}
                               className="px-3 py-2 bg-surface-300 border border-danger-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
                             >−</button>
-                            <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-danger-500/30 text-white text-center font-medium">
+                            <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-danger-500/30 text-white text-center font-mono font-bold">
                               {offeredBudget}
                             </div>
                             <button
@@ -1219,7 +1219,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                               disabled={requestedBudget <= 0}
                               className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
                             >−</button>
-                            <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
+                            <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-mono font-bold">
                               {requestedBudget}
                             </div>
                             <button
@@ -1244,7 +1244,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                               disabled={offerDuration === 6}
                               className="px-3 py-2 bg-surface-300 border border-accent-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
                             >−</button>
-                            <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-accent-500/30 text-white text-center font-medium text-sm">
+                            <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-accent-500/30 text-white text-center font-mono font-bold text-sm">
                               {offerDuration < 24 ? `${offerDuration}h` : offerDuration === 24 ? '24h' : offerDuration === 48 ? '2gg' : offerDuration === 72 ? '3gg' : '7gg'}
                             </div>
                             <button
@@ -1282,14 +1282,14 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                             <div>
                               <p className="text-xs text-danger-400 font-semibold mb-2 uppercase tracking-wide">Offri</p>
                               {selectedOfferedPlayers.length > 0 ? (
-                                <table className="w-full text-xs">
+                                <table className="w-full text-sm">
                                   <thead>
-                                    <tr className="text-gray-500 text-[10px] uppercase">
+                                    <tr className="text-gray-500 text-xs uppercase">
                                       <th className="text-left font-medium pb-1">Giocatore</th>
-                                      <th className="text-center font-medium pb-1 w-10">Ruolo</th>
-                                      <th className="text-center font-medium pb-1 w-10">Ing.</th>
-                                      <th className="text-center font-medium pb-1 w-8">Dur.</th>
-                                      <th className="text-center font-medium pb-1 w-12">Claus.</th>
+                                      <th className="text-center font-medium pb-1 w-14">Ruolo</th>
+                                      <th className="text-center font-medium pb-1 w-14">Ing.</th>
+                                      <th className="text-center font-medium pb-1 w-12">Dur.</th>
+                                      <th className="text-center font-medium pb-1 w-16">Claus.</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -1301,23 +1301,23 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                                         <tr key={id} className="border-t border-surface-50/10">
                                           <td className="py-1.5">
                                             <div className="flex items-center gap-1.5">
-                                              <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
-                                                <img src={getTeamLogo(entry.player.team)} alt={entry.player.team} className="w-4 h-4 object-contain" />
+                                              <div className="w-6 h-6 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
+                                                <img src={getTeamLogo(entry.player.team)} alt={entry.player.team} className="w-5 h-5 object-contain" />
                                               </div>
                                               <div className="min-w-0">
                                                 <span className="text-gray-200 truncate block">{entry.player.name}</span>
-                                                <span className="text-[9px] text-gray-500 truncate block">{entry.player.team}</span>
+                                                <span className="text-xs text-gray-500 truncate block">{entry.player.team}</span>
                                               </div>
                                             </div>
                                           </td>
                                           <td className="text-center">
-                                            <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
+                                            <span className={`inline-block px-1.5 py-0.5 text-xs font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
                                               {roleStyle.label}
                                             </span>
                                           </td>
-                                          <td className="text-center text-accent-400 font-semibold">{entry.player.contract?.salary ?? '-'}</td>
-                                          <td className="text-center text-white">{entry.player.contract?.duration ?? '-'}</td>
-                                          <td className="text-center text-warning-400">{entry.player.contract?.rescissionClause ?? '-'}</td>
+                                          <td className="text-center text-accent-400 font-semibold font-mono">{entry.player.contract?.salary ?? '-'}</td>
+                                          <td className="text-center text-white font-mono">{entry.player.contract?.duration ?? '-'}</td>
+                                          <td className="text-center text-warning-400 font-mono">{entry.player.contract?.rescissionClause ?? '-'}</td>
                                         </tr>
                                       )
                                     })}
@@ -1339,14 +1339,14 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                             <div>
                               <p className="text-xs text-primary-400 font-semibold mb-2 uppercase tracking-wide">Richiedi</p>
                               {selectedRequestedPlayers.length > 0 ? (
-                                <table className="w-full text-xs">
+                                <table className="w-full text-sm">
                                   <thead>
-                                    <tr className="text-gray-500 text-[10px] uppercase">
+                                    <tr className="text-gray-500 text-xs uppercase">
                                       <th className="text-left font-medium pb-1">Giocatore</th>
-                                      <th className="text-center font-medium pb-1 w-10">Ruolo</th>
-                                      <th className="text-center font-medium pb-1 w-10">Ing.</th>
-                                      <th className="text-center font-medium pb-1 w-8">Dur.</th>
-                                      <th className="text-center font-medium pb-1 w-12">Claus.</th>
+                                      <th className="text-center font-medium pb-1 w-14">Ruolo</th>
+                                      <th className="text-center font-medium pb-1 w-14">Ing.</th>
+                                      <th className="text-center font-medium pb-1 w-12">Dur.</th>
+                                      <th className="text-center font-medium pb-1 w-16">Claus.</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -1358,23 +1358,23 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                                         <tr key={id} className="border-t border-surface-50/10">
                                           <td className="py-1.5">
                                             <div className="flex items-center gap-1.5">
-                                              <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
-                                                <img src={getTeamLogo(entry.player.team)} alt={entry.player.team} className="w-4 h-4 object-contain" />
+                                              <div className="w-6 h-6 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
+                                                <img src={getTeamLogo(entry.player.team)} alt={entry.player.team} className="w-5 h-5 object-contain" />
                                               </div>
                                               <div className="min-w-0">
                                                 <span className="text-gray-200 truncate block">{entry.player.name}</span>
-                                                <span className="text-[9px] text-gray-500 truncate block">{entry.player.team}</span>
+                                                <span className="text-xs text-gray-500 truncate block">{entry.player.team}</span>
                                               </div>
                                             </div>
                                           </td>
                                           <td className="text-center">
-                                            <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
+                                            <span className={`inline-block px-1.5 py-0.5 text-xs font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
                                               {roleStyle.label}
                                             </span>
                                           </td>
-                                          <td className="text-center text-accent-400 font-semibold">{entry.player.contract?.salary ?? '-'}</td>
-                                          <td className="text-center text-white">{entry.player.contract?.duration ?? '-'}</td>
-                                          <td className="text-center text-warning-400">{entry.player.contract?.rescissionClause ?? '-'}</td>
+                                          <td className="text-center text-accent-400 font-semibold font-mono">{entry.player.contract?.salary ?? '-'}</td>
+                                          <td className="text-center text-white font-mono">{entry.player.contract?.duration ?? '-'}</td>
+                                          <td className="text-center text-warning-400 font-mono">{entry.player.contract?.rescissionClause ?? '-'}</td>
                                         </tr>
                                       )
                                     })}

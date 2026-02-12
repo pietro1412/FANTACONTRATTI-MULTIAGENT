@@ -1,5 +1,5 @@
 // BilancioGauge - Semicircle gauge showing bilancio position
-export function BilancioGauge({ bilancio, budget, size = 130 }: { bilancio: number; budget: number; size?: number }) {
+export function BilancioGauge({ bilancio, budget, ingaggi, size = 200 }: { bilancio: number; budget: number; ingaggi?: number; size?: number }) {
   const height = size * 0.58
   const cx = size / 2
   const cy = height - 4
@@ -11,7 +11,7 @@ export function BilancioGauge({ bilancio, budget, size = 130 }: { bilancio: numb
 
   // Semicircle from PI to 0 (left to right)
   const startAngle = Math.PI
-  const strokeW = 10
+  const strokeW = 14
 
   // Three arc zones: red (0-0.15), yellow (0.15-0.35), green (0.35-1)
   const zones = [
@@ -40,8 +40,11 @@ export function BilancioGauge({ bilancio, budget, size = 130 }: { bilancio: numb
   // Semantic color for value
   const valueColor = bilancio < 0 ? '#ef4444' : bilancio < 30 ? '#eab308' : '#4ade80'
 
+  // Sub-text for Budget | Ingaggi
+  const subText = ingaggi != null ? `Budget: ${budget} | Ingaggi: ${ingaggi}` : null
+
   return (
-    <svg width={size} height={height} viewBox={`0 0 ${size} ${height}`}>
+    <svg width={size} height={height + (subText ? Math.round(size * 0.09) : 0)} viewBox={`0 0 ${size} ${height + (subText ? Math.round(size * 0.09) : 0)}`}>
       {/* Background track */}
       <path d={arcPath(0, 1)} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={strokeW} strokeLinecap="round" />
       {/* Color zones */}
@@ -54,8 +57,12 @@ export function BilancioGauge({ bilancio, budget, size = 130 }: { bilancio: numb
       <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="white" strokeWidth={2} strokeLinecap="round" />
       <circle cx={cx} cy={cy} r={3} fill="white" />
       {/* Value text */}
-      <text x={cx} y={cy - 14} textAnchor="middle" fill={valueColor} fontSize={size > 120 ? 20 : 16} fontWeight="bold">{bilancio}</text>
-      <text x={cx} y={cy - 28} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize={8} style={{ textTransform: 'uppercase' }}>BILANCIO</text>
+      <text x={cx} y={cy - size * 0.085} textAnchor="middle" fill={valueColor} fontSize={Math.round(size * 0.14)} fontWeight="bold" fontFamily="ui-monospace, SFMono-Regular, monospace">{bilancio}</text>
+      <text x={cx} y={cy - size * 0.17} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize={Math.round(size * 0.055)} style={{ textTransform: 'uppercase' }}>BILANCIO</text>
+      {/* Sub-text: Budget | Ingaggi */}
+      {subText && (
+        <text x={cx} y={cy + 4} textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize={Math.round(size * 0.045)}>{subText}</text>
+      )}
     </svg>
   )
 }
@@ -67,22 +74,22 @@ export function CompactBudgetBar({ budget, ingaggi }: { budget: number; ingaggi:
   const ingaggiPct = (ingaggi / maxVal) * 100
 
   return (
-    <div className="flex flex-col gap-1.5 w-full" style={{ minHeight: 44 }}>
+    <div className="flex flex-col gap-1.5 w-full" style={{ minHeight: 56 }}>
       <div className="flex flex-col gap-0.5">
-        <div className="flex justify-between text-[10px]">
-          <span className="text-gray-500">Budget</span>
-          <span className="text-primary-400 font-medium">{budget}</span>
+        <div className="flex justify-between text-xs">
+          <span className="text-gray-400">Budget</span>
+          <span className="text-primary-400 font-medium font-mono">{budget}</span>
         </div>
-        <div className="h-3 bg-surface-100/50 rounded-full overflow-hidden">
+        <div className="h-4 bg-surface-100/50 rounded-full overflow-hidden">
           <div className="h-full bg-gradient-to-r from-primary-600 to-primary-400 rounded-full transition-all duration-500" style={{ width: `${budgetPct}%` }} />
         </div>
       </div>
       <div className="flex flex-col gap-0.5">
-        <div className="flex justify-between text-[10px]">
-          <span className="text-gray-500">Ingaggi</span>
-          <span className="text-accent-400 font-medium">{ingaggi}</span>
+        <div className="flex justify-between text-xs">
+          <span className="text-gray-400">Ingaggi</span>
+          <span className="text-accent-400 font-medium font-mono">{ingaggi}</span>
         </div>
-        <div className="h-3 bg-surface-100/50 rounded-full overflow-hidden">
+        <div className="h-4 bg-surface-100/50 rounded-full overflow-hidden">
           <div className="h-full bg-gradient-to-r from-accent-600 to-accent-400 rounded-full transition-all duration-500" style={{ width: `${ingaggiPct}%` }} />
         </div>
       </div>
@@ -102,17 +109,17 @@ export function DeltaBar({ before, after, label }: { before: number; after: numb
 
   return (
     <div className="flex flex-col gap-1">
-      {label && <span className="text-[10px] text-gray-500 uppercase tracking-wide">{label}</span>}
+      {label && <span className="text-xs text-gray-400 uppercase tracking-wide">{label}</span>}
       <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-400 w-8 text-right font-medium">{before}</span>
-        <div className="flex-1 relative h-4 bg-surface-100/30 rounded-full overflow-hidden">
+        <span className="text-xs text-gray-400 w-12 text-right font-medium font-mono">{before}</span>
+        <div className="flex-1 relative h-5 bg-surface-100/30 rounded-full overflow-hidden">
           {/* Before marker */}
           <div className="absolute top-0 h-full bg-gray-500/40 rounded-full transition-all duration-500" style={{ width: `${beforePct}%` }} />
           {/* After marker */}
           <div className={`absolute top-0 h-full ${barColor}/60 rounded-full transition-all duration-500`} style={{ width: `${afterPct}%` }} />
         </div>
-        <span className={`text-xs font-semibold w-8 ${deltaColor}`}>{after}</span>
-        <span className={`text-[10px] font-bold ${deltaColor} min-w-[40px]`}>
+        <span className={`text-xs font-semibold w-12 font-mono ${deltaColor}`}>{after}</span>
+        <span className={`text-sm font-bold font-mono ${deltaColor} min-w-[40px]`}>
           {delta > 0 ? '+' : ''}{delta}
         </span>
       </div>

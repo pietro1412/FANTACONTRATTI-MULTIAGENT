@@ -46,7 +46,7 @@ export function ManagerCard({ team, isSelected, hasFinancialDetails, onClick }: 
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left p-3 rounded-xl border transition-all hover:border-primary-500/50 hover:bg-surface-200/60 ${
+      className={`w-full text-left p-4 rounded-xl border transition-all hover:border-primary-500/50 hover:bg-surface-200/60 hover:shadow-md hover:shadow-primary-500/5 ${
         isSelected
           ? 'border-primary-500 bg-primary-500/10 shadow-lg shadow-primary-500/10'
           : 'border-surface-50/20 bg-surface-300/50'
@@ -54,46 +54,46 @@ export function ManagerCard({ team, isSelected, hasFinancialDetails, onClick }: 
     >
       {/* Row 1: avatar + name + health dot */}
       <div className="flex items-center gap-2.5 mb-2">
-        <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${getAvatarColor(team.username)} flex items-center justify-center flex-shrink-0`}>
-          <span className="text-white font-bold text-xs">{team.username[0]?.toUpperCase()}</span>
+        <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(team.username)} flex items-center justify-center flex-shrink-0`}>
+          <span className="text-white font-bold text-sm">{team.username[0]?.toUpperCase()}</span>
         </div>
         <span className="text-sm font-semibold text-white truncate flex-1">{team.username}</span>
-        <div className={`w-2.5 h-2.5 rounded-full ${HEALTH_DOT[health]} flex-shrink-0`} title={health} />
+        <div className={`w-3 h-3 rounded-full ${HEALTH_DOT[health]} flex-shrink-0`} title={health} />
       </div>
 
       {/* Row 2: key metrics */}
-      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] mb-2">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm mb-2">
         <div className="flex justify-between">
-          <span className="text-gray-500">Budget</span>
-          <span className="text-primary-400 font-medium">{team.budget}</span>
+          <span className="text-gray-400">Budget</span>
+          <span className="text-primary-400 font-medium font-mono">{team.budget}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-500">Ingaggi</span>
-          <span className="text-accent-400 font-medium">{team.annualContractCost}</span>
+          <span className="text-gray-400">Ingaggi</span>
+          <span className="text-accent-400 font-medium font-mono">{team.annualContractCost}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-500">Bilancio</span>
-          <span className={`font-semibold ${balance < 0 ? 'text-red-400' : balance < 100 ? 'text-amber-400' : 'text-green-400'}`}>
+          <span className="text-gray-400">Bilancio</span>
+          <span className={`font-semibold font-mono ${balance < 0 ? 'text-red-400' : balance < 100 ? 'text-amber-400' : 'text-green-400'}`}>
             {balance >= 0 ? '+' : ''}{balance}
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-500">Rosa</span>
-          <span className="text-white font-medium">{team.slotCount}/{team.maxSlots}</span>
+          <span className="text-gray-400">Rosa</span>
+          <span className="text-white font-medium font-mono">{team.slotCount}/{team.maxSlots}</span>
         </div>
       </div>
 
       {/* Row 3: mini position bar */}
-      <div className="flex h-1.5 rounded-full overflow-hidden bg-surface-100/30">
+      <div className="flex h-2.5 rounded-full overflow-hidden bg-surface-100/30">
         {(['P', 'D', 'C', 'A'] as const).map(pos => {
           const pct = (dist[pos] / total) * 100
           if (pct === 0) return null
           return <div key={pos} className={`${POS_COLORS[pos]} transition-all`} style={{ width: `${pct}%` }} />
         })}
       </div>
-      <div className="flex gap-2 mt-1 text-[9px] text-gray-500">
+      <div className="flex gap-2 mt-1 text-xs text-gray-400">
         {(['P', 'D', 'C', 'A'] as const).map(pos => (
-          <span key={pos}>{pos}:{dist[pos]}</span>
+          <span key={pos}>{pos}:<span className="font-mono">{dist[pos]}</span></span>
         ))}
       </div>
     </button>

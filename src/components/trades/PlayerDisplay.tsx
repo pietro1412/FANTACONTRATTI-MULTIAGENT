@@ -31,9 +31,9 @@ export function PlayerCard({ player, compact = false }: { player: Player, compac
         <span className="text-white font-medium text-sm">{player.name}</span>
         {player.contract ? (
           <div className="flex items-center gap-2 ml-auto">
-            <span className="text-xs text-accent-400">{player.contract.salary}M</span>
+            <span className="text-xs text-accent-400 font-mono">{player.contract.salary}M</span>
             <span className="text-xs text-gray-500">|</span>
-            <span className="text-xs text-warning-400" title="Clausola Rubata">
+            <span className="text-xs text-warning-400 font-mono" title="Clausola Rubata">
               R: {player.contract.rescissionClause || '-'}M
             </span>
           </div>
@@ -64,13 +64,13 @@ export function PlayerCard({ player, compact = false }: { player: Player, compac
         {player.contract ? (
           <div className="space-y-0.5">
             <div className="flex items-center justify-end gap-2">
-              <span className="text-accent-400 font-semibold text-sm">{player.contract.salary}M</span>
+              <span className="text-accent-400 font-semibold text-sm font-mono">{player.contract.salary}M</span>
               <span className="text-gray-600">•</span>
-              <span className="text-gray-400 text-xs">{player.contract.duration}sem</span>
+              <span className="text-gray-400 text-xs font-mono">{player.contract.duration}sem</span>
             </div>
             <div className="flex items-center justify-end gap-1">
               <span className="text-[10px] text-gray-500 uppercase">Rubata:</span>
-              <span className="text-warning-400 font-medium text-xs">
+              <span className="text-warning-400 font-medium text-xs font-mono">
                 {player.contract.rescissionClause ? `${player.contract.rescissionClause}M` : '-'}
               </span>
             </div>
@@ -88,14 +88,14 @@ export function PlayersTable({ players }: { players: Player[] }) {
   if (!players || players.length === 0) return null
 
   return (
-    <table className="w-full text-xs">
+    <table className="w-full text-sm">
       <thead>
-        <tr className="text-gray-500 text-[10px] uppercase">
+        <tr className="text-gray-500 text-xs uppercase">
           <th className="text-left font-medium pb-1">Giocatore</th>
-          <th className="text-center font-medium pb-1 w-10">Ruolo</th>
-          <th className="text-center font-medium pb-1 w-10">Ing.</th>
-          <th className="text-center font-medium pb-1 w-8">Dur.</th>
-          <th className="text-center font-medium pb-1 w-12">Claus.</th>
+          <th className="text-center font-medium pb-1 w-14">Ruolo</th>
+          <th className="text-center font-medium pb-1 w-14">Ing.</th>
+          <th className="text-center font-medium pb-1 w-12">Dur.</th>
+          <th className="text-center font-medium pb-1 w-16">Claus.</th>
         </tr>
       </thead>
       <tbody>
@@ -103,25 +103,25 @@ export function PlayersTable({ players }: { players: Player[] }) {
           const roleStyle = getRoleStyle(p.position)
           return (
             <tr key={p.id} className="border-t border-surface-50/10">
-              <td className="py-1.5">
+              <td className="py-2">
                 <div className="flex items-center gap-1.5">
-                  <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
-                    <img src={getTeamLogo(p.team)} alt={p.team} className="w-4 h-4 object-contain" />
+                  <div className="w-6 h-6 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
+                    <img src={getTeamLogo(p.team)} alt={p.team} className="w-5 h-5 object-contain" />
                   </div>
                   <div className="min-w-0">
                     <span className="text-gray-200 truncate block">{p.name}</span>
-                    <span className="text-[9px] text-gray-500 truncate block">{p.team}</span>
+                    <span className="text-xs text-gray-500 truncate block">{p.team}</span>
                   </div>
                 </div>
               </td>
               <td className="text-center">
-                <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
+                <span className={`inline-block px-1.5 py-0.5 text-xs font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
                   {roleStyle.label}
                 </span>
               </td>
-              <td className="text-center text-accent-400 font-semibold">{p.contract?.salary ?? '-'}</td>
-              <td className="text-center text-white">{p.contract?.duration ?? '-'}</td>
-              <td className="text-center text-warning-400">{p.contract?.rescissionClause ?? '-'}</td>
+              <td className="text-center text-accent-400 font-semibold font-mono">{p.contract?.salary ?? '-'}</td>
+              <td className="text-center text-white font-mono">{p.contract?.duration ?? '-'}</td>
+              <td className="text-center text-warning-400 font-mono">{p.contract?.rescissionClause ?? '-'}</td>
             </tr>
           )
         })}
