@@ -8,6 +8,7 @@ interface DealAssetCardProps {
   isSelected: boolean
   onToggle: () => void
   side: 'mine' | 'partner'
+  onViewStats?: (entry: RosterEntry) => void
 }
 
 const SIDE_STYLES = {
@@ -21,7 +22,7 @@ const SIDE_STYLES = {
   },
 }
 
-export function DealAssetCard({ entry, isSelected, onToggle, side }: DealAssetCardProps) {
+export function DealAssetCard({ entry, isSelected, onToggle, side, onViewStats }: DealAssetCardProps) {
   const p = entry.player
   const gradient = POSITION_GRADIENTS[p.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
   const styles = SIDE_STYLES[side]
@@ -69,7 +70,13 @@ export function DealAssetCard({ entry, isSelected, onToggle, side }: DealAssetCa
 
         {/* Name + team/age */}
         <div className="min-w-0">
-          <span className="text-white text-sm font-semibold block truncate">{p.name}</span>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onViewStats?.(entry) }}
+            className="text-white text-sm font-semibold block truncate hover:text-primary-400 transition-colors text-left"
+          >
+            {p.name}
+          </button>
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             <span className="truncate">{p.team}</span>
             {p.age != null && (

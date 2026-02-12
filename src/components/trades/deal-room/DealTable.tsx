@@ -35,6 +35,8 @@ interface DealTableProps {
   // Mobile triggers
   onOpenMyRoster: () => void
   onOpenPartnerRoster: () => void
+  // Player stats
+  onViewStats?: (entry: RosterEntry) => void
 }
 
 const DURATIONS = [6, 12, 24, 48, 72, 168]
@@ -60,7 +62,7 @@ const CHIP_STYLES = {
   },
 }
 
-function PlayerChip({ entry, onRemove, accent }: { entry: RosterEntry; onRemove: () => void; accent: 'danger' | 'primary' }) {
+function PlayerChip({ entry, onRemove, accent, onViewStats }: { entry: RosterEntry; onRemove: () => void; accent: 'danger' | 'primary'; onViewStats?: (entry: RosterEntry) => void }) {
   const p = entry.player
   const gradient = POSITION_GRADIENTS[p.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
   const roleStyle = getRoleStyle(p.position)
@@ -92,7 +94,13 @@ function PlayerChip({ entry, onRemove, accent }: { entry: RosterEntry; onRemove:
       {/* Info */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-sm font-semibold text-white truncate">{p.name}</span>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onViewStats?.(entry) }}
+            className="text-sm font-semibold text-white truncate hover:text-primary-400 transition-colors text-left"
+          >
+            {p.name}
+          </button>
           <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
             {roleStyle.label}
           </span>
@@ -177,6 +185,7 @@ export function DealTable(props: DealTableProps) {
     onSubmit,
     onOpenMyRoster,
     onOpenPartnerRoster,
+    onViewStats,
   } = props
 
   const offeredEntries = selectedOfferedPlayers.map(id => myRoster.find(r => r.id === id)).filter(Boolean) as RosterEntry[]
@@ -234,7 +243,7 @@ export function DealTable(props: DealTableProps) {
         {offeredEntries.length > 0 ? (
           <div className="space-y-2">
             {offeredEntries.map(entry => (
-              <PlayerChip key={entry.id} entry={entry} onRemove={() => onRemoveOffered(entry.id)} accent="danger" />
+              <PlayerChip key={entry.id} entry={entry} onRemove={() => onRemoveOffered(entry.id)} accent="danger" onViewStats={onViewStats} />
             ))}
           </div>
         ) : (
@@ -287,7 +296,7 @@ export function DealTable(props: DealTableProps) {
         {requestedEntries.length > 0 ? (
           <div className="space-y-2">
             {requestedEntries.map(entry => (
-              <PlayerChip key={entry.id} entry={entry} onRemove={() => onRemoveRequested(entry.id)} accent="primary" />
+              <PlayerChip key={entry.id} entry={entry} onRemove={() => onRemoveRequested(entry.id)} accent="primary" onViewStats={onViewStats} />
             ))}
           </div>
         ) : (

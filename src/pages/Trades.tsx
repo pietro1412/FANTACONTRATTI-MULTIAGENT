@@ -8,6 +8,7 @@ import { ContractModifierModal } from '../components/ContractModifier'
 import { EmptyState } from '../components/ui/EmptyState'
 import { BottomSheet } from '../components/ui/BottomSheet'
 import { DealFinanceBar, DealRosterPanel, DealTable, DealMobileFooter } from '../components/trades/deal-room'
+import { PlayerStatsModal, type PlayerInfo } from '../components/PlayerStatsModal'
 import haptic from '../utils/haptics'
 import type { FinancialsData, TeamData } from '../components/finance/types'
 import {
@@ -66,6 +67,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   // Mobile BottomSheet state for Deal Room
   const [showMyRosterModal, setShowMyRosterModal] = useState(false)
   const [showPartnerRosterModal, setShowPartnerRosterModal] = useState(false)
+
+  // Player stats modal
+  const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
 
   // Contract modification after trade acceptance
   interface ReceivedPlayerForModification {
@@ -372,6 +376,18 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     setSuccess('')
   }
 
+  function handleViewStats(entry: RosterEntry) {
+    const p = entry.player
+    setSelectedPlayerStats({
+      name: p.name,
+      team: p.team,
+      position: p.position,
+      quotation: p.quotation,
+      age: p.age,
+      apiFootballId: p.apiFootballId,
+    })
+  }
+
   async function handleCreateOffer(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -653,6 +669,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                         selectedOfferedPlayers={selectedOfferedPlayers}
                         onToggleOffered={(id) => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id)}
                         myBudget={myBudget}
+                        onViewStats={handleViewStats}
                       />
                     </div>
                   </div>
@@ -690,6 +707,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                       onSubmit={handleCreateOffer}
                       onOpenMyRoster={() => setShowMyRosterModal(true)}
                       onOpenPartnerRoster={() => setShowPartnerRosterModal(true)}
+                      onViewStats={handleViewStats}
                     />
                   </div>
 
@@ -715,6 +733,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                           }
                         }}
                         targetMember={targetMember}
+                        onViewStats={handleViewStats}
                       />
                     </div>
                   </div>
@@ -733,6 +752,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                     selectedOfferedPlayers={selectedOfferedPlayers}
                     onToggleOffered={(id) => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id)}
                     myBudget={myBudget}
+                    onViewStats={handleViewStats}
                   />
                 </BottomSheet>
 
@@ -762,6 +782,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                       }
                     }}
                     targetMember={targetMember}
+                    onViewStats={handleViewStats}
                   />
                 </BottomSheet>
 
@@ -1042,6 +1063,13 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         )}
 
       </main>
+
+      {/* Player Stats Modal */}
+      <PlayerStatsModal
+        isOpen={!!selectedPlayerStats}
+        onClose={() => setSelectedPlayerStats(null)}
+        player={selectedPlayerStats}
+      />
 
       {/* Contract Modification Modal after Trade Acceptance */}
       {isModifyingContract && currentPlayerForModification && currentPlayerForModification.contract && (

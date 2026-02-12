@@ -21,6 +21,8 @@ interface DealRosterPanelProps {
   selectedMemberId?: string
   onMemberChange?: (id: string) => void
   targetMember?: LeagueMember
+  // Player stats
+  onViewStats?: (entry: RosterEntry) => void
 }
 
 const ROLES: { key: string; label: string }[] = [
@@ -49,6 +51,7 @@ export function DealRosterPanel(props: DealRosterPanelProps) {
     selectedMemberId = '',
     onMemberChange,
     targetMember,
+    onViewStats,
   } = props
 
   const isMine = side === 'mine'
@@ -152,6 +155,7 @@ export function DealRosterPanel(props: DealRosterPanelProps) {
                 }
               }}
               side={side}
+              onViewStats={onViewStats}
             />
           ))
         )}
