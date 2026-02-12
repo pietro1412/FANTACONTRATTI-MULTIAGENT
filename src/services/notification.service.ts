@@ -167,6 +167,21 @@ export async function notifyTradeOffer(
   })
 }
 
+export async function notifyTradeInvalidated(
+  userId: string,
+  leagueName: string
+): Promise<void> {
+  const prefs = await getPreferences(userId)
+  if (!prefs.pushEnabled || !prefs.tradeOffers) return
+
+  await sendPushToUser(userId, {
+    title: 'Offerta decaduta',
+    body: `Una tua offerta in ${leagueName} è decaduta perché un giocatore coinvolto è stato scambiato`,
+    tag: 'trade-invalidated',
+    data: { type: 'trade-invalidated' },
+  })
+}
+
 export async function notifyPhaseChange(
   leagueId: string,
   phaseName: string

@@ -416,7 +416,12 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
 
     if (res.success) {
       haptic.send()
-      setSuccess('Offerta inviata!')
+      const warnings = (res as any).warnings as string[] | undefined
+      if (warnings?.length) {
+        setSuccess(`Offerta inviata! ${warnings.join(' ')}`)
+      } else {
+        setSuccess('Offerta inviata!')
+      }
       resetCreateForm()
       loadData()
       setActiveTab('sent')

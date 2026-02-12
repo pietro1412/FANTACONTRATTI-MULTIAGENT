@@ -514,6 +514,7 @@ function TradesTab({ data }: { data: unknown }) {
     COUNTERED: { label: '↩', color: 'text-blue-400' },
     CANCELLED: { label: '—', color: 'text-gray-500' },
     EXPIRED: { label: '⏰', color: 'text-gray-500' },
+    INVALIDATED: { label: '⚡', color: 'text-orange-400' },
   }
 
   const formatPlayers = (players: Array<{ name: string; position: string }>) => {

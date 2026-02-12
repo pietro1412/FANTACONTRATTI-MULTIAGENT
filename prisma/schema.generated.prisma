@@ -175,6 +175,7 @@ enum TradeStatus {
   COUNTERED
   CANCELLED
   EXPIRED
+  INVALIDATED
 }
 
 // ==================== INVITE ENUMS ====================

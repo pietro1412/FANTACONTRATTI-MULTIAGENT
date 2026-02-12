@@ -33,6 +33,7 @@ const statusConfig: Record<string, { bg: string; text: string; label: string }> 
   COUNTERED: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Controproposta' },
   CANCELLED: { bg: 'bg-gray-500/20', text: 'text-gray-400', label: 'Annullato' },
   EXPIRED: { bg: 'bg-gray-500/20', text: 'text-gray-400', label: 'Scaduto' },
+  INVALIDATED: { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Decaduta' },
 }
 
 const positionColors: Record<string, string> = {
