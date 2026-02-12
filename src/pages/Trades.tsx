@@ -1,24 +1,19 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { tradeApi, auctionApi, leagueApi, contractApi, movementApi } from '../services/api'
+import { tradeApi, auctionApi, leagueApi, contractApi } from '../services/api'
 import { usePusherTrades } from '../services/pusher.client'
 import { Button } from '../components/ui/Button'
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
+import { Card, CardContent } from '../components/ui/Card'
 import { Navigation } from '../components/Navigation'
-import { getTeamLogo } from '../utils/teamLogos'
-import { getPlayerPhotoUrl } from '../utils/player-images'
-import { POSITION_GRADIENTS } from '../components/ui/PositionBadge'
 import { ContractModifierModal } from '../components/ContractModifier'
 import { EmptyState } from '../components/ui/EmptyState'
+import { BottomSheet } from '../components/ui/BottomSheet'
+import { DealFinanceBar, DealRosterPanel, DealTable, DealMobileFooter } from '../components/trades/deal-room'
 import haptic from '../utils/haptics'
 import type { FinancialsData, TeamData } from '../components/finance/types'
 import {
-  type TradeOffer, type TradeMovement, type LeagueMember, type RosterEntry, type MarketSession,
-  getTimeRemaining, getRoleStyle, getAgeColor,
+  type TradeOffer, type LeagueMember, type RosterEntry, type MarketSession,
+  getTimeRemaining,
   PlayersTable,
-  MyFinancialDashboard,
-  ManagerGrid,
-  ManagerComparison,
-  TradeActivityFeed,
 } from '../components/trades'
 
 interface TradesProps {
@@ -29,15 +24,16 @@ interface TradesProps {
 
 export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) {
   const [isLoading, setIsLoading] = useState(true)
-  // If we have a highlighted offer, start on 'received' tab
-  const [activeTab, setActiveTab] = useState<'received' | 'sent' | 'create'>(highlightOfferId ? 'received' : 'create')
+  // Simple 3-tab layout: create (default), received, sent
+  const [activeTab, setActiveTab] = useState<'create' | 'received' | 'sent'>(
+    highlightOfferId ? 'received' : 'create'
+  )
   const [highlightedOfferId, setHighlightedOfferId] = useState<string | undefined>(highlightOfferId)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
 
   // Data
   const [receivedOffers, setReceivedOffers] = useState<TradeOffer[]>([])
   const [sentOffers, setSentOffers] = useState<TradeOffer[]>([])
-  const [tradeHistory, setTradeHistory] = useState<TradeOffer[]>([])
   const [members, setMembers] = useState<LeagueMember[]>([])
   const [myRoster, setMyRoster] = useState<RosterEntry[]>([])
   const [allOtherPlayers, setAllOtherPlayers] = useState<RosterEntry[]>([])
@@ -45,13 +41,10 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   const [myFinancials, setMyFinancials] = useState<{ annualContractCost: number; slotCount: number }>({ annualContractCost: 0, slotCount: 0 })
   const [isInTradePhase, setIsInTradePhase] = useState(false)
   const [currentSession, setCurrentSession] = useState<MarketSession | null>(null)
-  const [tradeMovements, setTradeMovements] = useState<TradeMovement[]>([])
 
-  // Trade Hub state
+  // Financial data for DealFinanceBar
   const [financialsData, setFinancialsData] = useState<FinancialsData | null>(null)
   const [myTeamData, setMyTeamData] = useState<TeamData | null>(null)
-  const [selectedComparisonMemberId, setSelectedComparisonMemberId] = useState<string | null>(null)
-  const [activityFilter, setActivityFilter] = useState<'all' | 'mine' | 'pending' | 'concluded'>('all')
 
   // Create offer form
   const [selectedMemberId, setSelectedMemberId] = useState('')
@@ -60,7 +53,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   const [offeredBudget, setOfferedBudget] = useState(0)
   const [requestedBudget, setRequestedBudget] = useState(0)
   const [message, setMessage] = useState('')
-  const [offerDuration, setOfferDuration] = useState(24) // Default 24 hours
+  const [offerDuration, setOfferDuration] = useState(24)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -69,6 +62,10 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRole, setFilterRole] = useState('')
   const [filterManager, setFilterManager] = useState('')
+
+  // Mobile BottomSheet state for Deal Room
+  const [showMyRosterModal, setShowMyRosterModal] = useState(false)
+  const [showPartnerRosterModal, setShowPartnerRosterModal] = useState(false)
 
   // Contract modification after trade acceptance
   interface ReceivedPlayerForModification {
@@ -100,7 +97,6 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
-      // Clear highlight after 5 seconds
       const timer = setTimeout(() => {
         setHighlightedOfferId(undefined)
       }, 5000)
@@ -121,18 +117,15 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   async function loadData() {
     setIsLoading(true)
 
-    // Load all data in parallel
-    const [receivedRes, sentRes, historyRes, membersRes, rosterRes, sessionsRes, leagueRes, allRostersRes, financialsRes, movementsRes] = await Promise.all([
+    const [receivedRes, sentRes, membersRes, rosterRes, sessionsRes, leagueRes, allRostersRes, financialsRes] = await Promise.all([
       tradeApi.getReceived(leagueId),
       tradeApi.getSent(leagueId),
-      tradeApi.getHistory(leagueId),
       leagueApi.getMembers(leagueId),
       auctionApi.getRoster(leagueId),
       auctionApi.getSessions(leagueId),
       leagueApi.getById(leagueId),
       auctionApi.getLeagueRosters(leagueId),
       leagueApi.getFinancials(leagueId),
-      movementApi.getLeagueMovements(leagueId, { movementType: 'TRADE', limit: 50 }),
     ])
 
     if (leagueRes.success && leagueRes.data) {
@@ -146,15 +139,10 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     if (sentRes.success && sentRes.data) {
       setSentOffers(sentRes.data as TradeOffer[])
     }
-    if (historyRes.success && historyRes.data) {
-      setTradeHistory(historyRes.data as TradeOffer[])
-    }
 
-    // Get my member ID first
     const rosterData = rosterRes.data as { member?: { id: string, currentBudget: number } } | undefined
     const currentMemberId = rosterData?.member?.id || ''
 
-    // Build financials lookup from getFinancials API
     const financialsMap = new Map<string, { budget: number; annualContractCost: number; slotCount: number }>()
     if (financialsRes.success && financialsRes.data) {
       const fData = financialsRes.data as FinancialsData
@@ -162,14 +150,12 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       for (const t of fData.teams || []) {
         financialsMap.set(t.memberId, { budget: t.budget, annualContractCost: t.annualContractCost, slotCount: t.slotCount })
       }
-      // Store my team data for dashboard
       const myTeam = fData.teams.find(t => t.memberId === currentMemberId)
       if (myTeam) setMyTeamData(myTeam)
     }
 
     if (membersRes.success && membersRes.data) {
       const allMembers = (membersRes.data as { members: LeagueMember[] }).members || []
-      // Merge financial data into members
       const enriched = allMembers.map(m => {
         const fin = financialsMap.get(m.id)
         return fin
@@ -179,7 +165,6 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       setMembers(enriched.filter(m => m.id !== currentMemberId))
     }
 
-    // Also fix myBudget from financials if available
     if (currentMemberId && financialsMap.has(currentMemberId)) {
       const myFin = financialsMap.get(currentMemberId)!
       setMyBudget(myFin.budget)
@@ -197,11 +182,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         member: { currentBudget: number }
         roster: { P: RosterApiEntry[], D: RosterApiEntry[], C: RosterApiEntry[], A: RosterApiEntry[] }
       }
-      // Only set budget from roster if financials didn't provide it
       if (!financialsMap.has(currentMemberId)) {
         setMyBudget(data.member.currentBudget)
       }
-      // Map roster entries to include contract inside player
       const mapEntry = (r: RosterApiEntry): RosterEntry => ({
         id: r.id,
         player: {
@@ -225,8 +208,6 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       setMyRoster(allPlayers)
     }
 
-    // Load all other players from all rosters
-    // Handle both formats: { data: [...] } (auctions.ts) and { data: { members: [...] } } (leagues.ts)
     if (allRostersRes.success && allRostersRes.data) {
       let rostersData: Array<{
         id?: string
@@ -251,12 +232,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         }>
       }> = []
 
-      // Check which format we received
       if (Array.isArray(allRostersRes.data)) {
-        // Format from auctions.ts: data is array directly
         rostersData = allRostersRes.data
       } else if ((allRostersRes.data as { members?: unknown }).members) {
-        // Format from leagues.ts: data.members is the array
         rostersData = (allRostersRes.data as { members: typeof rostersData }).members
       }
 
@@ -267,7 +245,6 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
 
         if (memberId === currentMemberId) continue
 
-        // Handle both player formats
         const players = memberRoster.players || memberRoster.roster?.map(r => ({
           id: r.player.id,
           rosterId: r.id,
@@ -312,10 +289,6 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       )
     }
 
-    if (movementsRes.success && movementsRes.data) {
-      setTradeMovements((movementsRes.data as { movements: TradeMovement[] }).movements || [])
-    }
-
     setIsLoading(false)
   }
 
@@ -323,7 +296,6 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   function handleSelectRequestedPlayer(entry: RosterEntry) {
     if (!entry.memberId) return
 
-    // If no member selected yet, or same member, just toggle the player
     if (!selectedMemberId || selectedMemberId === entry.memberId) {
       setSelectedMemberId(entry.memberId)
       if (selectedRequestedPlayers.includes(entry.id)) {
@@ -332,8 +304,6 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         setSelectedRequestedPlayers([...selectedRequestedPlayers, entry.id])
       }
     } else {
-      // Different member - ask to switch or ignore
-      // For simplicity, we'll switch to new member and reset requested players
       setSelectedMemberId(entry.memberId)
       setSelectedRequestedPlayers([entry.id])
     }
@@ -341,16 +311,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
 
   // Filter other players based on search criteria
   const filteredOtherPlayers = allOtherPlayers.filter(entry => {
-    // Filter by selected member if already selected
     if (selectedMemberId && entry.memberId !== selectedMemberId) return false
-
-    // Filter by DG dropdown
     if (filterManager && entry.memberId !== filterManager) return false
-
-    // Filter by role
     if (filterRole && entry.player.position !== filterRole) return false
-
-    // Filter by search query (name or team)
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       if (!entry.player.name.toLowerCase().includes(query) &&
@@ -358,26 +321,20 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         return false
       }
     }
-
     return true
   })
 
   // Get target member info
   const targetMember = members.find(m => m.id === selectedMemberId)
 
-  // Financial calculations - use API data from getFinancials for consistency with Finanze page
+  // Financial calculations
   const myTotalSalary = myFinancials.annualContractCost
 
-  // Hub computed values
+  // Has financial details flag
   const hasFinancialDetails = useMemo(() => {
     if (!financialsData) return false
     return financialsData.teams.some(t => t.totalReleaseCosts !== null || t.totalIndemnities !== null) && !financialsData.inContrattiPhase
   }, [financialsData])
-
-  const comparisonTeam = useMemo(() => {
-    if (!selectedComparisonMemberId || !financialsData) return null
-    return financialsData.teams.find(t => t.memberId === selectedComparisonMemberId) || null
-  }, [selectedComparisonMemberId, financialsData])
 
   // Simulated post-trade impact
   const offeredSalaryTotal = useMemo(() =>
@@ -396,6 +353,24 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   )
   const myPostTradeBudget = myBudget - offeredBudget + requestedBudget
   const myPostTradeSalary = myTotalSalary - offeredSalaryTotal + requestedSalaryTotal
+
+  const hasTradeSelections = selectedOfferedPlayers.length > 0 || selectedRequestedPlayers.length > 0 || offeredBudget > 0 || requestedBudget > 0
+
+  // Reset form helper
+  function resetCreateForm() {
+    setSelectedMemberId('')
+    setSelectedOfferedPlayers([])
+    setSelectedRequestedPlayers([])
+    setOfferedBudget(0)
+    setRequestedBudget(0)
+    setMessage('')
+    setOfferDuration(24)
+    setSearchQuery('')
+    setFilterRole('')
+    setFilterManager('')
+    setError('')
+    setSuccess('')
+  }
 
   async function handleCreateOffer(e: React.FormEvent) {
     e.preventDefault()
@@ -416,22 +391,8 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     if (res.success) {
       haptic.send()
       setSuccess('Offerta inviata!')
-      // Reset form
-      setSelectedMemberId('')
-      setSelectedOfferedPlayers([])
-      setSelectedRequestedPlayers([])
-      setOfferedBudget(0)
-      setRequestedBudget(0)
-      setMessage('')
-      setOfferDuration(24)
-      setSearchQuery('')
-      setFilterRole('')
-      setFilterManager('')
-      // Reload sent offers
-      const sentRes = await tradeApi.getSent(leagueId)
-      if (sentRes.success && sentRes.data) {
-        setSentOffers(sentRes.data as TradeOffer[])
-      }
+      resetCreateForm()
+      loadData()
       setActiveTab('sent')
     } else {
       setError(res.message || 'Errore durante l\'invio dell\'offerta')
@@ -443,8 +404,6 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   async function handleAccept(tradeId: string) {
     const res = await tradeApi.accept(tradeId)
     if (res.success) {
-      // #135: I contratti dei giocatori ricevuti NON vengono modificati
-      // Il contratto rimane quello originale - la modifica avverrà nella fase CONTRATTI
       setSuccess('Scambio accettato! I contratti dei giocatori ricevuti saranno modificabili nella fase di rinnovo contratti.')
       loadData()
     } else {
@@ -452,7 +411,6 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     }
   }
 
-  // Get current player for contract modification
   const currentPlayerForModification = pendingContractModifications[currentModificationIndex]
 
   async function handleContractModification(newSalary: number, newDuration: number) {
@@ -461,11 +419,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     const res = await contractApi.modify(currentPlayerForModification.contractId, newSalary, newDuration)
 
     if (res.success) {
-      // Move to next player or finish
       if (currentModificationIndex < pendingContractModifications.length - 1) {
         setCurrentModificationIndex(currentModificationIndex + 1)
       } else {
-        // All done
         setIsModifyingContract(false)
         setPendingContractModifications([])
         setCurrentModificationIndex(0)
@@ -477,11 +433,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   }
 
   function handleSkipContractModification() {
-    // Move to next player or finish
     if (currentModificationIndex < pendingContractModifications.length - 1) {
       setCurrentModificationIndex(currentModificationIndex + 1)
     } else {
-      // All done
       setIsModifyingContract(false)
       setPendingContractModifications([])
       setCurrentModificationIndex(0)
@@ -517,10 +471,10 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
 
   if (isLoading) {
     return (
-      <div className="min-h-screen">
-        <Navigation currentPage="trades" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
-        <div className="flex items-center justify-center h-[80vh]">
-          <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Caricamento trattative...</p>
         </div>
       </div>
     )
@@ -530,381 +484,116 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     <div className="min-h-screen">
       <Navigation currentPage="trades" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
-      <main className="max-w-[1600px] mx-auto px-4 py-4 md:py-8">
-        {/* Phase Status */}
-        <Card className="mb-4 md:mb-6">
-          <CardContent className="py-3 md:py-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="font-medium text-white text-sm md:text-base">Fase corrente</p>
-                <p className={`text-xs md:text-sm ${isInTradePhase ? 'text-secondary-400' : 'text-gray-400'} truncate`}>
-                  {currentSession ? currentSession.currentPhase : 'Nessuna sessione attiva'}
+      {/* === Page Header (aligned with Svincolati) === */}
+      <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
+        <div className="max-w-[1600px] mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-5">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-glow">
+                <span className="text-2xl">🤝</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Trattative</h1>
+                  <span className={`w-2 h-2 rounded-full ${pusherConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`} title={pusherConnected ? 'Real-time attivo' : 'Real-time disconnesso'} />
+                </div>
+                <p className="text-gray-400 text-sm">
+                  {isInTradePhase ? 'Scambi attivi' : 'Scambi non disponibili'}
                 </p>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <div className={`px-2.5 md:px-3 py-1 rounded-full text-xs md:text-sm font-medium ${
-                  isInTradePhase
-                    ? 'bg-secondary-500/20 text-secondary-400 border border-secondary-500/40'
-                    : 'bg-surface-300 text-gray-400'
-                }`}>
-                  {isInTradePhase ? 'Scambi Attivi' : 'Non Disponibili'}
-                </div>
-                <div className={`w-2 h-2 rounded-full ${pusherConnected ? 'bg-green-400' : 'bg-red-400'}`} title={pusherConnected ? 'Real-time connesso' : 'Real-time disconnesso'} />
-              </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* === TRADE HUB: Financial Dashboard === */}
-        {myTeamData && (
-          <div className="mb-4 md:mb-6">
-            <MyFinancialDashboard
-              myTeam={myTeamData}
-              hasFinancialDetails={hasFinancialDetails}
-              postTradeImpact={
-                activeTab === 'create' && (selectedOfferedPlayers.length > 0 || selectedRequestedPlayers.length > 0 || offeredBudget > 0 || requestedBudget > 0)
-                  ? { budgetDelta: -offeredBudget + requestedBudget, salaryDelta: -offeredSalaryTotal + requestedSalaryTotal, rosterDelta: selectedRequestedPlayers.length - selectedOfferedPlayers.length, newBudget: myPostTradeBudget, newSalary: myPostTradeSalary }
-                  : null
-              }
-            />
-          </div>
-        )}
-
-        {/* === TRADE HUB: Manager Grid === */}
-        {financialsData && myTeamData && (
-          <div className="mb-4 md:mb-6">
-            <ManagerGrid
-              teams={financialsData.teams}
-              myMemberId={myTeamData.memberId}
-              selectedMemberId={selectedComparisonMemberId}
-              hasFinancialDetails={hasFinancialDetails}
-              onSelectManager={(memberId) => setSelectedComparisonMemberId(prev => prev === memberId ? null : memberId)}
-            />
-          </div>
-        )}
-
-        {/* === TRADE HUB: Manager Comparison === */}
-        {myTeamData && comparisonTeam && (
-          <div className="mb-4 md:mb-6">
-            <ManagerComparison
-              myTeam={myTeamData}
-              otherTeam={comparisonTeam}
-              hasFinancialDetails={hasFinancialDetails}
-              onClose={() => setSelectedComparisonMemberId(null)}
-              onStartTrade={(memberId) => {
-                setSelectedMemberId(memberId)
-                setSelectedRequestedPlayers([])
-                setActiveTab('create')
-                setFilterManager(memberId)
-                setSelectedComparisonMemberId(null)
-              }}
-            />
-          </div>
-        )}
-
-        {/* === TRADE HUB: Activity Feed === */}
-        <div className="mb-4 md:mb-6">
-          <TradeActivityFeed
-            receivedOffers={receivedOffers}
-            sentOffers={sentOffers}
-            tradeHistory={tradeHistory}
-            tradeMovements={tradeMovements}
-            isInTradePhase={isInTradePhase}
-            filter={activityFilter}
-            onFilterChange={setActivityFilter}
-            onViewOffer={(offerId, tab) => {
-              setActiveTab(tab)
-              setHighlightedOfferId(offerId)
-            }}
-          />
-        </div>
-
-        {/* Tabs - compact scrollable on mobile, flex-wrap on desktop */}
-        <div className="flex gap-2 mb-6 overflow-x-auto md:overflow-x-visible md:flex-wrap scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
-          {([
-            { key: 'create' as const, label: '+ Nuova', labelDesktop: '+ Nuova Offerta', disabled: !isInTradePhase },
-            { key: 'received' as const, label: `Ricevute (${receivedOffers.length})`, disabled: false },
-            { key: 'sent' as const, label: `Inviate (${sentOffers.length})`, disabled: false },
-          ]).map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              disabled={tab.disabled}
-              className={`whitespace-nowrap flex-shrink-0 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all min-h-[44px] ${
-                activeTab === tab.key
-                  ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
-                  : 'bg-surface-200 text-gray-400 border border-surface-50/30 hover:text-white hover:border-primary-500/50'
-              } ${tab.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <span className="md:hidden">{tab.label}</span>
-              <span className="hidden md:inline">{tab.labelDesktop || tab.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Received Offers */}
-        {activeTab === 'received' && (
-          <div className="space-y-6">
-            {receivedOffers.length === 0 ? (
-              <EmptyState icon="📥" title="Nessuna offerta ricevuta" description="Le offerte che riceverai appariranno qui" />
-            ) : (
-              receivedOffers.map(offer => {
-                const timeRemaining = getTimeRemaining(offer.expiresAt)
-                const isHighlighted = offer.id === highlightedOfferId
-                return (
-                <Card
-                  key={offer.id}
-                  id={`offer-${offer.id}`}
-                  className={`overflow-hidden border-l-4 ${isHighlighted ? 'border-l-primary-500 ring-2 ring-primary-500/50 bg-primary-500/5' : 'border-l-accent-500'}`}
-                >
-                  {/* Header */}
-                  <div className="bg-gradient-to-r from-surface-200 to-transparent px-5 py-4 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-accent-500/20 flex items-center justify-center">
-                        <span className="text-accent-400 font-bold text-sm">
-                          {(offer.sender?.username?.[0] || offer.fromMember?.user?.username?.[0] || '?').toUpperCase()}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-semibold text-white">{offer.sender?.username || offer.fromMember?.user?.username}</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(offer.createdAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {/* Timer scadenza */}
-                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
-                        timeRemaining.isExpired
-                          ? 'bg-danger-500/20 text-danger-400 border border-danger-500/40'
-                          : timeRemaining.isUrgent
-                            ? 'bg-warning-500/20 text-warning-400 border border-warning-500/40'
-                            : 'bg-surface-300 text-gray-400 border border-surface-50/30'
-                      }`}>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>{timeRemaining.text}</span>
-                      </div>
-                      <span className="px-3 py-1.5 bg-accent-500/20 text-accent-400 text-xs font-semibold rounded-full border border-accent-500/40 uppercase tracking-wide">
-                        In attesa
-                      </span>
-                    </div>
-                  </div>
-
-                  <CardContent className="py-5">
-                    {/* Trade visualization */}
-                    <div className="grid md:grid-cols-2 gap-6">
-                      {/* What you receive */}
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-secondary-500/20 flex items-center justify-center">
-                            <svg className="w-3 h-3 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                            </svg>
-                          </div>
-                          <p className="text-sm font-semibold text-secondary-400 uppercase tracking-wide">Riceveresti</p>
-                        </div>
-                        <div className="pl-8">
-                          <PlayersTable players={offer.offeredPlayerDetails || offer.offeredPlayers || []} />
-                          {offer.offeredBudget > 0 && (
-                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
-                              <div className="w-6 h-6 rounded bg-secondary-500/20 flex items-center justify-center">
-                                <span className="text-secondary-400 font-bold text-xs">€</span>
-                              </div>
-                              <span className="text-sm text-secondary-400 font-medium">+ {offer.offeredBudget} crediti</span>
-                            </div>
-                          )}
-                          {(!offer.offeredPlayerDetails?.length && !offer.offeredPlayers?.length && offer.offeredBudget === 0) && (
-                            <p className="text-gray-600 text-sm italic py-2">Nessun giocatore o credito offerto</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* What you give */}
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-danger-500/20 flex items-center justify-center">
-                            <svg className="w-3 h-3 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                            </svg>
-                          </div>
-                          <p className="text-sm font-semibold text-danger-400 uppercase tracking-wide">Cederesti</p>
-                        </div>
-                        <div className="pl-8">
-                          <PlayersTable players={offer.requestedPlayerDetails || offer.requestedPlayers || []} />
-                          {offer.requestedBudget > 0 && (
-                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
-                              <div className="w-6 h-6 rounded bg-danger-500/20 flex items-center justify-center">
-                                <span className="text-danger-400 font-bold text-xs">€</span>
-                              </div>
-                              <span className="text-sm text-danger-400 font-medium">+ {offer.requestedBudget} crediti</span>
-                            </div>
-                          )}
-                          {(!offer.requestedPlayerDetails?.length && !offer.requestedPlayers?.length && offer.requestedBudget === 0) && (
-                            <p className="text-gray-600 text-sm italic py-2">Nessun giocatore o credito richiesto</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Message */}
-                    {offer.message && (
-                      <div className="mt-5 p-4 bg-surface-200/50 rounded-lg border-l-2 border-gray-500">
-                        <p className="text-sm text-gray-400 italic">"{offer.message}"</p>
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    {isInTradePhase && !timeRemaining.isExpired && (
-                      <div className="flex gap-3 mt-6 pt-5 border-t border-surface-50/20">
-                        <Button variant="primary" onClick={() => handleAccept(offer.id)} className="flex-1">
-                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          Accetta Scambio
-                        </Button>
-                        <Button variant="outline" onClick={() => handleReject(offer.id)} className="flex-1">
-                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                          Rifiuta
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )})
+            {myTeamData && (
+              <div className="text-right bg-surface-200 rounded-xl px-5 py-3 border border-surface-50/20">
+                <p className="text-xs text-gray-400 uppercase tracking-wider">Budget</p>
+                <p className="text-3xl font-bold text-accent-400">{myTeamData.budget}</p>
+              </div>
             )}
           </div>
-        )}
+        </div>
+      </div>
 
-        {/* Sent Offers */}
-        {activeTab === 'sent' && (
-          <div className="space-y-6">
-            {sentOffers.length === 0 ? (
-              <EmptyState icon="📤" title="Nessuna offerta inviata" description="Le tue offerte appariranno qui" />
-            ) : (
-              sentOffers.map(offer => {
-                const timeRemaining = getTimeRemaining(offer.expiresAt)
-                return (
-                <Card key={offer.id} className="overflow-hidden border-l-4 border-l-primary-500">
-                  {/* Header */}
-                  <div className="bg-gradient-to-r from-surface-200 to-transparent px-5 py-4 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center">
-                        <span className="text-primary-400 font-bold text-sm">
-                          {(offer.receiver?.username?.[0] || offer.toMember?.user?.username?.[0] || '?').toUpperCase()}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-semibold text-white">A: {offer.receiver?.username || offer.toMember?.user?.username}</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(offer.createdAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {/* Timer scadenza */}
-                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
-                        timeRemaining.isExpired
-                          ? 'bg-danger-500/20 text-danger-400 border border-danger-500/40'
-                          : timeRemaining.isUrgent
-                            ? 'bg-warning-500/20 text-warning-400 border border-warning-500/40'
-                            : 'bg-surface-300 text-gray-400 border border-surface-50/30'
-                      }`}>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>{timeRemaining.text}</span>
-                      </div>
-                      <span className={`px-3 py-1.5 text-xs font-semibold rounded-full uppercase tracking-wide border ${
-                        offer.status === 'PENDING'
-                          ? 'bg-accent-500/20 text-accent-400 border-accent-500/40'
-                          : 'bg-primary-500/20 text-primary-400 border-primary-500/40'
-                      }`}>
-                        {offer.status === 'PENDING' ? 'In attesa' : 'Controfferta'}
-                      </span>
-                    </div>
-                  </div>
+      <main className="max-w-[1600px] mx-auto px-4 py-4 lg:py-6">
+        {/* === DealFinanceBar - always visible === */}
+        <DealFinanceBar
+          isInTradePhase={isInTradePhase}
+          currentPhase={currentSession?.currentPhase || null}
+          pusherConnected={pusherConnected}
+          myTeam={myTeamData}
+          hasFinancialDetails={hasFinancialDetails}
+          postTradeImpact={
+            activeTab === 'create' && hasTradeSelections
+              ? { budgetDelta: -offeredBudget + requestedBudget, newBudget: myPostTradeBudget, newSalary: myPostTradeSalary, rosterDelta: selectedRequestedPlayers.length - selectedOfferedPlayers.length }
+              : null
+          }
+        />
 
-                  <CardContent className="py-5">
-                    {/* Trade visualization */}
-                    <div className="grid md:grid-cols-2 gap-6">
-                      {/* What you offer */}
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-danger-500/20 flex items-center justify-center">
-                            <svg className="w-3 h-3 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                            </svg>
-                          </div>
-                          <p className="text-sm font-semibold text-danger-400 uppercase tracking-wide">Offri</p>
-                        </div>
-                        <div className="pl-8">
-                          <PlayersTable players={offer.offeredPlayerDetails || offer.offeredPlayers || []} />
-                          {offer.offeredBudget > 0 && (
-                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
-                              <div className="w-6 h-6 rounded bg-danger-500/20 flex items-center justify-center">
-                                <span className="text-danger-400 font-bold text-xs">€</span>
-                              </div>
-                              <span className="text-sm text-danger-400 font-medium">+ {offer.offeredBudget} crediti</span>
-                            </div>
-                          )}
-                          {(!offer.offeredPlayerDetails?.length && !offer.offeredPlayers?.length && offer.offeredBudget === 0) && (
-                            <p className="text-gray-600 text-sm italic py-2">Nessun giocatore o credito offerto</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* What you request */}
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-secondary-500/20 flex items-center justify-center">
-                            <svg className="w-3 h-3 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                            </svg>
-                          </div>
-                          <p className="text-sm font-semibold text-secondary-400 uppercase tracking-wide">Richiedi</p>
-                        </div>
-                        <div className="pl-8">
-                          <PlayersTable players={offer.requestedPlayerDetails || offer.requestedPlayers || []} />
-                          {offer.requestedBudget > 0 && (
-                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
-                              <div className="w-6 h-6 rounded bg-secondary-500/20 flex items-center justify-center">
-                                <span className="text-secondary-400 font-bold text-xs">€</span>
-                              </div>
-                              <span className="text-sm text-secondary-400 font-medium">+ {offer.requestedBudget} crediti</span>
-                            </div>
-                          )}
-                          {(!offer.requestedPlayerDetails?.length && !offer.requestedPlayers?.length && offer.requestedBudget === 0) && (
-                            <p className="text-gray-600 text-sm italic py-2">Nessun giocatore o credito richiesto</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Cancel button */}
-                    {offer.status === 'PENDING' && !timeRemaining.isExpired && (
-                      <div className="mt-6 pt-5 border-t border-surface-50/20">
-                        <Button variant="outline" onClick={() => handleCancel(offer.id)} className="text-danger-400 border-danger-500/40 hover:bg-danger-500/10">
-                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          Annulla Offerta
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )})
+        {/* === Tab Bar === */}
+        <div className="flex items-center gap-1 mt-3 mb-4 border-b border-surface-50/20">
+          <button
+            onClick={() => setActiveTab('create')}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
+              activeTab === 'create'
+                ? 'border-primary-500 text-primary-400'
+                : 'border-transparent text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span className="hidden sm:inline">Nuova Offerta</span>
+            <span className="sm:hidden">Nuova</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('received')}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
+              activeTab === 'received'
+                ? 'border-accent-500 text-accent-400'
+                : 'border-transparent text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Ricevute
+            {receivedOffers.length > 0 && (
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                activeTab === 'received' ? 'bg-accent-500/20 text-accent-400' : 'bg-surface-300 text-gray-400'
+              }`}>
+                {receivedOffers.length}
+              </span>
             )}
-          </div>
-        )}
+          </button>
+          <button
+            onClick={() => setActiveTab('sent')}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
+              activeTab === 'sent'
+                ? 'border-primary-500 text-primary-400'
+                : 'border-transparent text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Inviate
+            {sentOffers.length > 0 && (
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                activeTab === 'sent' ? 'bg-primary-500/20 text-primary-400' : 'bg-surface-300 text-gray-400'
+              }`}>
+                {sentOffers.length}
+              </span>
+            )}
+          </button>
+        </div>
 
-        {/* Create Offer */}
+        {/* Success/Error messages */}
+        <div className="space-y-2 mb-4">
+          {error && activeTab !== 'create' && (
+            <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg text-sm">{error}</div>
+          )}
+          {success && (
+            <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-3 rounded-lg text-sm">{success}</div>
+          )}
+        </div>
+
+        {/* ============================= */}
+        {/* === TAB: Nuova Offerta === */}
+        {/* ============================= */}
         {activeTab === 'create' && (
-          <div className="space-y-6">
+          <div className={`space-y-4 ${hasTradeSelections ? 'pb-40 lg:pb-4' : ''}`}>
             {!isInTradePhase ? (
               <Card>
                 <CardContent className="py-8 text-center">
@@ -916,505 +605,438 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
             ) : (
               <>
                 {error && (
-                  <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded">
+                  <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg text-sm">
                     {error}
                   </div>
                 )}
-                {success && (
-                  <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-3 rounded">
-                    {success}
-                  </div>
-                )}
 
-                {/* Target Member Info */}
-                {selectedMemberId && targetMember && (
-                  <Card className="border-primary-500/50">
-                    <CardContent className="py-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center">
-                            <span className="text-primary-400 font-bold">
-                              {(targetMember.user.username?.[0] || '?').toUpperCase()}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">Offerta destinata a:</p>
-                            <p className="text-lg font-bold text-white">{targetMember.user.username}</p>
-                          </div>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedMemberId('')
-                            setSelectedRequestedPlayers([])
-                            setFilterManager('')
-                          }}
-                        >
-                          Cambia DG
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                <div className="grid lg:grid-cols-2 gap-6">
-                  {/* T-021: Left Column - MY players to OFFER (Offro) */}
-                  <Card className="border-danger-500/20">
-                    <CardHeader>
-                      <CardTitle>
-                        <span className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-full bg-danger-500/20 flex items-center justify-center text-xs">↑</span>
-                          <span className="text-danger-400">OFFRO</span>
-                          <span className="text-gray-500 font-normal text-sm">— I tuoi giocatori</span>
-                        </span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="max-h-[480px] overflow-y-auto border border-surface-50/30 rounded-lg bg-surface-300 divide-y divide-surface-50/10">
-                        {myRoster.length === 0 ? (
-                          <p className="text-gray-500 text-sm p-4 text-center">Nessun giocatore in rosa</p>
-                        ) : (
-                          myRoster.map(entry => {
-                            const isSelected = selectedOfferedPlayers.includes(entry.id)
-                            return (
-                              <div
-                                key={entry.id}
-                                onClick={() => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, entry.id)}
-                                className={`px-3 py-2.5 cursor-pointer hover:bg-surface-200 transition-colors flex items-center justify-between ${
-                                  isSelected ? 'bg-danger-500/20 border-l-2 border-danger-500' : ''
-                                }`}
-                              >
-                                <div className="flex items-center gap-2.5">
-                                  {isSelected && <span className="text-danger-400 font-bold text-sm">✓</span>}
-                                  {/* Player photo with position badge */}
-                                  <div className="relative flex-shrink-0">
-                                    {entry.player.apiFootballId ? (
-                                      <img
-                                        src={getPlayerPhotoUrl(entry.player.apiFootballId)}
-                                        alt={entry.player.name}
-                                        className="w-10 h-10 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
-                                        onError={(e) => {
-                                          (e.target as HTMLImageElement).style.display = 'none'
-                                          const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
-                                          if (fallback) fallback.style.display = 'flex'
-                                        }}
-                                      />
-                                    ) : null}
-                                    <div
-                                      className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} items-center justify-center text-xs font-bold text-white ${entry.player.apiFootballId ? 'hidden' : 'flex'}`}
-                                    >
-                                      {entry.player.position}
-                                    </div>
-                                    <span
-                                      className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} flex items-center justify-center text-white font-bold text-[9px] border border-surface-200`}
-                                    >
-                                      {entry.player.position}
-                                    </span>
-                                  </div>
-                                  <div className="min-w-0">
-                                    <span className="text-gray-200 text-sm font-medium block truncate">{entry.player.name}</span>
-                                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                                      <span>{entry.player.team}</span>
-                                      {entry.player.age != null && (
-                                        <span className={getAgeColor(entry.player.age)}>• {entry.player.age}a</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-3 text-xs flex-shrink-0">
-                                  {entry.player.quotation != null && (
-                                    <span className="text-gray-400"><span className="text-gray-600">Q</span> <span className="font-mono">{entry.player.quotation}</span></span>
-                                  )}
-                                  <span className="text-accent-400 font-semibold"><span className="text-gray-600 font-normal">I</span> <span className="font-mono">{entry.player.contract?.salary ?? '-'}</span></span>
-                                  <span className="text-white"><span className="text-gray-600">D</span> <span className="font-mono">{entry.player.contract?.duration ?? '-'}A</span></span>
-                                  <span className="text-warning-400"><span className="text-gray-600 font-normal">C</span> <span className="font-mono">{entry.player.contract?.rescissionClause ?? '-'}</span></span>
-                                </div>
-                              </div>
-                            )
-                          })
-                        )}
-                      </div>
-                      {selectedOfferedPlayers.length > 0 && (
-                        <div className="mt-2 text-xs text-danger-400">
-                          {selectedOfferedPlayers.length} giocator{selectedOfferedPlayers.length === 1 ? 'e' : 'i'} selezionat{selectedOfferedPlayers.length === 1 ? 'o' : 'i'}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* T-021: Right Column - SEARCH and REQUEST players (Chiedo) */}
-                  <Card className="border-primary-500/20">
-                    <CardHeader>
-                      <CardTitle>
-                        <span className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-full bg-primary-500/20 flex items-center justify-center text-xs">↓</span>
-                          <span className="text-primary-400">CHIEDO</span>
-                          <span className="text-gray-500 font-normal text-sm">— Cerca giocatori</span>
-                        </span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {/* Search Filters */}
-                      <div className="grid grid-cols-3 gap-3 mb-4">
-                        <div>
-                          <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
-                            placeholder="Nome o squadra..."
-                            className="w-full px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <select
-                            value={filterRole}
-                            onChange={e => setFilterRole(e.target.value)}
-                            className="w-full px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
-                          >
-                            <option value="">Tutti i ruoli</option>
-                            <option value="P">Portieri</option>
-                            <option value="D">Difensori</option>
-                            <option value="C">Centrocampisti</option>
-                            <option value="A">Attaccanti</option>
-                          </select>
-                        </div>
-                        <div>
-                          <select
-                            value={selectedMemberId || filterManager}
-                            onChange={e => {
-                              const newMemberId = e.target.value
-                              setFilterManager(newMemberId)
-                              if (newMemberId !== selectedMemberId) {
-                                // Cambio DG: resetta i giocatori richiesti
-                                setSelectedMemberId(newMemberId)
-                                setSelectedRequestedPlayers([])
-                              }
-                            }}
-                            className="w-full px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
-                          >
-                            <option value="">Tutti i DG</option>
-                            {members.map(m => (
-                              <option key={m.id} value={m.id}>{m.user.username}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Players List */}
-                      <div className="max-h-[480px] overflow-y-auto border border-surface-50/30 rounded-lg bg-surface-300 divide-y divide-surface-50/10">
-                        {filteredOtherPlayers.length === 0 ? (
-                          <p className="text-gray-500 text-sm p-4 text-center">
-                            {selectedMemberId ? 'Nessun giocatore trovato' : 'Cerca o seleziona un DG'}
-                          </p>
-                        ) : (
-                          filteredOtherPlayers.map(entry => {
-                            const isSelected = selectedRequestedPlayers.includes(entry.id)
-                            return (
-                              <div
-                                key={entry.id}
-                                onClick={() => handleSelectRequestedPlayer(entry)}
-                                className={`px-3 py-2.5 cursor-pointer hover:bg-surface-200 transition-colors flex items-center justify-between ${
-                                  isSelected ? 'bg-primary-500/20' : ''
-                                }`}
-                              >
-                                <div className="flex items-center gap-2.5">
-                                  {isSelected && <span className="text-primary-400 font-bold text-sm">✓</span>}
-                                  {/* Player photo with position badge */}
-                                  <div className="relative flex-shrink-0">
-                                    {entry.player.apiFootballId ? (
-                                      <img
-                                        src={getPlayerPhotoUrl(entry.player.apiFootballId)}
-                                        alt={entry.player.name}
-                                        className="w-10 h-10 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
-                                        onError={(e) => {
-                                          (e.target as HTMLImageElement).style.display = 'none'
-                                          const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
-                                          if (fallback) fallback.style.display = 'flex'
-                                        }}
-                                      />
-                                    ) : null}
-                                    <div
-                                      className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} items-center justify-center text-xs font-bold text-white ${entry.player.apiFootballId ? 'hidden' : 'flex'}`}
-                                    >
-                                      {entry.player.position}
-                                    </div>
-                                    <span
-                                      className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'} flex items-center justify-center text-white font-bold text-[9px] border border-surface-200`}
-                                    >
-                                      {entry.player.position}
-                                    </span>
-                                  </div>
-                                  <div className="min-w-0">
-                                    <span className="text-gray-200 text-sm font-medium block truncate">{entry.player.name}</span>
-                                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                                      <span>{entry.player.team}</span>
-                                      {entry.player.age != null && (
-                                        <span className={getAgeColor(entry.player.age)}>• {entry.player.age}a</span>
-                                      )}
-                                      <span className="text-gray-600">• {entry.memberUsername}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-3 text-xs flex-shrink-0">
-                                  {entry.player.quotation != null && (
-                                    <span className="text-gray-400" title="Quotazione"><span className="text-gray-600">Q</span> <span className="font-mono">{entry.player.quotation}</span></span>
-                                  )}
-                                  <span className="text-accent-400 font-semibold" title="Ingaggio"><span className="text-gray-600 font-normal">I</span> <span className="font-mono">{entry.player.contract?.salary ?? '-'}</span></span>
-                                  <span className="text-white" title="Durata"><span className="text-gray-600">D</span> <span className="font-mono">{entry.player.contract?.duration ?? '-'}A</span></span>
-                                  <span className="text-warning-400" title="Clausola"><span className="text-gray-600 font-normal">C</span> <span className="font-mono">{entry.player.contract?.rescissionClause ?? '-'}</span></span>
-                                </div>
-                              </div>
-                            )
-                          })
-                        )}
-                      </div>
-
-                      {/* Selected count */}
-                      {selectedRequestedPlayers.length > 0 && (
-                        <p className="text-sm text-primary-400 mt-2">
-                          {selectedRequestedPlayers.length} giocatore/i selezionato/i
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-
+                {/* Mobile trigger buttons */}
+                <div className="flex gap-2 lg:hidden">
+                  <button
+                    onClick={() => setShowMyRosterModal(true)}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl text-sm font-medium text-white active:scale-[0.98] transition-all"
+                  >
+                    <svg className="w-4 h-4 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                    La Mia Rosa
+                    {selectedOfferedPlayers.length > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-danger-500/20 text-danger-400">
+                        {selectedOfferedPlayers.length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setShowPartnerRosterModal(true)}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl text-sm font-medium text-white active:scale-[0.98] transition-all"
+                  >
+                    <svg className="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                    Rosa Partner
+                    {selectedRequestedPlayers.length > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-primary-500/20 text-primary-400">
+                        {selectedRequestedPlayers.length}
+                      </span>
+                    )}
+                  </button>
                 </div>
 
-                {/* Budget, Duration and Message */}
-                <Card>
-                  <CardContent className="py-4">
-                    <form onSubmit={handleCreateOffer}>
-                      <div className="grid md:grid-cols-4 gap-4 mb-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Crediti che offri (max: {myBudget})
-                          </label>
-                          <div className="flex items-center">
-                            <button
-                              type="button"
-                              onClick={() => setOfferedBudget(Math.max(0, offeredBudget - 1))}
-                              disabled={offeredBudget <= 0}
-                              className="px-3 py-2 bg-surface-300 border border-danger-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
-                            >−</button>
-                            <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-danger-500/30 text-white text-center font-mono font-bold">
-                              {offeredBudget}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setOfferedBudget(Math.min(myBudget, offeredBudget + 1))}
-                              disabled={offeredBudget >= myBudget}
-                              className="px-3 py-2 bg-surface-300 border border-danger-500/30 rounded-r-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
-                            >+</button>
-                          </div>
+                {/* 3-column grid layout */}
+                <div className="lg:grid lg:grid-cols-12 lg:gap-4">
+                  {/* Left: My Roster (desktop only) */}
+                  <div className="hidden lg:block lg:col-span-3">
+                    <div className="sticky top-4">
+                      <DealRosterPanel
+                        side="mine"
+                        myRoster={myRoster}
+                        selectedOfferedPlayers={selectedOfferedPlayers}
+                        onToggleOffered={(id) => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id)}
+                        myBudget={myBudget}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Center: Deal Table */}
+                  <div className="lg:col-span-6">
+                    <DealTable
+                      members={members}
+                      selectedMemberId={selectedMemberId}
+                      targetMember={targetMember}
+                      onMemberChange={(id) => {
+                        if (id !== selectedMemberId) {
+                          setSelectedMemberId(id)
+                          setSelectedRequestedPlayers([])
+                          setFilterManager(id)
+                        }
+                      }}
+                      myBudget={myBudget}
+                      selectedOfferedPlayers={selectedOfferedPlayers}
+                      myRoster={myRoster}
+                      onRemoveOffered={(id) => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id)}
+                      offeredBudget={offeredBudget}
+                      onOfferedBudgetChange={setOfferedBudget}
+                      selectedRequestedPlayers={selectedRequestedPlayers}
+                      allOtherPlayers={allOtherPlayers}
+                      onRemoveRequested={(id) => togglePlayer(selectedRequestedPlayers, setSelectedRequestedPlayers, id)}
+                      requestedBudget={requestedBudget}
+                      onRequestedBudgetChange={setRequestedBudget}
+                      offerDuration={offerDuration}
+                      onDurationChange={setOfferDuration}
+                      message={message}
+                      onMessageChange={setMessage}
+                      isSubmitting={isSubmitting}
+                      canSubmit={!!(selectedMemberId && (selectedOfferedPlayers.length > 0 || offeredBudget > 0 || selectedRequestedPlayers.length > 0 || requestedBudget > 0))}
+                      onSubmit={handleCreateOffer}
+                      onOpenMyRoster={() => setShowMyRosterModal(true)}
+                      onOpenPartnerRoster={() => setShowPartnerRosterModal(true)}
+                    />
+                  </div>
+
+                  {/* Right: Partner Roster (desktop only) */}
+                  <div className="hidden lg:block lg:col-span-3">
+                    <div className="sticky top-4">
+                      <DealRosterPanel
+                        side="partner"
+                        filteredPlayers={filteredOtherPlayers}
+                        selectedRequestedPlayers={selectedRequestedPlayers}
+                        onToggleRequested={handleSelectRequestedPlayer}
+                        searchQuery={searchQuery}
+                        onSearchChange={setSearchQuery}
+                        filterRole={filterRole}
+                        onFilterRoleChange={setFilterRole}
+                        members={members}
+                        selectedMemberId={selectedMemberId || filterManager}
+                        onMemberChange={(id) => {
+                          setFilterManager(id)
+                          if (id !== selectedMemberId) {
+                            setSelectedMemberId(id)
+                            setSelectedRequestedPlayers([])
+                          }
+                        }}
+                        targetMember={targetMember}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mobile BottomSheet: La Mia Rosa */}
+                <BottomSheet
+                  isOpen={showMyRosterModal}
+                  onClose={() => setShowMyRosterModal(false)}
+                  title="La Mia Rosa"
+                  maxHeight="85vh"
+                >
+                  <DealRosterPanel
+                    side="mine"
+                    myRoster={myRoster}
+                    selectedOfferedPlayers={selectedOfferedPlayers}
+                    onToggleOffered={(id) => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id)}
+                    myBudget={myBudget}
+                  />
+                </BottomSheet>
+
+                {/* Mobile BottomSheet: Rosa Partner */}
+                <BottomSheet
+                  isOpen={showPartnerRosterModal}
+                  onClose={() => setShowPartnerRosterModal(false)}
+                  title={targetMember ? `Rosa ${targetMember.user.username}` : 'Rosa Partner'}
+                  maxHeight="85vh"
+                >
+                  <DealRosterPanel
+                    side="partner"
+                    filteredPlayers={filteredOtherPlayers}
+                    selectedRequestedPlayers={selectedRequestedPlayers}
+                    onToggleRequested={handleSelectRequestedPlayer}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    filterRole={filterRole}
+                    onFilterRoleChange={setFilterRole}
+                    members={members}
+                    selectedMemberId={selectedMemberId || filterManager}
+                    onMemberChange={(id) => {
+                      setFilterManager(id)
+                      if (id !== selectedMemberId) {
+                        setSelectedMemberId(id)
+                        setSelectedRequestedPlayers([])
+                      }
+                    }}
+                    targetMember={targetMember}
+                  />
+                </BottomSheet>
+
+                {/* Mobile sticky footer */}
+                <DealMobileFooter
+                  offeredCount={selectedOfferedPlayers.length}
+                  requestedCount={selectedRequestedPlayers.length}
+                  isSubmitting={isSubmitting}
+                  onSubmit={() => handleCreateOffer({ preventDefault: () => {} } as React.FormEvent)}
+                  canSubmit={!!(selectedMemberId && (selectedOfferedPlayers.length > 0 || offeredBudget > 0 || selectedRequestedPlayers.length > 0 || requestedBudget > 0))}
+                  hasSelections={hasTradeSelections}
+                />
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ============================= */}
+        {/* === TAB: Ricevute === */}
+        {/* ============================= */}
+        {activeTab === 'received' && (
+          <div className="space-y-4">
+            {receivedOffers.length === 0 ? (
+              <EmptyState icon="📥" title="Nessuna offerta ricevuta" description="Le offerte che riceverai appariranno qui" />
+            ) : (
+              receivedOffers.map(offer => {
+                const timeRemaining = getTimeRemaining(offer.expiresAt)
+                const isHighlighted = offer.id === highlightedOfferId
+                return (
+                  <Card
+                    key={offer.id}
+                    id={`offer-${offer.id}`}
+                    className={`overflow-hidden border-l-4 ${isHighlighted ? 'border-l-primary-500 ring-2 ring-primary-500/50 bg-primary-500/5' : 'border-l-accent-500'}`}
+                  >
+                    <div className="bg-gradient-to-r from-surface-200 to-transparent px-5 py-4 flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-accent-500/20 flex items-center justify-center">
+                          <span className="text-accent-400 font-bold text-sm">
+                            {(offer.sender?.username?.[0] || offer.fromMember?.user?.username?.[0] || '?').toUpperCase()}
+                          </span>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Crediti che richiedi
-                          </label>
-                          <div className="flex items-center">
-                            <button
-                              type="button"
-                              onClick={() => setRequestedBudget(Math.max(0, requestedBudget - 1))}
-                              disabled={requestedBudget <= 0}
-                              className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
-                            >−</button>
-                            <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-mono font-bold">
-                              {requestedBudget}
+                          <p className="font-semibold text-white">{offer.sender?.username || offer.fromMember?.user?.username}</p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(offer.createdAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                          timeRemaining.isExpired
+                            ? 'bg-danger-500/20 text-danger-400 border border-danger-500/40'
+                            : timeRemaining.isUrgent
+                              ? 'bg-warning-500/20 text-warning-400 border border-warning-500/40'
+                              : 'bg-surface-300 text-gray-400 border border-surface-50/30'
+                        }`}>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>{timeRemaining.text}</span>
+                        </div>
+                        <span className="px-3 py-1.5 bg-accent-500/20 text-accent-400 text-xs font-semibold rounded-full border border-accent-500/40 uppercase tracking-wide">
+                          In attesa
+                        </span>
+                      </div>
+                    </div>
+
+                    <CardContent className="py-5">
+                      <div className="grid md:grid-cols-2 gap-6">
+                        {/* What you receive */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-secondary-500/20 flex items-center justify-center">
+                              <svg className="w-3 h-3 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                              </svg>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => setRequestedBudget(requestedBudget + 1)}
-                              className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-r-lg text-white font-bold hover:bg-surface-300/80 transition-colors"
-                            >+</button>
+                            <p className="text-sm font-semibold text-secondary-400 uppercase tracking-wide">Riceveresti</p>
+                          </div>
+                          <div className="pl-8">
+                            <PlayersTable players={offer.offeredPlayerDetails || offer.offeredPlayers || []} />
+                            {offer.offeredBudget > 0 && (
+                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
+                                <div className="w-6 h-6 rounded bg-secondary-500/20 flex items-center justify-center">
+                                  <span className="text-secondary-400 font-bold text-xs">€</span>
+                                </div>
+                                <span className="text-sm text-secondary-400 font-medium">+ {offer.offeredBudget} crediti</span>
+                              </div>
+                            )}
+                            {(!offer.offeredPlayerDetails?.length && !offer.offeredPlayers?.length && offer.offeredBudget === 0) && (
+                              <p className="text-gray-600 text-sm italic py-2">Nessun giocatore o credito offerto</p>
+                            )}
                           </div>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Durata offerta
-                          </label>
-                          <div className="flex items-center">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const durations = [6, 12, 24, 48, 72, 168]
-                                const currentIndex = durations.indexOf(offerDuration)
-                                if (currentIndex > 0) setOfferDuration(durations[currentIndex - 1]!)
-                              }}
-                              disabled={offerDuration === 6}
-                              className="px-3 py-2 bg-surface-300 border border-accent-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
-                            >−</button>
-                            <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-accent-500/30 text-white text-center font-mono font-bold text-sm">
-                              {offerDuration < 24 ? `${offerDuration}h` : offerDuration === 24 ? '24h' : offerDuration === 48 ? '2gg' : offerDuration === 72 ? '3gg' : '7gg'}
+
+                        {/* What you give */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-danger-500/20 flex items-center justify-center">
+                              <svg className="w-3 h-3 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                              </svg>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const durations = [6, 12, 24, 48, 72, 168]
-                                const currentIndex = durations.indexOf(offerDuration)
-                                if (currentIndex < durations.length - 1) setOfferDuration(durations[currentIndex + 1]!)
-                              }}
-                              disabled={offerDuration === 168}
-                              className="px-3 py-2 bg-surface-300 border border-accent-500/30 rounded-r-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
-                            >+</button>
+                            <p className="text-sm font-semibold text-danger-400 uppercase tracking-wide">Cederesti</p>
                           </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-1">
-                            Messaggio (opzionale)
-                          </label>
-                          <input
-                            type="text"
-                            value={message}
-                            onChange={e => setMessage(e.target.value)}
-                            className="w-full px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white focus:border-primary-500 focus:outline-none"
-                            placeholder="Aggiungi un messaggio..."
-                          />
+                          <div className="pl-8">
+                            <PlayersTable players={offer.requestedPlayerDetails || offer.requestedPlayers || []} />
+                            {offer.requestedBudget > 0 && (
+                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
+                                <div className="w-6 h-6 rounded bg-danger-500/20 flex items-center justify-center">
+                                  <span className="text-danger-400 font-bold text-xs">€</span>
+                                </div>
+                                <span className="text-sm text-danger-400 font-medium">+ {offer.requestedBudget} crediti</span>
+                              </div>
+                            )}
+                            {(!offer.requestedPlayerDetails?.length && !offer.requestedPlayers?.length && offer.requestedBudget === 0) && (
+                              <p className="text-gray-600 text-sm italic py-2">Nessun giocatore o credito richiesto</p>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      {/* Riepilogo Offerta */}
-                      {(selectedOfferedPlayers.length > 0 || selectedRequestedPlayers.length > 0 || offeredBudget > 0 || requestedBudget > 0) && (
-                        <div className="mb-4 p-4 bg-surface-300 rounded-lg border border-surface-50/30">
-                          <p className="text-sm font-medium text-white mb-3">Riepilogo Offerta:</p>
-                          <div className="grid md:grid-cols-2 gap-6">
-                            {/* OFFRI */}
-                            <div>
-                              <p className="text-xs text-danger-400 font-semibold mb-2 uppercase tracking-wide">Offri</p>
-                              {selectedOfferedPlayers.length > 0 ? (
-                                <table className="w-full text-sm">
-                                  <thead>
-                                    <tr className="text-gray-500 text-xs uppercase">
-                                      <th className="text-left font-medium pb-1">Giocatore</th>
-                                      <th className="text-center font-medium pb-1 w-14">Ruolo</th>
-                                      <th className="text-center font-medium pb-1 w-14">Ing.</th>
-                                      <th className="text-center font-medium pb-1 w-12">Dur.</th>
-                                      <th className="text-center font-medium pb-1 w-16">Claus.</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {selectedOfferedPlayers.map(id => {
-                                      const entry = myRoster.find(r => r.id === id)
-                                      if (!entry) return null
-                                      const roleStyle = getRoleStyle(entry.player.position)
-                                      return (
-                                        <tr key={id} className="border-t border-surface-50/10">
-                                          <td className="py-1.5">
-                                            <div className="flex items-center gap-1.5">
-                                              <div className="w-6 h-6 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
-                                                <img src={getTeamLogo(entry.player.team)} alt={entry.player.team} className="w-5 h-5 object-contain" />
-                                              </div>
-                                              <div className="min-w-0">
-                                                <span className="text-gray-200 truncate block">{entry.player.name}</span>
-                                                <span className="text-xs text-gray-500 truncate block">{entry.player.team}</span>
-                                              </div>
-                                            </div>
-                                          </td>
-                                          <td className="text-center">
-                                            <span className={`inline-block px-1.5 py-0.5 text-xs font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
-                                              {roleStyle.label}
-                                            </span>
-                                          </td>
-                                          <td className="text-center text-accent-400 font-semibold font-mono">{entry.player.contract?.salary ?? '-'}</td>
-                                          <td className="text-center text-white font-mono">{entry.player.contract?.duration ?? '-'}</td>
-                                          <td className="text-center text-warning-400 font-mono">{entry.player.contract?.rescissionClause ?? '-'}</td>
-                                        </tr>
-                                      )
-                                    })}
-                                  </tbody>
-                                </table>
-                              ) : (
-                                <p className="text-sm text-gray-500 italic">Nessun giocatore</p>
-                              )}
-                              {offeredBudget > 0 && (
-                                <div className="mt-2 pt-2 border-t border-surface-50/20 flex items-center gap-2">
-                                  <div className="w-6 h-6 rounded bg-accent-500/20 flex items-center justify-center">
-                                    <span className="text-accent-400 font-bold text-xs">€</span>
-                                  </div>
-                                  <span className="text-sm text-accent-400 font-medium">+ {offeredBudget} crediti</span>
-                                </div>
-                              )}
-                            </div>
-                            {/* RICHIEDI */}
-                            <div>
-                              <p className="text-xs text-primary-400 font-semibold mb-2 uppercase tracking-wide">Richiedi</p>
-                              {selectedRequestedPlayers.length > 0 ? (
-                                <table className="w-full text-sm">
-                                  <thead>
-                                    <tr className="text-gray-500 text-xs uppercase">
-                                      <th className="text-left font-medium pb-1">Giocatore</th>
-                                      <th className="text-center font-medium pb-1 w-14">Ruolo</th>
-                                      <th className="text-center font-medium pb-1 w-14">Ing.</th>
-                                      <th className="text-center font-medium pb-1 w-12">Dur.</th>
-                                      <th className="text-center font-medium pb-1 w-16">Claus.</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {selectedRequestedPlayers.map(id => {
-                                      const entry = allOtherPlayers.find(r => r.id === id)
-                                      if (!entry) return null
-                                      const roleStyle = getRoleStyle(entry.player.position)
-                                      return (
-                                        <tr key={id} className="border-t border-surface-50/10">
-                                          <td className="py-1.5">
-                                            <div className="flex items-center gap-1.5">
-                                              <div className="w-6 h-6 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
-                                                <img src={getTeamLogo(entry.player.team)} alt={entry.player.team} className="w-5 h-5 object-contain" />
-                                              </div>
-                                              <div className="min-w-0">
-                                                <span className="text-gray-200 truncate block">{entry.player.name}</span>
-                                                <span className="text-xs text-gray-500 truncate block">{entry.player.team}</span>
-                                              </div>
-                                            </div>
-                                          </td>
-                                          <td className="text-center">
-                                            <span className={`inline-block px-1.5 py-0.5 text-xs font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
-                                              {roleStyle.label}
-                                            </span>
-                                          </td>
-                                          <td className="text-center text-accent-400 font-semibold font-mono">{entry.player.contract?.salary ?? '-'}</td>
-                                          <td className="text-center text-white font-mono">{entry.player.contract?.duration ?? '-'}</td>
-                                          <td className="text-center text-warning-400 font-mono">{entry.player.contract?.rescissionClause ?? '-'}</td>
-                                        </tr>
-                                      )
-                                    })}
-                                  </tbody>
-                                </table>
-                              ) : (
-                                <p className="text-sm text-gray-500 italic">Nessun giocatore</p>
-                              )}
-                              {requestedBudget > 0 && (
-                                <div className="mt-2 pt-2 border-t border-surface-50/20 flex items-center gap-2">
-                                  <div className="w-6 h-6 rounded bg-accent-500/20 flex items-center justify-center">
-                                    <span className="text-accent-400 font-bold text-xs">€</span>
-                                  </div>
-                                  <span className="text-sm text-accent-400 font-medium">+ {requestedBudget} crediti</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                      {offer.message && (
+                        <div className="mt-5 p-4 bg-surface-200/50 rounded-lg border-l-2 border-gray-500">
+                          <p className="text-sm text-gray-400 italic">"{offer.message}"</p>
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-400">
-                          {selectedMemberId && targetMember ? (
-                            <span>Offerta per <span className="text-white font-medium">{targetMember.user.username}</span></span>
-                          ) : (
-                            <span>Seleziona almeno un giocatore da richiedere</span>
-                          )}
+                      {isInTradePhase && !timeRemaining.isExpired && (
+                        <div className="flex gap-3 mt-6 pt-5 border-t border-surface-50/20">
+                          <Button variant="primary" onClick={() => handleAccept(offer.id)} className="flex-1">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Accetta Scambio
+                          </Button>
+                          <Button variant="outline" onClick={() => handleReject(offer.id)} className="flex-1">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Rifiuta
+                          </Button>
                         </div>
-                        <Button
-                          type="submit"
-                          disabled={isSubmitting || !selectedMemberId || (selectedOfferedPlayers.length === 0 && offeredBudget === 0 && selectedRequestedPlayers.length === 0 && requestedBudget === 0)}
-                        >
-                          {isSubmitting ? 'Invio...' : 'Invia Offerta'}
-                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })
+            )}
+          </div>
+        )}
+
+        {/* ============================= */}
+        {/* === TAB: Inviate === */}
+        {/* ============================= */}
+        {activeTab === 'sent' && (
+          <div className="space-y-4">
+            {sentOffers.length === 0 ? (
+              <EmptyState icon="📤" title="Nessuna offerta inviata" description="Le tue offerte appariranno qui" />
+            ) : (
+              sentOffers.map(offer => {
+                const timeRemaining = getTimeRemaining(offer.expiresAt)
+                const isHighlighted = offer.id === highlightedOfferId
+                return (
+                  <Card
+                    key={offer.id}
+                    id={`offer-${offer.id}`}
+                    className={`overflow-hidden border-l-4 ${isHighlighted ? 'border-l-primary-500 ring-2 ring-primary-500/50 bg-primary-500/5' : 'border-l-primary-500'}`}
+                  >
+                    <div className="bg-gradient-to-r from-surface-200 to-transparent px-5 py-4 flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center">
+                          <span className="text-primary-400 font-bold text-sm">
+                            {(offer.receiver?.username?.[0] || offer.toMember?.user?.username?.[0] || '?').toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">A: {offer.receiver?.username || offer.toMember?.user?.username}</p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(offer.createdAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
                       </div>
-                    </form>
-                  </CardContent>
-                </Card>
-              </>
+                      <div className="flex items-center gap-3">
+                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                          timeRemaining.isExpired
+                            ? 'bg-danger-500/20 text-danger-400 border border-danger-500/40'
+                            : timeRemaining.isUrgent
+                              ? 'bg-warning-500/20 text-warning-400 border border-warning-500/40'
+                              : 'bg-surface-300 text-gray-400 border border-surface-50/30'
+                        }`}>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>{timeRemaining.text}</span>
+                        </div>
+                        <span className={`px-3 py-1.5 text-xs font-semibold rounded-full uppercase tracking-wide border ${
+                          offer.status === 'PENDING'
+                            ? 'bg-accent-500/20 text-accent-400 border-accent-500/40'
+                            : 'bg-primary-500/20 text-primary-400 border-primary-500/40'
+                        }`}>
+                          {offer.status === 'PENDING' ? 'In attesa' : 'Controfferta'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <CardContent className="py-5">
+                      <div className="grid md:grid-cols-2 gap-6">
+                        {/* What you offer */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-danger-500/20 flex items-center justify-center">
+                              <svg className="w-3 h-3 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                              </svg>
+                            </div>
+                            <p className="text-sm font-semibold text-danger-400 uppercase tracking-wide">Offri</p>
+                          </div>
+                          <div className="pl-8">
+                            <PlayersTable players={offer.offeredPlayerDetails || offer.offeredPlayers || []} />
+                            {offer.offeredBudget > 0 && (
+                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
+                                <div className="w-6 h-6 rounded bg-danger-500/20 flex items-center justify-center">
+                                  <span className="text-danger-400 font-bold text-xs">€</span>
+                                </div>
+                                <span className="text-sm text-danger-400 font-medium">+ {offer.offeredBudget} crediti</span>
+                              </div>
+                            )}
+                            {(!offer.offeredPlayerDetails?.length && !offer.offeredPlayers?.length && offer.offeredBudget === 0) && (
+                              <p className="text-gray-600 text-sm italic py-2">Nessun giocatore o credito offerto</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* What you request */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-secondary-500/20 flex items-center justify-center">
+                              <svg className="w-3 h-3 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                              </svg>
+                            </div>
+                            <p className="text-sm font-semibold text-secondary-400 uppercase tracking-wide">Richiedi</p>
+                          </div>
+                          <div className="pl-8">
+                            <PlayersTable players={offer.requestedPlayerDetails || offer.requestedPlayers || []} />
+                            {offer.requestedBudget > 0 && (
+                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
+                                <div className="w-6 h-6 rounded bg-secondary-500/20 flex items-center justify-center">
+                                  <span className="text-secondary-400 font-bold text-xs">€</span>
+                                </div>
+                                <span className="text-sm text-secondary-400 font-medium">+ {offer.requestedBudget} crediti</span>
+                              </div>
+                            )}
+                            {(!offer.requestedPlayerDetails?.length && !offer.requestedPlayers?.length && offer.requestedBudget === 0) && (
+                              <p className="text-gray-600 text-sm italic py-2">Nessun giocatore o credito richiesto</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {offer.status === 'PENDING' && !timeRemaining.isExpired && (
+                        <div className="mt-6 pt-5 border-t border-surface-50/20">
+                          <Button variant="outline" onClick={() => handleCancel(offer.id)} className="text-danger-400 border-danger-500/40 hover:bg-danger-500/10">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Annulla Offerta
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })
             )}
           </div>
         )}
