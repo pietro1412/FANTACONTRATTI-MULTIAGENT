@@ -409,18 +409,28 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
         onNavigate={onNavigate}
       />
 
-      <div className="p-4 md:p-6">
-        <div className="max-w-[1800px] mx-auto">
-          {/* Header */}
-          <div className="mb-6 flex items-start justify-between">
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Statistiche Serie A</h1>
-              <p className="text-gray-400">
-                Analizza le statistiche dei giocatori della Serie A ({total} giocatori con dati)
-              </p>
+      {/* === Page Header (aligned with Trades/Svincolati) === */}
+      <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
+        <div className="max-w-[1800px] mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-5">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-glow">
+                <span className="text-2xl">📊</span>
+              </div>
+              <div>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Statistiche Serie A</h1>
+                <p className="text-gray-400 text-sm">
+                  {total > 0 ? `${total} giocatori con dati` : 'Analizza le statistiche dei giocatori'}
+                </p>
+              </div>
             </div>
             <ShareButton title="Statistiche Serie A" text="Statistiche giocatori Serie A" compact />
           </div>
+        </div>
+      </div>
+
+      <div className="p-4 md:p-6">
+        <div className="max-w-[1800px] mx-auto">
 
           {/* Filters */}
           <Card className="p-3 md:p-4 mb-4 overflow-x-auto">
@@ -713,8 +723,9 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
           {/* Stats Table */}
           <Card className="overflow-hidden">
             {loading ? (
-              <div className="p-8 text-center">
-                <div className="w-10 h-10 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto"></div>
+              <div className="p-12 text-center">
+                <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-3"></div>
+                <p className="text-gray-500 text-sm">Caricamento statistiche...</p>
               </div>
             ) : (
               <>
@@ -848,7 +859,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                             </td>
                             <td className="px-3 py-3 text-center">
                               <span
-                                className={`inline-flex items-center justify-center min-w-[2.5rem] px-2 py-1 rounded-lg bg-gradient-to-r ${quotStyle.bg} ${quotStyle.text} font-bold text-sm shadow-lg ${quotStyle.glow}`}
+                                className={`inline-flex items-center justify-center min-w-[2.5rem] px-2 py-1 rounded-lg bg-gradient-to-r ${quotStyle.bg} ${quotStyle.text} font-bold font-mono text-sm shadow-lg ${quotStyle.glow}`}
                               >
                                 {player.quotation}
                               </span>
@@ -865,7 +876,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                                 return (
                                   <td key={col.key} className="px-2 py-3 text-center">
                                     <span
-                                      className={`inline-flex items-center justify-center px-2 py-0.5 rounded font-medium text-sm ${
+                                      className={`inline-flex items-center justify-center px-2 py-0.5 rounded font-medium font-mono text-sm ${
                                         rawValue >= 7
                                           ? 'bg-secondary-500/20 text-secondary-400'
                                           : rawValue >= 6
@@ -883,7 +894,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                               if (col.key === 'ga' && typeof rawValue === 'number') {
                                 return (
                                   <td key={col.key} className="px-2 py-3 text-center">
-                                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-white/10 font-bold text-white text-sm">
+                                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-white/10 font-bold font-mono text-white text-sm">
                                       {rawValue}
                                     </span>
                                   </td>
@@ -893,7 +904,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                               return (
                                 <td
                                   key={col.key}
-                                  className={`px-2 py-3 text-center text-sm ${col.colorClass || 'text-gray-300'}`}
+                                  className={`px-2 py-3 text-center text-sm font-mono ${col.colorClass || 'text-gray-300'}`}
                                 >
                                   {displayValue}
                                 </td>
@@ -910,7 +921,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-4 py-3 border-t border-surface-50/10">
                     <p className="text-sm text-gray-400">
-                      Pagina {page} di {totalPages} ({total} giocatori)
+                      Pagina <span className="font-mono">{page}</span> di <span className="font-mono">{totalPages}</span> (<span className="font-mono">{total}</span> giocatori)
                     </p>
                     <div className="flex gap-2">
                       <Button
@@ -938,9 +949,9 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
 
           {/* Full-page Compare View */}
           {showCompareModal && playersToCompare.length >= 2 && (
-            <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="fixed inset-0 z-50 overflow-y-auto bg-surface-100">
               {/* Sticky Header */}
-              <div className="sticky top-0 z-10 bg-surface-200 border-b border-surface-50/20">
+              <div className="sticky top-0 z-10 bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
                 <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
                   <button
                     onClick={() => setShowCompareModal(false)}
@@ -949,7 +960,12 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                     <span className="text-xl">←</span>
                     <span className="text-sm md:text-base">Torna alla lista</span>
                   </button>
-                  <h2 className="text-lg md:text-xl font-bold text-white">Confronto Giocatori</h2>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center">
+                      <span className="text-base">⚖️</span>
+                    </div>
+                    <h2 className="text-lg md:text-xl font-bold text-white">Confronto Giocatori</h2>
+                  </div>
                   <div className="w-20" />
                 </div>
               </div>
@@ -1005,7 +1021,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                           )}
                           <span className="text-xs md:text-sm text-gray-400">{player.team}</span>
                         </div>
-                        <span className="text-base md:text-lg font-bold text-primary-400">Quot. {player.quotation}</span>
+                        <span className="text-base md:text-lg font-bold font-mono text-primary-400">Quot. {player.quotation}</span>
                       </div>
                     )
                   })}
@@ -1106,7 +1122,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                                 return (
                                   <td
                                     key={player.id}
-                                    className={`px-3 md:px-4 py-3 text-center text-sm md:text-base font-medium ${
+                                    className={`px-3 md:px-4 py-3 text-center text-sm md:text-base font-medium font-mono ${
                                       isMax ? 'text-secondary-400' : 'text-white'
                                     }`}
                                   >
