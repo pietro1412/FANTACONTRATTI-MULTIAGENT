@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { playerApi, leagueApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import Card from '../components/ui/Card'
@@ -10,6 +10,8 @@ import { getPlayerPhotoUrl, getTeamLogoUrl } from '../utils/player-images'
 import { SlidersHorizontal } from 'lucide-react'
 import { ShareButton } from '../components/ShareButton'
 import { LandscapeHint } from '../components/ui/LandscapeHint'
+import { PlayerStatsModal, type PlayerInfo } from '../components/PlayerStatsModal'
+import { EmptyState } from '../components/ui/EmptyState'
 
 // Position colors
 const POSITION_COLORS: Record<string, string> = {
@@ -151,6 +153,13 @@ const COLUMN_PRESETS: Record<string, { label: string; emoji: string; columns: st
 
 const LOCALSTORAGE_KEY = 'playerStats_visibleColumns'
 
+// ==================== HELPER COMPONENTS ====================
+
+function SortIcon({ column, sortBy, sortOrder }: { column: string; sortBy: string; sortOrder: 'asc' | 'desc' }) {
+  if (sortBy !== column) return <span className="text-gray-600 ml-1">↕</span>
+  return <span className="text-primary-400 ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+}
+
 // ==================== COMPONENT ====================
 
 interface PlayerStatsProps {
@@ -173,6 +182,8 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
   const [positionFilter, setPositionFilter] = useState<string>('')
   const [teamFilter, setTeamFilter] = useState<string>('')
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [teamDropdownOpen, setTeamDropdownOpen] = useState(false)
+  const teamDropdownRef = useRef<HTMLDivElement>(null)
   const [sortBy, setSortBy] = useState<string>('name')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
@@ -201,6 +212,12 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
     return COLUMN_PRESETS.essential.columns
   })
   const [showColumnSelector, setShowColumnSelector] = useState(false)
+
+  // Player stats modal
+  const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
+
+  // Error state
+  const [error, setError] = useState<string | null>(null)
 
   // Save column preferences to localStorage
   useEffect(() => {
@@ -243,6 +260,17 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
     })
   }, [players, sortBy, sortOrder])
 
+  // Close team dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (teamDropdownRef.current && !teamDropdownRef.current.contains(e.target as Node)) {
+        setTeamDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   useEffect(() => {
     loadLeagueInfo()
     loadTeams()
@@ -263,16 +291,8 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
   }
 
   useEffect(() => {
-    // Only reload from backend when filters, pagination, or backend-sortable columns change
-    if (backendSortableColumns.includes(sortBy)) {
-      loadPlayers()
-    }
-  }, [positionFilter, teamFilter, sortBy, sortOrder, page])
-
-  // Initial load
-  useEffect(() => {
     loadPlayers()
-  }, [])
+  }, [positionFilter, teamFilter, sortBy, sortOrder, page])
 
   async function loadTeams() {
     try {
@@ -289,6 +309,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
 
   async function loadPlayers() {
     setLoading(true)
+    setError(null)
     try {
       const res = await playerApi.getStats({
         position: positionFilter || undefined,
@@ -306,6 +327,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
       }
     } catch (err) {
       console.error('Error loading players:', err)
+      setError('Errore nel caricamento delle statistiche. Riprova.')
     } finally {
       setLoading(false)
     }
@@ -373,11 +395,6 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
 
   const playersToCompare = sortedPlayers.filter((p) => selectedForCompare.has(p.id))
 
-  const SortIcon = ({ column }: { column: string }) => {
-    if (sortBy !== column) return <span className="text-gray-600 ml-1">↕</span>
-    return <span className="text-primary-400 ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-  }
-
   // Group columns by category for the selector
   const columnsByCategory = useMemo(() => {
     const grouped: Record<string, ColumnDef[]> = {}
@@ -389,6 +406,9 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
     }
     return grouped
   }, [])
+
+  // Memoized sorted key for preset comparison (avoids mutating array + re-stringifying every render)
+  const visibleColumnsSorted = useMemo(() => JSON.stringify([...visibleColumns].sort()), [visibleColumns])
 
   const categoryLabels: Record<string, string> = {
     general: 'Generali',
@@ -411,7 +431,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
 
       {/* === Page Header (aligned with Trades/Svincolati) === */}
       <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
-        <div className="max-w-[1800px] mx-auto px-4 py-4">
+        <div className="max-w-[1600px] mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-5">
               <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-glow">
@@ -430,7 +450,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
       </div>
 
       <div className="p-4 md:p-6">
-        <div className="max-w-[1800px] mx-auto">
+        <div className="max-w-[1600px] mx-auto">
 
           {/* Filters */}
           <Card className="p-3 md:p-4 mb-4 overflow-x-auto">
@@ -517,23 +537,47 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                   </select>
                 </div>
 
-                <div className="w-40">
+                <div className="w-48 relative" ref={teamDropdownRef}>
                   <label className="block text-xs text-gray-400 mb-1">Squadra</label>
-                  <select
-                    value={teamFilter}
-                    onChange={(e) => {
-                      setTeamFilter(e.target.value)
-                      setPage(1)
-                    }}
-                    className="w-full px-2 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  <button
+                    type="button"
+                    onClick={() => setTeamDropdownOpen(!teamDropdownOpen)}
+                    className="w-full px-2 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center gap-2"
                   >
-                    <option value="">Tutte</option>
-                    {teams.map((team) => (
-                      <option key={team} value={team}>
-                        {team}
-                      </option>
-                    ))}
-                  </select>
+                    {teamFilter ? (
+                      <>
+                        <img src={getTeamLogoUrl(teamFilter) || ''} alt="" className="w-5 h-5 object-contain rounded bg-white/90 p-0.5" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                        <span className="truncate">{teamFilter}</span>
+                      </>
+                    ) : (
+                      <span className="text-gray-400">Tutte</span>
+                    )}
+                    <svg className={`w-4 h-4 ml-auto transition-transform flex-shrink-0 ${teamDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {teamDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-1 bg-surface-200 border border-surface-50/30 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto min-w-[200px]">
+                      <button
+                        type="button"
+                        onClick={() => { setTeamFilter(''); setTeamDropdownOpen(false); setPage(1) }}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-300 ${!teamFilter ? 'bg-primary-500/20 text-primary-400' : 'text-white'}`}
+                      >
+                        Tutte le squadre
+                      </button>
+                      {teams.map(team => (
+                        <button
+                          key={team}
+                          type="button"
+                          onClick={() => { setTeamFilter(team); setTeamDropdownOpen(false); setPage(1) }}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-300 flex items-center gap-2 ${teamFilter === team ? 'bg-primary-500/20 text-primary-400' : 'text-white'}`}
+                        >
+                          <img src={getTeamLogoUrl(team) || ''} alt="" className="w-5 h-5 object-contain rounded bg-white/90 p-0.5 flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                          <span>{team}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -605,6 +649,56 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
             </div>
           </BottomSheet>
 
+          {/* Column Selector BottomSheet - mobile only */}
+          <BottomSheet isOpen={showColumnSelector} onClose={() => setShowColumnSelector(false)} title="Seleziona Colonne">
+            <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+              {Object.entries(columnsByCategory).map(([category, columns]) => {
+                const allSelected = columns.every(c => visibleColumns.includes(c.key))
+                const someSelected = columns.some(c => visibleColumns.includes(c.key))
+                return (
+                  <div key={category}>
+                    <button
+                      type="button"
+                      onClick={() => toggleCategory(category)}
+                      className="flex items-center gap-2 w-full text-left mb-2 group"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        ref={el => { if (el) el.indeterminate = someSelected && !allSelected }}
+                        onChange={() => toggleCategory(category)}
+                        className="w-4 h-4 rounded border-surface-50/30 bg-surface-300 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
+                      />
+                      <h4 className="text-xs font-semibold text-primary-400 uppercase tracking-wider group-hover:text-primary-300 transition-colors">
+                        {categoryLabels[category]}
+                      </h4>
+                      <span className="text-[10px] text-gray-600 ml-auto">{columns.filter(c => visibleColumns.includes(c.key)).length}/{columns.length}</span>
+                    </button>
+                    <div className="space-y-1">
+                      {columns.map(col => (
+                        <label
+                          key={col.key}
+                          className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-surface-300/50 cursor-pointer transition-colors min-h-[44px]"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={visibleColumns.includes(col.key)}
+                            onChange={() => toggleColumn(col.key)}
+                            className="w-5 h-5 rounded border-surface-50/30 bg-surface-300 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
+                          />
+                          <div className="flex-1">
+                            <span className="text-sm text-white">{col.label}</span>
+                            <span className="text-xs text-gray-500 ml-2">({col.shortLabel})</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </BottomSheet>
+
           {/* Column Selector & Presets */}
           <Card className="p-3 md:p-4 mb-4 overflow-x-auto">
             <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 min-w-0">
@@ -617,7 +711,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                       key={key}
                       onClick={() => applyPreset(key)}
                       className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
-                        JSON.stringify(visibleColumns.sort()) === JSON.stringify(preset.columns.sort())
+                        visibleColumnsSorted === JSON.stringify([...preset.columns].sort())
                           ? 'bg-primary-500/30 text-primary-400 border border-primary-500/50'
                           : 'bg-surface-300 text-gray-400 hover:text-white hover:bg-surface-50/20'
                       }`}
@@ -635,6 +729,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
               {/* Custom column selector */}
               <div className="relative w-full sm:w-auto">
                 <button
+                  type="button"
                   onClick={() => setShowColumnSelector(!showColumnSelector)}
                   className="flex items-center gap-2 px-3 py-1.5 bg-surface-300 hover:bg-surface-50/20 rounded-lg text-sm text-gray-300 transition-colors w-full sm:w-auto justify-center sm:justify-start"
                 >
@@ -644,9 +739,9 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                   Personalizza ({visibleColumns.length})
                 </button>
 
-                {/* Column selector dropdown */}
+                {/* Column selector dropdown - desktop only */}
                 {showColumnSelector && (
-                  <>
+                  <div className="hidden sm:block">
                     <div
                       className="fixed inset-0 z-40"
                       onClick={() => setShowColumnSelector(false)}
@@ -656,6 +751,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                         <div className="flex items-center justify-between">
                           <span className="font-medium text-white">Seleziona Colonne</span>
                           <button
+                            type="button"
                             onClick={() => setShowColumnSelector(false)}
                             className="text-gray-400 hover:text-white"
                           >
@@ -671,6 +767,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                           return (
                           <div key={category}>
                             <button
+                              type="button"
                               onClick={() => toggleCategory(category)}
                               className="flex items-center gap-2 w-full text-left mb-2 group"
                             >
@@ -710,7 +807,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                         })}
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
 
@@ -720,12 +817,28 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
             </div>
           </Card>
 
+          {/* Error Banner */}
+          {error && (
+            <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg text-sm mb-4 flex items-center justify-between">
+              <span>{error}</span>
+              <Button size="sm" variant="outline" onClick={() => loadPlayers()}>Riprova</Button>
+            </div>
+          )}
+
           {/* Stats Table */}
           <Card className="overflow-hidden">
             {loading ? (
               <div className="p-12 text-center">
                 <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-3"></div>
                 <p className="text-gray-500 text-sm">Caricamento statistiche...</p>
+              </div>
+            ) : sortedPlayers.length === 0 ? (
+              <div className="p-4">
+                <EmptyState
+                  icon="🔍"
+                  title="Nessun giocatore trovato"
+                  description="Prova a modificare i filtri di ricerca o a cambiare ruolo/squadra"
+                />
               </div>
             ) : (
               <>
@@ -747,7 +860,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                           className="px-3 py-3 text-left text-xs font-medium text-gray-400 cursor-pointer hover:text-white min-w-[180px]"
                           onClick={() => handleSort('name')}
                         >
-                          Giocatore <SortIcon column="name" />
+                          Giocatore <SortIcon column="name" sortBy={sortBy} sortOrder={sortOrder} />
                         </th>
                         <th
                           scope="col"
@@ -755,7 +868,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                           className="px-3 py-3 text-left text-xs font-medium text-gray-400 cursor-pointer hover:text-white min-w-[120px]"
                           onClick={() => handleSort('team')}
                         >
-                          Squadra <SortIcon column="team" />
+                          Squadra <SortIcon column="team" sortBy={sortBy} sortOrder={sortOrder} />
                         </th>
                         <th
                           scope="col"
@@ -763,7 +876,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                           className="px-3 py-3 text-center text-xs font-medium text-gray-400 cursor-pointer hover:text-white w-16"
                           onClick={() => handleSort('position')}
                         >
-                          Pos <SortIcon column="position" />
+                          Pos <SortIcon column="position" sortBy={sortBy} sortOrder={sortOrder} />
                         </th>
                         <th
                           scope="col"
@@ -771,7 +884,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                           className="px-3 py-3 text-center text-xs font-medium text-gray-400 cursor-pointer hover:text-white w-16"
                           onClick={() => handleSort('quotation')}
                         >
-                          Quot <SortIcon column="quotation" />
+                          Quot <SortIcon column="quotation" sortBy={sortBy} sortOrder={sortOrder} />
                         </th>
                         {/* Dynamic stat columns */}
                         {visibleColumnDefs.map(col => (
@@ -783,7 +896,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                             onClick={() => col.sortable && handleSort(col.key)}
                             title={col.label}
                           >
-                            {col.shortLabel} {col.sortable && <SortIcon column={col.key} />}
+                            {col.shortLabel} {col.sortable && <SortIcon column={col.key} sortBy={sortBy} sortOrder={sortOrder} />}
                           </th>
                         ))}
                       </tr>
@@ -836,7 +949,20 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                                     {player.position}
                                   </span>
                                 </div>
-                                <span className="font-medium text-white">{player.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedPlayerStats({
+                                    name: player.name,
+                                    team: player.team,
+                                    position: player.position,
+                                    quotation: player.quotation,
+                                    apiFootballId: player.apiFootballId,
+                                    statsSyncedAt: player.statsSyncedAt,
+                                  })}
+                                  className="font-medium text-white hover:text-primary-400 transition-colors text-left"
+                                >
+                                  {player.name}
+                                </button>
                               </div>
                             </td>
                             <td className="px-3 py-3">
@@ -1145,6 +1271,13 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
           )}
         </div>
       </div>
+
+      {/* Player Stats Modal */}
+      <PlayerStatsModal
+        isOpen={!!selectedPlayerStats}
+        onClose={() => setSelectedPlayerStats(null)}
+        player={selectedPlayerStats}
+      />
     </div>
   )
 }
