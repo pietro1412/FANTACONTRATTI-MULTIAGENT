@@ -139,21 +139,21 @@ const STEPPER_BORDER = {
 function BudgetStepper({ value, onChange, max, accent }: { value: number; onChange: (v: number) => void; max?: number; accent: 'danger' | 'primary' }) {
   const border = STEPPER_BORDER[accent]
   return (
-    <div className="flex items-center">
+    <div className="inline-flex items-center">
       <button
         type="button"
         onClick={() => onChange(Math.max(0, value - 1))}
         disabled={value <= 0}
-        className={`px-3 py-2 bg-surface-300 border ${border} rounded-l-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors`}
+        className={`w-9 h-9 bg-surface-300 border ${border} rounded-l-lg text-white font-bold text-sm disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center`}
       >-</button>
-      <div className={`flex-1 min-w-[56px] px-3 py-2 bg-surface-300 border-y ${border} text-white text-center font-mono font-bold text-base`}>
+      <div className={`min-w-[48px] h-9 px-3 bg-surface-300 border-y ${border} text-white flex items-center justify-center font-mono font-bold text-sm`}>
         {value}
       </div>
       <button
         type="button"
         onClick={() => onChange(max != null ? Math.min(max, value + 1) : value + 1)}
         disabled={max != null && value >= max}
-        className={`px-3 py-2 bg-surface-300 border ${border} rounded-r-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors`}
+        className={`w-9 h-9 bg-surface-300 border ${border} rounded-r-lg text-white font-bold text-sm disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center`}
       >+</button>
     </div>
   )
@@ -260,9 +260,9 @@ export function DealTable(props: DealTableProps) {
         )}
 
         {/* Budget offerto */}
-        <div className="mt-3">
-          <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1.5 block">
-            Crediti offerti (max: {myBudget})
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold">
+            Crediti offerti <span className="text-gray-600">(max: {myBudget})</span>
           </label>
           <BudgetStepper value={offeredBudget} onChange={onOfferedBudgetChange} max={myBudget} accent="danger" />
         </div>
@@ -313,8 +313,8 @@ export function DealTable(props: DealTableProps) {
         )}
 
         {/* Budget richiesto */}
-        <div className="mt-3">
-          <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1.5 block">
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold">
             Crediti richiesti
           </label>
           <BudgetStepper value={requestedBudget} onChange={onRequestedBudgetChange} accent="primary" />
@@ -322,34 +322,41 @@ export function DealTable(props: DealTableProps) {
       </div>
 
       {/* Duration + Message */}
-      <div className="px-4 py-4 border-b border-white/5 space-y-4">
-        <div>
-          <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1.5 block">Durata offerta</label>
-          <div className="flex items-center">
+      <div className="px-4 py-4 border-b border-white/5 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold">Durata offerta</label>
+            {offerDuration > 0 && (
+              <p className="text-xs text-gray-500 mt-0.5">
+                Scade: <span className="text-gray-400">{new Date(Date.now() + offerDuration * 3600000).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+              </p>
+            )}
+          </div>
+          <div className="inline-flex items-center">
             <button
               type="button"
               onClick={() => { if (durationIndex > 0) onDurationChange(DURATIONS[durationIndex - 1]!) }}
               disabled={durationIndex <= 0}
-              className="px-3 py-2 bg-surface-300 border border-accent-500/30 rounded-l-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
+              className="w-9 h-9 bg-surface-300 border border-accent-500/30 rounded-l-lg text-white font-bold text-sm disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center"
             >-</button>
-            <div className="flex-1 min-w-[56px] px-3 py-2 bg-surface-300 border-y border-accent-500/30 text-white text-center font-mono font-bold text-base">
+            <div className="min-w-[48px] h-9 px-3 bg-surface-300 border-y border-accent-500/30 text-white flex items-center justify-center font-mono font-bold text-sm">
               {formatDuration(offerDuration)}
             </div>
             <button
               type="button"
               onClick={() => { if (durationIndex < DURATIONS.length - 1) onDurationChange(DURATIONS[durationIndex + 1]!) }}
               disabled={durationIndex >= DURATIONS.length - 1}
-              className="px-3 py-2 bg-surface-300 border border-accent-500/30 rounded-r-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
+              className="w-9 h-9 bg-surface-300 border border-accent-500/30 rounded-r-lg text-white font-bold text-sm disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center"
             >+</button>
           </div>
         </div>
         <div>
           <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1.5 block">Messaggio (opzionale)</label>
-          <input
-            type="text"
+          <textarea
             value={message}
             onChange={e => onMessageChange(e.target.value)}
-            className="w-full px-3 py-2.5 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none placeholder:text-gray-600"
+            rows={2}
+            className="w-full px-3 py-2 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none placeholder:text-gray-600 resize-none"
             placeholder="Aggiungi un messaggio..."
           />
         </div>
