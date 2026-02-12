@@ -7,23 +7,14 @@
 // ---------------------------------------------------------------------------
 // 1. BilancioGauge - SVG Semi-Circle Gauge
 // ---------------------------------------------------------------------------
-// Shows financial health as a semicircular gauge with colored zones and needle.
-//
-// viewBox is fixed at "0 0 100 50". The `size` prop only controls the outer
-// width/height of the <svg> element.
-//
-// Arc geometry:
-//   Center = (50, 50)  (bottom-center of the viewBox)
-//   Radius = 40
-//   Semicircle spans from angle PI (left) to angle 0 (right).
-//
-// Three color zones painted on the arc background:
-//   0%  - 15%  Red    #ef4444
-//   15% - 35%  Yellow #eab308
-//   35% - 100% Green  #22c55e
-//
-// Needle rotates from -90deg (ratio=0, left) to +90deg (ratio=1, right)
-// around pivot (50, 50).
+// viewBox: "0 0 100 55"
+// Arc center: (50, 50), radius: 40, stroke-width: 8
+// Three hardcoded arc paths for zones:
+//   Red   (0-15%):  M 10 50 A 40 40 0 0 1 18 31
+//   Yellow(15-35%): M 18 31 A 40 40 0 0 1 36 15
+//   Green (35-100%):M 36 15 A 40 40 0 0 1 90 50
+// Needle: polygon rotated from -90deg (ratio=0) to +90deg (ratio=1)
+// Text: positioned below SVG via absolute positioning
 // ---------------------------------------------------------------------------
 
 interface BilancioGaugeProps {
@@ -33,121 +24,65 @@ interface BilancioGaugeProps {
 }
 
 export function BilancioGauge({ bilancio, budget, size = 200 }: BilancioGaugeProps) {
-  // --- Data calculation ---
-  // Ratio clamped between 0 and 1: how much of the budget remains
+  // Ratio clamped between 0 and 1
   const ratio = Math.max(0, Math.min(bilancio / Math.max(budget, 1), 1))
 
-  // --- SVG constants (within viewBox 0 0 100 50) ---
-  const cx = 50 // center x
-  const cy = 50 // center y (sits at the bottom edge of viewBox)
-  const r = 40  // arc radius
-  const strokeWidth = 8
+  // Needle rotation: -90deg (left, ratio=0) to +90deg (right, ratio=1)
+  const angle = -90 + ratio * 180
 
-  // --- Arc path helper ---
-  // Converts a ratio range [fromR, toR] (each 0..1) into an SVG arc path.
-  // Ratio 0 = leftmost point (angle PI), ratio 1 = rightmost point (angle 0).
-  function arcPath(fromR: number, toR: number): string {
-    // Angles in radians: ratio 0 -> PI, ratio 1 -> 0
-    const a1 = Math.PI * (1 - fromR)
-    const a2 = Math.PI * (1 - toR)
-
-    const x1 = cx + r * Math.cos(a1)
-    const y1 = cy - r * Math.sin(a1) // subtract because SVG y-axis is inverted
-    const x2 = cx + r * Math.cos(a2)
-    const y2 = cy - r * Math.sin(a2)
-
-    // large-arc flag: set when the arc spans more than 180deg (>0.5 of full circle)
-    const largeArc = (toR - fromR) > 0.5 ? 1 : 0
-
-    // sweep-flag = 0 means counter-clockwise in SVG terms (left-to-right on top half)
-    return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${largeArc} 0 ${x2.toFixed(2)} ${y2.toFixed(2)}`
-  }
-
-  // --- Zone definitions ---
-  const zones = [
-    { from: 0, to: 0.15, color: '#ef4444' },   // Red zone
-    { from: 0.15, to: 0.35, color: '#eab308' }, // Yellow zone
-    { from: 0.35, to: 1, color: '#22c55e' },    // Green zone
-  ]
-
-  // --- Needle rotation ---
-  // Angle: -90deg at ratio=0 (pointing left), +90deg at ratio=1 (pointing right)
-  const needleAngle = -90 + ratio * 180
-
-  // --- Semantic text color ---
+  // Semantic text color
   const valueColor =
     bilancio < 0 ? '#ef4444' :
     bilancio < 30 ? '#eab308' :
     '#4ade80'
 
+  const valueTwColor =
+    bilancio < 0 ? 'text-red-400' :
+    bilancio < 30 ? 'text-yellow-400' :
+    'text-green-400'
+
   return (
-    <svg
-      width={size}
-      height={size * 0.5}
-      viewBox="0 0 100 50"
-    >
-      {/* Background track (subtle) */}
-      <path
-        d={arcPath(0, 1)}
-        fill="none"
-        stroke="rgba(255,255,255,0.08)"
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-      />
+    <div className="relative flex flex-col items-center" style={{ width: size }}>
+      {/* SVG Gauge */}
+      <svg viewBox="0 0 100 55" className="w-full h-auto overflow-visible">
+        {/* Background track */}
+        <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={8} strokeLinecap="round" />
 
-      {/* Colored zone arcs */}
-      {zones.map((z, i) => (
-        <path
-          key={i}
-          d={arcPath(z.from, z.to)}
-          fill="none"
-          stroke={z.color}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          opacity={0.35}
+        {/* Zone: Red 0-15% */}
+        <path d="M 10 50 A 40 40 0 0 1 18 31" fill="none" stroke="#ef4444" strokeWidth={8} strokeLinecap="round" opacity={0.4} />
+
+        {/* Zone: Yellow 15-35% */}
+        <path d="M 18 31 A 40 40 0 0 1 36 15" fill="none" stroke="#eab308" strokeWidth={8} strokeLinecap="round" opacity={0.4} />
+
+        {/* Zone: Green 35-100% */}
+        <path d="M 36 15 A 40 40 0 0 1 90 50" fill="none" stroke="#22c55e" strokeWidth={8} strokeLinecap="round" opacity={0.4} />
+
+        {/* Needle (polygon triangle) */}
+        <polygon
+          points="48.5,50 51.5,50 50,14"
+          fill="#e2e8f0"
+          style={{
+            transform: `rotate(${angle}deg)`,
+            transformOrigin: '50px 50px',
+            transition: 'transform 1s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
         />
-      ))}
 
-      {/* Needle line: rotates around center (50, 50) */}
-      <line
-        x1={50}
-        y1={50}
-        x2={50}
-        y2={14}
-        stroke="white"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        transform={`rotate(${needleAngle} 50 50)`}
-      />
+        {/* Needle pivot */}
+        <circle cx={50} cy={50} r={4} fill="#e2e8f0" />
+      </svg>
 
-      {/* Needle pivot dot */}
-      <circle cx={50} cy={50} r={2.5} fill="white" />
-
-      {/* Label "BILANCIO" */}
-      <text
-        x={50}
-        y={32}
-        textAnchor="middle"
-        fill="rgba(255,255,255,0.5)"
-        fontSize={4.5}
-        style={{ textTransform: 'uppercase' }}
-      >
-        BILANCIO
-      </text>
-
-      {/* Numeric value */}
-      <text
-        x={50}
-        y={43}
-        textAnchor="middle"
-        fill={valueColor}
-        fontSize={11}
-        fontWeight="bold"
-        fontFamily="ui-monospace, SFMono-Regular, monospace"
-      >
-        {bilancio}
-      </text>
-    </svg>
+      {/* Text below SVG */}
+      <div className="flex flex-col items-center -mt-2">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Bilancio</span>
+        <span
+          className={`text-2xl font-bold font-mono ${valueTwColor}`}
+          style={{ color: valueColor }}
+        >
+          {bilancio}
+        </span>
+      </div>
+    </div>
   )
 }
 
@@ -155,8 +90,7 @@ export function BilancioGauge({ bilancio, budget, size = 200 }: BilancioGaugePro
 // ---------------------------------------------------------------------------
 // 2. CompactBudgetBar - Dual Horizontal Bar (Budget vs Ingaggi)
 // ---------------------------------------------------------------------------
-// Shows proportional comparison between budget and salary costs.
-// Both bars are sized relative to the larger of the two values.
+// Compact loading-bar style. Two separate bars normalized to max(budget, ingaggi).
 // ---------------------------------------------------------------------------
 
 interface CompactBudgetBarProps {
@@ -165,39 +99,32 @@ interface CompactBudgetBarProps {
 }
 
 export function CompactBudgetBar({ budget, ingaggi }: CompactBudgetBarProps) {
-  // --- Data calculation ---
   const maxVal = Math.max(budget, ingaggi, 1)
   const budgetPct = (budget / maxVal) * 100
   const ingaggiPct = (ingaggi / maxVal) * 100
 
   return (
-    <div className="flex flex-col gap-1.5 w-full" style={{ minHeight: 56 }}>
+    <div className="space-y-1 w-full">
+      {/* Labels */}
+      <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest text-slate-500">
+        <span>Budget (<span className="text-emerald-400">{budget}</span>)</span>
+        <span>Ingaggi (<span className="text-rose-400">{ingaggi}</span>)</span>
+      </div>
+
       {/* Budget bar */}
-      <div className="flex flex-col gap-0.5">
-        <div className="flex justify-between text-xs">
-          <span className="text-gray-400">Budget</span>
-          <span className="text-primary-400 font-medium font-mono">{budget}</span>
-        </div>
-        <div className="h-4 bg-surface-100/50 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-primary-600 to-primary-400 rounded-full transition-all duration-500"
-            style={{ width: `${budgetPct}%` }}
-          />
-        </div>
+      <div className="relative h-2 w-full bg-slate-800 rounded-full overflow-hidden flex">
+        <div
+          className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+          style={{ width: `${budgetPct}%` }}
+        />
       </div>
 
       {/* Ingaggi bar */}
-      <div className="flex flex-col gap-0.5">
-        <div className="flex justify-between text-xs">
-          <span className="text-gray-400">Ingaggi</span>
-          <span className="text-accent-400 font-medium font-mono">{ingaggi}</span>
-        </div>
-        <div className="h-4 bg-surface-100/50 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-accent-600 to-accent-400 rounded-full transition-all duration-500"
-            style={{ width: `${ingaggiPct}%` }}
-          />
-        </div>
+      <div className="relative h-2 w-full bg-slate-800 rounded-full overflow-hidden flex">
+        <div
+          className="h-full bg-rose-500 rounded-full transition-all duration-500"
+          style={{ width: `${ingaggiPct}%` }}
+        />
       </div>
     </div>
   )
@@ -205,10 +132,9 @@ export function CompactBudgetBar({ budget, ingaggi }: CompactBudgetBarProps) {
 
 
 // ---------------------------------------------------------------------------
-// 3. DeltaBar - Before/After Impact Bar
+// 3. DeltaBar - Before/After Impact Analysis
 // ---------------------------------------------------------------------------
-// Visualizes how a trade affects a financial metric (e.g., bilancio).
-// Shows before value, after value, delta, and overlapping bars.
+// Shows trade impact on bilancio with a before marker and after bar.
 // ---------------------------------------------------------------------------
 
 interface DeltaBarProps {
@@ -218,53 +144,40 @@ interface DeltaBarProps {
 }
 
 export function DeltaBar({ before, after, label }: DeltaBarProps) {
-  // --- Data calculation ---
   const delta = after - before
   const maxAbs = Math.max(Math.abs(before), Math.abs(after), 1)
   const beforePct = Math.max(0, (before / maxAbs) * 100)
   const afterPct = Math.max(0, (after / maxAbs) * 100)
-
-  // --- Semantic colors based on improvement ---
   const improves = delta >= 0
-  const deltaColor = improves ? 'text-secondary-400' : 'text-danger-400'
-  const barColor = improves ? 'bg-secondary-500' : 'bg-danger-500'
 
   return (
-    <div className="flex flex-col gap-1">
-      {/* Optional label */}
-      {label && (
-        <span className="text-xs text-gray-400 uppercase tracking-wide">{label}</span>
-      )}
-
-      <div className="flex items-center gap-2">
-        {/* Before value */}
-        <span className="text-xs text-gray-400 w-12 text-right font-medium font-mono">
-          {before}
+    <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+          {label || 'Impatto Bilancio'}
         </span>
-
-        {/* Bar container */}
-        <div className="flex-1 relative h-5 bg-surface-100/30 rounded-full overflow-hidden">
-          {/* Before indicator (grey, semi-transparent) */}
-          <div
-            className="absolute top-0 h-full bg-gray-500/40 rounded-full transition-all duration-500"
-            style={{ width: `${beforePct}%` }}
-          />
-          {/* After indicator (colored) */}
-          <div
-            className={`absolute top-0 h-full ${barColor}/60 rounded-full transition-all duration-500`}
-            style={{ width: `${afterPct}%` }}
-          />
-        </div>
-
-        {/* After value */}
-        <span className={`text-xs font-semibold w-12 font-mono ${deltaColor}`}>
-          {after}
+        <span className={`font-mono text-xs font-bold ${improves ? 'text-emerald-400' : 'text-rose-400'}`}>
+          {delta > 0 ? '+' : ''}{delta} FM
         </span>
+      </div>
 
-        {/* Delta badge */}
-        <span className={`text-sm font-bold font-mono ${deltaColor} min-w-[40px]`}>
-          {delta > 0 ? '+' : ''}{delta}
-        </span>
+      {/* Bar */}
+      <div className="relative h-3 w-full bg-slate-800 rounded-full overflow-hidden">
+        {/* After bar (current level) */}
+        <div
+          className={`absolute top-0 left-0 h-full transition-all duration-500 ${improves ? 'bg-emerald-500/80' : 'bg-rose-500/80'}`}
+          style={{ width: `${afterPct}%` }}
+        />
+        {/* Before marker (where we were) */}
+        <div
+          className="absolute top-0 w-1 h-full bg-white z-10"
+          style={{
+            left: `${beforePct}%`,
+            transform: 'translateX(-50%)',
+            boxShadow: '0 0 5px rgba(255,255,255,0.8)',
+          }}
+        />
       </div>
     </div>
   )
@@ -274,10 +187,9 @@ export function DeltaBar({ before, after, label }: DeltaBarProps) {
 // ---------------------------------------------------------------------------
 // 4. HealthDot - Quick Health Status Indicator
 // ---------------------------------------------------------------------------
-// A small colored dot acting as a traffic-light signal for financial health.
-//   bilancio > 200  -> Green
-//   bilancio >= 100  -> Amber
-//   bilancio < 100  -> Red
+//   bilancio > 200  -> Green  (with glow)
+//   bilancio >= 100 -> Amber  (with glow)
+//   bilancio < 100  -> Red    (with glow)
 // ---------------------------------------------------------------------------
 
 interface HealthDotProps {
