@@ -14,7 +14,7 @@ interface TradeActivityFeedProps {
   isInTradePhase: boolean
   filter: ActivityFilter
   onFilterChange: (filter: ActivityFilter) => void
-  onViewOffer: (offerId: string, tab: 'received' | 'sent') => void
+  onViewOffer: (offerId: string) => void
 }
 
 type TimelineOffer = TradeOffer & { _type: 'offer'; _subtype: 'received' | 'sent' | 'history' }
@@ -135,7 +135,7 @@ export function TradeActivityFeed({ receivedOffers, sentOffers, tradeHistory, tr
   )
 }
 
-function OfferRow({ offer, onView }: { offer: TimelineOffer; onView: (id: string, tab: 'received' | 'sent') => void }) {
+function OfferRow({ offer, onView }: { offer: TimelineOffer; onView: (id: string) => void }) {
   const isPending = offer._subtype === 'received' || offer._subtype === 'sent'
   const timeRemaining = isPending ? getTimeRemaining(offer.expiresAt) : null
 
@@ -182,7 +182,7 @@ function OfferRow({ offer, onView }: { offer: TimelineOffer; onView: (id: string
         )}
         {isPending && (
           <button
-            onClick={() => onView(offer.id, offer._subtype as 'received' | 'sent')}
+            onClick={() => onView(offer.id)}
             className="text-xs text-primary-400 font-semibold hover:underline flex-shrink-0 ml-1"
           >
             Vedi
