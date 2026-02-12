@@ -178,7 +178,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     if (rosterRes.success && rosterRes.data) {
       interface RosterApiEntry {
         id: string
-        player: { id: string; name: string; team: string; position: string; quotation?: number; age?: number | null; apiFootballId?: number | null }
+        player: { id: string; name: string; team: string; position: string; quotation?: number; age?: number | null; apiFootballId?: number | null; computedStats?: RosterEntry['player']['computedStats']; statsSyncedAt?: string | null }
         contract?: { salary: number; duration: number; rescissionClause?: number } | null
         acquisitionPrice: number
       }
@@ -200,6 +200,8 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
           quotation: r.player.quotation,
           age: r.player.age,
           apiFootballId: r.player.apiFootballId,
+          computedStats: r.player.computedStats,
+          statsSyncedAt: r.player.statsSyncedAt,
         },
         acquisitionPrice: r.acquisitionPrice,
       })
@@ -220,7 +222,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         user?: { username: string }
         roster?: Array<{
           id: string
-          player: { id: string; name: string; position: string; team: string; quotation?: number; age?: number | null; apiFootballId?: number | null }
+          player: { id: string; name: string; position: string; team: string; quotation?: number; age?: number | null; apiFootballId?: number | null; computedStats?: RosterEntry['player']['computedStats']; statsSyncedAt?: string | null }
           contract?: { salary: number; duration: number; rescissionClause?: number } | null
         }>
         players?: Array<{
@@ -232,6 +234,8 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
           quotation?: number
           age?: number | null
           apiFootballId?: number | null
+          computedStats?: RosterEntry['player']['computedStats']
+          statsSyncedAt?: string | null
           contract?: { salary: number; duration: number; rescissionClause?: number } | null
         }>
       }> = []
@@ -258,6 +262,8 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
           quotation: r.player.quotation,
           age: r.player.age,
           apiFootballId: r.player.apiFootballId,
+          computedStats: r.player.computedStats,
+          statsSyncedAt: r.player.statsSyncedAt,
           contract: r.contract,
         })) || []
 
@@ -273,6 +279,8 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
               quotation: p.quotation,
               age: p.age,
               apiFootballId: p.apiFootballId,
+              computedStats: p.computedStats,
+              statsSyncedAt: p.statsSyncedAt,
             },
             acquisitionPrice: 0,
             memberId: memberId,
@@ -385,6 +393,8 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       quotation: p.quotation,
       age: p.age,
       apiFootballId: p.apiFootballId,
+      computedStats: p.computedStats,
+      statsSyncedAt: p.statsSyncedAt,
     })
   }
 

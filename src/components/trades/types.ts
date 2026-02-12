@@ -13,6 +13,17 @@ export interface Player {
   quotation?: number
   age?: number | null
   apiFootballId?: number | null
+  computedStats?: {
+    season: string
+    appearances: number
+    totalMinutes: number
+    avgRating: number | null
+    totalGoals: number
+    totalAssists: number
+    startingXI: number
+    matchesInSquad: number
+  } | null
+  statsSyncedAt?: string | null
 }
 
 export interface RosterEntry {
