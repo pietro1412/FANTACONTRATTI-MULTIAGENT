@@ -631,37 +631,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                   </div>
                 )}
 
-                {/* Mobile trigger buttons */}
-                <div className="flex gap-2 lg:hidden">
-                  <button
-                    onClick={() => setShowMyRosterModal(true)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl text-sm font-medium text-white active:scale-[0.98] transition-all"
-                  >
-                    <svg className="w-4 h-4 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                    </svg>
-                    La Mia Rosa
-                    {selectedOfferedPlayers.length > 0 && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-danger-500/20 text-danger-400">
-                        {selectedOfferedPlayers.length}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setShowPartnerRosterModal(true)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl text-sm font-medium text-white active:scale-[0.98] transition-all"
-                  >
-                    <svg className="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                    </svg>
-                    Rosa Partner
-                    {selectedRequestedPlayers.length > 0 && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-primary-500/20 text-primary-400">
-                        {selectedRequestedPlayers.length}
-                      </span>
-                    )}
-                  </button>
-                </div>
+                {/* Mobile triggers removed - contextual buttons inside DealTable are sufficient */}
 
                 {/* 3-column grid layout */}
                 <div className="lg:grid lg:grid-cols-12 lg:gap-4">
@@ -759,6 +729,14 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                     myBudget={myBudget}
                     onViewStats={handleViewStats}
                   />
+                  <div className="sticky bottom-0 px-4 py-3 bg-surface-200 border-t border-white/10">
+                    <button
+                      onClick={() => setShowMyRosterModal(false)}
+                      className="w-full py-3 rounded-xl font-bold text-base bg-danger-500/20 text-danger-400 border border-danger-500/30 active:scale-[0.98] transition-all"
+                    >
+                      Conferma selezione{selectedOfferedPlayers.length > 0 ? ` (${selectedOfferedPlayers.length})` : ''}
+                    </button>
+                  </div>
                 </BottomSheet>
 
                 {/* Mobile BottomSheet: Rosa Partner */}
@@ -789,6 +767,14 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                     targetMember={targetMember}
                     onViewStats={handleViewStats}
                   />
+                  <div className="sticky bottom-0 px-4 py-3 bg-surface-200 border-t border-white/10">
+                    <button
+                      onClick={() => setShowPartnerRosterModal(false)}
+                      className="w-full py-3 rounded-xl font-bold text-base bg-primary-500/20 text-primary-400 border border-primary-500/30 active:scale-[0.98] transition-all"
+                    >
+                      Conferma selezione{selectedRequestedPlayers.length > 0 ? ` (${selectedRequestedPlayers.length})` : ''}
+                    </button>
+                  </div>
                 </BottomSheet>
 
                 {/* Mobile sticky footer */}

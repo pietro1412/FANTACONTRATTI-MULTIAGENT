@@ -32,7 +32,19 @@ export function DealFinanceBar({
   const hasImpact = postTradeImpact && (postTradeImpact.budgetDelta !== 0 || postTradeImpact.rosterDelta !== 0)
 
   return (
-    <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 mb-3">
+    <div className={`bg-slate-900/80 backdrop-blur-xl rounded-xl px-4 py-3 mb-3 transition-all ${
+      hasImpact
+        ? 'border border-primary-500/30 ring-1 ring-primary-500/10'
+        : 'border border-white/10'
+    }`}>
+      {hasImpact && (
+        <div className="flex items-center gap-1.5 mb-2 text-[10px] uppercase tracking-widest text-primary-400/70 font-semibold">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          Simulazione post-trade
+        </div>
+      )}
       <div className="flex items-center gap-4 md:gap-5 flex-wrap">
         {/* Phase badge */}
         <div className="flex items-center gap-2">

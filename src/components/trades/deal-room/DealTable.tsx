@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { getPlayerPhotoUrl } from '../../../utils/player-images'
 import { getTeamLogo } from '../../../utils/teamLogos'
 import { POSITION_GRADIENTS } from '../../ui/PositionBadge'
@@ -150,6 +150,28 @@ const STEPPER_COLORS = {
   },
 }
 
+function useLongPress(callback: () => void, delay = 400, interval = 80) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const stop = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    timerRef.current = null
+    intervalRef.current = null
+  }, [])
+
+  const start = useCallback(() => {
+    timerRef.current = setTimeout(() => {
+      intervalRef.current = setInterval(callback, interval)
+    }, delay)
+  }, [callback, delay, interval])
+
+  useEffect(() => stop, [stop])
+
+  return { onMouseDown: start, onMouseUp: stop, onMouseLeave: stop, onTouchStart: start, onTouchEnd: stop }
+}
+
 function BudgetStepper({ value, onChange, max, accent, shortcuts }: {
   value: number; onChange: (v: number) => void; max?: number; accent: 'danger' | 'primary';
   shortcuts?: boolean
@@ -157,6 +179,11 @@ function BudgetStepper({ value, onChange, max, accent, shortcuts }: {
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState('')
   const colors = STEPPER_COLORS[accent]
+
+  const decrement = useCallback(() => onChange(Math.max(0, value - 1)), [onChange, value])
+  const increment = useCallback(() => onChange(max != null ? Math.min(max, value + 1) : value + 1), [onChange, value, max])
+  const longPressDown = useLongPress(decrement)
+  const longPressUp = useLongPress(increment)
 
   function commitEdit() {
     const num = parseInt(editValue, 10)
@@ -172,9 +199,10 @@ function BudgetStepper({ value, onChange, max, accent, shortcuts }: {
       <div className="inline-flex items-center">
         <button
           type="button"
-          onClick={() => onChange(Math.max(0, value - 1))}
+          onClick={decrement}
           disabled={value <= 0}
-          className={`w-10 h-10 bg-surface-300 border ${colors.border} rounded-l-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center`}
+          className={`w-11 h-11 lg:w-10 lg:h-10 bg-surface-300 border ${colors.border} rounded-l-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center`}
+          {...longPressDown}
         >-</button>
         {editing ? (
           <input
@@ -184,22 +212,23 @@ function BudgetStepper({ value, onChange, max, accent, shortcuts }: {
             onChange={e => setEditValue(e.target.value)}
             onBlur={commitEdit}
             onKeyDown={e => { if (e.key === 'Enter') commitEdit() }}
-            className={`w-16 h-10 bg-surface-300 border-y ${colors.border} text-center font-mono font-bold text-base text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+            className={`w-16 h-11 lg:h-10 bg-surface-300 border-y ${colors.border} text-center font-mono font-bold text-base text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
           />
         ) : (
           <button
             type="button"
             onClick={() => { setEditValue(String(value)); setEditing(true) }}
-            className={`min-w-[56px] h-10 px-3 ${colors.bg} border-y ${colors.border} ${colors.value} flex items-center justify-center font-mono font-bold text-lg cursor-text`}
+            className={`min-w-[56px] h-11 lg:h-10 px-3 ${colors.bg} border-y ${colors.border} ${colors.value} flex items-center justify-center font-mono font-bold text-lg cursor-text`}
           >
             {value}
           </button>
         )}
         <button
           type="button"
-          onClick={() => onChange(max != null ? Math.min(max, value + 1) : value + 1)}
+          onClick={increment}
           disabled={max != null && value >= max}
-          className={`w-10 h-10 bg-surface-300 border ${colors.border} rounded-r-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center`}
+          className={`w-11 h-11 lg:w-10 lg:h-10 bg-surface-300 border ${colors.border} rounded-r-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center`}
+          {...longPressUp}
         >+</button>
       </div>
       {shortcuts && (
@@ -317,16 +346,24 @@ export function DealTable(props: DealTableProps) {
             ))}
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={onOpenMyRoster}
-            className="lg:hidden w-full py-3 border border-dashed border-danger-500/30 rounded-lg text-danger-400 text-sm font-medium hover:bg-danger-500/5 transition-colors"
-          >
-            Scegli dalla Rosa
-          </button>
-        )}
-        {offeredEntries.length === 0 && (
-          <p className="hidden lg:block text-sm text-gray-600 italic mt-1">Seleziona giocatori dalla colonna sinistra</p>
+          <>
+            <button
+              type="button"
+              onClick={onOpenMyRoster}
+              className="lg:hidden w-full py-4 border border-dashed border-danger-500/30 rounded-lg text-danger-400 text-sm font-medium hover:bg-danger-500/5 transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Scegli dalla Rosa
+            </button>
+            <div className="hidden lg:flex items-center justify-center gap-3 py-4 text-gray-500">
+              <svg className="w-5 h-5 text-danger-400/40 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              <span className="text-sm italic">Seleziona giocatori dalla colonna sinistra</span>
+            </div>
+          </>
         )}
 
         {/* Budget offerto */}
@@ -379,16 +416,24 @@ export function DealTable(props: DealTableProps) {
             ))}
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={onOpenPartnerRoster}
-            className="lg:hidden w-full py-3 border border-dashed border-primary-500/30 rounded-lg text-primary-400 text-sm font-medium hover:bg-primary-500/5 transition-colors"
-          >
-            Scegli dal Partner
-          </button>
-        )}
-        {requestedEntries.length === 0 && (
-          <p className="hidden lg:block text-sm text-gray-600 italic mt-1">Seleziona giocatori dalla colonna destra</p>
+          <>
+            <button
+              type="button"
+              onClick={onOpenPartnerRoster}
+              className="lg:hidden w-full py-4 border border-dashed border-primary-500/30 rounded-lg text-primary-400 text-sm font-medium hover:bg-primary-500/5 transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Scegli dal Partner
+            </button>
+            <div className="hidden lg:flex items-center justify-center gap-3 py-4 text-gray-500">
+              <span className="text-sm italic">Seleziona giocatori dalla colonna destra</span>
+              <svg className="w-5 h-5 text-primary-400/40 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </div>
+          </>
         )}
 
         {/* Budget richiesto */}
@@ -418,16 +463,16 @@ export function DealTable(props: DealTableProps) {
                 type="button"
                 onClick={() => { if (durationIndex > 0) onDurationChange(DURATIONS[durationIndex - 1]!) }}
                 disabled={durationIndex <= 0}
-                className="w-10 h-10 bg-surface-300 border border-accent-500/30 rounded-l-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center"
+                className="w-11 h-11 lg:w-10 lg:h-10 bg-surface-300 border border-accent-500/30 rounded-l-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center"
               >-</button>
-              <div className="min-w-[56px] h-10 px-3 bg-accent-500/5 border-y border-accent-500/30 text-accent-300 flex items-center justify-center font-mono font-bold text-lg">
+              <div className="min-w-[56px] h-11 lg:h-10 px-3 bg-accent-500/5 border-y border-accent-500/30 text-accent-300 flex items-center justify-center font-mono font-bold text-lg">
                 {formatDuration(offerDuration)}
               </div>
               <button
                 type="button"
                 onClick={() => { if (durationIndex < DURATIONS.length - 1) onDurationChange(DURATIONS[durationIndex + 1]!) }}
                 disabled={durationIndex >= DURATIONS.length - 1}
-                className="w-10 h-10 bg-surface-300 border border-accent-500/30 rounded-r-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center"
+                className="w-11 h-11 lg:w-10 lg:h-10 bg-surface-300 border border-accent-500/30 rounded-r-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center"
               >+</button>
             </div>
           </div>
