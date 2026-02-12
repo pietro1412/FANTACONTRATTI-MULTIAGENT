@@ -30,17 +30,21 @@ export function DealAssetCard({ entry, isSelected, onToggle, side, onViewStats }
   return (
     <div
       onClick={onToggle}
-      className={`px-3 py-3 cursor-pointer hover:bg-white/5 transition-colors flex items-center justify-between ${
+      className={`px-3 py-3 cursor-pointer hover:bg-white/[0.08] transition-colors flex items-center justify-between ${
         isSelected ? styles.selected : ''
       }`}
     >
       <div className="flex items-center gap-2.5 min-w-0">
-        {/* Checkmark */}
-        {isSelected && (
-          <svg className={`w-4 h-4 ${styles.check} flex-shrink-0`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-          </svg>
-        )}
+        {/* Always-visible checkbox */}
+        <div className="flex-shrink-0">
+          {isSelected ? (
+            <svg className={`w-4 h-4 ${styles.check}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <div className="w-4 h-4 rounded-full border-2 border-white/20" />
+          )}
+        </div>
 
         {/* Player photo with position badge */}
         <div className="relative flex-shrink-0">
@@ -77,7 +81,7 @@ export function DealAssetCard({ entry, isSelected, onToggle, side, onViewStats }
           >
             {p.name}
           </button>
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          <div className="flex items-center gap-1.5 text-xs text-gray-400">
             <span className="truncate">{p.team}</span>
             {p.age != null && (
               <span className={getAgeColor(p.age)}>· {p.age}a</span>

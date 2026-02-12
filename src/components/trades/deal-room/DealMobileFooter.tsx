@@ -46,7 +46,7 @@ export function DealMobileFooter({
         <button
           onClick={onSubmit}
           disabled={!canSubmit || isSubmitting}
-          className="w-full py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25 active:scale-[0.98]"
+          className="w-full py-3 rounded-xl font-bold text-base transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25 active:scale-[0.98]"
         >
           {isSubmitting ? (
             <span className="flex items-center justify-center gap-2">

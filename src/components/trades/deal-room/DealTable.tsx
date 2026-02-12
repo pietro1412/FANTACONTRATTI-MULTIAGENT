@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { getPlayerPhotoUrl } from '../../../utils/player-images'
 import { getTeamLogo } from '../../../utils/teamLogos'
 import { POSITION_GRADIENTS } from '../../ui/PositionBadge'
@@ -105,7 +106,7 @@ function PlayerChip({ entry, onRemove, accent, onViewStats }: { entry: RosterEnt
             {roleStyle.label}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-gray-500">
+        <div className="flex items-center gap-2 text-xs text-gray-400">
           <div className="flex items-center gap-1">
             <div className="w-3.5 h-3.5 bg-white/90 rounded-sm flex items-center justify-center flex-shrink-0">
               <img src={getTeamLogo(p.team)} alt="" className="w-3 h-3 object-contain" />
@@ -131,30 +132,89 @@ function PlayerChip({ entry, onRemove, accent, onViewStats }: { entry: RosterEnt
   )
 }
 
-const STEPPER_BORDER = {
-  danger: 'border-danger-500/30',
-  primary: 'border-primary-500/30',
+const STEPPER_COLORS = {
+  danger: {
+    border: 'border-danger-500/30',
+    value: 'text-danger-300',
+    bg: 'bg-danger-500/5',
+  },
+  primary: {
+    border: 'border-primary-500/30',
+    value: 'text-primary-300',
+    bg: 'bg-primary-500/5',
+  },
+  accent: {
+    border: 'border-accent-500/30',
+    value: 'text-accent-300',
+    bg: 'bg-accent-500/5',
+  },
 }
 
-function BudgetStepper({ value, onChange, max, accent }: { value: number; onChange: (v: number) => void; max?: number; accent: 'danger' | 'primary' }) {
-  const border = STEPPER_BORDER[accent]
+function BudgetStepper({ value, onChange, max, accent, shortcuts }: {
+  value: number; onChange: (v: number) => void; max?: number; accent: 'danger' | 'primary';
+  shortcuts?: boolean
+}) {
+  const [editing, setEditing] = useState(false)
+  const [editValue, setEditValue] = useState('')
+  const colors = STEPPER_COLORS[accent]
+
+  function commitEdit() {
+    const num = parseInt(editValue, 10)
+    if (!isNaN(num)) {
+      const clamped = max != null ? Math.min(max, Math.max(0, num)) : Math.max(0, num)
+      onChange(clamped)
+    }
+    setEditing(false)
+  }
+
   return (
-    <div className="inline-flex items-center">
-      <button
-        type="button"
-        onClick={() => onChange(Math.max(0, value - 1))}
-        disabled={value <= 0}
-        className={`w-9 h-9 bg-surface-300 border ${border} rounded-l-lg text-white font-bold text-sm disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center`}
-      >-</button>
-      <div className={`min-w-[48px] h-9 px-3 bg-surface-300 border-y ${border} text-white flex items-center justify-center font-mono font-bold text-sm`}>
-        {value}
+    <div className="flex items-center gap-2">
+      <div className="inline-flex items-center">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(0, value - 1))}
+          disabled={value <= 0}
+          className={`w-10 h-10 bg-surface-300 border ${colors.border} rounded-l-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center`}
+        >-</button>
+        {editing ? (
+          <input
+            type="number"
+            autoFocus
+            value={editValue}
+            onChange={e => setEditValue(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={e => { if (e.key === 'Enter') commitEdit() }}
+            className={`w-16 h-10 bg-surface-300 border-y ${colors.border} text-center font-mono font-bold text-base text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => { setEditValue(String(value)); setEditing(true) }}
+            className={`min-w-[56px] h-10 px-3 ${colors.bg} border-y ${colors.border} ${colors.value} flex items-center justify-center font-mono font-bold text-lg cursor-text`}
+          >
+            {value}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => onChange(max != null ? Math.min(max, value + 1) : value + 1)}
+          disabled={max != null && value >= max}
+          className={`w-10 h-10 bg-surface-300 border ${colors.border} rounded-r-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center`}
+        >+</button>
       </div>
-      <button
-        type="button"
-        onClick={() => onChange(max != null ? Math.min(max, value + 1) : value + 1)}
-        disabled={max != null && value >= max}
-        className={`w-9 h-9 bg-surface-300 border ${border} rounded-r-lg text-white font-bold text-sm disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center`}
-      >+</button>
+      {shortcuts && (
+        <div className="flex gap-1">
+          {[5, 10, 25].map(n => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => onChange(max != null ? Math.min(max, value + n) : value + n)}
+              disabled={max != null && value >= max}
+              className={`px-2 py-1 rounded text-xs font-medium border ${colors.border} text-gray-400 hover:text-white hover:bg-surface-300/80 disabled:opacity-30 transition-colors`}
+            >+{n}</button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -193,13 +253,23 @@ export function DealTable(props: DealTableProps) {
 
   const durationIndex = DURATIONS.indexOf(offerDuration)
 
+  // Build deal summary text
+  const summaryParts: string[] = []
+  if (offeredEntries.length > 0) summaryParts.push(`${offeredEntries.length} giocator${offeredEntries.length === 1 ? 'e' : 'i'}`)
+  if (offeredBudget > 0) summaryParts.push(`${offeredBudget} crediti`)
+  const offerSummary = summaryParts.length > 0 ? summaryParts.join(' + ') : null
+  const requestParts: string[] = []
+  if (requestedEntries.length > 0) requestParts.push(`${requestedEntries.length} giocator${requestedEntries.length === 1 ? 'e' : 'i'}`)
+  if (requestedBudget > 0) requestParts.push(`${requestedBudget} crediti`)
+  const requestSummary = requestParts.length > 0 ? requestParts.join(' + ') : null
+
   return (
     <form onSubmit={onSubmit} className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
       {/* Header: DG Target + Budget */}
       <div className="px-4 py-4 border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="flex-1">
-            <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1.5 block">Destinatario</label>
+            <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1.5 block">Destinatario</label>
             <select
               value={selectedMemberId}
               onChange={e => onMemberChange(e.target.value)}
@@ -212,7 +282,7 @@ export function DealTable(props: DealTableProps) {
             </select>
           </div>
           <div className="text-right flex-shrink-0">
-            <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1.5 block">Il tuo Budget</label>
+            <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1.5 block">Il tuo Budget</label>
             <span className="text-2xl font-mono font-bold text-white">{myBudget}</span>
           </div>
         </div>
@@ -260,20 +330,29 @@ export function DealTable(props: DealTableProps) {
         )}
 
         {/* Budget offerto */}
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold">
-            Crediti offerti <span className="text-gray-600">(max: {myBudget})</span>
-          </label>
-          <BudgetStepper value={offeredBudget} onChange={onOfferedBudgetChange} max={myBudget} accent="danger" />
+        <div className="mt-3 bg-danger-500/5 border border-danger-500/15 rounded-lg px-3 py-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-danger-400 text-sm font-bold">$</span>
+              <label className="text-sm text-gray-300 font-medium">
+                Crediti offerti <span className="text-gray-500 text-xs">(max: {myBudget})</span>
+              </label>
+            </div>
+            <BudgetStepper value={offeredBudget} onChange={onOfferedBudgetChange} max={myBudget} accent="danger" shortcuts />
+          </div>
         </div>
       </div>
 
       {/* Swap divider */}
-      <div className="flex items-center justify-center py-2.5 border-b border-white/5">
-        <div className="w-9 h-9 rounded-full bg-surface-300 border border-white/10 flex items-center justify-center">
-          <svg className="w-4.5 h-4.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-          </svg>
+      <div className="flex items-center justify-center py-2 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-bold text-danger-400/60 uppercase tracking-widest">Cedi</span>
+          <div className="w-11 h-11 rounded-full bg-gradient-to-r from-danger-500/20 to-primary-500/20 border-2 border-white/15 flex items-center justify-center">
+            <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+          </div>
+          <span className="text-[10px] font-bold text-primary-400/60 uppercase tracking-widest">Ottieni</span>
         </div>
       </div>
 
@@ -313,57 +392,83 @@ export function DealTable(props: DealTableProps) {
         )}
 
         {/* Budget richiesto */}
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold">
-            Crediti richiesti
-          </label>
-          <BudgetStepper value={requestedBudget} onChange={onRequestedBudgetChange} accent="primary" />
+        <div className="mt-3 bg-primary-500/5 border border-primary-500/15 rounded-lg px-3 py-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-primary-400 text-sm font-bold">$</span>
+              <label className="text-sm text-gray-300 font-medium">Crediti richiesti</label>
+            </div>
+            <BudgetStepper value={requestedBudget} onChange={onRequestedBudgetChange} accent="primary" shortcuts />
+          </div>
         </div>
       </div>
 
-      {/* Duration + Message */}
-      <div className="px-4 py-4 border-b border-white/5 space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold">Durata offerta</label>
-            {offerDuration > 0 && (
-              <p className="text-xs text-gray-500 mt-0.5">
-                Scade: <span className="text-gray-400">{new Date(Date.now() + offerDuration * 3600000).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-              </p>
-            )}
-          </div>
-          <div className="inline-flex items-center">
-            <button
-              type="button"
-              onClick={() => { if (durationIndex > 0) onDurationChange(DURATIONS[durationIndex - 1]!) }}
-              disabled={durationIndex <= 0}
-              className="w-9 h-9 bg-surface-300 border border-accent-500/30 rounded-l-lg text-white font-bold text-sm disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center"
-            >-</button>
-            <div className="min-w-[48px] h-9 px-3 bg-surface-300 border-y border-accent-500/30 text-white flex items-center justify-center font-mono font-bold text-sm">
-              {formatDuration(offerDuration)}
+      {/* Duration */}
+      <div className="px-4 py-3 border-b border-white/5">
+        <div className="bg-accent-500/5 border border-accent-500/15 rounded-lg px-3 py-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <label className="text-sm text-gray-300 font-medium">Durata offerta</label>
             </div>
-            <button
-              type="button"
-              onClick={() => { if (durationIndex < DURATIONS.length - 1) onDurationChange(DURATIONS[durationIndex + 1]!) }}
-              disabled={durationIndex >= DURATIONS.length - 1}
-              className="w-9 h-9 bg-surface-300 border border-accent-500/30 rounded-r-lg text-white font-bold text-sm disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center"
-            >+</button>
+            <div className="inline-flex items-center">
+              <button
+                type="button"
+                onClick={() => { if (durationIndex > 0) onDurationChange(DURATIONS[durationIndex - 1]!) }}
+                disabled={durationIndex <= 0}
+                className="w-10 h-10 bg-surface-300 border border-accent-500/30 rounded-l-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center"
+              >-</button>
+              <div className="min-w-[56px] h-10 px-3 bg-accent-500/5 border-y border-accent-500/30 text-accent-300 flex items-center justify-center font-mono font-bold text-lg">
+                {formatDuration(offerDuration)}
+              </div>
+              <button
+                type="button"
+                onClick={() => { if (durationIndex < DURATIONS.length - 1) onDurationChange(DURATIONS[durationIndex + 1]!) }}
+                disabled={durationIndex >= DURATIONS.length - 1}
+                className="w-10 h-10 bg-surface-300 border border-accent-500/30 rounded-r-lg text-white font-bold text-base disabled:opacity-30 hover:bg-surface-300/80 transition-colors flex items-center justify-center"
+              >+</button>
+            </div>
           </div>
+          {offerDuration > 0 && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs">
+              <span className="text-gray-500">Scade:</span>
+              <span className={`font-medium ${offerDuration <= 6 ? 'text-warning-400' : 'text-gray-300'}`}>
+                {new Date(Date.now() + offerDuration * 3600000).toLocaleString('it-IT', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          )}
         </div>
-        <div>
-          <label className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1.5 block">Messaggio (opzionale)</label>
-          <textarea
-            value={message}
-            onChange={e => onMessageChange(e.target.value)}
-            rows={2}
-            className="w-full px-3 py-2 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none placeholder:text-gray-600 resize-none"
-            placeholder="Aggiungi un messaggio..."
-          />
-        </div>
+      </div>
+
+      {/* Message */}
+      <div className="px-4 py-3 border-b border-white/5">
+        <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1.5 block">Messaggio (opzionale)</label>
+        <textarea
+          value={message}
+          onChange={e => onMessageChange(e.target.value)}
+          rows={3}
+          className="w-full px-3 py-2.5 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none placeholder:text-gray-500 resize-none"
+          placeholder="Aggiungi un messaggio..."
+        />
       </div>
 
       {/* Desktop submit */}
       <div className="hidden lg:block px-4 py-4">
+        {/* Deal summary */}
+        {(offerSummary || requestSummary) && (
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-400 mb-3">
+            <span className="text-danger-400">{offerSummary || 'nulla'}</span>
+            <svg className="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+            <span className="text-primary-400">{requestSummary || 'nulla'}</span>
+          </div>
+        )}
+        {!canSubmit && !isSubmitting && (
+          <p className="text-xs text-gray-600 text-center mb-2">Seleziona un destinatario e almeno un elemento da scambiare</p>
+        )}
         <button
           type="submit"
           disabled={!canSubmit || isSubmitting}

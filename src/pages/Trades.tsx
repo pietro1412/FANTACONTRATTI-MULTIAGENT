@@ -528,12 +528,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                 </p>
               </div>
             </div>
-            {myTeamData && (
-              <div className="text-right bg-surface-200 rounded-xl px-5 py-3 border border-surface-50/20">
-                <p className="text-xs text-gray-400 uppercase tracking-wider">Budget</p>
-                <p className="text-3xl font-bold text-accent-400">{myTeamData.budget}</p>
-              </div>
-            )}
+            {/* Budget shown in DealFinanceBar below */}
           </div>
         </div>
       </div>
@@ -671,7 +666,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                 {/* 3-column grid layout */}
                 <div className="lg:grid lg:grid-cols-12 lg:gap-4">
                   {/* Left: My Roster (desktop only) */}
-                  <div className="hidden lg:block lg:col-span-3">
+                  <div className="hidden lg:block lg:col-span-4">
                     <div className="sticky top-4">
                       <DealRosterPanel
                         side="mine"
@@ -685,7 +680,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                   </div>
 
                   {/* Center: Deal Table */}
-                  <div className="lg:col-span-6">
+                  <div className="lg:col-span-4">
                     <DealTable
                       members={members}
                       selectedMemberId={selectedMemberId}
@@ -722,7 +717,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                   </div>
 
                   {/* Right: Partner Roster (desktop only) */}
-                  <div className="hidden lg:block lg:col-span-3">
+                  <div className="hidden lg:block lg:col-span-4">
                     <div className="sticky top-4">
                       <DealRosterPanel
                         side="partner"

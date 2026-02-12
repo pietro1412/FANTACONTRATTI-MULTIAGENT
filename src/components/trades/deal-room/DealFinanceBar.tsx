@@ -43,10 +43,7 @@ export function DealFinanceBar({
           }`}>
             {isInTradePhase ? 'Scambi Attivi' : 'Non Disponibili'}
           </div>
-          <div
-            className={`w-2 h-2 rounded-full flex-shrink-0 ${pusherConnected ? 'bg-green-400' : 'bg-red-400'}`}
-            title={pusherConnected ? 'Real-time connesso' : 'Real-time disconnesso'}
-          />
+          {/* Pusher dot removed - already shown in page header */}
         </div>
 
         {/* Separator */}
@@ -56,7 +53,7 @@ export function DealFinanceBar({
         <div className="flex items-center gap-4 md:gap-5 flex-wrap">
           {/* Budget */}
           <div className="flex items-center gap-1.5">
-            <span className="text-xs uppercase text-gray-500 tracking-wide">Budget</span>
+            <span className="text-xs uppercase text-gray-400 tracking-wide">Budget</span>
             <span className="font-mono font-bold text-sm md:text-base text-white">{myTeam.budget}</span>
             {hasImpact && (
               <span className={`font-mono text-xs font-semibold ${postTradeImpact.budgetDelta >= 0 ? 'text-green-400' : 'text-danger-400'}`}>
@@ -67,7 +64,7 @@ export function DealFinanceBar({
 
           {/* Salary */}
           <div className="flex items-center gap-1.5">
-            <span className="text-xs uppercase text-gray-500 tracking-wide">Ingaggi</span>
+            <span className="text-xs uppercase text-gray-400 tracking-wide">Ingaggi</span>
             <span className="font-mono font-bold text-sm md:text-base text-white">{myTeam.annualContractCost}</span>
             {hasImpact && postTradeImpact.newSalary !== myTeam.annualContractCost && (
               <span className={`font-mono text-xs font-semibold ${postTradeImpact.newSalary <= myTeam.annualContractCost ? 'text-green-400' : 'text-danger-400'}`}>
@@ -78,7 +75,7 @@ export function DealFinanceBar({
 
           {/* Balance */}
           <div className="flex items-center gap-1.5">
-            <span className="text-xs uppercase text-gray-500 tracking-wide">Bilancio</span>
+            <span className="text-xs uppercase text-gray-400 tracking-wide">Bilancio</span>
             <span className={`font-mono font-bold text-sm md:text-base ${healthColor}`}>
               {balance >= 0 ? '+' : ''}{balance}
             </span>
@@ -86,7 +83,7 @@ export function DealFinanceBar({
 
           {/* Roster count */}
           <div className="flex items-center gap-1.5">
-            <span className="text-xs uppercase text-gray-500 tracking-wide">Rosa</span>
+            <span className="text-xs uppercase text-gray-400 tracking-wide">Rosa</span>
             <span className="font-mono font-bold text-sm md:text-base text-white">
               {myTeam.slotCount}/{myTeam.maxSlots}
             </span>
@@ -101,7 +98,7 @@ export function DealFinanceBar({
         {/* Phase name - show on larger screens */}
         {currentPhase && (
           <div className="hidden lg:flex items-center ml-auto">
-            <span className="text-xs text-gray-600 truncate max-w-[200px]">{currentPhase}</span>
+            <span className="text-xs text-gray-400 truncate max-w-[200px]">{currentPhase}</span>
           </div>
         )}
       </div>
