@@ -7,9 +7,19 @@ import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../utils/player-images'
 import { POSITION_GRADIENTS } from '../components/ui/PositionBadge'
-import { ContractModifierModal, type PlayerInfo, type ContractData } from '../components/ContractModifier'
+import { ContractModifierModal } from '../components/ContractModifier'
 import { EmptyState } from '../components/ui/EmptyState'
 import haptic from '../utils/haptics'
+import type { FinancialsData, TeamData } from '../components/finance/types'
+import {
+  type TradeOffer, type TradeMovement, type LeagueMember, type RosterEntry, type MarketSession,
+  getTimeRemaining, getRoleStyle, getAgeColor,
+  PlayersTable,
+  MyFinancialDashboard,
+  ManagerGrid,
+  ManagerComparison,
+  TradeActivityFeed,
+} from '../components/trades'
 
 interface TradesProps {
   leagueId: string
@@ -17,387 +27,10 @@ interface TradesProps {
   highlightOfferId?: string
 }
 
-interface PlayerContract {
-  salary: number
-  duration: number
-  rescissionClause?: number
-}
-
-interface Player {
-  id: string
-  name: string
-  team: string
-  position: string
-  contract?: PlayerContract | null
-  quotation?: number
-  age?: number | null
-  apiFootballId?: number | null
-}
-
-interface RosterEntry {
-  id: string
-  player: Player
-  acquisitionPrice: number
-  memberId?: string
-  memberUsername?: string
-}
-
-interface LeagueMember {
-  id: string
-  currentBudget: number
-  user: { username: string }
-  // Financial data from getFinancials API
-  annualContractCost?: number
-  slotCount?: number
-}
-
-interface TradeOffer {
-  id: string
-  offeredPlayerIds: string[]
-  requestedPlayerIds: string[]
-  offeredBudget: number
-  requestedBudget: number
-  message?: string
-  status: string
-  createdAt: string
-  expiresAt?: string
-  fromMember?: { user: { username: string } }
-  toMember?: { user: { username: string } }
-  // API returns these for sent offers and history:
-  sender?: { id: string; username: string }
-  receiver?: { id: string; username: string }
-  offeredPlayerDetails?: Player[]
-  requestedPlayerDetails?: Player[]
-  // API returns these for received offers:
-  offeredPlayers?: Player[]
-  requestedPlayers?: Player[]
-}
-
-// Helper per calcolare il tempo rimanente
-function getTimeRemaining(expiresAt: string | undefined): { text: string; isUrgent: boolean; isExpired: boolean } {
-  if (!expiresAt) return { text: 'Nessuna scadenza', isUrgent: false, isExpired: false }
-
-  const now = new Date()
-  const expires = new Date(expiresAt)
-  const diffMs = expires.getTime() - now.getTime()
-
-  if (diffMs <= 0) {
-    return { text: 'Scaduta', isUrgent: true, isExpired: true }
-  }
-
-  const hours = Math.floor(diffMs / (1000 * 60 * 60))
-  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-
-  if (hours >= 24) {
-    const days = Math.floor(hours / 24)
-    return { text: `${days}g ${hours % 24}h`, isUrgent: false, isExpired: false }
-  } else if (hours >= 1) {
-    return { text: `${hours}h ${minutes}m`, isUrgent: hours < 6, isExpired: false }
-  } else {
-    return { text: `${minutes}m`, isUrgent: true, isExpired: false }
-  }
-}
-
-interface MarketSession {
-  id: string
-  currentPhase: string
-  status: string
-}
-
-// Helper per ottenere il colore del ruolo
-function getRoleStyle(position: string) {
-  switch (position) {
-    case 'P': return { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/40', label: 'POR' }
-    case 'D': return { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/40', label: 'DIF' }
-    case 'C': return { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/40', label: 'CEN' }
-    case 'A': return { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/40', label: 'ATT' }
-    default: return { bg: 'bg-gray-500/20', text: 'text-gray-400', border: 'border-gray-500/40', label: position }
-  }
-}
-
-function getAgeColor(age: number | null | undefined): string {
-  if (age === null || age === undefined) return 'text-gray-500'
-  if (age < 20) return 'text-emerald-400 font-bold'
-  if (age < 25) return 'text-green-400'
-  if (age < 30) return 'text-yellow-400'
-  if (age < 35) return 'text-orange-400'
-  return 'text-red-400'
-}
-
-// ============================================================================
-// TradeMovement interface
-// ============================================================================
-interface TradeMovement {
-  id: string
-  movementType: string
-  player: { id: string; name: string; position: string; team: string }
-  fromMember: { id: string; username: string; teamName: string } | null
-  toMember: { id: string; username: string; teamName: string } | null
-  price: number | null
-  oldSalary: number | null
-  newSalary: number | null
-  createdAt: string
-}
-
-// ============================================================================
-// SVG Chart Components for Financial Dashboard
-// ============================================================================
-
-// BilancioGauge - Semicircle gauge showing bilancio position
-function BilancioGauge({ bilancio, budget, size = 130 }: { bilancio: number; budget: number; size?: number }) {
-  const height = size * 0.58
-  const cx = size / 2
-  const cy = height - 4
-  const radius = size / 2 - 8
-
-  // ratio clamped between 0 and 1
-  const maxVal = Math.max(budget, 1)
-  const ratio = Math.max(0, Math.min(1, bilancio / maxVal))
-
-  // Semicircle from PI to 0 (left to right)
-  const startAngle = Math.PI
-  const strokeW = 10
-
-  // Three arc zones: red (0-0.15), yellow (0.15-0.35), green (0.35-1)
-  const zones = [
-    { from: 0, to: 0.15, color: '#ef4444' },     // red
-    { from: 0.15, to: 0.35, color: '#eab308' },   // yellow
-    { from: 0.35, to: 1, color: '#22c55e' },       // green
-  ]
-
-  function arcPath(fromRatio: number, toRatio: number) {
-    const a1 = startAngle - fromRatio * Math.PI
-    const a2 = startAngle - toRatio * Math.PI
-    const x1 = cx + radius * Math.cos(a1)
-    const y1 = cy + radius * Math.sin(a1)
-    const x2 = cx + radius * Math.cos(a2)
-    const y2 = cy + radius * Math.sin(a2)
-    const largeArc = toRatio - fromRatio > 0.5 ? 1 : 0
-    return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 0 ${x2} ${y2}`
-  }
-
-  // Needle angle
-  const needleAngle = startAngle - ratio * Math.PI
-  const needleLen = radius - 4
-  const nx = cx + needleLen * Math.cos(needleAngle)
-  const ny = cy + needleLen * Math.sin(needleAngle)
-
-  // Semantic color for value
-  const valueColor = bilancio < 0 ? '#ef4444' : bilancio < 30 ? '#eab308' : '#4ade80'
-
-  return (
-    <svg width={size} height={height} viewBox={`0 0 ${size} ${height}`}>
-      {/* Background track */}
-      <path d={arcPath(0, 1)} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={strokeW} strokeLinecap="round" />
-      {/* Color zones */}
-      {zones.map((z, i) => (
-        <path key={i} d={arcPath(z.from, z.to)} fill="none" stroke={z.color} strokeWidth={strokeW} strokeLinecap="round" opacity={0.35} />
-      ))}
-      {/* Active arc up to current ratio */}
-      <path d={arcPath(0, ratio)} fill="none" stroke={valueColor} strokeWidth={strokeW} strokeLinecap="round" opacity={0.9} />
-      {/* Needle */}
-      <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="white" strokeWidth={2} strokeLinecap="round" />
-      <circle cx={cx} cy={cy} r={3} fill="white" />
-      {/* Value text */}
-      <text x={cx} y={cy - 14} textAnchor="middle" fill={valueColor} fontSize={size > 120 ? 20 : 16} fontWeight="bold">{bilancio}</text>
-      <text x={cx} y={cy - 28} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize={8} style={{ textTransform: 'uppercase' }}>BILANCIO</text>
-    </svg>
-  )
-}
-
-// CompactBudgetBar - Horizontal bar for Budget vs Ingaggi
-function CompactBudgetBar({ budget, ingaggi }: { budget: number; ingaggi: number }) {
-  const maxVal = Math.max(budget, ingaggi, 1)
-  const budgetPct = (budget / maxVal) * 100
-  const ingaggiPct = (ingaggi / maxVal) * 100
-
-  return (
-    <div className="flex flex-col gap-1.5 w-full" style={{ minHeight: 44 }}>
-      <div className="flex flex-col gap-0.5">
-        <div className="flex justify-between text-[10px]">
-          <span className="text-gray-500">Budget</span>
-          <span className="text-primary-400 font-medium">{budget}</span>
-        </div>
-        <div className="h-3 bg-surface-100/50 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-primary-600 to-primary-400 rounded-full transition-all duration-500" style={{ width: `${budgetPct}%` }} />
-        </div>
-      </div>
-      <div className="flex flex-col gap-0.5">
-        <div className="flex justify-between text-[10px]">
-          <span className="text-gray-500">Ingaggi</span>
-          <span className="text-accent-400 font-medium">{ingaggi}</span>
-        </div>
-        <div className="h-3 bg-surface-100/50 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-accent-600 to-accent-400 rounded-full transition-all duration-500" style={{ width: `${ingaggiPct}%` }} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// DeltaBar - Shows before/after impact on bilancio
-function DeltaBar({ before, after, label }: { before: number; after: number; label?: string }) {
-  const delta = after - before
-  const maxAbs = Math.max(Math.abs(before), Math.abs(after), 1)
-  const beforePct = Math.max(0, (before / maxAbs) * 100)
-  const afterPct = Math.max(0, (after / maxAbs) * 100)
-  const improves = delta >= 0
-  const deltaColor = improves ? 'text-secondary-400' : 'text-danger-400'
-  const barColor = improves ? 'bg-secondary-500' : 'bg-danger-500'
-
-  return (
-    <div className="flex flex-col gap-1">
-      {label && <span className="text-[10px] text-gray-500 uppercase tracking-wide">{label}</span>}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-400 w-8 text-right font-medium">{before}</span>
-        <div className="flex-1 relative h-4 bg-surface-100/30 rounded-full overflow-hidden">
-          {/* Before marker */}
-          <div className="absolute top-0 h-full bg-gray-500/40 rounded-full transition-all duration-500" style={{ width: `${beforePct}%` }} />
-          {/* After marker */}
-          <div className={`absolute top-0 h-full ${barColor}/60 rounded-full transition-all duration-500`} style={{ width: `${afterPct}%` }} />
-        </div>
-        <span className={`text-xs font-semibold w-8 ${deltaColor}`}>{after}</span>
-        <span className={`text-[10px] font-bold ${deltaColor} min-w-[40px]`}>
-          {delta > 0 ? '+' : ''}{delta}
-        </span>
-      </div>
-    </div>
-  )
-}
-
-// Componente logo squadra
-function TeamLogo({ team, size = 'md' }: { team: string, size?: 'sm' | 'md' | 'lg' }) {
-  const sizeClass = size === 'sm' ? 'w-5 h-5' : size === 'lg' ? 'w-10 h-10' : 'w-7 h-7'
-  return (
-    <img
-      src={getTeamLogo(team)}
-      alt={team}
-      className={`${sizeClass} object-contain`}
-      onError={(e) => {
-        // Fallback to text if image fails to load
-        (e.target as HTMLImageElement).style.display = 'none'
-      }}
-    />
-  )
-}
-
-// Componente per visualizzare un giocatore con tutte le info
-function PlayerCard({ player, compact = false }: { player: Player, compact?: boolean }) {
-  const roleStyle = getRoleStyle(player.position)
-
-  if (compact) {
-    return (
-      <div className="flex items-center gap-2 py-1.5">
-        <TeamLogo team={player.team} size="sm" />
-        <span className={`w-8 h-5 flex items-center justify-center text-[10px] font-bold rounded ${roleStyle.bg} ${roleStyle.text} ${roleStyle.border} border`}>
-          {roleStyle.label}
-        </span>
-        <span className="text-white font-medium text-sm">{player.name}</span>
-        {player.contract ? (
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-xs text-accent-400">{player.contract.salary}M</span>
-            <span className="text-xs text-gray-500">|</span>
-            <span className="text-xs text-warning-400" title="Clausola Rubata">
-              R: {player.contract.rescissionClause || '-'}M
-            </span>
-          </div>
-        ) : (
-          <span className="text-xs text-gray-600 italic ml-auto">n.d.</span>
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex items-center gap-3 p-3 bg-surface-200/50 rounded-lg border border-surface-50/20 hover:border-surface-50/40 transition-colors">
-      {/* Team Logo */}
-      <div className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-lg p-1">
-        <TeamLogo team={player.team} size="md" />
-      </div>
-      {/* Role Badge */}
-      <div className={`w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-lg ${roleStyle.bg} ${roleStyle.border} border`}>
-        <span className={`text-sm font-bold ${roleStyle.text}`}>{roleStyle.label}</span>
-      </div>
-      {/* Player Info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-white font-medium truncate">{player.name}</p>
-        <p className="text-gray-500 text-xs">{player.team}</p>
-      </div>
-      {/* Contract Info */}
-      <div className="text-right flex-shrink-0">
-        {player.contract ? (
-          <div className="space-y-0.5">
-            <div className="flex items-center justify-end gap-2">
-              <span className="text-accent-400 font-semibold text-sm">{player.contract.salary}M</span>
-              <span className="text-gray-600">•</span>
-              <span className="text-gray-400 text-xs">{player.contract.duration}sem</span>
-            </div>
-            <div className="flex items-center justify-end gap-1">
-              <span className="text-[10px] text-gray-500 uppercase">Rubata:</span>
-              <span className="text-warning-400 font-medium text-xs">
-                {player.contract.rescissionClause ? `${player.contract.rescissionClause}M` : '-'}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <p className="text-gray-600 text-xs italic">Contratto n.d.</p>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// Helper component to render players in table format (for offers display)
-function PlayersTable({ players }: { players: Player[] }) {
-  if (!players || players.length === 0) return null
-
-  return (
-    <table className="w-full text-xs">
-      <thead>
-        <tr className="text-gray-500 text-[10px] uppercase">
-          <th className="text-left font-medium pb-1">Giocatore</th>
-          <th className="text-center font-medium pb-1 w-10">Ruolo</th>
-          <th className="text-center font-medium pb-1 w-10">Ing.</th>
-          <th className="text-center font-medium pb-1 w-8">Dur.</th>
-          <th className="text-center font-medium pb-1 w-12">Claus.</th>
-        </tr>
-      </thead>
-      <tbody>
-        {players.map(p => {
-          const roleStyle = getRoleStyle(p.position)
-          return (
-            <tr key={p.id} className="border-t border-surface-50/10">
-              <td className="py-1.5">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
-                    <img src={getTeamLogo(p.team)} alt={p.team} className="w-4 h-4 object-contain" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-gray-200 truncate block">{p.name}</span>
-                    <span className="text-[9px] text-gray-500 truncate block">{p.team}</span>
-                  </div>
-                </div>
-              </td>
-              <td className="text-center">
-                <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold rounded ${roleStyle.bg} ${roleStyle.text}`}>
-                  {roleStyle.label}
-                </span>
-              </td>
-              <td className="text-center text-accent-400 font-semibold">{p.contract?.salary ?? '-'}</td>
-              <td className="text-center text-white">{p.contract?.duration ?? '-'}</td>
-              <td className="text-center text-warning-400">{p.contract?.rescissionClause ?? '-'}</td>
-            </tr>
-          )
-        })}
-      </tbody>
-    </table>
-  )
-}
-
 export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) {
   const [isLoading, setIsLoading] = useState(true)
   // If we have a highlighted offer, start on 'received' tab
-  const [activeTab, setActiveTab] = useState<'received' | 'sent' | 'create' | 'history'>(highlightOfferId ? 'received' : 'create')
+  const [activeTab, setActiveTab] = useState<'received' | 'sent' | 'create'>(highlightOfferId ? 'received' : 'create')
   const [highlightedOfferId, setHighlightedOfferId] = useState<string | undefined>(highlightOfferId)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
 
@@ -413,7 +46,12 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   const [isInTradePhase, setIsInTradePhase] = useState(false)
   const [currentSession, setCurrentSession] = useState<MarketSession | null>(null)
   const [tradeMovements, setTradeMovements] = useState<TradeMovement[]>([])
-  const [historyFilter, setHistoryFilter] = useState<'all' | 'offers' | 'movements'>('all')
+
+  // Trade Hub state
+  const [financialsData, setFinancialsData] = useState<FinancialsData | null>(null)
+  const [myTeamData, setMyTeamData] = useState<TeamData | null>(null)
+  const [selectedComparisonMemberId, setSelectedComparisonMemberId] = useState<string | null>(null)
+  const [activityFilter, setActivityFilter] = useState<'all' | 'mine' | 'pending' | 'concluded'>('all')
 
   // Create offer form
   const [selectedMemberId, setSelectedMemberId] = useState('')
@@ -519,10 +157,14 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     // Build financials lookup from getFinancials API
     const financialsMap = new Map<string, { budget: number; annualContractCost: number; slotCount: number }>()
     if (financialsRes.success && financialsRes.data) {
-      const fData = financialsRes.data as { teams: Array<{ memberId: string; budget: number; annualContractCost: number; slotCount: number }> }
+      const fData = financialsRes.data as FinancialsData
+      setFinancialsData(fData)
       for (const t of fData.teams || []) {
         financialsMap.set(t.memberId, { budget: t.budget, annualContractCost: t.annualContractCost, slotCount: t.slotCount })
       }
+      // Store my team data for dashboard
+      const myTeam = fData.teams.find(t => t.memberId === currentMemberId)
+      if (myTeam) setMyTeamData(myTeam)
     }
 
     if (membersRes.success && membersRes.data) {
@@ -725,8 +367,17 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
 
   // Financial calculations - use API data from getFinancials for consistency with Finanze page
   const myTotalSalary = myFinancials.annualContractCost
-  const targetTotalSalary = targetMember?.annualContractCost ?? 0
-  const targetRosterCount = targetMember?.slotCount ?? 0
+
+  // Hub computed values
+  const hasFinancialDetails = useMemo(() => {
+    if (!financialsData) return false
+    return financialsData.teams.some(t => t.totalReleaseCosts !== null || t.totalIndemnities !== null) && !financialsData.inContrattiPhase
+  }, [financialsData])
+
+  const comparisonTeam = useMemo(() => {
+    if (!selectedComparisonMemberId || !financialsData) return null
+    return financialsData.teams.find(t => t.memberId === selectedComparisonMemberId) || null
+  }, [selectedComparisonMemberId, financialsData])
 
   // Simulated post-trade impact
   const offeredSalaryTotal = useMemo(() =>
@@ -904,13 +555,76 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
           </CardContent>
         </Card>
 
+        {/* === TRADE HUB: Financial Dashboard === */}
+        {myTeamData && (
+          <div className="mb-4 md:mb-6">
+            <MyFinancialDashboard
+              myTeam={myTeamData}
+              hasFinancialDetails={hasFinancialDetails}
+              postTradeImpact={
+                activeTab === 'create' && (selectedOfferedPlayers.length > 0 || selectedRequestedPlayers.length > 0 || offeredBudget > 0 || requestedBudget > 0)
+                  ? { budgetDelta: -offeredBudget + requestedBudget, salaryDelta: -offeredSalaryTotal + requestedSalaryTotal, rosterDelta: selectedRequestedPlayers.length - selectedOfferedPlayers.length, newBudget: myPostTradeBudget, newSalary: myPostTradeSalary }
+                  : null
+              }
+            />
+          </div>
+        )}
+
+        {/* === TRADE HUB: Manager Grid === */}
+        {financialsData && myTeamData && (
+          <div className="mb-4 md:mb-6">
+            <ManagerGrid
+              teams={financialsData.teams}
+              myMemberId={myTeamData.memberId}
+              selectedMemberId={selectedComparisonMemberId}
+              hasFinancialDetails={hasFinancialDetails}
+              onSelectManager={(memberId) => setSelectedComparisonMemberId(prev => prev === memberId ? null : memberId)}
+            />
+          </div>
+        )}
+
+        {/* === TRADE HUB: Manager Comparison === */}
+        {myTeamData && comparisonTeam && (
+          <div className="mb-4 md:mb-6">
+            <ManagerComparison
+              myTeam={myTeamData}
+              otherTeam={comparisonTeam}
+              hasFinancialDetails={hasFinancialDetails}
+              onClose={() => setSelectedComparisonMemberId(null)}
+              onStartTrade={(memberId) => {
+                setSelectedMemberId(memberId)
+                setSelectedRequestedPlayers([])
+                setActiveTab('create')
+                setFilterManager(memberId)
+                setSelectedComparisonMemberId(null)
+              }}
+            />
+          </div>
+        )}
+
+        {/* === TRADE HUB: Activity Feed === */}
+        <div className="mb-4 md:mb-6">
+          <TradeActivityFeed
+            receivedOffers={receivedOffers}
+            sentOffers={sentOffers}
+            tradeHistory={tradeHistory}
+            tradeMovements={tradeMovements}
+            isInTradePhase={isInTradePhase}
+            filter={activityFilter}
+            onFilterChange={setActivityFilter}
+            onViewOffer={(offerId, tab) => {
+              setActiveTab(tab)
+              setHighlightedOfferId(offerId)
+            }}
+          />
+        </div>
+
         {/* Tabs - compact scrollable on mobile, flex-wrap on desktop */}
         <div className="flex gap-2 mb-6 overflow-x-auto md:overflow-x-visible md:flex-wrap scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
           {([
             { key: 'create' as const, label: '+ Nuova', labelDesktop: '+ Nuova Offerta', disabled: !isInTradePhase },
             { key: 'received' as const, label: `Ricevute (${receivedOffers.length})`, disabled: false },
             { key: 'sent' as const, label: `Inviate (${sentOffers.length})`, disabled: false },
-            { key: 'history' as const, label: 'Storico', disabled: false },
           ]).map(tab => (
             <button
               key={tab.key}
@@ -1201,87 +915,6 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
               </Card>
             ) : (
               <>
-                {/* Financial Dashboard - Bilancio Hero */}
-                <Card className="bg-gradient-to-r from-surface-200 to-surface-300 border-accent-500/30">
-                  <CardContent className="py-4">
-                    <div className="flex flex-col gap-3">
-                      {/* Row 1: My finances vs Target finances */}
-                      <div className={`flex flex-col md:flex-row items-start gap-4 ${selectedMemberId && targetMember ? 'md:justify-between' : ''}`}>
-                        {/* My finances panel */}
-                        <div className="flex items-start gap-4 flex-1 min-w-0">
-                          <div className="flex flex-col items-center flex-shrink-0">
-                            <BilancioGauge bilancio={myBudget - myTotalSalary} budget={myBudget} size={130} />
-                          </div>
-                          <div className="flex flex-col gap-2 min-w-0 flex-1 pt-1">
-                            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Bilancio</p>
-                            <p className={`text-3xl font-bold ${
-                              myBudget - myTotalSalary < 0 ? 'text-danger-400' : myBudget - myTotalSalary < 30 ? 'text-warning-400' : 'text-secondary-400'
-                            }`}>
-                              {myBudget - myTotalSalary} <span className="text-sm text-gray-500">crediti</span>
-                            </p>
-                            <div className="flex gap-4 text-xs text-gray-400">
-                              <span>Budget: <span className="text-primary-400 font-medium">{myBudget}</span></span>
-                              <span>Ingaggi: <span className="text-warning-400 font-medium">{myTotalSalary}</span></span>
-                              <span>Rosa: <span className="text-white font-medium">{myRoster.length}</span></span>
-                            </div>
-                            <CompactBudgetBar budget={myBudget} ingaggi={myTotalSalary} />
-                          </div>
-                        </div>
-
-                        {/* Target finances panel */}
-                        {selectedMemberId && targetMember && (() => {
-                          const targetBilancio = targetMember.currentBudget - targetTotalSalary
-                          return (
-                            <div className="flex items-start gap-4 flex-1 min-w-0 md:pl-6 md:border-l border-surface-50/30 pt-3 md:pt-0 border-t md:border-t-0">
-                              <div className="flex flex-col items-center flex-shrink-0">
-                                <BilancioGauge bilancio={targetBilancio} budget={targetMember.currentBudget} size={130} />
-                              </div>
-                              <div className="flex flex-col gap-2 min-w-0 flex-1 pt-1">
-                                <p className="text-[10px] text-gray-500 uppercase tracking-wide">{targetMember.user.username}</p>
-                                <p className={`text-3xl font-bold ${
-                                  targetBilancio < 0 ? 'text-danger-400' : targetBilancio < 30 ? 'text-warning-400' : 'text-secondary-400'
-                                }`}>
-                                  {targetBilancio} <span className="text-sm text-gray-500">crediti</span>
-                                </p>
-                                <div className="flex gap-4 text-xs text-gray-400">
-                                  <span>Budget: <span className="text-primary-400 font-medium">{targetMember.currentBudget}</span></span>
-                                  <span>Ingaggi: <span className="text-warning-400 font-medium">{targetTotalSalary}</span></span>
-                                  <span>Rosa: <span className="text-white font-medium">{targetRosterCount}</span></span>
-                                </div>
-                                <CompactBudgetBar budget={targetMember.currentBudget} ingaggi={targetTotalSalary} />
-                              </div>
-                            </div>
-                          )
-                        })()}
-                      </div>
-
-                      {/* Row 2: Post-trade impact with DeltaBar (only when composing offer) */}
-                      {(selectedOfferedPlayers.length > 0 || selectedRequestedPlayers.length > 0 || offeredBudget > 0 || requestedBudget > 0) && (
-                        <div className="pt-3 border-t border-surface-50/20">
-                          <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Impatto post-scambio</p>
-                          <div className="flex flex-col gap-2">
-                            <DeltaBar before={myBudget - myTotalSalary} after={myPostTradeBudget - myPostTradeSalary} label="Bilancio" />
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="flex items-center gap-2 text-xs">
-                                <span className="text-gray-500">Budget:</span>
-                                <span className="text-primary-400 font-medium">{myBudget}</span>
-                                <span className="text-gray-600">→</span>
-                                <span className={`font-semibold ${myPostTradeBudget >= 0 ? 'text-primary-400' : 'text-danger-400'}`}>{myPostTradeBudget}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-xs">
-                                <span className="text-gray-500">Ingaggi:</span>
-                                <span className="text-warning-400 font-medium">{myTotalSalary}</span>
-                                <span className="text-gray-600">→</span>
-                                <span className="text-warning-400 font-semibold">{myPostTradeSalary}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
                 {error && (
                   <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded">
                     {error}
@@ -1606,7 +1239,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                               onClick={() => {
                                 const durations = [6, 12, 24, 48, 72, 168]
                                 const currentIndex = durations.indexOf(offerDuration)
-                                if (currentIndex > 0) setOfferDuration(durations[currentIndex - 1])
+                                if (currentIndex > 0) setOfferDuration(durations[currentIndex - 1]!)
                               }}
                               disabled={offerDuration === 6}
                               className="px-3 py-2 bg-surface-300 border border-accent-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
@@ -1619,7 +1252,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                               onClick={() => {
                                 const durations = [6, 12, 24, 48, 72, 168]
                                 const currentIndex = durations.indexOf(offerDuration)
-                                if (currentIndex < durations.length - 1) setOfferDuration(durations[currentIndex + 1])
+                                if (currentIndex < durations.length - 1) setOfferDuration(durations[currentIndex + 1]!)
                               }}
                               disabled={offerDuration === 168}
                               className="px-3 py-2 bg-surface-300 border border-accent-500/30 rounded-r-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
@@ -1786,271 +1419,6 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
           </div>
         )}
 
-        {/* History */}
-        {activeTab === 'history' && (() => {
-          // Build combined timeline
-          type TimelineOffer = TradeOffer & { _type: 'offer' }
-          type TimelineMovement = TradeMovement & { _type: 'movement' }
-          type TimelineItem = TimelineOffer | TimelineMovement
-
-          const timelineItems: TimelineItem[] = []
-
-          if (historyFilter !== 'movements') {
-            for (const t of tradeHistory) {
-              timelineItems.push({ ...t, _type: 'offer' })
-            }
-          }
-          if (historyFilter !== 'offers') {
-            for (const m of tradeMovements) {
-              timelineItems.push({ ...m, _type: 'movement' })
-            }
-          }
-
-          // Sort by date descending
-          timelineItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-
-          return (
-            <div className="space-y-4">
-              {/* Filter pills */}
-              <div className="flex gap-2">
-                {([['all', 'Tutto'], ['offers', 'Offerte'], ['movements', 'Movimenti']] as const).map(([key, label]) => (
-                  <button
-                    key={key}
-                    onClick={() => setHistoryFilter(key)}
-                    className={`px-4 py-1.5 min-h-[44px] text-xs font-semibold rounded-full border transition-colors ${
-                      historyFilter === key
-                        ? 'bg-accent-500/20 text-accent-400 border-accent-500/40'
-                        : 'bg-surface-200 text-gray-400 border-surface-50/20 hover:border-surface-50/40'
-                    }`}
-                  >
-                    {label}
-                    {key === 'offers' && <span className="ml-1 text-gray-500">({tradeHistory.length})</span>}
-                    {key === 'movements' && <span className="ml-1 text-gray-500">({tradeMovements.length})</span>}
-                  </button>
-                ))}
-              </div>
-
-              {timelineItems.length === 0 ? (
-                <EmptyState icon="🕐" title="Nessun elemento nello storico" description="Gli scambi completati, rifiutati e i movimenti appariranno qui" />
-              ) : (
-                <div className="space-y-4">
-                  {timelineItems.map(item => {
-                    if (item._type === 'movement') {
-                      // Movement row - compact
-                      const mov = item as TimelineMovement
-                      const roleStyle = getRoleStyle(mov.player.position)
-                      return (
-                        <Card key={`mov-${mov.id}`} className="overflow-hidden border-l-4 border-l-secondary-500/60">
-                          <CardContent className="py-3 px-4">
-                            <div className="flex items-center gap-3">
-                              {/* Badge */}
-                              <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-secondary-500/20 text-secondary-400 uppercase tracking-wide flex-shrink-0">
-                                Trade
-                              </span>
-                              {/* Player info */}
-                              <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <div className={`w-8 h-8 rounded-full ${roleStyle.bg} flex items-center justify-center flex-shrink-0`}>
-                                  <span className={`text-xs font-bold ${roleStyle.text}`}>{mov.player.name.charAt(0)}</span>
-                                </div>
-                                <span className={`w-7 h-5 flex items-center justify-center text-[9px] font-bold rounded ${roleStyle.bg} ${roleStyle.text} flex-shrink-0`}>
-                                  {roleStyle.label}
-                                </span>
-                                <span className="text-sm text-white font-medium truncate">{mov.player.name}</span>
-                              </div>
-                              {/* From → To */}
-                              <div className="flex items-center gap-1.5 text-xs flex-shrink-0">
-                                {mov.fromMember && (
-                                  <span className="text-gray-400">{mov.fromMember.username}</span>
-                                )}
-                                <svg className="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                </svg>
-                                {mov.toMember && (
-                                  <span className="text-white font-medium">{mov.toMember.username}</span>
-                                )}
-                              </div>
-                              {/* Contract details */}
-                              {mov.newSalary != null && (
-                                <div className="flex items-center gap-1.5 text-xs flex-shrink-0 pl-2 border-l border-surface-50/20">
-                                  <span className="text-accent-400 font-medium">{mov.newSalary}M</span>
-                                </div>
-                              )}
-                              {/* Timestamp */}
-                              <span className="text-[10px] text-gray-600 flex-shrink-0 ml-auto">
-                                {new Date(mov.createdAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )
-                    }
-
-                    // Offer card - existing rendering
-                    const trade = item as TimelineOffer
-                    return (
-                      <Card key={`offer-${trade.id}`} className={`overflow-hidden border-l-4 ${trade.status === 'ACCEPTED' ? 'border-l-secondary-500' : 'border-l-danger-500'}`}>
-                        {/* Header */}
-                        <div className="bg-gradient-to-r from-surface-200 to-transparent px-5 py-4 flex justify-between items-center">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              trade.status === 'ACCEPTED' ? 'bg-secondary-500/20' : 'bg-danger-500/20'
-                            }`}>
-                              {trade.status === 'ACCEPTED' ? (
-                                <svg className="w-5 h-5 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                              ) : (
-                                <svg className="w-5 h-5 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-semibold text-white">
-                                {trade.sender?.username || trade.fromMember?.user.username} → {trade.receiver?.username || trade.toMember?.user.username}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {new Date(trade.createdAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                              </p>
-                            </div>
-                          </div>
-                          <span className={`px-3 py-1.5 text-xs font-semibold rounded-full uppercase tracking-wide border ${
-                            trade.status === 'ACCEPTED'
-                              ? 'bg-secondary-500/20 text-secondary-400 border-secondary-500/40'
-                              : 'bg-danger-500/20 text-danger-400 border-danger-500/40'
-                          }`}>
-                            {trade.status === 'ACCEPTED' ? 'Accettato' : 'Rifiutato'}
-                          </span>
-                        </div>
-
-                        <CardContent className="py-5">
-                          {/* Trade visualization */}
-                          <div className="grid md:grid-cols-2 gap-6">
-                            {/* Offered */}
-                            <div className="space-y-3">
-                              <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-danger-500/20 flex items-center justify-center">
-                                  <svg className="w-3 h-3 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                                  </svg>
-                                </div>
-                                <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Offerto da {trade.sender?.username}</p>
-                              </div>
-                              <div className="pl-8">
-                                <PlayersTable players={trade.offeredPlayerDetails || []} />
-                                {trade.offeredBudget > 0 && (
-                                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
-                                    <div className="w-6 h-6 rounded bg-danger-500/20 flex items-center justify-center">
-                                      <span className="text-danger-400 font-bold text-xs">€</span>
-                                    </div>
-                                    <span className="text-sm text-danger-400 font-medium">+ {trade.offeredBudget} crediti</span>
-                                  </div>
-                                )}
-                                {(!trade.offeredPlayerDetails?.length && trade.offeredBudget === 0) && (
-                                  <p className="text-gray-600 text-sm italic py-1">Nessun giocatore o credito</p>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Requested */}
-                            <div className="space-y-3">
-                              <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-secondary-500/20 flex items-center justify-center">
-                                  <svg className="w-3 h-3 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                                  </svg>
-                                </div>
-                                <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Richiesto a {trade.receiver?.username}</p>
-                              </div>
-                              <div className="pl-8">
-                                <PlayersTable players={trade.requestedPlayerDetails || []} />
-                                {trade.requestedBudget > 0 && (
-                                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
-                                    <div className="w-6 h-6 rounded bg-secondary-500/20 flex items-center justify-center">
-                                      <span className="text-secondary-400 font-bold text-xs">€</span>
-                                    </div>
-                                    <span className="text-sm text-secondary-400 font-medium">+ {trade.requestedBudget} crediti</span>
-                                  </div>
-                                )}
-                                {(!trade.requestedPlayerDetails?.length && trade.requestedBudget === 0) && (
-                                  <p className="text-gray-600 text-sm italic py-1">Nessun giocatore o credito</p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Budget transfer summary - only for accepted trades with budget movement */}
-                          {trade.status === 'ACCEPTED' && (trade.offeredBudget > 0 || trade.requestedBudget > 0) && (
-                            <div className="mt-5 p-4 bg-accent-500/5 rounded-lg border border-accent-500/20">
-                              <div className="flex items-center gap-2 mb-3">
-                                <svg className="w-4 h-4 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span className="text-xs font-semibold text-accent-400 uppercase tracking-wide">Trasferimento crediti</span>
-                              </div>
-                              <div className="flex flex-col gap-2">
-                                {trade.offeredBudget > 0 && (
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <span className="text-gray-400">{trade.sender?.username}</span>
-                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-danger-500/10 border border-danger-500/20">
-                                      <span className="text-danger-400 font-bold">-{trade.offeredBudget}</span>
-                                      <span className="text-danger-400/70 text-xs">crediti</span>
-                                    </div>
-                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                    </svg>
-                                    <span className="text-gray-400">{trade.receiver?.username}</span>
-                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-secondary-500/10 border border-secondary-500/20">
-                                      <span className="text-secondary-400 font-bold">+{trade.offeredBudget}</span>
-                                      <span className="text-secondary-400/70 text-xs">crediti</span>
-                                    </div>
-                                  </div>
-                                )}
-                                {trade.requestedBudget > 0 && (
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <span className="text-gray-400">{trade.receiver?.username}</span>
-                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-danger-500/10 border border-danger-500/20">
-                                      <span className="text-danger-400 font-bold">-{trade.requestedBudget}</span>
-                                      <span className="text-danger-400/70 text-xs">crediti</span>
-                                    </div>
-                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                    </svg>
-                                    <span className="text-gray-400">{trade.sender?.username}</span>
-                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-secondary-500/10 border border-secondary-500/20">
-                                      <span className="text-secondary-400 font-bold">+{trade.requestedBudget}</span>
-                                      <span className="text-secondary-400/70 text-xs">crediti</span>
-                                    </div>
-                                  </div>
-                                )}
-                                {/* Net transfer summary */}
-                                {trade.offeredBudget > 0 && trade.requestedBudget > 0 && (
-                                  <div className="flex items-center gap-2 pt-2 mt-1 border-t border-surface-50/20 text-xs text-gray-500">
-                                    <span>Netto:</span>
-                                    <span className="text-white font-medium">
-                                      {trade.sender?.username} {trade.offeredBudget - trade.requestedBudget >= 0 ? '-' : '+'}{Math.abs(trade.offeredBudget - trade.requestedBudget)} crediti
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Message */}
-                          {trade.message && (
-                            <div className="mt-5 p-4 bg-surface-200/50 rounded-lg border-l-2 border-gray-500">
-                              <p className="text-sm text-gray-400 italic">"{trade.message}"</p>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )
-        })()}
       </main>
 
       {/* Contract Modification Modal after Trade Acceptance */}
