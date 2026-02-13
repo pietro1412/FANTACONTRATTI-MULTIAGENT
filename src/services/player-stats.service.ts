@@ -75,15 +75,21 @@ export async function computeSeasonStats(
     } | null
 
     if (s?.games?.appearences && s.games.appearences > 0) {
+      const appearances = s.games.appearences ?? 0
+      const totalMinutes = s.games.minutes ?? 0
+      // Estimate startingXI: if average minutes per appearance >= 60, count as starter
+      const avgMinutes = appearances > 0 ? totalMinutes / appearances : 0
+      const estimatedStartingXI = avgMinutes >= 60 ? appearances : 0
+
       return {
         season: '2024-2025',
-        appearances: s.games.appearences ?? 0,
-        totalMinutes: s.games.minutes ?? 0,
+        appearances,
+        totalMinutes,
         avgRating: s.games.rating ? Math.round(s.games.rating * 100) / 100 : null,
         totalGoals: s.goals?.total ?? 0,
         totalAssists: s.goals?.assists ?? 0,
-        startingXI: 0,
-        matchesInSquad: s.games.appearences ?? 0,
+        startingXI: estimatedStartingXI,
+        matchesInSquad: appearances,
       }
     }
 
@@ -192,15 +198,20 @@ export async function computeSeasonStatsBatch(
       } | null
 
       if (s?.games?.appearences && s.games.appearences > 0) {
+        const appearances = s.games.appearences ?? 0
+        const totalMinutes = s.games.minutes ?? 0
+        const avgMinutes = appearances > 0 ? totalMinutes / appearances : 0
+        const estimatedStartingXI = avgMinutes >= 60 ? appearances : 0
+
         result.set(p.id, {
           season: '2024-2025',
-          appearances: s.games.appearences ?? 0,
-          totalMinutes: s.games.minutes ?? 0,
+          appearances,
+          totalMinutes,
           avgRating: s.games.rating ? Math.round(s.games.rating * 100) / 100 : null,
           totalGoals: s.goals?.total ?? 0,
           totalAssists: s.goals?.assists ?? 0,
-          startingXI: 0,
-          matchesInSquad: s.games.appearences ?? 0,
+          startingXI: estimatedStartingXI,
+          matchesInSquad: appearances,
         })
       }
     }

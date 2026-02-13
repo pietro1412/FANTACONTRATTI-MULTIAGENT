@@ -25,8 +25,7 @@ interface TradesProps {
 
 export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) {
   const [isLoading, setIsLoading] = useState(true)
-  // Simple 3-tab layout: create (default), received, sent
-  const [activeTab, setActiveTab] = useState<'create' | 'received' | 'sent'>(
+  const [activeTab, setActiveTab] = useState<'create' | 'received' | 'sent' | 'history'>(
     highlightOfferId ? 'received' : 'create'
   )
   const [highlightedOfferId, setHighlightedOfferId] = useState<string | undefined>(highlightOfferId)
@@ -42,6 +41,8 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   const [myFinancials, setMyFinancials] = useState<{ annualContractCost: number; slotCount: number }>({ annualContractCost: 0, slotCount: 0 })
   const [isInTradePhase, setIsInTradePhase] = useState(false)
   const [currentSession, setCurrentSession] = useState<MarketSession | null>(null)
+  const [tradeHistory, setTradeHistory] = useState<TradeOffer[]>([])
+  const [historyFilter, setHistoryFilter] = useState<'ALL' | 'ACCEPTED' | 'REJECTED' | 'INVALIDATED' | 'CANCELLED'>('ALL')
 
   // Financial data for DealFinanceBar
   const [financialsData, setFinancialsData] = useState<FinancialsData | null>(null)
@@ -121,7 +122,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   async function loadData() {
     setIsLoading(true)
 
-    const [receivedRes, sentRes, membersRes, rosterRes, sessionsRes, leagueRes, allRostersRes, financialsRes] = await Promise.all([
+    const [receivedRes, sentRes, membersRes, rosterRes, sessionsRes, leagueRes, allRostersRes, financialsRes, historyRes] = await Promise.all([
       tradeApi.getReceived(leagueId),
       tradeApi.getSent(leagueId),
       leagueApi.getMembers(leagueId),
@@ -130,6 +131,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       leagueApi.getById(leagueId),
       auctionApi.getLeagueRosters(leagueId),
       leagueApi.getFinancials(leagueId),
+      tradeApi.getHistory(leagueId),
     ])
 
     if (leagueRes.success && leagueRes.data) {
@@ -299,6 +301,10 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         !!active &&
         (active.currentPhase === 'OFFERTE_PRE_RINNOVO' || active.currentPhase === 'OFFERTE_POST_ASTA_SVINCOLATI')
       )
+    }
+
+    if (historyRes.success && historyRes.data) {
+      setTradeHistory(historyRes.data as TradeOffer[])
     }
 
     setIsLoading(false)
@@ -600,6 +606,23 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                 activeTab === 'sent' ? 'bg-primary-500/20 text-primary-400' : 'bg-surface-300 text-gray-400'
               }`}>
                 {sentOffers.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
+              activeTab === 'history'
+                ? 'border-gray-400 text-gray-300'
+                : 'border-transparent text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Concluse
+            {tradeHistory.length > 0 && (
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                activeTab === 'history' ? 'bg-gray-500/20 text-gray-300' : 'bg-surface-300 text-gray-400'
+              }`}>
+                {tradeHistory.length}
               </span>
             )}
           </button>
@@ -1055,6 +1078,153 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                 )
               })
             )}
+          </div>
+        )}
+
+        {/* ============================= */}
+        {/* === TAB: Concluse === */}
+        {/* ============================= */}
+        {activeTab === 'history' && (
+          <div className="space-y-4">
+            {/* Filter chips */}
+            <div className="flex flex-wrap gap-2">
+              {([
+                { key: 'ALL', label: 'Tutte' },
+                { key: 'ACCEPTED', label: 'Accettate' },
+                { key: 'REJECTED', label: 'Rifiutate' },
+                { key: 'INVALIDATED', label: 'Decadute' },
+                { key: 'CANCELLED', label: 'Annullate' },
+              ] as const).map(chip => (
+                <button
+                  key={chip.key}
+                  onClick={() => setHistoryFilter(chip.key)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors border ${
+                    historyFilter === chip.key
+                      ? 'bg-primary-500/20 text-primary-400 border-primary-500/40'
+                      : 'bg-surface-300 text-gray-400 border-surface-50/30 hover:text-gray-300'
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+
+            {(() => {
+              const filtered = historyFilter === 'ALL'
+                ? tradeHistory
+                : tradeHistory.filter(o => o.status === historyFilter)
+
+              if (filtered.length === 0) {
+                return (
+                  <EmptyState
+                    icon="📋"
+                    title="Nessuna trattativa conclusa"
+                    description={historyFilter === 'ALL' ? 'Le trattative concluse appariranno qui' : 'Nessuna trattativa con questo stato'}
+                  />
+                )
+              }
+
+              return filtered.map(offer => {
+                const statusConfig: Record<string, { label: string; bg: string; text: string; border: string; borderLeft: string }> = {
+                  ACCEPTED: { label: 'Accettato', bg: 'bg-secondary-500/20', text: 'text-secondary-400', border: 'border-secondary-500/40', borderLeft: 'border-l-secondary-500' },
+                  REJECTED: { label: 'Rifiutato', bg: 'bg-danger-500/20', text: 'text-danger-400', border: 'border-danger-500/40', borderLeft: 'border-l-danger-500' },
+                  INVALIDATED: { label: 'Decaduta', bg: 'bg-warning-500/20', text: 'text-warning-400', border: 'border-warning-500/40', borderLeft: 'border-l-warning-500' },
+                  CANCELLED: { label: 'Annullato', bg: 'bg-surface-300', text: 'text-gray-400', border: 'border-surface-50/30', borderLeft: 'border-l-gray-500' },
+                  EXPIRED: { label: 'Scaduto', bg: 'bg-surface-300', text: 'text-gray-400', border: 'border-surface-50/30', borderLeft: 'border-l-gray-500' },
+                }
+                const cfg = statusConfig[offer.status] || statusConfig.CANCELLED
+
+                return (
+                  <Card key={offer.id} className={`overflow-hidden border-l-4 ${cfg.borderLeft}`}>
+                    <div className="bg-gradient-to-r from-surface-200 to-transparent px-5 py-4 flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-surface-300 flex items-center justify-center">
+                          <span className="text-gray-400 font-bold text-sm">
+                            {(offer.sender?.username?.[0] || '?').toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white text-sm">
+                            {offer.sender?.username} <span className="text-gray-500 font-normal mx-1">&rarr;</span> {offer.receiver?.username}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {offer.respondedAt
+                              ? new Date(offer.respondedAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+                              : new Date(offer.createdAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`px-3 py-1.5 text-xs font-semibold rounded-full uppercase tracking-wide border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+                        {cfg.label}
+                      </span>
+                    </div>
+
+                    <CardContent className="py-5">
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-danger-500/20 flex items-center justify-center">
+                              <svg className="w-3 h-3 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                              </svg>
+                            </div>
+                            <p className="text-sm font-semibold text-danger-400 uppercase tracking-wide">Offerti</p>
+                          </div>
+                          <div className="pl-8">
+                            <PlayersTable players={offer.offeredPlayerDetails || offer.offeredPlayers || []} />
+                            {offer.offeredBudget > 0 && (
+                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
+                                <div className="w-6 h-6 rounded bg-danger-500/20 flex items-center justify-center">
+                                  <span className="text-danger-400 font-bold text-xs">€</span>
+                                </div>
+                                <span className="text-sm text-danger-400 font-medium">+ {offer.offeredBudget} crediti</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-secondary-500/20 flex items-center justify-center">
+                              <svg className="w-3 h-3 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                              </svg>
+                            </div>
+                            <p className="text-sm font-semibold text-secondary-400 uppercase tracking-wide">Richiesti</p>
+                          </div>
+                          <div className="pl-8">
+                            <PlayersTable players={offer.requestedPlayerDetails || offer.requestedPlayers || []} />
+                            {offer.requestedBudget > 0 && (
+                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-surface-50/20">
+                                <div className="w-6 h-6 rounded bg-secondary-500/20 flex items-center justify-center">
+                                  <span className="text-secondary-400 font-bold text-xs">€</span>
+                                </div>
+                                <span className="text-sm text-secondary-400 font-medium">+ {offer.requestedBudget} crediti</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {offer.status === 'INVALIDATED' && (
+                        <div className="mt-4 p-3 bg-warning-500/10 border border-warning-500/30 rounded-lg">
+                          <p className="text-sm text-warning-400">
+                            Un giocatore coinvolto è stato scambiato in un'altra trattativa
+                          </p>
+                        </div>
+                      )}
+
+                      {offer.message && (
+                        <div className="mt-4 p-4 bg-surface-200/50 rounded-lg border-l-2 border-gray-500">
+                          <p className="text-sm text-gray-400 italic">"{offer.message}"</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })
+            })()}
           </div>
         )}
 

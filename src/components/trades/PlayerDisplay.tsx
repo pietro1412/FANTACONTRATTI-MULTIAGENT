@@ -1,4 +1,6 @@
 import { getTeamLogo } from '../../utils/teamLogos'
+import { getPlayerPhotoUrl } from '../../utils/player-images'
+import { POSITION_GRADIENTS } from '../ui/PositionBadge'
 import { getRoleStyle } from './utils'
 import type { Player } from './types'
 
@@ -21,10 +23,29 @@ export function TeamLogo({ team, size = 'md' }: { team: string, size?: 'sm' | 'm
 export function PlayerCard({ player, compact = false }: { player: Player, compact?: boolean }) {
   const roleStyle = getRoleStyle(player.position)
 
+  const gradient = POSITION_GRADIENTS[player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
+
   if (compact) {
     return (
       <div className="flex items-center gap-2 py-1.5">
-        <TeamLogo team={player.team} size="sm" />
+        {/* Player photo */}
+        <div className="relative flex-shrink-0">
+          {player.apiFootballId ? (
+            <img
+              src={getPlayerPhotoUrl(player.apiFootballId)}
+              alt={player.name}
+              className="w-7 h-7 rounded-full object-cover bg-surface-300"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none'
+                const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                if (fallback) fallback.style.display = 'flex'
+              }}
+            />
+          ) : null}
+          <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${gradient} items-center justify-center text-[9px] font-bold text-white ${player.apiFootballId ? 'hidden' : 'flex'}`}>
+            {player.position}
+          </div>
+        </div>
         <span className={`w-8 h-5 flex items-center justify-center text-[10px] font-bold rounded ${roleStyle.bg} ${roleStyle.text} ${roleStyle.border} border`}>
           {roleStyle.label}
         </span>
@@ -46,13 +67,26 @@ export function PlayerCard({ player, compact = false }: { player: Player, compac
 
   return (
     <div className="flex items-center gap-3 p-3 bg-surface-200/50 rounded-lg border border-surface-50/20 hover:border-surface-50/40 transition-colors">
-      {/* Team Logo */}
-      <div className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-lg p-1">
-        <TeamLogo team={player.team} size="md" />
-      </div>
-      {/* Role Badge */}
-      <div className={`w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-lg ${roleStyle.bg} ${roleStyle.border} border`}>
-        <span className={`text-sm font-bold ${roleStyle.text}`}>{roleStyle.label}</span>
+      {/* Player photo with position badge */}
+      <div className="relative flex-shrink-0">
+        {player.apiFootballId ? (
+          <img
+            src={getPlayerPhotoUrl(player.apiFootballId)}
+            alt={player.name}
+            className="w-10 h-10 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none'
+              const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+              if (fallback) fallback.style.display = 'flex'
+            }}
+          />
+        ) : null}
+        <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${gradient} items-center justify-center text-xs font-bold text-white ${player.apiFootballId ? 'hidden' : 'flex'}`}>
+          {player.position}
+        </div>
+        <span className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-bold text-[9px] border border-surface-200`}>
+          {player.position}
+        </span>
       </div>
       {/* Player Info */}
       <div className="flex-1 min-w-0">
@@ -101,12 +135,32 @@ export function PlayersTable({ players }: { players: Player[] }) {
       <tbody>
         {players.map(p => {
           const roleStyle = getRoleStyle(p.position)
+          const photoUrl = getPlayerPhotoUrl(p.apiFootballId)
+          const posGradient = POSITION_GRADIENTS[p.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
           return (
             <tr key={p.id} className="border-t border-surface-50/10">
               <td className="py-2">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-6 h-6 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
-                    <img src={getTeamLogo(p.team)} alt={p.team} className="w-5 h-5 object-contain" />
+                <div className="flex items-center gap-2">
+                  {/* Player photo with position badge */}
+                  <div className="relative flex-shrink-0">
+                    {photoUrl ? (
+                      <img
+                        src={photoUrl}
+                        alt={p.name}
+                        className="w-8 h-8 rounded-full object-cover bg-surface-300 border border-surface-50/20"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none'
+                          const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                          if (fallback) fallback.style.display = 'flex'
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${posGradient} items-center justify-center text-[10px] font-bold text-white ${photoUrl ? 'hidden' : 'flex'}`}>
+                      {p.position}
+                    </div>
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-gradient-to-br ${posGradient} flex items-center justify-center text-white font-bold text-[8px] border border-surface-200`}>
+                      {p.position}
+                    </span>
                   </div>
                   <div className="min-w-0">
                     <span className="text-gray-200 truncate block">{p.name}</span>

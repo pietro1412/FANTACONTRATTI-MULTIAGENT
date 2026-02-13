@@ -51,6 +51,7 @@ export interface TradeOffer {
   message?: string
   status: string
   createdAt: string
+  respondedAt?: string
   expiresAt?: string
   fromMember?: { user: { username: string } }
   toMember?: { user: { username: string } }

@@ -881,7 +881,7 @@ export async function getTradeHistory(leagueId: string, userId: string): Promise
   const trades = await prisma.tradeOffer.findMany({
     where: {
       marketSession: { leagueId },
-      status: { in: [TradeStatus.ACCEPTED, TradeStatus.REJECTED] },
+      status: { in: [TradeStatus.ACCEPTED, TradeStatus.REJECTED, TradeStatus.INVALIDATED, TradeStatus.CANCELLED, TradeStatus.EXPIRED] },
     },
     include: {
       sender: { select: { id: true, username: true } },
