@@ -22,19 +22,32 @@ const DURATION_MULTIPLIERS: Record<number, number> = {
   4: 11,  // 4 semestri = moltiplicatore 11
   3: 9,   // 3 semestri = moltiplicatore 9
   2: 7,   // 2 semestri = moltiplicatore 7
-  1: 4,   // 1 semestre = moltiplicatore 4
+  1: 3,   // 1 semestre = moltiplicatore 3
 }
 
 const MAX_DURATION = 4 // Max 4 semestri
 const MIN_SALARY_PERCENTAGE = 0.1 // 10% del prezzo acquisto per acquisti non-PRIMO MERCATO
 const MAX_ROSTER_SIZE = 29 // Massimo giocatori in rosa dopo consolidamento
 
+// M-12: Runtime validation to ensure budget never goes negative
+export async function validateBudgetNotNegative(memberId: string): Promise<boolean> {
+  const member = await prisma.leagueMember.findUnique({
+    where: { id: memberId },
+    select: { currentBudget: true },
+  })
+  return member ? member.currentBudget >= 0 : true
+}
+
 function getMultiplier(duration: number): number {
-  return DURATION_MULTIPLIERS[duration] ?? 4
+  return DURATION_MULTIPLIERS[duration] ?? 3
 }
 
 export function calculateRescissionClause(salary: number, duration: number): number {
   return salary * getMultiplier(duration)
+}
+
+export function calculateDefaultSalary(auctionPrice: number): number {
+  return Math.max(1, Math.round(auctionPrice / 10))
 }
 
 // Costo taglio = (ingaggio × durata rimanente) / 2
@@ -609,6 +622,33 @@ export async function renewContract(
     return { success: false, message: 'Puoi rinnovare contratti solo durante la fase CONTRATTI' }
   }
 
+  // P0-9 FIX: Block standalone renewal if member has already consolidated.
+  // After consolidation, contract modifications must go through saveDrafts → consolidateContracts.
+  // This is a legacy path — the preferred flow is the consolidation pipeline.
+  const activeSessionForConsolidation = await prisma.marketSession.findFirst({
+    where: {
+      leagueId: contract.roster.leagueMember.leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'CONTRATTI',
+    },
+  })
+  if (activeSessionForConsolidation) {
+    const existingConsolidation = await prisma.contractConsolidation.findUnique({
+      where: {
+        sessionId_memberId: {
+          sessionId: activeSessionForConsolidation.id,
+          memberId: contract.roster.leagueMember.id,
+        },
+      },
+    })
+    if (existingConsolidation) {
+      return {
+        success: false,
+        message: 'Non puoi modificare contratti dopo il consolidamento. Hai già consolidato i tuoi contratti.',
+      }
+    }
+  }
+
   // Validate salary
   if (newSalary < 1) {
     return { success: false, message: 'Ingaggio minimo: 1' }
@@ -637,11 +677,9 @@ export async function renewContract(
   const newValue = newSalary * newDuration
   const renewalCost = Math.max(0, newValue - currentValue)
 
-  // Check budget
+  // Renewal affects monte ingaggi (salary commitment), NOT budget.
+  // No budget check needed — budget is only for auction/rubata cash flows.
   const member = contract.roster.leagueMember
-  if (renewalCost > member.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Costo rinnovo: ${renewalCost}, Budget: ${member.currentBudget}` }
-  }
 
   // Calculate new rescission clause
   const newRescissionClause = calculateRescissionClause(newSalary, newDuration)
@@ -673,17 +711,9 @@ export async function renewContract(
     },
   })
 
-  // Deduct budget
-  if (renewalCost > 0) {
-    await prisma.leagueMember.update({
-      where: { id: member.id },
-      data: {
-        currentBudget: {
-          decrement: renewalCost,
-        },
-      },
-    })
-  }
+  // NOTE: Renewal does NOT decrement budget. Budget is cash liquidity for
+  // auctions/rubate. Renewal only changes the salary commitment (monte ingaggi),
+  // which is tracked via the contract's salary field, not the member's currentBudget.
 
   // Get active market session
   const activeSession = await prisma.marketSession.findFirst({
@@ -715,7 +745,7 @@ export async function renewContract(
     data: {
       contract: updatedContract,
       renewalCost,
-      newBudget: member.currentBudget - renewalCost,
+      newBudget: member.currentBudget, // Budget unchanged — renewal only affects monte ingaggi
     },
   }
 }
@@ -759,8 +789,38 @@ export async function releasePlayer(
     return { success: false, message: 'Puoi svincolare giocatori solo durante la fase CONTRATTI' }
   }
 
-  // Calculate release cost = (ingaggio × durata) / 2
-  const releaseCost = calculateReleaseCost(contract.salary, contract.duration)
+  // P0-9 FIX: Block standalone release if member has already consolidated.
+  // After consolidation, releases must go through saveDrafts → consolidateContracts.
+  // This is a legacy path — the preferred flow is the consolidation pipeline.
+  const activeSessionForConsolidation = await prisma.marketSession.findFirst({
+    where: {
+      leagueId: contract.roster.leagueMember.leagueId,
+      status: 'ACTIVE',
+      currentPhase: 'CONTRATTI',
+    },
+  })
+  if (activeSessionForConsolidation) {
+    const existingConsolidation = await prisma.contractConsolidation.findUnique({
+      where: {
+        sessionId_memberId: {
+          sessionId: activeSessionForConsolidation.id,
+          memberId: contract.roster.leagueMember.id,
+        },
+      },
+    })
+    if (existingConsolidation) {
+      return {
+        success: false,
+        message: 'Non puoi svincolare giocatori dopo il consolidamento. Hai già consolidato i tuoi contratti.',
+      }
+    }
+  }
+
+  // M-14: Release cost = 0 for ESTERO/RETROCESSO players
+  const player = contract.roster.player
+  const isExitedPlayer = player.listStatus === 'NOT_IN_LIST' &&
+    (player.exitReason === 'ESTERO' || player.exitReason === 'RETROCESSO')
+  const releaseCost = isExitedPlayer ? 0 : calculateReleaseCost(contract.salary, contract.duration)
 
   // Check budget
   const member = contract.roster.leagueMember
@@ -768,7 +828,7 @@ export async function releasePlayer(
     return { success: false, message: `Budget insufficiente. Costo taglio: ${releaseCost}, Budget: ${member.currentBudget}` }
   }
 
-  const playerName = contract.roster.player.name
+  const playerName = player.name
 
   // Delete contract
   await prisma.playerContract.delete({
@@ -802,11 +862,14 @@ export async function releasePlayer(
     },
   })
 
-  // Record movement for RELEASE
+  // Record movement for RELEASE (M-14: use specific type for exited players)
+  const movementType = isExitedPlayer
+    ? (player.exitReason === 'ESTERO' ? 'ABROAD_COMPENSATION' : 'RELEGATION_RELEASE')
+    : 'RELEASE'
   await recordMovement({
     leagueId: contract.roster.leagueMember.leagueId,
     playerId: contract.roster.playerId,
-    movementType: 'RELEASE',
+    movementType,
     fromMemberId: member.id,
     price: releaseCost,
     oldSalary: contract.salary,
@@ -815,12 +878,17 @@ export async function releasePlayer(
     marketSessionId: activeSession?.id,
   })
 
+  const releaseMessage = isExitedPlayer
+    ? `${playerName} svincolato gratuitamente (${player.exitReason}).`
+    : `${playerName} svincolato. Costo taglio: ${releaseCost}M (${contract.salary}×${contract.duration}/2)`
+
   return {
     success: true,
-    message: `${playerName} svincolato. Costo taglio: ${releaseCost}M (${contract.salary}×${contract.duration}/2)`,
+    message: releaseMessage,
     data: {
       releaseCost,
       newBudget: member.currentBudget - releaseCost,
+      isExitedPlayer,
     },
   }
 }
@@ -1425,6 +1493,21 @@ export async function consolidateContracts(
         throw new Error(`Rosa troppo grande: ${roster.length} giocatori. Devi tagliare ${excess} giocator${excess === 1 ? 'e' : 'i'} (max ${MAX_ROSTER_SIZE})`)
       }
 
+      // M-11: Ricalcolo monte ingaggi post-consolidamento
+      // Verify the total salaries after all operations are consistent
+      const postConsolidationContracts = await tx.playerContract.findMany({
+        where: { leagueMemberId: member.id },
+      })
+      const postMonteIngaggi = postConsolidationContracts.reduce((sum, c) => sum + c.salary, 0)
+      const postMember = await tx.leagueMember.findUnique({
+        where: { id: member.id },
+      })
+      if (postMember && postMonteIngaggi > postMember.currentBudget) {
+        throw new Error(
+          `Monte ingaggi (${postMonteIngaggi}) supera il budget (${postMember.currentBudget}) dopo il consolidamento`
+        )
+      }
+
       // 5. Clear all draft values and create consolidation record
       await tx.contractConsolidation.create({
         data: {
@@ -1926,9 +2009,9 @@ export async function modifyContractPostAcquisition(
     return { success: false, message: `Durata massima: ${MAX_DURATION} semestri` }
   }
 
-  // Check if there are actual changes
+  // If no changes, return success immediately (user confirms contract as-is)
   if (newSalary === contract.salary && newDuration === contract.duration) {
-    return { success: false, message: 'Nessuna modifica rilevata' }
+    return { success: true, data: { contract, message: 'Contratto confermato senza modifiche' } }
   }
 
   // Calculate new rescission clause

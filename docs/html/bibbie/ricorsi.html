@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bibbia Ricorsi - Fantacontratti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0b;
+      --bg-card: #111214;
+      --bg-elevated: #1a1c20;
+      --bg-hover: #252830;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --border: rgba(55, 65, 81, 0.4);
+      --border-light: rgba(55, 65, 81, 0.2);
+      --primary: #3b82f6;
+      --primary-light: #60a5fa;
+      --primary-bg: rgba(59, 130, 246, 0.15);
+      --primary-border: rgba(59, 130, 246, 0.3);
+      --accent: #fbbf24;
+      --accent-dark: #f59e0b;
+      --accent-bg: rgba(251, 191, 36, 0.15);
+      --accent-border: rgba(251, 191, 36, 0.3);
+      --success: #22c55e;
+      --success-bg: rgba(34, 197, 94, 0.15);
+      --success-border: rgba(34, 197, 94, 0.3);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --danger-border: rgba(239, 68, 68, 0.3);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+
+    .page-header {
+      background: linear-gradient(135deg, #1a1f2e 0%, #0f1318 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 48px 24px 40px;
+      margin-bottom: 40px;
+    }
+    .page-header .inner { max-width: 960px; margin: 0 auto; }
+    .page-header .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent-bg); color: var(--accent);
+      border: 1px solid var(--accent-border);
+      padding: 4px 12px; border-radius: 9999px;
+      font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+    .page-header h1 {
+      font-family: 'Outfit', 'Inter', sans-serif;
+      font-size: 36px; font-weight: 800; color: #fff;
+      margin-bottom: 8px;
+      background: linear-gradient(to right, #fcd34d, #f59e0b);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .page-header .subtitle { color: var(--text-muted); font-size: 16px; }
+    .page-header .date { color: var(--text-dim); font-size: 13px; margin-top: 12px; }
+
+    .toc {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 24px; margin-bottom: 32px;
+    }
+    .toc h3 { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; }
+    .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+    .toc a {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--primary-light); text-decoration: none;
+      padding: 8px 12px; border-radius: 8px; font-size: 14px;
+      transition: all 0.15s;
+    }
+    .toc a:hover { background: var(--primary-bg); color: #fff; }
+    .toc a .num { color: var(--text-dim); font-family: 'Oswald', sans-serif; font-size: 13px; min-width: 20px; }
+
+    .section { margin-bottom: 48px; }
+    .section-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 24px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .section-num {
+      font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600;
+      color: var(--primary); background: var(--primary-bg);
+      border: 1px solid var(--primary-border);
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .section-header h2 {
+      font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 700; color: #fff;
+    }
+
+    h3 {
+      font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 600;
+      color: var(--primary-light); margin: 24px 0 12px;
+    }
+
+    p { color: var(--text-muted); margin-bottom: 12px; font-size: 15px; }
+
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 24px; margin-bottom: 16px;
+    }
+    .card-elevated {
+      background: linear-gradient(180deg, var(--bg-elevated), var(--bg-card));
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .card-accent {
+      border-color: var(--accent-border);
+      background: linear-gradient(135deg, rgba(251,191,36,0.05), var(--bg-card));
+    }
+    .card-primary {
+      border-color: var(--primary-border);
+      background: linear-gradient(135deg, rgba(59,130,246,0.05), var(--bg-card));
+    }
+    .card-danger {
+      border-color: var(--danger-border);
+      background: linear-gradient(135deg, rgba(239,68,68,0.05), var(--bg-card));
+    }
+    .card-success {
+      border-color: var(--success-border);
+      background: linear-gradient(135deg, rgba(34,197,94,0.05), var(--bg-card));
+    }
+
+    .card-title {
+      font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700;
+      color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .card-title .icon { font-size: 18px; }
+
+    .table-wrap {
+      overflow-x: auto; border-radius: 12px;
+      border: 1px solid var(--border-light); margin: 16px 0;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--bg-elevated); }
+    th {
+      text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 600;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 10px 16px; font-size: 14px; color: var(--text-muted);
+      border-bottom: 1px solid var(--border-light);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(59, 130, 246, 0.03); }
+    td.val {
+      font-family: 'Oswald', sans-serif; font-weight: 500;
+      color: var(--accent); font-size: 15px;
+    }
+    td.positive { color: var(--success); }
+    td.negative { color: var(--danger); }
+    td.primary { color: var(--primary-light); }
+
+    .step {
+      display: flex; gap: 16px; margin-bottom: 2px; padding: 12px 16px;
+      border-left: 2px solid var(--border-light);
+      transition: all 0.15s;
+    }
+    .step:hover { border-left-color: var(--primary); background: rgba(59,130,246,0.03); }
+    .step-num {
+      font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600;
+      color: var(--primary); background: var(--primary-bg); border: 1px solid var(--primary-border);
+      min-width: 28px; height: 28px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .step-content { flex: 1; }
+    .step-label { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+    .step-desc { font-size: 13px; color: var(--text-dim); }
+
+    .alert {
+      display: flex; gap: 12px; padding: 16px;
+      border-radius: 10px; margin: 16px 0; font-size: 14px;
+    }
+    .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .alert-danger { background: var(--danger-bg); border: 1px solid var(--danger-border); color: #fca5a5; }
+    .alert-success { background: var(--success-bg); border: 1px solid var(--success-border); color: #86efac; }
+    .alert-accent { background: var(--accent-bg); border: 1px solid var(--accent-border); color: #fde68a; }
+    .alert-primary { background: var(--primary-bg); border: 1px solid var(--primary-border); color: #93c5fd; }
+    .alert strong { color: #fff; }
+
+    .flow { display: flex; flex-direction: column; gap: 2px; margin: 16px 0; }
+    .flow-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; border-radius: 8px;
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      font-size: 14px;
+    }
+    .flow-item .phase {
+      font-family: 'Oswald', sans-serif; font-size: 12px; font-weight: 600;
+      color: var(--primary); min-width: 80px;
+    }
+    .flow-arrow { text-align: center; color: var(--text-dim); font-size: 18px; line-height: 1; }
+
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+    @media (max-width: 640px) { .comparison { grid-template-columns: 1fr; } }
+
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    }
+    .tag-blue { background: var(--primary-bg); color: var(--primary-light); border: 1px solid var(--primary-border); }
+    .tag-gold { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+    .tag-green { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .tag-red { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+
+    .rule-list { list-style: none; padding: 0; }
+    .rule-list li {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border-light);
+      font-size: 14px; color: var(--text-muted);
+    }
+    .rule-list li:last-child { border-bottom: none; }
+    .rule-list .rule-icon {
+      flex-shrink: 0; width: 24px; height: 24px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; margin-top: 1px;
+    }
+    .rule-list .rule-check { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success); }
+    .rule-list .rule-cross { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger); }
+    .rule-list .rule-info { background: var(--primary-bg); border: 1px solid var(--primary-border); color: var(--primary-light); }
+    .rule-list .rule-warn { background: var(--accent-bg); border: 1px solid var(--accent-border); color: var(--accent); }
+
+    @media (max-width: 640px) {
+      .page-header h1 { font-size: 28px; }
+      .toc-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="inner">
+    <div class="badge">&#9733; Fonte di Verita</div>
+    <h1>Sistema Ricorsi (Appeal)</h1>
+    <p class="subtitle">Meccanismo di contestazione per le aste completate &mdash; garantisce equita e trasparenza</p>
+    <p class="date">Ultima revisione: 11 Febbraio 2026</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- TOC -->
+  <nav class="toc">
+    <h3>Indice</h3>
+    <div class="toc-grid">
+      <a href="#s1"><span class="num">1</span> Panoramica</a>
+      <a href="#s2"><span class="num">2</span> Presentazione del Ricorso</a>
+      <a href="#s3"><span class="num">3</span> Revisione Admin</a>
+      <a href="#s4"><span class="num">4</span> Ricorso Accettato (Rollback)</a>
+      <a href="#s5"><span class="num">5</span> Ricorso Rifiutato</a>
+      <a href="#s6"><span class="num">6</span> Diagramma Stati</a>
+      <a href="#s7"><span class="num">7</span> Regole Importanti</a>
+    </div>
+  </nav>
+
+  <!-- SECTION 1: Panoramica -->
+  <section id="s1" class="section">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <h2>Panoramica</h2>
+    </div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#9878;</span> Cos'e il Sistema Ricorsi</div>
+      <p>Il sistema di ricorsi consente a <strong style="color:#fff">qualsiasi manager</strong> di contestare l'esito di un'asta completata. L'admin puo accettare il ricorso (annullando la transazione) o rifiutarlo (confermando il risultato).</p>
+      <p>In entrambi i casi, <strong style="color:var(--accent)">tutti i manager devono confermare</strong> prima di proseguire con l'asta.</p>
+    </div>
+
+    <h3>Quando si Puo Presentare Ricorso</h3>
+    <ul class="rule-list">
+      <li>
+        <span class="rule-icon rule-check">&#10003;</span>
+        <span>Solo su aste con status <span class="tag tag-green">COMPLETED</span> (dopo che il vincitore e stato determinato)</span>
+      </li>
+      <li>
+        <span class="rule-icon rule-check">&#10003;</span>
+        <span>Il ricorso si presenta dalla <strong style="color:#fff">modale di conferma</strong> (acknowledgment)</span>
+      </li>
+      <li>
+        <span class="rule-icon rule-check">&#10003;</span>
+        <span>Funziona sia nel <strong style="color:#fff">Primo Mercato</strong> sia nella fase <strong style="color:#fff">Svincolati</strong></span>
+      </li>
+    </ul>
+
+    <h3>Chi Puo Presentare Ricorso</h3>
+    <div class="alert alert-primary">
+      <span class="alert-icon">&#128101;</span>
+      <div><strong>Qualsiasi membro attivo</strong> della lega puo presentare ricorso, non solo chi ha partecipato direttamente all'asta contestata.</div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: Presentazione -->
+  <section id="s2" class="section">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <h2>Presentazione del Ricorso</h2>
+    </div>
+
+    <h3>Procedura</h3>
+    <div class="card card-primary">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-label">Manager clicca "Presenta Ricorso"</div>
+          <div class="step-desc">Dalla modale di conferma (acknowledgment) dell'asta appena conclusa</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-label">Inserisce una motivazione</div>
+          <div class="step-desc">La motivazione testuale e obbligatoria e deve spiegare il motivo della contestazione</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-label">Il ricorso viene creato</div>
+          <div class="step-desc">Status ricorso: PENDING &mdash; L'asta passa a APPEAL_REVIEW</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <div class="step-label">Sessione bloccata</div>
+          <div class="step-desc">Nessuna altra operazione e possibile fino alla risoluzione del ricorso</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-danger">
+      <span class="alert-icon">&#9888;</span>
+      <div><strong>Blocco totale:</strong> durante la fase <span class="tag tag-red">APPEAL_REVIEW</span> l'intera sessione d'asta si ferma. Nessun manager puo nominare, offrire o confermare.</div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: Revisione Admin -->
+  <section id="s3" class="section">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <h2>Revisione Admin</h2>
+    </div>
+
+    <h3>Informazioni Disponibili</h3>
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#128269;</span> L'admin vede tutto il contesto</div>
+      <ul class="rule-list">
+        <li>
+          <span class="rule-icon rule-info">&#128203;</span>
+          <span><strong style="color:#fff">Motivazione</strong> del ricorso e chi l'ha presentato</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">&#9917;</span>
+          <span><strong style="color:#fff">Dettagli asta:</strong> giocatore, vincitore, prezzo finale</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">&#128200;</span>
+          <span><strong style="color:#fff">Storico offerte:</strong> ultime 5 puntate con autore e importo</span>
+        </li>
+      </ul>
+    </div>
+
+    <h3>Decisione</h3>
+    <div class="comparison">
+      <div class="card card-success">
+        <div class="card-title"><span class="icon">&#10003;</span> Accetta Ricorso</div>
+        <p>La transazione viene <strong style="color:var(--success)">annullata completamente</strong>.</p>
+        <p>L'asta torna attiva e si riprende dalle offerte.</p>
+        <p style="margin-bottom:0;"><span class="tag tag-green">AWAITING_RESUME</span></p>
+      </div>
+      <div class="card card-danger">
+        <div class="card-title"><span class="icon">&#10005;</span> Rifiuta Ricorso</div>
+        <p>Il risultato dell'asta viene <strong style="color:var(--danger)">confermato</strong>.</p>
+        <p>Tutti i manager devono prendere atto della decisione.</p>
+        <p style="margin-bottom:0;"><span class="tag tag-red">AWAITING_APPEAL_ACK</span></p>
+      </div>
+    </div>
+
+    <div class="alert alert-accent">
+      <span class="alert-icon">&#128221;</span>
+      <div>L'admin puo aggiungere una <strong>nota di motivazione</strong> alla propria decisione, visibile a tutti i manager.</div>
+    </div>
+  </section>
+
+  <!-- SECTION 4: Ricorso Accettato -->
+  <section id="s4" class="section">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <h2>Ricorso Accettato (Rollback)</h2>
+    </div>
+
+    <div class="card card-success">
+      <div class="card-title"><span class="icon">&#8634;</span> Rollback Completo della Transazione</div>
+      <p>Quando l'admin accetta un ricorso, il sistema esegue automaticamente un rollback totale:</p>
+    </div>
+
+    <h3>Operazioni di Rollback</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Operazione</th><th>Dettaglio</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong style="color:#fff">Rimozione acquisto</strong></td>
+            <td>Cancellazione PlayerRoster e PlayerContract del vincitore</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#fff">Ripristino budget</strong></td>
+            <td>Il vincitore recupera il prezzo pagato all'asta</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#fff">Pulizia movimenti</strong></td>
+            <td>Cancellazione dei record di movimento e acknowledgment</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#fff">Reset asta</strong></td>
+            <td>Status &rarr; AWAITING_RESUME, vincitore &rarr; null, timer azzerato</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#fff">Altri ricorsi</strong></td>
+            <td>Eventuali ricorsi pendenti sulla stessa asta vengono auto-rifiutati</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Conferma "Pronto a Riprendere"</h3>
+    <div class="card card-primary">
+      <p>Dopo il rollback, <strong style="color:#fff">tutti i manager</strong> devono confermare di essere pronti a riprendere l'asta.</p>
+      <ul class="rule-list">
+        <li>
+          <span class="rule-icon rule-info">&#128075;</span>
+          <span>Ogni manager clicca <strong style="color:#fff">"Pronto"</strong> individualmente</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">&#128338;</span>
+          <span>L'asta resta in attesa finche <strong style="color:#fff">tutti</strong> hanno confermato</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-check">&#9654;</span>
+          <span>Quando tutti sono pronti &rarr; <strong style="color:var(--success)">il timer riparte</strong> e l'asta riprende</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="alert alert-accent">
+      <span class="alert-icon">&#128200;</span>
+      <div><strong>Offerte preservate:</strong> le offerte precedenti restano visibili come storico. L'asta riprende dal punto in cui era stata interrotta.</div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: Ricorso Rifiutato -->
+  <section id="s5" class="section">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <h2>Ricorso Rifiutato</h2>
+    </div>
+
+    <div class="card card-danger">
+      <div class="card-title"><span class="icon">&#10005;</span> Risultato Confermato</div>
+      <p>Quando l'admin rifiuta un ricorso, il risultato dell'asta viene <strong style="color:#fff">confermato definitivamente</strong>.</p>
+    </div>
+
+    <h3>Conferma "Presa d'Atto"</h3>
+    <div class="card">
+      <p>Tutti i manager devono <strong style="color:#fff">prendere atto</strong> della decisione dell'admin prima di proseguire.</p>
+      <ul class="rule-list">
+        <li>
+          <span class="rule-icon rule-info">&#128075;</span>
+          <span>Ogni manager clicca <strong style="color:#fff">"Ho capito"</strong> individualmente</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">&#128338;</span>
+          <span>La sessione resta bloccata finche tutti hanno confermato</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-check">&#10003;</span>
+          <span>Quando tutti confermano &rarr; asta torna a <span class="tag tag-green">COMPLETED</span> e si prosegue</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="alert alert-primary">
+      <span class="alert-icon">&#128161;</span>
+      <div><strong>Fase Svincolati:</strong> i manager che hanno gia passato il turno vengono <strong>auto-confermati</strong> dal sistema. Solo i manager attivi devono confermare manualmente.</div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: Diagramma Stati -->
+  <section id="s6" class="section">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <h2>Diagramma Stati</h2>
+    </div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#128260;</span> Transizioni di Stato</div>
+
+      <div class="flow">
+        <div class="flow-item" style="border-color: var(--success-border);">
+          <span class="phase" style="color:var(--success);">COMPLETED</span>
+          <span>Asta conclusa normalmente (vincitore determinato)</span>
+        </div>
+        <div class="flow-arrow">&darr; Manager presenta ricorso</div>
+        <div class="flow-item" style="border-color: var(--accent-border);">
+          <span class="phase" style="color:var(--accent);">APPEAL_REVIEW</span>
+          <span>Admin sta valutando il ricorso &mdash; sessione <strong style="color:var(--danger)">bloccata</strong></span>
+        </div>
+        <div class="flow-arrow">&darr;</div>
+      </div>
+
+      <div class="comparison" style="margin-top:8px;">
+        <div class="card card-success" style="margin-bottom:0;">
+          <div class="card-title"><span class="icon">&#10003;</span> Admin Accetta</div>
+          <div class="flow" style="margin:8px 0 0;">
+            <div class="flow-item" style="border-color: var(--primary-border);">
+              <span class="phase" style="font-size:11px;">AWAITING_RESUME</span>
+              <span style="font-size:13px;">Tutti confermano "Pronto"</span>
+            </div>
+            <div class="flow-arrow">&darr;</div>
+            <div class="flow-item" style="border-color: var(--success-border);">
+              <span class="phase" style="font-size:11px; color:var(--success);">ACTIVE</span>
+              <span style="font-size:13px;">Asta riprende con timer</span>
+            </div>
+          </div>
+        </div>
+        <div class="card card-danger" style="margin-bottom:0;">
+          <div class="card-title"><span class="icon">&#10005;</span> Admin Rifiuta</div>
+          <div class="flow" style="margin:8px 0 0;">
+            <div class="flow-item" style="border-color: var(--danger-border);">
+              <span class="phase" style="font-size:11px;">APPEAL_ACK</span>
+              <span style="font-size:13px;">Tutti confermano "Ho capito"</span>
+            </div>
+            <div class="flow-arrow">&darr;</div>
+            <div class="flow-item" style="border-color: var(--success-border);">
+              <span class="phase" style="font-size:11px; color:var(--success);">COMPLETED</span>
+              <span style="font-size:13px;">Risultato confermato, si prosegue</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 7: Regole Importanti -->
+  <section id="s7" class="section">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <h2>Regole Importanti</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Regola</th><th>Dettaglio</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong style="color:#fff">Blocco sessione</strong></td>
+            <td>Durante <span class="tag tag-red">APPEAL_REVIEW</span> nessuna altra operazione e possibile</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#fff">Un ricorso alla volta</strong></td>
+            <td>Se un ricorso viene accettato, gli altri pendenti vengono auto-rifiutati</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#fff">Rollback completo</strong></td>
+            <td>L'accettazione annulla tutto: roster, contratto, movimento, budget</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#fff">Tutti devono confermare</strong></td>
+            <td>Sia per "presa d'atto" che per "pronto a riprendere"</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#fff">Offerte preservate</strong></td>
+            <td>In caso di ripresa, le offerte precedenti restano come storico</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#fff">Motivazione obbligatoria</strong></td>
+            <td>Il manager deve fornire una spiegazione testuale per il ricorso</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Operazioni Admin Forzate</h3>
+    <div class="card card-accent">
+      <div class="card-title"><span class="icon">&#9889;</span> Emergenza / Test</div>
+      <p>Per situazioni dove un manager e assente o non risponde, l'admin puo forzare:</p>
+      <ul class="rule-list">
+        <li>
+          <span class="rule-icon rule-warn">&#9889;</span>
+          <span><strong style="color:#fff">Forza tutte le conferme decisione</strong> &mdash; tutti risultano aver preso atto</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-warn">&#9889;</span>
+          <span><strong style="color:#fff">Forza tutti pronti a riprendere</strong> &mdash; tutti risultano pronti, asta riprende</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

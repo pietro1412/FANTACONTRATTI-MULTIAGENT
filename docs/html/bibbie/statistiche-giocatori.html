@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bibbia Statistiche Giocatori - Fantacontratti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0b;
+      --bg-card: #111214;
+      --bg-elevated: #1a1c20;
+      --bg-hover: #252830;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --border: rgba(55, 65, 81, 0.4);
+      --border-light: rgba(55, 65, 81, 0.2);
+      --primary: #3b82f6;
+      --primary-light: #60a5fa;
+      --primary-bg: rgba(59, 130, 246, 0.15);
+      --primary-border: rgba(59, 130, 246, 0.3);
+      --accent: #fbbf24;
+      --accent-dark: #f59e0b;
+      --accent-bg: rgba(251, 191, 36, 0.15);
+      --accent-border: rgba(251, 191, 36, 0.3);
+      --success: #22c55e;
+      --success-bg: rgba(34, 197, 94, 0.15);
+      --success-border: rgba(34, 197, 94, 0.3);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --danger-border: rgba(239, 68, 68, 0.3);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+
+    .page-header {
+      background: linear-gradient(135deg, #1a1f2e 0%, #0f1318 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 48px 24px 40px;
+      margin-bottom: 40px;
+    }
+    .page-header .inner { max-width: 960px; margin: 0 auto; }
+    .page-header .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent-bg); color: var(--accent);
+      border: 1px solid var(--accent-border);
+      padding: 4px 12px; border-radius: 9999px;
+      font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+    .page-header h1 {
+      font-family: 'Outfit', 'Inter', sans-serif;
+      font-size: 36px; font-weight: 800; color: #fff;
+      margin-bottom: 8px;
+      background: linear-gradient(to right, #fcd34d, #f59e0b);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .page-header .subtitle { color: var(--text-muted); font-size: 16px; }
+    .page-header .date { color: var(--text-dim); font-size: 13px; margin-top: 12px; }
+
+    .toc {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 24px; margin-bottom: 32px;
+    }
+    .toc h3 { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; }
+    .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+    .toc a {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--primary-light); text-decoration: none;
+      padding: 8px 12px; border-radius: 8px; font-size: 14px;
+      transition: all 0.15s;
+    }
+    .toc a:hover { background: var(--primary-bg); color: #fff; }
+    .toc a .num { color: var(--text-dim); font-family: 'Oswald', sans-serif; font-size: 13px; min-width: 20px; }
+
+    .section { margin-bottom: 48px; }
+    .section-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 24px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .section-num {
+      font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600;
+      color: var(--primary); background: var(--primary-bg);
+      border: 1px solid var(--primary-border);
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .section-header h2 {
+      font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 700; color: #fff;
+    }
+
+    h3 {
+      font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 600;
+      color: var(--primary-light); margin: 24px 0 12px;
+    }
+
+    p { color: var(--text-muted); margin-bottom: 12px; font-size: 15px; }
+
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 24px; margin-bottom: 16px;
+    }
+    .card-elevated {
+      background: linear-gradient(180deg, var(--bg-elevated), var(--bg-card));
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .card-accent {
+      border-color: var(--accent-border);
+      background: linear-gradient(135deg, rgba(251,191,36,0.05), var(--bg-card));
+    }
+    .card-primary {
+      border-color: var(--primary-border);
+      background: linear-gradient(135deg, rgba(59,130,246,0.05), var(--bg-card));
+    }
+    .card-success {
+      border-color: var(--success-border);
+      background: linear-gradient(135deg, rgba(34,197,94,0.05), var(--bg-card));
+    }
+
+    .card-title {
+      font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700;
+      color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .card-title .icon { font-size: 18px; }
+
+    .formula {
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px 20px; margin: 12px 0;
+      font-family: 'Oswald', 'monospace'; font-size: 18px; font-weight: 500;
+      color: var(--accent); letter-spacing: 0.02em;
+    }
+    .formula .label {
+      font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 6px; display: block;
+    }
+    .formula .highlight { color: var(--primary-light); }
+    .formula .success { color: var(--success); }
+
+    .table-wrap {
+      overflow-x: auto; border-radius: 12px;
+      border: 1px solid var(--border-light); margin: 16px 0;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--bg-elevated); }
+    th {
+      text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 600;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 10px 16px; font-size: 14px; color: var(--text-muted);
+      border-bottom: 1px solid var(--border-light);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(59, 130, 246, 0.03); }
+    td.val {
+      font-family: 'Oswald', sans-serif; font-weight: 500;
+      color: var(--accent); font-size: 15px;
+    }
+    td.primary { color: var(--primary-light); }
+
+    .step {
+      display: flex; gap: 16px; margin-bottom: 2px; padding: 12px 16px;
+      border-left: 2px solid var(--border-light);
+      transition: all 0.15s;
+    }
+    .step:hover { border-left-color: var(--primary); background: rgba(59,130,246,0.03); }
+    .step-num {
+      font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600;
+      color: var(--primary); background: var(--primary-bg); border: 1px solid var(--primary-border);
+      min-width: 28px; height: 28px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .step-content { flex: 1; }
+    .step-label { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+    .step-desc { font-size: 13px; color: var(--text-dim); }
+
+    .alert {
+      display: flex; gap: 12px; padding: 16px;
+      border-radius: 10px; margin: 16px 0; font-size: 14px;
+    }
+    .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .alert-accent { background: var(--accent-bg); border: 1px solid var(--accent-border); color: #fde68a; }
+    .alert-primary { background: var(--primary-bg); border: 1px solid var(--primary-border); color: #93c5fd; }
+    .alert-success { background: var(--success-bg); border: 1px solid var(--success-border); color: #86efac; }
+    .alert strong { color: #fff; }
+
+    .example {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; overflow: hidden; margin: 16px 0;
+    }
+    .example-header {
+      background: var(--bg-elevated); padding: 10px 16px;
+      font-size: 13px; font-weight: 600; color: var(--text-muted);
+      border-bottom: 1px solid var(--border-light);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .example-body { padding: 16px; }
+
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    }
+    .tag-blue { background: var(--primary-bg); color: var(--primary-light); border: 1px solid var(--primary-border); }
+    .tag-gold { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+    .tag-green { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .tag-red { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+
+    .flow { display: flex; flex-direction: column; gap: 2px; margin: 16px 0; }
+    .flow-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; border-radius: 8px;
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      font-size: 14px;
+    }
+    .flow-item .phase {
+      font-family: 'Oswald', sans-serif; font-size: 12px; font-weight: 600;
+      color: var(--primary); min-width: 60px;
+    }
+    .flow-arrow { text-align: center; color: var(--text-dim); font-size: 18px; line-height: 1; }
+
+    @media (max-width: 640px) {
+      .page-header h1 { font-size: 28px; }
+      .toc-grid { grid-template-columns: 1fr; }
+      .comparison { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="inner">
+    <div class="badge">&#9733; Fonte di Verita</div>
+    <h1>Statistiche Giocatori</h1>
+    <p class="subtitle">Matching API Football e sincronizzazione statistiche per Fantacontratti</p>
+    <p class="date">Ultima revisione: 7 Febbraio 2026</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- TOC -->
+  <nav class="toc">
+    <h3>Indice</h3>
+    <div class="toc-grid">
+      <a href="#s1"><span class="num">1</span> Fonti Dati</a>
+      <a href="#s2"><span class="num">2</span> Algoritmo di Matching</a>
+      <a href="#s3"><span class="num">3</span> Persistenza Match</a>
+      <a href="#s4"><span class="num">4</span> Campi Statistiche</a>
+      <a href="#s5"><span class="num">5</span> Flusso Operativo SuperAdmin</a>
+      <a href="#s6"><span class="num">6</span> Gestione Errori</a>
+    </div>
+  </nav>
+
+  <!-- SECTION 1: Fonti Dati -->
+  <section id="s1" class="section">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <h2>Fonti Dati</h2>
+    </div>
+
+    <div class="comparison">
+      <div class="card card-accent">
+        <div class="card-title"><span class="icon">&#128196;</span> Fantagazzetta (Quotazioni)</div>
+        <p>File Excel caricato dal SuperAdmin con i dati anagrafici e le quotazioni dei giocatori.</p>
+        <div class="formula">
+          <span class="label">Modello DB</span>
+          SerieAPlayer
+        </div>
+        <p><strong>Dati:</strong> Nome, squadra, ruolo, quotazione, ID interno</p>
+        <p><strong>Frequenza:</strong> A ogni sessione di mercato</p>
+      </div>
+      <div class="card card-primary">
+        <div class="card-title"><span class="icon">&#9917;</span> API Football (Statistiche)</div>
+        <p>Provider api-sports.io (v3) per statistiche in tempo reale dei giocatori.</p>
+        <div class="formula">
+          <span class="label">Link nel DB</span>
+          SerieAPlayer.apiFootballId
+        </div>
+        <p><strong>Dati:</strong> Presenze, gol, assist, voto medio, cartellini, etc.</p>
+        <p><strong>Lega:</strong> Serie A (ID 135), Stagione 2025</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: Algoritmo di Matching -->
+  <section id="s2" class="section">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <h2>Algoritmo di Matching</h2>
+    </div>
+
+    <p>Il matching associa i giocatori del DB (Fantagazzetta) ai giocatori di API Football tramite il nome. Non esiste un ID comune tra le due fonti.</p>
+
+    <h3>Livelli di Matching</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Livello</th>
+            <th>Strategia</th>
+            <th>Confidenza</th>
+            <th>Auto-match</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="val">1</td>
+            <td>Match esatto nome completo</td>
+            <td><span class="tag tag-green">HIGH</span></td>
+            <td>Si (se unico)</td>
+          </tr>
+          <tr>
+            <td class="val">2</td>
+            <td>Match esatto cognome</td>
+            <td><span class="tag tag-green">HIGH</span></td>
+            <td>Si (se unico)</td>
+          </tr>
+          <tr>
+            <td class="val">3</td>
+            <td>Match su parte del nome</td>
+            <td><span class="tag tag-green">HIGH</span></td>
+            <td>Si (se unico)</td>
+          </tr>
+          <tr>
+            <td class="val">4</td>
+            <td>Match parziale inclusione cognome</td>
+            <td><span class="tag tag-gold">MEDIUM</span></td>
+            <td>Si (se unico)</td>
+          </tr>
+          <tr>
+            <td class="val">5</td>
+            <td>Levenshtein distance &le; 20%</td>
+            <td><span class="tag tag-red">LOW</span></td>
+            <td>Si (se unico)</td>
+          </tr>
+          <tr>
+            <td class="val">6</td>
+            <td>Match multipli (ambiguo)</td>
+            <td><span class="tag tag-blue">&mdash;</span></td>
+            <td>No &rarr; SuperAdmin</td>
+          </tr>
+          <tr>
+            <td class="val">7</td>
+            <td>Nessun match</td>
+            <td><span class="tag tag-red">NONE</span></td>
+            <td>No &rarr; SuperAdmin</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Strategy A: Match Esatto (Livelli 1-2)</h3>
+    <div class="example">
+      <div class="example-header">&#128161; Esempio</div>
+      <div class="example-body">
+        <div class="formula">
+          <span class="label">Confronto</span>
+          DB: "<span class="highlight">Morata</span>" &rarr; normalize &rarr; "morata"<br>
+          API: "<span class="highlight">Morata</span>" &rarr; normalize &rarr; "morata"<br>
+          &rarr; Match esatto cognome: <span class="success">AUTO</span>
+        </div>
+        <p>Confronta nome completo normalizzato E cognome estratto. Se esattamente 1 match nella squadra &rarr; auto-match.</p>
+      </div>
+    </div>
+
+    <h3>Strategy B: Match Parziale Cognome (Livello 4)</h3>
+    <div class="example">
+      <div class="example-header">&#128161; Esempio</div>
+      <div class="example-body">
+        <div class="formula">
+          <span class="label">Inclusione</span>
+          DB: "Di Lorenzo" &rarr; lastName &rarr; "<span class="highlight">lorenzo</span>"<br>
+          API: "Giovanni Di Lorenzo" &rarr; lastName &rarr; "<span class="highlight">lorenzo</span>"<br>
+          &rarr; "lorenzo".includes("lorenzo"): <span class="success">MATCH</span>
+        </div>
+        <p>Verifica se un cognome contiene l'altro (o viceversa). Utile per abbreviazioni o nomi composti.</p>
+      </div>
+    </div>
+
+    <h3>Strategy C: Name-Part Match (Livello 3)</h3>
+    <div class="example">
+      <div class="example-header">&#128161; Esempio</div>
+      <div class="example-body">
+        <div class="formula">
+          <span class="label">Parti del nome</span>
+          DB: "<span class="highlight">Morata</span>" &rarr; parts &rarr; ["morata"]<br>
+          API: "Alvaro <span class="highlight">Morata</span>" &rarr; parts &rarr; ["alvaro", "morata"]<br>
+          &rarr; "morata" in apiParts: <span class="success">MATCH</span>
+        </div>
+        <p>Divide entrambi i nomi in parti (&ge; 3 caratteri). Se una parte del DB compare nelle parti API e c'e un solo match &rarr; auto-match.</p>
+      </div>
+    </div>
+
+    <h3>Strategy D: Levenshtein (Livello 5)</h3>
+    <div class="example">
+      <div class="example-header">&#128161; Esempio</div>
+      <div class="example-body">
+        <div class="formula">
+          <span class="label">Distanza di editing</span>
+          DB: "Ronalod" &rarr; lastName &rarr; "ronalod"<br>
+          API: "Ronaldo" &rarr; lastName &rarr; "ronaldo"<br>
+          &rarr; distance = 2, maxLen = 7, ratio = 28% &gt; 20%: NO MATCH
+        </div>
+        <p>Soglia conservativa al 20% (i proposals usano il 30%). Solo se esattamente 1 match &rarr; auto-match.</p>
+      </div>
+    </div>
+
+    <h3>Normalizzazione Nomi</h3>
+    <div class="card">
+      <p>La funzione <code>normalizeName()</code> esegue:</p>
+      <div class="scenario">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-label">Lowercase</div>
+            <div class="step-desc">"&Aacute;lvaro" &rarr; "&aacute;lvaro"</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-label">Rimozione diacritici</div>
+            <div class="step-desc">"&aacute;lvaro" &rarr; "alvaro" (NFD + strip combining marks)</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-label">Solo lettere e spazi</div>
+            <div class="step-desc">"o'brien" &rarr; "obrien"</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-label">Trim spazi</div>
+            <div class="step-desc">" alvaro " &rarr; "alvaro"</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: Persistenza Match -->
+  <section id="s3" class="section">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <h2>Persistenza Match</h2>
+    </div>
+
+    <div class="card card-success">
+      <div class="card-title"><span class="icon">&#128190;</span> Match Automatici</div>
+      <p>Salvati immediatamente in <code>SerieAPlayer.apiFootballId</code>.</p>
+      <p>Ai run successivi, i giocatori gia matchati vengono skippati. Se un API Football ID e gia assegnato ad un altro giocatore, viene skippato (unique constraint).</p>
+    </div>
+
+    <div class="card card-primary">
+      <div class="card-title"><span class="icon">&#128100;</span> Match Manuali</div>
+      <p>Il SuperAdmin seleziona il match corretto dalla UI dei proposals.</p>
+      <p>Salvato tramite <code>manualMatch()</code>. Permanente: non viene sovrascritto da run automatici successivi.</p>
+    </div>
+
+    <div class="card card-accent">
+      <div class="card-title"><span class="icon">&#128270;</span> Match Proposals (UI Assistita)</div>
+      <p>Per giocatori ambigui o senza match, il sistema genera proposals con confidenza HIGH/MEDIUM/LOW/NONE.</p>
+      <p>Il SuperAdmin conferma o cerca manualmente il giocatore API tramite la funzione di ricerca.</p>
+    </div>
+  </section>
+
+  <!-- SECTION 4: Campi Statistiche -->
+  <section id="s4" class="section">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <h2>Campi Statistiche Sincronizzati</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Campo DB</th>
+            <th>Campo API Football</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="primary">appearances</td><td>games.appearences</td><td>Presenze totali</td></tr>
+          <tr><td class="primary">minutes</td><td>games.minutes</td><td>Minuti giocati</td></tr>
+          <tr><td class="primary">rating</td><td>games.rating</td><td>Voto medio</td></tr>
+          <tr><td class="primary">goals</td><td>goals.total</td><td>Gol segnati</td></tr>
+          <tr><td class="primary">assists</td><td>goals.assists</td><td>Assist</td></tr>
+          <tr><td class="primary">goalsConceded</td><td>goals.conceded</td><td>Gol subiti (portieri)</td></tr>
+          <tr><td class="primary">saves</td><td>goals.saves</td><td>Parate (portieri)</td></tr>
+          <tr><td class="primary">yellowCards</td><td>cards.yellow</td><td>Cartellini gialli</td></tr>
+          <tr><td class="primary">redCards</td><td>cards.red</td><td>Cartellini rossi</td></tr>
+          <tr><td class="primary">shotsTotal</td><td>shots.total</td><td>Tiri totali</td></tr>
+          <tr><td class="primary">shotsOnTarget</td><td>shots.on</td><td>Tiri in porta</td></tr>
+          <tr><td class="primary">passAccuracy</td><td>passes.accuracy</td><td>% precisione passaggi</td></tr>
+          <tr><td class="primary">dribbleSuccess</td><td>dribbles.success</td><td>Dribbling riusciti</td></tr>
+          <tr><td class="primary">tacklesTotal</td><td>tackles.total</td><td>Contrasti</td></tr>
+          <tr><td class="primary">interceptions</td><td>tackles.interceptions</td><td>Intercettazioni</td></tr>
+          <tr><td class="primary">duelsWon</td><td>duels.won</td><td>Duelli vinti</td></tr>
+          <tr><td class="primary">foulsCommitted</td><td>fouls.committed</td><td>Falli commessi</td></tr>
+          <tr><td class="primary">penaltyScored</td><td>penalty.scored</td><td>Rigori segnati</td></tr>
+          <tr><td class="primary">penaltyMissed</td><td>penalty.missed</td><td>Rigori sbagliati</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SECTION 5: Flusso Operativo -->
+  <section id="s5" class="section">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <h2>Flusso Operativo SuperAdmin</h2>
+    </div>
+
+    <h3>Pipeline Completa</h3>
+
+    <div class="flow">
+      <div class="flow-item">
+        <span class="phase">STEP 1</span>
+        <span><strong>CACHE</strong> &mdash; Refresh cache squadre API Football (scarica rose aggiornate)</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase">STEP 2</span>
+        <span><strong>MATCH</strong> &mdash; Matching automatico (Strategy A &rarr; B &rarr; C &rarr; D)</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase">STEP 3</span>
+        <span><strong>PROPOSALS</strong> &mdash; Gestione ambigui e non trovati (UI SuperAdmin)</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase">STEP 4</span>
+        <span><strong>SYNC STATS</strong> &mdash; Sincronizza statistiche stagione corrente</span>
+      </div>
+    </div>
+
+    <h3>Frequenza Consigliata</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Operazione</th>
+            <th>Quando</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Cache refresh</td><td>A inizio stagione + dopo mercato invernale</td></tr>
+          <tr><td>Match automatico</td><td>Dopo ogni cache refresh</td></tr>
+          <tr><td>Match manuale</td><td>Dopo ogni match automatico (per risolvere ambigui)</td></tr>
+          <tr><td>Sync statistiche</td><td>Settimanalmente durante la stagione</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Limiti API</h3>
+
+    <div class="alert alert-accent">
+      <span class="alert-icon">&#9888;</span>
+      <div>
+        <strong>Piano Free: 100 chiamate/giorno</strong><br>
+        Cache refresh: ~20 call | Match: 0 call (usa cache) | Sync stats: ~30 call<br>
+        <strong>Totale pipeline completa: ~50 call</strong>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: Gestione Errori -->
+  <section id="s6" class="section">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <h2>Gestione Errori</h2>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">&#128273;</span> API Key Non Configurata</div>
+      <p>Messaggio: "API_FOOTBALL_KEY non configurata"</p>
+      <p>Soluzione: Impostare la variabile d'ambiente <code>API_FOOTBALL_KEY</code> nel server.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">&#9203;</span> Rate Limiting</div>
+      <p>Delay di 100ms tra le chiamate alle squadre. Se il piano API viene superato, la chiamata fallisce con errore HTTP.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">&#10067;</span> Giocatori Non Matchabili</div>
+      <p>Giocatori con nomi molto diversi tra le due fonti (soprannomi), o nuovi non ancora nelle rose API Football.</p>
+      <p><strong>Soluzione:</strong> Match manuale via UI SuperAdmin con funzione di ricerca.</p>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

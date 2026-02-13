@@ -42,12 +42,12 @@ export function NumberStepper({
 
   const sizeClasses = {
     sm: {
-      button: 'w-8 h-8 text-lg',
+      button: 'w-8 h-8 text-lg min-h-[44px] min-w-[44px]',
       value: 'text-lg min-w-[3rem]',
       container: 'gap-2',
     },
     md: {
-      button: 'w-10 h-10 text-xl',
+      button: 'w-10 h-10 text-xl min-h-[44px] min-w-[44px]',
       value: 'text-xl min-w-[4rem]',
       container: 'gap-3',
     },

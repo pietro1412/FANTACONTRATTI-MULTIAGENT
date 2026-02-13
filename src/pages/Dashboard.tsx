@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { leagueApi, superadminApi } from '../services/api'
+import { leagueApi, superadminApi, movementApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
 import { SearchLeaguesModal } from '../components/SearchLeaguesModal'
+import { SkeletonCard } from '../components/ui/Skeleton'
 
 interface DashboardProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
@@ -27,6 +28,17 @@ interface LeagueData {
   league: League
 }
 
+function getTimeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'ora'
+  if (mins < 60) return `${mins}m fa`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h fa`
+  const days = Math.floor(hours / 24)
+  return `${days}g fa`
+}
+
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'In preparazione',
   ACTIVE: 'Attiva',
@@ -44,6 +56,20 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [showSearchModal, setShowSearchModal] = useState(false)
   const [cancellingLeagueId, setCancellingLeagueId] = useState<string | null>(null)
+
+  // T-022: Activity feed
+  interface ActivityItem {
+    id: string
+    type: string
+    playerName: string
+    playerPosition: string
+    fromUser: string | null
+    toUser: string | null
+    price: number | null
+    createdAt: string
+    leagueName: string
+  }
+  const [activities, setActivities] = useState<ActivityItem[]>([])
 
   async function handleCancelRequest(e: React.MouseEvent, leagueId: string) {
     e.stopPropagation()
@@ -85,20 +111,47 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   async function loadLeagues() {
     const response = await leagueApi.getAll()
     if (response.success && response.data) {
-      setLeagues(response.data as LeagueData[])
+      const leagueData = response.data as LeagueData[]
+      setLeagues(leagueData)
+
+      // T-022: Load recent activity from active leagues
+      const activeLeagues = leagueData.filter(l => l.membership.status === 'ACTIVE')
+      if (activeLeagues.length > 0) {
+        const movementPromises = activeLeagues.slice(0, 3).map(async ({ league }) => {
+          const res = await movementApi.getLeagueMovements(league.id, { limit: 5 })
+          if (res.success && res.data) {
+            const movements = (res.data as { movements: Array<{ id: string; type: string; player: { name: string; position: string }; from: { username: string } | null; to: { username: string } | null; price: number | null; createdAt: string }> }).movements || []
+            return movements.map(m => ({
+              id: m.id,
+              type: m.type,
+              playerName: m.player.name,
+              playerPosition: m.player.position,
+              fromUser: m.from?.username || null,
+              toUser: m.to?.username || null,
+              price: m.price,
+              createdAt: m.createdAt,
+              leagueName: league.name,
+            }))
+          }
+          return []
+        })
+        const allMovements = (await Promise.all(movementPromises)).flat()
+        allMovements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        setActivities(allMovements.slice(0, 10))
+      }
     }
     setIsLoading(false)
   }
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="dashboard" onNavigate={onNavigate} />
 
       {/* Main content */}
-      <main className="max-w-[1600px] mx-auto px-6 py-10">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h2 className="text-3xl font-bold text-white mb-1">Le mie Leghe</h2>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1">Le mie Leghe</h2>
             <p className="text-gray-400">
               {isSuperAdmin ? 'Sei un superadmin - usa il pannello di controllo per gestire la piattaforma' : 'Gestisci le tue leghe fantasy'}
             </p>
@@ -119,31 +172,68 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         </div>
 
         {isLoading ? (
-          <div className="text-center py-20">
-            <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto"></div>
-            <p className="mt-6 text-lg text-gray-400">Caricamento leghe...</p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
           </div>
         ) : leagues.length === 0 ? (
-          <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-16 text-center">
+          <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-8 sm:p-16 text-center">
             <div className="w-24 h-24 rounded-full bg-surface-300 flex items-center justify-center mx-auto mb-6">
               <span className="text-5xl">{isSuperAdmin ? '🛡️' : '🏆'}</span>
             </div>
             <h3 className="text-2xl font-bold text-white mb-3">
-              {isSuperAdmin ? 'Nessuna lega da visualizzare' : 'Nessuna lega ancora'}
+              {isSuperAdmin ? 'Nessuna lega da visualizzare' : 'Benvenuto su Fantacontratti!'}
             </h3>
             <p className="text-lg text-gray-400 mb-8 max-w-md mx-auto">
               {isSuperAdmin
                 ? 'Come superadmin, puoi gestire la piattaforma dal pannello di controllo. Non partecipi direttamente alle leghe.'
-                : 'Non sei ancora membro di nessuna lega. Crea la tua prima lega e inizia a competere!'}
+                : 'Inizia la tua avventura dynasty in 3 semplici passi.'}
             </p>
+
             {isSuperAdmin ? (
               <Button size="xl" onClick={() => onNavigate('superadmin')}>
                 Vai al Pannello di Controllo
               </Button>
             ) : (
-              <Button size="xl" onClick={() => onNavigate('create-league')}>
-                Crea la tua prima lega
-              </Button>
+              <>
+                {/* T-019: Onboarding steps */}
+                <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
+                  <div className="bg-surface-300 rounded-xl p-5 border border-surface-50/20">
+                    <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center mx-auto mb-3">
+                      <span className="text-lg font-bold text-primary-400">1</span>
+                    </div>
+                    <h4 className="font-semibold text-white text-sm mb-1">Crea o Cerca</h4>
+                    <p className="text-xs text-gray-400">Crea una nuova lega o cerca una lega esistente a cui unirti</p>
+                  </div>
+                  <div className="bg-surface-300 rounded-xl p-5 border border-surface-50/20">
+                    <div className="w-10 h-10 rounded-full bg-accent-500/20 flex items-center justify-center mx-auto mb-3">
+                      <span className="text-lg font-bold text-accent-400">2</span>
+                    </div>
+                    <h4 className="font-semibold text-white text-sm mb-1">Invita Amici</h4>
+                    <p className="text-xs text-gray-400">Invita i tuoi amici a unirsi alla lega per competere insieme</p>
+                  </div>
+                  <div className="bg-surface-300 rounded-xl p-5 border border-surface-50/20">
+                    <div className="w-10 h-10 rounded-full bg-secondary-500/20 flex items-center justify-center mx-auto mb-3">
+                      <span className="text-lg font-bold text-secondary-400">3</span>
+                    </div>
+                    <h4 className="font-semibold text-white text-sm mb-1">Inizia l'Asta</h4>
+                    <p className="text-xs text-gray-400">L'admin avvia l'asta e tutti competono per costruire la rosa</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button size="xl" onClick={() => onNavigate('create-league')}>
+                    <span className="mr-2">+</span> Crea la tua prima lega
+                  </Button>
+                  <Button size="xl" variant="outline" onClick={() => setShowSearchModal(true)}>
+                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Cerca Lega Esistente
+                  </Button>
+                </div>
+              </>
             )}
           </div>
         ) : (
@@ -227,11 +317,54 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                         <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
                           {isPending ? 'Stato' : 'Budget'}
                         </p>
-                        <p className={`text-base font-bold ${isPending ? 'text-amber-400' : 'text-accent-400'}`}>
-                          {isPending ? 'In attesa' : membership.currentBudget}
-                        </p>
+                        {isPending ? (
+                          <p className="text-base font-bold text-amber-400">In attesa</p>
+                        ) : (
+                          <div>
+                            <p className={`text-base font-bold ${
+                              membership.currentBudget > 200 ? 'text-secondary-400' :
+                              membership.currentBudget > 50 ? 'text-accent-400' : 'text-danger-400'
+                            }`}>
+                              {membership.currentBudget}M
+                            </p>
+                            {/* T-011: Budget progress bar */}
+                            <div className="mt-2 h-1.5 bg-surface-400 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${
+                                  membership.currentBudget > 200 ? 'bg-secondary-400' :
+                                  membership.currentBudget > 50 ? 'bg-accent-400' : 'bg-danger-400'
+                                }`}
+                                style={{ width: `${Math.min(100, Math.max(5, (membership.currentBudget / 500) * 100))}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
+
+                    {/* T-010: Quick action buttons */}
+                    {!isPending && !isSuperAdmin && league.status === 'ACTIVE' && (
+                      <div className="flex gap-2 mb-4">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onNavigate('rose', { leagueId: league.id }) }}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-surface-300 hover:bg-surface-100 text-gray-300 hover:text-white text-xs font-medium transition-colors border border-surface-50/20"
+                        >
+                          <span>📋</span> Rosa
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onNavigate('contracts', { leagueId: league.id }) }}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-surface-300 hover:bg-surface-100 text-gray-300 hover:text-white text-xs font-medium transition-colors border border-surface-50/20"
+                        >
+                          <span>📝</span> Contratti
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onNavigate('financials', { leagueId: league.id }) }}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-surface-300 hover:bg-surface-100 text-gray-300 hover:text-white text-xs font-medium transition-colors border border-surface-50/20"
+                        >
+                          <span>💰</span> Finanze
+                        </button>
+                      </div>
+                    )}
 
                     {isSuperAdmin ? (
                       <p className="text-center text-gray-500 text-sm">
@@ -255,6 +388,40 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 </div>
               )
             })}
+          </div>
+        )}
+
+        {/* T-022: Activity Feed */}
+        {activities.length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-lg font-bold text-white mb-4">Attivita Recente</h3>
+            <div className="bg-surface-200 rounded-xl border border-surface-50/20 divide-y divide-surface-50/10">
+              {activities.map(activity => {
+                const timeAgo = getTimeAgo(activity.createdAt)
+                const typeIcon = activity.type === 'ACQUISITION' ? '🔨' :
+                  activity.type === 'TRADE' ? '🔄' :
+                  activity.type === 'RUBATA' ? '🎯' :
+                  activity.type === 'RELEASE' ? '📤' : '📋'
+
+                return (
+                  <div key={activity.id} className="px-4 py-3 flex items-center gap-3">
+                    <span className="text-base flex-shrink-0">{typeIcon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white truncate">
+                        <span className="font-medium">{activity.playerName}</span>
+                        {activity.toUser && (
+                          <span className="text-gray-400"> → {activity.toUser}</span>
+                        )}
+                        {activity.price != null && (
+                          <span className="text-accent-400 ml-1">{activity.price}M</span>
+                        )}
+                      </p>
+                      <p className="text-[10px] text-gray-500">{activity.leagueName} · {timeAgo}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
       </main>

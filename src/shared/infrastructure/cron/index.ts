@@ -16,3 +16,12 @@ export {
   getAuctionTimerJobStatus,
   AUCTION_TIMER_JOB_NAME,
 } from './auction-timer-job'
+
+// API-Football Sync Job
+export {
+  registerApiFootballSyncJob,
+  startApiFootballSyncJob,
+  stopApiFootballSyncJob,
+  getApiFootballSyncJobStatus,
+  API_FOOTBALL_SYNC_JOB_NAME,
+} from './api-football-sync-job'

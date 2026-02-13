@@ -39,9 +39,25 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     const players = await getPlayers(filters)
 
+    // Enrich with mini-stats from apiFootballStats JSON blob
+    const enrichedPlayers = players.map((p: Record<string, unknown>) => {
+      const stats = p.apiFootballStats as {
+        games?: { appearences?: number; rating?: number }
+        goals?: { total?: number; assists?: number }
+      } | null | undefined
+
+      return {
+        ...p,
+        appearances: stats?.games?.appearences ?? null,
+        goals: stats?.goals?.total ?? null,
+        assists: stats?.goals?.assists ?? null,
+        avgRating: stats?.games?.rating ? Math.round(stats.games.rating * 10) / 10 : null,
+      }
+    })
+
     res.json({
       success: true,
-      data: players,
+      data: enrichedPlayers,
     })
   } catch (error) {
     console.error('Get players error:', error)
@@ -174,6 +190,57 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
     })
   } catch (error) {
     console.error('Get player stats error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/players/:apiFootballId/match-history - Get player match history
+router.get('/:apiFootballId/match-history', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const apiFootballId = parseInt(req.params.apiFootballId)
+
+    if (isNaN(apiFootballId)) {
+      res.status(400).json({ success: false, message: 'apiFootballId non valido' })
+      return
+    }
+
+    // Find the player by apiFootballId
+    const player = await prisma.serieAPlayer.findFirst({
+      where: { apiFootballId },
+      select: { id: true },
+    })
+
+    if (!player) {
+      res.status(404).json({ success: false, message: 'Giocatore non trovato' })
+      return
+    }
+
+    const matches = await prisma.playerMatchRating.findMany({
+      where: { playerId: player.id },
+      orderBy: { matchDate: 'desc' },
+      select: {
+        matchDate: true,
+        round: true,
+        rating: true,
+        minutesPlayed: true,
+        goals: true,
+        assists: true,
+      },
+    })
+
+    res.json({
+      success: true,
+      data: matches.map(m => ({
+        matchDate: m.matchDate.toISOString().split('T')[0],
+        round: m.round ?? '',
+        rating: m.rating,
+        minutesPlayed: m.minutesPlayed ?? 0,
+        goals: m.goals ?? 0,
+        assists: m.assists ?? 0,
+      })),
+    })
+  } catch (error) {
+    console.error('Get player match history error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

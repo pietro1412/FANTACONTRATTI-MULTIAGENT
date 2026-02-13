@@ -68,7 +68,7 @@ export function DurationSlider({
                 key={mark}
                 onClick={() => handleChange(mark)}
                 disabled={disabled}
-                className={`text-xs font-medium transition-colors ${
+                className={`text-xs font-medium transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${
                   value === mark
                     ? 'text-primary-400'
                     : 'text-gray-500 hover:text-gray-300'
@@ -124,7 +124,7 @@ export function DurationSliderCompact({
       <button
         onClick={() => handleChange(value - 1)}
         disabled={disabled || value <= min || (!canDecrease && value <= min)}
-        className="w-8 h-8 flex items-center justify-center rounded bg-surface-300 text-white font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-surface-100 transition-colors min-h-[44px]"
+        className="w-8 h-8 flex items-center justify-center rounded bg-surface-300 text-white font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-surface-100 transition-colors min-h-[44px] min-w-[44px]"
         aria-label="Riduci durata"
       >
         −
@@ -135,7 +135,7 @@ export function DurationSliderCompact({
       <button
         onClick={() => handleChange(value + 1)}
         disabled={disabled || value >= max}
-        className="w-8 h-8 flex items-center justify-center rounded bg-surface-300 text-white font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-surface-100 transition-colors min-h-[44px]"
+        className="w-8 h-8 flex items-center justify-center rounded bg-surface-300 text-white font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-surface-100 transition-colors min-h-[44px] min-w-[44px]"
         aria-label="Aumenta durata"
       >
         +

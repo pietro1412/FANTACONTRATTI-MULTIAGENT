@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fantacontratti - UI Review Mockup Visivi</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--bg:#0a0a0b;--card:#1a1c20;--s50:#2d3139;--s100:#252830;--s200:#1a1c20;--s300:#111214;
+--pri:#3b82f6;--pri2:#2563eb;--sec:#22c55e;--sec2:#16a34a;--acc:#f59e0b;--acc2:#d97706;
+--danger:#ef4444;--danger2:#dc2626;
+--txt:#f3f4f6;--txt2:#9ca3af;--txtd:#6b7280;--brd:rgba(42,49,66,0.2);
+--shadow:0 4px 20px rgba(0,0,0,0.4);--glow-b:0 0 20px rgba(59,130,246,0.3);--glow-g:0 0 20px rgba(245,158,11,0.3);
+--radius:0.75rem;--radius-sm:0.5rem;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);line-height:1.6;overflow-x:hidden}
+h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
+.stat-num{font-family:'Oswald',sans-serif}
+
+/* Layout */
+.page-wrap{display:flex;min-height:100vh}
+.sidebar{position:fixed;top:0;left:0;width:260px;height:100vh;background:var(--s300);border-right:1px solid var(--brd);overflow-y:auto;z-index:100;transition:transform .3s}
+.sidebar-hdr{padding:20px;border-bottom:1px solid var(--brd)}
+.sidebar-hdr h2{font-size:1.1rem;background:linear-gradient(135deg,var(--pri),var(--acc));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sidebar-hdr p{font-size:.75rem;color:var(--txt2);margin-top:4px}
+.sidebar nav{padding:8px}
+.sidebar nav a{display:block;padding:10px 16px;color:var(--txt2);text-decoration:none;font-size:.82rem;border-radius:var(--radius-sm);margin:2px 0;transition:all .2s}
+.sidebar nav a:hover,.sidebar nav a.active{background:var(--s50);color:var(--txt)}
+.sidebar nav a .num{display:inline-block;width:22px;height:22px;text-align:center;line-height:22px;background:var(--s50);border-radius:50%;font-size:.7rem;margin-right:8px;font-weight:600}
+
+.main{margin-left:260px;flex:1;padding:32px 40px}
+
+/* Mobile sidebar toggle */
+.sidebar-toggle{display:none;position:fixed;top:12px;left:12px;z-index:200;width:40px;height:40px;background:var(--card);border:1px solid var(--brd);border-radius:var(--radius-sm);color:var(--txt);font-size:1.2rem;cursor:pointer;align-items:center;justify-content:center}
+
+@media(max-width:900px){
+.sidebar{transform:translateX(-100%)}
+.sidebar.open{transform:translateX(0)}
+.sidebar-toggle{display:flex}
+.main{margin-left:0;padding:20px 16px;padding-top:60px}
+}
+
+/* Header */
+.page-header{text-align:center;padding:40px 0 32px;border-bottom:1px solid var(--brd);margin-bottom:40px}
+.page-header h1{font-size:2.2rem;font-weight:800;margin-bottom:8px}
+.page-header h1 span{background:linear-gradient(135deg,var(--pri),var(--acc));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.page-header p{color:var(--txt2);font-size:1rem}
+.badge-count{display:inline-block;padding:4px 14px;background:linear-gradient(135deg,var(--pri),var(--pri2));border-radius:20px;font-size:.8rem;font-weight:600;margin-top:12px}
+
+/* Section */
+.section{margin-bottom:56px;scroll-margin-top:24px}
+.section-title{font-size:1.5rem;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.section-title .tag{font-size:.7rem;padding:4px 10px;border-radius:20px;font-weight:600;font-family:'Inter',sans-serif}
+.tag-pattern{background:rgba(59,130,246,0.15);color:var(--pri)}
+.tag-layout{background:rgba(34,197,94,0.15);color:var(--sec)}
+.tag-a11y{background:rgba(245,158,11,0.15);color:var(--acc)}
+.motivation{color:var(--txt2);font-size:.9rem;margin-bottom:20px;padding:12px 16px;background:var(--s300);border-left:3px solid var(--pri);border-radius:0 var(--radius-sm) var(--radius-sm) 0}
+
+/* Before/After grid */
+.ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:900px){.ba-grid{grid-template-columns:1fr}}
+.ba-col{border-radius:var(--radius);overflow:hidden;background:var(--card);box-shadow:var(--shadow);min-width:0}
+.ba-label{padding:10px 16px;font-weight:700;font-size:.85rem;font-family:'Outfit',sans-serif;text-transform:uppercase;letter-spacing:1px}
+.ba-col.before .ba-label{background:linear-gradient(135deg,var(--danger),var(--danger2));color:#fff}
+.ba-col.after .ba-label{background:linear-gradient(135deg,var(--sec),var(--sec2));color:#fff}
+.ba-body{padding:16px;min-height:180px}
+
+/* Inner mock components */
+.mock-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.mock-table th{background:var(--s50);padding:8px 10px;text-align:left;font-weight:600;color:var(--txt2);border-bottom:1px solid var(--brd)}
+.mock-table td{padding:8px 10px;border-bottom:1px solid var(--brd);color:var(--txt)}
+.mock-table tr:hover td{background:rgba(59,130,246,0.05)}
+
+.hidden-col{position:relative;opacity:.25}
+.hidden-col::after{content:'NASCOSTO';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--danger);color:#fff;font-size:.6rem;padding:2px 6px;border-radius:4px;font-weight:700;white-space:nowrap}
+
+.pos-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:700;font-family:'Oswald',sans-serif;min-width:24px;text-align:center}
+.pos-P{background:linear-gradient(135deg,#f59e0b,#d97706);color:#000}
+.pos-D{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff}
+.pos-C{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff}
+.pos-A{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff}
+
+.player-card{background:var(--s100);border:1px solid var(--brd);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px}
+.player-card-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.player-card .name{font-weight:600;font-size:.9rem}
+.player-card .team{color:var(--txt2);font-size:.75rem}
+.player-card .stats-row{display:flex;gap:12px;flex-wrap:wrap}
+.player-card .stat{font-size:.75rem;color:var(--txt2)}
+.player-card .stat strong{color:var(--txt);font-family:'Oswald',sans-serif}
+.expand-btn{font-size:.7rem;color:var(--pri);cursor:pointer;border:none;background:none;padding:4px 0;font-family:'Inter',sans-serif}
+.expand-detail{margin-top:8px;padding-top:8px;border-top:1px solid var(--brd);display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:.73rem;color:var(--txt2)}
+
+.code-block{background:#0d1117;border:1px solid #21262d;border-radius:var(--radius-sm);padding:14px;font-family:'Fira Code',monospace,monospace;font-size:.72rem;color:#c9d1d9;overflow-x:auto;max-height:300px;overflow-y:auto;line-height:1.5}
+.code-block .kw{color:#ff7b72}
+.code-block .str{color:#a5d6ff}
+.code-block .cm{color:#8b949e}
+.code-block .fn{color:#d2a8ff}
+.code-block .tag{color:#7ee787;background:none;padding:0;border-radius:0;font-weight:400}
+.code-block .attr{color:#79c0ff}
+
+.file-tree{font-size:.8rem;font-family:'Fira Code',monospace,monospace}
+.file-tree .dir{color:var(--pri);font-weight:600}
+.file-tree .file{color:var(--txt);padding:3px 0 3px 20px;display:flex;align-items:center;gap:8px}
+.file-tree .file.bad{color:var(--danger)}
+.file-tree .file.good{color:var(--sec)}
+.file-tree .lines{font-size:.7rem;padding:2px 8px;border-radius:10px;font-family:'Oswald',sans-serif}
+.file-tree .lines.bad{background:rgba(239,68,68,0.15);color:var(--danger)}
+.file-tree .lines.good{background:rgba(34,197,94,0.15);color:var(--sec)}
+
+.perf-bar-wrap{margin:10px 0}
+.perf-bar-label{font-size:.8rem;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.perf-bar{height:24px;border-radius:12px;background:var(--s50);overflow:hidden;position:relative}
+.perf-bar-fill{height:100%;border-radius:12px;display:flex;align-items:center;padding-left:10px;font-size:.7rem;font-weight:600;transition:width .5s}
+.perf-bad .perf-bar-fill{background:linear-gradient(90deg,var(--danger),var(--danger2));width:85%}
+.perf-good .perf-bar-fill{background:linear-gradient(90deg,var(--sec),var(--sec2));width:15%}
+
+.empty-basic{text-align:center;padding:40px 20px;color:var(--txtd)}
+.empty-basic .emoji{font-size:2rem;margin-bottom:8px}
+.empty-rich{text-align:center;padding:30px 20px}
+.empty-rich .illust{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(34,197,94,0.1));display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:2rem}
+.empty-rich h4{font-size:1rem;margin-bottom:6px}
+.empty-rich p{color:var(--txt2);font-size:.82rem;margin-bottom:16px;max-width:280px;margin-left:auto;margin-right:auto}
+
+.btn{display:inline-block;padding:8px 20px;border-radius:var(--radius-sm);font-weight:600;font-size:.82rem;border:none;cursor:pointer;text-decoration:none;transition:transform .2s;font-family:'Inter',sans-serif}
+.btn:hover{transform:scale(1.02)}
+.btn-pri{background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;box-shadow:var(--glow-b)}
+.btn-sec{background:linear-gradient(135deg,var(--sec),var(--sec2));color:#fff}
+.btn-acc{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#000}
+.btn-sm{padding:5px 12px;font-size:.75rem}
+
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--txt2);padding:8px 12px;background:var(--s100);border-radius:var(--radius-sm)}
+.breadcrumb span{color:var(--txtd)}
+.breadcrumb a{color:var(--pri);text-decoration:none}
+
+/* Mock phone frame */
+.phone-frame{width:100%;max-width:375px;margin:0 auto;background:var(--s300);border-radius:24px;border:2px solid var(--s50);overflow:hidden;position:relative}
+.phone-notch{width:120px;height:24px;background:var(--s300);border-radius:0 0 16px 16px;margin:0 auto;position:relative;z-index:2}
+.phone-screen{background:var(--bg);min-height:300px;overflow:hidden}
+
+/* Mock tablet frame */
+.tablet-frame{width:100%;max-width:600px;margin:0 auto;background:var(--s300);border-radius:16px;border:2px solid var(--s50);overflow:hidden}
+.tablet-screen{background:var(--bg);min-height:280px;overflow:hidden}
+
+/* Mock desktop frame */
+.desktop-frame{width:100%;min-width:700px;background:var(--s300);border-radius:12px;border:2px solid var(--s50);overflow:hidden}
+.desktop-bar{height:28px;background:var(--s300);display:flex;align-items:center;padding:0 12px;gap:6px}
+.desktop-dot{width:10px;height:10px;border-radius:50%}
+.desktop-dot.r{background:#ef4444}.desktop-dot.y{background:#f59e0b}.desktop-dot.g{background:#22c55e}
+.desktop-screen{background:var(--bg);min-height:300px;overflow:hidden}
+
+/* Scrollable mockup wrapper for wide mockups */
+.ba-body-scroll{padding:16px;min-height:180px;overflow-x:auto}
+
+/* Dashboard mock cards */
+.league-card{background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.league-card h4{font-size:.95rem;margin-bottom:4px}
+.league-card .sub{color:var(--txt2);font-size:.78rem;margin-bottom:12px}
+.league-card .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-box{background:var(--s100);padding:10px;border-radius:var(--radius-sm);text-align:center}
+.stat-box .val{font-family:'Oswald',sans-serif;font-size:1.3rem;font-weight:600}
+.stat-box .lbl{font-size:.7rem;color:var(--txt2);margin-top:2px}
+
+/* Budget bar */
+.budget-bar{margin:10px 0}
+.budget-bar .hdr{display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px}
+.budget-bar .track{height:10px;background:var(--s50);border-radius:6px;overflow:hidden}
+.budget-bar .fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--sec),var(--pri))}
+
+/* Timer */
+.timer-circle{width:100px;height:100px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto}
+.timer-circle .time{font-family:'Oswald',sans-serif;font-size:2rem;font-weight:700}
+.timer-circle .label{font-size:.7rem;font-weight:600;margin-top:2px}
+.timer-green{border:4px solid var(--sec);color:var(--sec);box-shadow:0 0 20px rgba(34,197,94,0.3)}
+.timer-yellow{border:4px solid var(--acc);color:var(--acc);box-shadow:0 0 20px rgba(245,158,11,0.3)}
+.timer-red{border:4px solid var(--danger);color:var(--danger);box-shadow:0 0 20px rgba(239,68,68,0.3)}
+.timer-progbar{height:8px;border-radius:4px;background:var(--s50);overflow:hidden;margin-top:8px}
+.timer-progfill{height:100%}
+.timer-progfill.ok{background:var(--sec);width:75%}
+.timer-progfill.warn{background:var(--acc);width:40%;background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(0,0,0,0.15) 4px,rgba(0,0,0,0.15) 8px)}
+.timer-progfill.crit{background:var(--danger);width:12%;background-image:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(0,0,0,0.2) 3px,rgba(0,0,0,0.2) 6px)}
+
+/* Auction mock */
+.bid-controls{display:flex;gap:8px;align-items:center;padding:12px;background:var(--s300);border-radius:var(--radius-sm)}
+.bid-input{background:var(--s50);border:1px solid var(--brd);border-radius:var(--radius-sm);padding:8px 12px;color:var(--txt);font-family:'Oswald',sans-serif;font-size:1.1rem;width:80px;text-align:center}
+.manager-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--brd);font-size:.8rem}
+.manager-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff}
+
+/* Float to top button */
+.to-top{position:fixed;bottom:24px;right:24px;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2rem;cursor:pointer;box-shadow:var(--glow-b);z-index:150;border:none;transition:transform .2s}
+.to-top:hover{transform:scale(1.1)}
+
+/* Chart mock */
+.chart-mock{display:flex;align-items:flex-end;gap:6px;height:120px;padding:0 8px}
+.chart-bar{flex:1;border-radius:4px 4px 0 0;min-width:16px;position:relative}
+.chart-bar .val{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:.6rem;color:var(--txt2);font-family:'Oswald',sans-serif}
+
+/* Single col layout helper */
+.single-col .ba-grid{grid-template-columns:1fr}
+</style>
+</head>
+<body>
+
+<!-- Sidebar Toggle (mobile) -->
+<button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">&#9776;</button>
+
+<!-- Sidebar -->
+<div class="sidebar">
+<div class="sidebar-hdr">
+<h2>Fantacontratti</h2>
+<p>UI Review - Mockup Visivi</p>
+</div>
+<nav>
+<a href="#s1"><span class="num">1</span>Tabelle Dense</a>
+<a href="#s2"><span class="num">2</span>SVG Inline</a>
+<a href="#s3"><span class="num">3</span>Pagine Monolitiche</a>
+<a href="#s4"><span class="num">4</span>Virtualizzazione</a>
+<a href="#s5"><span class="num">5</span>Empty States</a>
+<a href="#s6"><span class="num">6</span>Breadcrumbs</a>
+<a href="#s7"><span class="num">7</span>Dashboard Mobile</a>
+<a href="#s8"><span class="num">8</span>Dashboard Tablet</a>
+<a href="#s9"><span class="num">9</span>Finanze Mobile</a>
+<a href="#s10"><span class="num">10</span>Finanze Desktop</a>
+<a href="#s11"><span class="num">11</span>Asta Mobile</a>
+<a href="#s12"><span class="num">12</span>Asta Desktop</a>
+<a href="#s13"><span class="num">13</span>Timer A11y</a>
+</nav>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+<!-- Page Header -->
+<div class="page-header">
+<h1><span>Fantacontratti</span></h1>
+<p>UI Review - Mockup Visivi BEFORE / AFTER</p>
+<div class="badge-count">13 Pattern Analizzati</div>
+</div>
+
+<!-- Section 1 -->
+<div class="section" id="s1">
+<h2 class="section-title">1. Tabelle Dense Non Responsive <span class="tag tag-pattern">PATTERN</span></h2>
+<div class="motivation">Su mobile le tabelle con molte colonne nascondono dati tramite <code>hidden lg:table-cell</code>, rendendo inaccessibili informazioni chiave come quotazione, contratto e scadenza.</div>
+<div class="ba-grid">
+<div class="ba-col before">
+<div class="ba-label">Before - Colonne Nascoste su Mobile</div>
+<div class="ba-body" style="overflow-x:auto">
+<div style="max-width:375px;margin:0 auto;background:var(--s300);border-radius:12px;padding:8px;font-size:.75rem">
+<table class="mock-table">
+<thead><tr>
+<th>Ruolo</th><th>Nome</th><th>Squadra</th>
+<th class="hidden-col">Qt.A</th><th class="hidden-col">Qt.I</th><th class="hidden-col">Contratto</th><th class="hidden-col">Scadenza</th><th class="hidden-col">Stipendio</th>
+</tr></thead>
+<tbody>
+<tr><td><span class="pos-badge pos-P">P</span></td><td>Donnarumma</td><td>PSG</td><td class="hidden-col">14</td><td class="hidden-col">18</td><td class="hidden-col">3 anni</td><td class="hidden-col">2027</td><td class="hidden-col">5M</td></tr>
+<tr><td><span class="pos-badge pos-D">D</span></td><td>Bastoni</td><td>Inter</td><td class="hidden-col">12</td><td class="hidden-col">15</td><td class="hidden-col">2 anni</td><td class="hidden-col">2026</td><td class="hidden-col">3M</td></tr>
+<tr><td><span class="pos-badge pos-C">C</span></td><td>Barella</td><td>Inter</td><td class="hidden-col">26</td><td class="hidden-col">30</td><td class="hidden-col">3 anni</td><td class="hidden-col">2028</td><td class="hidden-col">8M</td></tr>
+<tr><td><span class="pos-badge pos-A">A</span></td><td>Lautaro</td><td>Inter</td><td class="hidden-col">32</td><td class="hidden-col">38</td><td class="hidden-col">3 anni</td><td class="hidden-col">2027</td><td class="hidden-col">10M</td></tr>
+</tbody>
+</table>
+<div style="text-align:center;color:var(--danger);font-size:.7rem;margin-top:10px;font-weight:600">5 colonne su 8 nascoste su mobile (62%)</div>
+</div>
+</div>
+</div>
+<div class="ba-col after">
+<div class="ba-label">After - Card Layout Responsive</div>
+<div class="ba-body">
+<div style="max-width:375px;margin:0 auto">
+<div class="player-card">
+<div class="player-card-header"><span class="pos-badge pos-A">A</span><div><div class="name">Lautaro Martinez</div><div class="team">Inter</div></div></div>
+<div class="stats-row"><span class="stat">Qt.A: <strong>32</strong></span><span class="stat">Qt.I: <strong>38</strong></span><span class="stat">Stipendio: <strong>10M</strong></span></div>
+<button class="expand-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='grid'?'none':'grid'">Mostra dettagli</button>
+<div class="expand-detail" style="display:none"><span>Contratto: <strong style="color:var(--txt)">3 anni</strong></span><span>Scadenza: <strong style="color:var(--txt)">2027</strong></span><span>FVM: <strong style="color:var(--txt)">35</strong></span><span>Gol: <strong style="color:var(--txt)">18</strong></span></div>
+</div>
+<div class="player-card">
+<div class="player-card-header"><span class="pos-badge pos-C">C</span><div><div class="name">Nicolo Barella</div><div class="team">Inter</div></div></div>
+<div class="stats-row"><span class="stat">Qt.A: <strong>26</strong></span><span class="stat">Qt.I: <strong>30</strong></span><span class="stat">Stipendio: <strong>8M</strong></span></div>
+<button class="expand-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='grid'?'none':'grid'">Mostra dettagli</button>
+<div class="expand-detail" style="display:none"><span>Contratto: <strong style="color:var(--txt)">3 anni</strong></span><span>Scadenza: <strong style="color:var(--txt)">2028</strong></span><span>FVM: <strong style="color:var(--txt)">28</strong></span><span>Gol: <strong style="color:var(--txt)">7</strong></span></div>
+</div>
+<div class="player-card">
+<div class="player-card-header"><span class="pos-badge pos-D">D</span><div><div class="name">Alessandro Bastoni</div><div class="team">Inter</div></div></div>
+<div class="stats-row"><span class="stat">Qt.A: <strong>12</strong></span><span class="stat">Qt.I: <strong>15</strong></span><span class="stat">Stipendio: <strong>3M</strong></span></div>
+<button class="expand-btn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='grid'?'none':'grid'">Mostra dettagli</button>
+<div class="expand-detail" style="display:none"><span>Contratto: <strong style="color:var(--txt)">2 anni</strong></span><span>Scadenza: <strong style="color:var(--txt)">2026</strong></span><span>FVM: <strong style="color:var(--txt)">14</strong></span><span>Gol: <strong style="color:var(--txt)">2</strong></span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 2 -->
+<div class="section" id="s2">
+<h2 class="section-title">2. SVG Icons Inline <span class="tag tag-pattern">PATTERN</span></h2>
+<div class="motivation">Centinaia di righe di SVG inline copiate nei componenti. Aumenta la dimensione del bundle, rende il codice illeggibile e duplica definizioni identiche su pagine diverse.</div>
+<div class="ba-grid">
+<div class="ba-col before">
+<div class="ba-label">Before - 130+ Righe SVG Inline</div>
+<div class="ba-body">
+<div class="code-block"><span class="cm">{'/* AuctionRoom.tsx - righe 45-175 */'}</span>
+<span class="kw">const</span> icons = (
+  &lt;<span class="tag">svg</span> <span class="attr">xmlns</span>=<span class="str">"http://www.w3.org/2000/svg"</span>
+    <span class="attr">viewBox</span>=<span class="str">"0 0 24 24"</span> <span class="attr">fill</span>=<span class="str">"none"</span>
+    <span class="attr">stroke</span>=<span class="str">"currentColor"</span>
+    <span class="attr">strokeWidth</span>=<span class="str">"2"</span>&gt;
+    &lt;<span class="tag">path</span> <span class="attr">d</span>=<span class="str">"M12 2L2 7l10 5 10-5-10-5z"</span>/&gt;
+    &lt;<span class="tag">path</span> <span class="attr">d</span>=<span class="str">"M2 17l10 5 10-5"</span>/&gt;
+    &lt;<span class="tag">path</span> <span class="attr">d</span>=<span class="str">"M2 12l10 5 10-5"</span>/&gt;
+  &lt;/<span class="tag">svg</span>&gt;
+  &lt;<span class="tag">svg</span> <span class="attr">xmlns</span>=<span class="str">"http://www.w3.org/2000/svg"</span>
+    <span class="attr">viewBox</span>=<span class="str">"0 0 24 24"</span> <span class="attr">fill</span>=<span class="str">"none"</span>&gt;
+    &lt;<span class="tag">circle</span> <span class="attr">cx</span>=<span class="str">"12"</span> <span class="attr">cy</span>=<span class="str">"12"</span>
+      <span class="attr">r</span>=<span class="str">"10"</span>/&gt;
+    &lt;<span class="tag">path</span> <span class="attr">d</span>=<span class="str">"M12 6v6l4 2"</span>/&gt;
+  &lt;/<span class="tag">svg</span>&gt;
+  <span class="cm">{/* ... altre 110 righe ... */}</span>
+  &lt;<span class="tag">svg</span> <span class="attr">viewBox</span>=<span class="str">"0 0 24 24"</span>&gt;
+    &lt;<span class="tag">path</span> <span class="attr">d</span>=<span class="str">"M19 21l-7-5-7 5V5a2 2..."</span>/&gt;
+  &lt;/<span class="tag">svg</span>&gt;
+);
+<span class="cm">{/* Duplicato in 6 file diversi */}</span></div>
+<div style="color:var(--danger);font-size:.75rem;text-align:center;margin-top:8px;font-weight:600">~130 righe di SVG, ripetute in 6 componenti</div>
+</div>
+</div>
+<div class="ba-col after">
+<div class="ba-label">After - Lucide React Icons</div>
+<div class="ba-body">
+<div class="code-block"><span class="kw">import</span> {
+  <span class="fn">Timer</span>,
+  <span class="fn">Users</span>,
+  <span class="fn">Trophy</span>,
+  <span class="fn">Gavel</span>,
+  <span class="fn">TrendingUp</span>,
+  <span class="fn">Wallet</span>,
+  <span class="fn">Shield</span>,
+  <span class="fn">Clock</span>
+} <span class="kw">from</span> <span class="str">'lucide-react'</span>;
+
+<span class="cm">// Utilizzo pulito nel JSX</span>
+&lt;<span class="fn">Timer</span> <span class="attr">size</span>={<span class="str">20</span>} <span class="attr">className</span>=<span class="str">"text-blue-400"</span> /&gt;
+&lt;<span class="fn">Trophy</span> <span class="attr">size</span>={<span class="str">20</span>} <span class="attr">className</span>=<span class="str">"text-amber-400"</span> /&gt;
+&lt;<span class="fn">Gavel</span> <span class="attr">size</span>={<span class="str">20</span>} <span class="attr">className</span>=<span class="str">"text-green-400"</span> /&gt;
+
+<span class="cm">// Tree-shaking automatico</span>
+<span class="cm">// Solo le icone usate nel bundle</span>
+<span class="cm">// ~0.5KB per icona vs ~2KB inline</span></div>
+<div style="color:var(--sec);font-size:.75rem;text-align:center;margin-top:8px;font-weight:600">8 righe di import, 200+ icone disponibili, tree-shaking</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 3 -->
+<div class="section" id="s3">
+<h2 class="section-title">3. Pagine Monolitiche <span class="tag tag-pattern">PATTERN</span></h2>
+<div class="motivation">File singoli da 1500-2000+ righe rendono impossibile la manutenzione, rallentano hot-reload in sviluppo e impediscono code-splitting efficace.</div>
+<div class="ba-grid">
+<div class="ba-col before">
+<div class="ba-label">Before - File Monolitici</div>
+<div class="ba-body">
+<div class="file-tree">
+<div class="dir">src/pages/</div>
+<div class="file bad">Rubata.tsx <span class="lines bad">2.047 righe</span></div>
+<div class="file bad">AdminPanel.tsx <span class="lines bad">1.573 righe</span></div>
+<div class="file bad">AuctionRoom.tsx <span class="lines bad">1.289 righe</span></div>
+<div class="file bad">LeagueFinancials.tsx <span class="lines bad">987 righe</span></div>
+<div class="file bad">Trades.tsx <span class="lines bad">856 righe</span></div>
+<div class="file" style="color:var(--txtd)">Dashboard.tsx <span class="lines" style="background:var(--s50);color:var(--txtd)">423 righe</span></div>
+</div>
+<div style="margin-top:12px;padding:10px;background:rgba(239,68,68,0.08);border-radius:var(--radius-sm);font-size:.75rem;color:var(--danger)">Totale: ~7.175 righe in 6 file. Hot-reload: ~3.2s</div>
+</div>
+</div>
+<div class="ba-col after">
+<div class="ba-label">After - Componenti Decomposti</div>
+<div class="ba-body">
+<div class="file-tree">
+<div class="dir">src/pages/rubata/</div>
+<div class="file good">RubataPage.tsx <span class="lines good">85 righe</span></div>
+<div class="file good">RubataTable.tsx <span class="lines good">120 righe</span></div>
+<div class="file good">RubataPlayerCard.tsx <span class="lines good">95 righe</span></div>
+<div class="file good">RubataFilters.tsx <span class="lines good">78 righe</span></div>
+<div class="file good">useRubataData.ts <span class="lines good">65 righe</span></div>
+<div class="dir" style="margin-top:6px">src/pages/auction/</div>
+<div class="file good">AuctionPage.tsx <span class="lines good">90 righe</span></div>
+<div class="file good">AuctionTimer.tsx <span class="lines good">55 righe</span></div>
+<div class="file good">BidPanel.tsx <span class="lines good">70 righe</span></div>
+<div class="file good">PlayerSlot.tsx <span class="lines good">85 righe</span></div>
+<div class="file good">ManagerList.tsx <span class="lines good">60 righe</span></div>
+</div>
+<div style="margin-top:12px;padding:10px;background:rgba(34,197,94,0.08);border-radius:var(--radius-sm);font-size:.75rem;color:var(--sec)">Max file: 120 righe. Hot-reload: ~0.4s. Lazy-loadable.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 4 -->
+<div class="section" id="s4">
+<h2 class="section-title">4. Mancanza Virtualizzazione <span class="tag tag-pattern">PATTERN</span></h2>
+<div class="motivation">Liste di 500+ giocatori renderizzate interamente nel DOM causano jank durante lo scroll e tempi di rendering elevati, specialmente su dispositivi meno potenti.</div>
+<div class="ba-grid">
+<div class="ba-col before">
+<div class="ba-label">Before - 500 Nodi DOM</div>
+<div class="ba-body">
+<div class="perf-bar-wrap perf-bad">
+<div class="perf-bar-label"><span>Nodi DOM renderizzati</span><span class="stat-num" style="color:var(--danger)">500</span></div>
+<div class="perf-bar"><div class="perf-bar-fill">500 nodi</div></div>
+</div>
+<div class="perf-bar-wrap">
+<div class="perf-bar-label"><span>Frame Rate</span><span class="stat-num" style="color:var(--danger)">~45 fps</span></div>
+<div class="perf-bar"><div class="perf-bar-fill" style="background:linear-gradient(90deg,var(--danger),var(--acc));width:45%">45 fps</div></div>
+</div>
+<div class="perf-bar-wrap">
+<div class="perf-bar-label"><span>Time to Interactive</span><span class="stat-num" style="color:var(--danger)">2.8s</span></div>
+<div class="perf-bar"><div class="perf-bar-fill" style="background:linear-gradient(90deg,var(--danger),var(--danger2));width:70%">2.8s</div></div>
+</div>
+<div style="margin-top:16px;text-align:center">
+<div style="display:flex;gap:2px;justify-content:center;flex-wrap:wrap;max-width:300px;margin:0 auto">
+<span style="display:inline-block;width:6px;height:6px;background:var(--danger);border-radius:1px;opacity:.6" title="DOM node"></span>
+<span style="display:inline-block;width:6px;height:6px;background:var(--danger);border-radius:1px;opacity:.6"></span>
+<span style="display:inline-block;width:6px;height:6px;background:var(--danger);border-radius:1px;opacity:.6"></span>
+<span style="display:inline-block;width:6px;height:6px;background:var(--danger);border-radius:1px;opacity:.6"></span>
+<span style="display:inline-block;width:6px;height:6px;background:var(--danger);border-radius:1px;opacity:.6"></span>
+<span style="display:inline-block;width:6px;height:6px;background:var(--danger);border-radius:1px;opacity:.6"></span>
+<span style="display:inline-block;width:6px;height:6px;background:var(--danger);border-radius:1px;opacity:.6"></span>
+<span style="display:inline-block;width:6px;height:6px;background:var(--danger);border-radius:1px;opacity:.6"></span>
+</div>
+<div style="font-size:.65rem;color:var(--txtd);margin-top:6px">Ogni quadrato = ~60 nodi DOM</div>
+</div>
+</div>
+</div>
+<div class="ba-col after">
+<div class="ba-label">After - Virtualizzazione (react-window)</div>
+<div class="ba-body">
+<div class="perf-bar-wrap perf-good">
+<div class="perf-bar-label"><span>Nodi DOM visibili</span><span class="stat-num" style="color:var(--sec)">~20</span></div>
+<div class="perf-bar"><div class="perf-bar-fill">~20 nodi</div></div>
+</div>
+<div class="perf-bar-wrap">
+<div class="perf-bar-label"><span>Frame Rate</span><span class="stat-num" style="color:var(--sec)">60 fps</span></div>
+<div class="perf-bar"><div class="perf-bar-fill" style="background:linear-gradient(90deg,var(--sec),var(--sec2));width:100%">60 fps</div></div>
+</div>
+<div class="perf-bar-wrap">
+<div class="perf-bar-label"><span>Time to Interactive</span><span class="stat-num" style="color:var(--sec)">0.3s</span></div>
+<div class="perf-bar"><div class="perf-bar-fill" style="background:linear-gradient(90deg,var(--sec),var(--sec2));width:10%">0.3s</div></div>
+</div>
+<div style="margin-top:16px;text-align:center">
+<div style="position:relative;width:200px;height:120px;margin:0 auto;border:2px solid var(--s50);border-radius:8px;overflow:hidden">
+<div style="position:absolute;top:0;left:0;right:0;height:30px;background:rgba(34,197,94,0.1);border-bottom:1px dashed var(--sec);display:flex;align-items:center;padding:0 8px;font-size:.65rem;color:var(--txtd)">buffer superiore</div>
+<div style="position:absolute;top:30px;left:0;right:0;height:60px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--sec);font-weight:600">Viewport visibile (~20 righe)</div>
+<div style="position:absolute;bottom:0;left:0;right:0;height:30px;background:rgba(34,197,94,0.1);border-top:1px dashed var(--sec);display:flex;align-items:center;padding:0 8px;font-size:.65rem;color:var(--txtd)">buffer inferiore</div>
+</div>
+<div style="font-size:.65rem;color:var(--txtd);margin-top:6px">Solo righe visibili nel DOM + buffer</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 5 -->
+<div class="section" id="s5">
+<h2 class="section-title">5. Empty States Basici <span class="tag tag-pattern">PATTERN</span></h2>
+<div class="motivation">Empty state attuali usano solo emoji + testo generico. Non guidano l'utente verso un'azione e non comunicano il contesto della pagina vuota.</div>
+<div class="ba-grid">
+<div class="ba-col before">
+<div class="ba-label">Before - Empty State Minimo</div>
+<div class="ba-body">
+<div style="display:flex;align-items:center;justify-content:center;min-height:220px">
+<div class="empty-basic">
+<div class="emoji">&#9917;</div>
+<div style="font-size:.85rem">Nessun dato disponibile</div>
+</div>
+</div>
+</div>
+</div>
+<div class="ba-col after">
+<div class="ba-label">After - Empty State Ricco</div>
+<div class="ba-body">
+<div style="display:flex;align-items:center;justify-content:center;min-height:220px">
+<div class="empty-rich">
+<div class="illust"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+<h4>Nessun giocatore in rosa</h4>
+<p>La tua squadra e ancora vuota. Partecipa alla prossima asta per acquistare i tuoi primi giocatori!</p>
+<button class="btn btn-pri">Vai all'Asta</button>
+<div style="margin-top:12px"><button class="btn btn-sm" style="background:var(--s50);color:var(--txt2)">Sfoglia Svincolati</button></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 6 -->
+<div class="section" id="s6">
+<h2 class="section-title">6. Breadcrumbs Assenti su Mobile <span class="tag tag-pattern">PATTERN</span></h2>
+<div class="motivation">Su mobile non c'e modo di capire dove ci si trova nella gerarchia dell'app. L'utente deve usare il tasto indietro del browser senza sapere dove tornera.</div>
+<div class="ba-grid">
+<div class="ba-col before">
+<div class="ba-label">Before - Nessun Contesto Navigazione</div>
+<div class="ba-body">
+<div class="phone-frame">
+<div class="phone-notch"></div>
+<div class="phone-screen" style="padding:16px">
+<div style="background:var(--s100);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+<div style="width:28px;height:28px;background:var(--s50);border-radius:6px"></div>
+<span style="font-size:.85rem;font-weight:600">Gestione Membri</span>
+</div>
+<div style="text-align:center;padding:30px 0">
+<div style="font-size:2.5rem;color:var(--danger);margin-bottom:8px">?</div>
+<div style="font-size:.82rem;color:var(--danger)">Dove sono?</div>
+<div style="font-size:.72rem;color:var(--txtd);margin-top:4px">Nessun breadcrumb o contesto</div>
+</div>
+<div style="display:flex;gap:8px">
+<div style="flex:1;height:40px;background:var(--s100);border-radius:var(--radius-sm)"></div>
+<div style="flex:1;height:40px;background:var(--s100);border-radius:var(--radius-sm)"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="ba-col after">
+<div class="ba-label">After - Breadcrumbs Compatti</div>
+<div class="ba-body">
+<div class="phone-frame">
+<div class="phone-notch"></div>
+<div class="phone-screen" style="padding:16px">
+<div class="breadcrumb" style="margin-bottom:12px">
+<a href="#">Lega</a><span>&rsaquo;</span><a href="#">Admin</a><span>&rsaquo;</span><strong style="color:var(--txt)">Membri</strong>
+</div>
+<div style="background:var(--s100);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+<div style="width:28px;height:28px;background:linear-gradient(135deg,var(--pri),var(--pri2));border-radius:6px;display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+<span style="font-size:.85rem;font-weight:600">Gestione Membri</span>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<div style="flex:1;min-width:100px;background:var(--s100);border-radius:var(--radius-sm);padding:10px;text-align:center"><div class="stat-num" style="font-size:1.1rem;color:var(--pri)">8</div><div style="font-size:.65rem;color:var(--txt2)">Membri</div></div>
+<div style="flex:1;min-width:100px;background:var(--s100);border-radius:var(--radius-sm);padding:10px;text-align:center"><div class="stat-num" style="font-size:1.1rem;color:var(--sec)">6</div><div style="font-size:.65rem;color:var(--txt2)">Attivi</div></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 7 -->
+<div class="section" id="s7">
+<h2 class="section-title">7. Dashboard - Layout Mobile <span class="tag tag-layout">LAYOUT</span></h2>
+<div class="motivation">Proposta di layout mobile per la Dashboard: single-column, league cards impilate, accesso rapido alle azioni principali.</div>
+<div class="ba-grid single-col">
+<div class="ba-col after" style="max-width:420px;margin:0 auto">
+<div class="ba-label" style="background:linear-gradient(135deg,var(--pri),var(--pri2))">Layout Proposto - Mobile 375px</div>
+<div class="ba-body" style="padding:0">
+<div class="phone-frame" style="max-width:100%;border-radius:0;border:none">
+<div class="phone-screen" style="padding:16px">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+<div><div style="font-size:1rem;font-weight:700;font-family:'Outfit',sans-serif">Ciao, Pietro</div><div style="font-size:.72rem;color:var(--txt2)">Le tue leghe</div></div>
+<div style="width:36px;height:36px;background:linear-gradient(135deg,var(--pri),var(--acc));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700">P</div>
+</div>
+<div class="league-card" style="margin-bottom:12px">
+<div style="display:flex;justify-content:space-between;align-items:start">
+<div><h4>Serie A Fantasy</h4><div class="sub">8 squadre - Stagione 2025/26</div></div>
+<span style="padding:3px 8px;background:rgba(34,197,94,0.15);color:var(--sec);border-radius:20px;font-size:.65rem;font-weight:600">Attiva</span>
+</div>
+<div class="stat-grid">
+<div class="stat-box"><div class="val" style="color:var(--sec)">187</div><div class="lbl">Crediti</div></div>
+<div class="stat-box"><div class="val" style="color:var(--pri)">22</div><div class="lbl">Giocatori</div></div>
+<div class="stat-box"><div class="val" style="color:var(--acc)">3&deg;</div><div class="lbl">Classifica</div></div>
+<div class="stat-box"><div class="val">12</div><div class="lbl">Giornata</div></div>
+</div>
+<div style="margin-top:12px;display:flex;gap:8px">
+<button class="btn btn-pri btn-sm" style="flex:1">Rosa</button>
+<button class="btn btn-sm" style="flex:1;background:var(--s50);color:var(--txt)">Asta</button>
+</div>
+</div>
+<div class="league-card">
+<div style="display:flex;justify-content:space-between;align-items:start">
+<div><h4>Lega Amici</h4><div class="sub">6 squadre - Stagione 2025/26</div></div>
+<span style="padding:3px 8px;background:rgba(245,158,11,0.15);color:var(--acc);border-radius:20px;font-size:.65rem;font-weight:600">Mercato</span>
+</div>
+<div class="stat-grid">
+<div class="stat-box"><div class="val" style="color:var(--sec)">250</div><div class="lbl">Crediti</div></div>
+<div class="stat-box"><div class="val" style="color:var(--pri)">18</div><div class="lbl">Giocatori</div></div>
+<div class="stat-box"><div class="val" style="color:var(--acc)">1&deg;</div><div class="lbl">Classifica</div></div>
+<div class="stat-box"><div class="val">8</div><div class="lbl">Giornata</div></div>
+</div>
+<div style="margin-top:12px;display:flex;gap:8px">
+<button class="btn btn-pri btn-sm" style="flex:1">Rosa</button>
+<button class="btn btn-sm" style="flex:1;background:var(--s50);color:var(--txt)">Mercato</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 8 -->
+<div class="section" id="s8">
+<h2 class="section-title">8. Dashboard - Layout Tablet <span class="tag tag-layout">LAYOUT</span></h2>
+<div class="motivation">Layout tablet a 2 colonne: griglia di league cards a sinistra, sidebar con statistiche aggregate e azioni rapide a destra.</div>
+<div class="ba-grid single-col">
+<div class="ba-col after" style="max-width:800px;margin:0 auto">
+<div class="ba-label" style="background:linear-gradient(135deg,var(--pri),var(--pri2))">Layout Proposto - Tablet ~768px</div>
+<div class="ba-body" style="padding:0;overflow-x:auto">
+<div class="tablet-frame" style="max-width:100%;min-width:600px">
+<div class="tablet-screen" style="padding:20px;display:grid;grid-template-columns:1fr 200px;gap:16px">
+<div>
+<div style="font-size:1.1rem;font-weight:700;font-family:'Outfit',sans-serif;margin-bottom:12px">Le tue Leghe</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+<div class="league-card" style="padding:12px">
+<h4 style="font-size:.85rem">Serie A Fantasy</h4>
+<div class="sub">8 squadre</div>
+<div style="display:flex;gap:8px;margin-top:8px">
+<div class="stat-box" style="flex:1;padding:6px"><div class="val" style="font-size:1rem;color:var(--sec)">187</div><div class="lbl">Crediti</div></div>
+<div class="stat-box" style="flex:1;padding:6px"><div class="val" style="font-size:1rem;color:var(--acc)">3&deg;</div><div class="lbl">Pos.</div></div>
+</div>
+</div>
+<div class="league-card" style="padding:12px">
+<h4 style="font-size:.85rem">Lega Amici</h4>
+<div class="sub">6 squadre</div>
+<div style="display:flex;gap:8px;margin-top:8px">
+<div class="stat-box" style="flex:1;padding:6px"><div class="val" style="font-size:1rem;color:var(--sec)">250</div><div class="lbl">Crediti</div></div>
+<div class="stat-box" style="flex:1;padding:6px"><div class="val" style="font-size:1rem;color:var(--acc)">1&deg;</div><div class="lbl">Pos.</div></div>
+</div>
+</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:14px">
+<div style="font-size:.78rem;color:var(--txt2);margin-bottom:8px;font-weight:600">Riepilogo</div>
+<div style="font-size:.75rem;color:var(--txt2);margin-bottom:6px">Leghe attive: <strong style="color:var(--txt)">2</strong></div>
+<div style="font-size:.75rem;color:var(--txt2);margin-bottom:6px">Giocatori totali: <strong style="color:var(--txt)">40</strong></div>
+<div style="font-size:.75rem;color:var(--txt2)">Crediti medi: <strong style="color:var(--sec)">218</strong></div>
+</div>
+<div style="background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:14px">
+<div style="font-size:.78rem;color:var(--txt2);margin-bottom:8px;font-weight:600">Azioni</div>
+<button class="btn btn-pri btn-sm" style="width:100%;margin-bottom:6px">Nuova Lega</button>
+<button class="btn btn-sm" style="width:100%;background:var(--s50);color:var(--txt)">Unisciti</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 9 -->
+<div class="section" id="s9">
+<h2 class="section-title">9. LeagueFinancials - Layout Mobile <span class="tag tag-layout">LAYOUT</span></h2>
+<div class="motivation">Layout mobile per la pagina finanze: budget bar prominente, stat-box impilate, chart area semplificata con selezione rapida del tipo di grafico.</div>
+<div class="ba-grid single-col">
+<div class="ba-col after" style="max-width:420px;margin:0 auto">
+<div class="ba-label" style="background:linear-gradient(135deg,var(--pri),var(--pri2))">Layout Proposto - Mobile 375px</div>
+<div class="ba-body" style="padding:0">
+<div class="phone-frame" style="max-width:100%;border-radius:0;border:none">
+<div class="phone-screen" style="padding:16px">
+<div class="breadcrumb" style="margin-bottom:12px;font-size:.7rem"><a href="#">Lega</a><span>&rsaquo;</span><strong style="color:var(--txt)">Finanze</strong></div>
+<div style="background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:14px;margin-bottom:12px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:.82rem;font-weight:600">Budget</span><span class="stat-num" style="font-size:1.2rem;color:var(--sec)">187 / 300</span></div>
+<div class="budget-bar"><div class="track"><div class="fill" style="width:62%"></div></div></div>
+<div style="display:flex;justify-content:space-between;font-size:.68rem;color:var(--txt2);margin-top:4px"><span>Spesi: 113</span><span>Disponibili: 187</span></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+<div class="stat-box"><div class="val" style="color:var(--pri)">22</div><div class="lbl">Giocatori</div></div>
+<div class="stat-box"><div class="val" style="color:var(--acc)">5.1</div><div class="lbl">Costo Medio</div></div>
+<div class="stat-box"><div class="val" style="color:var(--sec)">38</div><div class="lbl">Max Acquisto</div></div>
+<div class="stat-box"><div class="val" style="color:var(--danger)">3</div><div class="lbl">In Scadenza</div></div>
+</div>
+<div style="background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:12px">
+<div style="display:flex;gap:6px;margin-bottom:12px">
+<button class="btn btn-pri btn-sm" style="font-size:.65rem">Per Ruolo</button>
+<button class="btn btn-sm" style="font-size:.65rem;background:var(--s50);color:var(--txt2)">Timeline</button>
+<button class="btn btn-sm" style="font-size:.65rem;background:var(--s50);color:var(--txt2)">Confronto</button>
+</div>
+<div class="chart-mock">
+<div class="chart-bar" style="height:35%;background:linear-gradient(to top,#f59e0b,#d97706)"><span class="val">15</span></div>
+<div class="chart-bar" style="height:65%;background:linear-gradient(to top,#3b82f6,#2563eb)"><span class="val">28</span></div>
+<div class="chart-bar" style="height:80%;background:linear-gradient(to top,#22c55e,#16a34a)"><span class="val">35</span></div>
+<div class="chart-bar" style="height:100%;background:linear-gradient(to top,#ef4444,#dc2626)"><span class="val">43</span></div>
+</div>
+<div style="display:flex;justify-content:space-around;font-size:.6rem;color:var(--txt2);margin-top:6px;padding:0 4px"><span>P</span><span>D</span><span>C</span><span>A</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 10 -->
+<div class="section" id="s10">
+<h2 class="section-title">10. LeagueFinancials - Layout Desktop <span class="tag tag-layout">LAYOUT</span></h2>
+<div class="motivation">Layout desktop a 3 colonne: overview budget a sinistra, grafici centrali espansi, tabella dettagliata a destra. Sfrutta lo spazio disponibile.</div>
+<div class="ba-grid single-col">
+<div class="ba-col after">
+<div class="ba-label" style="background:linear-gradient(135deg,var(--pri),var(--pri2))">Layout Proposto - Desktop 1200px+</div>
+<div class="ba-body" style="padding:0;overflow-x:auto">
+<div class="desktop-frame" style="min-width:860px">
+<div class="desktop-bar"><div class="desktop-dot r"></div><div class="desktop-dot y"></div><div class="desktop-dot g"></div><span style="font-size:.7rem;color:var(--txtd);margin-left:8px">Fantacontratti - Finanze Lega</span></div>
+<div class="desktop-screen" style="padding:20px;display:grid;grid-template-columns:220px 1fr 280px;gap:16px">
+<!-- Col 1: Budget overview -->
+<div>
+<div style="background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:14px;margin-bottom:12px">
+<div style="font-size:.82rem;font-weight:600;margin-bottom:12px">Budget Overview</div>
+<div style="text-align:center;margin-bottom:12px">
+<div class="stat-num" style="font-size:2.2rem;color:var(--sec)">187</div>
+<div style="font-size:.72rem;color:var(--txt2)">crediti disponibili</div>
+</div>
+<div class="budget-bar"><div class="hdr"><span style="font-size:.7rem">Spesi</span><span style="font-size:.7rem">113/300</span></div><div class="track"><div class="fill" style="width:38%"></div></div></div>
+</div>
+<div style="background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:14px">
+<div style="font-size:.82rem;font-weight:600;margin-bottom:10px">Per Ruolo</div>
+<div style="font-size:.75rem;margin-bottom:6px;display:flex;justify-content:space-between"><span><span class="pos-badge pos-P" style="font-size:.6rem;padding:1px 5px">P</span> Portieri</span><span class="stat-num">15</span></div>
+<div style="font-size:.75rem;margin-bottom:6px;display:flex;justify-content:space-between"><span><span class="pos-badge pos-D" style="font-size:.6rem;padding:1px 5px">D</span> Difensori</span><span class="stat-num">28</span></div>
+<div style="font-size:.75rem;margin-bottom:6px;display:flex;justify-content:space-between"><span><span class="pos-badge pos-C" style="font-size:.6rem;padding:1px 5px">C</span> Centrocampo</span><span class="stat-num">35</span></div>
+<div style="font-size:.75rem;display:flex;justify-content:space-between"><span><span class="pos-badge pos-A" style="font-size:.6rem;padding:1px 5px">A</span> Attaccanti</span><span class="stat-num">43</span></div>
+</div>
+</div>
+<!-- Col 2: Charts -->
+<div style="background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:16px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<div style="font-size:.9rem;font-weight:600">Andamento Spese</div>
+<div style="display:flex;gap:6px">
+<button class="btn btn-pri btn-sm" style="font-size:.65rem">Mensile</button>
+<button class="btn btn-sm" style="font-size:.65rem;background:var(--s50);color:var(--txt2)">Per Asta</button>
+</div>
+</div>
+<div class="chart-mock" style="height:150px">
+<div class="chart-bar" style="height:20%;background:linear-gradient(to top,var(--pri),var(--pri2))"><span class="val">12</span></div>
+<div class="chart-bar" style="height:45%;background:linear-gradient(to top,var(--pri),var(--pri2))"><span class="val">28</span></div>
+<div class="chart-bar" style="height:70%;background:linear-gradient(to top,var(--pri),var(--pri2))"><span class="val">42</span></div>
+<div class="chart-bar" style="height:55%;background:linear-gradient(to top,var(--pri),var(--pri2))"><span class="val">33</span></div>
+<div class="chart-bar" style="height:90%;background:linear-gradient(to top,var(--acc),var(--acc2))"><span class="val">55</span></div>
+<div class="chart-bar" style="height:30%;background:linear-gradient(to top,var(--pri),var(--pri2))"><span class="val">18</span></div>
+<div class="chart-bar" style="height:15%;background:linear-gradient(to top,var(--sec),var(--sec2))"><span class="val">9</span></div>
+</div>
+<div style="display:flex;justify-content:space-around;font-size:.6rem;color:var(--txt2);margin-top:6px"><span>Ago</span><span>Set</span><span>Ott</span><span>Nov</span><span>Dic</span><span>Gen</span><span>Feb</span></div>
+</div>
+<!-- Col 3: Table -->
+<div style="background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:14px;overflow-y:auto;max-height:320px">
+<div style="font-size:.82rem;font-weight:600;margin-bottom:10px">Classifica Spese</div>
+<table class="mock-table" style="font-size:.7rem">
+<thead><tr><th>#</th><th>Manager</th><th>Spesi</th><th>Disp.</th></tr></thead>
+<tbody>
+<tr><td class="stat-num">1</td><td>FC Mario</td><td class="stat-num" style="color:var(--danger)">156</td><td class="stat-num" style="color:var(--sec)">144</td></tr>
+<tr><td class="stat-num">2</td><td>AC Luigi</td><td class="stat-num" style="color:var(--acc)">138</td><td class="stat-num" style="color:var(--sec)">162</td></tr>
+<tr><td class="stat-num">3</td><td>AS Peach</td><td class="stat-num" style="color:var(--acc)">113</td><td class="stat-num" style="color:var(--sec)">187</td></tr>
+<tr><td class="stat-num">4</td><td>US Toad</td><td class="stat-num">98</td><td class="stat-num" style="color:var(--sec)">202</td></tr>
+<tr><td class="stat-num">5</td><td>SS Yoshi</td><td class="stat-num">87</td><td class="stat-num" style="color:var(--sec)">213</td></tr>
+<tr><td class="stat-num">6</td><td>Inter Bowser</td><td class="stat-num">76</td><td class="stat-num" style="color:var(--sec)">224</td></tr>
+<tr><td class="stat-num">7</td><td>Juve Wario</td><td class="stat-num">65</td><td class="stat-num" style="color:var(--sec)">235</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 11 -->
+<div class="section" id="s11">
+<h2 class="section-title">11. AuctionRoom - Layout Mobile <span class="tag tag-layout">LAYOUT</span></h2>
+<div class="motivation">Layout mobile dell'asta: timer fisso in alto, card giocatore al centro con info essenziali, controlli offerta sticky in basso per accesso rapido.</div>
+<div class="ba-grid single-col">
+<div class="ba-col after" style="max-width:420px;margin:0 auto">
+<div class="ba-label" style="background:linear-gradient(135deg,var(--pri),var(--pri2))">Layout Proposto - Mobile 375px</div>
+<div class="ba-body" style="padding:0">
+<div class="phone-frame" style="max-width:100%;border-radius:0;border:none">
+<div class="phone-screen" style="display:flex;flex-direction:column;min-height:500px">
+<!-- Fixed Timer Top -->
+<div style="background:var(--s300);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--brd)">
+<div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:var(--sec);animation:none;box-shadow:0 0 8px var(--sec)"></div><span style="font-size:.78rem;font-weight:600">ASTA LIVE</span></div>
+<div style="display:flex;align-items:center;gap:6px"><span class="stat-num" style="font-size:1.4rem;color:var(--sec)">0:24</span><span style="font-size:.6rem;color:var(--sec);font-weight:600">Tempo OK</span></div>
+</div>
+<!-- Player Card Center -->
+<div style="flex:1;padding:16px;display:flex;flex-direction:column;justify-content:center">
+<div style="background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:20px;text-align:center;box-shadow:var(--shadow)">
+<span class="pos-badge pos-A" style="font-size:.8rem;padding:4px 12px;margin-bottom:12px;display:inline-block">A</span>
+<div style="font-size:1.3rem;font-weight:700;font-family:'Outfit',sans-serif;margin-bottom:4px">Lautaro Martinez</div>
+<div style="font-size:.82rem;color:var(--txt2);margin-bottom:16px">Inter</div>
+<div style="display:flex;justify-content:center;gap:16px;margin-bottom:16px">
+<div><div class="stat-num" style="font-size:1.5rem;color:var(--acc)">32</div><div style="font-size:.65rem;color:var(--txt2)">Qt. Attuale</div></div>
+<div><div class="stat-num" style="font-size:1.5rem;color:var(--pri)">38</div><div style="font-size:.65rem;color:var(--txt2)">Qt. Iniziale</div></div>
+<div><div class="stat-num" style="font-size:1.5rem;color:var(--sec)">18</div><div style="font-size:.65rem;color:var(--txt2)">Gol</div></div>
+</div>
+<div style="background:var(--s100);border-radius:var(--radius-sm);padding:10px;font-size:.78rem">
+<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--txt2)">Offerta corrente</span><span class="stat-num" style="color:var(--acc);font-size:1.1rem">15</span></div>
+<div style="display:flex;justify-content:space-between"><span style="color:var(--txt2)">Offerente</span><span style="font-weight:600">FC Mario</span></div>
+</div>
+</div>
+</div>
+<!-- Sticky Bid Controls Bottom -->
+<div style="background:var(--s300);padding:12px 16px;border-top:1px solid var(--brd)">
+<div style="display:flex;gap:8px;align-items:center">
+<button class="btn btn-sm" style="background:var(--s50);color:var(--txt);font-size:1rem;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center">-</button>
+<input class="bid-input" value="16" readonly style="flex:1;font-size:1.2rem">
+<button class="btn btn-sm" style="background:var(--s50);color:var(--txt);font-size:1rem;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center">+</button>
+<button class="btn btn-acc" style="flex:2;font-size:.9rem;padding:10px">OFFRI</button>
+</div>
+<div style="text-align:center;font-size:.65rem;color:var(--txt2);margin-top:6px">Budget rimanente: <strong style="color:var(--sec)">187</strong> crediti</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 12 -->
+<div class="section" id="s12">
+<h2 class="section-title">12. AuctionRoom - Layout Desktop <span class="tag tag-layout">LAYOUT</span></h2>
+<div class="motivation">Split-screen desktop: 60% area asta con timer, giocatore e controlli; 40% sidebar info con dettagli giocatore, barra budget e lista manager con stato offerte.</div>
+<div class="ba-grid single-col">
+<div class="ba-col after">
+<div class="ba-label" style="background:linear-gradient(135deg,var(--pri),var(--pri2))">Layout Proposto - Desktop Split 60/40</div>
+<div class="ba-body" style="padding:0;overflow-x:auto">
+<div class="desktop-frame" style="min-width:800px">
+<div class="desktop-bar"><div class="desktop-dot r"></div><div class="desktop-dot y"></div><div class="desktop-dot g"></div><span style="font-size:.7rem;color:var(--txtd);margin-left:8px">Fantacontratti - Asta Live</span></div>
+<div class="desktop-screen" style="display:grid;grid-template-columns:3fr 2fr;min-height:380px">
+<!-- 60% Auction Area -->
+<div style="padding:24px;display:flex;flex-direction:column;border-right:1px solid var(--brd)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+<div style="display:flex;align-items:center;gap:10px"><div style="width:12px;height:12px;border-radius:50%;background:var(--sec);box-shadow:0 0 10px var(--sec)"></div><span style="font-weight:700;font-family:'Outfit',sans-serif">ASTA LIVE</span><span style="font-size:.72rem;color:var(--txt2)">Turno 14 di 25</span></div>
+<div class="timer-circle timer-green" style="width:70px;height:70px"><div class="time" style="font-size:1.4rem">0:24</div><div class="label" style="font-size:.55rem">Tempo OK</div></div>
+</div>
+<div style="flex:1;display:flex;align-items:center;justify-content:center">
+<div style="text-align:center">
+<span class="pos-badge pos-A" style="font-size:.9rem;padding:5px 16px;margin-bottom:16px;display:inline-block">ATTACCANTE</span>
+<div style="font-size:1.8rem;font-weight:800;font-family:'Outfit',sans-serif;margin-bottom:4px">Lautaro Martinez</div>
+<div style="font-size:1rem;color:var(--txt2);margin-bottom:20px">FC Internazionale</div>
+<div style="display:flex;justify-content:center;gap:24px;margin-bottom:24px">
+<div><div class="stat-num" style="font-size:2rem;color:var(--acc)">32</div><div style="font-size:.72rem;color:var(--txt2)">Qt. Attuale</div></div>
+<div><div class="stat-num" style="font-size:2rem;color:var(--pri)">38</div><div style="font-size:.72rem;color:var(--txt2)">Qt. Iniziale</div></div>
+<div><div class="stat-num" style="font-size:2rem;color:var(--sec)">7.12</div><div style="font-size:.72rem;color:var(--txt2)">FVM</div></div>
+</div>
+<div class="bid-controls" style="justify-content:center;gap:12px;background:var(--card);padding:16px;border-radius:var(--radius)">
+<span style="font-size:.82rem;color:var(--txt2)">Offerta corrente:</span>
+<span class="stat-num" style="font-size:1.6rem;color:var(--acc)">15</span>
+<span style="font-size:.78rem;color:var(--txt2);margin-left:8px">da FC Mario</span>
+</div>
+</div>
+</div>
+<div style="display:flex;gap:10px;align-items:center;margin-top:16px">
+<button class="btn" style="background:var(--s50);color:var(--txt);width:40px;padding:8px 0;text-align:center;font-size:1.1rem">-</button>
+<input class="bid-input" value="16" readonly style="font-size:1.3rem;width:100px">
+<button class="btn" style="background:var(--s50);color:var(--txt);width:40px;padding:8px 0;text-align:center;font-size:1.1rem">+</button>
+<button class="btn btn-acc" style="flex:1;font-size:1rem;padding:12px">OFFRI 16 CREDITI</button>
+<button class="btn" style="background:var(--s50);color:var(--txt2);padding:12px 20px">Passa</button>
+</div>
+</div>
+<!-- 40% Info Sidebar -->
+<div style="padding:20px;background:var(--s300);overflow-y:auto">
+<div style="font-size:.85rem;font-weight:600;margin-bottom:12px">Il Tuo Budget</div>
+<div class="budget-bar"><div class="hdr"><span>AS Peach</span><span class="stat-num" style="color:var(--sec)">187 / 300</span></div><div class="track"><div class="fill" style="width:62%"></div></div></div>
+<div style="font-size:.7rem;color:var(--txt2);margin-top:4px;margin-bottom:16px">Max offerta possibile: <strong style="color:var(--acc)">165</strong></div>
+
+<div style="font-size:.85rem;font-weight:600;margin-bottom:10px">Statistiche Giocatore</div>
+<div style="background:var(--card);border:1px solid var(--brd);border-radius:var(--radius-sm);padding:10px;margin-bottom:16px;font-size:.75rem">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+<span style="color:var(--txt2)">Gol: <strong style="color:var(--txt)">18</strong></span>
+<span style="color:var(--txt2)">Assist: <strong style="color:var(--txt)">5</strong></span>
+<span style="color:var(--txt2)">Presenze: <strong style="color:var(--txt)">25</strong></span>
+<span style="color:var(--txt2)">Ammonizioni: <strong style="color:var(--txt)">3</strong></span>
+<span style="color:var(--txt2)">Media Voto: <strong style="color:var(--txt)">6.8</strong></span>
+<span style="color:var(--txt2)">Rigori: <strong style="color:var(--txt)">4/5</strong></span>
+</div>
+</div>
+
+<div style="font-size:.85rem;font-weight:600;margin-bottom:10px">Manager in Asta</div>
+<div class="manager-row"><div class="manager-avatar" style="background:linear-gradient(135deg,var(--danger),#b91c1c)">M</div><div style="flex:1"><div style="font-weight:600;font-size:.78rem">FC Mario</div><div style="font-size:.65rem;color:var(--acc)">Ultima offerta: 15</div></div><span class="stat-num" style="font-size:.82rem;color:var(--sec)">144</span></div>
+<div class="manager-row"><div class="manager-avatar" style="background:linear-gradient(135deg,var(--sec),#15803d)">L</div><div style="flex:1"><div style="font-weight:600;font-size:.78rem">AC Luigi</div><div style="font-size:.65rem;color:var(--txtd)">In attesa</div></div><span class="stat-num" style="font-size:.82rem;color:var(--sec)">162</span></div>
+<div class="manager-row" style="background:rgba(59,130,246,0.08)"><div class="manager-avatar" style="background:linear-gradient(135deg,var(--pri),var(--pri2))">P</div><div style="flex:1"><div style="font-weight:600;font-size:.78rem">AS Peach <span style="font-size:.6rem;color:var(--pri)">(Tu)</span></div><div style="font-size:.65rem;color:var(--txtd)">In attesa</div></div><span class="stat-num" style="font-size:.82rem;color:var(--sec)">187</span></div>
+<div class="manager-row"><div class="manager-avatar" style="background:linear-gradient(135deg,var(--acc),var(--acc2))">T</div><div style="flex:1"><div style="font-weight:600;font-size:.78rem">US Toad</div><div style="font-size:.65rem;color:var(--txtd)">Passato</div></div><span class="stat-num" style="font-size:.82rem;color:var(--sec)">202</span></div>
+<div class="manager-row"><div class="manager-avatar" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed)">Y</div><div style="flex:1"><div style="font-weight:600;font-size:.78rem">SS Yoshi</div><div style="font-size:.65rem;color:var(--txtd)">Passato</div></div><span class="stat-num" style="font-size:.82rem;color:var(--sec)">213</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Section 13 -->
+<div class="section" id="s13">
+<h2 class="section-title">13. Timer Accessibility <span class="tag tag-a11y">ACCESSIBILITY</span></h2>
+<div class="motivation">Il timer attuale comunica urgenza solo tramite il colore (verde/giallo/rosso). Utenti daltonici o con ridotta percezione cromatica non percepiscono il cambio di stato.</div>
+<div class="ba-grid">
+<div class="ba-col before">
+<div class="ba-label">Before - Solo Colore</div>
+<div class="ba-body">
+<div style="display:flex;flex-direction:column;align-items:center;gap:20px;padding:10px 0">
+<div>
+<div class="timer-circle timer-green" style="width:80px;height:80px"><div class="time" style="font-size:1.5rem">0:24</div></div>
+<div class="timer-progbar" style="width:200px;margin-top:10px"><div class="timer-progfill ok"></div></div>
+<div style="font-size:.65rem;color:var(--txtd);text-align:center;margin-top:4px">Nessuna label testuale</div>
+</div>
+<div>
+<div class="timer-circle timer-yellow" style="width:80px;height:80px"><div class="time" style="font-size:1.5rem">0:10</div></div>
+<div class="timer-progbar" style="width:200px;margin-top:10px"><div class="timer-progfill warn"></div></div>
+<div style="font-size:.65rem;color:var(--txtd);text-align:center;margin-top:4px">Nessuna label testuale</div>
+</div>
+<div>
+<div class="timer-circle timer-red" style="width:80px;height:80px"><div class="time" style="font-size:1.5rem">0:03</div></div>
+<div class="timer-progbar" style="width:200px;margin-top:10px"><div class="timer-progfill crit"></div></div>
+<div style="font-size:.65rem;color:var(--txtd);text-align:center;margin-top:4px">Nessuna label testuale</div>
+</div>
+</div>
+<div style="text-align:center;font-size:.72rem;color:var(--danger);margin-top:8px">Daltonico protanopia: tutti e tre appaiono identici</div>
+</div>
+</div>
+<div class="ba-col after">
+<div class="ba-label">After - Colore + Label + Pattern</div>
+<div class="ba-body">
+<div style="display:flex;flex-direction:column;align-items:center;gap:20px;padding:10px 0">
+<div>
+<div class="timer-circle timer-green" style="width:80px;height:80px"><div class="time" style="font-size:1.5rem">0:24</div><div class="label">Tempo OK</div></div>
+<div class="timer-progbar" style="width:200px;margin-top:10px"><div class="timer-progfill ok"></div></div>
+<div style="text-align:center;margin-top:4px"><span style="font-size:.7rem;font-weight:600;color:var(--sec)">Tempo OK</span><span style="font-size:.6rem;color:var(--txtd);margin-left:6px">Barra piena, nessun pattern</span></div>
+</div>
+<div>
+<div class="timer-circle timer-yellow" style="width:80px;height:80px"><div class="time" style="font-size:1.5rem">0:10</div><div class="label">Affrettati!</div></div>
+<div class="timer-progbar" style="width:200px;margin-top:10px"><div class="timer-progfill warn"></div></div>
+<div style="text-align:center;margin-top:4px"><span style="font-size:.7rem;font-weight:600;color:var(--acc)">Affrettati!</span><span style="font-size:.6rem;color:var(--txtd);margin-left:6px">Pattern diagonale</span></div>
+</div>
+<div>
+<div class="timer-circle timer-red" style="width:80px;height:80px"><div class="time" style="font-size:1.5rem">0:03</div><div class="label">Ultimo!</div></div>
+<div class="timer-progbar" style="width:200px;margin-top:10px"><div class="timer-progfill crit"></div></div>
+<div style="text-align:center;margin-top:4px"><span style="font-size:.7rem;font-weight:600;color:var(--danger)">Ultimo secondo!</span><span style="font-size:.6rem;color:var(--txtd);margin-left:6px">Pattern fitto</span></div>
+</div>
+</div>
+<div style="text-align:center;font-size:.72rem;color:var(--sec);margin-top:8px">3 canali: colore + testo + pattern visivo = universale</div>
+</div>
+</div>
+</div>
+</div>
+
+</div><!-- /.main -->
+
+<!-- Back to top -->
+<button class="to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Torna su">&#8593;</button>
+
+<script>
+// Sidebar active state on scroll
+const sections = document.querySelectorAll('.section');
+const navLinks = document.querySelectorAll('.sidebar nav a');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      navLinks.forEach(l => l.classList.remove('active'));
+      const id = entry.target.id;
+      const link = document.querySelector(`.sidebar nav a[href="#${id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+sections.forEach(s => observer.observe(s));
+
+// Close sidebar on mobile when clicking a link
+navLinks.forEach(link => {
+  link.addEventListener('click', () => {
+    if (window.innerWidth <= 900) {
+      document.querySelector('.sidebar').classList.remove('open');
+    }
+  });
+});
+</script>
+</body>
+</html>

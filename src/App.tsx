@@ -2,7 +2,10 @@ import { lazy, Suspense, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { AuthProvider, useAuth } from './hooks/useAuth'
-import { ThemeProvider } from './contexts/ThemeContext'
+
+import { ScrollToTop } from './components/ui/ScrollToTop'
+import { BottomNavBar } from './components/BottomNavBar'
+import { CommandPalette } from './components/CommandPalette'
 
 // Pagine critiche - import statico (usate al primo caricamento)
 import { Login } from './pages/Login'
@@ -57,7 +60,7 @@ function LoadingScreen() {
 // Page loader per Suspense fallback (lazy loading)
 function PageLoader() {
   return (
-    <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center">
       <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin"></div>
     </div>
   )
@@ -661,15 +664,29 @@ function AppRoutes() {
   )
 }
 
+/** Spacer to prevent content from hiding behind BottomNavBar on mobile */
+function BottomNavSpacer() {
+  const location = useLocation()
+  const isLeague = /^\/leagues\/[^/]+/.test(location.pathname)
+  if (!isLeague) return null
+  return <div className="md:hidden h-16" />
+}
+
 function App() {
+  const handleMobileMenuOpen = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('open-mobile-menu'))
+  }, [])
+
   return (
     <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <AppRoutes />
-          <SpeedInsights />
-        </AuthProvider>
-      </ThemeProvider>
+      <AuthProvider>
+        <AppRoutes />
+        <BottomNavSpacer />
+        <BottomNavBar onMenuOpen={handleMobileMenuOpen} />
+        <CommandPalette />
+        <ScrollToTop />
+        <SpeedInsights />
+      </AuthProvider>
     </BrowserRouter>
   )
 }

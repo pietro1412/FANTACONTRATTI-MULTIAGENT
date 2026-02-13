@@ -234,7 +234,7 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
       <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white mb-2">Calcolo Indennizzi</h1>
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-2">Calcolo Indennizzi</h1>
           <p className="text-gray-400">
             Gestisci i giocatori che sono usciti dalla lista quotazioni
           </p>

@@ -21,6 +21,11 @@ model User {
   passwordResetToken    String?   @unique
   passwordResetExpires  DateTime?
 
+  // Account lockout
+  failedLoginAttempts  Int       @default(0)
+  lockedUntil          DateTime?
+  lastFailedLogin      DateTime?
+
   // Relazioni
   leagueMemberships LeagueMember[]         // see: league.prisma
   sentOffers        TradeOffer[]     @relation("OfferSender")   // see: trade.prisma
@@ -34,4 +39,62 @@ model User {
   userFeedback           UserFeedback[]             // see: feedback.prisma
   feedbackResponses      FeedbackResponse[]  @relation("FeedbackAdmin")  // see: feedback.prisma
   feedbackNotifications  FeedbackNotification[]     // see: feedback.prisma
+
+  // Token rotation
+  refreshTokens           RefreshToken[]
+
+  // Push notifications
+  pushSubscriptions       PushSubscription[]
+  notificationPreference  NotificationPreference?
+}
+
+// =============================================================================
+// Refresh Token Rotation
+// =============================================================================
+
+model RefreshToken {
+  id          String   @id @default(cuid())
+  userId      String
+  tokenHash   String   @unique    // SHA-256 hash del refresh token
+  familyId    String              // Identifica la catena di token (per detect reuse)
+  isRevoked   Boolean  @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+}
+
+// =============================================================================
+// Push Notification Models
+// =============================================================================
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+}
+
+model NotificationPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  pushEnabled     Boolean  @default(false)
+  tradeOffers     Boolean  @default(true)
+  contractExpiry  Boolean  @default(true)
+  auctionStart    Boolean  @default(true)
+  phaseChange     Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

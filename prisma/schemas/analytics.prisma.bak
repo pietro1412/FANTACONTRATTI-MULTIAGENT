@@ -1,0 +1,30 @@
+// =============================================================================
+// analytics.prisma - CategoryAnalyticsConfig
+// =============================================================================
+//
+// This file contains the model for storing analytics configuration per
+// watchlist category. Each category can have a custom set of enabled traits
+// for player analysis.
+//
+// =============================================================================
+
+model CategoryAnalyticsConfig {
+  id              String   @id @default(cuid())
+
+  categoryId      String   @unique
+  category        WatchlistCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  // Enabled traits for this category (array of trait IDs)
+  // Values: COSTANZA_VOTO, PICCHI_CONTRASTI, BONUS_DIPENDENTE, STAGIONALITA,
+  // PREVISIONE_MESI, RIGORISTA, MINUTAGGIO_TREND, VS_TOP_BOTTOM,
+  // RISCHIO_TURNOVER, PREZZO_RENDIMENTO, CS_DIPENDENTE, ASSISTMAN_NASCOSTO,
+  // CALENDARIO_FAVOREVOLE, RECUPERO_INFORTUNI, SINERGIA_REPARTO
+  enabledTraits   String[]
+
+  // Template ID if using a predefined template (nullable for custom)
+  // Values: ACQUISTO_SICURO, CACCIA_BONUS, DIFESA_SOLIDA, SCOMMESSA, COMPLETO
+  templateId      String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

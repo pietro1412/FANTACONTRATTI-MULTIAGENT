@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bibbia Primo Mercato - Fantacontratti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0b;
+      --bg-card: #111214;
+      --bg-elevated: #1a1c20;
+      --bg-hover: #252830;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --border: rgba(55, 65, 81, 0.4);
+      --border-light: rgba(55, 65, 81, 0.2);
+      --primary: #3b82f6;
+      --primary-light: #60a5fa;
+      --primary-bg: rgba(59, 130, 246, 0.15);
+      --primary-border: rgba(59, 130, 246, 0.3);
+      --accent: #fbbf24;
+      --accent-dark: #f59e0b;
+      --accent-bg: rgba(251, 191, 36, 0.15);
+      --accent-border: rgba(251, 191, 36, 0.3);
+      --success: #22c55e;
+      --success-bg: rgba(34, 197, 94, 0.15);
+      --success-border: rgba(34, 197, 94, 0.3);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --danger-border: rgba(239, 68, 68, 0.3);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+
+    .page-header {
+      background: linear-gradient(135deg, #1a1f2e 0%, #0f1318 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 48px 24px 40px;
+      margin-bottom: 40px;
+    }
+    .page-header .inner { max-width: 960px; margin: 0 auto; }
+    .page-header .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent-bg); color: var(--accent);
+      border: 1px solid var(--accent-border);
+      padding: 4px 12px; border-radius: 9999px;
+      font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+    .page-header h1 {
+      font-family: 'Outfit', 'Inter', sans-serif;
+      font-size: 36px; font-weight: 800; color: #fff;
+      margin-bottom: 8px;
+      background: linear-gradient(to right, #fcd34d, #f59e0b);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .page-header .subtitle { color: var(--text-muted); font-size: 16px; }
+    .page-header .date { color: var(--text-dim); font-size: 13px; margin-top: 12px; }
+
+    .toc {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 24px; margin-bottom: 32px;
+    }
+    .toc h3 { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; }
+    .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+    .toc a {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--primary-light); text-decoration: none;
+      padding: 8px 12px; border-radius: 8px; font-size: 14px;
+      transition: all 0.15s;
+    }
+    .toc a:hover { background: var(--primary-bg); color: #fff; }
+    .toc a .num { color: var(--text-dim); font-family: 'Oswald', sans-serif; font-size: 13px; min-width: 20px; }
+
+    .section { margin-bottom: 48px; }
+    .section-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 24px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .section-num {
+      font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600;
+      color: var(--primary); background: var(--primary-bg);
+      border: 1px solid var(--primary-border);
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .section-header h2 {
+      font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 700; color: #fff;
+    }
+
+    h3 {
+      font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 600;
+      color: var(--primary-light); margin: 24px 0 12px;
+    }
+
+    p { color: var(--text-muted); margin-bottom: 12px; font-size: 15px; }
+
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 24px; margin-bottom: 16px;
+    }
+    .card-elevated {
+      background: linear-gradient(180deg, var(--bg-elevated), var(--bg-card));
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .card-accent {
+      border-color: var(--accent-border);
+      background: linear-gradient(135deg, rgba(251,191,36,0.05), var(--bg-card));
+    }
+    .card-primary {
+      border-color: var(--primary-border);
+      background: linear-gradient(135deg, rgba(59,130,246,0.05), var(--bg-card));
+    }
+    .card-danger {
+      border-color: var(--danger-border);
+      background: linear-gradient(135deg, rgba(239,68,68,0.05), var(--bg-card));
+    }
+    .card-success {
+      border-color: var(--success-border);
+      background: linear-gradient(135deg, rgba(34,197,94,0.05), var(--bg-card));
+    }
+
+    .card-title {
+      font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700;
+      color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .card-title .icon { font-size: 18px; }
+
+    .formula {
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px 20px; margin: 12px 0;
+      font-family: 'Oswald', 'monospace'; font-size: 18px; font-weight: 500;
+      color: var(--accent); letter-spacing: 0.02em;
+    }
+    .formula .label {
+      font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 6px; display: block;
+    }
+    .formula .highlight { color: var(--primary-light); }
+    .formula .danger { color: var(--danger); }
+    .formula .success { color: var(--success); }
+
+    .table-wrap {
+      overflow-x: auto; border-radius: 12px;
+      border: 1px solid var(--border-light); margin: 16px 0;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--bg-elevated); }
+    th {
+      text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 600;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 10px 16px; font-size: 14px; color: var(--text-muted);
+      border-bottom: 1px solid var(--border-light);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(59, 130, 246, 0.03); }
+    td.val {
+      font-family: 'Oswald', sans-serif; font-weight: 500;
+      color: var(--accent); font-size: 15px;
+    }
+    td.positive { color: var(--success); }
+    td.negative { color: var(--danger); }
+    td.primary { color: var(--primary-light); }
+
+    .scenario { counter-reset: step; }
+    .step {
+      display: flex; gap: 16px; margin-bottom: 2px; padding: 12px 16px;
+      border-left: 2px solid var(--border-light);
+      transition: all 0.15s;
+    }
+    .step:hover { border-left-color: var(--primary); background: rgba(59,130,246,0.03); }
+    .step-num {
+      font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600;
+      color: var(--primary); background: var(--primary-bg); border: 1px solid var(--primary-border);
+      min-width: 28px; height: 28px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .step-content { flex: 1; }
+    .step-label { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+    .step-desc { font-size: 13px; color: var(--text-dim); }
+    .step-formula {
+      font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 500;
+      color: var(--accent); margin-top: 4px;
+    }
+
+    .alert {
+      display: flex; gap: 12px; padding: 16px;
+      border-radius: 10px; margin: 16px 0; font-size: 14px;
+    }
+    .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .alert-danger { background: var(--danger-bg); border: 1px solid var(--danger-border); color: #fca5a5; }
+    .alert-success { background: var(--success-bg); border: 1px solid var(--success-border); color: #86efac; }
+    .alert-accent { background: var(--accent-bg); border: 1px solid var(--accent-border); color: #fde68a; }
+    .alert-primary { background: var(--primary-bg); border: 1px solid var(--primary-border); color: #93c5fd; }
+    .alert strong { color: #fff; }
+
+    .example {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; overflow: hidden; margin: 16px 0;
+    }
+    .example-header {
+      background: var(--bg-elevated); padding: 10px 16px;
+      font-size: 13px; font-weight: 600; color: var(--text-muted);
+      border-bottom: 1px solid var(--border-light);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .example-body { padding: 16px; }
+
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+    @media (max-width: 640px) { .comparison { grid-template-columns: 1fr; } }
+
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    }
+    .tag-blue { background: var(--primary-bg); color: var(--primary-light); border: 1px solid var(--primary-border); }
+    .tag-gold { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+    .tag-green { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .tag-red { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+
+    .flow { display: flex; flex-direction: column; gap: 2px; margin: 16px 0; }
+    .flow-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; border-radius: 8px;
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      font-size: 14px;
+    }
+    .flow-item .phase {
+      font-family: 'Oswald', sans-serif; font-size: 12px; font-weight: 600;
+      color: var(--primary); min-width: 60px;
+    }
+    .flow-arrow { text-align: center; color: var(--text-dim); font-size: 18px; line-height: 1; }
+
+    /* Slot grid */
+    .slot-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
+    @media (max-width: 640px) { .slot-grid { grid-template-columns: repeat(2, 1fr); } }
+    .slot-card {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 20px; text-align: center;
+    }
+    .slot-card .role {
+      font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;
+    }
+    .slot-card .count {
+      font-family: 'Oswald', sans-serif; font-size: 36px; font-weight: 700;
+    }
+    .slot-card .label {
+      font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;
+    }
+
+    /* Rule list */
+    .rule-list { list-style: none; padding: 0; }
+    .rule-list li {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border-light);
+      font-size: 14px; color: var(--text-muted);
+    }
+    .rule-list li:last-child { border-bottom: none; }
+    .rule-list .rule-icon {
+      flex-shrink: 0; width: 24px; height: 24px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; margin-top: 1px;
+    }
+    .rule-list .rule-check { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success); }
+    .rule-list .rule-cross { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger); }
+    .rule-list .rule-info { background: var(--primary-bg); border: 1px solid var(--primary-border); color: var(--primary-light); }
+    .rule-list .rule-warn { background: var(--accent-bg); border: 1px solid var(--accent-border); color: var(--accent); }
+
+    @media (max-width: 640px) {
+      .page-header h1 { font-size: 28px; }
+      .toc-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="inner">
+    <div class="badge">&#9733; Fonte di Verita</div>
+    <h1>Primo Mercato Assoluto</h1>
+    <p class="subtitle">L'asta fondativa della lega &mdash; si svolge una sola volta, mai piu</p>
+    <p class="date">Ultima revisione: 6 Febbraio 2026</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- TOC -->
+  <nav class="toc">
+    <h3>Indice</h3>
+    <div class="toc-grid">
+      <a href="#s1"><span class="num">1</span> Panoramica</a>
+      <a href="#s2"><span class="num">2</span> Meccanica dell'Asta</a>
+      <a href="#s3"><span class="num">3</span> Acquisto e Contratto</a>
+      <a href="#s4"><span class="num">4</span> Impatto Finanziario</a>
+      <a href="#s5"><span class="num">5</span> Poteri dell'Admin</a>
+      <a href="#s6"><span class="num">6</span> Tracciamento</a>
+      <a href="#s7"><span class="num">7</span> Fine Primo Mercato</a>
+      <a href="#s8"><span class="num">8</span> Manager Escluso</a>
+    </div>
+  </nav>
+
+  <!-- SECTION 1: Panoramica -->
+  <section id="s1" class="section">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <h2>Panoramica</h2>
+    </div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#9917;</span> Cos'e il Primo Mercato</div>
+      <p>Il Primo Mercato Assoluto e la <strong style="color:#fff">prima asta della lega</strong>. Tutti i manager acquistano giocatori per riempire gli slot della propria rosa. Al termine, <strong style="color:var(--danger)">non si ripresentera mai piu</strong> per quella lega.</p>
+    </div>
+
+    <h3>Precondizioni</h3>
+    <ul class="rule-list">
+      <li>
+        <span class="rule-icon rule-check">&#10003;</span>
+        <span>La lega e stata <strong style="color:#fff">creata e avviata</strong> dall'admin</span>
+      </li>
+      <li>
+        <span class="rule-icon rule-check">&#10003;</span>
+        <span>Numero manager <strong style="color:#fff">pari</strong>, compreso tra <span class="tag tag-blue">6</span> e <span class="tag tag-blue">20</span></span>
+      </li>
+      <li>
+        <span class="rule-icon rule-check">&#10003;</span>
+        <span>Slot ruoli definiti (default: 3P, 8D, 8C, 6A = 25 giocatori)</span>
+      </li>
+      <li>
+        <span class="rule-icon rule-check">&#10003;</span>
+        <span>Budget iniziale configurato (default: <span class="tag tag-gold">500</span>)</span>
+      </li>
+    </ul>
+
+    <h3>Slot per Ruolo (Default)</h3>
+    <div class="slot-grid">
+      <div class="slot-card" style="border-color: var(--accent-border);">
+        <div class="role" style="color: var(--accent);">Portieri</div>
+        <div class="count" style="color: var(--accent);">3</div>
+        <div class="label">slot</div>
+      </div>
+      <div class="slot-card" style="border-color: var(--success-border);">
+        <div class="role" style="color: var(--success);">Difensori</div>
+        <div class="count" style="color: var(--success);">8</div>
+        <div class="label">slot</div>
+      </div>
+      <div class="slot-card" style="border-color: var(--primary-border);">
+        <div class="role" style="color: var(--primary-light);">Centrocampisti</div>
+        <div class="count" style="color: var(--primary-light);">8</div>
+        <div class="label">slot</div>
+      </div>
+      <div class="slot-card" style="border-color: var(--danger-border);">
+        <div class="role" style="color: var(--danger);">Attaccanti</div>
+        <div class="count" style="color: var(--danger);">6</div>
+        <div class="label">slot</div>
+      </div>
+    </div>
+    <p style="text-align:center; font-size:13px; color:var(--text-dim);">Totale: <strong style="color:var(--accent); font-family:'Oswald',sans-serif; font-size:16px;">25</strong> giocatori per manager. Configurabili dall'admin alla creazione della lega.</p>
+
+    <h3>Sequenza di Avvio</h3>
+    <div class="flow">
+      <div class="flow-item" style="border-color: var(--accent-border);">
+        <span class="phase">STEP 1</span>
+        <span>L'admin <strong style="color:#fff">avvia la lega</strong> &rarr; stato "Primo Mercato pronto"</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase">STEP 2</span>
+        <span>L'admin <strong style="color:#fff">avvia l'asta</strong></span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase">STEP 3</span>
+        <span>Tutti i partecipanti <strong style="color:#fff">dichiarano di essere presenti</strong></span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color: var(--success-border);">
+        <span class="phase">STEP 4</span>
+        <span>L'admin imposta l'<strong style="color:#fff">ordine di chiamata</strong> (manuale o random)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: Meccanica Asta -->
+  <section id="s2" class="section">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <h2>Meccanica dell'Asta</h2>
+    </div>
+
+    <h3>Ordine di Chiamata</h3>
+    <div class="card card-primary">
+      <ul class="rule-list">
+        <li>
+          <span class="rule-icon rule-info">&#8635;</span>
+          <span>L'admin definisce l'ordine dei turni (o sceglie <strong style="color:#fff">random</strong>)</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">&#9917;</span>
+          <span>Ogni manager, a turno, sceglie un <strong style="color:#fff">giocatore svincolato</strong> da mettere all'asta</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">&#8634;</span>
+          <span>Il turno <strong style="color:#fff">ruota ciclicamente</strong> tra tutti i manager attivi</span>
+        </li>
+      </ul>
+    </div>
+
+    <h3>Vincolo Slot per Ruolo</h3>
+    <div class="card card-accent">
+      <div class="card-title"><span class="icon">&#128274;</span> Regola Fondamentale</div>
+      <p>L'asta procede per ruolo in ordine: <span class="tag tag-gold">P</span> &rarr; <span class="tag tag-green">D</span> &rarr; <span class="tag tag-blue">C</span> &rarr; <span class="tag tag-red">A</span></p>
+      <p>Finche <strong style="color:#fff">TUTTI</strong> i manager non hanno completato gli slot di un ruolo, <strong style="color:var(--danger)">non si puo passare</strong> al ruolo successivo.</p>
+    </div>
+
+    <div class="example">
+      <div class="example-header">&#128202; Esempio: Slot Portieri (3 slot)</div>
+      <div class="example-body">
+        <div class="table-wrap" style="margin:0 0 12px;">
+          <table>
+            <thead><tr><th>Manager</th><th>Portieri</th><th>Stato</th></tr></thead>
+            <tbody>
+              <tr><td>Manager A</td><td class="val">3/3</td><td><span class="tag tag-green">&#10003; Completato</span></td></tr>
+              <tr><td>Manager B</td><td class="val negative">2/3</td><td><span class="tag tag-red">&#10005; Manca 1</span></td></tr>
+              <tr><td>Manager C</td><td class="val">3/3</td><td><span class="tag tag-green">&#10003; Completato</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="alert alert-accent" style="margin-bottom:0">
+          <span class="alert-icon">&#8594;</span>
+          <div>Si resta sui <strong>Portieri</strong> finche Manager B arriva a 3/3. Poi si passa automaticamente ai <strong>Difensori</strong>.</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Chi Puo Fare Offerte</h3>
+    <div class="card">
+      <ul class="rule-list">
+        <li>
+          <span class="rule-icon rule-check">&#10003;</span>
+          <span>Tutti i manager possono fare offerte per <strong style="color:#fff">qualsiasi giocatore all'asta</strong></span>
+        </li>
+        <li>
+          <span class="rule-icon rule-cross">&#10005;</span>
+          <span><strong style="color:var(--danger)">Slot pieno:</strong> se un manager ha gia riempito gli slot del ruolo corrente, NON puo offrire</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-cross">&#10005;</span>
+          <span><strong style="color:var(--danger)">Budget insufficiente:</strong> se il bilancio &lt; offerta + ingaggio default, viene escluso</span>
+        </li>
+      </ul>
+    </div>
+
+    <h3>Meccanica Offerta</h3>
+    <div class="comparison">
+      <div class="card card-primary">
+        <div class="card-title"><span class="icon">&#128176;</span> Base d'Asta</div>
+        <div style="text-align:center; padding: 12px 0;">
+          <span style="font-family:'Oswald',sans-serif; font-size:48px; font-weight:700; color:var(--accent);">1</span>
+        </div>
+        <p style="text-align:center; margin:0;">Ogni asta parte da un'offerta minima di 1 credito.</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">&#9201;</span> Timer</div>
+        <ul class="rule-list">
+          <li>
+            <span class="rule-icon rule-info">&#9201;</span>
+            <span>Configurabile dall'admin</span>
+          </li>
+          <li>
+            <span class="rule-icon rule-info">&#8634;</span>
+            <span><strong style="color:#fff">Reset</strong> ad ogni nuova offerta</span>
+          </li>
+          <li>
+            <span class="rule-icon rule-check">&#127942;</span>
+            <span><strong style="color:#fff">Vincitore</strong> = ultimo offerente allo scadere</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="alert alert-primary">
+      <span class="alert-icon">&#128161;</span>
+      <div><strong>Conferma chiamata:</strong> quando un manager sceglie il giocatore da astare, il sistema chiede <strong>conferma</strong> per evitare errori di click.</div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: Acquisto e Contratto -->
+  <section id="s3" class="section">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <h2>Acquisto e Contratto</h2>
+    </div>
+
+    <h3>Contratto Default</h3>
+    <div class="card card-elevated">
+      <p>Alla vittoria dell'asta, il giocatore riceve automaticamente un contratto default:</p>
+      <div class="comparison" style="margin-top:16px; margin-bottom:0;">
+        <div class="formula" style="text-align:center; margin:0;">
+          <span class="label">Ingaggio</span>
+          Math.max(1, Math.round(<span class="highlight">prezzo / 10</span>))
+        </div>
+        <div class="formula" style="text-align:center; margin:0;">
+          <span class="label">Durata</span>
+          Sempre <span class="highlight">3</span> semestri
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-primary">
+      <span class="alert-icon">&#128279;</span>
+      <div>Vedi <strong>Bibbia CONTRATTI</strong> sezione 3 per la tabella fasce completa (1-4&rarr;1, 5-14&rarr;1, 15-24&rarr;2, ...).</div>
+    </div>
+
+    <h3>Verifica Budget Pre-Offerta</h3>
+    <div class="formula" style="text-align: center; font-size: 20px;">
+      <span class="label">Requisito per fare offerta</span>
+      <span class="highlight">bilancio</span> &ge; offerta + ingaggio_default
+    </div>
+
+    <div class="example">
+      <div class="example-header">&#9917; Esempio: Esposito</div>
+      <div class="example-body">
+        <div class="scenario">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <div class="step-label">Manager vuole offrire 75</div>
+              <div class="step-desc">Ingaggio default = Math.max(1, Math.round(75/10)) = 8</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <div class="step-label">Bilancio minimo richiesto</div>
+              <div class="step-formula">75 + 8 = <span style="color:var(--danger)">83</span></div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <div class="step-label">Se il manager ha bilancio &ge; 83, puo offrire</div>
+              <div class="step-desc">Se bilancio &lt; 83, l'offerta viene bloccata</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Modifica Post-Acquisto</h3>
+    <div class="card">
+      <p>Il vincitore puo modificare il contratto <strong style="color:#fff">immediatamente dopo l'acquisto</strong>:</p>
+      <ul class="rule-list">
+        <li>
+          <span class="rule-icon rule-check">&#8593;</span>
+          <span>Solo in <strong style="color:var(--success)">aumento</strong> (ingaggio, oppure ingaggio + durata). La durata da sola NON puo essere aumentata.</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">&#128176;</span>
+          <span>Se aumenta l'ingaggio, il costo effettivo = <strong style="color:#fff">prezzo_asta + nuovo_ingaggio</strong></span>
+        </li>
+        <li>
+          <span class="rule-icon rule-warn">&#128161;</span>
+          <span>La <strong style="color:var(--accent)">durata non impatta</strong> il costo immediato</span>
+        </li>
+      </ul>
+      <div class="alert alert-primary" style="margin-bottom:0;">
+        <span class="alert-icon">&#128279;</span>
+        <div>Vedi <strong>Bibbia CONTRATTI</strong> sezione 4 per le regole di modifica complete.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 4: Impatto Finanziario -->
+  <section id="s4" class="section">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <h2>Impatto Finanziario</h2>
+    </div>
+
+    <h3>Per Ogni Acquisto</h3>
+    <div class="card card-elevated">
+      <div class="formula" style="margin-top:0;">
+        <span class="label">Effetto sull'acquirente</span>
+        <span class="danger">Budget -= prezzo_asta</span>
+      </div>
+      <div class="formula">
+        <span class="label">Effetto sul monte ingaggi</span>
+        Monte Ingaggi += <span class="highlight">ingaggio_effettivo</span> (default o modificato)
+      </div>
+      <div class="formula" style="margin-bottom:0;">
+        <span class="label">Bilancio risultante</span>
+        Bilancio = <span class="highlight">Budget</span> &minus; <span class="danger">Monte Ingaggi</span>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="example-header">&#128202; Esempio: Tre acquisti consecutivi</div>
+      <div class="example-body">
+        <p style="margin-bottom:16px">Manager A parte con budget <span class="tag tag-gold">500</span></p>
+        <div class="table-wrap" style="margin:0">
+          <table>
+            <thead><tr><th>Acquisto</th><th>Prezzo</th><th>Ingaggio</th><th>Budget dopo</th><th>Monte Ing.</th><th>Bilancio</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Maignan (P)</td>
+                <td class="val">45</td>
+                <td class="val">5</td>
+                <td class="val">455</td>
+                <td class="val">5</td>
+                <td class="val positive">450</td>
+              </tr>
+              <tr>
+                <td>Bastoni (D)</td>
+                <td class="val">80</td>
+                <td class="val">8</td>
+                <td class="val">375</td>
+                <td class="val">13</td>
+                <td class="val positive">362</td>
+              </tr>
+              <tr>
+                <td>Lautaro (A)</td>
+                <td class="val">120</td>
+                <td class="val">12</td>
+                <td class="val">255</td>
+                <td class="val">25</td>
+                <td class="val positive">230</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <h3>Visibilita Budget</h3>
+    <div class="alert alert-accent">
+      <span class="alert-icon">&#128065;</span>
+      <div><strong>Trasparenza totale:</strong> tutti i manager devono poter vedere il budget in <strong>tempo reale</strong> di tutti i manager durante l'asta.</div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: Poteri Admin -->
+  <section id="s5" class="section">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <h2>Poteri dell'Admin</h2>
+    </div>
+
+    <div class="comparison">
+      <div class="card card-primary">
+        <div class="card-title"><span class="icon">&#9201;</span> Gestione Timer</div>
+        <p>L'admin puo <strong style="color:#fff">modificare la durata</strong> del timer dell'offerta durante l'asta.</p>
+        <p style="margin-top:8px">L'admin puo <strong style="color:var(--accent)">bloccare il timer in pausa</strong> in qualsiasi momento.</p>
+      </div>
+      <div class="card card-accent">
+        <div class="card-title"><span class="icon">&#9208;</span> Pausa</div>
+        <p>Un manager puo chiedere una pausa (urgenza):</p>
+        <ul class="rule-list">
+          <li>
+            <span class="rule-icon rule-info">&#9208;</span>
+            <span><strong style="color:#fff">Pausa chiamata:</strong> ferma la scelta del giocatore</span>
+          </li>
+          <li>
+            <span class="rule-icon rule-info">&#9208;</span>
+            <span><strong style="color:#fff">Pausa asta:</strong> ferma l'asta in corso</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Rettifiche</h3>
+    <div class="card card-danger">
+      <div class="card-title"><span class="icon">&#9888;</span> L'admin deve sempre poter correggere</div>
+      <div class="table-wrap" style="margin-top:12px; margin-bottom:0;">
+        <table>
+          <thead><tr><th>Azione Admin</th><th>Effetto</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong style="color:#fff">Annulla fine asta</strong></td>
+              <td>Riprende dall'ultima offerta (timer riparte)</td>
+            </tr>
+            <tr>
+              <td><strong style="color:#fff">Annulla chiamata</strong></td>
+              <td>Il giocatore torna svincolato, il turno resta al manager che deve scegliere</td>
+            </tr>
+            <tr>
+              <td><strong style="color:#fff">Rettifica transazione</strong></td>
+              <td>Asta conclusa annullata: giocatore torna libero, crediti restituiti al manager</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h3>Fine Asta</h3>
+    <div class="alert alert-success">
+      <span class="alert-icon">&#10003;</span>
+      <div>L'admin <strong>dichiara conclusa</strong> l'asta quando tutti i manager hanno riempito tutti gli slot.</div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: Tracciamento -->
+  <section id="s6" class="section">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <h2>Tracciamento</h2>
+    </div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#128203;</span> Ogni Movimento Tracciato</div>
+      <ul class="rule-list">
+        <li>
+          <span class="rule-icon rule-check">&#10003;</span>
+          <span><strong style="color:#fff">Giocatore acquistato</strong> &mdash; da quale manager, a quale prezzo</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-check">&#10003;</span>
+          <span><strong style="color:#fff">Correzioni admin</strong> &mdash; annullamenti e rettifiche tracciate</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-check">&#10003;</span>
+          <span><strong style="color:#fff">Visibilita real-time</strong> &mdash; ogni acquisto chiaro e visibile a tutti</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SECTION 7: Fine Primo Mercato -->
+  <section id="s7" class="section">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <h2>Fine Primo Mercato</h2>
+    </div>
+
+    <div class="flow">
+      <div class="flow-item" style="border-color: var(--success-border);">
+        <span class="phase">FINE</span>
+        <span>Tutti i manager hanno la <strong style="color:#fff">rosa completa</strong> (tutti gli slot riempiti)</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase">ADMIN</span>
+        <span>L'admin <strong style="color:#fff">dichiara concluso</strong> il primo mercato</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color: var(--danger-border);">
+        <span class="phase">MAI PIU</span>
+        <span>Il primo mercato <strong style="color:var(--danger)">NON si ripresentera mai</strong> per questa lega</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color: var(--accent-border);">
+        <span class="phase">FUTURO</span>
+        <span>Da questo momento si potranno avviare i <strong style="color:var(--accent)">mercati ricorrenti</strong></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 8: Manager Escluso -->
+  <section id="s8" class="section">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <h2>Manager Escluso</h2>
+    </div>
+
+    <div class="card card-danger">
+      <div class="card-title"><span class="icon">&#9888;</span> Budget Insufficiente</div>
+      <p>Se un manager non ha bilancio sufficiente per fare offerte:</p>
+      <div class="formula" style="text-align:center;">
+        <span class="label">Soglia minima</span>
+        bilancio &lt; offerta minima (<span class="highlight">1</span>) + ingaggio minimo (<span class="highlight">1</span>) = <span class="danger">2</span>
+      </div>
+      <ul class="rule-list">
+        <li>
+          <span class="rule-icon rule-cross">&#10005;</span>
+          <span>Viene <strong style="color:var(--danger)">escluso</strong> dall'asta</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-cross">&#10005;</span>
+          <span><strong style="color:var(--danger)">Non partecipa</strong> ai turni di chiamata</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-warn">?</span>
+          <span>I suoi slot rimanenti restano vuoti <span style="color:var(--text-dim)">(da definire con admin)</span></span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

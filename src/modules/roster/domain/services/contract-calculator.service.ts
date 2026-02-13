@@ -9,13 +9,13 @@
  * - 4 semesters = multiplier 11
  * - 3 semesters = multiplier 9
  * - 2 semesters = multiplier 7
- * - 1 semester = multiplier 4
+ * - 1 semester = multiplier 3
  */
 export const DURATION_MULTIPLIERS: Record<number, number> = {
   4: 11,
   3: 9,
   2: 7,
-  1: 4,
+  1: 3,
 }
 
 /**
@@ -64,7 +64,7 @@ export class ContractCalculator implements IContractCalculator {
    * Get the multiplier for a given duration
    */
   private getMultiplier(duration: number): number {
-    return DURATION_MULTIPLIERS[duration] ?? 4
+    return DURATION_MULTIPLIERS[duration] ?? 3
   }
 
   /**
@@ -119,7 +119,7 @@ export interface RescissionBreakdown {
  * Get a detailed breakdown of rescission calculation
  */
 export function getRescissionBreakdown(salary: number, duration: number): RescissionBreakdown {
-  const multiplier = DURATION_MULTIPLIERS[duration] ?? 4
+  const multiplier = DURATION_MULTIPLIERS[duration] ?? 3
   return {
     salary,
     duration,

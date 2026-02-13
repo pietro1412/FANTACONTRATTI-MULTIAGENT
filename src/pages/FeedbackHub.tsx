@@ -185,7 +185,7 @@ export function FeedbackHub({ leagueId, feedbackId: initialFeedbackId, onNavigat
   }
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation
         currentPage="feedbackHub"
         leagueId={leagueId}
@@ -206,7 +206,7 @@ export function FeedbackHub({ leagueId, feedbackId: initialFeedbackId, onNavigat
                 </svg>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Feedback Hub</h1>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Feedback Hub</h1>
                 <p className="text-sm text-gray-400">Novita, segnalazioni e suggerimenti</p>
               </div>
             </div>

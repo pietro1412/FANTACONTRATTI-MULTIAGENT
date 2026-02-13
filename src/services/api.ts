@@ -81,7 +81,7 @@ async function refreshAccessToken(): Promise<boolean> {
 
 // Auth API
 export const authApi = {
-  register: (data: { email: string; username: string; password: string; confirmPassword: string }) =>
+  register: (data: { email: string; username: string; password: string; confirmPassword: string; turnstileToken?: string }) =>
     request('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
 
   login: (data: { emailOrUsername: string; password: string }) =>
@@ -195,12 +195,25 @@ export const leagueApi = {
       createdAt: string
     }>>(`/api/leagues/search?q=${encodeURIComponent(query)}`),
 
-  // Get financial dashboard data (#190, #193)
-  getFinancials: (leagueId: string) =>
+  // Get financial dashboard data (#190, #193, OSS-6)
+  getFinancials: (leagueId: string, sessionId?: string) =>
     request<{
       leagueName: string
       maxSlots: number
+      isAdmin: boolean
       inContrattiPhase: boolean // #193: true if league is in CONTRATTI phase
+      // OSS-6: Historical mode
+      isHistorical?: boolean
+      historicalSessionType?: string
+      historicalPhase?: string
+      // OSS-6: Available sessions for phase selector
+      availableSessions: Array<{
+        id: string
+        sessionType: string
+        currentPhase: string | null
+        status: string
+        createdAt: string
+      }>
       teams: Array<{
         memberId: string
         teamName: string
@@ -208,6 +221,7 @@ export const leagueApi = {
         budget: number
         annualContractCost: number
         totalContractCost: number
+        totalAcquisitionCost: number // OSS-6: sum of auction prices paid
         slotCount: number
         slotsFree: number
         maxSlots: number
@@ -251,8 +265,84 @@ export const leagueApi = {
         }
         isConsolidated: boolean
         consolidatedAt: string | null
+        preConsolidationBudget: number | null
+        totalReleaseCosts: number | null
+        totalIndemnities: number | null
+        totalRenewalCosts: number | null
+        tradeBudgetIn: number
+        tradeBudgetOut: number
       }>
-    }>(`/api/leagues/${leagueId}/financials`),
+    }>(`/api/leagues/${leagueId}/financials${sessionId ? `?sessionId=${sessionId}` : ''}`),
+
+  // Get financial timeline for a team member
+  getFinancialTimeline: (leagueId: string, memberId?: string) =>
+    request<{
+      memberId: string
+      teamName: string
+      username: string
+      events: Array<{
+        id: string
+        type: 'contract' | 'trade'
+        eventType: string
+        label: string
+        color: string
+        playerName?: string
+        playerPosition?: string
+        previousSalary?: number | null
+        previousDuration?: number | null
+        previousClause?: number | null
+        newSalary?: number | null
+        newDuration?: number | null
+        newClause?: number | null
+        cost?: number | null
+        income?: number | null
+        notes?: string | null
+        isSender?: boolean
+        counterpart?: string
+        offeredBudget?: number
+        requestedBudget?: number
+        sessionType: string
+        sessionPhase: string | null
+        createdAt: string
+      }>
+      trendData: Array<{
+        id: string
+        type: string
+        budget: number
+        totalSalaries: number
+        balance: number
+        totalIndemnities: number | null
+        totalReleaseCosts: number | null
+        contractCount: number
+        sessionType: string
+        sessionPhase: string | null
+        createdAt: string
+      }>
+    }>(`/api/leagues/${leagueId}/financials/timeline${memberId ? `?memberId=${memberId}` : ''}`),
+
+  // Get financial trends for all teams
+  getFinancialTrends: (leagueId: string) =>
+    request<{
+      trends: Record<string, Array<{
+        snapshotType: string
+        budget: number
+        totalSalaries: number
+        balance: number
+        sessionType: string
+        sessionPhase: string | null
+        createdAt: string
+      }>>
+    }>(`/api/leagues/${leagueId}/financials/trends`),
+
+  // Get strategy summary for dashboard
+  getStrategySummary: (leagueId: string) =>
+    request<{
+      targets: number
+      topPriority: number
+      watching: number
+      toSell: number
+      total: number
+    }>(`/api/leagues/${leagueId}/strategy-summary`),
 }
 
 // Invite API
@@ -412,10 +502,10 @@ export const playerApi = {
 // Auction API
 export const auctionApi = {
   // Sessions
-  createSession: (leagueId: string, isRegularMarket: boolean = false) =>
+  createSession: (leagueId: string, isRegularMarket: boolean = false, auctionMode: 'REMOTE' | 'IN_PRESENCE' = 'REMOTE') =>
     request(`/api/leagues/${leagueId}/auctions`, {
       method: 'POST',
-      body: JSON.stringify({ isRegularMarket }),
+      body: JSON.stringify({ isRegularMarket, auctionMode }),
     }),
 
   getSessions: (leagueId: string) =>
@@ -591,6 +681,34 @@ export const auctionApi = {
   forceAllReadyResume: (auctionId: string) =>
     request(`/api/auctions/${auctionId}/force-all-ready-resume`, {
       method: 'POST',
+    }),
+
+  // Manager: Request pause (non-admin)
+  requestPause: (sessionId: string, type: 'nomination' | 'auction') =>
+    request(`/api/leagues/auctions/sessions/${sessionId}/request-pause`, {
+      method: 'POST',
+      body: JSON.stringify({ type }),
+    }),
+
+  // Admin: Pause/Resume auction timer
+  pauseAuction: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/auctions/pause`, { method: 'POST' }),
+
+  resumeAuction: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/auctions/resume`, { method: 'POST' }),
+
+  // Admin: Cancel active auction
+  cancelActiveAuction: (leagueId: string, auctionId: string) =>
+    request(`/api/leagues/${leagueId}/auctions/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({ auctionId }),
+    }),
+
+  // Admin: Rectify completed auction
+  rectifyTransaction: (leagueId: string, auctionId: string, newWinnerId?: string, newPrice?: number) =>
+    request(`/api/leagues/${leagueId}/auctions/rectify`, {
+      method: 'POST',
+      body: JSON.stringify({ auctionId, newWinnerId, newPrice }),
     }),
 }
 
@@ -901,6 +1019,7 @@ export const rubataApi = {
     maxBid?: number | null
     priority?: number | null
     notes?: string | null
+    watchlistCategory?: string | null
   }) =>
     request(`/api/leagues/${leagueId}/rubata/preferences/${playerId}`, {
       method: 'PUT',
@@ -1143,6 +1262,13 @@ export const svincolatiApi = {
       method: 'POST',
       body: JSON.stringify({ memberId }),
     }),
+
+  // Admin: Pause/Resume svincolati timer
+  pause: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/pause`, { method: 'POST' }),
+
+  resume: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/svincolati/resume`, { method: 'POST' }),
 }
 
 // Admin API
@@ -1754,6 +1880,44 @@ export const feedbackApi = {
   // Mark all notifications as read
   markAllNotificationsRead: () =>
     request('/api/feedback/notifications/read-all', { method: 'PATCH' }),
+}
+
+// Push Notification API
+export const pushApi = {
+  getVapidKey: () =>
+    request<{ publicKey: string }>('/api/push/vapid-key'),
+
+  subscribe: (subscription: PushSubscriptionJSON) =>
+    request('/api/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ subscription }),
+    }),
+
+  unsubscribe: (endpoint: string) =>
+    request('/api/push/unsubscribe', {
+      method: 'DELETE',
+      body: JSON.stringify({ endpoint }),
+    }),
+
+  getPreferences: () =>
+    request<{
+      pushEnabled: boolean
+      tradeOffers: boolean
+      contractExpiry: boolean
+      auctionStart: boolean
+      phaseChange: boolean
+    }>('/api/push/preferences'),
+
+  updatePreferences: (prefs: {
+    tradeOffers?: boolean
+    contractExpiry?: boolean
+    auctionStart?: boolean
+    phaseChange?: boolean
+  }) =>
+    request('/api/push/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(prefs),
+    }),
 }
 
 // Contract History API

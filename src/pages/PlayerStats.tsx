@@ -1,11 +1,17 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { playerApi, leagueApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import RadarChart from '../components/ui/RadarChart'
+import { BottomSheet } from '../components/ui/BottomSheet'
 import { getPlayerPhotoUrl, getTeamLogoUrl } from '../utils/player-images'
+import { SlidersHorizontal } from 'lucide-react'
+import { ShareButton } from '../components/ShareButton'
+import { LandscapeHint } from '../components/ui/LandscapeHint'
+import { PlayerStatsModal, type PlayerInfo } from '../components/PlayerStatsModal'
+import { EmptyState } from '../components/ui/EmptyState'
 
 // Position colors
 const POSITION_COLORS: Record<string, string> = {
@@ -147,6 +153,13 @@ const COLUMN_PRESETS: Record<string, { label: string; emoji: string; columns: st
 
 const LOCALSTORAGE_KEY = 'playerStats_visibleColumns'
 
+// ==================== HELPER COMPONENTS ====================
+
+function SortIcon({ column, sortBy, sortOrder }: { column: string; sortBy: string; sortOrder: 'asc' | 'desc' }) {
+  if (sortBy !== column) return <span className="text-gray-600 ml-1">↕</span>
+  return <span className="text-primary-400 ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+}
+
 // ==================== COMPONENT ====================
 
 interface PlayerStatsProps {
@@ -168,6 +181,9 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
   const [search, setSearch] = useState('')
   const [positionFilter, setPositionFilter] = useState<string>('')
   const [teamFilter, setTeamFilter] = useState<string>('')
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [teamDropdownOpen, setTeamDropdownOpen] = useState(false)
+  const teamDropdownRef = useRef<HTMLDivElement>(null)
   const [sortBy, setSortBy] = useState<string>('name')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
@@ -196,6 +212,12 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
     return COLUMN_PRESETS.essential.columns
   })
   const [showColumnSelector, setShowColumnSelector] = useState(false)
+
+  // Player stats modal
+  const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
+
+  // Error state
+  const [error, setError] = useState<string | null>(null)
 
   // Save column preferences to localStorage
   useEffect(() => {
@@ -238,6 +260,17 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
     })
   }, [players, sortBy, sortOrder])
 
+  // Close team dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (teamDropdownRef.current && !teamDropdownRef.current.contains(e.target as Node)) {
+        setTeamDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   useEffect(() => {
     loadLeagueInfo()
     loadTeams()
@@ -258,16 +291,8 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
   }
 
   useEffect(() => {
-    // Only reload from backend when filters, pagination, or backend-sortable columns change
-    if (backendSortableColumns.includes(sortBy)) {
-      loadPlayers()
-    }
-  }, [positionFilter, teamFilter, sortBy, sortOrder, page])
-
-  // Initial load
-  useEffect(() => {
     loadPlayers()
-  }, [])
+  }, [positionFilter, teamFilter, sortBy, sortOrder, page])
 
   async function loadTeams() {
     try {
@@ -284,6 +309,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
 
   async function loadPlayers() {
     setLoading(true)
+    setError(null)
     try {
       const res = await playerApi.getStats({
         position: positionFilter || undefined,
@@ -301,6 +327,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
       }
     } catch (err) {
       console.error('Error loading players:', err)
+      setError('Errore nel caricamento delle statistiche. Riprova.')
     } finally {
       setLoading(false)
     }
@@ -354,12 +381,19 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
     }
   }, [])
 
-  const playersToCompare = sortedPlayers.filter((p) => selectedForCompare.has(p.id))
+  const toggleCategory = useCallback((category: string) => {
+    const catColumns = STAT_COLUMNS.filter(c => c.category === category).map(c => c.key)
+    setVisibleColumns(prev => {
+      const allSelected = catColumns.every(k => prev.includes(k))
+      if (allSelected) {
+        return prev.filter(k => !catColumns.includes(k))
+      } else {
+        return [...new Set([...prev, ...catColumns])]
+      }
+    })
+  }, [])
 
-  const SortIcon = ({ column }: { column: string }) => {
-    if (sortBy !== column) return <span className="text-gray-600 ml-1">↕</span>
-    return <span className="text-primary-400 ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-  }
+  const playersToCompare = sortedPlayers.filter((p) => selectedForCompare.has(p.id))
 
   // Group columns by category for the selector
   const columnsByCategory = useMemo(() => {
@@ -372,6 +406,9 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
     }
     return grouped
   }, [])
+
+  // Memoized sorted key for preset comparison (avoids mutating array + re-stringifying every render)
+  const visibleColumnsSorted = useMemo(() => JSON.stringify([...visibleColumns].sort()), [visibleColumns])
 
   const categoryLabels: Record<string, string> = {
     general: 'Generali',
@@ -392,21 +429,80 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
         onNavigate={onNavigate}
       />
 
-      <div className="p-4 md:p-6">
-        <div className="max-w-[1800px] mx-auto">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-white mb-2">Statistiche Serie A</h1>
-            <p className="text-gray-400">
-              Analizza le statistiche dei giocatori della Serie A ({total} giocatori con dati)
-            </p>
+      {/* === Page Header (aligned with Trades/Svincolati) === */}
+      <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
+        <div className="max-w-[1600px] mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-5">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-glow">
+                <span className="text-2xl">📊</span>
+              </div>
+              <div>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Statistiche Serie A</h1>
+                <p className="text-gray-400 text-sm">
+                  {total > 0 ? `${total} giocatori con dati` : 'Analizza le statistiche dei giocatori'}
+                </p>
+              </div>
+            </div>
+            <ShareButton title="Statistiche Serie A" text="Statistiche giocatori Serie A" compact />
           </div>
+        </div>
+      </div>
+
+      <div className="p-4 md:p-6">
+        <div className="max-w-[1600px] mx-auto">
 
           {/* Filters */}
           <Card className="p-3 md:p-4 mb-4 overflow-x-auto">
-            <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4 items-stretch sm:items-end min-w-0">
-              {/* Search */}
-              <div className="flex-1 min-w-0 sm:min-w-[180px]">
+            {/* Mobile: search + Filtri button */}
+            <div className="flex flex-col gap-3 md:hidden">
+              <div className="flex gap-2 items-end">
+                <div className="flex-1 min-w-0">
+                  <label className="block text-xs text-gray-400 mb-1">Cerca giocatore</label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Nome..."
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                      className="min-w-0 flex-1"
+                    />
+                    <Button onClick={handleSearch} variant="outline" className="flex-shrink-0">
+                      🔍
+                    </Button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setFiltersOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-sm text-gray-300 hover:text-white transition-colors flex-shrink-0 mb-px"
+                >
+                  <SlidersHorizontal size={16} />
+                  Filtri{(positionFilter || teamFilter) && (
+                    <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-bold bg-primary-500/30 text-primary-400 rounded-full">
+                      {[positionFilter, teamFilter].filter(Boolean).length}
+                    </span>
+                  )}
+                </button>
+              </div>
+              {selectedForCompare.size > 0 && (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => setShowCompareModal(true)}
+                    className="btn-primary flex-1"
+                    disabled={selectedForCompare.size < 2}
+                  >
+                    Confronta ({selectedForCompare.size})
+                  </Button>
+                  <Button onClick={clearComparison} variant="outline" className="flex-shrink-0">
+                    ✕
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Desktop: full inline filters */}
+            <div className="hidden md:flex flex-wrap gap-4 items-end min-w-0">
+              <div className="flex-1 min-w-0 min-w-[180px]">
                 <label className="block text-xs text-gray-400 mb-1">Cerca giocatore</label>
                 <div className="flex gap-2">
                   <Input
@@ -422,9 +518,8 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                 </div>
               </div>
 
-              {/* Position + Team filters in row on mobile */}
-              <div className="flex gap-2 sm:gap-4">
-                <div className="flex-1 sm:flex-none sm:w-32">
+              <div className="flex gap-4">
+                <div className="w-32">
                   <label className="block text-xs text-gray-400 mb-1">Ruolo</label>
                   <select
                     value={positionFilter}
@@ -442,32 +537,55 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                   </select>
                 </div>
 
-                <div className="flex-1 sm:flex-none sm:w-40">
+                <div className="w-48 relative" ref={teamDropdownRef}>
                   <label className="block text-xs text-gray-400 mb-1">Squadra</label>
-                  <select
-                    value={teamFilter}
-                    onChange={(e) => {
-                      setTeamFilter(e.target.value)
-                      setPage(1)
-                    }}
-                    className="w-full px-2 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  <button
+                    type="button"
+                    onClick={() => setTeamDropdownOpen(!teamDropdownOpen)}
+                    className="w-full px-2 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center gap-2"
                   >
-                    <option value="">Tutte</option>
-                    {teams.map((team) => (
-                      <option key={team} value={team}>
-                        {team}
-                      </option>
-                    ))}
-                  </select>
+                    {teamFilter ? (
+                      <>
+                        <img src={getTeamLogoUrl(teamFilter) || ''} alt="" className="w-5 h-5 object-contain rounded bg-white/90 p-0.5" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                        <span className="truncate">{teamFilter}</span>
+                      </>
+                    ) : (
+                      <span className="text-gray-400">Tutte</span>
+                    )}
+                    <svg className={`w-4 h-4 ml-auto transition-transform flex-shrink-0 ${teamDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {teamDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-1 bg-surface-200 border border-surface-50/30 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto min-w-[200px]">
+                      <button
+                        type="button"
+                        onClick={() => { setTeamFilter(''); setTeamDropdownOpen(false); setPage(1) }}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-300 ${!teamFilter ? 'bg-primary-500/20 text-primary-400' : 'text-white'}`}
+                      >
+                        Tutte le squadre
+                      </button>
+                      {teams.map(team => (
+                        <button
+                          key={team}
+                          type="button"
+                          onClick={() => { setTeamFilter(team); setTeamDropdownOpen(false); setPage(1) }}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-surface-300 flex items-center gap-2 ${teamFilter === team ? 'bg-primary-500/20 text-primary-400' : 'text-white'}`}
+                        >
+                          <img src={getTeamLogoUrl(team) || ''} alt="" className="w-5 h-5 object-contain rounded bg-white/90 p-0.5 flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                          <span>{team}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Compare buttons */}
               {selectedForCompare.size > 0 && (
-                <div className="flex gap-2 w-full sm:w-auto">
+                <div className="flex gap-2">
                   <Button
                     onClick={() => setShowCompareModal(true)}
-                    className="btn-primary flex-1 sm:flex-none"
+                    className="btn-primary"
                     disabled={selectedForCompare.size < 2}
                   >
                     Confronta ({selectedForCompare.size})
@@ -479,6 +597,107 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
               )}
             </div>
           </Card>
+
+          {/* Mobile Filters BottomSheet */}
+          <BottomSheet isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filtri Statistiche">
+            <div className="p-4 space-y-5">
+              <div>
+                <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Ruolo</label>
+                <div className="flex gap-2">
+                  {['', 'P', 'D', 'C', 'A'].map(pos => (
+                    <button
+                      key={pos}
+                      onClick={() => {
+                        setPositionFilter(pos)
+                        setPage(1)
+                      }}
+                      className={`flex-1 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                        positionFilter === pos
+                          ? 'bg-primary-500/30 text-primary-400'
+                          : 'bg-surface-300 text-gray-400'
+                      }`}
+                    >
+                      {pos === '' ? 'Tutti' : pos}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Squadra</label>
+                <select
+                  value={teamFilter}
+                  onChange={(e) => {
+                    setTeamFilter(e.target.value)
+                    setPage(1)
+                  }}
+                  className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Tutte le squadre</option>
+                  {teams.map((team) => (
+                    <option key={team} value={team}>{team}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                onClick={() => setFiltersOpen(false)}
+                className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-xl transition-colors"
+              >
+                Applica Filtri
+              </button>
+            </div>
+          </BottomSheet>
+
+          {/* Column Selector BottomSheet - mobile only */}
+          <BottomSheet isOpen={showColumnSelector} onClose={() => setShowColumnSelector(false)} title="Seleziona Colonne">
+            <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+              {Object.entries(columnsByCategory).map(([category, columns]) => {
+                const allSelected = columns.every(c => visibleColumns.includes(c.key))
+                const someSelected = columns.some(c => visibleColumns.includes(c.key))
+                return (
+                  <div key={category}>
+                    <button
+                      type="button"
+                      onClick={() => toggleCategory(category)}
+                      className="flex items-center gap-2 w-full text-left mb-2 group"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        ref={el => { if (el) el.indeterminate = someSelected && !allSelected }}
+                        onChange={() => toggleCategory(category)}
+                        className="w-4 h-4 rounded border-surface-50/30 bg-surface-300 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
+                      />
+                      <h4 className="text-xs font-semibold text-primary-400 uppercase tracking-wider group-hover:text-primary-300 transition-colors">
+                        {categoryLabels[category]}
+                      </h4>
+                      <span className="text-[10px] text-gray-600 ml-auto">{columns.filter(c => visibleColumns.includes(c.key)).length}/{columns.length}</span>
+                    </button>
+                    <div className="space-y-1">
+                      {columns.map(col => (
+                        <label
+                          key={col.key}
+                          className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-surface-300/50 cursor-pointer transition-colors min-h-[44px]"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={visibleColumns.includes(col.key)}
+                            onChange={() => toggleColumn(col.key)}
+                            className="w-5 h-5 rounded border-surface-50/30 bg-surface-300 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
+                          />
+                          <div className="flex-1">
+                            <span className="text-sm text-white">{col.label}</span>
+                            <span className="text-xs text-gray-500 ml-2">({col.shortLabel})</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </BottomSheet>
 
           {/* Column Selector & Presets */}
           <Card className="p-3 md:p-4 mb-4 overflow-x-auto">
@@ -492,7 +711,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                       key={key}
                       onClick={() => applyPreset(key)}
                       className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
-                        JSON.stringify(visibleColumns.sort()) === JSON.stringify(preset.columns.sort())
+                        visibleColumnsSorted === JSON.stringify([...preset.columns].sort())
                           ? 'bg-primary-500/30 text-primary-400 border border-primary-500/50'
                           : 'bg-surface-300 text-gray-400 hover:text-white hover:bg-surface-50/20'
                       }`}
@@ -510,6 +729,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
               {/* Custom column selector */}
               <div className="relative w-full sm:w-auto">
                 <button
+                  type="button"
                   onClick={() => setShowColumnSelector(!showColumnSelector)}
                   className="flex items-center gap-2 px-3 py-1.5 bg-surface-300 hover:bg-surface-50/20 rounded-lg text-sm text-gray-300 transition-colors w-full sm:w-auto justify-center sm:justify-start"
                 >
@@ -519,9 +739,9 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                   Personalizza ({visibleColumns.length})
                 </button>
 
-                {/* Column selector dropdown */}
+                {/* Column selector dropdown - desktop only */}
                 {showColumnSelector && (
-                  <>
+                  <div className="hidden sm:block">
                     <div
                       className="fixed inset-0 z-40"
                       onClick={() => setShowColumnSelector(false)}
@@ -531,6 +751,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                         <div className="flex items-center justify-between">
                           <span className="font-medium text-white">Seleziona Colonne</span>
                           <button
+                            type="button"
                             onClick={() => setShowColumnSelector(false)}
                             className="text-gray-400 hover:text-white"
                           >
@@ -540,11 +761,28 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                       </div>
 
                       <div className="p-3 space-y-4">
-                        {Object.entries(columnsByCategory).map(([category, columns]) => (
+                        {Object.entries(columnsByCategory).map(([category, columns]) => {
+                          const allSelected = columns.every(c => visibleColumns.includes(c.key))
+                          const someSelected = columns.some(c => visibleColumns.includes(c.key))
+                          return (
                           <div key={category}>
-                            <h4 className="text-xs font-semibold text-primary-400 uppercase tracking-wider mb-2">
-                              {categoryLabels[category]}
-                            </h4>
+                            <button
+                              type="button"
+                              onClick={() => toggleCategory(category)}
+                              className="flex items-center gap-2 w-full text-left mb-2 group"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={allSelected}
+                                ref={el => { if (el) el.indeterminate = someSelected && !allSelected }}
+                                onChange={() => toggleCategory(category)}
+                                className="w-3.5 h-3.5 rounded border-surface-50/30 bg-surface-300 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
+                              />
+                              <h4 className="text-xs font-semibold text-primary-400 uppercase tracking-wider group-hover:text-primary-300 transition-colors">
+                                {categoryLabels[category]}
+                              </h4>
+                              <span className="text-[10px] text-gray-600 ml-auto">{columns.filter(c => visibleColumns.includes(c.key)).length}/{columns.length}</span>
+                            </button>
                             <div className="space-y-1">
                               {columns.map(col => (
                                 <label
@@ -565,10 +803,11 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                               ))}
                             </div>
                           </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
 
@@ -578,11 +817,28 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
             </div>
           </Card>
 
+          {/* Error Banner */}
+          {error && (
+            <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg text-sm mb-4 flex items-center justify-between">
+              <span>{error}</span>
+              <Button size="sm" variant="outline" onClick={() => loadPlayers()}>Riprova</Button>
+            </div>
+          )}
+
           {/* Stats Table */}
           <Card className="overflow-hidden">
             {loading ? (
-              <div className="p-8 text-center">
-                <div className="w-10 h-10 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto"></div>
+              <div className="p-12 text-center">
+                <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-3"></div>
+                <p className="text-gray-500 text-sm">Caricamento statistiche...</p>
+              </div>
+            ) : sortedPlayers.length === 0 ? (
+              <div className="p-4">
+                <EmptyState
+                  icon="🔍"
+                  title="Nessun giocatore trovato"
+                  description="Prova a modificare i filtri di ricerca o a cambiare ruolo/squadra"
+                />
               </div>
             ) : (
               <>
@@ -590,7 +846,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                   <table className="w-full min-w-[800px]">
                     <thead className="bg-surface-300 sticky top-0">
                       <tr>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-400 w-10">
+                        <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-400 w-10">
                           <input
                             type="checkbox"
                             className="rounded"
@@ -599,38 +855,48 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                           />
                         </th>
                         <th
+                          scope="col"
+                          aria-sort={sortBy === 'name' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                           className="px-3 py-3 text-left text-xs font-medium text-gray-400 cursor-pointer hover:text-white min-w-[180px]"
                           onClick={() => handleSort('name')}
                         >
-                          Giocatore <SortIcon column="name" />
+                          Giocatore <SortIcon column="name" sortBy={sortBy} sortOrder={sortOrder} />
                         </th>
                         <th
+                          scope="col"
+                          aria-sort={sortBy === 'team' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                           className="px-3 py-3 text-left text-xs font-medium text-gray-400 cursor-pointer hover:text-white min-w-[120px]"
                           onClick={() => handleSort('team')}
                         >
-                          Squadra <SortIcon column="team" />
+                          Squadra <SortIcon column="team" sortBy={sortBy} sortOrder={sortOrder} />
                         </th>
                         <th
+                          scope="col"
+                          aria-sort={sortBy === 'position' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                           className="px-3 py-3 text-center text-xs font-medium text-gray-400 cursor-pointer hover:text-white w-16"
                           onClick={() => handleSort('position')}
                         >
-                          Pos <SortIcon column="position" />
+                          Pos <SortIcon column="position" sortBy={sortBy} sortOrder={sortOrder} />
                         </th>
                         <th
+                          scope="col"
+                          aria-sort={sortBy === 'quotation' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                           className="px-3 py-3 text-center text-xs font-medium text-gray-400 cursor-pointer hover:text-white w-16"
                           onClick={() => handleSort('quotation')}
                         >
-                          Quot <SortIcon column="quotation" />
+                          Quot <SortIcon column="quotation" sortBy={sortBy} sortOrder={sortOrder} />
                         </th>
                         {/* Dynamic stat columns */}
                         {visibleColumnDefs.map(col => (
                           <th
                             key={col.key}
+                            scope="col"
+                            aria-sort={col.sortable && sortBy === col.key ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                             className="px-2 py-3 text-center text-xs font-medium text-gray-400 cursor-pointer hover:text-white whitespace-nowrap"
                             onClick={() => col.sortable && handleSort(col.key)}
                             title={col.label}
                           >
-                            {col.shortLabel} {col.sortable && <SortIcon column={col.key} />}
+                            {col.shortLabel} {col.sortable && <SortIcon column={col.key} sortBy={sortBy} sortOrder={sortOrder} />}
                           </th>
                         ))}
                       </tr>
@@ -683,7 +949,20 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                                     {player.position}
                                   </span>
                                 </div>
-                                <span className="font-medium text-white">{player.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedPlayerStats({
+                                    name: player.name,
+                                    team: player.team,
+                                    position: player.position,
+                                    quotation: player.quotation,
+                                    apiFootballId: player.apiFootballId,
+                                    statsSyncedAt: player.statsSyncedAt,
+                                  })}
+                                  className="font-medium text-white hover:text-primary-400 transition-colors text-left"
+                                >
+                                  {player.name}
+                                </button>
                               </div>
                             </td>
                             <td className="px-3 py-3">
@@ -706,7 +985,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                             </td>
                             <td className="px-3 py-3 text-center">
                               <span
-                                className={`inline-flex items-center justify-center min-w-[2.5rem] px-2 py-1 rounded-lg bg-gradient-to-r ${quotStyle.bg} ${quotStyle.text} font-bold text-sm shadow-lg ${quotStyle.glow}`}
+                                className={`inline-flex items-center justify-center min-w-[2.5rem] px-2 py-1 rounded-lg bg-gradient-to-r ${quotStyle.bg} ${quotStyle.text} font-bold font-mono text-sm shadow-lg ${quotStyle.glow}`}
                               >
                                 {player.quotation}
                               </span>
@@ -723,7 +1002,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                                 return (
                                   <td key={col.key} className="px-2 py-3 text-center">
                                     <span
-                                      className={`inline-flex items-center justify-center px-2 py-0.5 rounded font-medium text-sm ${
+                                      className={`inline-flex items-center justify-center px-2 py-0.5 rounded font-medium font-mono text-sm ${
                                         rawValue >= 7
                                           ? 'bg-secondary-500/20 text-secondary-400'
                                           : rawValue >= 6
@@ -741,7 +1020,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                               if (col.key === 'ga' && typeof rawValue === 'number') {
                                 return (
                                   <td key={col.key} className="px-2 py-3 text-center">
-                                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-white/10 font-bold text-white text-sm">
+                                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-white/10 font-bold font-mono text-white text-sm">
                                       {rawValue}
                                     </span>
                                   </td>
@@ -751,7 +1030,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                               return (
                                 <td
                                   key={col.key}
-                                  className={`px-2 py-3 text-center text-sm ${col.colorClass || 'text-gray-300'}`}
+                                  className={`px-2 py-3 text-center text-sm font-mono ${col.colorClass || 'text-gray-300'}`}
                                 >
                                   {displayValue}
                                 </td>
@@ -768,7 +1047,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-4 py-3 border-t border-surface-50/10">
                     <p className="text-sm text-gray-400">
-                      Pagina {page} di {totalPages} ({total} giocatori)
+                      Pagina <span className="font-mono">{page}</span> di <span className="font-mono">{totalPages}</span> (<span className="font-mono">{total}</span> giocatori)
                     </p>
                     <div className="flex gap-2">
                       <Button
@@ -794,194 +1073,197 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
             )}
           </Card>
 
-          {/* Compare Modal */}
+          {/* Full-page Compare View */}
           {showCompareModal && playersToCompare.length >= 2 && (
-            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-surface-200 rounded-xl border border-surface-50/20 max-w-4xl w-full max-h-[90vh] overflow-hidden">
-                {/* Modal Header */}
-                <div className="p-6 border-b border-surface-50/20 bg-gradient-to-r from-primary-500/10 to-surface-200">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-white">Confronto Giocatori</h2>
-                    <button
-                      onClick={() => setShowCompareModal(false)}
-                      className="w-10 h-10 rounded-lg bg-surface-300 hover:bg-surface-50/20 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
-                    >
-                      ✕
-                    </button>
+            <div className="fixed inset-0 z-50 overflow-y-auto bg-surface-100">
+              {/* Sticky Header */}
+              <div className="sticky top-0 z-10 bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
+                <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
+                  <button
+                    onClick={() => setShowCompareModal(false)}
+                    className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors min-h-[44px]"
+                  >
+                    <span className="text-xl">←</span>
+                    <span className="text-sm md:text-base">Torna alla lista</span>
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center">
+                      <span className="text-base">⚖️</span>
+                    </div>
+                    <h2 className="text-lg md:text-xl font-bold text-white">Confronto Giocatori</h2>
+                  </div>
+                  <div className="w-20" />
+                </div>
+              </div>
+
+              <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+                {/* Player Cards - responsive grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+                  {playersToCompare.map((player, idx) => {
+                    const playerPhotoUrl = getPlayerPhotoUrl(player.apiFootballId)
+                    const teamLogoUrl = getTeamLogoUrl(player.team)
+
+                    return (
+                      <div key={player.id} className="flex flex-col items-center gap-1.5 md:gap-2 bg-surface-200 rounded-xl p-3 md:p-4 border border-surface-50/20">
+                        <div
+                          className="w-3 h-3 md:w-4 md:h-4 rounded-full"
+                          style={{ backgroundColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
+                        />
+                        <div className="relative">
+                          {playerPhotoUrl ? (
+                            <img
+                              src={playerPhotoUrl}
+                              alt={player.name}
+                              className="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover bg-surface-300 border-3 border-surface-50/20"
+                              style={{ borderColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none'
+                              }}
+                            />
+                          ) : (
+                            <div
+                              className={`w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-lg md:text-xl`}
+                            >
+                              {player.position}
+                            </div>
+                          )}
+                          <span
+                            className={`absolute -bottom-1 -right-1 w-5 h-5 md:w-6 md:h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-[10px] md:text-xs border-2 border-surface-200`}
+                          >
+                            {player.position}
+                          </span>
+                        </div>
+                        <span className="font-medium text-white text-sm md:text-base text-center truncate w-full">{player.name}</span>
+                        <div className="flex items-center gap-1">
+                          {teamLogoUrl && (
+                            <img
+                              src={teamLogoUrl}
+                              alt={player.team}
+                              className="w-4 h-4 md:w-5 md:h-5 object-contain"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none'
+                              }}
+                            />
+                          )}
+                          <span className="text-xs md:text-sm text-gray-400">{player.team}</span>
+                        </div>
+                        <span className="text-base md:text-lg font-bold font-mono text-primary-400">Quot. {player.quotation}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Radar Charts - full width */}
+                <LandscapeHint />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mb-6 md:mb-8">
+                  <div className="bg-surface-200 rounded-xl p-4 md:p-6 border border-surface-50/20">
+                    <h3 className="text-center text-white font-semibold mb-4">Statistiche Offensive</h3>
+                    <RadarChart
+                      size={320}
+                      players={playersToCompare.map((p, i) => ({
+                        name: p.name,
+                        color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                      }))}
+                      data={[
+                        { label: 'Gol', values: playersToCompare.map(p => p.stats?.goals ?? 0) },
+                        { label: 'Assist', values: playersToCompare.map(p => p.stats?.assists ?? 0) },
+                        { label: 'Tiri', values: playersToCompare.map(p => p.stats?.shotsTotal ?? 0) },
+                        { label: 'Tiri Porta', values: playersToCompare.map(p => p.stats?.shotsOn ?? 0) },
+                        { label: 'Dribbling', values: playersToCompare.map(p => p.stats?.dribblesSuccess ?? 0) },
+                        { label: 'Pass Chiave', values: playersToCompare.map(p => p.stats?.passesKey ?? 0) },
+                      ]}
+                    />
+                  </div>
+
+                  <div className="bg-surface-200 rounded-xl p-4 md:p-6 border border-surface-50/20">
+                    <h3 className="text-center text-white font-semibold mb-4">Statistiche Difensive</h3>
+                    <RadarChart
+                      size={320}
+                      players={playersToCompare.map((p, i) => ({
+                        name: p.name,
+                        color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                      }))}
+                      data={[
+                        { label: 'Contrasti', values: playersToCompare.map(p => p.stats?.tacklesTotal ?? 0) },
+                        { label: 'Intercetti', values: playersToCompare.map(p => p.stats?.interceptions ?? 0) },
+                        { label: 'Passaggi', values: playersToCompare.map(p => Math.round((p.stats?.passesTotal ?? 0) / 10)) },
+                        { label: 'Presenze', values: playersToCompare.map(p => p.stats?.appearances ?? 0) },
+                        { label: 'Rating', values: playersToCompare.map(p => Math.round((p.stats?.rating ?? 0) * 10)) },
+                        { label: 'Minuti', values: playersToCompare.map(p => Math.round((p.stats?.minutes ?? 0) / 100)) },
+                      ]}
+                    />
                   </div>
                 </div>
 
-                {/* Modal Content */}
-                <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-                  {/* Player Cards Header */}
-                  <div className="flex justify-center gap-6 mb-8">
-                    {playersToCompare.map((player, idx) => {
-                      const playerPhotoUrl = getPlayerPhotoUrl(player.apiFootballId)
-                      const teamLogoUrl = getTeamLogoUrl(player.team)
-
-                      return (
-                        <div key={player.id} className="flex flex-col items-center gap-2">
-                          <div
-                            className="w-4 h-4 rounded-full mb-1"
-                            style={{ backgroundColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
-                          />
-                          <div className="relative">
-                            {playerPhotoUrl ? (
-                              <img
-                                src={playerPhotoUrl}
-                                alt={player.name}
-                                className="w-16 h-16 rounded-full object-cover bg-surface-300 border-3 border-surface-50/20"
-                                style={{ borderColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none'
-                                }}
-                              />
-                            ) : (
-                              <div
-                                className={`w-16 h-16 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xl`}
-                              >
-                                {player.position}
+                {/* Detailed Stats Table - full width */}
+                <div className="bg-surface-200 rounded-xl overflow-hidden border border-surface-50/20">
+                  <h3 className="text-white font-semibold p-4 border-b border-surface-50/10">Dettaglio Statistiche</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-surface-300/50">
+                        <tr>
+                          <th className="px-3 md:px-4 py-3 text-left text-sm font-medium text-gray-400">Statistica</th>
+                          {playersToCompare.map((player, idx) => (
+                            <th key={player.id} className="px-3 md:px-4 py-3 text-center">
+                              <div className="flex items-center justify-center gap-1 md:gap-2">
+                                <div
+                                  className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
+                                />
+                                <span className="text-xs md:text-sm font-medium text-white truncate">{player.name}</span>
                               </div>
-                            )}
-                            <span
-                              className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xs border-2 border-surface-200`}
-                            >
-                              {player.position}
-                            </span>
-                          </div>
-                          <span className="font-medium text-white">{player.name}</span>
-                          <div className="flex items-center gap-1">
-                            {teamLogoUrl && (
-                              <img
-                                src={teamLogoUrl}
-                                alt={player.team}
-                                className="w-5 h-5 object-contain"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none'
-                                }}
-                              />
-                            )}
-                            <span className="text-sm text-gray-400">{player.team}</span>
-                          </div>
-                          <span className="text-lg font-bold text-primary-400">Quot. {player.quotation}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-surface-50/10">
+                        {[
+                          { key: 'quotation', label: 'Quotazione', format: (v: number) => v },
+                          ...STAT_COLUMNS.map(col => ({
+                            key: col.key,
+                            label: col.label,
+                            stat: true,
+                            format: col.format,
+                            getValue: col.getValue,
+                          }))
+                        ].map((row) => {
+                          const values = playersToCompare.map((p) => {
+                            if ('getValue' in row && row.getValue) {
+                              const val = row.getValue(p)
+                              return typeof val === 'number' ? val : 0
+                            }
+                            if (row.key === 'quotation') return p.quotation
+                            return 0
+                          })
+                          const maxVal = Math.max(...values.filter((v): v is number => v !== null && v > 0))
 
-                  {/* Radar Charts */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    {/* Offensive Stats Radar */}
-                    <div className="bg-surface-300/50 rounded-xl p-4">
-                      <h3 className="text-center text-white font-semibold mb-4">Statistiche Offensive</h3>
-                      <RadarChart
-                        size={280}
-                        players={playersToCompare.map((p, i) => ({
-                          name: p.name,
-                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
-                        }))}
-                        data={[
-                          { label: 'Gol', values: playersToCompare.map(p => p.stats?.goals ?? 0) },
-                          { label: 'Assist', values: playersToCompare.map(p => p.stats?.assists ?? 0) },
-                          { label: 'Tiri', values: playersToCompare.map(p => p.stats?.shotsTotal ?? 0) },
-                          { label: 'Tiri Porta', values: playersToCompare.map(p => p.stats?.shotsOn ?? 0) },
-                          { label: 'Dribbling', values: playersToCompare.map(p => p.stats?.dribblesSuccess ?? 0) },
-                          { label: 'Pass Chiave', values: playersToCompare.map(p => p.stats?.passesKey ?? 0) },
-                        ]}
-                      />
-                    </div>
+                          return (
+                            <tr key={row.key} className="hover:bg-surface-300/30">
+                              <td className="px-3 md:px-4 py-3 text-xs md:text-sm text-gray-300">{row.label}</td>
+                              {playersToCompare.map((player, idx) => {
+                                const val = values[idx]
+                                const isMax = val === maxVal && maxVal > 0
+                                const formatted = row.format ? row.format(val) : val
 
-                    {/* Defensive/General Stats Radar */}
-                    <div className="bg-surface-300/50 rounded-xl p-4">
-                      <h3 className="text-center text-white font-semibold mb-4">Statistiche Difensive</h3>
-                      <RadarChart
-                        size={280}
-                        players={playersToCompare.map((p, i) => ({
-                          name: p.name,
-                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
-                        }))}
-                        data={[
-                          { label: 'Contrasti', values: playersToCompare.map(p => p.stats?.tacklesTotal ?? 0) },
-                          { label: 'Intercetti', values: playersToCompare.map(p => p.stats?.interceptions ?? 0) },
-                          { label: 'Passaggi', values: playersToCompare.map(p => Math.round((p.stats?.passesTotal ?? 0) / 10)) },
-                          { label: 'Presenze', values: playersToCompare.map(p => p.stats?.appearances ?? 0) },
-                          { label: 'Rating', values: playersToCompare.map(p => Math.round((p.stats?.rating ?? 0) * 10)) },
-                          { label: 'Minuti', values: playersToCompare.map(p => Math.round((p.stats?.minutes ?? 0) / 100)) },
-                        ]}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Detailed Stats Table */}
-                  <div className="bg-surface-300/30 rounded-xl overflow-hidden">
-                    <h3 className="text-white font-semibold p-4 border-b border-surface-50/10">Dettaglio Statistiche</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-surface-300/50">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Statistica</th>
-                            {playersToCompare.map((player, idx) => (
-                              <th key={player.id} className="px-4 py-3 text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: PLAYER_CHART_COLORS[idx % PLAYER_CHART_COLORS.length] }}
-                                  />
-                                  <span className="text-sm font-medium text-white">{player.name}</span>
-                                </div>
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-surface-50/10">
-                          {[
-                            { key: 'quotation', label: 'Quotazione', format: (v: number) => v },
-                            ...STAT_COLUMNS.map(col => ({
-                              key: col.key,
-                              label: col.label,
-                              stat: true,
-                              format: col.format,
-                              getValue: col.getValue,
-                            }))
-                          ].map((row) => {
-                            const values = playersToCompare.map((p) => {
-                              if ('getValue' in row && row.getValue) {
-                                const val = row.getValue(p)
-                                return typeof val === 'number' ? val : 0
-                              }
-                              if (row.key === 'quotation') return p.quotation
-                              return 0
-                            })
-                            const maxVal = Math.max(...values.filter((v): v is number => v !== null && v > 0))
-
-                            return (
-                              <tr key={row.key} className="hover:bg-surface-300/30">
-                                <td className="px-4 py-3 text-sm text-gray-300">{row.label}</td>
-                                {playersToCompare.map((player, idx) => {
-                                  const val = values[idx]
-                                  const isMax = val === maxVal && maxVal > 0
-                                  const formatted = row.format ? row.format(val) : val
-
-                                  return (
-                                    <td
-                                      key={player.id}
-                                      className={`px-4 py-3 text-center font-medium ${
-                                        isMax ? 'text-secondary-400' : 'text-white'
-                                      }`}
-                                    >
-                                      {isMax && maxVal > 0 && (
-                                        <span className="inline-block w-2 h-2 rounded-full bg-secondary-400 mr-2" />
-                                      )}
-                                      {formatted}
-                                    </td>
-                                  )
-                                })}
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                                return (
+                                  <td
+                                    key={player.id}
+                                    className={`px-3 md:px-4 py-3 text-center text-sm md:text-base font-medium font-mono ${
+                                      isMax ? 'text-secondary-400' : 'text-white'
+                                    }`}
+                                  >
+                                    {isMax && maxVal > 0 && (
+                                      <span className="inline-block w-2 h-2 rounded-full bg-secondary-400 mr-1 md:mr-2" />
+                                    )}
+                                    {formatted}
+                                  </td>
+                                )
+                              })}
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
@@ -989,6 +1271,13 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
           )}
         </div>
       </div>
+
+      {/* Player Stats Modal */}
+      <PlayerStatsModal
+        isOpen={!!selectedPlayerStats}
+        onClose={() => setSelectedPlayerStats(null)}
+        player={selectedPlayerStats}
+      />
     </div>
   )
 }

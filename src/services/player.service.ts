@@ -30,10 +30,10 @@ export async function getPlayers(filters: PlayerFilters = {}) {
   }
 
   if (filters.search) {
-    where.name = {
-      contains: filters.search,
-      mode: 'insensitive',
-    }
+    where.OR = [
+      { name: { contains: filters.search, mode: 'insensitive' } },
+      { team: { contains: filters.search, mode: 'insensitive' } },
+    ]
   }
 
   const players = await prisma.serieAPlayer.findMany({
@@ -129,10 +129,10 @@ export async function getPlayersWithStats(filters: PlayerStatsFilters = {}) {
   }
 
   if (search) {
-    where.name = {
-      contains: search,
-      mode: 'insensitive',
-    }
+    where.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { team: { contains: search, mode: 'insensitive' } },
+    ]
   }
 
   // Build orderBy based on sortBy

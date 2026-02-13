@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bibbia Registrazione e Lega - Fantacontratti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0b; --bg-card: #111214; --bg-elevated: #1a1c20; --bg-hover: #252830;
+      --text: #f3f4f6; --text-muted: #9ca3af; --text-dim: #6b7280;
+      --border: rgba(55, 65, 81, 0.4); --border-light: rgba(55, 65, 81, 0.2);
+      --primary: #3b82f6; --primary-light: #60a5fa; --primary-bg: rgba(59, 130, 246, 0.15); --primary-border: rgba(59, 130, 246, 0.3);
+      --accent: #fbbf24; --accent-bg: rgba(251, 191, 36, 0.15); --accent-border: rgba(251, 191, 36, 0.3);
+      --success: #22c55e; --success-bg: rgba(34, 197, 94, 0.15); --success-border: rgba(34, 197, 94, 0.3);
+      --danger: #ef4444; --danger-bg: rgba(239, 68, 68, 0.15); --danger-border: rgba(239, 68, 68, 0.3);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 9999px; }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+    .page-header { background: linear-gradient(135deg, #1a1f2e 0%, #0f1318 100%); border-bottom: 1px solid var(--border); padding: 48px 24px 40px; margin-bottom: 40px; }
+    .page-header .inner { max-width: 960px; margin: 0 auto; }
+    .page-header .badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+    .page-header h1 { font-family: 'Outfit', sans-serif; font-size: 36px; font-weight: 800; margin-bottom: 8px; background: linear-gradient(to right, #fcd34d, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .page-header .subtitle { color: var(--text-muted); font-size: 16px; }
+    .page-header .date { color: var(--text-dim); font-size: 13px; margin-top: 12px; }
+    .toc { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 24px; margin-bottom: 32px; }
+    .toc h3 { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; }
+    .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+    .toc a { display: flex; align-items: center; gap: 8px; color: var(--primary-light); text-decoration: none; padding: 8px 12px; border-radius: 8px; font-size: 14px; transition: all 0.15s; }
+    .toc a:hover { background: var(--primary-bg); color: #fff; }
+    .toc a .num { color: var(--text-dim); font-family: 'Oswald', sans-serif; font-size: 13px; min-width: 20px; }
+    .section { margin-bottom: 48px; }
+    .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light); }
+    .section-num { font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600; color: var(--primary); background: var(--primary-bg); border: 1px solid var(--primary-border); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .section-header h2 { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 700; color: #fff; }
+    h3 { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 600; color: var(--primary-light); margin: 24px 0 12px; }
+    p { color: var(--text-muted); margin-bottom: 12px; font-size: 15px; }
+    .card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+    .card-elevated { background: linear-gradient(180deg, var(--bg-elevated), var(--bg-card)); border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    .card-accent { border-color: var(--accent-border); background: linear-gradient(135deg, rgba(251,191,36,0.05), var(--bg-card)); }
+    .card-primary { border-color: var(--primary-border); background: linear-gradient(135deg, rgba(59,130,246,0.05), var(--bg-card)); }
+    .card-danger { border-color: var(--danger-border); background: linear-gradient(135deg, rgba(239,68,68,0.05), var(--bg-card)); }
+    .card-success { border-color: var(--success-border); background: linear-gradient(135deg, rgba(34,197,94,0.05), var(--bg-card)); }
+    .card-title { font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .card-title .icon { font-size: 18px; }
+    .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border-light); margin: 16px 0; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--bg-elevated); }
+    th { text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 16px; font-size: 14px; color: var(--text-muted); border-bottom: 1px solid var(--border-light); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(59, 130, 246, 0.03); }
+    td.val { font-family: 'Oswald', sans-serif; font-weight: 500; color: var(--accent); font-size: 15px; }
+    .alert { display: flex; gap: 12px; padding: 16px; border-radius: 10px; margin: 16px 0; font-size: 14px; }
+    .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .alert-danger { background: var(--danger-bg); border: 1px solid var(--danger-border); color: #fca5a5; }
+    .alert-success { background: var(--success-bg); border: 1px solid var(--success-border); color: #86efac; }
+    .alert-accent { background: var(--accent-bg); border: 1px solid var(--accent-border); color: #fde68a; }
+    .alert-primary { background: var(--primary-bg); border: 1px solid var(--primary-border); color: #93c5fd; }
+    .alert strong { color: #fff; }
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+    @media (max-width: 640px) { .comparison { grid-template-columns: 1fr; } }
+    .tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+    .tag-blue { background: var(--primary-bg); color: var(--primary-light); border: 1px solid var(--primary-border); }
+    .tag-gold { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+    .tag-green { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .tag-red { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+    .tag-dim { background: var(--bg-elevated); color: var(--text-dim); border: 1px solid var(--border); }
+    .flow { display: flex; flex-direction: column; gap: 2px; margin: 16px 0; }
+    .flow-item { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border-light); font-size: 14px; }
+    .flow-item .phase { font-family: 'Oswald', sans-serif; font-size: 12px; font-weight: 600; min-width: 60px; }
+    .flow-arrow { text-align: center; color: var(--text-dim); font-size: 18px; line-height: 1; }
+    .rule-list { list-style: none; padding: 0; }
+    .rule-list li { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-light); font-size: 14px; color: var(--text-muted); }
+    .rule-list li:last-child { border-bottom: none; }
+    .rule-list .rule-icon { flex-shrink: 0; width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; margin-top: 1px; }
+    .rule-list .rule-check { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success); }
+    .rule-list .rule-cross { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger); }
+    .rule-list .rule-info { background: var(--primary-bg); border: 1px solid var(--primary-border); color: var(--primary-light); }
+    /* Slot grid */
+    .slot-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
+    @media (max-width: 640px) { .slot-grid { grid-template-columns: repeat(2, 1fr); } }
+    .slot-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 20px; text-align: center; }
+    .slot-card .role { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .slot-card .count { font-family: 'Oswald', sans-serif; font-size: 36px; font-weight: 700; }
+    .slot-card .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+    /* Number bar */
+    .number-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+    .number-item { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: 'Oswald', sans-serif; font-size: 20px; font-weight: 700; }
+    @media (max-width: 640px) { .page-header h1 { font-size: 28px; } .toc-grid { grid-template-columns: 1fr; } .comparison { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="inner">
+    <div class="badge">&#9733; Fonte di Verita</div>
+    <h1>Registrazione e Creazione Lega</h1>
+    <p class="subtitle">Flusso di registrazione utente, creazione lega, inviti e avvio</p>
+    <p class="date">Ultima revisione: 6 Febbraio 2026</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <nav class="toc">
+    <h3>Indice</h3>
+    <div class="toc-grid">
+      <a href="#s1"><span class="num">1</span> Registrazione Utente</a>
+      <a href="#s2"><span class="num">2</span> Creazione Lega</a>
+      <a href="#s3"><span class="num">3</span> Inviti e Partecipazione</a>
+      <a href="#s4"><span class="num">4</span> Numero Manager</a>
+      <a href="#s5"><span class="num">5</span> Ruolo Admin</a>
+      <a href="#s6"><span class="num">6</span> Avvio Lega</a>
+      <a href="#s7"><span class="num">7</span> Partecipazione Multipla</a>
+    </div>
+  </nav>
+
+  <!-- 1 -->
+  <section id="s1" class="section">
+    <div class="section-header"><div class="section-num">1</div><h2>Registrazione Utente</h2></div>
+
+    <h3>Metodi di Registrazione</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Metodo</th><th>Stato</th></tr></thead>
+        <tbody>
+          <tr><td><strong style="color:#fff">Email + Password</strong></td><td><span class="tag tag-green">Attivo</span></td></tr>
+          <tr><td><strong style="color:#fff">Google (Gmail)</strong></td><td><span class="tag tag-blue">MVP</span></td></tr>
+          <tr><td><strong style="color:#fff">Facebook</strong></td><td><span class="tag tag-blue">MVP</span></td></tr>
+          <tr><td>Apple, altro</td><td><span class="tag tag-dim">Nice to have</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>L'utente fa login con le stesse credenziali di registrazione.</p>
+  </section>
+
+  <!-- 2 -->
+  <section id="s2" class="section">
+    <div class="section-header"><div class="section-num">2</div><h2>Creazione Lega</h2></div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#127942;</span> Chi Puo Creare</div>
+      <p>Qualsiasi utente registrato puo creare <strong style="color:#fff">una o piu leghe</strong> di cui e admin.</p>
+    </div>
+
+    <h3>Parametri di Creazione</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Parametro</th><th>Tipo</th><th>Default</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><strong style="color:#fff">Nome lega</strong></td><td>Stringa</td><td class="val">&mdash;</td><td>Obbligatorio</td></tr>
+          <tr><td>Tipo lega</td><td>Pubblica/Privata</td><td class="val">Privata</td><td><span class="tag tag-dim">Nice to have</span></td></tr>
+          <tr><td><strong style="color:#fff">Budget iniziale</strong></td><td>Intero</td><td class="val">500</td><td>Configurabile dall'admin</td></tr>
+          <tr><td><strong style="color:#fff">Slot Portieri</strong></td><td>Intero</td><td class="val">3</td><td>Configurabile</td></tr>
+          <tr><td><strong style="color:#fff">Slot Difensori</strong></td><td>Intero</td><td class="val">8</td><td>Configurabile</td></tr>
+          <tr><td><strong style="color:#fff">Slot Centrocampisti</strong></td><td>Intero</td><td class="val">8</td><td>Configurabile</td></tr>
+          <tr><td><strong style="color:#fff">Slot Attaccanti</strong></td><td>Intero</td><td class="val">6</td><td>Configurabile</td></tr>
+          <tr><td>Lista email inviti</td><td>Array</td><td class="val">[]</td><td>Inviti automatici alla creazione</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Slot Ruoli Default</h3>
+    <div class="slot-grid">
+      <div class="slot-card" style="border-color:var(--accent-border);"><div class="role" style="color:var(--accent);">Portieri</div><div class="count" style="color:var(--accent);">3</div><div class="label">slot</div></div>
+      <div class="slot-card" style="border-color:var(--success-border);"><div class="role" style="color:var(--success);">Difensori</div><div class="count" style="color:var(--success);">8</div><div class="label">slot</div></div>
+      <div class="slot-card" style="border-color:var(--primary-border);"><div class="role" style="color:var(--primary-light);">Centrocampisti</div><div class="count" style="color:var(--primary-light);">8</div><div class="label">slot</div></div>
+      <div class="slot-card" style="border-color:var(--danger-border);"><div class="role" style="color:var(--danger);">Attaccanti</div><div class="count" style="color:var(--danger);">6</div><div class="label">slot</div></div>
+    </div>
+    <p style="text-align:center; font-size:13px; color:var(--text-dim);">Totale: <strong style="color:var(--accent); font-family:'Oswald',sans-serif; font-size:16px;">25</strong> giocatori per manager</p>
+
+    <div class="alert alert-accent"><span class="alert-icon">&#128161;</span><div>Gli slot ruolo servono <strong>solo per la prima asta</strong> (primo mercato assoluto). Nei mercati successivi non ci sono vincoli di slot ruoli.</div></div>
+
+    <h3>Lega Pubblica vs Privata <span class="tag tag-dim">Nice to have</span></h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Aspetto</th><th>Pubblica</th><th>Privata</th></tr></thead>
+        <tbody>
+          <tr><td>Ricercabile</td><td><span class="tag tag-green">Si</span></td><td><span class="tag tag-red">No</span></td></tr>
+          <tr><td>Statistiche visibili</td><td><span class="tag tag-green">Si</span></td><td><span class="tag tag-red">No</span></td></tr>
+          <tr><td>Richiesta partecipazione</td><td><span class="tag tag-green">Si</span></td><td><span class="tag tag-red">No (solo invito)</span></td></tr>
+          <tr><td>Invito admin</td><td><span class="tag tag-green">Si</span></td><td><span class="tag tag-green">Si</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section id="s3" class="section">
+    <div class="section-header"><div class="section-num">3</div><h2>Inviti e Partecipazione</h2></div>
+
+    <h3>Inviti dall'Admin</h3>
+    <div class="card card-primary">
+      <ul class="rule-list">
+        <li><span class="rule-icon rule-info">&#9993;</span><span>L'admin puo inviare inviti via <strong style="color:#fff">email</strong> in qualsiasi momento</span></li>
+        <li><span class="rule-icon rule-info">&#128100;</span><span>Se l'email non corrisponde a un utente registrato, l'invito include un invito a <strong style="color:#fff">iscriversi</strong></span></li>
+        <li><span class="rule-icon rule-check">&#10003;</span><span><strong style="color:#fff">Nessun vincolo</strong>: l'admin puo fare inviti indipendentemente da accettazioni/rifiuti</span></li>
+      </ul>
+    </div>
+
+    <h3>Ricezione Invito</h3>
+    <div class="card">
+      <p>Il manager invitato riceve notifica via <strong style="color:#fff">email</strong> e <strong style="color:#fff">nell'app</strong>:</p>
+      <div class="comparison" style="margin-bottom:0;">
+        <div class="card card-success" style="margin:0; text-align:center;"><div class="card-title" style="justify-content:center;"><span class="icon">&#10003;</span> Accetta</div><p style="margin:0;">Entra nella lega</p></div>
+        <div class="card card-danger" style="margin:0; text-align:center;"><div class="card-title" style="justify-content:center;"><span class="icon">&#10005;</span> Rifiuta</div><p style="margin:0;">Non entra nella lega</p></div>
+      </div>
+    </div>
+
+    <h3>Richiesta Partecipazione <span class="tag tag-dim">Solo Lega Pubblica</span></h3>
+    <div class="card">
+      <ul class="rule-list">
+        <li><span class="rule-icon rule-info">&#128269;</span><span>L'utente puo cercare una lega per <strong style="color:#fff">nome lega</strong> o <strong style="color:#fff">nome partecipanti</strong></span></li>
+        <li><span class="rule-icon rule-info">&#128100;</span><span>Puo chiedere di partecipare a una lega pubblica</span></li>
+        <li><span class="rule-icon rule-info">&#10003;</span><span>L'admin <strong style="color:#fff">approva o respinge</strong> la richiesta</span></li>
+      </ul>
+    </div>
+
+    <h3>Vincoli</h3>
+    <div class="comparison">
+      <div class="alert alert-danger" style="margin:0;"><span class="alert-icon">&#128274;</span><div>Se la lega e <strong>avviata</strong>: non e possibile richiedere accesso</div></div>
+      <div class="alert alert-danger" style="margin:0;"><span class="alert-icon">&#128274;</span><div>Se la lega e <strong>piena</strong> (max manager): non e possibile richiedere accesso</div></div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section id="s4" class="section">
+    <div class="section-header"><div class="section-num">4</div><h2>Numero Manager</h2></div>
+
+    <h3>Regole</h3>
+    <div class="card card-elevated">
+      <div class="comparison" style="margin:0;">
+        <div style="text-align:center; padding:16px;">
+          <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; margin-bottom:8px;">Minimo</div>
+          <div style="font-family:'Oswald',sans-serif; font-size:48px; font-weight:700; color:var(--primary-light);">6</div>
+        </div>
+        <div style="text-align:center; padding:16px;">
+          <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; margin-bottom:8px;">Massimo</div>
+          <div style="font-family:'Oswald',sans-serif; font-size:48px; font-weight:700; color:var(--danger);">20</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Sempre Pari</h3>
+    <div class="number-bar">
+      <div class="number-item" style="background:var(--success-bg); border:1px solid var(--success-border); color:var(--success);">6</div>
+      <div class="number-item" style="background:var(--success-bg); border:1px solid var(--success-border); color:var(--success);">8</div>
+      <div class="number-item" style="background:var(--success-bg); border:1px solid var(--success-border); color:var(--success);">10</div>
+      <div class="number-item" style="background:var(--success-bg); border:1px solid var(--success-border); color:var(--success);">12</div>
+      <div class="number-item" style="background:var(--success-bg); border:1px solid var(--success-border); color:var(--success);">14</div>
+      <div class="number-item" style="background:var(--success-bg); border:1px solid var(--success-border); color:var(--success);">16</div>
+      <div class="number-item" style="background:var(--success-bg); border:1px solid var(--success-border); color:var(--success);">18</div>
+      <div class="number-item" style="background:var(--success-bg); border:1px solid var(--success-border); color:var(--success);">20</div>
+    </div>
+
+    <div class="alert alert-danger"><span class="alert-icon">&#128274;</span><div>Un manager <strong>NON puo abbandonare</strong> la lega dopo l'avvio.</div></div>
+  </section>
+
+  <!-- 5 -->
+  <section id="s5" class="section">
+    <div class="section-header"><div class="section-num">5</div><h2>Ruolo Admin</h2></div>
+
+    <div class="card card-accent">
+      <div class="card-title"><span class="icon">&#128081;</span> Admin = Sempre Partecipante</div>
+      <p>L'admin e <strong style="color:#fff">sempre anche partecipante</strong>: ha squadra, budget, e partecipa alle aste.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">&#128203;</span> Admin Solo Admin <span class="tag tag-dim">Nice to have &mdash; Backlog</span></div>
+      <p>In futuro: possibilita che l'admin gestisca le fasi senza essere partecipante (no squadra, no budget).</p>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section id="s6" class="section">
+    <div class="section-header"><div class="section-num">6</div><h2>Avvio Lega</h2></div>
+
+    <h3>Precondizioni</h3>
+    <div class="card card-elevated">
+      <ul class="rule-list">
+        <li><span class="rule-icon rule-check">&#10003;</span><span>Numero minimo di manager raggiunto (<span class="tag tag-blue">6</span>)</span></li>
+        <li><span class="rule-icon rule-check">&#10003;</span><span>Numero manager <strong style="color:#fff">pari</strong></span></li>
+      </ul>
+    </div>
+
+    <h3>Sequenza</h3>
+    <div class="flow">
+      <div class="flow-item" style="border-color:var(--primary-border);"><span class="phase" style="color:var(--primary);">STEP 1</span><span>L'admin <strong style="color:#fff">avvia la lega</strong></span></div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color:var(--accent-border);"><span class="phase" style="color:var(--accent);">STEP 2</span><span>Si passa a <strong style="color:var(--accent)">Primo Mercato pronto ad iniziare</strong></span></div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color:var(--success-border);"><span class="phase" style="color:var(--success);">STEP 3</span><span>L'admin avvia l'asta del primo mercato (azione <strong style="color:#fff">separata</strong>)</span></div>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section id="s7" class="section">
+    <div class="section-header"><div class="section-num">7</div><h2>Partecipazione Multipla</h2></div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#128100;</span> Un Utente Puo...</div>
+      <ul class="rule-list">
+        <li><span class="rule-icon rule-check">&#10003;</span><span>Creare <strong style="color:#fff">una o piu</strong> leghe (di cui e admin)</span></li>
+        <li><span class="rule-icon rule-check">&#10003;</span><span>Partecipare a <strong style="color:#fff">una o piu</strong> leghe</span></li>
+        <li><span class="rule-icon rule-check">&#10003;</span><span>Essere <strong style="color:#fff">admin di una lega</strong> e <strong style="color:#fff">partecipante di un'altra</strong></span></li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

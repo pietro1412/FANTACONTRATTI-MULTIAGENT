@@ -6,11 +6,11 @@ const DURATION_MULTIPLIERS: Record<number, number> = {
   4: 11,
   3: 9,
   2: 7,
-  1: 4,
+  1: 3,
 }
 
 function calculateRescissionClause(salary: number, duration: number): number {
-  const multiplier = DURATION_MULTIPLIERS[duration] || 4
+  const multiplier = DURATION_MULTIPLIERS[duration] || 3
   return salary * multiplier
 }
 
@@ -42,8 +42,8 @@ function isValidModification(
     if (newDuration < currentDuration) {
       return { valid: false, reason: `Durata non può diminuire: ${newDuration} < ${currentDuration}` }
     }
-    if (newDuration > currentDuration && newSalary <= currentSalary) {
-      return { valid: false, reason: `Per aumentare la durata devi prima aumentare l'ingaggio` }
+    if (newDuration > currentDuration && newSalary < currentSalary) {
+      return { valid: false, reason: `Per aumentare la durata non puoi diminuire l'ingaggio` }
     }
     return { valid: true }
   }
@@ -181,7 +181,7 @@ export function ContractModifier({
   const canSpalma = !isSvincolatiMode && !increaseOnly && contract.duration === 1
 
   async function handleConfirm() {
-    if (!preview.isValid || !preview.hasChanges) return
+    if (!preview.isValid) return
 
     setIsSubmitting(true)
     setError(null)
@@ -370,7 +370,7 @@ export function ContractModifier({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={!preview.isValid || !preview.hasChanges || isLoading || isSubmitting}
+            disabled={!preview.isValid || isLoading || isSubmitting}
             isLoading={isSubmitting}
             className="flex-1"
           >

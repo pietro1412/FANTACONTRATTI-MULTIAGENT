@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bibbia Contratti e Budget - Fantacontratti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0b;
+      --bg-card: #111214;
+      --bg-elevated: #1a1c20;
+      --bg-hover: #252830;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --border: rgba(55, 65, 81, 0.4);
+      --border-light: rgba(55, 65, 81, 0.2);
+      --primary: #3b82f6;
+      --primary-light: #60a5fa;
+      --primary-bg: rgba(59, 130, 246, 0.15);
+      --primary-border: rgba(59, 130, 246, 0.3);
+      --accent: #fbbf24;
+      --accent-dark: #f59e0b;
+      --accent-bg: rgba(251, 191, 36, 0.15);
+      --accent-border: rgba(251, 191, 36, 0.3);
+      --success: #22c55e;
+      --success-bg: rgba(34, 197, 94, 0.15);
+      --success-border: rgba(34, 197, 94, 0.3);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --danger-border: rgba(239, 68, 68, 0.3);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+
+    /* Header */
+    .page-header {
+      background: linear-gradient(135deg, #1a1f2e 0%, #0f1318 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 48px 24px 40px;
+      margin-bottom: 40px;
+    }
+    .page-header .inner { max-width: 960px; margin: 0 auto; }
+    .page-header .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent-bg); color: var(--accent);
+      border: 1px solid var(--accent-border);
+      padding: 4px 12px; border-radius: 9999px;
+      font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+    .page-header h1 {
+      font-family: 'Outfit', 'Inter', sans-serif;
+      font-size: 36px; font-weight: 800; color: #fff;
+      margin-bottom: 8px;
+      background: linear-gradient(to right, #fcd34d, #f59e0b);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .page-header .subtitle { color: var(--text-muted); font-size: 16px; }
+    .page-header .date { color: var(--text-dim); font-size: 13px; margin-top: 12px; }
+
+    /* TOC */
+    .toc {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 24px; margin-bottom: 32px;
+    }
+    .toc h3 { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; }
+    .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+    .toc a {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--primary-light); text-decoration: none;
+      padding: 8px 12px; border-radius: 8px; font-size: 14px;
+      transition: all 0.15s;
+    }
+    .toc a:hover { background: var(--primary-bg); color: #fff; }
+    .toc a .num { color: var(--text-dim); font-family: 'Oswald', sans-serif; font-size: 13px; min-width: 20px; }
+
+    /* Sections */
+    .section { margin-bottom: 48px; }
+    .section-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 24px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .section-num {
+      font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600;
+      color: var(--primary); background: var(--primary-bg);
+      border: 1px solid var(--primary-border);
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .section-header h2 {
+      font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 700; color: #fff;
+    }
+
+    h3 {
+      font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 600;
+      color: var(--primary-light); margin: 24px 0 12px;
+    }
+
+    p { color: var(--text-muted); margin-bottom: 12px; font-size: 15px; }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 24px; margin-bottom: 16px;
+    }
+    .card-elevated {
+      background: linear-gradient(180deg, var(--bg-elevated), var(--bg-card));
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .card-accent {
+      border-color: var(--accent-border);
+      background: linear-gradient(135deg, rgba(251,191,36,0.05), var(--bg-card));
+    }
+    .card-primary {
+      border-color: var(--primary-border);
+      background: linear-gradient(135deg, rgba(59,130,246,0.05), var(--bg-card));
+    }
+    .card-danger {
+      border-color: var(--danger-border);
+      background: linear-gradient(135deg, rgba(239,68,68,0.05), var(--bg-card));
+    }
+    .card-success {
+      border-color: var(--success-border);
+      background: linear-gradient(135deg, rgba(34,197,94,0.05), var(--bg-card));
+    }
+
+    .card-title {
+      font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700;
+      color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .card-title .icon { font-size: 18px; }
+
+    /* Formula boxes */
+    .formula {
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px 20px; margin: 12px 0;
+      font-family: 'Oswald', 'monospace'; font-size: 18px; font-weight: 500;
+      color: var(--accent); letter-spacing: 0.02em;
+    }
+    .formula .label {
+      font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 6px; display: block;
+    }
+    .formula .highlight { color: var(--primary-light); }
+    .formula .danger { color: var(--danger); }
+    .formula .success { color: var(--success); }
+
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto; border-radius: 12px;
+      border: 1px solid var(--border-light); margin: 16px 0;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--bg-elevated); }
+    th {
+      text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 600;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 10px 16px; font-size: 14px; color: var(--text-muted);
+      border-bottom: 1px solid var(--border-light);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(59, 130, 246, 0.03); }
+    td.val {
+      font-family: 'Oswald', sans-serif; font-weight: 500;
+      color: var(--accent); font-size: 15px;
+    }
+    td.positive { color: var(--success); }
+    td.negative { color: var(--danger); }
+    td.primary { color: var(--primary-light); }
+
+    /* Scenario steps */
+    .scenario { counter-reset: step; }
+    .step {
+      display: flex; gap: 16px; margin-bottom: 2px; padding: 12px 16px;
+      border-left: 2px solid var(--border-light);
+      transition: all 0.15s;
+    }
+    .step:hover { border-left-color: var(--primary); background: rgba(59,130,246,0.03); }
+    .step-num {
+      font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600;
+      color: var(--primary); background: var(--primary-bg); border: 1px solid var(--primary-border);
+      min-width: 28px; height: 28px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .step-content { flex: 1; }
+    .step-label { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+    .step-desc { font-size: 13px; color: var(--text-dim); }
+    .step-formula {
+      font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 500;
+      color: var(--accent); margin-top: 4px;
+    }
+
+    /* Alert boxes */
+    .alert {
+      display: flex; gap: 12px; padding: 16px;
+      border-radius: 10px; margin: 16px 0; font-size: 14px;
+    }
+    .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .alert-danger { background: var(--danger-bg); border: 1px solid var(--danger-border); color: #fca5a5; }
+    .alert-success { background: var(--success-bg); border: 1px solid var(--success-border); color: #86efac; }
+    .alert-accent { background: var(--accent-bg); border: 1px solid var(--accent-border); color: #fde68a; }
+    .alert-primary { background: var(--primary-bg); border: 1px solid var(--primary-border); color: #93c5fd; }
+    .alert strong { color: #fff; }
+
+    /* Example block */
+    .example {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; overflow: hidden; margin: 16px 0;
+    }
+    .example-header {
+      background: var(--bg-elevated); padding: 10px 16px;
+      font-size: 13px; font-weight: 600; color: var(--text-muted);
+      border-bottom: 1px solid var(--border-light);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .example-body { padding: 16px; }
+
+    /* Two-column comparison */
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+    @media (max-width: 640px) { .comparison { grid-template-columns: 1fr; } }
+
+    /* Three-column */
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 16px 0; }
+    @media (max-width: 768px) { .three-col { grid-template-columns: 1fr; } }
+
+    /* Four-column */
+    .four-col { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
+    @media (max-width: 768px) { .four-col { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .four-col { grid-template-columns: 1fr; } }
+
+    /* Tag */
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    }
+    .tag-blue { background: var(--primary-bg); color: var(--primary-light); border: 1px solid var(--primary-border); }
+    .tag-gold { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+    .tag-green { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .tag-red { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+
+    /* Contract notation */
+    .contract {
+      display: inline-flex; align-items: center; gap: 2px;
+      font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 16px;
+      color: var(--accent);
+    }
+    .contract .x { color: var(--text-dim); font-size: 14px; }
+
+    /* Multiplier card */
+    .mult-card {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 20px; text-align: center;
+    }
+    .mult-card .duration {
+      font-family: 'Oswald', sans-serif; font-size: 32px; font-weight: 700;
+      color: var(--primary-light);
+    }
+    .mult-card .duration-label {
+      font-size: 11px; color: var(--text-dim); text-transform: uppercase;
+      letter-spacing: 0.05em; margin-bottom: 12px;
+    }
+    .mult-card .mult {
+      font-family: 'Oswald', sans-serif; font-size: 28px; font-weight: 700;
+      color: var(--accent);
+    }
+    .mult-card .mult-label {
+      font-size: 11px; color: var(--text-dim); text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .mult-card .example-val {
+      margin-top: 12px; padding-top: 12px;
+      border-top: 1px solid var(--border-light);
+      font-size: 13px; color: var(--text-dim);
+    }
+    .mult-card .example-val strong {
+      color: var(--accent); font-family: 'Oswald', sans-serif; font-weight: 500;
+    }
+
+    /* Flow diagram */
+    .flow { display: flex; flex-direction: column; gap: 2px; margin: 16px 0; }
+    .flow-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; border-radius: 8px;
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      font-size: 14px;
+    }
+    .flow-item .phase {
+      font-family: 'Oswald', sans-serif; font-size: 12px; font-weight: 600;
+      color: var(--primary); min-width: 60px;
+    }
+    .flow-arrow { text-align: center; color: var(--text-dim); font-size: 18px; line-height: 1; }
+
+    /* Rule list */
+    .rule-list { list-style: none; padding: 0; }
+    .rule-list li {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border-light);
+      font-size: 14px; color: var(--text-muted);
+    }
+    .rule-list li:last-child { border-bottom: none; }
+    .rule-list .rule-icon {
+      flex-shrink: 0; width: 24px; height: 24px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; margin-top: 1px;
+    }
+    .rule-list .rule-check { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success); }
+    .rule-list .rule-cross { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger); }
+    .rule-list .rule-info { background: var(--primary-bg); border: 1px solid var(--primary-border); color: var(--primary-light); }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .page-header h1 { font-size: 28px; }
+      .toc-grid { grid-template-columns: 1fr; }
+      .comparison { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="inner">
+    <div class="badge">&#9733; Fonte di Verita</div>
+    <h1>Contratti e Budget</h1>
+    <p class="subtitle">Regole dei contratti, calcolo del budget e del bilancio in Fantacontratti</p>
+    <p class="date">Ultima revisione: 6 Febbraio 2026</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- TOC -->
+  <nav class="toc">
+    <h3>Indice</h3>
+    <div class="toc-grid">
+      <a href="#s1"><span class="num">1</span> Struttura Contratto</a>
+      <a href="#s2"><span class="num">2</span> Clausola Rescissoria</a>
+      <a href="#s3"><span class="num">3</span> Contratto Default</a>
+      <a href="#s4"><span class="num">4</span> Modifica Post-Acquisto</a>
+      <a href="#s5"><span class="num">5</span> Operazioni sui Contratti</a>
+      <a href="#s6"><span class="num">6</span> Decremento Durata</a>
+      <a href="#s7"><span class="num">7</span> Budget e Bilancio</a>
+      <a href="#s8"><span class="num">8</span> initialSalary</a>
+      <a href="#s9"><span class="num">9</span> Trasferimento Contratto</a>
+    </div>
+  </nav>
+
+  <!-- SECTION 1: Struttura Contratto -->
+  <section id="s1" class="section">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <h2>Struttura di un Contratto</h2>
+    </div>
+
+    <p>Ogni giocatore sotto contratto nella lega ha questi quattro parametri fondamentali:</p>
+
+    <div class="comparison">
+      <div class="card card-accent">
+        <div class="card-title"><span class="icon">&#128176;</span> salary (Ingaggio)</div>
+        <div class="formula">
+          <span class="label">Tipo</span>
+          Intero, &ge; 1
+        </div>
+        <p>Costo annuale (semestrale) del giocatore. Determina il peso sul monte ingaggi e il costo del taglio.</p>
+      </div>
+      <div class="card card-primary">
+        <div class="card-title"><span class="icon">&#9201;</span> duration (Durata)</div>
+        <div class="formula">
+          <span class="label">Tipo</span>
+          Intero, 1 &ndash; 4
+        </div>
+        <p>Semestri rimanenti del contratto. Decrementata all'apertura di ogni mercato ricorrente.</p>
+      </div>
+    </div>
+
+    <div class="comparison">
+      <div class="card card-danger">
+        <div class="card-title"><span class="icon">&#128274;</span> rescissionClause (Clausola)</div>
+        <div class="formula">
+          <span class="label">Calcolata</span>
+          salary &times; moltiplicatore(duration)
+        </div>
+        <p>Prezzo minimo per la rubata. Ricalcolata automaticamente quando cambiano ingaggio o durata.</p>
+      </div>
+      <div class="card card-success">
+        <div class="card-title"><span class="icon">&#128203;</span> initialSalary</div>
+        <div class="formula">
+          <span class="label">Immutabile</span>
+          Fissato alla creazione
+        </div>
+        <p>Ingaggio al momento della creazione del contratto. <strong style="color:#fff">MAI modificato</strong> dopo la creazione.</p>
+      </div>
+    </div>
+
+    <h3>Notazione</h3>
+    <div class="card card-elevated">
+      <p>Un contratto si esprime come <strong style="color:#fff">ingaggio x durata</strong>.</p>
+      <div style="display:flex; gap: 24px; flex-wrap: wrap; margin-top: 12px;">
+        <div>
+          <span class="contract">4<span class="x">x</span>4</span>
+          <span style="color:var(--text-dim); font-size:13px; margin-left:8px;">= ingaggio 4, durata 4 semestri</span>
+        </div>
+        <div>
+          <span class="contract">10<span class="x">x</span>3</span>
+          <span style="color:var(--text-dim); font-size:13px; margin-left:8px;">= ingaggio 10, durata 3 semestri</span>
+        </div>
+        <div>
+          <span class="contract">1<span class="x">x</span>1</span>
+          <span style="color:var(--text-dim); font-size:13px; margin-left:8px;">= contratto minimo</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: Clausola Rescissoria -->
+  <section id="s2" class="section">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <h2>Clausola Rescissoria</h2>
+    </div>
+
+    <h3>Moltiplicatori per Durata</h3>
+    <div class="four-col">
+      <div class="mult-card" style="border-color: var(--danger-border);">
+        <div class="duration">4</div>
+        <div class="duration-label">semestri</div>
+        <div class="mult">&times;11</div>
+        <div class="mult-label">moltiplicatore</div>
+        <div class="example-val">4x4 &rarr; clausola <strong>44</strong></div>
+      </div>
+      <div class="mult-card" style="border-color: var(--accent-border);">
+        <div class="duration">3</div>
+        <div class="duration-label">semestri</div>
+        <div class="mult">&times;9</div>
+        <div class="mult-label">moltiplicatore</div>
+        <div class="example-val">4x3 &rarr; clausola <strong>36</strong></div>
+      </div>
+      <div class="mult-card" style="border-color: var(--primary-border);">
+        <div class="duration">2</div>
+        <div class="duration-label">semestri</div>
+        <div class="mult">&times;7</div>
+        <div class="mult-label">moltiplicatore</div>
+        <div class="example-val">4x2 &rarr; clausola <strong>28</strong></div>
+      </div>
+      <div class="mult-card" style="border-color: var(--success-border);">
+        <div class="duration">1</div>
+        <div class="duration-label">semestri</div>
+        <div class="mult">&times;3</div>
+        <div class="mult-label">moltiplicatore</div>
+        <div class="example-val">4x1 &rarr; clausola <strong>12</strong></div>
+      </div>
+    </div>
+
+    <div class="formula" style="text-align: center; font-size: 20px;">
+      <span class="label">Formula Clausola</span>
+      clausola = <span class="highlight">ingaggio</span> &times; <span class="highlight">moltiplicatore(durata)</span>
+    </div>
+
+    <h3>Tabella Esempi Completi</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Contratto</th><th>Clausola</th><th>Prezzo Rubata (clausola + ingaggio)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="contract">4<span class="x">x</span>4</span></td><td class="val">44</td><td class="val">48</td></tr>
+          <tr><td><span class="contract">4<span class="x">x</span>3</span></td><td class="val">36</td><td class="val">40</td></tr>
+          <tr><td><span class="contract">4<span class="x">x</span>2</span></td><td class="val">28</td><td class="val">32</td></tr>
+          <tr><td><span class="contract">4<span class="x">x</span>1</span></td><td class="val">12</td><td class="val">16</td></tr>
+          <tr><td><span class="contract">10<span class="x">x</span>4</span></td><td class="val">110</td><td class="val">120</td></tr>
+          <tr><td><span class="contract">10<span class="x">x</span>3</span></td><td class="val">90</td><td class="val">100</td></tr>
+          <tr><td><span class="contract">20<span class="x">x</span>4</span></td><td class="val">220</td><td class="val">240</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="alert alert-accent">
+      <span class="alert-icon">&#128161;</span>
+      <div>Il prezzo della rubata e sempre <strong>clausola + ingaggio</strong>. Questo perche nell'acquisto tramite rubata, il prezzo include implicitamente il primo semestre di ingaggio.</div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: Contratto Default -->
+  <section id="s3" class="section">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <h2>Contratto Default</h2>
+    </div>
+
+    <p>Quando un giocatore viene acquistato tramite asta (primo mercato o svincolati), riceve automaticamente un contratto default basato sul prezzo d'asta.</p>
+
+    <h3>Formula Ingaggio Default</h3>
+    <div class="formula" style="text-align: center; font-size: 20px;">
+      <span class="label">Ingaggio Default</span>
+      Math.max(1, Math.round(<span class="highlight">costo_asta</span> / 10))
+    </div>
+
+    <p>Arrotondamento standard (half-up): 0.5 arrotonda verso l'alto.</p>
+
+    <h3>Durata Default</h3>
+    <div class="card card-elevated" style="text-align:center;">
+      <div style="font-family:'Oswald',sans-serif; font-size:48px; font-weight:700; color:var(--accent);">3</div>
+      <p style="margin:0; font-size:14px;">Sempre 3 semestri, indipendentemente dal costo d'asta o dal tipo di acquisto.</p>
+    </div>
+
+    <h3>Tabella Fasce Ingaggio</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Costo Asta</th><th>Calcolo</th><th>Ingaggio Default</th><th>Contratto</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1 &ndash; 4</td><td style="color:var(--text-dim)">max(1, round(1..4/10))</td><td class="val">1</td><td><span class="contract">1<span class="x">x</span>3</span></td></tr>
+          <tr><td>5 &ndash; 14</td><td style="color:var(--text-dim)">max(1, round(5..14/10))</td><td class="val">1</td><td><span class="contract">1<span class="x">x</span>3</span></td></tr>
+          <tr><td>15 &ndash; 24</td><td style="color:var(--text-dim)">round(15..24/10)</td><td class="val">2</td><td><span class="contract">2<span class="x">x</span>3</span></td></tr>
+          <tr><td>25 &ndash; 34</td><td style="color:var(--text-dim)">round(25..34/10)</td><td class="val">3</td><td><span class="contract">3<span class="x">x</span>3</span></td></tr>
+          <tr><td>35 &ndash; 44</td><td style="color:var(--text-dim)">round(35..44/10)</td><td class="val">4</td><td><span class="contract">4<span class="x">x</span>3</span></td></tr>
+          <tr><td>45 &ndash; 54</td><td style="color:var(--text-dim)">round(45..54/10)</td><td class="val">5</td><td><span class="contract">5<span class="x">x</span>3</span></td></tr>
+          <tr><td>55 &ndash; 64</td><td style="color:var(--text-dim)">round(55..64/10)</td><td class="val">6</td><td><span class="contract">6<span class="x">x</span>3</span></td></tr>
+          <tr><td>65 &ndash; 74</td><td style="color:var(--text-dim)">round(65..74/10)</td><td class="val">7</td><td><span class="contract">7<span class="x">x</span>3</span></td></tr>
+          <tr><td>75 &ndash; 84</td><td style="color:var(--text-dim)">round(75..84/10)</td><td class="val">8</td><td><span class="contract">8<span class="x">x</span>3</span></td></tr>
+          <tr><td>85 &ndash; 94</td><td style="color:var(--text-dim)">round(85..94/10)</td><td class="val">9</td><td><span class="contract">9<span class="x">x</span>3</span></td></tr>
+          <tr><td>95 &ndash; 104</td><td style="color:var(--text-dim)">round(95..104/10)</td><td class="val">10</td><td><span class="contract">10<span class="x">x</span>3</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Verifica Budget per Offerta</h3>
+    <div class="formula" style="text-align: center;">
+      <span class="label">Requisito per fare offerta in asta</span>
+      <span class="highlight">bilancio</span> &ge; prezzo_offerta + ingaggio_default
+    </div>
+
+    <div class="example">
+      <div class="example-header">&#9917; Esempio: Offerta per Esposito a 75</div>
+      <div class="example-body">
+        <div class="scenario">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <div class="step-label">Calcolo ingaggio default</div>
+              <div class="step-formula">Math.max(1, Math.round(75 / 10)) = <span style="color:var(--accent)">8</span></div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <div class="step-label">Bilancio minimo richiesto</div>
+              <div class="step-formula">75 + 8 = <span style="color:var(--danger)">83</span></div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <div class="step-label">Contratto assegnato</div>
+              <div class="step-formula"><span class="contract">8<span class="x">x</span>3</span> (clausola = 8 &times; 9 = <span style="color:var(--accent)">72</span>)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 4: Modifica Post-Acquisto -->
+  <section id="s4" class="section">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <h2>Modifica Contratto Post-Acquisto</h2>
+    </div>
+
+    <p>Dopo ogni acquisto (primo mercato, rubata, svincolati), il manager puo modificare il contratto appena acquisito. Le regole sono restrittive:</p>
+
+    <h3>Regole di Modifica</h3>
+    <div class="card card-elevated">
+      <ul class="rule-list">
+        <li>
+          <span class="rule-icon rule-check">&#8593;</span>
+          <span><strong style="color:#fff">Ingaggio</strong> &mdash; Puo solo <strong style="color:var(--success)">AUMENTARE</strong> (mai diminuire)</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-check">&#8593;</span>
+          <span><strong style="color:#fff">Durata</strong> &mdash; Puo solo <strong style="color:var(--success)">AUMENTARE</strong> (mai diminuire)</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">4</span>
+          <span><strong style="color:#fff">Durata massima</strong> &mdash; Non puo superare <strong style="color:var(--primary-light)">4 semestri</strong></span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">&#8594;</span>
+          <span><strong style="color:#fff">Vincolo</strong> &mdash; Per aumentare la durata, serve <strong style="color:var(--primary-light)">PRIMA</strong> un aumento di ingaggio</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-cross">&#10005;</span>
+          <span><strong style="color:#fff">Spalma</strong> &mdash; <strong style="color:var(--danger)">NON disponibile</strong> post-acquisto</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-cross">&#10005;</span>
+          <span><strong style="color:#fff">Taglio</strong> &mdash; <strong style="color:var(--danger)">NON disponibile</strong> post-acquisto</span>
+        </li>
+      </ul>
+    </div>
+
+    <h3>Impatto sul Bilancio</h3>
+    <div class="formula" style="text-align: center;">
+      <span class="label">Costo Totale Operazione</span>
+      costo_totale = <span class="highlight">prezzo_asta</span> + <span class="danger">ingaggio_effettivo</span>
+    </div>
+
+    <div class="alert alert-accent">
+      <span class="alert-icon">&#128161;</span>
+      <div>La <strong>durata NON impatta il costo immediato</strong>. L'ingaggio e il costo semestrale, la durata determina solo per quanto tempo si paga.</div>
+    </div>
+
+    <div class="example">
+      <div class="example-header">&#128202; Esempi: Acquisto a 75 (ingaggio default 8)</div>
+      <div class="example-body">
+        <div class="table-wrap" style="margin:0">
+          <table>
+            <thead><tr><th>Scenario</th><th>Contratto</th><th>Prezzo</th><th>Ingaggio</th><th>Costo Totale</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Lascia default</td>
+                <td><span class="contract">8<span class="x">x</span>3</span></td>
+                <td class="val">75</td>
+                <td class="val">8</td>
+                <td class="val negative">83</td>
+              </tr>
+              <tr>
+                <td>Aumenta ingaggio</td>
+                <td><span class="contract">9<span class="x">x</span>3</span></td>
+                <td class="val">75</td>
+                <td class="val">9</td>
+                <td class="val negative">84</td>
+              </tr>
+              <tr>
+                <td>Aumenta ingaggio + durata</td>
+                <td><span class="contract">9<span class="x">x</span>4</span></td>
+                <td class="val">75</td>
+                <td class="val">9</td>
+                <td class="val negative">84</td>
+              </tr>
+              <tr>
+                <td>Aumenta molto ingaggio + durata</td>
+                <td><span class="contract">12<span class="x">x</span>4</span></td>
+                <td class="val">75</td>
+                <td class="val">12</td>
+                <td class="val negative">87</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:12px; font-size:13px; color:var(--text-dim)">Nota: 9x3 e 9x4 hanno lo stesso costo immediato (84). La durata 4 vuol dire pagare l'ingaggio per un semestre in piu, impattando il bilancio futuro.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: Operazioni -->
+  <section id="s5" class="section">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <h2>Operazioni sui Contratti</h2>
+    </div>
+
+    <div class="comparison">
+      <div class="card card-primary">
+        <div class="card-title"><span class="icon">&#128260;</span> Rinnovo</div>
+        <ul class="rule-list">
+          <li>
+            <span class="rule-icon rule-check">&#8593;</span>
+            <span>Aumenta ingaggio e/o durata</span>
+          </li>
+          <li>
+            <span class="rule-icon rule-info">&#931;</span>
+            <span>Impatta il <strong style="color:#fff">monte ingaggi</strong> (lo aumenta)</span>
+          </li>
+          <li>
+            <span class="rule-icon rule-cross">&#8800;</span>
+            <span style="color:var(--danger)"><strong style="color:#fff">NON decrementa il budget</strong> &mdash; regola FONDAMENTALE</span>
+          </li>
+          <li>
+            <span class="rule-icon rule-check">&#8634;</span>
+            <span>Clausola ricalcolata con i nuovi valori</span>
+          </li>
+        </ul>
+      </div>
+      <div class="card card-danger">
+        <div class="card-title"><span class="icon">&#9986;</span> Taglio</div>
+        <div class="formula">
+          <span class="label">Costo Taglio</span>
+          CEIL(ingaggio &times; durata / 2)
+        </div>
+        <ul class="rule-list">
+          <li>
+            <span class="rule-icon rule-cross">&#8595;</span>
+            <span>Costo <strong style="color:#fff">scalato dal budget</strong></span>
+          </li>
+          <li>
+            <span class="rule-icon rule-check">&#10003;</span>
+            <span>Il giocatore diventa <strong style="color:#fff">svincolato</strong></span>
+          </li>
+          <li>
+            <span class="rule-icon rule-check">&#8595;</span>
+            <span>Monte ingaggi <strong style="color:var(--success)">diminuisce</strong></span>
+          </li>
+        </ul>
+        <div class="alert alert-success" style="margin-bottom:0;">
+          <span class="alert-icon">&#10003;</span>
+          <div><strong>Eccezioni:</strong> ESTERO e RETROCESSO = costo taglio <strong>0</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="comparison">
+      <div class="card">
+        <div class="card-title"><span class="icon">&#128290;</span> Spalma</div>
+        <p>Redistribuisce il peso del contratto nel tempo.</p>
+        <div class="alert alert-primary" style="margin-bottom:0;">
+          <span class="alert-icon">&#8505;</span>
+          <div>Disponibile <strong>solo in fase rinnovo</strong>. NON disponibile post-acquisto.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">&#128197;</span> Scadenza Naturale</div>
+        <p>All'apertura del mercato ricorrente, la durata decrementa di 1.</p>
+        <p>Se durata arriva a <strong style="color:var(--danger)">0</strong>: il giocatore si svincola automaticamente.</p>
+        <p style="font-size:13px; color:var(--text-dim)">L'evento deve essere tracciato e visibile al manager.</p>
+      </div>
+    </div>
+
+    <div class="alert alert-danger">
+      <span class="alert-icon">&#9888;</span>
+      <div><strong>Regola Critica:</strong> il rinnovo NON decrementa MAI il budget. Se il budget fosse decrementato al rinnovo, i conti della lega salterebbero. Il rinnovo aumenta solo il monte ingaggi (il "peso" sul bilancio).</div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: Decremento Durata -->
+  <section id="s6" class="section">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <h2>Decremento Durata</h2>
+    </div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#9201;</span> Quando Avviene</div>
+      <p>Il decremento avviene <strong style="color:var(--accent)">all'APERTURA</strong> del mercato ricorrente, <strong style="color:var(--danger)">NON</strong> alla fine.</p>
+    </div>
+
+    <h3>Sequenza di Operazioni</h3>
+    <div class="flow">
+      <div class="flow-item" style="border-color: var(--accent-border);">
+        <span class="phase">STEP 1</span>
+        <span>Tutti i contratti attivi: <strong style="color:#fff">durata -= 1</strong></span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase">STEP 2</span>
+        <span>Ricalcolo <strong style="color:#fff">clausole rescissorie</strong> con le nuove durate</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color: var(--danger-border);">
+        <span class="phase">STEP 3</span>
+        <span>Contratti con durata <span class="tag tag-red">0</span> &rarr; giocatore diventa <strong style="color:#fff">svincolato</strong> (tracciare!)</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase">STEP 4</span>
+        <span>Giocatori ESTERO o RETROCESSO: gestiti separatamente (vedi Bibbia GIOCATORI)</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color: var(--success-border);">
+        <span class="phase">STEP 5</span>
+        <span>La situazione contrattuale <strong style="color:#fff">deve essere chiara</strong> ad ogni manager</span>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="example-header">&#128202; Esempio: Evoluzione Contratto 4x4</div>
+      <div class="example-body">
+        <div class="table-wrap" style="margin:0">
+          <table>
+            <thead><tr><th>Momento</th><th>Contratto</th><th>Clausola</th><th>Prezzo Rubata</th></tr></thead>
+            <tbody>
+              <tr><td>Acquisto primo mercato</td><td><span class="contract">4<span class="x">x</span>4</span></td><td class="val">44 <span style="font-size:11px;color:var(--text-dim)">(4&times;11)</span></td><td class="val">48</td></tr>
+              <tr><td>Apertura 1&deg; mercato ric.</td><td><span class="contract">4<span class="x">x</span>3</span></td><td class="val">36 <span style="font-size:11px;color:var(--text-dim)">(4&times;9)</span></td><td class="val">40</td></tr>
+              <tr><td>Apertura 2&deg; mercato ric.</td><td><span class="contract">4<span class="x">x</span>2</span></td><td class="val">28 <span style="font-size:11px;color:var(--text-dim)">(4&times;7)</span></td><td class="val">32</td></tr>
+              <tr><td>Apertura 3&deg; mercato ric.</td><td><span class="contract">4<span class="x">x</span>1</span></td><td class="val">12 <span style="font-size:11px;color:var(--text-dim)">(4&times;3)</span></td><td class="val">16</td></tr>
+              <tr><td>Apertura 4&deg; mercato ric.</td><td style="color:var(--danger)">durata 0 &rarr; SVINCOLATO</td><td class="val">&mdash;</td><td class="val">&mdash;</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 7: Budget e Bilancio -->
+  <section id="s7" class="section">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <h2>Budget e Bilancio</h2>
+    </div>
+
+    <h3>Definizioni</h3>
+    <div class="three-col">
+      <div class="card card-accent">
+        <div class="card-title"><span class="icon">&#128176;</span> Budget</div>
+        <div class="formula">
+          <span class="label">DB Field</span>
+          LeagueMember.currentBudget
+        </div>
+        <p>Salvato nel database. Modificato da operazioni di mercato.</p>
+      </div>
+      <div class="card card-primary">
+        <div class="card-title"><span class="icon">&#128200;</span> Monte Ingaggi</div>
+        <div class="formula">
+          <span class="label">Calcolato</span>
+          &Sigma; salary contratti attivi
+        </div>
+        <p>Calcolato on-the-fly. Somma di tutti gli ingaggi.</p>
+      </div>
+      <div class="card card-elevated">
+        <div class="card-title"><span class="icon">&#9878;</span> Bilancio</div>
+        <div class="formula">
+          <span class="label">Calcolato (frontend)</span>
+          Budget &minus; Monte Ingaggi
+        </div>
+        <p>Capacita di spesa reale. Puo essere negativo.</p>
+      </div>
+    </div>
+
+    <h3>Cosa Modifica il Budget</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Operazione</th><th>Effetto su Budget</th></tr></thead>
+        <tbody>
+          <tr><td>Acquisto primo mercato</td><td class="val negative">&minus; prezzo asta</td></tr>
+          <tr><td>Acquisto svincolati</td><td class="val negative">&minus; prezzo asta</td></tr>
+          <tr><td>Rubata (acquirente)</td><td class="val negative">&minus; OFFERTA <span class="tag tag-red" style="font-size:10px">non totale!</span></td></tr>
+          <tr><td>Rubata (venditore)</td><td class="val positive">+ OFFERTA</td></tr>
+          <tr><td>Scambio tra manager</td><td class="val">+/&minus; importo concordato</td></tr>
+          <tr><td>Premio ricevuto</td><td class="val positive">+ importo</td></tr>
+          <tr><td>Indennizzo ESTERO</td><td class="val positive">+ importo (min 0)</td></tr>
+          <tr><td>Taglio giocatore</td><td class="val negative">&minus; ceil(salary &times; duration / 2)</td></tr>
+          <tr><td>Taglio ESTERO/RETROCESSO</td><td class="val">invariato (gratuito)</td></tr>
+          <tr><td>Aumento ingaggio</td><td class="val">invariato</td></tr>
+          <tr><td>Rinnovo / Spalma</td><td class="val">invariato</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="alert alert-primary">
+      <span class="alert-icon">&#128279;</span>
+      <div>Per il modello completo del bilancio nella rubata (scomposizione offerta + ingaggio), vedi la <strong>Bibbia FINANZE</strong> sezione 3.</div>
+    </div>
+  </section>
+
+  <!-- SECTION 8: initialSalary -->
+  <section id="s8" class="section">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <h2>Campo initialSalary</h2>
+    </div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#128274;</span> Immutabilita Assoluta</div>
+      <p>Il campo <code style="background:var(--bg-hover); padding:2px 6px; border-radius:4px; font-size:13px;">initialSalary</code> registra l'ingaggio al momento della creazione del contratto.</p>
+
+      <div class="alert alert-danger" style="margin-bottom:16px;">
+        <span class="alert-icon">&#9888;</span>
+        <div><strong>MAI modificato</strong> dopo la creazione, indipendentemente da rinnovi, aumenti o qualsiasi altra operazione.</div>
+      </div>
+
+      <h3 style="margin-top:0;">A Cosa Serve</h3>
+      <ul class="rule-list">
+        <li>
+          <span class="rule-icon rule-info">&#128203;</span>
+          <span><strong style="color:#fff">Storico del contratto</strong> &mdash; sapere quanto costava il giocatore originariamente</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">&#128202;</span>
+          <span><strong style="color:#fff">Calcoli retroattivi</strong> &mdash; analisi delle operazioni passate</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">&#128269;</span>
+          <span><strong style="color:#fff">Audit delle operazioni</strong> &mdash; tracciabilita completa</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SECTION 9: Trasferimento Contratto -->
+  <section id="s9" class="section">
+    <div class="section-header">
+      <div class="section-num">9</div>
+      <h2>Trasferimento Contratto</h2>
+    </div>
+
+    <h3>Nella Rubata</h3>
+    <div class="card card-accent">
+      <div class="card-title"><span class="icon">&#128260;</span> Trasferimento, NON Ricreazione</div>
+      <p>La rubata <strong style="color:#fff">TRASFERISCE</strong> il record <code style="background:var(--bg-hover); padding:2px 6px; border-radius:4px; font-size:13px;">PlayerContract</code> e <code style="background:var(--bg-hover); padding:2px 6px; border-radius:4px; font-size:13px;">PlayerRoster</code> esistente. <strong style="color:var(--danger)">NON elimina e ricrea.</strong></p>
+
+      <ul class="rule-list" style="margin-top:16px;">
+        <li>
+          <span class="rule-icon rule-check">&#10003;</span>
+          <span><code style="background:var(--bg-hover); padding:1px 4px; border-radius:3px; font-size:12px;">salary</code>, <code style="background:var(--bg-hover); padding:1px 4px; border-radius:3px; font-size:12px;">duration</code>, <code style="background:var(--bg-hover); padding:1px 4px; border-radius:3px; font-size:12px;">rescissionClause</code>, <code style="background:var(--bg-hover); padding:1px 4px; border-radius:3px; font-size:12px;">initialSalary</code> <strong style="color:#fff">restano invariati</strong></span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">&#8594;</span>
+          <span>Solo <code style="background:var(--bg-hover); padding:1px 4px; border-radius:3px; font-size:12px;">leagueMemberId</code> cambia (dal venditore al vincitore)</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-check">&#8593;</span>
+          <span>Il vincitore puo poi modificare il contratto (<strong style="color:var(--success)">increase-only</strong>)</span>
+        </li>
+      </ul>
+    </div>
+
+    <h3>Negli Scambi (Fase 1/6)</h3>
+    <div class="card">
+      <p>Il contratto viene trasferito come nella rubata. <strong style="color:#fff">NON incide sul bilancio corrente</strong>: l'impatto si vedra al prossimo consolidamento (Fase 3).</p>
+    </div>
+
+    <div class="alert alert-primary">
+      <span class="alert-icon">&#128295;</span>
+      <div><strong>Nota tecnica:</strong> Il trasferimento aggiorna il record esistente nel DB (UPDATE), non lo elimina per ricrearlo (DELETE + INSERT). Questo preserva la catena di storico e l'integrita dei dati.</div>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

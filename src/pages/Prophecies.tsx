@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { historyApi, leagueApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
+import { EmptyState } from '../components/ui/EmptyState'
 
 interface Prophecy {
   id: string
@@ -221,13 +222,13 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
   const hasActiveFilters = selectedPlayerId || selectedAuthorId || debouncedSearch
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="prophecies" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
-      <main className="max-w-[1600px] mx-auto px-4 py-6">
+      <main className="max-w-[1600px] mx-auto px-4 md:px-6 py-4 md:py-6">
         {/* Header compatto */}
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
             <span>🔮</span>
             Profezie
             <span className="text-base font-normal text-gray-400">
@@ -241,6 +242,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
               onClick={() => setShowStats(!showStats)}
               className={`p-2 rounded-lg transition-colors ${showStats ? 'bg-purple-500/20 text-purple-400' : 'text-gray-400 hover:text-white'}`}
               title={showStats ? 'Nascondi statistiche' : 'Mostra statistiche'}
+              aria-label={showStats ? 'Nascondi statistiche' : 'Mostra statistiche'}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -252,6 +254,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
               onClick={() => setCompactView(!compactView)}
               className={`p-2 rounded-lg transition-colors ${compactView ? 'text-gray-400 hover:text-white' : 'bg-primary-500/20 text-primary-400'}`}
               title={compactView ? 'Vista espansa' : 'Vista compatta'}
+              aria-label={compactView ? 'Vista espansa' : 'Vista compatta'}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {compactView ? (
@@ -375,29 +378,30 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
             <div className="w-8 h-8 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin"></div>
           </div>
         ) : prophecies.length === 0 ? (
-          <div className="bg-surface-200 rounded-lg border border-surface-50/20 p-8 text-center">
-            <span className="text-4xl mb-3 block">🔮</span>
-            <p className="text-gray-400 text-sm">Nessuna profezia trovata</p>
-            {hasActiveFilters && (
+          <EmptyState
+            icon="🔮"
+            title="Nessuna profezia trovata"
+            description={hasActiveFilters ? "Prova a cambiare i filtri di ricerca." : undefined}
+            action={hasActiveFilters ? (
               <button
                 onClick={clearFilters}
-                className="mt-3 px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
               >
                 Resetta filtri
               </button>
-            )}
-          </div>
+            ) : undefined}
+          />
         ) : compactView ? (
           /* Vista Compatta - Tabella */
           <div className="bg-surface-200 rounded-lg border border-surface-50/20 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-surface-300/50 border-b border-surface-50/20">
                 <tr>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase">Giocatore</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase hidden lg:table-cell">Profezia</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase">Autore</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase hidden sm:table-cell">Evento</th>
-                  <th className="text-right px-3 py-2 text-xs font-semibold text-gray-400 uppercase hidden sm:table-cell">Prezzo</th>
+                  <th scope="col" className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase">Giocatore</th>
+                  <th scope="col" className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase hidden lg:table-cell">Profezia</th>
+                  <th scope="col" className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase">Autore</th>
+                  <th scope="col" className="text-left px-3 py-2 text-xs font-semibold text-gray-400 uppercase hidden sm:table-cell">Evento</th>
+                  <th scope="col" className="text-right px-3 py-2 text-xs font-semibold text-gray-400 uppercase hidden sm:table-cell">Prezzo</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-50/10">

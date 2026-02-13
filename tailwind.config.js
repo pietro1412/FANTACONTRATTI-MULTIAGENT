@@ -7,23 +7,6 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ============ DYNAMIC THEME COLORS (CSS Variables) ============
-        // These colors are set dynamically via ThemeContext
-        theme: {
-          bg: 'var(--bg)',
-          card: 'var(--bg-card)',
-          hover: 'var(--bg-hover)',
-          text: 'var(--text)',
-          muted: 'var(--text-muted)',
-          dim: 'var(--text-dim)',
-          border: 'var(--border)',
-          primary: 'var(--primary)',
-          'primary-bg': 'var(--primary-bg)',
-          accent: 'var(--accent)',
-          'accent-bg': 'var(--accent-bg)',
-          success: 'var(--success)',
-          danger: 'var(--danger)',
-        },
         // Dark backgrounds - Stadium Nights theme (deeper, more immersive)
         dark: {
           50: '#252830',   // Lighter surface
@@ -112,6 +95,21 @@ export default {
           500: '#0ea5e9',
           600: '#0284c7',
         },
+        // Gray overrides for WCAG AA contrast (T-004)
+        // Ensures min 4.5:1 against dark backgrounds (#1a1c20, #0a0a0b)
+        gray: {
+          50: '#f9fafb',
+          100: '#f3f4f6',
+          200: '#e5e7eb',
+          300: '#d1d5db',
+          400: '#9ca3af',  // default — passes AA (5.7:1)
+          500: '#8b919d',  // was #6b7280 — now passes AA (4.6:1 vs #1a1c20)
+          600: '#6b7280',  // was #4b5563 — now 3.4:1 (AA large text OK)
+          700: '#4b5563',
+          800: '#374151',
+          900: '#1f2937',
+          950: '#111827',
+        },
         // Surface colors for cards (adjusted for Stadium Nights)
         surface: {
           50: '#2d3139',   // Border color
@@ -131,9 +129,9 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
         display: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
         sport: ['Oswald', 'Inter', 'system-ui', 'sans-serif'], // Stadium scoreboard style
-        theme: ['var(--font-family)', 'system-ui', 'sans-serif'], // Dynamic theme font
       },
       backgroundImage: {
         'pitch-gradient': 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',

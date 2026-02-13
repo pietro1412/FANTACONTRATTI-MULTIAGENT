@@ -1,4 +1,4 @@
-import { PrismaClient, MemberRole, MemberStatus, JoinType } from '@prisma/client'
+import { PrismaClient, MemberRole, MemberStatus, JoinType, TradeStatus } from '@prisma/client'
 import type { CreateLeagueInput, UpdateLeagueInput } from '../utils/validation'
 import type { IEmailService } from '../modules/identity/domain/services/email.service.interface'
 import { computeSeasonStatsBatch, type ComputedSeasonStats } from './player-stats.service'
@@ -618,11 +618,12 @@ export async function startLeague(leagueId: string, adminUserId: string): Promis
 
   const activeMembers = league.members.length
 
-  // Verifica numero minimo partecipanti
-  if (activeMembers < league.minParticipants) {
+  // Verifica numero minimo partecipanti (regola piattaforma: min 6)
+  const PLATFORM_MIN_PARTICIPANTS = 6
+  if (activeMembers < PLATFORM_MIN_PARTICIPANTS) {
     return {
       success: false,
-      message: `Servono almeno ${league.minParticipants} partecipanti per avviare la lega (attualmente ${activeMembers})`,
+      message: `Servono almeno ${PLATFORM_MIN_PARTICIPANTS} partecipanti per avviare la lega (attualmente ${activeMembers})`,
     }
   }
 
@@ -972,10 +973,141 @@ export async function searchLeagues(
 }
 
 /**
+ * OSS-6: Get historical financial data from ManagerSessionSnapshot for a specific session.
+ * Returns simplified financial view based on stored snapshots.
+ */
+async function getLeagueFinancialsSnapshot(
+  leagueId: string,
+  membership: { id: string; role: string },
+  sessionId: string
+): Promise<ServiceResult | null> {
+  // Fetch all snapshots for this session (prefer PHASE_END, fallback to PHASE_START, then SESSION_START)
+  const snapshots = await prisma.managerSessionSnapshot.findMany({
+    where: { marketSessionId: sessionId },
+    include: {
+      leagueMember: {
+        select: {
+          id: true,
+          teamName: true,
+          user: { select: { username: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  if (snapshots.length === 0) {
+    // No snapshots yet (session still active, no phase transitions happened)
+    // Return null to signal caller to fall back to live data
+    return null
+  }
+
+  // Group snapshots by member, pick best available: PHASE_END > PHASE_START > SESSION_START
+  const snapshotByMember = new Map<string, typeof snapshots[0]>()
+  const priority: Record<string, number> = { PHASE_END: 3, PHASE_START: 2, SESSION_START: 1 }
+
+  for (const snap of snapshots) {
+    const existing = snapshotByMember.get(snap.leagueMemberId)
+    const snapPrio = priority[snap.snapshotType] || 0
+    const existPrio = existing ? (priority[existing.snapshotType] || 0) : 0
+    if (!existing || snapPrio > existPrio) {
+      snapshotByMember.set(snap.leagueMemberId, snap)
+    }
+  }
+
+  // Get league settings for slot limit
+  const league = await prisma.league.findUnique({
+    where: { id: leagueId },
+    select: {
+      name: true,
+      goalkeeperSlots: true,
+      defenderSlots: true,
+      midfielderSlots: true,
+      forwardSlots: true,
+    },
+  })
+  const maxSlots = league
+    ? (league.goalkeeperSlots + league.defenderSlots + league.midfielderSlots + league.forwardSlots)
+    : 25
+
+  // Get session info for the label
+  const session = await prisma.marketSession.findUnique({
+    where: { id: sessionId },
+    select: { type: true, currentPhase: true, status: true },
+  })
+
+  // Build team data from snapshots
+  const teamsData = Array.from(snapshotByMember.values()).map(snap => {
+    const budget = snap.budget
+    const annualContractCost = snap.totalSalaries
+    const slotCount = snap.contractCount
+
+    return {
+      memberId: snap.leagueMemberId,
+      teamName: snap.leagueMember.teamName || snap.leagueMember.user.username,
+      username: snap.leagueMember.user.username,
+      budget,
+      annualContractCost,
+      totalContractCost: 0, // Not available in snapshot
+      totalAcquisitionCost: 0, // Not available in snapshot
+      slotCount,
+      slotsFree: maxSlots - slotCount,
+      maxSlots,
+      ageDistribution: { under20: 0, under25: 0, under30: 0, over30: 0, unknown: 0 },
+      positionDistribution: { P: 0, D: 0, C: 0, A: 0 },
+      players: [], // Not available in snapshot
+      preRenewalContractCost: annualContractCost,
+      postRenewalContractCost: null,
+      costByPosition: {
+        P: { preRenewal: 0, postRenewal: null },
+        D: { preRenewal: 0, postRenewal: null },
+        C: { preRenewal: 0, postRenewal: null },
+        A: { preRenewal: 0, postRenewal: null },
+      },
+      isConsolidated: false,
+      consolidatedAt: null,
+      preConsolidationBudget: null,
+      totalReleaseCosts: snap.totalReleaseCosts ?? null,
+      totalIndemnities: snap.totalIndemnities ?? null,
+      totalRenewalCosts: snap.totalRenewalCosts ?? null,
+    }
+  })
+
+  // Fetch available sessions (same as main function)
+  const marketSessions = await prisma.marketSession.findMany({
+    where: { leagueId },
+    select: { id: true, type: true, currentPhase: true, status: true, createdAt: true },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  return {
+    success: true,
+    data: {
+      leagueName: league?.name,
+      maxSlots,
+      teams: teamsData,
+      isAdmin: membership.role === MemberRole.ADMIN,
+      inContrattiPhase: false,
+      availableSessions: marketSessions.map(s => ({
+        id: s.id,
+        sessionType: s.type,
+        currentPhase: s.currentPhase,
+        status: s.status,
+        createdAt: s.createdAt,
+      })),
+      // Flag per il frontend: stiamo mostrando dati storici
+      isHistorical: true,
+      historicalSessionType: session?.type,
+      historicalPhase: session?.currentPhase,
+    },
+  }
+}
+
+/**
  * Get financial dashboard data for all teams in a league (#190, #193)
  * Includes pre/post renewal contract costs when in CONTRATTI phase
  */
-export async function getLeagueFinancials(leagueId: string, userId: string): Promise<ServiceResult> {
+export async function getLeagueFinancials(leagueId: string, userId: string, sessionId?: string): Promise<ServiceResult> {
   try {
     // Verify user is a member of the league
     const membership = await prisma.leagueMember.findFirst({
@@ -988,6 +1120,14 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
 
     if (!membership) {
       return { success: false, message: 'Non sei membro di questa lega' }
+    }
+
+    // OSS-6: If sessionId is provided, try to return historical snapshot data
+    // Falls back to live data if no snapshots exist (e.g. session still active)
+    if (sessionId) {
+      const snapshotResult = await getLeagueFinancialsSnapshot(leagueId, membership, sessionId)
+      if (snapshotResult) return snapshotResult
+      // No snapshots → fall through to live data
     }
 
     // Check if we're in CONTRATTI phase (#193)
@@ -1047,6 +1187,34 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
     // Backwards compatibility: use phaseEndMap as snapshotMap for existing code
     const snapshotMap = phaseEndMap
 
+    // Fetch accepted trade budget transfers for this league's active session
+    const tradeBudgetMap = new Map<string, { budgetIn: number; budgetOut: number }>()
+    if (activeSession) {
+      const acceptedTrades = await prisma.tradeOffer.findMany({
+        where: {
+          marketSessionId: activeSession.id,
+          status: 'ACCEPTED',
+          OR: [{ offeredBudget: { gt: 0 } }, { requestedBudget: { gt: 0 } }],
+        },
+        select: { senderId: true, receiverId: true, offeredBudget: true, requestedBudget: true },
+      })
+      for (const trade of acceptedTrades) {
+        // senderId/receiverId are User IDs - we'll map to member IDs later
+        // offeredBudget: sender pays to receiver
+        // requestedBudget: receiver pays to sender
+        const sKey = `user:${trade.senderId}`
+        const rKey = `user:${trade.receiverId}`
+        const sExisting = tradeBudgetMap.get(sKey) || { budgetIn: 0, budgetOut: 0 }
+        sExisting.budgetOut += trade.offeredBudget
+        sExisting.budgetIn += trade.requestedBudget
+        tradeBudgetMap.set(sKey, sExisting)
+        const rExisting = tradeBudgetMap.get(rKey) || { budgetIn: 0, budgetOut: 0 }
+        rExisting.budgetIn += trade.offeredBudget
+        rExisting.budgetOut += trade.requestedBudget
+        tradeBudgetMap.set(rKey, rExisting)
+      }
+    }
+
     // Durante CONTRATTI, recupera i salari dei giocatori rilasciati da ContractHistory
     // Questi dati sono necessari per calcolare i totali pre-consolidamento
     let releasedSalariesMap = new Map<string, { totalSalary: number; count: number }>()
@@ -1085,7 +1253,9 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
           where: inContrattiPhase
             ? { status: { in: ['ACTIVE', 'RELEASED'] } }
             : { status: 'ACTIVE' },
-          include: {
+          select: {
+            status: true,
+            acquisitionPrice: true,
             player: {
               select: {
                 id: true,
@@ -1309,6 +1479,11 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
       // Get snapshot data for this member (tagli, indennizzi)
       const snapshot = snapshotMap.get(member.id)
 
+      // OSS-6: Calculate total acquisition cost (sum of auction prices paid for active roster)
+      const totalAcquisitionCost = member.roster
+        .filter(r => r.status === 'ACTIVE')
+        .reduce((sum, r) => sum + (r.acquisitionPrice || 0), 0)
+
       return {
         memberId: member.id,
         teamName: member.teamName || member.user.username,
@@ -1316,6 +1491,7 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
         budget: displayBudget,
         annualContractCost,
         totalContractCost,
+        totalAcquisitionCost,
         slotCount,
         slotsFree: maxSlots - slotCount,
         maxSlots,
@@ -1339,8 +1515,32 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
         totalReleaseCosts: snapshot?.totalReleaseCosts ?? null,
         totalIndemnities: snapshot?.totalIndemnities ?? null,
         totalRenewalCosts: snapshot?.totalRenewalCosts ?? null,
+        // Trade budget transfers
+        tradeBudgetIn: tradeBudgetMap.get(`user:${member.userId}`)?.budgetIn ?? 0,
+        tradeBudgetOut: tradeBudgetMap.get(`user:${member.userId}`)?.budgetOut ?? 0,
       }
     })
+
+    // OSS-6: Fetch available market sessions for phase selector (storicita)
+    const marketSessions = await prisma.marketSession.findMany({
+      where: { leagueId },
+      select: {
+        id: true,
+        type: true,
+        currentPhase: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    const availableSessions = marketSessions.map(s => ({
+      id: s.id,
+      sessionType: s.type,
+      currentPhase: s.currentPhase,
+      status: s.status,
+      createdAt: s.createdAt,
+    }))
 
     return {
       success: true,
@@ -1351,10 +1551,305 @@ export async function getLeagueFinancials(leagueId: string, userId: string): Pro
         isAdmin: membership.role === MemberRole.ADMIN,
         // #193: Phase info
         inContrattiPhase,
+        // OSS-6: Available sessions for phase selector
+        availableSessions,
       },
     }
   } catch (error) {
     console.error('[getLeagueFinancials] Error:', error)
     return { success: false, message: `Errore nel caricamento dati finanziari: ${(error as Error).message}` }
+  }
+}
+
+// ============================================================================
+// Financial Timeline - Level 4 drill-down
+// ============================================================================
+
+export async function getFinancialTimeline(
+  leagueId: string,
+  userId: string,
+  memberId?: string,
+) {
+  try {
+    // Verify membership
+    const league = await prisma.league.findUnique({
+      where: { id: leagueId },
+      include: {
+        members: {
+          where: { status: MemberStatus.ACTIVE },
+          include: { user: { select: { id: true, username: true } } },
+        },
+      },
+    })
+
+    if (!league) return { success: false, message: 'Lega non trovata' }
+
+    const membership = league.members.find(m => m.userId === userId)
+    if (!membership) return { success: false, message: 'Non sei membro di questa lega' }
+
+    // Get target member (default to self if not specified)
+    const targetMemberId = memberId || membership.id
+    const targetMember = league.members.find(m => m.id === targetMemberId)
+    if (!targetMember) return { success: false, message: 'Membro non trovato' }
+
+    // Fetch contract history for this member
+    const contractHistory = await prisma.contractHistory.findMany({
+      where: { leagueMemberId: targetMemberId },
+      include: {
+        player: { select: { id: true, name: true, position: true, quotation: true } },
+        marketSession: { select: { id: true, type: true, currentPhase: true, status: true, createdAt: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    // Fetch session snapshots for this member
+    const snapshots = await prisma.managerSessionSnapshot.findMany({
+      where: { leagueMemberId: targetMemberId },
+      include: {
+        marketSession: { select: { id: true, type: true, currentPhase: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    // Fetch accepted trades involving this member
+    const trades = await prisma.tradeOffer.findMany({
+      where: {
+        marketSession: { leagueId },
+        status: TradeStatus.ACCEPTED,
+        OR: [
+          { senderId: targetMember.userId },
+          { receiverId: targetMember.userId },
+        ],
+      },
+      include: {
+        sender: { select: { id: true, username: true } },
+        receiver: { select: { id: true, username: true } },
+        marketSession: { select: { id: true, type: true, currentPhase: true } },
+      },
+      orderBy: { respondedAt: 'desc' },
+    })
+
+    // Build timeline entries
+    const EVENT_TYPE_LABELS: Record<string, string> = {
+      SESSION_START_SNAPSHOT: 'Inizio Sessione',
+      DURATION_DECREMENT: 'Decremento Durata',
+      AUTO_RELEASE_EXPIRED: 'Svincolo Automatico',
+      RENEWAL: 'Rinnovo',
+      SPALMA: 'Spalma',
+      RELEASE_NORMAL: 'Taglio',
+      RELEASE_ESTERO: 'Taglio (Estero)',
+      RELEASE_RETROCESSO: 'Taglio (Retrocesso)',
+      KEEP_ESTERO: 'Mantenuto (Estero)',
+      KEEP_RETROCESSO: 'Mantenuto (Retrocesso)',
+      INDEMNITY_RECEIVED: 'Indennizzo Ricevuto',
+    }
+
+    const EVENT_TYPE_COLORS: Record<string, string> = {
+      SESSION_START_SNAPSHOT: 'blue',
+      DURATION_DECREMENT: 'gray',
+      AUTO_RELEASE_EXPIRED: 'red',
+      RENEWAL: 'amber',
+      SPALMA: 'purple',
+      RELEASE_NORMAL: 'red',
+      RELEASE_ESTERO: 'red',
+      RELEASE_RETROCESSO: 'red',
+      KEEP_ESTERO: 'green',
+      KEEP_RETROCESSO: 'green',
+      INDEMNITY_RECEIVED: 'green',
+    }
+
+    const timelineEvents = contractHistory.map(ch => ({
+      id: ch.id,
+      type: 'contract' as const,
+      eventType: ch.eventType,
+      label: EVENT_TYPE_LABELS[ch.eventType] || ch.eventType,
+      color: EVENT_TYPE_COLORS[ch.eventType] || 'gray',
+      playerName: ch.player.name,
+      playerPosition: ch.player.position,
+      previousSalary: ch.previousSalary,
+      previousDuration: ch.previousDuration,
+      previousClause: ch.previousClause,
+      newSalary: ch.newSalary,
+      newDuration: ch.newDuration,
+      newClause: ch.newClause,
+      cost: ch.cost,
+      income: ch.income,
+      notes: ch.notes,
+      sessionType: ch.marketSession.type,
+      sessionPhase: ch.marketSession.currentPhase,
+      createdAt: ch.createdAt.toISOString(),
+    }))
+
+    const tradeEvents = trades.map(t => {
+      const isSender = t.senderId === targetMember.userId
+      return {
+        id: t.id,
+        type: 'trade' as const,
+        eventType: 'TRADE',
+        label: 'Scambio',
+        color: 'purple',
+        isSender,
+        counterpart: isSender ? t.receiver.username : t.sender.username,
+        offeredBudget: t.offeredBudget,
+        requestedBudget: t.requestedBudget,
+        offeredPlayers: t.offeredPlayers,
+        requestedPlayers: t.requestedPlayers,
+        sessionType: t.marketSession.type,
+        sessionPhase: t.marketSession.currentPhase,
+        createdAt: (t.respondedAt || t.createdAt).toISOString(),
+      }
+    })
+
+    // Snapshot trend data
+    const trendData = snapshots.map(s => ({
+      id: s.id,
+      type: s.snapshotType,
+      budget: s.budget,
+      totalSalaries: s.totalSalaries,
+      balance: s.balance,
+      totalIndemnities: s.totalIndemnities,
+      totalReleaseCosts: s.totalReleaseCosts,
+      contractCount: s.contractCount,
+      sessionType: s.marketSession.type,
+      sessionPhase: s.marketSession.currentPhase,
+      createdAt: s.createdAt.toISOString(),
+    }))
+
+    return {
+      success: true,
+      data: {
+        memberId: targetMemberId,
+        teamName: targetMember.teamName,
+        username: targetMember.user.username,
+        events: [...timelineEvents, ...tradeEvents].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        ),
+        trendData,
+      },
+    }
+  } catch (error) {
+    console.error('[getFinancialTimeline] Error:', error)
+    return { success: false, message: `Errore nel caricamento timeline: ${(error as Error).message}` }
+  }
+}
+
+// ============================================================================
+// Financial Trends - historical balance data for all teams
+// ============================================================================
+
+export async function getFinancialTrends(leagueId: string, userId: string) {
+  try {
+    const league = await prisma.league.findUnique({
+      where: { id: leagueId },
+      include: {
+        members: {
+          where: { status: MemberStatus.ACTIVE },
+          select: { id: true, userId: true, teamName: true },
+        },
+      },
+    })
+
+    if (!league) return { success: false, message: 'Lega non trovata' }
+
+    const membership = league.members.find(m => m.userId === userId)
+    if (!membership) return { success: false, message: 'Non sei membro di questa lega' }
+
+    // Get all snapshots for all members
+    const allSnapshots = await prisma.managerSessionSnapshot.findMany({
+      where: {
+        leagueMemberId: { in: league.members.map(m => m.id) },
+      },
+      include: {
+        marketSession: { select: { id: true, type: true, currentPhase: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    // Group by member
+    const memberMap = new Map(league.members.map(m => [m.id, m]))
+    const trends: Record<string, Array<{
+      snapshotType: string
+      budget: number
+      totalSalaries: number
+      balance: number
+      sessionType: string
+      sessionPhase: string | null
+      createdAt: string
+    }>> = {}
+
+    for (const snap of allSnapshots) {
+      const member = memberMap.get(snap.leagueMemberId)
+      if (!member) continue
+      const key = member.teamName
+      if (!trends[key]) trends[key] = []
+      trends[key].push({
+        snapshotType: snap.snapshotType,
+        budget: snap.budget,
+        totalSalaries: snap.totalSalaries,
+        balance: snap.balance,
+        sessionType: snap.marketSession.type,
+        sessionPhase: snap.marketSession.currentPhase,
+        createdAt: snap.createdAt.toISOString(),
+      })
+    }
+
+    return {
+      success: true,
+      data: { trends },
+    }
+  } catch (error) {
+    console.error('[getFinancialTrends] Error:', error)
+    return { success: false, message: `Errore nel caricamento trends: ${(error as Error).message}` }
+  }
+}
+
+// ==================== STRATEGY SUMMARY ====================
+
+export async function getStrategySummary(leagueId: string, userId: string): Promise<ServiceResult> {
+  try {
+    const member = await prisma.leagueMember.findFirst({
+      where: {
+        leagueId,
+        userId,
+        status: MemberStatus.ACTIVE,
+      },
+    })
+
+    if (!member) {
+      return { success: false, message: 'Non sei membro di questa lega' }
+    }
+
+    const counts = await prisma.rubataPreference.groupBy({
+      by: ['watchlistCategory'],
+      where: { memberId: member.id, isWatchlist: true },
+      _count: true,
+    })
+
+    const topPriority = await prisma.rubataPreference.count({
+      where: { memberId: member.id, priority: { gte: 8 } },
+    })
+
+    let targets = 0
+    let watching = 0
+    let toSell = 0
+    let total = 0
+
+    for (const row of counts) {
+      const count = row._count
+      total += count
+      switch (row.watchlistCategory) {
+        case 'DA_RUBARE': targets += count; break
+        case 'SOTTO_OSSERVAZIONE': watching += count; break
+        case 'DA_VENDERE': toSell += count; break
+      }
+    }
+
+    return {
+      success: true,
+      data: { targets, topPriority, watching, toSell, total },
+    }
+  } catch (error) {
+    console.error('[getStrategySummary] Error:', error)
+    return { success: false, message: `Errore nel caricamento strategie: ${(error as Error).message}` }
   }
 }

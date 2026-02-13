@@ -464,6 +464,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
             </button>
             <input
               type="number"
+              inputMode="decimal"
               value={baseReincrementValue}
               onChange={(e) => setBaseReincrementValue(Number(e.target.value))}
               onFocus={(e) => e.target.select()}
@@ -850,6 +851,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                               </button>
                               <input
                                 type="number"
+                                inputMode="decimal"
                                 value={isFocused ? inputDisplayValue : savedValue}
                                 onChange={handleInputChange}
                                 onFocus={handleFocus}

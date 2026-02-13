@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bibbia Mercato Ricorrente - Fantacontratti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0b;
+      --bg-card: #111214;
+      --bg-elevated: #1a1c20;
+      --bg-hover: #252830;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --border: rgba(55, 65, 81, 0.4);
+      --border-light: rgba(55, 65, 81, 0.2);
+      --primary: #3b82f6;
+      --primary-light: #60a5fa;
+      --primary-bg: rgba(59, 130, 246, 0.15);
+      --primary-border: rgba(59, 130, 246, 0.3);
+      --accent: #fbbf24;
+      --accent-dark: #f59e0b;
+      --accent-bg: rgba(251, 191, 36, 0.15);
+      --accent-border: rgba(251, 191, 36, 0.3);
+      --success: #22c55e;
+      --success-bg: rgba(34, 197, 94, 0.15);
+      --success-border: rgba(34, 197, 94, 0.3);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --danger-border: rgba(239, 68, 68, 0.3);
+      --purple: #a78bfa;
+      --purple-bg: rgba(167, 139, 250, 0.15);
+      --purple-border: rgba(167, 139, 250, 0.3);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+
+    .page-header {
+      background: linear-gradient(135deg, #1a1f2e 0%, #0f1318 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 48px 24px 40px;
+      margin-bottom: 40px;
+    }
+    .page-header .inner { max-width: 960px; margin: 0 auto; }
+    .page-header .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent-bg); color: var(--accent);
+      border: 1px solid var(--accent-border);
+      padding: 4px 12px; border-radius: 9999px;
+      font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+    .page-header h1 {
+      font-family: 'Outfit', 'Inter', sans-serif;
+      font-size: 36px; font-weight: 800;
+      margin-bottom: 8px;
+      background: linear-gradient(to right, #fcd34d, #f59e0b);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .page-header .subtitle { color: var(--text-muted); font-size: 16px; }
+    .page-header .date { color: var(--text-dim); font-size: 13px; margin-top: 12px; }
+
+    .toc {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 24px; margin-bottom: 32px;
+    }
+    .toc h3 { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; }
+    .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+    .toc a {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--primary-light); text-decoration: none;
+      padding: 8px 12px; border-radius: 8px; font-size: 14px;
+      transition: all 0.15s;
+    }
+    .toc a:hover { background: var(--primary-bg); color: #fff; }
+    .toc a .num { color: var(--text-dim); font-family: 'Oswald', sans-serif; font-size: 13px; min-width: 20px; }
+
+    .section { margin-bottom: 48px; }
+    .section-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 24px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .section-num {
+      font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600;
+      color: var(--primary); background: var(--primary-bg);
+      border: 1px solid var(--primary-border);
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .section-header h2 {
+      font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 700; color: #fff;
+    }
+
+    h3 {
+      font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 600;
+      color: var(--primary-light); margin: 24px 0 12px;
+    }
+
+    p { color: var(--text-muted); margin-bottom: 12px; font-size: 15px; }
+
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 24px; margin-bottom: 16px;
+    }
+    .card-elevated {
+      background: linear-gradient(180deg, var(--bg-elevated), var(--bg-card));
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .card-accent {
+      border-color: var(--accent-border);
+      background: linear-gradient(135deg, rgba(251,191,36,0.05), var(--bg-card));
+    }
+    .card-primary {
+      border-color: var(--primary-border);
+      background: linear-gradient(135deg, rgba(59,130,246,0.05), var(--bg-card));
+    }
+    .card-danger {
+      border-color: var(--danger-border);
+      background: linear-gradient(135deg, rgba(239,68,68,0.05), var(--bg-card));
+    }
+    .card-success {
+      border-color: var(--success-border);
+      background: linear-gradient(135deg, rgba(34,197,94,0.05), var(--bg-card));
+    }
+    .card-purple {
+      border-color: var(--purple-border);
+      background: linear-gradient(135deg, rgba(167,139,250,0.05), var(--bg-card));
+    }
+
+    .card-title {
+      font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700;
+      color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .card-title .icon { font-size: 18px; }
+
+    .formula {
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px 20px; margin: 12px 0;
+      font-family: 'Oswald', 'monospace'; font-size: 18px; font-weight: 500;
+      color: var(--accent); letter-spacing: 0.02em;
+    }
+    .formula .label {
+      font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 6px; display: block;
+    }
+    .formula .highlight { color: var(--primary-light); }
+    .formula .danger { color: var(--danger); }
+    .formula .success { color: var(--success); }
+
+    .table-wrap {
+      overflow-x: auto; border-radius: 12px;
+      border: 1px solid var(--border-light); margin: 16px 0;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--bg-elevated); }
+    th {
+      text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 600;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 10px 16px; font-size: 14px; color: var(--text-muted);
+      border-bottom: 1px solid var(--border-light);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(59, 130, 246, 0.03); }
+    td.val {
+      font-family: 'Oswald', sans-serif; font-weight: 500;
+      color: var(--accent); font-size: 15px;
+    }
+    td.positive { color: var(--success); }
+    td.negative { color: var(--danger); }
+    td.primary { color: var(--primary-light); }
+
+    .alert {
+      display: flex; gap: 12px; padding: 16px;
+      border-radius: 10px; margin: 16px 0; font-size: 14px;
+    }
+    .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .alert-danger { background: var(--danger-bg); border: 1px solid var(--danger-border); color: #fca5a5; }
+    .alert-success { background: var(--success-bg); border: 1px solid var(--success-border); color: #86efac; }
+    .alert-accent { background: var(--accent-bg); border: 1px solid var(--accent-border); color: #fde68a; }
+    .alert-primary { background: var(--primary-bg); border: 1px solid var(--primary-border); color: #93c5fd; }
+    .alert strong { color: #fff; }
+
+    .example {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; overflow: hidden; margin: 16px 0;
+    }
+    .example-header {
+      background: var(--bg-elevated); padding: 10px 16px;
+      font-size: 13px; font-weight: 600; color: var(--text-muted);
+      border-bottom: 1px solid var(--border-light);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .example-body { padding: 16px; }
+
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+    @media (max-width: 640px) { .comparison { grid-template-columns: 1fr; } }
+
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    }
+    .tag-blue { background: var(--primary-bg); color: var(--primary-light); border: 1px solid var(--primary-border); }
+    .tag-gold { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+    .tag-green { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .tag-red { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+    .tag-purple { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple-border); }
+
+    .flow { display: flex; flex-direction: column; gap: 2px; margin: 16px 0; }
+    .flow-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; border-radius: 8px;
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      font-size: 14px;
+    }
+    .flow-item .phase {
+      font-family: 'Oswald', sans-serif; font-size: 12px; font-weight: 600;
+      min-width: 60px;
+    }
+    .flow-arrow { text-align: center; color: var(--text-dim); font-size: 18px; line-height: 1; }
+
+    .scenario { counter-reset: step; }
+    .step {
+      display: flex; gap: 16px; margin-bottom: 2px; padding: 12px 16px;
+      border-left: 2px solid var(--border-light);
+      transition: all 0.15s;
+    }
+    .step:hover { border-left-color: var(--primary); background: rgba(59,130,246,0.03); }
+    .step-num {
+      font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600;
+      color: var(--primary); background: var(--primary-bg); border: 1px solid var(--primary-border);
+      min-width: 28px; height: 28px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .step-content { flex: 1; }
+    .step-label { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+    .step-desc { font-size: 13px; color: var(--text-dim); }
+    .step-formula {
+      font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 500;
+      color: var(--accent); margin-top: 4px;
+    }
+
+    /* Phase timeline */
+    .phase-timeline { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+    .phase-item {
+      display: flex; gap: 16px; padding: 16px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .phase-item:last-child { border-bottom: none; }
+    .phase-badge {
+      flex-shrink: 0; width: 48px; height: 48px; border-radius: 12px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-family: 'Oswald', sans-serif; font-weight: 700;
+    }
+    .phase-badge .num { font-size: 20px; line-height: 1; }
+    .phase-badge .sub { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.7; }
+    .phase-body { flex: 1; }
+    .phase-title { font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .phase-desc { font-size: 13px; color: var(--text-dim); }
+
+    /* Offer block */
+    .offer-block {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 10px; padding: 12px 16px; margin: 8px 0;
+      font-size: 13px; color: var(--text-muted);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .offer-block .offer-icon {
+      font-size: 16px; flex-shrink: 0;
+    }
+
+    /* Rule list */
+    .rule-list { list-style: none; padding: 0; }
+    .rule-list li {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border-light);
+      font-size: 14px; color: var(--text-muted);
+    }
+    .rule-list li:last-child { border-bottom: none; }
+    .rule-list .rule-icon {
+      flex-shrink: 0; width: 24px; height: 24px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; margin-top: 1px;
+    }
+    .rule-list .rule-check { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success); }
+    .rule-list .rule-cross { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger); }
+    .rule-list .rule-info { background: var(--primary-bg); border: 1px solid var(--primary-border); color: var(--primary-light); }
+
+    @media (max-width: 640px) {
+      .page-header h1 { font-size: 28px; }
+      .toc-grid { grid-template-columns: 1fr; }
+      .comparison { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="inner">
+    <div class="badge">&#9733; Fonte di Verita</div>
+    <h1>Mercato Ricorrente</h1>
+    <p class="subtitle">Il ciclo di mercato periodico con le sue 7 fasi obbligatorie</p>
+    <p class="date">Ultima revisione: 6 Febbraio 2026</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- TOC -->
+  <nav class="toc">
+    <h3>Indice</h3>
+    <div class="toc-grid">
+      <a href="#s1"><span class="num">1</span> Panoramica e Le 7 Fasi</a>
+      <a href="#s2"><span class="num">2</span> Apertura: Decremento Durata</a>
+      <a href="#s3"><span class="num">3</span> Fase 1: Offerte e Scambi</a>
+      <a href="#s4"><span class="num">4</span> Fase 2: Premi</a>
+      <a href="#s5"><span class="num">5</span> Fase 3: Rinnovi e Consolidamento</a>
+      <a href="#s6"><span class="num">6</span> Fasi 4-5: Rubata e Svincolati</a>
+      <a href="#s7"><span class="num">7</span> Fase 6: Scambi Post-Svincolati</a>
+      <a href="#s8"><span class="num">8</span> Fase 7: Fine Mercato</a>
+      <a href="#s9"><span class="num">9</span> Riepilogo Flusso Finanziario</a>
+    </div>
+  </nav>
+
+  <!-- SECTION 1: Panoramica -->
+  <section id="s1" class="section">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <h2>Panoramica</h2>
+    </div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#128260;</span> Cos'e il Mercato Ricorrente</div>
+      <p>Il ciclo di mercato che si <strong style="color:#fff">ripete periodicamente</strong>. Viene avviato dall'admin e si compone di <strong style="color:var(--accent)">7 fasi in successione obbligatoria</strong>.</p>
+    </div>
+
+    <h3>Le 7 Fasi</h3>
+    <div class="phase-timeline">
+      <div class="phase-item">
+        <div class="phase-badge" style="background:var(--accent-bg); border:1px solid var(--accent-border); color:var(--accent);">
+          <span class="num">&#9881;</span>
+          <span class="sub">avvio</span>
+        </div>
+        <div class="phase-body">
+          <div class="phase-title">Apertura <span class="tag tag-gold">&rarr; CONTRATTI</span></div>
+          <div class="phase-desc">Decremento durata contratti (-1). Svincoli automatici. Ricalcolo clausole.</div>
+        </div>
+      </div>
+      <div class="phase-item">
+        <div class="phase-badge" style="background:var(--primary-bg); border:1px solid var(--primary-border); color:var(--primary-light);">
+          <span class="num">1</span>
+          <span class="sub">fase</span>
+        </div>
+        <div class="phase-body">
+          <div class="phase-title">Offerte e Scambi Liberi <span class="tag tag-blue">pre-rinnovi</span></div>
+          <div class="phase-desc">I manager si scambiano giocatori e/o crediti liberamente.</div>
+        </div>
+      </div>
+      <div class="phase-item">
+        <div class="phase-badge" style="background:var(--success-bg); border:1px solid var(--success-border); color:var(--success);">
+          <span class="num">2</span>
+          <span class="sub">fase</span>
+        </div>
+        <div class="phase-body">
+          <div class="phase-title">Assegnazione Premi <span class="tag tag-gold">&rarr; FINANZE</span></div>
+          <div class="phase-desc">L'admin assegna premi standard + variabili + indennizzi. I manager tagliano.</div>
+        </div>
+      </div>
+      <div class="phase-item">
+        <div class="phase-badge" style="background:var(--accent-bg); border:1px solid var(--accent-border); color:var(--accent);">
+          <span class="num">3</span>
+          <span class="sub">fase</span>
+        </div>
+        <div class="phase-body">
+          <div class="phase-title">Rinnovo Contratti e Consolidamento <span class="tag tag-gold">&rarr; CONTRATTI</span> <span class="tag tag-gold">&rarr; FINANZE</span></div>
+          <div class="phase-desc">Rinnovi, spalma, tagli. Il consolidamento ricalcola il bilancio completo.</div>
+        </div>
+      </div>
+      <div class="phase-item">
+        <div class="phase-badge" style="background:var(--danger-bg); border:1px solid var(--danger-border); color:var(--danger);">
+          <span class="num">4</span>
+          <span class="sub">fase</span>
+        </div>
+        <div class="phase-body">
+          <div class="phase-title">Asta Rubata <span class="tag tag-red">Bibbia dedicata</span></div>
+          <div class="phase-desc">I manager "rubano" giocatori altrui pagando clausola + ingaggio.</div>
+        </div>
+      </div>
+      <div class="phase-item">
+        <div class="phase-badge" style="background:var(--purple-bg); border:1px solid var(--purple-border); color:var(--purple);">
+          <span class="num">5</span>
+          <span class="sub">fase</span>
+        </div>
+        <div class="phase-body">
+          <div class="phase-title">Asta Svincolati <span class="tag tag-purple">Bibbia dedicata</span></div>
+          <div class="phase-desc">I manager acquistano giocatori svincolati tramite asta a turni.</div>
+        </div>
+      </div>
+      <div class="phase-item">
+        <div class="phase-badge" style="background:var(--primary-bg); border:1px solid var(--primary-border); color:var(--primary-light);">
+          <span class="num">6</span>
+          <span class="sub">fase</span>
+        </div>
+        <div class="phase-body">
+          <div class="phase-title">Offerte e Scambi Liberi <span class="tag tag-blue">post-svincolati</span></div>
+          <div class="phase-desc">Identica alla Fase 1. I giocatori appena acquistati possono essere scambiati.</div>
+        </div>
+      </div>
+      <div class="phase-item">
+        <div class="phase-badge" style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-dim);">
+          <span class="num">7</span>
+          <span class="sub">fase</span>
+        </div>
+        <div class="phase-body">
+          <div class="phase-title">Fine Mercato</div>
+          <div class="phase-desc">L'admin chiude il mercato. Blocco di tutte le operazioni. Nessun decremento.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: Apertura -->
+  <section id="s2" class="section">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <h2>Apertura: Decremento Durata</h2>
+    </div>
+
+    <div class="alert alert-accent">
+      <span class="alert-icon">&#9888;</span>
+      <div>All'apertura del mercato ricorrente, <strong>PRIMA di qualsiasi fase</strong>, avviene il decremento automatico.</div>
+    </div>
+
+    <div class="flow">
+      <div class="flow-item" style="border-color: var(--accent-border);">
+        <span class="phase" style="color:var(--accent);">STEP 1</span>
+        <span>Tutti i contratti attivi: <strong style="color:#fff">durata -= 1</strong></span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase" style="color:var(--primary);">STEP 2</span>
+        <span><strong style="color:#fff">Ricalcolo clausole</strong> rescissorie con nuove durate</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color: var(--danger-border);">
+        <span class="phase" style="color:var(--danger);">STEP 3</span>
+        <span>Contratti con durata <span class="tag tag-red">0</span> &rarr; giocatore <strong style="color:var(--danger)">svincolato</strong> (evento tracciato)</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase" style="color:var(--primary);">STEP 4</span>
+        <span>Giocatori ESTERO/RETROCESSO: gestiti separatamente (aggiornamento quotazioni)</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color: var(--success-border);">
+        <span class="phase" style="color:var(--success);">STEP 5</span>
+        <span>Ogni manager <strong style="color:#fff">vede chiaramente</strong> la situazione contrattuale aggiornata</span>
+      </div>
+    </div>
+
+    <div class="alert alert-primary">
+      <span class="alert-icon">&#128161;</span>
+      <div>I dati possono cambiare durante il periodo di mercato a fronte di <strong>aggiornamenti del file quotazioni</strong> (calciomercato reale, cessioni all'estero, etc.).</div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: Fase 1 -->
+  <section id="s3" class="section">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <h2>Fase 1 &mdash; Offerte e Scambi Liberi</h2>
+    </div>
+
+    <div class="card card-primary">
+      <div class="card-title"><span class="icon">&#128260;</span> Descrizione</div>
+      <p>I manager possono <strong style="color:#fff">scambiarsi giocatori e/o crediti</strong> liberamente tramite offerte. L'admin decide quando chiudere la fase (nessun limite automatico).</p>
+    </div>
+
+    <h3>Tipi di Offerta</h3>
+    <p>Un'offerta puo contenere qualsiasi combinazione di giocatori e crediti:</p>
+
+    <div class="offer-block"><span class="offer-icon">&#9917;</span> Ti do Sommer e mi dai Maignan</div>
+    <div class="offer-block"><span class="offer-icon">&#9917;&#128176;</span> Ti do Sommer + 10M e mi dai Maignan</div>
+    <div class="offer-block"><span class="offer-icon">&#128176;&#9917;</span> Ti do Sommer e mi dai Maignan + 10M</div>
+    <div class="offer-block"><span class="offer-icon">&#128176;</span> Dammi Maignan a 10M (solo crediti)</div>
+    <div class="offer-block"><span class="offer-icon">&#9917;&#9917;</span> Ti do Sommer e Barella e mi dai Maignan e Vardy</div>
+    <div class="offer-block"><span class="offer-icon">&#9917;&#128176;&#9917;</span> Ti do Sommer + 10M e mi dai Maignan e Marusic</div>
+
+    <h3>Flusso Offerta</h3>
+    <div class="flow">
+      <div class="flow-item" style="border-color: var(--primary-border);">
+        <span class="phase" style="color:var(--primary);">INVIO</span>
+        <span>Manager A invia offerta a Manager B</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color: var(--success-border);">
+        <span class="phase" style="color:var(--success);">ACCETTA</span>
+        <span>Manager B accetta &rarr; accordo chiuso, scambio eseguito</span>
+      </div>
+      <div class="flow-item" style="border-color: var(--danger-border);">
+        <span class="phase" style="color:var(--danger);">RIFIUTA</span>
+        <span>Manager B rifiuta &rarr; offerta chiusa</span>
+      </div>
+      <div class="flow-item" style="border-color: var(--accent-border);">
+        <span class="phase" style="color:var(--accent);">CONTRO</span>
+        <span>Manager B fa <strong style="color:#fff">controofferta</strong> &rarr; modifica completa (aggiungere/togliere giocatori e crediti)</span>
+      </div>
+    </div>
+
+    <h3>Visibilita</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Stato Offerta</th><th>Chi vede i dettagli</th><th>Chi sa che esiste</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag tag-blue">In corso</span></td><td>Solo i 2 manager coinvolti</td><td>Tutti (sanno che c'e trattativa)</td></tr>
+          <tr><td><span class="tag tag-green">Accettata</span></td><td>Tutti</td><td>Tutti</td></tr>
+          <tr><td><span class="tag tag-red">Rifiutata</span></td><td>Tutti</td><td>Tutti</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Regole Finanziarie</h3>
+    <div class="comparison">
+      <div class="card card-accent">
+        <div class="card-title"><span class="icon">&#128260;</span> Trasferimento Contratto</div>
+        <p>Il contratto viene <strong style="color:#fff">trasferito</strong> (come nella rubata, NON ricreato).</p>
+        <p><strong style="color:var(--accent)">NON incide sul bilancio corrente.</strong> L'impatto si vedra al consolidamento (Fase 3).</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="icon">&#128176;</span> Budget Check</div>
+        <p>Verificato <strong style="color:#fff">prima dell'invio</strong> dell'offerta.</p>
+        <p>Monte ingaggi <strong style="color:var(--danger)">NON ricalcolato</strong> durante questa fase.</p>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="example-header">&#128202; Esempio: Scambio con crediti</div>
+      <div class="example-body">
+        <p style="margin-bottom:12px">Manager A da 10M a Manager B per Maignan:</p>
+        <div class="comparison" style="margin-top:8px; margin-bottom:0;">
+          <div class="card card-danger" style="margin:0">
+            <div class="card-title">Manager A</div>
+            <div style="font-family:'Oswald',sans-serif; font-size:15px; color:var(--text-muted); line-height: 1.8;">
+              Budget <span style="color:var(--danger)">&minus;10</span><br>
+              Maignan: contratto trasferito (nessun impatto bilancio)
+            </div>
+          </div>
+          <div class="card card-success" style="margin:0">
+            <div class="card-title">Manager B</div>
+            <div style="font-family:'Oswald',sans-serif; font-size:15px; color:var(--text-muted); line-height: 1.8;">
+              Budget <span style="color:var(--success)">+10</span><br>
+              Perde Maignan (nessun impatto bilancio)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 4: Fase 2 -->
+  <section id="s4" class="section">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <h2>Fase 2 &mdash; Assegnazione Premi</h2>
+    </div>
+
+    <div class="comparison">
+      <div class="card card-success">
+        <div class="card-title"><span class="icon">&#127942;</span> Premi Standard</div>
+        <p>Importo <strong style="color:#fff">uguale per tutti</strong> i manager.</p>
+        <p>L'admin lo configura <strong style="color:var(--accent)">ad ogni mercato ricorrente</strong> (puo variare).</p>
+      </div>
+      <div class="card card-accent">
+        <div class="card-title"><span class="icon">&#127941;</span> Premi Variabili</div>
+        <p>L'admin assegna premi specifici per categoria:</p>
+        <div style="margin-top:8px;">
+          <div class="tag tag-gold" style="margin:2px;">Miglior portiere</div>
+          <div class="tag tag-gold" style="margin:2px;">Disciplina</div>
+          <div class="tag tag-gold" style="margin:2px;">Punteggio</div>
+          <div class="tag tag-gold" style="margin:2px;">Altro (custom)</div>
+        </div>
+        <p style="margin-top:8px; font-size:13px; color:var(--text-dim)">Per ogni premio, l'admin inserisce manualmente l'importo per ogni manager interessato.</p>
+      </div>
+    </div>
+
+    <h3>Indennizzi Giocatori ESTERO</h3>
+    <div class="card card-primary">
+      <ul class="rule-list">
+        <li>
+          <span class="rule-icon rule-info">&#128176;</span>
+          <span>L'admin <strong style="color:#fff">deve</strong> inserire un valore di indennizzo per ogni giocatore ESTERO</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">0</span>
+          <span>Valore minimo: <span class="tag tag-gold">0</span> (esiste il caso di indennizzo pari a 0)</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-info">?</span>
+          <span>Formula automatica: <span style="color:var(--text-dim)">da definire in futuro (attualmente manuale)</span></span>
+        </li>
+      </ul>
+    </div>
+
+    <h3>Tagli</h3>
+    <div class="card">
+      <p>In questa fase i manager possono tagliare giocatori:</p>
+      <div class="formula" style="text-align:center;">
+        <span class="label">Costo Taglio</span>
+        CEIL(<span class="highlight">ingaggio</span> &times; <span class="highlight">durata</span> / 2)
+      </div>
+      <div class="comparison" style="margin-bottom:0;">
+        <div class="alert alert-success" style="margin:0;"><span class="alert-icon">&#10003;</span><div>ESTERO: costo taglio = <strong>0</strong></div></div>
+        <div class="alert alert-success" style="margin:0;"><span class="alert-icon">&#10003;</span><div>RETROCESSO: costo taglio = <strong>0</strong></div></div>
+      </div>
+    </div>
+
+    <h3>Consolidamento Premi</h3>
+    <div class="formula" style="text-align:center;">
+      <span class="label">Impatto Finanziario Fase 2</span>
+      Budget += <span class="success">premi_standard</span> + <span class="success">premi_variabili</span> + <span class="success">indennizzi</span> &minus; <span class="danger">costi_tagli</span>
+    </div>
+
+    <div class="alert alert-danger">
+      <span class="alert-icon">&#128274;</span>
+      <div>Il consolidamento e <strong>irreversibile</strong>. L'admin ha un'interfaccia per correzioni successive.</div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: Fase 3 -->
+  <section id="s5" class="section">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <h2>Fase 3 &mdash; Rinnovo Contratti e Consolidamento</h2>
+    </div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#128221;</span> Descrizione</div>
+      <p>I manager decidono come gestire i contratti dei propri giocatori. Al consolidamento, il <strong style="color:#fff">monte ingaggi viene ricalcolato completamente</strong>.</p>
+    </div>
+
+    <h3>Operazioni Disponibili</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Operazione</th><th>Effetto Budget</th><th>Effetto Monte Ingaggi</th></tr></thead>
+        <tbody>
+          <tr><td><strong style="color:#fff">Rinnovo</strong> (aumento ingaggio)</td><td class="val">Invariato</td><td class="val negative">Aumenta</td></tr>
+          <tr><td><strong style="color:#fff">Rinnovo</strong> (aumento durata)</td><td class="val">Invariato</td><td class="val">Invariato</td></tr>
+          <tr><td><strong style="color:#fff">Spalma</strong></td><td class="val">Invariato</td><td class="val">Varia</td></tr>
+          <tr><td><strong style="color:#fff">Taglio</strong></td><td class="val negative">&minus; costo taglio</td><td class="val positive">Diminuisce</td></tr>
+          <tr><td><span style="color:var(--text-dim)">Nessuna azione</span></td><td class="val">Invariato</td><td class="val">Invariato</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="alert alert-danger">
+      <span class="alert-icon">&#9888;</span>
+      <div><strong>Regola FONDAMENTALE:</strong> il rinnovo aumenta il monte ingaggi, <strong>NON decrementa il budget</strong>. Questo e il punto piu importante dell'intero sistema contrattuale.</div>
+    </div>
+
+    <h3>Consolidamento</h3>
+    <div class="card card-accent">
+      <div class="card-title"><span class="icon">&#9878;</span> Il Momento della Verita</div>
+      <div class="flow" style="margin-top:8px;">
+        <div class="flow-item" style="border-color: var(--accent-border);">
+          <span class="phase" style="color:var(--accent);">1</span>
+          <span>L'admin consolida i rinnovi</span>
+        </div>
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-item" style="border-color: var(--primary-border);">
+          <span class="phase" style="color:var(--primary);">2</span>
+          <span>Monte ingaggi <strong style="color:#fff">ricalcolato completamente</strong> con tutti i contratti attuali</span>
+        </div>
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-item" style="border-color: var(--success-border);">
+          <span class="phase" style="color:var(--success);">3</span>
+          <span style="font-family:'Oswald',sans-serif; font-weight:500; color:var(--accent);">Bilancio = Budget &minus; Monte Ingaggi</span> <span style="color:var(--text-dim); font-size:13px;">(ricalcolo completo)</span></span>
+        </div>
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-item">
+          <span class="phase" style="color:var(--primary);">4</span>
+          <span>Questo bilancio e il <strong style="color:#fff">riferimento per le fasi successive</strong> (rubata, svincolati)</span>
+        </div>
+      </div>
+      <div class="alert alert-danger" style="margin-bottom:0;">
+        <span class="alert-icon">&#128274;</span>
+        <div><strong>Irreversibile</strong> (con possibilita di correzione admin).</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: Fasi 4-5 -->
+  <section id="s6" class="section">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <h2>Fasi 4 e 5 &mdash; Rubata e Svincolati</h2>
+    </div>
+
+    <div class="comparison">
+      <div class="card card-danger">
+        <div class="card-title"><span class="icon">&#128165;</span> Fase 4: Asta Rubata</div>
+        <ul class="rule-list">
+          <li>
+            <span class="rule-icon rule-info">&#128203;</span>
+            <span>L'admin definisce l'<strong style="color:#fff">ordine rubata</strong></span>
+          </li>
+          <li>
+            <span class="rule-icon rule-info">&#128065;</span>
+            <span>Giocatori di ogni manager esposti al <strong style="color:#fff">tabellone</strong></span>
+          </li>
+          <li>
+            <span class="rule-icon rule-info">&#128176;</span>
+            <span>Prezzo = <strong style="color:#fff">clausola + ingaggio</strong></span>
+          </li>
+          <li>
+            <span class="rule-icon rule-info">&#128279;</span>
+            <span>Bilancio segue modello <strong style="color:#fff">offerta + ingaggio</strong></span>
+          </li>
+        </ul>
+        <div class="alert alert-primary" style="margin-bottom:0;">
+          <span class="alert-icon">&#128279;</span>
+          <div>Vedi <strong>Bibbia RUBATA</strong> per la documentazione completa.</div>
+        </div>
+      </div>
+      <div class="card card-purple">
+        <div class="card-title"><span class="icon">&#128100;</span> Fase 5: Asta Svincolati</div>
+        <ul class="rule-list">
+          <li>
+            <span class="rule-icon rule-info">&#8635;</span>
+            <span>Ordine chiamata <strong style="color:#fff">inverso alla rubata</strong></span>
+          </li>
+          <li>
+            <span class="rule-icon rule-info">&#128203;</span>
+            <span>Contratto default come nel <strong style="color:#fff">primo mercato</strong></span>
+          </li>
+          <li>
+            <span class="rule-icon rule-info">&#10005;</span>
+            <span>Manager puo <strong style="color:#fff">rinunciare al turno</strong> (definitivo)</span>
+          </li>
+          <li>
+            <span class="rule-icon rule-info">&#9209;</span>
+            <span>Fine: admin, niente svincolati, o nessun budget</span>
+          </li>
+        </ul>
+        <div class="alert alert-primary" style="margin-bottom:0;">
+          <span class="alert-icon">&#128279;</span>
+          <div>Vedi <strong>Bibbia SVINCOLATI</strong> per la documentazione completa.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 7: Fase 6 -->
+  <section id="s7" class="section">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <h2>Fase 6 &mdash; Offerte e Scambi Post-Svincolati</h2>
+    </div>
+
+    <div class="card card-primary">
+      <div class="card-title"><span class="icon">&#128260;</span> Identica alla Fase 1</div>
+      <p>Stesse regole, stesso flusso: scambi liberi di giocatori e/o crediti tra manager.</p>
+      <div class="alert alert-accent" style="margin-bottom:0;">
+        <span class="alert-icon">&#128161;</span>
+        <div><strong>Precisazione:</strong> i giocatori appena acquistati alle svincolati (Fase 5) <strong>possono essere scambiati subito</strong>.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 8: Fase 7 -->
+  <section id="s8" class="section">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <h2>Fase 7 &mdash; Fine Mercato</h2>
+    </div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#9209;</span> Chiusura</div>
+      <ul class="rule-list">
+        <li>
+          <span class="rule-icon rule-info">&#128100;</span>
+          <span>Solo l'<strong style="color:#fff">admin</strong> dichiara la chiusura</span>
+        </li>
+        <li>
+          <span class="rule-icon rule-cross">&#10005;</span>
+          <span><strong style="color:var(--danger)">Blocco di tutte le operazioni</strong></span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="alert alert-danger">
+      <span class="alert-icon">&#9888;</span>
+      <div><strong>La durata dei contratti NON varia</strong> a fine mercato. Il decremento avverra all'apertura del <strong>prossimo</strong> mercato ricorrente.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">&#128164;</span> Stato Post-Mercato</div>
+      <p>Dopo la chiusura, la lega e in stato <strong style="color:#fff">"idle"</strong> fino all'avvio del prossimo mercato ricorrente.</p>
+    </div>
+  </section>
+
+  <!-- SECTION 9: Riepilogo Flusso Finanziario -->
+  <section id="s9" class="section">
+    <div class="section-header">
+      <div class="section-num">9</div>
+      <h2>Riepilogo Flusso Finanziario</h2>
+    </div>
+
+    <div class="flow">
+      <div class="flow-item" style="border-color: var(--accent-border); background: linear-gradient(90deg, rgba(251,191,36,0.05), transparent);">
+        <span class="phase" style="color:var(--accent); min-width:80px;">INIZIO</span>
+        <span>Bilancio iniziale (da fine primo mercato o mercato precedente)</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color: var(--danger-border); background: linear-gradient(90deg, rgba(239,68,68,0.05), transparent);">
+        <span class="phase" style="color:var(--danger); min-width:80px;">APERTURA</span>
+        <span>Decremento durata, svincoli, ricalcolo clausole</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase" style="color:var(--primary); min-width:80px;">FASE 1</span>
+        <span>Bilancio +/&minus; scambi economici <span class="tag tag-red" style="font-size:10px">monte ingaggi NON ricalcolato</span></span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase" style="color:var(--success); min-width:80px;">FASE 2</span>
+        <span>Bilancio + premi + indennizzi &minus; tagli</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color: var(--success-border); background: linear-gradient(90deg, rgba(34,197,94,0.08), transparent);">
+        <span class="phase" style="color:var(--success); min-width:80px;">FASE 3</span>
+        <span><strong style="color:#fff">CONSOLIDAMENTO</strong> &rarr; Bilancio = Budget &minus; Monte Ingaggi</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase" style="color:var(--danger); min-width:80px;">FASE 4</span>
+        <span>Bilancio incrementale rubata (offerta + ingaggio)</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase" style="color:var(--purple); min-width:80px;">FASE 5</span>
+        <span>Bilancio &minus;= costo_asta + ingaggio</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase" style="color:var(--primary); min-width:80px;">FASE 6</span>
+        <span>Bilancio +/&minus; scambi economici</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color: var(--border); background: linear-gradient(90deg, rgba(107,114,128,0.05), transparent);">
+        <span class="phase" style="color:var(--text-dim); min-width:80px;">FASE 7</span>
+        <span>Blocco operazioni &rarr; <strong style="color:#fff">bilancio finale</strong></span>
+      </div>
+    </div>
+
+    <div class="alert alert-primary">
+      <span class="alert-icon">&#128279;</span>
+      <div>Per il dettaglio del modello finanziario completo, vedi la <strong>Bibbia FINANZE</strong>.</div>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

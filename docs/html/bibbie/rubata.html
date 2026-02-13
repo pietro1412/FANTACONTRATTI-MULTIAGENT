@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bibbia Rubata - Fantacontratti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0b;
+      --bg-card: #111214;
+      --bg-elevated: #1a1c20;
+      --bg-hover: #252830;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --border: rgba(55, 65, 81, 0.4);
+      --border-light: rgba(55, 65, 81, 0.2);
+      --primary: #3b82f6;
+      --primary-light: #60a5fa;
+      --primary-bg: rgba(59, 130, 246, 0.15);
+      --primary-border: rgba(59, 130, 246, 0.3);
+      --accent: #fbbf24;
+      --accent-bg: rgba(251, 191, 36, 0.15);
+      --accent-border: rgba(251, 191, 36, 0.3);
+      --success: #22c55e;
+      --success-bg: rgba(34, 197, 94, 0.15);
+      --success-border: rgba(34, 197, 94, 0.3);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --danger-border: rgba(239, 68, 68, 0.3);
+      --purple: #a78bfa;
+      --purple-bg: rgba(167, 139, 250, 0.15);
+      --purple-border: rgba(167, 139, 250, 0.3);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 9999px; }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+    .page-header { background: linear-gradient(135deg, #2a1520 0%, #0f1318 100%); border-bottom: 1px solid var(--border); padding: 48px 24px 40px; margin-bottom: 40px; }
+    .page-header .inner { max-width: 960px; margin: 0 auto; }
+    .page-header .badge { display: inline-flex; align-items: center; gap: 6px; background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+    .page-header h1 { font-family: 'Outfit', sans-serif; font-size: 36px; font-weight: 800; margin-bottom: 8px; background: linear-gradient(to right, #fca5a5, #ef4444); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .page-header .subtitle { color: var(--text-muted); font-size: 16px; }
+    .page-header .date { color: var(--text-dim); font-size: 13px; margin-top: 12px; }
+    .toc { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 24px; margin-bottom: 32px; }
+    .toc h3 { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; }
+    .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+    .toc a { display: flex; align-items: center; gap: 8px; color: var(--danger); text-decoration: none; padding: 8px 12px; border-radius: 8px; font-size: 14px; transition: all 0.15s; }
+    .toc a:hover { background: var(--danger-bg); color: #fff; }
+    .toc a .num { color: var(--text-dim); font-family: 'Oswald', sans-serif; font-size: 13px; min-width: 24px; }
+    .section { margin-bottom: 48px; }
+    .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light); }
+    .section-num { font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600; color: var(--danger); background: var(--danger-bg); border: 1px solid var(--danger-border); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .section-header h2 { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 700; color: #fff; }
+    h3 { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 600; color: #fca5a5; margin: 24px 0 12px; }
+    p { color: var(--text-muted); margin-bottom: 12px; font-size: 15px; }
+    .card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+    .card-elevated { background: linear-gradient(180deg, var(--bg-elevated), var(--bg-card)); border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    .card-accent { border-color: var(--accent-border); background: linear-gradient(135deg, rgba(251,191,36,0.05), var(--bg-card)); }
+    .card-primary { border-color: var(--primary-border); background: linear-gradient(135deg, rgba(59,130,246,0.05), var(--bg-card)); }
+    .card-danger { border-color: var(--danger-border); background: linear-gradient(135deg, rgba(239,68,68,0.05), var(--bg-card)); }
+    .card-success { border-color: var(--success-border); background: linear-gradient(135deg, rgba(34,197,94,0.05), var(--bg-card)); }
+    .card-title { font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .card-title .icon { font-size: 18px; }
+    .formula { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin: 12px 0; font-family: 'Oswald', monospace; font-size: 18px; font-weight: 500; color: var(--accent); }
+    .formula .label { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; display: block; }
+    .formula .highlight { color: var(--primary-light); }
+    .formula .danger { color: var(--danger); }
+    .formula .success { color: var(--success); }
+    .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border-light); margin: 16px 0; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--bg-elevated); }
+    th { text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 16px; font-size: 14px; color: var(--text-muted); border-bottom: 1px solid var(--border-light); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(239, 68, 68, 0.03); }
+    td.val { font-family: 'Oswald', sans-serif; font-weight: 500; color: var(--accent); font-size: 15px; }
+    td.positive { color: var(--success); }
+    td.negative { color: var(--danger); }
+    .alert { display: flex; gap: 12px; padding: 16px; border-radius: 10px; margin: 16px 0; font-size: 14px; }
+    .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .alert-danger { background: var(--danger-bg); border: 1px solid var(--danger-border); color: #fca5a5; }
+    .alert-success { background: var(--success-bg); border: 1px solid var(--success-border); color: #86efac; }
+    .alert-accent { background: var(--accent-bg); border: 1px solid var(--accent-border); color: #fde68a; }
+    .alert-primary { background: var(--primary-bg); border: 1px solid var(--primary-border); color: #93c5fd; }
+    .alert strong { color: #fff; }
+    .example { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; overflow: hidden; margin: 16px 0; }
+    .example-header { background: var(--bg-elevated); padding: 10px 16px; font-size: 13px; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--border-light); }
+    .example-body { padding: 16px; }
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+    @media (max-width: 640px) { .comparison { grid-template-columns: 1fr; } }
+    .tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+    .tag-blue { background: var(--primary-bg); color: var(--primary-light); border: 1px solid var(--primary-border); }
+    .tag-gold { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+    .tag-green { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .tag-red { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+    .flow { display: flex; flex-direction: column; gap: 2px; margin: 16px 0; }
+    .flow-item { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border-light); font-size: 14px; }
+    .flow-item .phase { font-family: 'Oswald', sans-serif; font-size: 12px; font-weight: 600; min-width: 70px; }
+    .flow-arrow { text-align: center; color: var(--text-dim); font-size: 18px; line-height: 1; }
+    .scenario { counter-reset: step; }
+    .step { display: flex; gap: 16px; margin-bottom: 2px; padding: 12px 16px; border-left: 2px solid var(--border-light); transition: all 0.15s; }
+    .step:hover { border-left-color: var(--danger); background: rgba(239,68,68,0.03); }
+    .step-num { font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600; color: var(--danger); background: var(--danger-bg); border: 1px solid var(--danger-border); min-width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .step-content { flex: 1; }
+    .step-label { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+    .step-desc { font-size: 13px; color: var(--text-dim); }
+    .step-formula { font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 500; color: var(--accent); margin-top: 4px; }
+    /* State machine */
+    .state-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin: 16px 0; }
+    .state-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 14px; text-align: center; }
+    .state-card .state-name { font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .state-card .state-desc { font-size: 12px; color: var(--text-dim); }
+    .state-card .state-timer { font-size: 11px; margin-top: 6px; }
+    .rule-list { list-style: none; padding: 0; }
+    .rule-list li { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-light); font-size: 14px; color: var(--text-muted); }
+    .rule-list li:last-child { border-bottom: none; }
+    .rule-list .rule-icon { flex-shrink: 0; width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; margin-top: 1px; }
+    .rule-list .rule-check { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success); }
+    .rule-list .rule-cross { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger); }
+    .rule-list .rule-info { background: var(--primary-bg); border: 1px solid var(--primary-border); color: var(--primary-light); }
+    @media (max-width: 640px) { .page-header h1 { font-size: 28px; } .toc-grid { grid-template-columns: 1fr; } .comparison { grid-template-columns: 1fr; } .state-grid { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="inner">
+    <div class="badge">&#128165; Fase 4 &mdash; Mercato Ricorrente</div>
+    <h1>Fase Rubata</h1>
+    <p class="subtitle">Clausola rescissoria, asta al rialzo e trasferimento contratti</p>
+    <p class="date">Ultima revisione: 6 Febbraio 2026</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <nav class="toc">
+    <h3>Indice</h3>
+    <div class="toc-grid">
+      <a href="#s1"><span class="num">1</span> Panoramica</a>
+      <a href="#s2"><span class="num">2</span> Macchina a Stati</a>
+      <a href="#s3"><span class="num">3</span> Formule di Calcolo</a>
+      <a href="#s4"><span class="num">4</span> Scomposizione Prezzo</a>
+      <a href="#s5"><span class="num">5</span> Regole di Business</a>
+      <a href="#s6"><span class="num">6</span> Modifica Post-Rubata</a>
+      <a href="#s7"><span class="num">7</span> Ricorsi (Appeal)</a>
+      <a href="#s8"><span class="num">8</span> Pausa e Ripresa</a>
+      <a href="#s9"><span class="num">9</span> Timer e Real-Time</a>
+      <a href="#s10"><span class="num">10</span> Esempi Pratici</a>
+    </div>
+  </nav>
+
+  <!-- 1: Panoramica -->
+  <section id="s1" class="section">
+    <div class="section-header"><div class="section-num">1</div><h2>Panoramica</h2></div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#128165;</span> Cos'e la Fase Rubata</div>
+      <p>Fase 4 del mercato ricorrente. Ogni giocatore con contratto attivo viene esposto al <strong style="color:#fff">tabellone</strong>. Qualsiasi manager puo <strong style="color:var(--danger)">dichiarare una rubata</strong> pagando la clausola rescissoria + ingaggio, innescando un'asta al rialzo.</p>
+    </div>
+
+    <h3>Flusso Completo</h3>
+    <div class="flow">
+      <div class="flow-item" style="border-color:var(--accent-border);"><span class="phase" style="color:var(--accent);">SETUP</span><span>Admin: definisce ordine, genera tabellone, configura timer</span></div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item"><span class="phase" style="color:var(--primary);">READY</span><span>Ogni manager si dichiara pronto</span></div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color:var(--primary-border);"><span class="phase" style="color:var(--primary);">OFFERING</span><span>Timer offerta (30s). Qualcuno dichiara rubata? <span class="tag tag-red">&#8594; ASTA</span> Timer scade? <span class="tag tag-blue">&#8594; NEXT</span></span></div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item"><span class="phase" style="color:var(--accent);">ANNUNCIO</span><span>"X vuole rubare Y a Z per N crediti" &mdash; tutti si dichiarano pronti</span></div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color:var(--danger-border);"><span class="phase" style="color:var(--danger);">AUCTION</span><span>Rilanci al rialzo (timer 15s, reset ad ogni rilancio). Timer scade &rarr; vincitore!</span></div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color:var(--success-border);"><span class="phase" style="color:var(--success);">CONFERMA</span><span><strong style="color:#fff">TUTTI</strong> i manager devono confermare (+ profezia opzionale). Vincitore: modale modifica contratto.</span></div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item"><span class="phase" style="color:var(--text-dim);">LOOP</span><span>Torna a READY per il prossimo giocatore &rarr; fino a COMPLETED</span></div>
+    </div>
+  </section>
+
+  <!-- 2: Macchina a Stati -->
+  <section id="s2" class="section">
+    <div class="section-header"><div class="section-num">2</div><h2>Macchina a Stati</h2></div>
+
+    <div class="state-grid">
+      <div class="state-card" style="border-color:var(--text-dim);"><div class="state-name" style="color:var(--text-dim);">WAITING</div><div class="state-desc">Stato iniziale, in attesa admin</div><div class="state-timer"><span class="tag tag-blue">No timer</span></div></div>
+      <div class="state-card" style="border-color:var(--primary-border);"><div class="state-name" style="color:var(--primary);">READY_CHECK</div><div class="state-desc">Manager si dichiarano pronti</div><div class="state-timer"><span class="tag tag-blue">No timer</span></div></div>
+      <div class="state-card" style="border-color:var(--accent-border);"><div class="state-name" style="color:var(--accent);">OFFERING</div><div class="state-desc">Timer offerta, chiunque dichiara rubata</div><div class="state-timer"><span class="tag tag-gold">30s default</span></div></div>
+      <div class="state-card" style="border-color:var(--accent-border);"><div class="state-name" style="color:var(--accent);">AUCTION_READY</div><div class="state-desc">Rubata dichiarata, attesa pronti</div><div class="state-timer"><span class="tag tag-blue">No timer</span></div></div>
+      <div class="state-card" style="border-color:var(--danger-border);"><div class="state-name" style="color:var(--danger);">AUCTION</div><div class="state-desc">Asta al rialzo in corso</div><div class="state-timer"><span class="tag tag-red">15s (reset)</span></div></div>
+      <div class="state-card" style="border-color:var(--success-border);"><div class="state-name" style="color:var(--success);">PENDING_ACK</div><div class="state-desc">Tutti devono confermare</div><div class="state-timer"><span class="tag tag-blue">No timer</span></div></div>
+      <div class="state-card" style="border-color:var(--purple-border);"><div class="state-name" style="color:var(--purple);">PAUSED</div><div class="state-desc">Admin ha pausato (salva tempo)</div><div class="state-timer"><span class="tag tag-blue">Salvato</span></div></div>
+      <div class="state-card" style="border-color:var(--success-border);"><div class="state-name" style="color:var(--success);">COMPLETED</div><div class="state-desc">Tutti i giocatori esaminati</div><div class="state-timer"><span class="tag tag-green">Fine</span></div></div>
+    </div>
+
+    <div class="alert alert-accent">
+      <span class="alert-icon">&#9201;</span>
+      <div><strong>Timer lazy/piggyback:</strong> non esiste un timer server-side. La chiusura avviene quando un client fa polling. Con polling adattivo (800ms-5s), la latenza e minima.</div>
+    </div>
+  </section>
+
+  <!-- 3: Formule -->
+  <section id="s3" class="section">
+    <div class="section-header"><div class="section-num">3</div><h2>Formule di Calcolo</h2></div>
+
+    <div class="formula" style="text-align:center; font-size:22px;">
+      <span class="label">Prezzo Rubata</span>
+      PREZZO = <span class="highlight">clausola rescissoria</span> + <span class="danger">ingaggio</span>
+    </div>
+
+    <div class="formula" style="text-align:center;">
+      <span class="label">Clausola Rescissoria</span>
+      clausola = ingaggio &times; moltiplicatore(durata)
+    </div>
+
+    <h3>Tabella Prezzi Rubata</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Ingaggio</th><th>Durata</th><th>Clausola</th><th>Prezzo Rubata</th></tr></thead>
+        <tbody>
+          <tr><td class="val">10</td><td>4s</td><td class="val">110 <span style="font-size:11px;color:var(--text-dim)">(10&times;11)</span></td><td class="val negative">120</td></tr>
+          <tr><td class="val">10</td><td>3s</td><td class="val">90 <span style="font-size:11px;color:var(--text-dim)">(10&times;9)</span></td><td class="val negative">100</td></tr>
+          <tr><td class="val">10</td><td>2s</td><td class="val">70 <span style="font-size:11px;color:var(--text-dim)">(10&times;7)</span></td><td class="val negative">80</td></tr>
+          <tr><td class="val">10</td><td>1s</td><td class="val">30 <span style="font-size:11px;color:var(--text-dim)">(10&times;3)</span></td><td class="val negative">40</td></tr>
+          <tr><td class="val">20</td><td>4s</td><td class="val">220</td><td class="val negative">240</td></tr>
+          <tr><td class="val">20</td><td>3s</td><td class="val">180</td><td class="val negative">200</td></tr>
+          <tr><td class="val">20</td><td>2s</td><td class="val">140</td><td class="val negative">160</td></tr>
+          <tr><td class="val">20</td><td>1s</td><td class="val">60</td><td class="val negative">80</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 4: Scomposizione Prezzo -->
+  <section id="s4" class="section">
+    <div class="section-header"><div class="section-num">4</div><h2>Scomposizione Prezzo: Offerta + Ingaggio</h2></div>
+
+    <div class="alert alert-danger">
+      <span class="alert-icon">&#9888;</span>
+      <div><strong>Regola critica:</strong> il prezzo totale si scompone SEMPRE in OFFERTA (trasferimento budget) + INGAGGIO (costo contrattuale fisso).</div>
+    </div>
+
+    <div class="formula" style="text-align:center; font-size:20px;">
+      <span class="label">Scomposizione</span>
+      PREZZO TOTALE = <span class="highlight">OFFERTA</span> + <span class="danger">INGAGGIO</span>
+    </div>
+
+    <div class="comparison">
+      <div class="card card-primary"><div class="card-title">OFFERTA</div><p>Parte dalla <strong style="color:#fff">clausola</strong>, sale con i rilanci. Si trasferisce come <strong style="color:var(--primary-light)">budget</strong> tra manager.</p></div>
+      <div class="card card-danger"><div class="card-title">INGAGGIO</div><p>Salario <strong style="color:#fff">originale</strong> del giocatore. <strong style="color:var(--danger)">Fisso</strong>, NON cambia con i rilanci.</p></div>
+    </div>
+
+    <h3>Esempio con Rilanci</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Azione</th><th>Totale</th><th>= Offerta</th><th>+ Ingaggio</th></tr></thead>
+        <tbody>
+          <tr><td>B dichiara rubata (Maignan 4x4)</td><td class="val">48</td><td class="val" style="color:var(--primary-light)">44 (clausola)</td><td class="val negative">4</td></tr>
+          <tr><td>C rilancia</td><td class="val">49</td><td class="val" style="color:var(--primary-light)">45</td><td class="val negative">4</td></tr>
+          <tr><td>B rilancia</td><td class="val">50</td><td class="val" style="color:var(--primary-light)">46</td><td class="val negative">4</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Impatto Finanziario</h3>
+    <div class="comparison">
+      <div class="card card-success">
+        <div class="card-title"><span class="icon">&#128200;</span> Venditore (perde il giocatore)</div>
+        <div class="formula"><span class="label">Bilancio Venditore</span><span class="success">+OFFERTA</span> + <span class="success">INGAGGIO RISPARMIATO</span></div>
+        <p><strong style="color:#fff">Budget</strong> += OFFERTA (solo la parte offerta, non il totale)</p>
+      </div>
+      <div class="card card-danger">
+        <div class="card-title"><span class="icon">&#128201;</span> Acquirente (vince il giocatore)</div>
+        <div class="formula"><span class="label">Bilancio Acquirente</span><span class="danger">&minus;OFFERTA</span> &minus; <span class="danger">NUOVO INGAGGIO</span></div>
+        <p><strong style="color:#fff">Budget</strong> -= OFFERTA (solo la parte offerta)</p>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="example-header">&#9917; Esempio: B vince Maignan (4x4) a 50, modifica a 6x4</div>
+      <div class="example-body">
+        <div class="comparison" style="margin:0">
+          <div class="card card-success" style="margin:0">
+            <div class="card-title">Venditore A</div>
+            <div style="font-family:'Oswald',sans-serif; font-size:16px; color:var(--text-muted); line-height:2;">
+              <span style="color:var(--success)">+46</span> offerta<br>
+              <span style="color:var(--success)">+4</span>&nbsp; ingaggio risparmiato<br>
+              <span style="border-top:1px solid var(--border); display:inline-block; padding-top:4px; margin-top:2px; color:#fff;">= <span style="color:var(--success)">+50</span> a bilancio</span>
+            </div>
+          </div>
+          <div class="card card-danger" style="margin:0">
+            <div class="card-title">Acquirente B</div>
+            <div style="font-family:'Oswald',sans-serif; font-size:16px; color:var(--text-muted); line-height:2;">
+              <span style="color:var(--danger)">&minus;46</span> offerta<br>
+              <span style="color:var(--danger)">&minus;6</span>&nbsp;&nbsp; nuovo ingaggio (modificato)<br>
+              <span style="border-top:1px solid var(--border); display:inline-block; padding-top:4px; margin-top:2px; color:#fff;">= <span style="color:var(--danger)">&minus;52</span> a bilancio</span>
+            </div>
+          </div>
+        </div>
+        <div class="alert alert-primary" style="margin-top:16px; margin-bottom:0;"><span class="alert-icon">&#10003;</span><div><strong>Verifica zero-sum:</strong> Senza modifica: A +48, B &minus;48 = 0. Con modifica: A +50, B &minus;52 = &minus;2 (costo volontario). <strong>Nessun soldo dal nulla.</strong></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5: Regole -->
+  <section id="s5" class="section">
+    <div class="section-header"><div class="section-num">5</div><h2>Regole di Business</h2></div>
+
+    <h3>Chi Puo Dichiarare Rubata</h3>
+    <div class="card card-elevated">
+      <ul class="rule-list">
+        <li><span class="rule-icon rule-check">&#10003;</span><span>Qualsiasi manager attivo <strong style="color:var(--danger)">tranne</strong> il proprietario del giocatore</span></li>
+        <li><span class="rule-icon rule-cross">&#10005;</span><span><strong style="color:var(--danger)">NON puo rubare un giocatore che era suo</strong> a inizio mercato ricorrente ma che ha ceduto nella Fase 1 (regola ex-giocatore)</span></li>
+        <li><span class="rule-icon rule-info">&#128176;</span><span>Deve avere <strong style="color:#fff">bilancio &ge; prezzo rubata</strong> (clausola + ingaggio)</span></li>
+        <li><span class="rule-icon rule-info">&#9201;</span><span>Lo stato deve essere <span class="tag tag-gold">OFFERING</span> e il timer non deve essere scaduto</span></li>
+      </ul>
+    </div>
+
+    <h3>Chi Puo Rilanciare</h3>
+    <div class="card">
+      <ul class="rule-list">
+        <li><span class="rule-icon rule-check">&#10003;</span><span>Qualsiasi manager attivo <strong style="color:var(--danger)">tranne</strong> il proprietario (venditore)</span></li>
+        <li><span class="rule-icon rule-info">&#8593;</span><span>Rilancio strettamente <strong style="color:#fff">maggiore</strong> del prezzo corrente</span></li>
+        <li><span class="rule-icon rule-info">&#128176;</span><span>Budget sufficiente: <strong style="background:#ffd700; color:#000; padding:2px 6px; border-radius:3px;">bilancio &ge; costo totale</strong> (non currentBudget)</span></li>
+      </ul>
+    </div>
+
+    <h3>Trasferimento (NON Ricreazione)</h3>
+    <div class="alert alert-danger">
+      <span class="alert-icon">&#128274;</span>
+      <div>La rubata <strong>TRASFERISCE</strong> il record PlayerContract e PlayerRoster. <strong>NON elimina e ricrea.</strong> salary, duration, rescissionClause, initialSalary restano invariati. Solo leagueMemberId cambia.</div>
+    </div>
+
+    <h3>Conferma Obbligatoria (PENDING_ACK)</h3>
+    <div class="card card-success">
+      <ul class="rule-list">
+        <li><span class="rule-icon rule-check">&#10003;</span><span><strong style="color:#fff">TUTTI</strong> i manager attivi devono confermare dopo ogni transazione</span></li>
+        <li><span class="rule-icon rule-info">&#128172;</span><span>Ogni manager puo lasciare una <strong style="color:var(--accent)">"profezia"</strong> (commento social)</span></li>
+        <li><span class="rule-icon rule-info">&#8594;</span><span>La modale resta aperta finche non hanno confermato <strong style="color:#fff">tutti</strong></span></li>
+        <li><span class="rule-icon rule-check">&#10003;</span><span>Solo dopo <strong style="color:#fff">tutti</strong> confermano &rarr; prossimo giocatore</span></li>
+      </ul>
+    </div>
+
+    <h3>Ordinamento Tabellone</h3>
+    <div class="card"><p>Ordinato per: <strong style="color:#fff">1.</strong> Ordine rubata dei manager (admin) &rarr; <strong style="color:#fff">2.</strong> Per ogni manager: ruolo (<span class="tag tag-gold">P</span>&rarr;<span class="tag tag-green">D</span>&rarr;<span class="tag tag-blue">C</span>&rarr;<span class="tag tag-red">A</span>) &rarr; <strong style="color:#fff">3.</strong> Nome alfabetico</p></div>
+  </section>
+
+  <!-- 6: Modifica Post-Rubata -->
+  <section id="s6" class="section">
+    <div class="section-header"><div class="section-num">6</div><h2>Modifica Contratto Post-Rubata</h2></div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#128221;</span> Regole Increase-Only</div>
+      <p>Il vincitore puo <strong style="color:#fff">opzionalmente</strong> modificare il contratto appena dopo che tutti confermano:</p>
+      <ul class="rule-list">
+        <li><span class="rule-icon rule-check">&#8593;</span><span>Ingaggio puo solo <strong style="color:var(--success)">AUMENTARE</strong></span></li>
+        <li><span class="rule-icon rule-check">&#8593;</span><span>Durata puo solo <strong style="color:var(--success)">AUMENTARE</strong> (richiede prima aumento ingaggio)</span></li>
+        <li><span class="rule-icon rule-info">4</span><span>Durata massima: <span class="tag tag-blue">4 semestri</span></span></li>
+        <li><span class="rule-icon rule-cross">&#10005;</span><span><strong style="color:var(--danger)">Spalma</strong>: NON disponibile</span></li>
+        <li><span class="rule-icon rule-cross">&#10005;</span><span><strong style="color:var(--danger)">Taglio</strong>: NON disponibile</span></li>
+      </ul>
+    </div>
+    <div class="alert alert-accent"><span class="alert-icon">&#128161;</span><div>La modifica NON impatta il budget. L'aumento di ingaggio si riflettera nel monte ingaggi alla prossima fase rinnovi.</div></div>
+  </section>
+
+  <!-- 7: Ricorsi -->
+  <section id="s7" class="section">
+    <div class="section-header"><div class="section-num">7</div><h2>Sistema di Ricorsi (Appeal)</h2></div>
+
+    <div class="comparison">
+      <div class="card card-success">
+        <div class="card-title"><span class="icon">&#10003;</span> Ricorso Accettato</div>
+        <div class="flow" style="margin-top:8px;">
+          <div class="flow-item" style="font-size:13px;"><span class="phase" style="color:var(--success); min-width:50px;">1</span><span>Annulla trasferimento (roster, contratto, budget, movement)</span></div>
+          <div class="flow-arrow">&darr;</div>
+          <div class="flow-item" style="font-size:13px;"><span class="phase" style="color:var(--success); min-width:50px;">2</span><span>Asta in AWAITING_RESUME (prezzo resta)</span></div>
+          <div class="flow-arrow">&darr;</div>
+          <div class="flow-item" style="font-size:13px;"><span class="phase" style="color:var(--success); min-width:50px;">3</span><span>Tutti pronti &rarr; asta riprende</span></div>
+        </div>
+      </div>
+      <div class="card card-danger">
+        <div class="card-title"><span class="icon">&#10005;</span> Ricorso Respinto</div>
+        <div class="flow" style="margin-top:8px;">
+          <div class="flow-item" style="font-size:13px;"><span class="phase" style="color:var(--danger); min-width:50px;">1</span><span>Appeal status = REJECTED</span></div>
+          <div class="flow-arrow">&darr;</div>
+          <div class="flow-item" style="font-size:13px;"><span class="phase" style="color:var(--danger); min-width:50px;">2</span><span>Tutti devono confermare la decisione</span></div>
+          <div class="flow-arrow">&darr;</div>
+          <div class="flow-item" style="font-size:13px;"><span class="phase" style="color:var(--danger); min-width:50px;">3</span><span>La rubata procede normalmente</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8: Pausa -->
+  <section id="s8" class="section">
+    <div class="section-header"><div class="section-num">8</div><h2>Pausa e Ripresa</h2></div>
+
+    <div class="comparison">
+      <div class="card card-primary">
+        <div class="card-title"><span class="icon">&#9208;</span> Pausa (Admin)</div>
+        <p>Possibile solo durante <span class="tag tag-gold">OFFERING</span> o <span class="tag tag-red">AUCTION</span>.</p>
+        <ul class="rule-list">
+          <li><span class="rule-icon rule-info">&#128190;</span><span>Salva stato precedente + tempo rimanente</span></li>
+          <li><span class="rule-icon rule-info">&#9209;</span><span>Timer fermato</span></li>
+        </ul>
+      </div>
+      <div class="card card-success">
+        <div class="card-title"><span class="icon">&#9654;</span> Ripresa</div>
+        <p>Tutti i manager devono dichiararsi pronti (READY_CHECK).</p>
+        <ul class="rule-list">
+          <li><span class="rule-icon rule-check">&#10003;</span><span>Timer riprende dal <strong style="color:#fff">tempo salvato</strong></span></li>
+          <li><span class="rule-icon rule-check">&#10003;</span><span>Torna allo stato precedente (OFFERING o AUCTION)</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9: Timer -->
+  <section id="s9" class="section">
+    <div class="section-header"><div class="section-num">9</div><h2>Timer e Real-Time</h2></div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Timer</th><th>Default</th><th>Reset?</th><th>Quando</th></tr></thead>
+        <tbody>
+          <tr><td><strong style="color:#fff">Offer Timer</strong></td><td class="val">30s</td><td>No</td><td>Parte all'inizio di OFFERING per ogni giocatore</td></tr>
+          <tr><td><strong style="color:#fff">Auction Timer</strong></td><td class="val">15s</td><td class="val positive">Si</td><td>Si resetta ad ogni rilancio</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Polling Adattivo</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Condizione</th><th>Intervallo Polling</th></tr></thead>
+        <tbody>
+          <tr><td>OFFERING o AUCTION (timer attivo)</td><td class="val negative">800ms</td></tr>
+          <tr><td>Pusher connesso</td><td class="val">2500ms</td></tr>
+          <tr><td>Pusher disconnesso</td><td class="val">1500ms</td></tr>
+          <tr><td>Altri stati</td><td class="val positive">5000ms</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 10: Esempi -->
+  <section id="s10" class="section">
+    <div class="section-header"><div class="section-num">10</div><h2>Esempi Pratici</h2></div>
+
+    <div class="example">
+      <div class="example-header">&#9917; Esempio 1: Rubata Senza Rilanci (Barella 15x3)</div>
+      <div class="example-body">
+        <div class="scenario">
+          <div class="step"><div class="step-num">1</div><div class="step-content"><div class="step-label">Situazione</div><div class="step-desc">Barella, contratto 15x3. Clausola = 15 &times; 9 = 135</div><div class="step-formula">Prezzo rubata = 135 + 15 = <span style="color:var(--danger)">150</span></div></div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-content"><div class="step-label">Manager A dichiara rubata a 150</div><div class="step-desc">Nessun altro rilancia. Timer asta scade.</div></div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-content"><div class="step-label">Risultato</div><div class="step-formula" style="background:#ffd700; color:#000; padding:6px 10px; border-radius:4px; margin-bottom:4px;">Prezzo totale 150 = <strong>OFFERTA 135</strong> (clausola) + <strong>ingaggio 15</strong></div><div class="step-formula" style="background:#ffd700; color:#000; padding:4px 10px; border-radius:4px; margin-bottom:2px;">A: budget &minus;135 (OFFERTA), Monte Ingaggi +15 &rarr; bilancio &minus;150</div><div class="step-formula" style="background:#ffd700; color:#000; padding:4px 10px; border-radius:4px;">Proprietario: budget +135 (OFFERTA), Monte Ingaggi &minus;15 &rarr; bilancio +150</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="example-header">&#9917; Esempio 2: Rubata Con Rilanci (Vlahovic 20x2)</div>
+      <div class="example-body">
+        <div class="scenario">
+          <div class="step"><div class="step-num">1</div><div class="step-content"><div class="step-label">Situazione</div><div class="step-desc">Vlahovic, contratto 20x2. Clausola = 20 &times; 7 = 140</div><div class="step-formula">Prezzo rubata = 140 + 20 = <span style="color:var(--danger)">160</span></div></div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-content"><div class="step-label">B dichiara rubata a 160</div><div class="step-desc">&rarr; AUCTION_READY_CHECK &rarr; tutti pronti &rarr; AUCTION</div></div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-content"><div class="step-label">C rilancia a 165</div><div class="step-desc">Timer reset 15s</div></div></div>
+          <div class="step"><div class="step-num">4</div><div class="step-content"><div class="step-label">B rilancia a 170</div><div class="step-desc">Timer reset 15s. Timer scade &rarr; B vince!</div></div></div>
+          <div class="step"><div class="step-num">5</div><div class="step-content"><div class="step-label">Risultato</div><div class="step-formula" style="background:#ffd700; color:#000; padding:6px 10px; border-radius:4px; margin-bottom:4px;">Prezzo totale 170 = <strong>OFFERTA 150</strong> (clausola 140 + rilanci 10) + <strong>ingaggio 20</strong></div><div class="step-formula" style="background:#ffd700; color:#000; padding:4px 10px; border-radius:4px; margin-bottom:2px;">B: budget &minus;150 (OFFERTA), Monte Ingaggi +20 &rarr; bilancio &minus;170</div><div class="step-formula" style="background:#ffd700; color:#000; padding:4px 10px; border-radius:4px;">Proprietario: budget +150 (OFFERTA), Monte Ingaggi &minus;20 &rarr; bilancio +170</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="example-header">&#128221; Esempio 3: Modifica Post-Rubata</div>
+      <div class="example-body">
+        <p>B ha rubato Vlahovic (20x2). Dopo conferma di tutti, modale contratto:</p>
+        <div class="table-wrap" style="margin-top:12px; margin-bottom:12px;">
+          <table>
+            <thead><tr><th>Campo</th><th>Prima</th><th>Dopo Modifica</th></tr></thead>
+            <tbody>
+              <tr><td>Ingaggio</td><td class="val">20</td><td class="val" style="color:var(--success)">22</td></tr>
+              <tr><td>Durata</td><td class="val">2</td><td class="val" style="color:var(--success)">3</td></tr>
+              <tr><td>Clausola</td><td class="val">140 <span style="font-size:11px;color:var(--text-dim)">(20&times;7)</span></td><td class="val">198 <span style="font-size:11px;color:var(--text-dim)">(22&times;9)</span></td></tr>
+              <tr><td>Prezzo rubata futuro</td><td class="val">160</td><td class="val">220</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="alert alert-accent" style="margin-bottom:0;"><span class="alert-icon">&#128161;</span><div>La modifica NON impatta il budget. L'aumento ingaggio (da 20 a 22) si riflette nel monte ingaggi al prossimo consolidamento.</div></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

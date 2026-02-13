@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bibbia Finanze - Fantacontratti</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0b;
+      --bg-card: #111214;
+      --bg-elevated: #1a1c20;
+      --bg-hover: #252830;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --border: rgba(55, 65, 81, 0.4);
+      --border-light: rgba(55, 65, 81, 0.2);
+      --primary: #3b82f6;
+      --primary-light: #60a5fa;
+      --primary-bg: rgba(59, 130, 246, 0.15);
+      --primary-border: rgba(59, 130, 246, 0.3);
+      --accent: #fbbf24;
+      --accent-dark: #f59e0b;
+      --accent-bg: rgba(251, 191, 36, 0.15);
+      --accent-border: rgba(251, 191, 36, 0.3);
+      --success: #22c55e;
+      --success-bg: rgba(34, 197, 94, 0.15);
+      --success-border: rgba(34, 197, 94, 0.3);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --danger-border: rgba(239, 68, 68, 0.3);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px 80px; }
+
+    /* Header */
+    .page-header {
+      background: linear-gradient(135deg, #1a1f2e 0%, #0f1318 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 48px 24px 40px;
+      margin-bottom: 40px;
+    }
+    .page-header .inner { max-width: 960px; margin: 0 auto; }
+    .page-header .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent-bg); color: var(--accent);
+      border: 1px solid var(--accent-border);
+      padding: 4px 12px; border-radius: 9999px;
+      font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+    .page-header h1 {
+      font-family: 'Outfit', 'Inter', sans-serif;
+      font-size: 36px; font-weight: 800; color: #fff;
+      margin-bottom: 8px;
+      background: linear-gradient(to right, #fcd34d, #f59e0b);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .page-header .subtitle { color: var(--text-muted); font-size: 16px; }
+    .page-header .date { color: var(--text-dim); font-size: 13px; margin-top: 12px; }
+
+    /* TOC */
+    .toc {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 24px; margin-bottom: 32px;
+    }
+    .toc h3 { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; }
+    .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+    .toc a {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--primary-light); text-decoration: none;
+      padding: 8px 12px; border-radius: 8px; font-size: 14px;
+      transition: all 0.15s;
+    }
+    .toc a:hover { background: var(--primary-bg); color: #fff; }
+    .toc a .num { color: var(--text-dim); font-family: 'Oswald', sans-serif; font-size: 13px; min-width: 20px; }
+
+    /* Sections */
+    .section { margin-bottom: 48px; }
+    .section-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 24px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .section-num {
+      font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600;
+      color: var(--primary); background: var(--primary-bg);
+      border: 1px solid var(--primary-border);
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .section-header h2 {
+      font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 700; color: #fff;
+    }
+
+    h3 {
+      font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 600;
+      color: var(--primary-light); margin: 24px 0 12px;
+    }
+
+    p { color: var(--text-muted); margin-bottom: 12px; font-size: 15px; }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; padding: 24px; margin-bottom: 16px;
+    }
+    .card-elevated {
+      background: linear-gradient(180deg, var(--bg-elevated), var(--bg-card));
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .card-accent {
+      border-color: var(--accent-border);
+      background: linear-gradient(135deg, rgba(251,191,36,0.05), var(--bg-card));
+    }
+    .card-primary {
+      border-color: var(--primary-border);
+      background: linear-gradient(135deg, rgba(59,130,246,0.05), var(--bg-card));
+    }
+    .card-danger {
+      border-color: var(--danger-border);
+      background: linear-gradient(135deg, rgba(239,68,68,0.05), var(--bg-card));
+    }
+    .card-success {
+      border-color: var(--success-border);
+      background: linear-gradient(135deg, rgba(34,197,94,0.05), var(--bg-card));
+    }
+
+    .card-title {
+      font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700;
+      color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .card-title .icon { font-size: 18px; }
+
+    /* Formula boxes */
+    .formula {
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px 20px; margin: 12px 0;
+      font-family: 'Oswald', 'monospace'; font-size: 18px; font-weight: 500;
+      color: var(--accent); letter-spacing: 0.02em;
+    }
+    .formula .label {
+      font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 6px; display: block;
+    }
+    .formula .highlight { color: var(--primary-light); }
+    .formula .danger { color: var(--danger); }
+    .formula .success { color: var(--success); }
+
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto; border-radius: 12px;
+      border: 1px solid var(--border-light); margin: 16px 0;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--bg-elevated); }
+    th {
+      text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 600;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 10px 16px; font-size: 14px; color: var(--text-muted);
+      border-bottom: 1px solid var(--border-light);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(59, 130, 246, 0.03); }
+    td.val {
+      font-family: 'Oswald', sans-serif; font-weight: 500;
+      color: var(--accent); font-size: 15px;
+    }
+    td.positive { color: var(--success); }
+    td.negative { color: var(--danger); }
+    td.primary { color: var(--primary-light); }
+
+    /* Scenario steps */
+    .scenario { counter-reset: step; }
+    .step {
+      display: flex; gap: 16px; margin-bottom: 2px; padding: 12px 16px;
+      border-left: 2px solid var(--border-light);
+      transition: all 0.15s;
+    }
+    .step:hover { border-left-color: var(--primary); background: rgba(59,130,246,0.03); }
+    .step-num {
+      font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600;
+      color: var(--primary); background: var(--primary-bg); border: 1px solid var(--primary-border);
+      min-width: 28px; height: 28px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .step-content { flex: 1; }
+    .step-label { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+    .step-desc { font-size: 13px; color: var(--text-dim); }
+    .step-formula {
+      font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 500;
+      color: var(--accent); margin-top: 4px;
+    }
+
+    /* Alert boxes */
+    .alert {
+      display: flex; gap: 12px; padding: 16px;
+      border-radius: 10px; margin: 16px 0; font-size: 14px;
+    }
+    .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .alert-danger { background: var(--danger-bg); border: 1px solid var(--danger-border); color: #fca5a5; }
+    .alert-success { background: var(--success-bg); border: 1px solid var(--success-border); color: #86efac; }
+    .alert-accent { background: var(--accent-bg); border: 1px solid var(--accent-border); color: #fde68a; }
+    .alert-primary { background: var(--primary-bg); border: 1px solid var(--primary-border); color: #93c5fd; }
+    .alert strong { color: #fff; }
+
+    /* Example block */
+    .example {
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      border-radius: 12px; overflow: hidden; margin: 16px 0;
+    }
+    .example-header {
+      background: var(--bg-elevated); padding: 10px 16px;
+      font-size: 13px; font-weight: 600; color: var(--text-muted);
+      border-bottom: 1px solid var(--border-light);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .example-body { padding: 16px; }
+
+    /* Two-column comparison */
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+    @media (max-width: 640px) { .comparison { grid-template-columns: 1fr; } }
+
+    /* Tag */
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    }
+    .tag-blue { background: var(--primary-bg); color: var(--primary-light); border: 1px solid var(--primary-border); }
+    .tag-gold { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+    .tag-green { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .tag-red { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+
+    /* Flow diagram */
+    .flow { display: flex; flex-direction: column; gap: 2px; margin: 16px 0; }
+    .flow-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; border-radius: 8px;
+      background: var(--bg-card); border: 1px solid var(--border-light);
+      font-size: 14px;
+    }
+    .flow-item .phase {
+      font-family: 'Oswald', sans-serif; font-size: 12px; font-weight: 600;
+      color: var(--primary); min-width: 60px;
+    }
+    .flow-arrow { text-align: center; color: var(--text-dim); font-size: 18px; line-height: 1; }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .page-header h1 { font-size: 28px; }
+      .toc-grid { grid-template-columns: 1fr; }
+      .comparison { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="inner">
+    <div class="badge">&#9733; Fonte di Verita</div>
+    <h1>Finanze e Bilancio</h1>
+    <p class="subtitle">Modello finanziario completo della piattaforma Fantacontratti</p>
+    <p class="date">Ultima revisione: 7 Febbraio 2026</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- TOC -->
+  <nav class="toc">
+    <h3>Indice</h3>
+    <div class="toc-grid">
+      <a href="#s1"><span class="num">1</span> Concetti Fondamentali</a>
+      <a href="#s2"><span class="num">2</span> Flusso Finanziario</a>
+      <a href="#s3"><span class="num">3</span> Bilancio nella Rubata</a>
+      <a href="#s4"><span class="num">4</span> Bilancio Svincolati</a>
+      <a href="#s5"><span class="num">5</span> Bilancio Primo Mercato</a>
+      <a href="#s6"><span class="num">6</span> Operazioni su Budget</a>
+      <a href="#s7"><span class="num">7</span> Operazioni Monte Ingaggi</a>
+      <a href="#s8"><span class="num">8</span> Costo Taglio</a>
+      <a href="#s9"><span class="num">9</span> Indennizzi</a>
+      <a href="#s10"><span class="num">10</span> Regole Importanti</a>
+      <a href="#s11"><span class="num">11</span> Costo Acquisti</a>
+      <a href="#s12"><span class="num">12</span> Storicita Fasi</a>
+    </div>
+  </nav>
+
+  <!-- SECTION 1 -->
+  <section id="s1" class="section">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <h2>Concetti Fondamentali</h2>
+    </div>
+
+    <div class="comparison">
+      <div class="card card-accent">
+        <div class="card-title"><span class="icon">&#128176;</span> Budget</div>
+        <p>I crediti totali disponibili per operazioni di mercato.</p>
+        <div class="formula">
+          <span class="label">Salvato nel DB</span>
+          LeagueMember.currentBudget
+        </div>
+        <p>Rappresenta la liquidita di un manager. Modificato da operazioni di mercato (acquisti, vendite, premi, tagli, indennizzi).</p>
+      </div>
+      <div class="card card-primary">
+        <div class="card-title"><span class="icon">&#128200;</span> Monte Ingaggi</div>
+        <p>La somma di tutti gli ingaggi dei giocatori sotto contratto.</p>
+        <div class="formula">
+          <span class="label">Calcolato on-the-fly</span>
+          &Sigma; PlayerContract.salary
+        </div>
+        <p>Ricalcolato ad ogni consolidamento (fase 3). Tra un consolidamento e l'altro, le variazioni impattano incrementalmente.</p>
+      </div>
+    </div>
+
+    <div class="card card-elevated">
+      <div class="card-title"><span class="icon">&#9878;</span> Bilancio &mdash; Il Parametro Fondamentale</div>
+      <div class="formula" style="font-size: 22px; text-align: center;">
+        <span class="label">Formula Master</span>
+        Bilancio = <span class="highlight">Budget</span> &minus; <span class="danger">Monte Ingaggi</span>
+      </div>
+      <p>Calcolato on-the-fly (NON salvato nel DB). Indica la capacita di spesa reale. Puo essere negativo.</p>
+      <p>Durante le fasi di mercato (rubata, svincolati), il bilancio traccia i <strong style="color:#fff">delta incrementali</strong> a partire dal bilancio post-consolidamento.</p>
+    </div>
+  </section>
+
+  <!-- SECTION 2 -->
+  <section id="s2" class="section">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <h2>Flusso Finanziario Completo</h2>
+    </div>
+
+    <div class="flow">
+      <div class="flow-item" style="border-color: var(--accent-border); background: linear-gradient(90deg, rgba(251,191,36,0.05), transparent);">
+        <span class="phase">INIZIO</span>
+        <span>Budget = budget_iniziale (default <span class="tag tag-gold">500</span>), Monte Ingaggi = 0</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color:#ffd700; background:linear-gradient(90deg, rgba(255,215,0,0.15), transparent);">
+        <span class="phase">1&deg; MERC.</span>
+        <span style="background:#ffd700; color:#000; padding:2px 6px; border-radius:3px;">Per ogni acquisto: Budget -= prezzo_asta (solo asta). Monte Ingaggi += ingaggio.</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color: var(--danger-border); background: linear-gradient(90deg, rgba(239,68,68,0.05), transparent);">
+        <span class="phase">APERTURA</span>
+        <span>Decremento durata contratti (-1). Durata 0 &rarr; svincolato. Ricalcolo clausole.</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase">FASE 1</span>
+        <span>Offerte e scambi: bilancio +/- delta economici (monte ingaggi <strong style="color:#fff">NON</strong> ricalcolato)</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase">FASE 2</span>
+        <span>Premi + indennizzi - tagli &rarr; Budget aggiornato</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color: var(--success-border); background: linear-gradient(90deg, rgba(34,197,94,0.05), transparent);">
+        <span class="phase">FASE 3</span>
+        <span><strong style="color:#fff">CONSOLIDAMENTO</strong> &rarr; Bilancio = Budget - Monte Ingaggi (ricalcolo completo)</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase">FASE 4</span>
+        <span>Rubata: bilancio incrementale (offerta + ingaggio)</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase">FASE 5</span>
+        <span>Svincolati: bilancio -= prezzo_asta + ingaggio</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item">
+        <span class="phase">FASE 6</span>
+        <span>Offerte e scambi post-svincolati (come Fase 1)</span>
+      </div>
+      <div class="flow-arrow">&darr;</div>
+      <div class="flow-item" style="border-color: var(--primary-border); background: linear-gradient(90deg, rgba(59,130,246,0.05), transparent);">
+        <span class="phase">FASE 7</span>
+        <span>Fine mercato: blocco operazioni, bilancio finale</span>
+      </div>
+    </div>
+
+    <!-- Esempio numerico completo -->
+    <div class="example">
+      <div class="example-header">&#128202; Esempio Numerico Completo</div>
+      <div class="example-body">
+        <div class="scenario">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <div class="step-label">Inizio Lega</div>
+              <div class="step-desc">Budget iniziale 500</div>
+              <div class="step-formula">Bilancio = <span style="color:var(--success)">500</span></div>
+            </div>
+          </div>
+          <div class="step" style="border-left-color: var(--accent-border);">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <div class="step-label">Primo Mercato </div>
+              <div class="step-desc">Compra 25 giocatori: totale aste <strong style="color:#fff">280</strong> + ingaggi default <strong style="color:#fff">70</strong></div>
+              <div class="step-formula">Budget = 500 &minus; <span style="color:var(--primary-light)">280</span> = <span style="color:var(--accent)">220</span> &nbsp;&bull;&nbsp; Monte Ingaggi = <span style="color:var(--danger)">70</span></div>
+              <div class="step-formula">Bilancio = <span style="color:var(--accent)">220</span> &minus; <span style="color:var(--danger)">70</span> = <span style="color:var(--success)">150</span></div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <div class="step-label">Premi</div>
+              <div class="step-desc">Riceve premi per 150</div>
+              <div class="step-formula">Bilancio = 150 + 150 = <span style="color:var(--success)">300</span></div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-content">
+              <div class="step-label">Offerte e Scambi</div>
+              <div class="step-desc">Scambi con +50 netto</div>
+              <div class="step-formula">Bilancio = 300 + 50 = <span style="color:var(--success)">350</span></div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-content">
+              <div class="step-label">Consolidamento</div>
+              <div class="step-desc">Monte ingaggi: 140 | Tagli: 10 | Indennizzi: 50</div>
+              <div class="step-formula">Bilancio = 350 - 140 - 10 + 50 = <span style="color:var(--success)">250</span></div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">6</div>
+            <div class="step-content">
+              <div class="step-label">Rubata (subita)</div>
+              <div class="step-desc">Perde Maignan (4x4, clausola 44, rubata 48, nessun rilancio)</div>
+              <div class="step-formula">Bilancio = 250 + <span style="color:var(--primary-light)">44</span> (offerta) + <span style="color:var(--success)">4</span> (ingaggio risparmiato) = <span style="color:var(--success)">298</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3 -->
+  <section id="s3" class="section">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <h2>Bilancio nella Rubata</h2>
+    </div>
+
+    <div class="alert alert-accent">
+      <span class="alert-icon">&#9888;</span>
+      <div><strong>Regola Fondamentale:</strong> nel valore della rubata e gia previsto il pagamento dell'ingaggio. Il prezzo rubata = clausola + ingaggio. Quando paghi la rubata, stai implicitamente pagando anche il contratto per il primo semestre.</div>
+    </div>
+
+    <h3>Scomposizione del Prezzo</h3>
+    <div class="formula" style="text-align: center; font-size: 20px;">
+      <span class="label">Scomposizione Rubata</span>
+      PREZZO TOTALE = <span class="highlight">OFFERTA</span> + <span class="danger">INGAGGIO</span>
+    </div>
+
+    <div class="comparison">
+      <div class="card card-primary">
+        <div class="card-title">OFFERTA</div>
+        <p>Parte dalla <strong style="color:#fff">clausola</strong>, sale con i rilanci. Si trasferisce come budget tra manager.</p>
+      </div>
+      <div class="card card-danger">
+        <div class="card-title">INGAGGIO</div>
+        <p>Salario <strong style="color:#fff">originale</strong> del giocatore. Fisso, NON cambia con i rilanci.</p>
+      </div>
+    </div>
+
+    <h3>Esempio con Rilanci</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Azione</th><th>Totale</th><th>= Offerta</th><th>+ Ingaggio</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>B dichiara rubata</td><td class="val">48</td><td class="val primary">44 (clausola)</td><td class="val negative">4</td></tr>
+          <tr><td>C rilancia</td><td class="val">49</td><td class="val primary">45</td><td class="val negative">4</td></tr>
+          <tr><td>B rilancia</td><td class="val">50</td><td class="val primary">46</td><td class="val negative">4</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Impatto Finanziario</h3>
+    <div class="comparison">
+      <div class="card card-success">
+        <div class="card-title"><span class="icon">&#128200;</span> Venditore (perde il giocatore)</div>
+        <div class="formula">
+          <span class="label">Bilancio Venditore</span>
+          <span class="success">+OFFERTA</span> + <span class="success">INGAGGIO RISPARMIATO</span>
+        </div>
+        <p><strong style="color:#fff">Budget</strong> += OFFERTA (solo la parte offerta)</p>
+        <p><strong style="color:#fff">Monte Ingaggi</strong>: giocatore esce (effetto al prossimo consolidamento)</p>
+      </div>
+      <div class="card card-danger">
+        <div class="card-title"><span class="icon">&#128201;</span> Acquirente (vince il giocatore)</div>
+        <div class="formula">
+          <span class="label">Bilancio Acquirente</span>
+          <span class="danger">&minus;OFFERTA</span> &minus; <span class="danger">NUOVO INGAGGIO</span>
+        </div>
+        <p><strong style="color:#fff">Budget</strong> -= OFFERTA (solo la parte offerta)</p>
+        <p><strong style="color:#fff">Monte Ingaggi</strong>: giocatore entra (effetto al prossimo consolidamento)</p>
+      </div>
+    </div>
+
+    <!-- Esempio completo con modifica -->
+    <div class="example">
+      <div class="example-header">&#9917; Esempio Completo con Modifica Contratto</div>
+      <div class="example-body">
+        <p style="margin-bottom:16px">Maignan di Manager A, contratto <span class="tag tag-gold">4x4</span>, clausola 44. Manager B vince rubata a <span class="tag tag-gold">50</span> (offerta 46 + ingaggio 4). B modifica contratto a <span class="tag tag-gold">6x4</span>.</p>
+
+        <div class="comparison">
+          <div class="card card-success" style="margin:0">
+            <div class="card-title">Manager A (Venditore)</div>
+            <div style="font-family:'Oswald',sans-serif; font-size: 16px; color: var(--text-muted); line-height: 2;">
+              <span style="color:var(--success)">+46</span> offerta ricevuta<br>
+              <span style="color:var(--success)">+4</span>&nbsp; ingaggio risparmiato<br>
+              <span style="border-top: 1px solid var(--border); display:inline-block; padding-top:4px; margin-top:2px; color: #fff;">= <span style="color:var(--success)">+50</span> a bilancio</span>
+            </div>
+          </div>
+          <div class="card card-danger" style="margin:0">
+            <div class="card-title">Manager B (Acquirente)</div>
+            <div style="font-family:'Oswald',sans-serif; font-size: 16px; color: var(--text-muted); line-height: 2;">
+              <span style="color:var(--danger)">&minus;46</span> offerta pagata<br>
+              <span style="color:var(--danger)">&minus;6</span>&nbsp;&nbsp; nuovo ingaggio (modificato)<br>
+              <span style="border-top: 1px solid var(--border); display:inline-block; padding-top:4px; margin-top:2px; color: #fff;">= <span style="color:var(--danger)">&minus;52</span> a bilancio</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-primary" style="margin-top:16px">
+          <span class="alert-icon">&#10003;</span>
+          <div><strong>Verifica zero-sum:</strong> Senza modifica A +48, B &minus;48 = netto 0. Con modifica A +50, B &minus;52 = netto &minus;2 (costo modifica volontaria). <strong>Nessun soldo dal nulla.</strong></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 4 -->
+  <section id="s4" class="section">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <h2>Bilancio nell'Asta Svincolati</h2>
+    </div>
+
+    <div class="formula" style="text-align: center;">
+      <span class="label">Costo Acquisto Svincolato</span>
+      Costo totale = <span class="highlight">prezzo asta</span> + <span class="danger">ingaggio effettivo</span>
+    </div>
+
+    <p>Il manager deve avere bilancio sufficiente per ENTRAMBI prima di poter fare offerta.</p>
+
+    <div class="example">
+      <div class="example-header">&#128202; Esempio</div>
+      <div class="example-body">
+        <div class="scenario">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <div class="step-label">Manager A, bilancio 250</div>
+              <div class="step-desc">Vince asta svincolato Bernabe a 25</div>
+              <div class="step-formula">Ingaggio default = Math.max(1, Math.round(25/10)) = <span style="color:var(--accent)">3</span>, durata <span style="color:var(--accent)">3</span></div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <div class="step-label">Costo con contratto default</div>
+              <div class="step-formula">25 + 3 = <span style="color:var(--danger)">28</span> &rarr; Bilancio = 250 &minus; 28 = <span style="color:var(--success)">222</span></div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <div class="step-label">Se modifica a 5x4</div>
+              <div class="step-formula">25 + 5 = <span style="color:var(--danger)">30</span> &rarr; Bilancio = 250 &minus; 30 = <span style="color:var(--success)">220</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-accent">
+      <span class="alert-icon">&#128161;</span>
+      <div><strong>Offerta minima:</strong> Per fare offerta di 1, serve bilancio &ge; <strong>2</strong> (offerta 1 + ingaggio default 1).</div>
+    </div>
+  </section>
+
+  <!-- SECTION 5 -->
+  <section id="s5" class="section">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <h2>Bilancio nel Primo Mercato</h2>
+    </div>
+
+    <div class="formula" style="text-align: center;">
+      <span class="label">Costo Acquisto Primo Mercato</span>
+      <span style="background:#ffd700; color:#000; padding:4px 8px; border-radius:4px; display:inline-block; margin:4px 0;">
+        Impatto bilancio = prezzo asta + ingaggio<br>
+        <small>&rarr; Budget -= <strong>prezzo asta</strong> (cash) &nbsp;|&nbsp; Monte Ingaggi += <strong>ingaggio</strong> (stipendiale)</small>
+      </span>
+    </div>
+
+    <div class="example">
+      <div class="example-header">&#9917; Esempio: Esposito a 75</div>
+      <div class="example-body">
+        <div class="table-wrap" style="margin:0">
+          <table>
+            <thead><tr><th>Scenario</th><th>Prezzo</th><th>Ingaggio</th><th>Costo Totale</th></tr></thead>
+            <tbody>
+              <tr><td>Default (8x3)</td><td class="val">75</td><td class="val">8</td><td class="val negative">83</td></tr>
+              <tr><td>Modifica a 9x3</td><td class="val">75</td><td class="val">9</td><td class="val negative">84</td></tr>
+              <tr><td>Modifica a 9x4</td><td class="val">75</td><td class="val">9</td><td class="val negative">84</td></tr>
+              <tr><td>Modifica a 12x4</td><td class="val">75</td><td class="val">12</td><td class="val negative">87</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6 -->
+  <section id="s6" class="section">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <h2>Operazioni che Modificano il Budget</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Operazione</th><th>Effetto su Budget</th></tr></thead>
+        <tbody>
+          <tr><td>Acquisto primo mercato</td><td class="val negative">&minus; prezzo asta</td></tr>
+          <tr><td>Acquisto svincolati</td><td class="val negative">&minus; prezzo asta</td></tr>
+          <tr><td>Rubata (acquirente)</td><td class="val negative">&minus; OFFERTA <span class="tag tag-red" style="font-size:10px">non totale!</span></td></tr>
+          <tr><td>Rubata (venditore)</td><td class="val positive">+ OFFERTA</td></tr>
+          <tr><td>Scambio tra manager</td><td class="val">+/&minus; importo concordato</td></tr>
+          <tr><td>Premio standard</td><td class="val positive">+ importo</td></tr>
+          <tr><td>Premio variabile</td><td class="val positive">+ importo</td></tr>
+          <tr><td>Indennizzo ESTERO</td><td class="val positive">+ importo (admin, min 0)</td></tr>
+          <tr><td>Taglio giocatore</td><td class="val negative">&minus; ceil(salary &times; duration / 2)</td></tr>
+          <tr><td>Taglio ESTERO/RETROCESSO</td><td class="val">invariato (gratuito)</td></tr>
+          <tr><td>Aumento ingaggio</td><td class="val">invariato</td></tr>
+          <tr><td>Rinnovo / Spalma</td><td class="val">invariato</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SECTION 7 -->
+  <section id="s7" class="section">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <h2>Operazioni che Modificano il Monte Ingaggi</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Operazione</th><th>Effetto su Monte Ingaggi</th></tr></thead>
+        <tbody>
+          <tr><td>Acquisto (qualsiasi tipo)</td><td class="val negative">+ ingaggio (default o modificato)</td></tr>
+          <tr><td>Rubata (acquirente)</td><td class="val negative">+ ingaggio (originale o modificato)</td></tr>
+          <tr><td>Rubata (venditore)</td><td class="val positive">&minus; ingaggio giocatore perso</td></tr>
+          <tr><td>Taglio</td><td class="val positive">&minus; ingaggio giocatore tagliato</td></tr>
+          <tr><td>Rinnovo / Aumento ingaggio</td><td class="val negative">+ delta ingaggio</td></tr>
+          <tr><td>Scadenza contratto (durata 0)</td><td class="val positive">&minus; ingaggio (svincolato)</td></tr>
+          <tr><td>Scambio tra manager</td><td class="val">trasferimento, ricalcolo al consolidamento</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="alert alert-primary">
+      <span class="alert-icon">&#8505;</span>
+      <div>Le variazioni al monte ingaggi durante rubata e svincolati impattano il bilancio incrementale ma il <strong>ricalcolo formale</strong> avviene al prossimo consolidamento.</div>
+    </div>
+  </section>
+
+  <!-- SECTION 8 -->
+  <section id="s8" class="section">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <h2>Formula Costo Taglio</h2>
+    </div>
+
+    <div class="formula" style="text-align: center; font-size: 20px;">
+      <span class="label">Costo Taglio</span>
+      CEIL( <span class="highlight">ingaggio</span> &times; <span class="highlight">durata</span> / 2 )
+    </div>
+    <p>Arrotondamento per eccesso (Math.ceil).</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Ingaggio</th><th>Durata</th><th>Calcolo</th><th>Costo Taglio</th></tr></thead>
+        <tbody>
+          <tr><td class="val">10</td><td class="val">3</td><td style="color:var(--text-dim)">ceil(30/2)</td><td class="val negative">15</td></tr>
+          <tr><td class="val">10</td><td class="val">2</td><td style="color:var(--text-dim)">ceil(20/2)</td><td class="val negative">10</td></tr>
+          <tr><td class="val">7</td><td class="val">3</td><td style="color:var(--text-dim)">ceil(21/2)</td><td class="val negative">11</td></tr>
+          <tr><td class="val">3</td><td class="val">1</td><td style="color:var(--text-dim)">ceil(3/2)</td><td class="val negative">2</td></tr>
+          <tr><td class="val">1</td><td class="val">1</td><td style="color:var(--text-dim)">ceil(0.5)</td><td class="val negative">1</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="comparison">
+      <div class="card card-success">
+        <div class="card-title">ESTERO</div>
+        <p>Costo taglio = <strong style="color:var(--success)">0</strong> (gratuito)</p>
+      </div>
+      <div class="card card-success">
+        <div class="card-title">RETROCESSO</div>
+        <p>Costo taglio = <strong style="color:var(--success)">0</strong> (gratuito)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 9 -->
+  <section id="s9" class="section">
+    <div class="section-header">
+      <div class="section-num">9</div>
+      <h2>Indennizzi</h2>
+    </div>
+
+    <div class="comparison">
+      <div class="card card-accent">
+        <div class="card-title">Giocatori ESTERO</div>
+        <p>L'admin imposta il valore di indennizzo per ogni giocatore ESTERO.</p>
+        <p>Minimo: <span class="tag tag-gold">0</span> (esiste il caso di indennizzo pari a 0).</p>
+        <p style="color: var(--text-dim); font-size: 13px;">Formula automatica: da definire in futuro.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Giocatori RETROCESSO</div>
+        <p>Nessun indennizzo.</p>
+        <p>Costo taglio: 0.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 10 -->
+  <section id="s10" class="section">
+    <div class="section-header">
+      <div class="section-num">10</div>
+      <h2>Regole Importanti</h2>
+    </div>
+
+    <div class="alert alert-danger">
+      <span class="alert-icon">&#9888;</span>
+      <div><strong>Rinnovo NON decrementa budget:</strong> il rinnovo aumenta SOLO il monte ingaggi. Questa e la regola piu importante del sistema.</div>
+    </div>
+
+    <div class="alert alert-accent">
+      <span class="alert-icon">&#128176;</span>
+      <div><strong>Budget transfer nella rubata:</strong> solo l'OFFERTA si trasferisce tra manager, non il prezzo totale. L'ingaggio e una componente implicita che rappresenta il costo/risparmio del contratto.</div>
+    </div>
+
+    <div class="alert alert-primary">
+      <span class="alert-icon">&#128269;</span>
+      <div><strong>Verifica disponibilita:</strong> prima di ogni operazione (asta, offerta, rubata), il sistema verifica che il bilancio sia sufficiente a coprire il costo totale (prezzo + ingaggio).</div>
+    </div>
+
+    <div class="alert alert-success">
+      <span class="alert-icon">&#9989;</span>
+      <div><strong>Bilancio negativo permesso:</strong> il monte ingaggi puo superare il budget, rendendo il bilancio negativo. Non e vietato, ma limita le operazioni di mercato. </div>
+    </div>
+
+    <div class="alert alert-danger">
+      <span class="alert-icon">&#9940;</span>
+      <div><strong>Budget sempre &ge; 0:</strong> il budget (liquidita) non puo mai essere negativo. Il sistema valida la disponibilita prima di ogni operazione (asta, rubata, taglio, scambio). </div>
+    </div>
+
+    <div class="alert alert-primary" style="border-color: var(--border);">
+      <span class="alert-icon">&#128274;</span>
+      <div><strong>Consolidamento irreversibile:</strong> una volta consolidato, le operazioni sono definitive. L'admin ha interfaccia per correzioni successive.</div>
+    </div>
+  </section>
+
+  <!-- SECTION 11: Costo Acquisti -->
+  <section id="s11" class="section">
+    <div class="section-header">
+      <div class="section-num">11</div>
+      <h2>Costo Acquisti (Tabellone Finanze)</h2>
+    </div>
+
+    <div class="card card-accent">
+      <div class="card-title"><span class="icon">&#128722;</span> Definizione</div>
+      <p>La somma dei prezzi d'asta pagati per tutti i giocatori attivi in rosa.</p>
+      <div class="formula">
+        <span class="label">Calcolo</span>
+        SUM(PlayerRoster.<span class="highlight">acquisitionPrice</span>) WHERE status = ACTIVE
+      </div>
+      <p>Rappresenta il <strong>costo storico</strong> degli acquisti, non il valore di mercato attuale. Visibile nel tabellone Finanze nella colonna "Acquisti".</p>
+    </div>
+
+    <h3>Relazione con Budget</h3>
+    <div class="formula" style="font-size: 20px; text-align: center;">
+      <span class="label">Formula</span>
+      <span class="highlight">Budget Iniziale</span> &minus; Costo Acquisti = Budget Attuale
+    </div>
+    <p><code>currentBudget</code> nel DB e gia decrementato dei costi acquisto. Il Costo Acquisti e una voce esplicativa.</p>
+
+    <h3>Formula Completa Visibile</h3>
+    <div class="example">
+      <div class="example-header">&#128161; Esempio: giulia_bianchi</div>
+      <div class="example-body">
+        <div class="formula">
+          <span class="label">Breakdown</span>
+          Budget Iniziale (<span class="highlight">500</span>M) &minus; Acquisti (<span class="highlight">8</span>M) = Budget (<span class="highlight">492</span>M) &minus; Ingaggi (<span class="highlight">1</span>M) = Bilancio (<span class="success">491</span>M)
+        </div>
+        <p>Falcone comprato a 8, contratto 1x3. Il Budget Iniziale era 500, dopo l'acquisto scende a 492.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 12: Storicita Fasi -->
+  <section id="s12" class="section">
+    <div class="section-header">
+      <div class="section-num">12</div>
+      <h2>Storicita Fasi</h2>
+    </div>
+
+    <p>Il tabellone Finanze permette di visualizzare l'evoluzione delle finanze tra le diverse fasi di una sessione di mercato.</p>
+
+    <div class="card card-primary">
+      <div class="card-title"><span class="icon">&#128197;</span> Selettore Fase</div>
+      <p>Il selettore in alto nel tabellone consente di navigare tra:</p>
+      <div class="scenario">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-label">Attuale</div>
+            <div class="step-desc">Stato corrente delle finanze</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-label">Sessioni Passate</div>
+            <div class="step-desc">Dati storici per ogni sessione di mercato completata</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Fasi Tracciabili</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Fase</th>
+            <th>Tipo Snapshot</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Inizio Sessione</td><td class="val">SESSION_START</td><td>Budget e ingaggi dopo decremento durata</td></tr>
+          <tr><td>Dopo Premi</td><td class="val">PHASE_START</td><td>Budget dopo assegnazione premi</td></tr>
+          <tr><td>Dopo Contratti</td><td class="val">PHASE_END</td><td>Budget dopo consolidamento</td></tr>
+          <tr><td>Dopo Rubata</td><td class="primary">&mdash;</td><td>Budget dopo fase rubata</td></tr>
+          <tr><td>Dopo Svincolati</td><td class="primary">&mdash;</td><td>Budget dopo asta svincolati</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="alert alert-primary">
+      <span class="alert-icon">&#128161;</span>
+      <div>I dati storici sono basati su <strong>ManagerSessionSnapshot</strong> (SESSION_START, PHASE_START, PHASE_END) e <strong>PlayerMovement</strong> raggruppati per sessione.</div>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

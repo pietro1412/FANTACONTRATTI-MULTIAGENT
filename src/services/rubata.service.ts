@@ -1,7 +1,7 @@
 import { PrismaClient, MemberStatus, RosterStatus, AuctionStatus, Position } from '@prisma/client'
 import { recordMovement } from './movement.service'
 import { triggerRubataBidPlaced, triggerRubataStealDeclared, triggerRubataReadyChanged, triggerAuctionClosed } from './pusher.service'
-import { computeSeasonStatsBatch, type ComputedSeasonStats } from './player-stats.service'
+import { computeSeasonStatsBatch, computeAutoTagsBatch, type ComputedSeasonStats, type AutoTagId } from './player-stats.service'
 
 const prisma = new PrismaClient()
 
@@ -16,8 +16,8 @@ export interface ServiceResult {
 // In-memory storage for heartbeats (leagueId -> memberId -> timestamp)
 const rubataHeartbeats = new Map<string, Map<string, number>>()
 
-// Heartbeat timeout in milliseconds (10 seconds)
-const RUBATA_HEARTBEAT_TIMEOUT = 10000
+// Heartbeat timeout in milliseconds (45 seconds — 1.5× the 30s client interval)
+const RUBATA_HEARTBEAT_TIMEOUT = 45000
 
 export function registerRubataHeartbeat(leagueId: string, memberId: string): void {
   if (!rubataHeartbeats.has(leagueId)) {
@@ -472,9 +472,15 @@ export async function bidOnRubata(
     return { success: false, message: `L'offerta deve essere maggiore di ${auction.currentPrice}` }
   }
 
-  // Check budget
-  if (amount > bidder.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Disponibile: ${bidder.currentBudget}` }
+  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary. Reserve 1.
+  const monteIngaggiOld = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: bidder.id },
+    _sum: { salary: true },
+  })
+  const bilancioOld = bidder.currentBudget - (monteIngaggiOld._sum.salary || 0)
+  const maxBidOld = bilancioOld - 1
+  if (amount > maxBidOld) {
+    return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBidOld}` }
   }
 
   // Place bid
@@ -597,6 +603,10 @@ export async function closeRubataAuction(
 
     // Calculate payment: winner pays currentPrice (clausola + ingaggio or higher)
     const payment = auction.currentPrice
+    // Seller receives only OFFERTA = currentPrice - salary.
+    // The salary saving happens automatically via monte ingaggi when contract transfers.
+    const contractSalary = rosterEntry.contract?.salary ?? 0
+    const sellerPayment = payment - contractSalary
 
     // Update winner budget (decrease)
     await tx.leagueMember.update({
@@ -604,10 +614,10 @@ export async function closeRubataAuction(
       data: { currentBudget: { decrement: payment } },
     })
 
-    // Update seller budget (increase by payment)
+    // Update seller budget (increase by OFFERTA only, not full price)
     await tx.leagueMember.update({
       where: { id: auction.sellerId! },
-      data: { currentBudget: { increment: payment } },
+      data: { currentBudget: { increment: sellerPayment } },
     })
 
     // Transfer roster to winner
@@ -944,13 +954,15 @@ export async function getRubataBoard(
             },
           })
         } else {
-          // Advance to next player
+          // Advance to next player — go to READY_CHECK (not directly to OFFERING)
+          // so all managers can confirm readiness before the next offering window
           await prisma.marketSession.update({
             where: { id: activeSession.id },
             data: {
               rubataBoardIndex: nextIndex,
-              rubataState: 'OFFERING',
-              rubataTimerStartedAt: new Date(),
+              rubataState: 'READY_CHECK',
+              rubataTimerStartedAt: null,
+              rubataReadyMembers: [],
             },
           })
         }
@@ -1025,6 +1037,9 @@ export async function getRubataBoard(
             if (!rosterEntry) throw new Error('Roster entry not found')
 
             const payment = auctionToClose.currentPrice
+            // Seller receives only OFFERTA = currentPrice - salary
+            const contractSalary = rosterEntry.contract?.salary ?? 0
+            const sellerPayment = payment - contractSalary
 
             await tx.leagueMember.update({
               where: { id: winningBid.bidderId },
@@ -1033,7 +1048,7 @@ export async function getRubataBoard(
 
             await tx.leagueMember.update({
               where: { id: auctionToClose.sellerId! },
-              data: { currentBudget: { increment: payment } },
+              data: { currentBudget: { increment: sellerPayment } },
             })
 
             await tx.playerRoster.update({
@@ -1545,9 +1560,27 @@ export async function makeRubataOffer(
     return { success: false, message: 'Non puoi rubare un tuo giocatore' }
   }
 
-  // Check budget
-  if (currentPlayer.rubataPrice > member.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Necessario: ${currentPlayer.rubataPrice}, Disponibile: ${member.currentBudget}` }
+  // M-8: Cannot steal a player you released during CONTRATTI phase of the same session
+  const releasedByMember = await prisma.playerMovement.findFirst({
+    where: {
+      marketSessionId: activeSession.id,
+      playerId: currentPlayer.playerId,
+      fromMemberId: member.id,
+      movementType: { in: ['RELEASE', 'RELEGATION_RELEASE', 'ABROAD_COMPENSATION'] },
+    },
+  })
+  if (releasedByMember) {
+    return { success: false, message: 'Non puoi rubare un giocatore che hai svincolato in questa sessione' }
+  }
+
+  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
+  const monteIngaggiOffer = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: member.id },
+    _sum: { salary: true },
+  })
+  const bilancioOffer = member.currentBudget - (monteIngaggiOffer._sum.salary || 0)
+  if (currentPlayer.rubataPrice > bilancioOffer) {
+    return { success: false, message: `Budget insufficiente. Necessario: ${currentPlayer.rubataPrice}, Bilancio disponibile: ${bilancioOffer}` }
   }
 
   // Check if there's already an active auction for this player
@@ -1695,9 +1728,15 @@ export async function bidOnRubataAuction(
     return { success: false, message: `L'offerta deve essere maggiore di ${activeAuction.currentPrice}` }
   }
 
-  // Check budget
-  if (amount > member.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Disponibile: ${member.currentBudget}` }
+  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary. Reserve 1.
+  const monteIngaggiBidR = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: member.id },
+    _sum: { salary: true },
+  })
+  const bilancioBidR = member.currentBudget - (monteIngaggiBidR._sum.salary || 0)
+  const maxBidR = bilancioBidR - 1
+  if (amount > maxBidR) {
+    return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBidR}` }
   }
 
   // Get member username and player info for Pusher notification
@@ -1985,6 +2024,9 @@ export async function closeCurrentRubataAuction(
     if (!rosterEntry) throw new Error('Roster entry not found')
 
     const payment = activeAuction.currentPrice
+    // Seller receives only OFFERTA = currentPrice - salary
+    const contractSalary = rosterEntry.contract?.salary ?? 0
+    const sellerPayment = payment - contractSalary
 
     // Update winner budget (decrease)
     await tx.leagueMember.update({
@@ -1992,10 +2034,10 @@ export async function closeCurrentRubataAuction(
       data: { currentBudget: { decrement: payment } },
     })
 
-    // Update seller budget (increase)
+    // Update seller budget (increase by OFFERTA only)
     await tx.leagueMember.update({
       where: { id: activeAuction.sellerId! },
-      data: { currentBudget: { increment: payment } },
+      data: { currentBudget: { increment: sellerPayment } },
     })
 
     // Transfer roster to winner
@@ -2466,8 +2508,6 @@ export async function setRubataReady(
     return { success: true, message: 'Già pronto' }
   }
 
-  const updatedReadyMembers = [...rubataReadyMembers, member.id]
-
   // Get member username for Pusher notification
   const memberWithUser = await prisma.leagueMember.findUnique({
     where: { id: member.id },
@@ -2478,6 +2518,11 @@ export async function setRubataReady(
   const allMembers = await prisma.leagueMember.findMany({
     where: { leagueId, status: MemberStatus.ACTIVE },
   })
+
+  // In IN_PRESENCE mode, auto-mark all members as ready (skip ready-check)
+  const updatedReadyMembers = activeSession.auctionMode === 'IN_PRESENCE'
+    ? allMembers.map(m => m.id)
+    : [...rubataReadyMembers, member.id]
 
   const allReady = allMembers.every(m => updatedReadyMembers.includes(m.id))
 
@@ -2919,6 +2964,34 @@ export async function acknowledgeRubataTransaction(
   }
 
   if (allAcknowledged) {
+    // M-9: Check if this was the last player on the board
+    const board = activeSession.rubataBoard as Array<unknown> | null
+    const currentIndex = activeSession.rubataBoardIndex ?? 0
+    const isLastPlayer = board ? (currentIndex + 1) >= board.length : false
+
+    if (isLastPlayer) {
+      // Last player acknowledged — complete rubata phase
+      await prisma.marketSession.update({
+        where: { id: activeSession.id },
+        data: {
+          rubataPendingAck: null,
+          rubataReadyMembers: [],
+          rubataState: 'COMPLETED',
+          rubataTimerStartedAt: null,
+        },
+      })
+
+      return {
+        success: true,
+        message: 'Ultimo giocatore confermato! Rubata completata!',
+        data: {
+          allAcknowledged: true,
+          completed: true,
+          winnerContractInfo,
+        },
+      }
+    }
+
     // Clear pending ack and move to ready check for next player
     await prisma.marketSession.update({
       where: { id: activeSession.id },
@@ -3074,9 +3147,14 @@ export async function simulateRubataOffer(
     return { success: false, message: 'Non può rubare un proprio giocatore' }
   }
 
-  // Check budget
-  if (currentPlayer.rubataPrice > targetMember.currentBudget) {
-    return { success: false, message: `Budget insufficiente per ${targetMember.id}` }
+  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
+  const monteIngaggiSim = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: targetMember.id },
+    _sum: { salary: true },
+  })
+  const bilancioSim = targetMember.currentBudget - (monteIngaggiSim._sum.salary || 0)
+  if (currentPlayer.rubataPrice > bilancioSim) {
+    return { success: false, message: `Budget insufficiente per ${targetMember.id}. Bilancio: ${bilancioSim}` }
   }
 
   // Check if there's already an active auction
@@ -3233,9 +3311,15 @@ export async function simulateRubataBid(
     return { success: false, message: `L'offerta deve essere maggiore di ${activeAuction.currentPrice}` }
   }
 
-  // Check budget
-  if (amount > targetMember.currentBudget) {
-    return { success: false, message: `Budget insufficiente. Disponibile: ${targetMember.currentBudget}` }
+  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary. Reserve 1.
+  const monteIngaggiSimBid = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: targetMember.id },
+    _sum: { salary: true },
+  })
+  const bilancioSimBid = targetMember.currentBudget - (monteIngaggiSimBid._sum.salary || 0)
+  const maxBidSim = bilancioSimBid - 1
+  if (amount > maxBidSim) {
+    return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBidSim}` }
   }
 
   // Place simulated bid
@@ -3396,6 +3480,10 @@ export async function completeRubataWithTransactions(
           })
 
           // Update budgets
+          // Seller receives only OFFERTA = bidAmount - salary
+          const contractSalary = rosterEntry.contract?.salary ?? 0
+          const sellerPayment = bidAmount - contractSalary
+
           await prisma.leagueMember.update({
             where: { id: buyer.id },
             data: { currentBudget: { decrement: bidAmount } },
@@ -3403,7 +3491,7 @@ export async function completeRubataWithTransactions(
 
           await prisma.leagueMember.update({
             where: { id: player.memberId },
-            data: { currentBudget: { increment: bidAmount } },
+            data: { currentBudget: { increment: sellerPayment } },
           })
 
           // Transfer roster to winner
@@ -3572,6 +3660,7 @@ export async function setRubataPreference(
     maxBid?: number | null
     priority?: number | null
     notes?: string | null
+    watchlistCategory?: string | null
   }
 ): Promise<ServiceResult> {
   const member = await prisma.leagueMember.findFirst({
@@ -3652,6 +3741,7 @@ export async function setRubataPreference(
       maxBid: preference.maxBid,
       priority: preference.priority,
       notes: preference.notes,
+      watchlistCategory: preference.watchlistCategory,
     },
     update: {
       isWatchlist: preference.isWatchlist,
@@ -3659,6 +3749,7 @@ export async function setRubataPreference(
       maxBid: preference.maxBid,
       priority: preference.priority,
       notes: preference.notes,
+      watchlistCategory: preference.watchlistCategory,
     },
     include: {
       player: {
@@ -3802,6 +3893,7 @@ export async function getAllPlayersForStrategies(
     notes: string | null
     isWatchlist: boolean
     isAutoPass: boolean
+    watchlistCategory: string | null
   }>()
 
   if (preferenceSession) {
@@ -3860,6 +3952,17 @@ export async function getAllPlayersForStrategies(
   // Compute season stats for all players in batch (efficient single query)
   const statsMap = await computeSeasonStatsBatch(allPlayerIds)
 
+  // Compute auto-tags for all players in batch
+  const tagInputs = allMembers.flatMap(m =>
+    m.roster.filter(r => r.contract).map(r => ({
+      playerId: r.playerId,
+      age: r.player.age,
+      position: r.player.position,
+      apiFootballStats: r.player.apiFootballStats as Record<string, unknown> | null,
+    }))
+  )
+  const tagsMap = await computeAutoTagsBatch(tagInputs)
+
   // Build the players list with all info
   const players: Array<{
     rosterId: string
@@ -3873,6 +3976,7 @@ export async function getAllPlayersForStrategies(
     playerApiFootballId: number | null
     playerApiFootballStats: unknown
     playerComputedStats: ComputedSeasonStats | null
+    playerAutoTags: AutoTagId[]
     ownerUsername: string
     ownerTeamName: string | null
     ownerRubataOrder: number | null
@@ -3902,6 +4006,7 @@ export async function getAllPlayersForStrategies(
         playerApiFootballId: rosterEntry.player.apiFootballId,
         playerApiFootballStats: rosterEntry.player.apiFootballStats,
         playerComputedStats: statsMap.get(rosterEntry.playerId) || null,
+        playerAutoTags: tagsMap.get(rosterEntry.playerId) || [],
         ownerUsername: memberData.user.username,
         ownerTeamName: memberData.teamName,
         ownerRubataOrder: memberData.rubataOrder,
@@ -4004,6 +4109,7 @@ export async function getAllSvincolatiForStrategies(
     notes: string | null
     isWatchlist: boolean
     isAutoPass: boolean
+    watchlistCategory: string | null
   }>()
 
   if (preferenceSession) {
@@ -4039,6 +4145,17 @@ export async function getAllSvincolatiForStrategies(
     ],
   })
 
+  // Compute season stats and auto-tags for svincolati
+  const svincolatiIds = svincolati.map(p => p.id)
+  const svincolatiStatsMap = await computeSeasonStatsBatch(svincolatiIds)
+  const svincolatiTagInputs = svincolati.map(p => ({
+    playerId: p.id,
+    age: p.age,
+    position: p.position,
+    apiFootballStats: p.apiFootballStats as Record<string, unknown> | null,
+  }))
+  const svincolatiTagsMap = await computeAutoTagsBatch(svincolatiTagInputs)
+
   // Build the players list
   const players = svincolati.map(player => ({
     playerId: player.id,
@@ -4048,6 +4165,8 @@ export async function getAllSvincolatiForStrategies(
     playerAge: player.age,  // #190: include age
     playerApiFootballId: player.apiFootballId,
     playerApiFootballStats: player.apiFootballStats,
+    playerComputedStats: svincolatiStatsMap.get(player.id) || null,
+    playerAutoTags: svincolatiTagsMap.get(player.id) || [],
     preference: preferencesMap.get(player.id) || null,
   }))
 
