@@ -16,6 +16,7 @@ import {
   triggerAuctionClosed,
   triggerPauseRequested,
 } from './pusher.service'
+import { computeSeasonStatsBatch } from './player-stats.service'
 import { withRetry } from '../utils/db-retry'
 import { notifyAuctionStart, notifyPhaseChange } from './notification.service'
 
@@ -1637,12 +1638,24 @@ export async function getRoster(leagueId: string, userId: string, targetMemberId
     },
   })
 
+  // Compute season stats for all players
+  const allPlayerIds = roster.map(r => r.playerId)
+  const statsMap = await computeSeasonStatsBatch(allPlayerIds)
+
+  const enriched = roster.map(r => ({
+    ...r,
+    player: {
+      ...r.player,
+      computedStats: statsMap.get(r.playerId) || null,
+    },
+  }))
+
   // Group by position
   const grouped = {
-    P: roster.filter(r => r.player.position === 'P'),
-    D: roster.filter(r => r.player.position === 'D'),
-    C: roster.filter(r => r.player.position === 'C'),
-    A: roster.filter(r => r.player.position === 'A'),
+    P: enriched.filter(r => r.player.position === 'P'),
+    D: enriched.filter(r => r.player.position === 'D'),
+    C: enriched.filter(r => r.player.position === 'C'),
+    A: enriched.filter(r => r.player.position === 'A'),
   }
 
   return {
