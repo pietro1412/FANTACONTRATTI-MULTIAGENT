@@ -1,5 +1,8 @@
+import { useState } from 'react'
+import { Settings } from 'lucide-react'
 import { useRubataState } from '../hooks/useRubataState'
 import { Button } from '../components/ui/Button'
+import { BottomSheet } from '../components/ui/BottomSheet'
 import { Navigation } from '../components/Navigation'
 import { getPlayerPhotoUrl } from '../utils/player-images'
 import { ContractModifierModal } from '../components/ContractModifier'
@@ -23,6 +26,72 @@ import {
 import { RubataTimerPanel } from '../components/rubata/RubataTimerPanel'
 import { RubataBidPanel } from '../components/rubata/RubataBidPanel'
 import { POSITION_COLORS } from '../types/rubata.types'
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+
+interface SortableOrderItemProps {
+  id: string
+  index: number
+  memberName: string
+  totalItems: number
+  onMoveUp: () => void
+  onMoveDown: () => void
+}
+
+function SortableOrderItem({ id, index, memberName, totalItems, onMoveUp, onMoveDown }: SortableOrderItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center justify-between p-3 bg-surface-300 rounded-xl border-2 transition-all ${
+        isDragging
+          ? 'border-primary-500 opacity-50 scale-95'
+          : 'border-surface-50/20 hover:border-primary-500/50'
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <span
+          className="text-gray-500 cursor-grab active:cursor-grabbing"
+          {...attributes}
+          {...listeners}
+        >
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
+          </svg>
+        </span>
+        <span className="w-8 h-8 rounded-full bg-primary-500/20 flex items-center justify-center text-primary-400 font-bold text-sm">
+          {index + 1}
+        </span>
+        <span className="text-white font-medium">{memberName}</span>
+      </div>
+      <div className="flex gap-1">
+        <button
+          onClick={onMoveUp}
+          disabled={index === 0}
+          aria-label={`Sposta ${memberName} in su`}
+          className="w-8 h-8 flex items-center justify-center bg-surface-50/10 hover:bg-surface-50/20 rounded-lg text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        >
+          ↑
+        </button>
+        <button
+          onClick={onMoveDown}
+          disabled={index === totalItems - 1}
+          aria-label={`Sposta ${memberName} in giù`}
+          className="w-8 h-8 flex items-center justify-center bg-surface-50/10 hover:bg-surface-50/20 rounded-lg text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        >
+          ↓
+        </button>
+      </div>
+    </div>
+  )
+}
 
 interface RubataProps {
   leagueId: string
@@ -52,8 +121,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     // Admin simulation
     simulateMemberId, setSimulateMemberId, simulateBidAmount, setSimulateBidAmount,
     // Order draft + drag & drop
-    orderDraft, draggedIndex, dragOverIndex, moveInOrder,
-    handleDragStart, handleDragEnd, handleDragOver, handleDragLeave, handleDrop,
+    orderDraft, moveInOrder,
+    handleDndDragEnd, handleDndDragStart,
     // Preferences
     preferencesMap, selectedPlayerForPrefs, openPrefsModal, closePrefsModal,
     currentPlayerPreference, canEditPreferences,
@@ -84,7 +153,16 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     handleSimulateOffer, handleSimulateBid,
     // Preferences handlers
     handleSavePreference, handleDeletePreference,
+    // Retry / reload
+    setError, loadData,
   } = useRubataState(leagueId)
+
+  const [adminSheetOpen, setAdminSheetOpen] = useState(false)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
 
   if (isLoading) {
     return (
@@ -166,7 +244,15 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
       <main className="max-w-[1600px] mx-auto px-4 py-8">
         {error && (
-          <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-3 rounded-lg mb-4">{error}</div>
+          <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-3 rounded-lg mb-4">
+            <p>{error}</p>
+            <button
+              onClick={() => { setError(''); loadData(); }}
+              className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
+            >
+              Riprova
+            </button>
+          </div>
         )}
         {success && (
           <div className="bg-secondary-500/20 border border-secondary-500/30 text-secondary-400 p-3 rounded-lg mb-4">{success}</div>
@@ -199,61 +285,27 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 <p className="text-sm text-gray-400 mt-1">Trascina i manager per impostare l'ordine dei turni</p>
               </div>
               <div className="p-5">
-                <div className="space-y-2 mb-4">
-                  {orderDraft.map((memberId, index) => {
-                    const member = members.find(m => m.id === memberId)
-                    const isDragging = draggedIndex === index
-                    const isDragOver = dragOverIndex === index
-                    return (
-                      <div
-                        key={memberId}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, index)}
-                        onDragEnd={handleDragEnd}
-                        onDragOver={(e) => handleDragOver(e, index)}
-                        onDragLeave={handleDragLeave}
-                        onDrop={(e) => handleDrop(e, index)}
-                        className={`flex items-center justify-between p-3 bg-surface-300 rounded-xl border-2 transition-all cursor-grab active:cursor-grabbing ${
-                          isDragging
-                            ? 'border-primary-500 opacity-50 scale-95'
-                            : isDragOver
-                            ? 'border-primary-500 bg-primary-500/10'
-                            : 'border-surface-50/20 hover:border-primary-500/50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-gray-500 cursor-grab active:cursor-grabbing">
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
-                            </svg>
-                          </span>
-                          <span className="w-8 h-8 rounded-full bg-primary-500/20 flex items-center justify-center text-primary-400 font-bold text-sm">
-                            {index + 1}
-                          </span>
-                          <span className="text-white font-medium">{member?.user?.username || member?.teamName || 'Unknown'}</span>
-                        </div>
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => moveInOrder(index, 'up')}
-                            disabled={index === 0}
-                            aria-label={`Sposta ${member?.user?.username || 'giocatore'} in su`}
-                            className="w-8 h-8 flex items-center justify-center bg-surface-50/10 hover:bg-surface-50/20 rounded-lg text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                          >
-                            ↑
-                          </button>
-                          <button
-                            onClick={() => moveInOrder(index, 'down')}
-                            disabled={index === orderDraft.length - 1}
-                            aria-label={`Sposta ${member?.user?.username || 'giocatore'} in giù`}
-                            className="w-8 h-8 flex items-center justify-center bg-surface-50/10 hover:bg-surface-50/20 rounded-lg text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                          >
-                            ↓
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDndDragEnd} onDragStart={handleDndDragStart}>
+                  <SortableContext items={orderDraft} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-2 mb-4">
+                      {orderDraft.map((memberId, index) => {
+                        const member = members.find(m => m.id === memberId)
+                        const memberName = member?.user?.username || member?.teamName || 'Unknown'
+                        return (
+                          <SortableOrderItem
+                            key={memberId}
+                            id={memberId}
+                            index={index}
+                            memberName={memberName}
+                            totalItems={orderDraft.length}
+                            onMoveUp={() => moveInOrder(index, 'up')}
+                            onMoveDown={() => moveInOrder(index, 'down')}
+                          />
+                        )
+                      })}
+                    </div>
+                  </SortableContext>
+                </DndContext>
                 <Button onClick={handleSetOrder} disabled={isSubmitting} className="w-full">
                   {isSubmitting ? 'Salvando...' : 'Conferma Ordine'}
                 </Button>
@@ -939,6 +991,63 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             </span>
           </button>
         )}
+
+        {/* Mobile Admin FAB - Only visible on mobile for admins when board is active */}
+        {isRubataPhase && isOrderSet && isAdmin && (
+          <button
+            className="fixed bottom-20 right-4 z-40 lg:hidden bg-primary-500 text-white rounded-full p-3 shadow-lg hover:bg-primary-400 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center gap-2"
+            onClick={() => setAdminSheetOpen(true)}
+          >
+            <Settings size={20} />
+            <span className="text-sm font-medium">Admin</span>
+          </button>
+        )}
+
+        {/* Mobile Admin BottomSheet */}
+        <BottomSheet
+          isOpen={adminSheetOpen}
+          onClose={() => setAdminSheetOpen(false)}
+          title="Controlli Admin"
+          maxHeight="85vh"
+        >
+          <div className="p-4 space-y-4">
+            {/* Budget Panel - visible to all */}
+            {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && (
+              <BudgetPanel memberBudgets={boardData.memberBudgets} />
+            )}
+
+            {/* Admin-only panels */}
+            {isAdmin && (<>
+              <TimerSettingsPanel
+                offerTimer={offerTimer}
+                setOfferTimer={setOfferTimer}
+                auctionTimer={auctionTimer}
+                setAuctionTimer={setAuctionTimer}
+                isSubmitting={isSubmitting}
+                onUpdateTimers={handleUpdateTimers}
+              />
+              <BotSimulationPanel
+                rubataState={rubataState}
+                activeAuction={activeAuction}
+                members={members}
+                myMemberId={myMemberId}
+                currentPlayerMemberId={currentPlayer?.memberId}
+                simulateMemberId={simulateMemberId}
+                setSimulateMemberId={setSimulateMemberId}
+                simulateBidAmount={simulateBidAmount}
+                setSimulateBidAmount={setSimulateBidAmount}
+                isSubmitting={isSubmitting}
+                onSimulateOffer={handleSimulateOffer}
+                onSimulateBid={handleSimulateBid}
+              />
+              <CompleteRubataPanel
+                rubataState={rubataState}
+                isSubmitting={isSubmitting}
+                onCompleteRubata={handleCompleteRubata}
+              />
+            </>)}
+          </div>
+        </BottomSheet>
 
       </main>
 

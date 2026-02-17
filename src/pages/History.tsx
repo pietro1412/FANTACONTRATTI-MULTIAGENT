@@ -151,7 +151,13 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
       <main className="max-w-[1600px] mx-auto px-4 py-6">
         {error && (
           <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-xl mb-6">
-            {error}
+            <p>{error}</p>
+            <button
+              onClick={() => { setError(''); loadData(); }}
+              className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
+            >
+              Riprova
+            </button>
           </div>
         )}
 

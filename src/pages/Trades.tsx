@@ -60,6 +60,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   const [offerDuration, setOfferDuration] = useState(24)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [loadError, setLoadError] = useState('')
   const [success, setSuccess] = useState('')
 
   // Search filters for create offer
@@ -123,7 +124,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
 
   async function loadData() {
     setIsLoading(true)
+    setLoadError('')
 
+    try {
     const [receivedRes, sentRes, membersRes, rosterRes, sessionsRes, leagueRes, allRostersRes, financialsRes, historyRes] = await Promise.all([
       tradeApi.getReceived(leagueId),
       tradeApi.getSent(leagueId),
@@ -333,6 +336,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       setTradeHistory(historyRes.data as TradeOffer[])
     }
 
+    } catch {
+      setLoadError('Errore nel caricamento delle trattative. Verifica la connessione.')
+    }
     setIsLoading(false)
   }
 
@@ -653,6 +659,19 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
             )}
           </button>
         </div>
+
+        {/* Load error with retry */}
+        {loadError && (
+          <div className="bg-danger-500/10 border border-danger-500/30 rounded-lg p-4 mb-4 text-center">
+            <p className="text-danger-400">{loadError}</p>
+            <button
+              onClick={() => { setLoadError(''); loadData(); }}
+              className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
+            >
+              Riprova
+            </button>
+          </div>
+        )}
 
         {/* Success/Error messages */}
         <div className="space-y-2 mb-4">

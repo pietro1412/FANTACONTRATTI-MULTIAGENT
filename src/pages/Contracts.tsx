@@ -1032,7 +1032,17 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       {/* Messaggi */}
       {(error || success) && (
         <div className="max-w-[1600px] mx-auto px-4 py-2">
-          {error && <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-2 rounded text-sm">{error}</div>}
+          {error && (
+            <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-2 rounded text-sm">
+              <p>{error}</p>
+              <button
+                onClick={() => { setError(''); loadContracts(); }}
+                className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
+              >
+                Riprova
+              </button>
+            </div>
+          )}
           {success && <div className="bg-secondary-500/20 border border-secondary-500/30 text-secondary-400 p-2 rounded text-sm">{success}</div>}
         </div>
       )}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Home, Zap, Users, CircleDollarSign, Menu } from 'lucide-react'
+import { Home, Zap, Users, CircleDollarSign, Menu, ArrowLeftRight, Target } from 'lucide-react'
 
 /**
  * Mobile bottom navigation bar — visible only <768px.
@@ -8,7 +8,12 @@ import { Home, Zap, Users, CircleDollarSign, Menu } from 'lucide-react'
  * Hides on scroll-down, shows on scroll-up.
  * Only renders inside a league context (/leagues/:leagueId/...).
  */
-export function BottomNavBar({ onMenuOpen }: { onMenuOpen: () => void }) {
+interface BottomNavBarProps {
+  onMenuOpen: () => void
+  leaguePhase?: string
+}
+
+export function BottomNavBar({ onMenuOpen, leaguePhase }: BottomNavBarProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const [visible, setVisible] = useState(true)
@@ -49,10 +54,13 @@ export function BottomNavBar({ onMenuOpen }: { onMenuOpen: () => void }) {
   // Only show inside league context
   if (!leagueId) return null
 
+  // Dynamic middle tab based on league phase
+  const phaseTab = getPhaseTab(leaguePhase, leagueId!)
+
   const tabs: TabDef[] = [
     { key: 'home', label: 'Home', icon: Home, path: `/leagues/${leagueId}` },
     { key: 'asta', label: 'Asta', icon: Zap, path: `/leagues/${leagueId}/auction`, badge: isInAuction ? 'LIVE' : undefined },
-    { key: 'rosa', label: 'Rosa', icon: Users, path: `/leagues/${leagueId}/strategie-rubata` },
+    phaseTab,
     { key: 'finanze', label: 'Finanze', icon: CircleDollarSign, path: `/leagues/${leagueId}/financials` },
     { key: 'menu', label: 'Menu', icon: Menu, path: '' },
   ]
@@ -113,10 +121,23 @@ interface TabDef {
   badge?: string
 }
 
+/** Dynamic middle tab based on current league phase */
+function getPhaseTab(phase: string | undefined, leagueId: string): TabDef {
+  switch (phase) {
+    case 'SCAMBI':
+      return { key: 'phase', label: 'Scambi', icon: ArrowLeftRight, path: `/leagues/${leagueId}/trades` }
+    case 'RUBATA':
+      return { key: 'phase', label: 'Rubata', icon: Target, path: `/leagues/${leagueId}/rubata` }
+    default:
+      return { key: 'rosa', label: 'Rosa', icon: Users, path: `/leagues/${leagueId}/strategie-rubata` }
+  }
+}
+
 /** Map URL path segment to active tab key */
 function getActiveTab(pathAfterLeague: string): string {
   if (!pathAfterLeague || pathAfterLeague === '/') return 'home'
-  if (pathAfterLeague.startsWith('/auction') || pathAfterLeague.startsWith('/rubata') || pathAfterLeague.startsWith('/svincolati')) return 'asta'
+  if (pathAfterLeague.startsWith('/auction') || pathAfterLeague.startsWith('/svincolati')) return 'asta'
+  if (pathAfterLeague.startsWith('/trades') || pathAfterLeague.startsWith('/rubata')) return 'phase'
   if (pathAfterLeague.startsWith('/strategie-rubata') || pathAfterLeague.startsWith('/rose') || pathAfterLeague.startsWith('/all-players')) return 'rosa'
   if (pathAfterLeague.startsWith('/financials') || pathAfterLeague.startsWith('/contracts') || pathAfterLeague.startsWith('/movements') || pathAfterLeague.startsWith('/history')) return 'finanze'
   return 'home' // default

@@ -348,6 +348,7 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
   const [sessions, setSessions] = useState<Session[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   // Filtri
   const [searchQuery, setSearchQuery] = useState('')
@@ -365,27 +366,33 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
   }, [leagueId])
 
   async function loadData() {
-    const [rosterResult, leagueResult, sessionsResult] = await Promise.all([
-      auctionApi.getRoster(leagueId),
-      leagueApi.getById(leagueId),
-      auctionApi.getSessions(leagueId)
-    ])
+    setError(null)
+    setIsLoading(true)
+    try {
+      const [rosterResult, leagueResult, sessionsResult] = await Promise.all([
+        auctionApi.getRoster(leagueId),
+        leagueApi.getById(leagueId),
+        auctionApi.getSessions(leagueId)
+      ])
 
-    if (rosterResult.success && rosterResult.data) {
-      // Debug: log first player to see if apiFootballId is present
-      const data = rosterResult.data as RosterData
-      const firstPlayer = data.roster?.P?.[0] || data.roster?.D?.[0] || data.roster?.C?.[0] || data.roster?.A?.[0]
-      if (firstPlayer) {
-        console.log('Roster API response - first player:', firstPlayer.player.name, 'apiFootballId:', firstPlayer.player.apiFootballId)
+      if (rosterResult.success && rosterResult.data) {
+        // Debug: log first player to see if apiFootballId is present
+        const data = rosterResult.data as RosterData
+        const firstPlayer = data.roster?.P?.[0] || data.roster?.D?.[0] || data.roster?.C?.[0] || data.roster?.A?.[0]
+        if (firstPlayer) {
+          console.log('Roster API response - first player:', firstPlayer.player.name, 'apiFootballId:', firstPlayer.player.apiFootballId)
+        }
+        setRosterData(data)
       }
-      setRosterData(data)
-    }
-    if (leagueResult.success && leagueResult.data) {
-      const data = leagueResult.data as { isAdmin: boolean }
-      setIsLeagueAdmin(data.isAdmin)
-    }
-    if (sessionsResult.success && sessionsResult.data) {
-      setSessions(sessionsResult.data as Session[])
+      if (leagueResult.success && leagueResult.data) {
+        const data = leagueResult.data as { isAdmin: boolean }
+        setIsLeagueAdmin(data.isAdmin)
+      }
+      if (sessionsResult.success && sessionsResult.data) {
+        setSessions(sessionsResult.data as Session[])
+      }
+    } catch {
+      setError('Errore nel caricamento della rosa')
     }
     setIsLoading(false)
   }
@@ -410,7 +417,13 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-5xl mb-4">😕</div>
-          <p className="text-xl text-danger-400">Errore nel caricamento della rosa</p>
+          <p className="text-xl text-danger-400">{error || 'Errore nel caricamento della rosa'}</p>
+          <button
+            onClick={() => { setError(null); loadData(); }}
+            className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
+          >
+            Riprova
+          </button>
         </div>
       </div>
     )

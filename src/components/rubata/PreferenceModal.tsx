@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/Modal'
 import { Button } from '../ui/Button'
 import { getTeamLogo } from '../../utils/teamLogos'
 
@@ -57,10 +58,9 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-surface-200 rounded-2xl p-6 max-w-md w-full shadow-2xl border border-indigo-500/50">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-4">
+    <Modal isOpen={true} onClose={onClose} size="md" showCloseButton={false} className="border-indigo-500/50">
+      <ModalHeader>
+        <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white rounded p-1">
             <TeamLogo team={player.playerTeam} />
           </div>
@@ -68,15 +68,10 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
             <h3 className="font-bold text-white">{player.playerName}</h3>
             <p className="text-sm text-gray-400">{player.playerTeam} • {player.rubataPrice}M</p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="ml-auto w-8 h-8 min-h-[44px] min-w-[44px] rounded-full bg-surface-300 text-gray-400 hover:bg-surface-50/20 flex items-center justify-center"
-          >
-            ✕
-          </button>
         </div>
+      </ModalHeader>
 
+      <ModalBody>
         {/* Form */}
         <div className="space-y-4">
           {/* Max bid with +/- buttons */}
@@ -169,28 +164,27 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
             />
           </div>
         </div>
+      </ModalBody>
 
-        {/* Actions */}
-        <div className="flex gap-2 mt-6">
-          {player.preference && (
-            <Button
-              onClick={onDelete}
-              disabled={isSubmitting}
-              variant="outline"
-              className="border-danger-500/50 text-danger-400 hover:bg-danger-500/10"
-            >
-              Rimuovi
-            </Button>
-          )}
-          <Button onClick={onClose} variant="outline" className="flex-1">
-            Annulla
+      <ModalFooter>
+        {player.preference && (
+          <Button
+            onClick={onDelete}
+            disabled={isSubmitting}
+            variant="outline"
+            className="border-danger-500/50 text-danger-400 hover:bg-danger-500/10"
+          >
+            Rimuovi
           </Button>
-          <Button onClick={handleSave} disabled={isSubmitting} className="flex-1">
-            Salva
-          </Button>
-        </div>
-      </div>
-    </div>
+        )}
+        <Button onClick={onClose} variant="outline" className="flex-1">
+          Annulla
+        </Button>
+        <Button onClick={handleSave} disabled={isSubmitting} className="flex-1">
+          Salva
+        </Button>
+      </ModalFooter>
+    </Modal>
   )
 }
 

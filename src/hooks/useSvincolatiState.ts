@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { arrayMove } from '@dnd-kit/sortable'
+import type { DragEndEvent } from '@dnd-kit/core'
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { svincolatiApi, leagueApi, auctionApi, contractApi } from '../services/api'
 import { usePusherAuction } from '../services/pusher.client'
@@ -29,7 +31,7 @@ export function useSvincolatiState(leagueId: string) {
 
   // Turn order setup
   const [turnOrderDraft, setTurnOrderDraft] = useState<TurnMember[]>([])
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
 
   // Auction
   const [bidAmount, setBidAmount] = useState('')
@@ -292,23 +294,20 @@ export function useSvincolatiState(leagueId: string) {
 
   // ========== TURN ORDER SETUP ==========
 
-  function handleDragStart(index: number) {
-    setDraggedIndex(index)
+  function handleDndDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    setDraggedId(null)
+    if (over && active.id !== over.id) {
+      setTurnOrderDraft(prev => {
+        const oldIndex = prev.findIndex(m => m.id === String(active.id))
+        const newIndex = prev.findIndex(m => m.id === String(over.id))
+        return arrayMove(prev, oldIndex, newIndex)
+      })
+    }
   }
 
-  function handleDragOver(e: React.DragEvent, index: number) {
-    e.preventDefault()
-    if (draggedIndex === null || draggedIndex === index) return
-
-    const newOrder = [...turnOrderDraft]
-    const [removed] = newOrder.splice(draggedIndex, 1)
-    newOrder.splice(index, 0, removed)
-    setTurnOrderDraft(newOrder)
-    setDraggedIndex(index)
-  }
-
-  function handleDragEnd() {
-    setDraggedIndex(null)
+  function handleDndDragStart(event: { active: { id: string | number } }) {
+    setDraggedId(String(event.active.id))
   }
 
   async function handleSetTurnOrder() {
@@ -859,7 +858,7 @@ export function useSvincolatiState(leagueId: string) {
     // Turn order setup
     turnOrderDraft,
     setTurnOrderDraft,
-    draggedIndex,
+    draggedId,
 
     // Auction
     bidAmount,
@@ -908,9 +907,8 @@ export function useSvincolatiState(leagueId: string) {
     getTimerClass,
 
     // Turn order handlers
-    handleDragStart,
-    handleDragOver,
-    handleDragEnd,
+    handleDndDragEnd,
+    handleDndDragStart,
     handleSetTurnOrder,
 
     // Manager roster handlers
@@ -970,5 +968,6 @@ export function useSvincolatiState(leagueId: string) {
     loadBoard,
     loadFreeAgents,
     loadAppealStatus,
+    setError,
   }
 }

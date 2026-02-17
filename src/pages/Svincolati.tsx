@@ -6,7 +6,52 @@ import { POSITION_NAMES } from '../components/ui/PositionBadge'
 import { ContractModifierModal } from '../components/ContractModifier'
 import { useSvincolatiState } from '../hooks/useSvincolatiState'
 import { POSITION_COLORS, POSITION_BG, SERIE_A_TEAMS } from '../types/svincolati.types'
-import type { SvincolatiProps } from '../types/svincolati.types'
+import type { SvincolatiProps, TurnMember } from '../types/svincolati.types'
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+
+interface SortableTurnItemProps {
+  member: TurnMember
+  index: number
+}
+
+function SortableTurnItem({ member, index }: SortableTurnItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: member.id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-4 p-4 rounded-lg border transition-all ${
+        isDragging
+          ? 'bg-primary-900/50 border-primary-500 shadow-glow scale-105 opacity-50'
+          : 'bg-surface-300 border-surface-50/20 hover:border-primary-500/40'
+      }`}
+    >
+      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-lg">
+        {index + 1}
+      </div>
+      <div className="flex-1">
+        <p className="font-semibold text-gray-100">{member.username}</p>
+      </div>
+      <span className="font-mono text-accent-400">{member.budget}</span>
+      <span
+        className="cursor-grab active:cursor-grabbing text-gray-500"
+        {...attributes}
+        {...listeners}
+      >
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+        </svg>
+      </span>
+    </div>
+  )
+}
 
 export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
   const {
@@ -17,7 +62,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     selectedTeam, setSelectedTeam,
     teamDropdownOpen, setTeamDropdownOpen,
     teamDropdownRef,
-    turnOrderDraft, draggedIndex,
+    turnOrderDraft,
     bidAmount, setBidAmount,
     timerRemaining,
     error, success, isSubmitting,
@@ -31,7 +76,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     isPusherConnected,
     isTimerExpired, currentUsername, isUserWinning,
     getTimerClass,
-    handleDragStart, handleDragOver, handleDragEnd, handleSetTurnOrder,
+    handleDndDragEnd, handleDndDragStart, handleSetTurnOrder,
     handleViewManagerRoster,
     handleNominate, handleConfirmNomination, handleCancelNomination, handlePassTurn,
     handleDeclareFinished, confirmDeclareFinished, handleUndoFinished, handleForceAllFinished,
@@ -45,7 +90,13 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     handleSetTimer,
     handleCompletePhase,
     handleBotNominate, handleBotConfirmNomination, handleBotBid,
+    setError, loadBoard,
   } = useSvincolatiState(leagueId)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
 
   if (isLoading) {
     return (
@@ -76,7 +127,17 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
         </header>
 
         <main className="max-w-2xl mx-auto px-4 py-8">
-          {error && <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-lg mb-6">{error}</div>}
+          {error && (
+            <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-lg mb-6">
+              <p>{error}</p>
+              <button
+                onClick={() => { setError(''); loadBoard(); }}
+                className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
+              >
+                Riprova
+              </button>
+            </div>
+          )}
           {success && <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-4 rounded-lg mb-6">{success}</div>}
 
           {/* Timer Setting */}
@@ -121,33 +182,15 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
             {turnOrderDraft.length === 0 ? (
               <div className="p-8 text-center text-warning-400">Nessun manager trovato</div>
             ) : (
-              <div className="p-4 space-y-2">
-                {turnOrderDraft.map((member, index) => (
-                  <div
-                    key={member.id}
-                    draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDragEnd={handleDragEnd}
-                    className={`flex items-center gap-4 p-4 rounded-lg border transition-all cursor-grab active:cursor-grabbing ${
-                      draggedIndex === index
-                        ? 'bg-primary-900/50 border-primary-500 shadow-glow scale-105'
-                        : 'bg-surface-300 border-surface-50/20 hover:border-primary-500/40'
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-lg">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-100">{member.username}</p>
-                    </div>
-                    <span className="font-mono text-accent-400">{member.budget}</span>
-                    <svg className="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-                    </svg>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDndDragEnd} onDragStart={handleDndDragStart}>
+                <SortableContext items={turnOrderDraft.map(m => m.id)} strategy={verticalListSortingStrategy}>
+                  <div className="p-4 space-y-2">
+                    {turnOrderDraft.map((member, index) => (
+                      <SortableTurnItem key={member.id} member={member} index={index} />
+                    ))}
                   </div>
-                ))}
-              </div>
+                </SortableContext>
+              </DndContext>
             )}
 
             <div className="p-4 border-t border-surface-50/20">
@@ -387,7 +430,17 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
       <main className="max-w-full mx-auto px-4 py-4 lg:py-6">
         {/* Error/Success Messages */}
         <div className="space-y-2 mb-4">
-          {error && <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg text-sm">{error}</div>}
+          {error && (
+            <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg text-sm">
+              <p>{error}</p>
+              <button
+                onClick={() => { setError(''); loadBoard(); }}
+                className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
+              >
+                Riprova
+              </button>
+            </div>
+          )}
           {success && <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-3 rounded-lg text-sm">{success}</div>}
         </div>
 

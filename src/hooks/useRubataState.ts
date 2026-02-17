@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { arrayMove } from '@dnd-kit/sortable'
+import type { DragEndEvent } from '@dnd-kit/core'
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { rubataApi, leagueApi, auctionApi, contractApi } from '../services/api'
 import { usePusherAuction } from '../services/pusher.client'
@@ -64,9 +66,8 @@ export function useRubataState(leagueId: string) {
   // Player stats modal state
   const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<PlayerInfo | null>(null)
 
-  // Drag and drop state
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  // Drag and drop state (kept for visual feedback via useSortable's isDragging)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
 
   // Preview mode state
   const [previewBoard, setPreviewBoard] = useState<PreviewBoardData | null>(null)
@@ -987,48 +988,20 @@ export function useRubataState(leagueId: string) {
     setOrderDraft(newOrder)
   }
 
-  function handleDragStart(e: React.DragEvent, index: number) {
-    setDraggedIndex(index)
-    e.dataTransfer.effectAllowed = 'move'
-    const target = e.currentTarget as HTMLElement
-    setTimeout(() => {
-      target.style.opacity = '0.5'
-    }, 0)
-  }
-
-  function handleDragEnd(e: React.DragEvent) {
-    const target = e.currentTarget as HTMLElement
-    target.style.opacity = '1'
-    setDraggedIndex(null)
-    setDragOverIndex(null)
-  }
-
-  function handleDragOver(e: React.DragEvent, index: number) {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    if (draggedIndex !== null && draggedIndex !== index) {
-      setDragOverIndex(index)
+  function handleDndDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    setDraggedId(null)
+    if (over && active.id !== over.id) {
+      setOrderDraft(prev => {
+        const oldIndex = prev.indexOf(String(active.id))
+        const newIndex = prev.indexOf(String(over.id))
+        return arrayMove(prev, oldIndex, newIndex)
+      })
     }
   }
 
-  function handleDragLeave() {
-    setDragOverIndex(null)
-  }
-
-  function handleDrop(e: React.DragEvent, dropIndex: number) {
-    e.preventDefault()
-    if (draggedIndex === null || draggedIndex === dropIndex) return
-
-    const newOrder = [...orderDraft]
-    const draggedItem = newOrder[draggedIndex]
-    if (!draggedItem) return
-
-    newOrder.splice(draggedIndex, 1)
-    newOrder.splice(dropIndex, 0, draggedItem)
-
-    setOrderDraft(newOrder)
-    setDraggedIndex(null)
-    setDragOverIndex(null)
+  function handleDndDragStart(event: { active: { id: string | number } }) {
+    setDraggedId(String(event.active.id))
   }
 
   // ========== Derived state ==========
@@ -1114,14 +1087,10 @@ export function useRubataState(leagueId: string) {
     // Order draft + drag and drop
     orderDraft,
     setOrderDraft,
-    draggedIndex,
-    dragOverIndex,
+    draggedId,
     moveInOrder,
-    handleDragStart,
-    handleDragEnd,
-    handleDragOver,
-    handleDragLeave,
-    handleDrop,
+    handleDndDragEnd,
+    handleDndDragStart,
 
     // Preferences
     preferencesMap,
@@ -1192,6 +1161,10 @@ export function useRubataState(leagueId: string) {
     // Preferences
     handleSavePreference,
     handleDeletePreference,
+
+    // Retry / reload
+    setError,
+    loadData,
 
     // Navigation helper
     onNavigate: undefined as unknown as (page: string, params?: Record<string, string>) => void,

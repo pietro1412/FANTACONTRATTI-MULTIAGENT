@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import * as XLSX from 'xlsx'
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/Modal'
 import { leagueApi, auctionApi, adminApi, inviteApi, contractApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
@@ -593,45 +594,44 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       </main>
 
       {/* Roster Incomplete Modal */}
-      {showRosterIncompleteModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-200 rounded-2xl p-6 max-w-lg w-full border border-surface-50/20 shadow-2xl max-h-[80vh] overflow-y-auto">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 rounded-full bg-warning-500/20 flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl">⚠️</span>
-              </div>
-              <h3 className="text-2xl font-bold text-white">Rose Incomplete</h3>
-              <p className="text-gray-400 mt-2">Non puoi chiudere l'asta finché tutte le rose non sono complete.</p>
+      <Modal isOpen={showRosterIncompleteModal} onClose={() => setShowRosterIncompleteModal(false)} size="lg">
+        <ModalHeader>Rose Incomplete</ModalHeader>
+        <ModalBody>
+          <div className="text-center mb-4">
+            <div className="w-16 h-16 rounded-full bg-warning-500/20 flex items-center justify-center mx-auto mb-4">
+              <span className="text-4xl">⚠️</span>
             </div>
-
-            <div className="bg-surface-300 rounded-xl p-4 mb-6">
-              <h4 className="text-sm font-semibold text-warning-400 uppercase tracking-wide mb-3">Dettaglio Mancanti</h4>
-              <div className="space-y-2">
-                {rosterIncompleteDetails
-                  .replace('Rose incomplete. ', '')
-                  .split('; ')
-                  .map((detail, idx) => {
-                    const [manager, missing] = detail.split(': mancano ')
-                    return (
-                      <div key={idx} className="flex justify-between items-start py-2 border-b border-surface-50/10 last:border-0">
-                        <span className="font-medium text-white">{manager}</span>
-                        <span className="text-sm text-gray-400 text-right">{missing}</span>
-                      </div>
-                    )
-                  })}
-              </div>
-            </div>
-
-            <Button
-              size="lg"
-              className="w-full"
-              onClick={() => setShowRosterIncompleteModal(false)}
-            >
-              Ho capito
-            </Button>
+            <p className="text-gray-400">Non puoi chiudere l'asta finché tutte le rose non sono complete.</p>
           </div>
-        </div>
-      )}
+
+          <div className="bg-surface-300 rounded-xl p-4">
+            <h4 className="text-sm font-semibold text-warning-400 uppercase tracking-wide mb-3">Dettaglio Mancanti</h4>
+            <div className="space-y-2">
+              {rosterIncompleteDetails
+                .replace('Rose incomplete. ', '')
+                .split('; ')
+                .map((detail, idx) => {
+                  const [manager, missing] = detail.split(': mancano ')
+                  return (
+                    <div key={idx} className="flex justify-between items-start py-2 border-b border-surface-50/10 last:border-0">
+                      <span className="font-medium text-white">{manager}</span>
+                      <span className="text-sm text-gray-400 text-right">{missing}</span>
+                    </div>
+                  )
+                })}
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            size="lg"
+            className="w-full"
+            onClick={() => setShowRosterIncompleteModal(false)}
+          >
+            Ho capito
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   )
 }

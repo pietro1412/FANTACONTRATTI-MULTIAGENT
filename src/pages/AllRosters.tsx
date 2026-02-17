@@ -302,14 +302,22 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const loadLeague = useCallback(async () => {
     setIsLoading(true)
-    const response = await leagueApi.getAllRosters(leagueId)
-    if (response.success && response.data) {
-      const data = response.data as LeagueData & { isAdmin?: boolean }
-      setLeague(data)
-      setIsLeagueAdmin(data.isAdmin || false)
+    setError(null)
+    try {
+      const response = await leagueApi.getAllRosters(leagueId)
+      if (response.success && response.data) {
+        const data = response.data as LeagueData & { isAdmin?: boolean }
+        setLeague(data)
+        setIsLeagueAdmin(data.isAdmin || false)
+      } else {
+        setError('Errore nel caricamento delle rose')
+      }
+    } catch {
+      setError('Errore di connessione')
     }
     setIsLoading(false)
   }, [leagueId])
@@ -365,8 +373,14 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
     return (
       <div className="min-h-screen bg-dark-100">
         <Navigation currentPage="allRosters" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
-        <div className="max-w-[1600px] mx-auto px-4 py-8">
-          <p className="text-gray-400 text-center">Lega non trovata</p>
+        <div className="max-w-[1600px] mx-auto px-4 py-8 text-center">
+          <p className="text-gray-400">{error || 'Lega non trovata'}</p>
+          <button
+            onClick={() => { setError(null); loadLeague(); }}
+            className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
+          >
+            Riprova
+          </button>
         </div>
       </div>
     )

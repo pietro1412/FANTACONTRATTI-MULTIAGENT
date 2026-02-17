@@ -58,6 +58,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [showSearchModal, setShowSearchModal] = useState(false)
   const [cancellingLeagueId, setCancellingLeagueId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   // T-022: Activity feed
   interface ActivityItem {
@@ -102,51 +103,64 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   }, [])
 
   async function loadData() {
-    // Check if user is superadmin
-    const statusResponse = await superadminApi.getStatus()
-    if (statusResponse.success && statusResponse.data) {
-      const isAdmin = (statusResponse.data as { isSuperAdmin: boolean }).isSuperAdmin
-      setIsSuperAdmin(isAdmin)
-      if (isAdmin) {
-        // Redirect superadmin directly to admin panel
-        onNavigate('superadmin')
-        return
+    setError(null)
+    setIsLoading(true)
+    try {
+      // Check if user is superadmin
+      const statusResponse = await superadminApi.getStatus()
+      if (statusResponse.success && statusResponse.data) {
+        const isAdmin = (statusResponse.data as { isSuperAdmin: boolean }).isSuperAdmin
+        setIsSuperAdmin(isAdmin)
+        if (isAdmin) {
+          // Redirect superadmin directly to admin panel
+          onNavigate('superadmin')
+          return
+        }
       }
+      await loadLeagues()
+    } catch {
+      setError('Errore nel caricamento dei dati. Verifica la connessione.')
+      setIsLoading(false)
     }
-    await loadLeagues()
   }
 
   async function loadLeagues() {
-    const response = await leagueApi.getAll()
-    if (response.success && response.data) {
-      const leagueData = response.data as LeagueData[]
-      setLeagues(leagueData)
+    try {
+      const response = await leagueApi.getAll()
+      if (response.success && response.data) {
+        const leagueData = response.data as LeagueData[]
+        setLeagues(leagueData)
 
-      // T-022: Load recent activity from active leagues
-      const activeLeagues = leagueData.filter(l => l.membership.status === 'ACTIVE')
-      if (activeLeagues.length > 0) {
-        const movementPromises = activeLeagues.slice(0, 3).map(async ({ league }) => {
-          const res = await movementApi.getLeagueMovements(league.id, { limit: 5 })
-          if (res.success && res.data) {
-            const movements = (res.data as { movements: Array<{ id: string; type: string; player: { name: string; position: string }; from: { username: string } | null; to: { username: string } | null; price: number | null; createdAt: string }> }).movements || []
-            return movements.map(m => ({
-              id: m.id,
-              type: m.type,
-              playerName: m.player.name,
-              playerPosition: m.player.position,
-              fromUser: m.from?.username || null,
-              toUser: m.to?.username || null,
-              price: m.price,
-              createdAt: m.createdAt,
-              leagueName: league.name,
-            }))
-          }
-          return []
-        })
-        const allMovements = (await Promise.all(movementPromises)).flat()
-        allMovements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        setActivities(allMovements.slice(0, 10))
+        // T-022: Load recent activity from active leagues
+        const activeLeagues = leagueData.filter(l => l.membership.status === 'ACTIVE')
+        if (activeLeagues.length > 0) {
+          const movementPromises = activeLeagues.slice(0, 3).map(async ({ league }) => {
+            const res = await movementApi.getLeagueMovements(league.id, { limit: 5 })
+            if (res.success && res.data) {
+              const movements = (res.data as { movements: Array<{ id: string; type: string; player: { name: string; position: string }; from: { username: string } | null; to: { username: string } | null; price: number | null; createdAt: string }> }).movements || []
+              return movements.map(m => ({
+                id: m.id,
+                type: m.type,
+                playerName: m.player.name,
+                playerPosition: m.player.position,
+                fromUser: m.from?.username || null,
+                toUser: m.to?.username || null,
+                price: m.price,
+                createdAt: m.createdAt,
+                leagueName: league.name,
+              }))
+            }
+            return []
+          })
+          const allMovements = (await Promise.all(movementPromises)).flat()
+          allMovements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          setActivities(allMovements.slice(0, 10))
+        }
+      } else {
+        setError('Errore nel caricamento delle leghe.')
       }
+    } catch {
+      setError('Errore di connessione.')
     }
     setIsLoading(false)
   }
@@ -178,6 +192,18 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             </div>
           )}
         </div>
+
+        {error && (
+          <div className="bg-danger-500/10 border border-danger-500/30 rounded-lg p-6 text-center mb-6">
+            <p className="text-danger-400">{error}</p>
+            <button
+              onClick={() => { setError(null); loadData(); }}
+              className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
+            >
+              Riprova
+            </button>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

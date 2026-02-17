@@ -351,7 +351,13 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
       <main className="max-w-[1600px] mx-auto px-4 md:px-6 py-4">
         {error && (
           <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg mb-4 text-sm">
-            {error}
+            <p>{error}</p>
+            <button
+              onClick={() => { setError(''); loadMovements(); }}
+              className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
+            >
+              Riprova
+            </button>
           </div>
         )}
 
