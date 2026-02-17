@@ -80,10 +80,10 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setFormData(p => ({
+                onClick={() => { setFormData(p => ({
                   ...p,
                   maxBid: String(Math.max(0, (parseInt(p.maxBid) || 0) - 5))
-                }))}
+                })); }}
                 disabled={!formData.maxBid || parseInt(formData.maxBid) <= 0}
                 className="w-10 h-10 min-h-[44px] min-w-[44px] rounded-lg bg-surface-300 border border-surface-50/30 text-white text-xl font-bold hover:bg-surface-50/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               >
@@ -94,7 +94,7 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
                   type="number"
                   inputMode="decimal"
                   value={formData.maxBid}
-                  onChange={e => setFormData(p => ({ ...p, maxBid: e.target.value }))}
+                  onChange={e => { setFormData(p => ({ ...p, maxBid: e.target.value })); }}
                   placeholder="—"
                   className="w-full text-center text-2xl font-bold bg-transparent text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
@@ -102,10 +102,10 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
               </div>
               <button
                 type="button"
-                onClick={() => setFormData(p => ({
+                onClick={() => { setFormData(p => ({
                   ...p,
                   maxBid: String((parseInt(p.maxBid) || 0) + 5)
-                }))}
+                })); }}
                 className="w-10 h-10 min-h-[44px] min-w-[44px] rounded-lg bg-surface-300 border border-surface-50/30 text-white text-xl font-bold hover:bg-surface-50/20 transition-all"
               >
                 +
@@ -114,7 +114,7 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
             {formData.maxBid && (
               <button
                 type="button"
-                onClick={() => setFormData(p => ({ ...p, maxBid: '' }))}
+                onClick={() => { setFormData(p => ({ ...p, maxBid: '' })); }}
                 className="mt-1 text-xs text-gray-500 hover:text-gray-400"
               >
                 Rimuovi limite
@@ -133,10 +133,10 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
                   <button
                     type="button"
                     key={star}
-                    onClick={() => setFormData(p => ({
+                    onClick={() => { setFormData(p => ({
                       ...p,
                       priority: p.priority === String(star) ? '' : String(star)
-                    }))}
+                    })); }}
                     className={`w-10 h-10 min-h-[44px] min-w-[44px] text-2xl transition-all transform hover:scale-110 ${
                       isActive ? 'text-purple-400' : 'text-gray-500 hover:text-purple-400/50'
                     }`}
@@ -157,7 +157,7 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
             <label className="block text-sm text-gray-400 mb-1">Note private</label>
             <textarea
               value={formData.notes}
-              onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))}
+              onChange={e => { setFormData(p => ({ ...p, notes: e.target.value })); }}
               placeholder="Appunti personali..."
               rows={3}
               className="w-full px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white placeholder-gray-500 focus:border-indigo-500/50 focus:outline-none resize-none"

@@ -77,7 +77,7 @@ export function AdminMembersTab({
               <div className="flex items-center justify-between text-xs text-gray-500">
                 <span>{member.teamName || '-'}</span>
                 {member.role !== 'ADMIN' && (
-                  <Button size="sm" variant="outline" className="border-danger-500/50 text-danger-400 !px-2 !py-1 !text-xs !min-h-[36px]" onClick={() => confirmKick(member.id, member.user.username)} disabled={isSubmitting}>
+                  <Button size="sm" variant="outline" className="border-danger-500/50 text-danger-400 !px-2 !py-1 !text-xs !min-h-[36px]" onClick={() => { confirmKick(member.id, member.user.username); }} disabled={isSubmitting}>
                     Espelli
                   </Button>
                 )}
@@ -117,7 +117,7 @@ export function AdminMembersTab({
                   <td className="px-5 py-4 text-right font-mono text-accent-400 text-lg">{member.currentBudget}</td>
                   <td className="px-5 py-4 text-right">
                     {member.role !== 'ADMIN' && (
-                      <Button size="sm" variant="outline" className="border-danger-500/50 text-danger-400" onClick={() => confirmKick(member.id, member.user.username)} disabled={isSubmitting}>
+                      <Button size="sm" variant="outline" className="border-danger-500/50 text-danger-400" onClick={() => { confirmKick(member.id, member.user.username); }} disabled={isSubmitting}>
                         Espelli
                       </Button>
                     )}
@@ -132,7 +132,7 @@ export function AdminMembersTab({
       {/* Appeals Section - Collapsible */}
       <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
         <button
-          onClick={() => setShowAppeals(!showAppeals)}
+          onClick={() => { setShowAppeals(!showAppeals); }}
           className="w-full p-5 flex items-center justify-between hover:bg-surface-300/30 transition-colors"
         >
           <h3 className="text-lg font-bold text-white flex items-center gap-3">
@@ -151,25 +151,25 @@ export function AdminMembersTab({
             <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
               <div className="flex gap-2">
                 <button
-                  onClick={() => setAppealFilter('')}
+                  onClick={() => { setAppealFilter(''); }}
                   className={`px-3 py-1 rounded-lg text-sm ${appealFilter === '' ? 'bg-primary-500 text-white' : 'bg-surface-300 text-gray-400 hover:bg-surface-400'}`}
                 >
                   Tutti
                 </button>
                 <button
-                  onClick={() => setAppealFilter('PENDING')}
+                  onClick={() => { setAppealFilter('PENDING'); }}
                   className={`px-3 py-1 rounded-lg text-sm ${appealFilter === 'PENDING' ? 'bg-amber-500 text-white' : 'bg-surface-300 text-gray-400 hover:bg-surface-400'}`}
                 >
                   In Attesa
                 </button>
                 <button
-                  onClick={() => setAppealFilter('ACCEPTED')}
+                  onClick={() => { setAppealFilter('ACCEPTED'); }}
                   className={`px-3 py-1 rounded-lg text-sm ${appealFilter === 'ACCEPTED' ? 'bg-green-500 text-white' : 'bg-surface-300 text-gray-400 hover:bg-surface-400'}`}
                 >
                   Accettati
                 </button>
                 <button
-                  onClick={() => setAppealFilter('REJECTED')}
+                  onClick={() => { setAppealFilter('REJECTED'); }}
                   className={`px-3 py-1 rounded-lg text-sm ${appealFilter === 'REJECTED' ? 'bg-red-500 text-white' : 'bg-surface-300 text-gray-400 hover:bg-surface-400'}`}
                 >
                   Respinti
@@ -273,13 +273,13 @@ export function AdminMembersTab({
                               placeholder="Nota di risoluzione (opzionale)"
                               rows={2}
                               value={resolutionNote}
-                              onChange={(e) => setResolutionNote(e.target.value)}
+                              onChange={(e) => { setResolutionNote(e.target.value); }}
                             />
                             <div className="flex gap-2">
                               <Button
                                 variant="primary"
                                 size="sm"
-                                onClick={() => handleResolveAppeal(appeal.id, 'ACCEPTED')}
+                                onClick={() => { handleResolveAppeal(appeal.id, 'ACCEPTED'); }}
                                 disabled={isSubmitting}
                               >
                                 Accetta (Riapri Asta)
@@ -287,7 +287,7 @@ export function AdminMembersTab({
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleResolveAppeal(appeal.id, 'REJECTED')}
+                                onClick={() => { handleResolveAppeal(appeal.id, 'REJECTED'); }}
                                 disabled={isSubmitting}
                               >
                                 Respingi
@@ -305,7 +305,7 @@ export function AdminMembersTab({
                           <Button
                             variant="primary"
                             size="sm"
-                            onClick={() => setSelectedAppealId(appeal.id)}
+                            onClick={() => { setSelectedAppealId(appeal.id); }}
                           >
                             Gestisci Ricorso
                           </Button>

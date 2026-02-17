@@ -261,7 +261,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    return () => { document.removeEventListener('mousedown', handleClickOutside); }
   }, [])
 
   useEffect(() => {
@@ -455,7 +455,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                   <div className="flex gap-2">
                     <Input
                       value={search}
-                      onChange={(e) => setSearch(e.target.value)}
+                      onChange={(e) => { setSearch(e.target.value); }}
                       placeholder="Nome..."
                       onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                       className="min-w-0 flex-1"
@@ -466,7 +466,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                   </div>
                 </div>
                 <button
-                  onClick={() => setFiltersOpen(true)}
+                  onClick={() => { setFiltersOpen(true); }}
                   className="flex items-center gap-1.5 px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-sm text-gray-300 hover:text-white transition-colors flex-shrink-0 mb-px"
                 >
                   <SlidersHorizontal size={16} />
@@ -480,7 +480,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
               {selectedForCompare.size > 0 && (
                 <div className="flex gap-2">
                   <Button
-                    onClick={() => setShowCompareModal(true)}
+                    onClick={() => { setShowCompareModal(true); }}
                     className="btn-primary flex-1"
                     disabled={selectedForCompare.size < 2}
                   >
@@ -500,7 +500,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                 <div className="flex gap-2">
                   <Input
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(e) => { setSearch(e.target.value); }}
                     placeholder="Nome..."
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                     className="min-w-0 flex-1"
@@ -534,7 +534,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                   <label className="block text-xs text-gray-400 mb-1">Squadra</label>
                   <button
                     type="button"
-                    onClick={() => setTeamDropdownOpen(!teamDropdownOpen)}
+                    onClick={() => { setTeamDropdownOpen(!teamDropdownOpen); }}
                     className="w-full px-2 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center gap-2"
                   >
                     {teamFilter ? (
@@ -577,7 +577,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
               {selectedForCompare.size > 0 && (
                 <div className="flex gap-2">
                   <Button
-                    onClick={() => setShowCompareModal(true)}
+                    onClick={() => { setShowCompareModal(true); }}
                     className="btn-primary"
                     disabled={selectedForCompare.size < 2}
                   >
@@ -592,7 +592,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
           </Card>
 
           {/* Mobile Filters BottomSheet */}
-          <BottomSheet isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filtri Statistiche">
+          <BottomSheet isOpen={filtersOpen} onClose={() => { setFiltersOpen(false); }} title="Filtri Statistiche">
             <div className="p-4 space-y-5">
               <div>
                 <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Ruolo</label>
@@ -634,7 +634,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
               </div>
 
               <button
-                onClick={() => setFiltersOpen(false)}
+                onClick={() => { setFiltersOpen(false); }}
                 className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-xl transition-colors"
               >
                 Applica Filtri
@@ -643,7 +643,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
           </BottomSheet>
 
           {/* Column Selector BottomSheet - mobile only */}
-          <BottomSheet isOpen={showColumnSelector} onClose={() => setShowColumnSelector(false)} title="Seleziona Colonne">
+          <BottomSheet isOpen={showColumnSelector} onClose={() => { setShowColumnSelector(false); }} title="Seleziona Colonne">
             <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
               {Object.entries(columnsByCategory).map(([category, columns]) => {
                 const allSelected = columns.every(c => visibleColumns.includes(c.key))
@@ -652,14 +652,14 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                   <div key={category}>
                     <button
                       type="button"
-                      onClick={() => toggleCategory(category)}
+                      onClick={() => { toggleCategory(category); }}
                       className="flex items-center gap-2 w-full text-left mb-2 group"
                     >
                       <input
                         type="checkbox"
                         checked={allSelected}
                         ref={el => { if (el) el.indeterminate = someSelected && !allSelected }}
-                        onChange={() => toggleCategory(category)}
+                        onChange={() => { toggleCategory(category); }}
                         className="w-4 h-4 rounded border-surface-50/30 bg-surface-300 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
                       />
                       <h4 className="text-xs font-semibold text-primary-400 uppercase tracking-wider group-hover:text-primary-300 transition-colors">
@@ -676,7 +676,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                           <input
                             type="checkbox"
                             checked={visibleColumns.includes(col.key)}
-                            onChange={() => toggleColumn(col.key)}
+                            onChange={() => { toggleColumn(col.key); }}
                             className="w-5 h-5 rounded border-surface-50/30 bg-surface-300 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
                           />
                           <div className="flex-1">
@@ -702,7 +702,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                   {Object.entries(COLUMN_PRESETS).map(([key, preset]) => (
                     <button
                       key={key}
-                      onClick={() => applyPreset(key)}
+                      onClick={() => { applyPreset(key); }}
                       className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                         visibleColumnsSorted === JSON.stringify([...preset.columns].sort())
                           ? 'bg-primary-500/30 text-primary-400 border border-primary-500/50'
@@ -723,7 +723,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
               <div className="relative w-full sm:w-auto">
                 <button
                   type="button"
-                  onClick={() => setShowColumnSelector(!showColumnSelector)}
+                  onClick={() => { setShowColumnSelector(!showColumnSelector); }}
                   className="flex items-center gap-2 px-3 py-1.5 bg-surface-300 hover:bg-surface-50/20 rounded-lg text-sm text-gray-300 transition-colors w-full sm:w-auto justify-center sm:justify-start"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -737,7 +737,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                   <div className="hidden sm:block">
                     <div
                       className="fixed inset-0 z-40"
-                      onClick={() => setShowColumnSelector(false)}
+                      onClick={() => { setShowColumnSelector(false); }}
                     />
                     <div className="absolute top-full left-0 mt-2 w-80 bg-surface-200 border border-surface-50/20 rounded-xl shadow-xl z-50 max-h-[60vh] overflow-y-auto">
                       <div className="p-3 border-b border-surface-50/20 sticky top-0 bg-surface-200">
@@ -745,7 +745,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                           <span className="font-medium text-white">Seleziona Colonne</span>
                           <button
                             type="button"
-                            onClick={() => setShowColumnSelector(false)}
+                            onClick={() => { setShowColumnSelector(false); }}
                             className="text-gray-400 hover:text-white"
                           >
                             ✕
@@ -761,14 +761,14 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                           <div key={category}>
                             <button
                               type="button"
-                              onClick={() => toggleCategory(category)}
+                              onClick={() => { toggleCategory(category); }}
                               className="flex items-center gap-2 w-full text-left mb-2 group"
                             >
                               <input
                                 type="checkbox"
                                 checked={allSelected}
                                 ref={el => { if (el) el.indeterminate = someSelected && !allSelected }}
-                                onChange={() => toggleCategory(category)}
+                                onChange={() => { toggleCategory(category); }}
                                 className="w-3.5 h-3.5 rounded border-surface-50/30 bg-surface-300 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
                               />
                               <h4 className="text-xs font-semibold text-primary-400 uppercase tracking-wider group-hover:text-primary-300 transition-colors">
@@ -785,7 +785,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                                   <input
                                     type="checkbox"
                                     checked={visibleColumns.includes(col.key)}
-                                    onChange={() => toggleColumn(col.key)}
+                                    onChange={() => { toggleColumn(col.key); }}
                                     className="w-4 h-4 rounded border-surface-50/30 bg-surface-300 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
                                   />
                                   <div className="flex-1">
@@ -851,7 +851,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                           scope="col"
                           aria-sort={sortBy === 'name' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                           className="px-3 py-3 text-left text-xs font-medium text-gray-400 cursor-pointer hover:text-white min-w-[180px]"
-                          onClick={() => handleSort('name')}
+                          onClick={() => { handleSort('name'); }}
                         >
                           Giocatore <SortIcon column="name" sortBy={sortBy} sortOrder={sortOrder} />
                         </th>
@@ -859,7 +859,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                           scope="col"
                           aria-sort={sortBy === 'team' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                           className="px-3 py-3 text-left text-xs font-medium text-gray-400 cursor-pointer hover:text-white min-w-[120px]"
-                          onClick={() => handleSort('team')}
+                          onClick={() => { handleSort('team'); }}
                         >
                           Squadra <SortIcon column="team" sortBy={sortBy} sortOrder={sortOrder} />
                         </th>
@@ -867,7 +867,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                           scope="col"
                           aria-sort={sortBy === 'position' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                           className="px-3 py-3 text-center text-xs font-medium text-gray-400 cursor-pointer hover:text-white w-16"
-                          onClick={() => handleSort('position')}
+                          onClick={() => { handleSort('position'); }}
                         >
                           Pos <SortIcon column="position" sortBy={sortBy} sortOrder={sortOrder} />
                         </th>
@@ -875,7 +875,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                           scope="col"
                           aria-sort={sortBy === 'quotation' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                           className="px-3 py-3 text-center text-xs font-medium text-gray-400 cursor-pointer hover:text-white w-16"
-                          onClick={() => handleSort('quotation')}
+                          onClick={() => { handleSort('quotation'); }}
                         >
                           Quot <SortIcon column="quotation" sortBy={sortBy} sortOrder={sortOrder} />
                         </th>
@@ -912,7 +912,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                                 type="checkbox"
                                 className="rounded"
                                 checked={selectedForCompare.has(player.id)}
-                                onChange={() => togglePlayerForCompare(player.id)}
+                                onChange={() => { togglePlayerForCompare(player.id); }}
                               />
                             </td>
                             <td className="px-3 py-3">
@@ -944,14 +944,14 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                                 </div>
                                 <button
                                   type="button"
-                                  onClick={() => setSelectedPlayerStats({
+                                  onClick={() => { setSelectedPlayerStats({
                                     name: player.name,
                                     team: player.team,
                                     position: player.position,
                                     quotation: player.quotation,
                                     apiFootballId: player.apiFootballId,
                                     statsSyncedAt: player.statsSyncedAt,
-                                  })}
+                                  }); }}
                                   className="font-medium text-white hover:text-primary-400 transition-colors text-left"
                                 >
                                   {player.name}
@@ -1046,7 +1046,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        onClick={() => { setPage((p) => Math.max(1, p - 1)); }}
                         disabled={page === 1}
                       >
                         Precedente
@@ -1054,7 +1054,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); }}
                         disabled={page === totalPages}
                       >
                         Successiva
@@ -1073,7 +1073,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
               <div className="sticky top-0 z-10 bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
                 <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
                   <button
-                    onClick={() => setShowCompareModal(false)}
+                    onClick={() => { setShowCompareModal(false); }}
                     className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors min-h-[44px]"
                   >
                     <span className="text-xl">←</span>
@@ -1268,7 +1268,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
       {/* Player Stats Modal */}
       <PlayerStatsModal
         isOpen={!!selectedPlayerStats}
-        onClose={() => setSelectedPlayerStats(null)}
+        onClose={() => { setSelectedPlayerStats(null); }}
         player={selectedPlayerStats}
       />
     </div>

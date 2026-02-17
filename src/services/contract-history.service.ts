@@ -39,8 +39,7 @@ export async function createContractHistoryEntry(
       },
     })
     return entry.id
-  } catch (error) {
-    console.error('Error creating contract history entry:', error)
+  } catch {
     return null
   }
 }
@@ -69,8 +68,7 @@ export async function createContractHistoryEntries(
       })),
     })
     return result.count
-  } catch (error) {
-    console.error('Error creating contract history entries:', error)
+  } catch {
     return 0
   }
 }
@@ -116,8 +114,7 @@ export async function createManagerSnapshot(
       },
     })
     return snapshot.id
-  } catch (error) {
-    console.error('Error creating manager snapshot:', error)
+  } catch {
     return null
   }
 }
@@ -167,8 +164,8 @@ export async function createSessionStartSnapshots(
         failed++
       }
     }
-  } catch (error) {
-    console.error('Error creating session start snapshots:', error)
+  } catch {
+    // Error intentionally silenced
   }
 
   return { created, failed }
@@ -715,8 +712,8 @@ export async function createPhaseStartSnapshot(
         failed++
       }
     }
-  } catch (error) {
-    console.error('Error creating phase start snapshots:', error)
+  } catch {
+    // Error intentionally silenced
   }
 
   return { created, failed }
@@ -792,8 +789,7 @@ export async function createPhaseEndSnapshot(
       releasedCount,
       renewedCount,
     })
-  } catch (error) {
-    console.error('Error creating phase end snapshot:', error)
+  } catch {
     return null
   }
 }

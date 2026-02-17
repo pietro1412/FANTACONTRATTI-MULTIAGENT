@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer'
 import type { Transporter } from 'nodemailer'
-import { IEmailService } from '../../domain/services/email.service.interface'
+import type { IEmailService } from '../../domain/services/email.service.interface'
 
 /**
  * Gmail Email Service Implementation

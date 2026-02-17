@@ -43,7 +43,7 @@ export function BottomNavBar({ onMenuOpen, leaguePhase }: BottomNavBarProps) {
 
   useEffect(() => {
     window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
+    return () => { window.removeEventListener('scroll', handleScroll); }
   }, [handleScroll])
 
   // Always show on route change
@@ -55,7 +55,7 @@ export function BottomNavBar({ onMenuOpen, leaguePhase }: BottomNavBarProps) {
   if (!leagueId) return null
 
   // Dynamic middle tab based on league phase
-  const phaseTab = getPhaseTab(leaguePhase, leagueId!)
+  const phaseTab = getPhaseTab(leaguePhase, leagueId)
 
   const tabs: TabDef[] = [
     { key: 'home', label: 'Home', icon: Home, path: `/leagues/${leagueId}` },

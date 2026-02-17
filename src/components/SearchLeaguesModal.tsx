@@ -122,7 +122,7 @@ export function SearchLeaguesModal({ isOpen, onClose, onNavigate }: SearchLeague
                 inputMode="search"
                 enterKeyHint="search"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => { setQuery(e.target.value); }}
                 placeholder="Nome lega, codice invito, admin o membro..."
                 className="w-full pl-10 pr-4 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50 focus:ring-2 focus:ring-primary-500/20 transition-all"
               />
@@ -223,7 +223,7 @@ export function SearchLeaguesModal({ isOpen, onClose, onNavigate }: SearchLeague
                         {canJoin ? (
                           <Button
                             size="sm"
-                            onClick={() => handleSelectLeague(league)}
+                            onClick={() => { handleSelectLeague(league); }}
                           >
                             Unisciti
                           </Button>
@@ -253,7 +253,7 @@ export function SearchLeaguesModal({ isOpen, onClose, onNavigate }: SearchLeague
       <JoinLeagueModal
         isOpen={selectedLeague !== null}
         league={selectedLeague}
-        onClose={() => setSelectedLeague(null)}
+        onClose={() => { setSelectedLeague(null); }}
         onSuccess={handleJoinSuccess}
       />
     </>

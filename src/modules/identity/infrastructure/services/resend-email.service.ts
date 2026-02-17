@@ -1,5 +1,5 @@
 import { Resend } from 'resend'
-import { IEmailService } from '../../domain/services/email.service.interface'
+import type { IEmailService } from '../../domain/services/email.service.interface'
 
 /**
  * Resend Email Service Implementation

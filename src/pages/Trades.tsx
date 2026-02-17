@@ -108,7 +108,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       const timer = setTimeout(() => {
         setHighlightedOfferId(undefined)
       }, 5000)
-      return () => clearTimeout(timer)
+      return () => { clearTimeout(timer); }
     }
   }, [highlightedOfferId, isLoading])
 
@@ -594,7 +594,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         {/* === Tab Bar === */}
         <div className="flex items-center gap-1 mt-3 mb-4 border-b border-surface-50/20">
           <button
-            onClick={() => setActiveTab('create')}
+            onClick={() => { setActiveTab('create'); }}
             className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
               activeTab === 'create'
                 ? 'border-primary-500 text-primary-400'
@@ -608,7 +608,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
             <span className="sm:hidden">Nuova</span>
           </button>
           <button
-            onClick={() => setActiveTab('received')}
+            onClick={() => { setActiveTab('received'); }}
             className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
               activeTab === 'received'
                 ? 'border-accent-500 text-accent-400'
@@ -625,7 +625,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
             )}
           </button>
           <button
-            onClick={() => setActiveTab('sent')}
+            onClick={() => { setActiveTab('sent'); }}
             className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
               activeTab === 'sent'
                 ? 'border-primary-500 text-primary-400'
@@ -642,7 +642,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
             )}
           </button>
           <button
-            onClick={() => setActiveTab('history')}
+            onClick={() => { setActiveTab('history'); }}
             className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
               activeTab === 'history'
                 ? 'border-gray-400 text-gray-300'
@@ -715,7 +715,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                         side="mine"
                         myRoster={myRoster}
                         selectedOfferedPlayers={selectedOfferedPlayers}
-                        onToggleOffered={(id) => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id)}
+                        onToggleOffered={(id) => { togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id); }}
                         myBudget={myBudget}
                         onViewStats={handleViewStats}
                       />
@@ -738,12 +738,12 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                       myBudget={myBudget}
                       selectedOfferedPlayers={selectedOfferedPlayers}
                       myRoster={myRoster}
-                      onRemoveOffered={(id) => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id)}
+                      onRemoveOffered={(id) => { togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id); }}
                       offeredBudget={offeredBudget}
                       onOfferedBudgetChange={setOfferedBudget}
                       selectedRequestedPlayers={selectedRequestedPlayers}
                       allOtherPlayers={allOtherPlayers}
-                      onRemoveRequested={(id) => togglePlayer(selectedRequestedPlayers, setSelectedRequestedPlayers, id)}
+                      onRemoveRequested={(id) => { togglePlayer(selectedRequestedPlayers, setSelectedRequestedPlayers, id); }}
                       requestedBudget={requestedBudget}
                       onRequestedBudgetChange={setRequestedBudget}
                       offerDuration={offerDuration}
@@ -753,8 +753,8 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                       isSubmitting={isSubmitting}
                       canSubmit={!!(selectedMemberId && (selectedOfferedPlayers.length > 0 || offeredBudget > 0 || selectedRequestedPlayers.length > 0 || requestedBudget > 0))}
                       onSubmit={handleCreateOffer}
-                      onOpenMyRoster={() => setShowMyRosterModal(true)}
-                      onOpenPartnerRoster={() => setShowPartnerRosterModal(true)}
+                      onOpenMyRoster={() => { setShowMyRosterModal(true); }}
+                      onOpenPartnerRoster={() => { setShowPartnerRosterModal(true); }}
                       onViewStats={handleViewStats}
                     />
                   </div>
@@ -790,7 +790,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                 {/* Mobile BottomSheet: La Mia Rosa */}
                 <BottomSheet
                   isOpen={showMyRosterModal}
-                  onClose={() => setShowMyRosterModal(false)}
+                  onClose={() => { setShowMyRosterModal(false); }}
                   title="La Mia Rosa"
                   maxHeight="85vh"
                 >
@@ -798,13 +798,13 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                     side="mine"
                     myRoster={myRoster}
                     selectedOfferedPlayers={selectedOfferedPlayers}
-                    onToggleOffered={(id) => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id)}
+                    onToggleOffered={(id) => { togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id); }}
                     myBudget={myBudget}
                     onViewStats={handleViewStats}
                   />
                   <div className="sticky bottom-0 px-4 py-3 bg-surface-200 border-t border-white/10">
                     <button
-                      onClick={() => setShowMyRosterModal(false)}
+                      onClick={() => { setShowMyRosterModal(false); }}
                       className="w-full py-3 rounded-xl font-bold text-base bg-danger-500/20 text-danger-400 border border-danger-500/30 active:scale-[0.98] transition-all"
                     >
                       Conferma selezione{selectedOfferedPlayers.length > 0 ? ` (${selectedOfferedPlayers.length})` : ''}
@@ -815,7 +815,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                 {/* Mobile BottomSheet: Rosa Partner */}
                 <BottomSheet
                   isOpen={showPartnerRosterModal}
-                  onClose={() => setShowPartnerRosterModal(false)}
+                  onClose={() => { setShowPartnerRosterModal(false); }}
                   title={targetMember ? `Rosa ${targetMember.user.username}` : 'Rosa Partner'}
                   maxHeight="85vh"
                 >
@@ -842,7 +842,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                   />
                   <div className="sticky bottom-0 px-4 py-3 bg-surface-200 border-t border-white/10">
                     <button
-                      onClick={() => setShowPartnerRosterModal(false)}
+                      onClick={() => { setShowPartnerRosterModal(false); }}
                       className="w-full py-3 rounded-xl font-bold text-base bg-primary-500/20 text-primary-400 border border-primary-500/30 active:scale-[0.98] transition-all"
                     >
                       Conferma selezione{selectedRequestedPlayers.length > 0 ? ` (${selectedRequestedPlayers.length})` : ''}
@@ -1142,7 +1142,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
               ] as const).map(chip => (
                 <button
                   key={chip.key}
-                  onClick={() => setHistoryFilter(chip.key)}
+                  onClick={() => { setHistoryFilter(chip.key); }}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors border ${
                     historyFilter === chip.key
                       ? 'bg-primary-500/20 text-primary-400 border-primary-500/40'
@@ -1278,7 +1278,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       {/* Player Stats Modal */}
       <PlayerStatsModal
         isOpen={!!selectedPlayerStats}
-        onClose={() => setSelectedPlayerStats(null)}
+        onClose={() => { setSelectedPlayerStats(null); }}
         player={selectedPlayerStats}
       />
 

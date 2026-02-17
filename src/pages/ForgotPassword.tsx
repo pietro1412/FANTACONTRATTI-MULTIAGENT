@@ -13,7 +13,7 @@ export function ForgotPassword() {
   const [error, setError] = useState('')
   const [emailError, setEmailError] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
-  const handleTurnstileVerify = useCallback((token: string) => setTurnstileToken(token), [])
+  const handleTurnstileVerify = useCallback((token: string) => { setTurnstileToken(token); }, [])
 
   function validateEmail() {
     if (!email.trim()) {

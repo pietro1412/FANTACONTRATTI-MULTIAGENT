@@ -199,7 +199,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
             {TABS.map(tab => (
               <button
                 key={tab.key}
-                onClick={() => handleTabClick(tab.key)}
+                onClick={() => { handleTabClick(tab.key); }}
                 className={`px-3 md:px-4 py-1.5 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors ${
                   activeTab === tab.key
                     ? 'bg-primary-500 text-white shadow-sm'
@@ -216,7 +216,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] md:text-xs text-gray-500">Fase:</span>
               <button
-                onClick={() => setSelectedSession(undefined)}
+                onClick={() => { setSelectedSession(undefined); }}
                 className={`px-2 md:px-2.5 py-1 rounded-lg text-[10px] md:text-xs font-medium transition-colors ${
                   !selectedSession
                     ? 'bg-primary-500 text-white'
@@ -228,7 +228,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
               {data.availableSessions.map((session) => (
                 <button
                   key={session.id}
-                  onClick={() => setSelectedSession(session.id)}
+                  onClick={() => { setSelectedSession(session.id); }}
                   className={`px-2 md:px-2.5 py-1 rounded-lg text-[10px] md:text-xs font-medium transition-colors ${
                     selectedSession === session.id
                       ? 'bg-primary-500 text-white'

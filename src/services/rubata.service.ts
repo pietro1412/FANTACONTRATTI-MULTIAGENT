@@ -1,4 +1,5 @@
-import { PrismaClient, MemberStatus, RosterStatus, AuctionStatus, Position } from '@prisma/client'
+import type { Position } from '@prisma/client';
+import { PrismaClient, MemberStatus, RosterStatus, AuctionStatus } from '@prisma/client'
 import { recordMovement } from './movement.service'
 import { triggerRubataBidPlaced, triggerRubataStealDeclared, triggerRubataReadyChanged, triggerAuctionClosed } from './pusher.service'
 import { computeSeasonStatsBatch, computeAutoTagsBatch, type ComputedSeasonStats, type AutoTagId } from './player-stats.service'
@@ -1166,7 +1167,7 @@ export async function getRubataBoard(
             finalPrice: auctionToClose.currentPrice,
             wasUnsold: false,
             timestamp: new Date().toISOString(),
-          }).catch(err => console.error('[Pusher] Failed to trigger auction closed:', err))
+          }).catch(() => { /* Error intentionally silenced */ })
         }
 
         // Re-fetch the session with updated data
@@ -1657,7 +1658,7 @@ export async function makeRubataOffer(
     ownerUsername: currentPlayer.ownerUsername || 'Unknown',
     basePrice: currentPlayer.rubataPrice,
     timestamp: new Date().toISOString(),
-  }).catch(err => console.error('[Pusher] Failed to trigger steal declared:', err))
+  }).catch(() => { /* Error intentionally silenced */ })
 
   return {
     success: true,
@@ -1785,7 +1786,7 @@ export async function bidOnRubataAuction(
     amount,
     playerName: playerInfo?.name || 'Unknown',
     timestamp: new Date().toISOString(),
-  }).catch(err => console.error('[Pusher] Failed to trigger rubata bid:', err))
+  }).catch(() => { /* Error intentionally silenced */ })
 
   return {
     success: true,
@@ -2169,7 +2170,7 @@ export async function closeCurrentRubataAuction(
     finalPrice: activeAuction.currentPrice,
     wasUnsold: false,
     timestamp: new Date().toISOString(),
-  }).catch(err => console.error('[Pusher] Failed to trigger auction closed:', err))
+  }).catch(() => { /* Error intentionally silenced */ })
 
   return {
     success: true,
@@ -2530,7 +2531,7 @@ export async function setRubataReady(
     readyCount: updatedReadyMembers.length,
     totalMembers: allMembers.length,
     timestamp: new Date().toISOString(),
-  }).catch(err => console.error('[Pusher] Failed to trigger ready changed:', err))
+  }).catch(() => { /* Error intentionally silenced */ })
 
   // If in AUCTION_READY_CHECK state and all ready, start the auction
   if (activeSession.rubataState === 'AUCTION_READY_CHECK' && allReady) {

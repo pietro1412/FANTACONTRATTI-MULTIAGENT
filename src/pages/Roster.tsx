@@ -130,7 +130,7 @@ function TeamCounters({ players, onTeamClick }: { players: RosterEntry[], onTeam
         {sortedTeams.map(([team, count]) => (
           <button
             key={team}
-            onClick={() => onTeamClick(team)}
+            onClick={() => { onTeamClick(team); }}
             className="flex items-center gap-1.5 bg-surface-300 rounded-lg px-2 py-1 hover:bg-surface-50/20 hover:scale-105 transition-all cursor-pointer"
           >
             <div className="w-5 h-5 bg-white rounded flex items-center justify-center p-0.5">
@@ -168,7 +168,7 @@ function TeamPlayersModal({
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
         className="bg-surface-200 rounded-xl border border-surface-50/30 max-w-2xl w-full max-h-[80vh] overflow-hidden"
-        onClick={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); }}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-surface-50/20">
@@ -541,7 +541,7 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={e => { setSearchQuery(e.target.value); }}
                 placeholder="Nome giocatore..."
                 className="w-full px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
               />
@@ -552,7 +552,7 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
               <label className="block text-xs text-gray-500 mb-1">Ruolo</label>
               <select
                 value={filterRole}
-                onChange={e => setFilterRole(e.target.value)}
+                onChange={e => { setFilterRole(e.target.value); }}
                 className="w-full px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
               >
                 <option value="">Tutti i ruoli</option>
@@ -568,7 +568,7 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
               <label className="block text-xs text-gray-500 mb-1">Squadra</label>
               <select
                 value={filterTeam}
-                onChange={e => setFilterTeam(e.target.value)}
+                onChange={e => { setFilterTeam(e.target.value); }}
                 className="w-full px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
               >
                 <option value="">Tutte le squadre</option>
@@ -617,25 +617,25 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
               <PlayerCard
                 key={entry.id}
                 entry={entry}
-                onPlayerClick={() => setSelectedPlayerStats({
+                onPlayerClick={() => { setSelectedPlayerStats({
                   name: entry.player.name,
                   team: entry.player.team,
                   position: entry.player.position,
                   quotation: entry.player.quotation,
                   apiFootballId: entry.player.apiFootballId,
                   apiFootballStats: entry.player.apiFootballStats,
-                })}
+                }); }}
               />
             ))
           )}
         </div>
 
         <div className="mt-8 flex gap-4">
-          <Button size="lg" variant="outline" onClick={() => onNavigate('rosters', { leagueId })}>
+          <Button size="lg" variant="outline" onClick={() => { onNavigate('rosters', { leagueId }); }}>
             <span className="mr-2">👥</span> Vedi tutte le rose
           </Button>
           {getActiveSession()?.currentPhase === 'CONTRATTI' && (
-            <Button size="lg" variant="outline" onClick={() => onNavigate('contracts', { leagueId })}>
+            <Button size="lg" variant="outline" onClick={() => { onNavigate('contracts', { leagueId }); }}>
               <span className="mr-2">📝</span> Gestisci Contratti
             </Button>
           )}
@@ -647,14 +647,14 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
         <TeamPlayersModal
           team={selectedTeam}
           players={allPlayers}
-          onClose={() => setSelectedTeam(null)}
+          onClose={() => { setSelectedTeam(null); }}
         />
       )}
 
       {/* Modale statistiche giocatore */}
       <PlayerStatsModal
         isOpen={!!selectedPlayerStats}
-        onClose={() => setSelectedPlayerStats(null)}
+        onClose={() => { setSelectedPlayerStats(null); }}
         player={selectedPlayerStats}
       />
     </div>

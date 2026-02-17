@@ -125,7 +125,7 @@ export function NominationPanel({
             return (
               <button
                 key={role}
-                onClick={() => setSelectedRole(role)}
+                onClick={() => { setSelectedRole(role); }}
                 className={`relative text-center px-3 py-1.5 rounded-lg text-sms font-bold border transition-all ${
                   isActive
                     ? role === 'TUTTI'
@@ -154,7 +154,7 @@ export function NominationPanel({
             type="text"
             placeholder="Nome giocatore, squadra..."
             value={searchQuery}
-            onChange={e => onSearchChange(e.target.value)}
+            onChange={e => { onSearchChange(e.target.value); }}
             className="w-full bg-slate-800/60 backdrop-blur border border-white/10 text-white rounded-lg pl-8 pr-3 py-1.5 text-sms placeholder-gray-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 focus:outline-none transition-colors"
           />
         </div>
@@ -162,7 +162,7 @@ export function NominationPanel({
         {/* View mode toggle (desktop only) */}
         <div className="hidden lg:flex gap-0.5 flex-shrink-0 bg-slate-800/40 rounded-lg p-0.5 border border-white/5">
           <button
-            onClick={() => setViewMode('card')}
+            onClick={() => { setViewMode('card'); }}
             className={`p-1.5 rounded-md transition-all ${
               viewMode === 'card'
                 ? 'bg-white/10 text-white border border-white/30'
@@ -178,7 +178,7 @@ export function NominationPanel({
             </svg>
           </button>
           <button
-            onClick={() => setViewMode('table')}
+            onClick={() => { setViewMode('table'); }}
             className={`p-1.5 rounded-md transition-all ${
               viewMode === 'table'
                 ? 'bg-white/10 text-white border border-white/30'
@@ -199,7 +199,7 @@ export function NominationPanel({
       <div className="flex items-center gap-1 mb-3 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-slate-700">
         {/* "All" button */}
         <button
-          onClick={() => onTeamChange('')}
+          onClick={() => { onTeamChange(''); }}
           className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-sm font-bold border transition-all ${
             !selectedTeam
               ? 'bg-sky-500/20 text-sky-400 border-sky-500/40'
@@ -211,7 +211,7 @@ export function NominationPanel({
         {availableTeams.map(team => (
           <button
             key={team.name}
-            onClick={() => onTeamChange(selectedTeam === team.name ? '' : team.name)}
+            onClick={() => { onTeamChange(selectedTeam === team.name ? '' : team.name); }}
             className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center border transition-all ${
               selectedTeam === team.name
                 ? 'bg-white/15 border-sky-500/50 ring-1 ring-sky-500/30'
@@ -227,7 +227,7 @@ export function NominationPanel({
       {/* Focal Card */}
       {focalPlayer && (() => {
         const focalPhotoUrl = getPlayerPhotoUrl(focalPlayer.apiFootballId)
-        const focalPosGradient = POSITION_GRADIENTS[focalPlayer.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
+        const focalPosGradient = POSITION_GRADIENTS[focalPlayer.position] || 'from-gray-500 to-gray-600'
         const focalAgeBadge = getAgeBadge(focalPlayer.age)
         const hasDetailedStats = focalPlayer.appearances != null || focalPlayer.goals != null || focalPlayer.assists != null || focalPlayer.avgRating != null
         return (
@@ -260,8 +260,8 @@ export function NominationPanel({
                     </div>
                     <span className="text-sm text-gray-400">{focalPlayer.team}</span>
                     <span className="text-gray-400">·</span>
-                    <span className={`text-sms font-bold px-2.5 py-0.5 rounded-full border ${POSITION_FILTER_COLORS[focalPlayer.position as keyof typeof POSITION_FILTER_COLORS] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}>
-                      {POSITION_NAMES[focalPlayer.position as keyof typeof POSITION_NAMES] || focalPlayer.position}
+                    <span className={`text-sms font-bold px-2.5 py-0.5 rounded-full border ${POSITION_FILTER_COLORS[focalPlayer.position] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}>
+                      {POSITION_NAMES[focalPlayer.position] || focalPlayer.position}
                     </span>
                     {focalPlayer.age != null && (
                       <>
@@ -284,7 +284,7 @@ export function NominationPanel({
 
                 {/* Close */}
                 <button
-                  onClick={() => setFocalPlayer(null)}
+                  onClick={() => { setFocalPlayer(null); }}
                   className="text-gray-500 hover:text-white p-1 flex-shrink-0"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -341,7 +341,7 @@ export function NominationPanel({
                 </button>
               )}
               <button
-                onClick={() => setFocalPlayer(null)}
+                onClick={() => { setFocalPlayer(null); }}
                 className="flex-1 px-4 py-3 bg-slate-700/40 text-sm font-semibold text-gray-400 hover:bg-slate-700/60 hover:text-white transition-all flex items-center justify-center gap-1.5 border-l border-white/10"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -364,13 +364,13 @@ export function NominationPanel({
             <div className={`grid grid-cols-2 gap-2 ${viewMode === 'table' ? 'lg:hidden' : 'lg:grid-cols-3'}`}>
               {filteredPlayers.slice(0, 50).map(player => {
                 const photoUrl = getPlayerPhotoUrl(player.apiFootballId)
-                const posGradient = POSITION_GRADIENTS[player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
+                const posGradient = POSITION_GRADIENTS[player.position] || 'from-gray-500 to-gray-600'
                 const isSelected = focalPlayer?.id === player.id
                 const ageBadge = getAgeBadge(player.age)
                 return (
                   <button
                     key={player.id}
-                    onClick={() => handlePlayerClick(player)}
+                    onClick={() => { handlePlayerClick(player); }}
                     className={`relative rounded-xl p-3 text-left transition-all border group ${
                       isSelected
                         ? 'bg-sky-500/10 border-sky-500/40 ring-1 ring-sky-500/30'
@@ -444,14 +444,14 @@ export function NominationPanel({
                 <tbody>
                   {filteredPlayers.slice(0, 50).map(player => {
                     const photoUrl = getPlayerPhotoUrl(player.apiFootballId)
-                    const posGradient = POSITION_GRADIENTS[player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
+                    const posGradient = POSITION_GRADIENTS[player.position] || 'from-gray-500 to-gray-600'
                     const isSelected = focalPlayer?.id === player.id
                     const ageBadge = getAgeBadge(player.age)
                     const mvC = getMvColor(player.avgRating)
                     return (
                       <tr
                         key={player.id}
-                        onClick={() => handlePlayerClick(player)}
+                        onClick={() => { handlePlayerClick(player); }}
                         className={`border-b border-white/5 cursor-pointer transition-colors ${
                           isSelected
                             ? 'bg-sky-500/10 border-sky-500/30'
@@ -537,7 +537,7 @@ export function NominationPanel({
       {/* Player Stats Modal */}
       <PlayerStatsModal
         isOpen={statsModalOpen}
-        onClose={() => setStatsModalOpen(false)}
+        onClose={() => { setStatsModalOpen(false); }}
         player={focalPlayer ? {
           name: focalPlayer.name,
           team: focalPlayer.team,

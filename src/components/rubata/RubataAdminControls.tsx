@@ -82,17 +82,17 @@ export function TimerSettingsPanel({
           <label className="block text-xs text-gray-400 uppercase mb-1">Offerta (sec)</label>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setOfferTimer(prev => Math.max(5, prev - 5))}
+              onClick={() => { setOfferTimer(prev => Math.max(5, prev - 5)); }}
               className="w-10 h-10 shrink-0 rounded-lg bg-surface-300 text-white hover:bg-surface-100 text-xl font-bold flex items-center justify-center"
             >−</button>
             <input
               type="number"
               value={offerTimer}
-              onChange={(e) => setOfferTimer(Math.max(5, parseInt(e.target.value) || 5))}
+              onChange={(e) => { setOfferTimer(Math.max(5, parseInt(e.target.value) || 5)); }}
               className="w-full min-w-0 text-center bg-surface-300 border border-surface-50/30 rounded-lg py-2 text-white text-lg font-bold"
             />
             <button
-              onClick={() => setOfferTimer(prev => prev + 5)}
+              onClick={() => { setOfferTimer(prev => prev + 5); }}
               className="w-10 h-10 shrink-0 rounded-lg bg-surface-300 text-white hover:bg-surface-100 text-xl font-bold flex items-center justify-center"
             >+</button>
           </div>
@@ -101,17 +101,17 @@ export function TimerSettingsPanel({
           <label className="block text-xs text-gray-400 uppercase mb-1">Asta (sec)</label>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setAuctionTimer(prev => Math.max(5, prev - 5))}
+              onClick={() => { setAuctionTimer(prev => Math.max(5, prev - 5)); }}
               className="w-10 h-10 shrink-0 rounded-lg bg-surface-300 text-white hover:bg-surface-100 text-xl font-bold flex items-center justify-center"
             >−</button>
             <input
               type="number"
               value={auctionTimer}
-              onChange={(e) => setAuctionTimer(Math.max(5, parseInt(e.target.value) || 5))}
+              onChange={(e) => { setAuctionTimer(Math.max(5, parseInt(e.target.value) || 5)); }}
               className="w-full min-w-0 text-center bg-surface-300 border border-surface-50/30 rounded-lg py-2 text-white text-lg font-bold"
             />
             <button
-              onClick={() => setAuctionTimer(prev => prev + 5)}
+              onClick={() => { setAuctionTimer(prev => prev + 5); }}
               className="w-10 h-10 shrink-0 rounded-lg bg-surface-300 text-white hover:bg-surface-100 text-xl font-bold flex items-center justify-center"
             >+</button>
           </div>
@@ -176,7 +176,7 @@ export function BotSimulationPanel({
           <label className="block text-xs text-gray-400 uppercase mb-1">Manager</label>
           <select
             value={simulateMemberId}
-            onChange={(e) => setSimulateMemberId(e.target.value)}
+            onChange={(e) => { setSimulateMemberId(e.target.value); }}
             className="w-full px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm"
           >
             <option value="">-- Seleziona --</option>
@@ -208,17 +208,17 @@ export function BotSimulationPanel({
               <label className="block text-xs text-gray-400 uppercase mb-1">Importo</label>
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setSimulateBidAmount(prev => Math.max(activeAuction.currentPrice + 1, prev - 1))}
+                  onClick={() => { setSimulateBidAmount(prev => Math.max(activeAuction.currentPrice + 1, prev - 1)); }}
                   className="w-8 h-8 rounded-lg bg-surface-300 text-white text-sm"
                 >−</button>
                 <input
                   type="number"
                   value={simulateBidAmount}
-                  onChange={(e) => setSimulateBidAmount(Math.max(activeAuction.currentPrice + 1, parseInt(e.target.value) || 0))}
+                  onChange={(e) => { setSimulateBidAmount(Math.max(activeAuction.currentPrice + 1, parseInt(e.target.value) || 0)); }}
                   className="flex-1 text-center bg-surface-300 border border-surface-50/30 rounded-lg py-1 text-white text-sm"
                 />
                 <button
-                  onClick={() => setSimulateBidAmount(prev => prev + 1)}
+                  onClick={() => { setSimulateBidAmount(prev => prev + 1); }}
                   className="w-8 h-8 rounded-lg bg-surface-300 text-white text-sm"
                 >+</button>
               </div>

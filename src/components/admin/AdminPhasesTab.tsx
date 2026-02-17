@@ -157,7 +157,7 @@ export function AdminPhasesTab({
       {/* Config Collapsible */}
       <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
         <button
-          onClick={() => setShowConfig(!showConfig)}
+          onClick={() => { setShowConfig(!showConfig); }}
           className="w-full p-5 flex items-center justify-between hover:bg-surface-300/30 transition-colors"
         >
           <h3 className="text-lg font-bold text-white flex items-center gap-3">
@@ -207,7 +207,7 @@ export function AdminPhasesTab({
       {/* Sessions History Collapsible */}
       <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
         <button
-          onClick={() => setShowHistory(!showHistory)}
+          onClick={() => { setShowHistory(!showHistory); }}
           className="w-full p-5 flex items-center justify-between hover:bg-surface-300/30 transition-colors"
         >
           <h3 className="text-lg font-bold text-white flex items-center gap-3">

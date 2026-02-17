@@ -59,7 +59,7 @@ function ToastMessage({ item, onDismiss }: { item: ToastItem; onDismiss: (id: st
   const timerRef = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => {
-    timerRef.current = setTimeout(() => onDismiss(item.id), item.duration)
+    timerRef.current = setTimeout(() => { onDismiss(item.id); }, item.duration)
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
@@ -75,7 +75,7 @@ function ToastMessage({ item, onDismiss }: { item: ToastItem; onDismiss: (id: st
       <p className="flex-1 text-sm font-medium">{item.message}</p>
       <button
         type="button"
-        onClick={() => onDismiss(item.id)}
+        onClick={() => { onDismiss(item.id); }}
         className="flex-shrink-0 p-1 rounded-lg hover:bg-white/10 transition-colors"
         aria-label="Chiudi notifica"
       >
@@ -103,10 +103,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const toast = {
-    success: useCallback((msg: string) => addToast('success', msg), [addToast]),
-    error: useCallback((msg: string) => addToast('error', msg), [addToast]),
-    warning: useCallback((msg: string) => addToast('warning', msg), [addToast]),
-    info: useCallback((msg: string) => addToast('info', msg), [addToast]),
+    success: useCallback((msg: string) => { addToast('success', msg); }, [addToast]),
+    error: useCallback((msg: string) => { addToast('error', msg); }, [addToast]),
+    warning: useCallback((msg: string) => { addToast('warning', msg); }, [addToast]),
+    info: useCallback((msg: string) => { addToast('info', msg); }, [addToast]),
   }
 
   return (

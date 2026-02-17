@@ -16,7 +16,7 @@ import { PlaceBidUseCase } from '../../application/use-cases/place-bid.use-case'
 import type { IAuctionRepository, PlaceBidResult } from '../../domain/repositories/auction.repository.interface'
 import type { Auction } from '../../domain/entities/auction.entity'
 import type { AuctionBid } from '../../domain/entities/bid.entity'
-import type { EventBus } from '../../../../shared/infrastructure/events/event-bus'
+import type { EventBus } from '@/shared/infrastructure/events/event-bus'
 
 describe('PlaceBidUseCase', () => {
   let placeBidUseCase: PlaceBidUseCase

@@ -460,7 +460,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
             <Button
               size="sm"
               variant="outline"
-              onClick={() => setEditingBaseReincrement(true)}
+              onClick={() => { setEditingBaseReincrement(true); }}
             >
               Modifica
             </Button>
@@ -470,7 +470,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
         {editingBaseReincrement ? (
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setBaseReincrementValue(Math.max(0, baseReincrementValue - 10))}
+              onClick={() => { setBaseReincrementValue(Math.max(0, baseReincrementValue - 10)); }}
               className="w-10 h-10 bg-surface-400 hover:bg-surface-500 text-white rounded-lg text-xl font-bold flex items-center justify-center"
               disabled={baseReincrementValue === 0}
             >
@@ -480,13 +480,13 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
               type="number"
               inputMode="decimal"
               value={baseReincrementValue}
-              onChange={(e) => setBaseReincrementValue(Number(e.target.value))}
-              onFocus={(e) => e.target.select()}
+              onChange={(e) => { setBaseReincrementValue(Number(e.target.value)); }}
+              onFocus={(e) => { e.target.select(); }}
               className="w-24 px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white text-center text-xl font-bold"
               min={0}
             />
             <button
-              onClick={() => setBaseReincrementValue(baseReincrementValue + 10)}
+              onClick={() => { setBaseReincrementValue(baseReincrementValue + 10); }}
               className="w-10 h-10 bg-surface-400 hover:bg-surface-500 text-white rounded-lg text-xl font-bold flex items-center justify-center"
             >
               +
@@ -995,7 +995,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                 <input
                   type="text"
                   value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onChange={(e) => { setNewCategoryName(e.target.value); }}
                   placeholder="Nome nuova categoria (es. Classifica Portieri)"
                   className="flex-1 px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white placeholder-gray-500"
                 />
@@ -1089,7 +1089,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
 
           {!showFinalizeConfirm ? (
             <Button
-              onClick={() => setShowFinalizeConfirm(true)}
+              onClick={() => { setShowFinalizeConfirm(true); }}
               disabled={isSubmitting}
             >
               Finalizza Premi
@@ -1107,7 +1107,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setShowFinalizeConfirm(false)}
+                onClick={() => { setShowFinalizeConfirm(false); }}
               >
                 Annulla
               </Button>

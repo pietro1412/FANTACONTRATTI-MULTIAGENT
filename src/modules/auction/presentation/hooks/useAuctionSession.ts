@@ -75,7 +75,7 @@ export function useAuctionSession(leagueId: string | undefined): UseAuctionSessi
   const activeSession = sessions.find((s) => s.status === 'ACTIVE') || null
 
   const createSession = useCallback(
-    async (isRegularMarket = false) => {
+    async (isRegularMarket) => {
       if (!leagueId) {
         return { success: false, message: 'No league ID' }
       }

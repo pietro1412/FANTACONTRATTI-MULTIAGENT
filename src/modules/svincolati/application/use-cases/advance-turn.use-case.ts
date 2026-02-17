@@ -8,12 +8,13 @@
  * - Updates the current nominator
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
 import {
   NotFoundError,
   ConflictError,
   ValidationError
-} from '../../../../shared/infrastructure/http/errors'
+} from '@/shared/infrastructure/http/errors'
 import type { ISvincolatiRepository } from '../../domain/repositories/svincolati.repository.interface'
 import type { AdvanceTurnDto, AdvanceTurnResultDto } from '../dto/svincolati.dto'
 import { allMembersPassed, allMembersFinished } from '../../domain/entities/turn-order.entity'

@@ -149,7 +149,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                     <p className="text-xs text-gray-500 mt-2">Condividi questo codice con i tuoi amici</p>
                   </div>
                 )}
-                <Button size="xl" onClick={() => onNavigate('dashboard')}>
+                <Button size="xl" onClick={() => { onNavigate('dashboard'); }}>
                   Vai alla Dashboard
                 </Button>
               </div>
@@ -172,7 +172,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                     label="Nome Lega"
                     type="text"
                     value={name}
-                    onChange={e => setName(e.target.value)}
+                    onChange={e => { setName(e.target.value); }}
                     placeholder="Lega Amici 2025"
                     required
                     minLength={3}
@@ -184,7 +184,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                     label="Nome della tua Squadra"
                     type="text"
                     value={teamName}
-                    onChange={e => setTeamName(e.target.value)}
+                    onChange={e => { setTeamName(e.target.value); }}
                     placeholder="I Campioni FC"
                     required
                     minLength={2}
@@ -198,7 +198,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                     </label>
                     <textarea
                       value={description}
-                      onChange={e => setDescription(e.target.value)}
+                      onChange={e => { setDescription(e.target.value); }}
                       placeholder="Una breve descrizione della lega..."
                       className="w-full px-4 py-3 text-base bg-surface-300 border-2 border-surface-50/30 rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200"
                       rows={3}
@@ -317,7 +317,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                     type="button"
                     variant="ghost"
                     size="lg"
-                    onClick={() => onNavigate('dashboard')}
+                    onClick={() => { onNavigate('dashboard'); }}
                   >
                     Annulla
                   </Button>

@@ -127,7 +127,7 @@ export function PrizePhasePage({ leagueId, onNavigate }: PrizePhasePageProps) {
             <div key={session.sessionId} className="bg-surface-200 rounded-xl border border-surface-50/20">
               {/* Session Header - clickable */}
               <button
-                onClick={() => setExpandedHistory(isExpanded ? null : session.sessionId)}
+                onClick={() => { setExpandedHistory(isExpanded ? null : session.sessionId); }}
                 className="w-full px-4 py-3 flex items-center justify-between hover:bg-surface-300/50 transition-colors rounded-xl"
               >
                 <div className="flex items-center gap-3">
@@ -238,7 +238,7 @@ export function PrizePhasePage({ leagueId, onNavigate }: PrizePhasePageProps) {
 
           <div className="text-center">
             <button
-              onClick={() => onNavigate('leagueDetail', { leagueId })}
+              onClick={() => { onNavigate('leagueDetail', { leagueId }); }}
               className="px-6 py-3 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors"
             >
               Torna alla Lega
@@ -279,7 +279,7 @@ export function PrizePhasePage({ leagueId, onNavigate }: PrizePhasePageProps) {
         {/* Back button */}
         <div className="mt-8 text-center">
           <button
-            onClick={() => onNavigate('leagueDetail', { leagueId })}
+            onClick={() => { onNavigate('leagueDetail', { leagueId }); }}
             className="px-6 py-3 bg-surface-200 text-gray-300 rounded-xl hover:bg-surface-300 transition-colors border border-surface-50/20"
           >
             Torna alla Lega

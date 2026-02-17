@@ -37,7 +37,7 @@ function SlotPlayerPhoto({ apiFootballId, playerName, position, posGradient }: {
         src={photoUrl}
         alt={playerName}
         className="w-5 h-5 rounded-full object-cover bg-slate-700 flex-shrink-0"
-        onError={() => setImgError(true)}
+        onError={() => { setImgError(true); }}
       />
     )
   }
@@ -150,7 +150,7 @@ export function MyPortfolio({ myRosterSlots, budget }: MyPortfolioProps) {
                     return (
                       <button
                         key={i}
-                        onClick={() => handleSlotClick(player, pos)}
+                        onClick={() => { handleSlotClick(player, pos); }}
                         className={`${colors.bg} border ${colors.border} rounded-lg px-2 py-1.5 min-w-[4.5rem] hover:brightness-125 transition-all cursor-pointer`}
                         title={`${player.playerName} - ${player.playerTeam} - ${player.acquisitionPrice}M${player.age ? ` - ${player.age} anni` : ''}`}
                       >

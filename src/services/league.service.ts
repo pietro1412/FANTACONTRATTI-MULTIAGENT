@@ -14,8 +14,7 @@ async function getEmailService(): Promise<IEmailService | null> {
     const { GmailEmailService } = await import('../modules/identity/infrastructure/services/gmail-email.service')
     emailService = new GmailEmailService()
     return emailService
-  } catch (error) {
-    console.error('[LeagueService] Failed to initialize email service:', error)
+  } catch {
     return null
   }
 }
@@ -263,8 +262,8 @@ async function sendJoinRequestEmail(
         )
       }
     }
-  } catch (error) {
-    console.error('[LeagueService] Failed to send join request notification:', error)
+  } catch {
+    // Error intentionally silenced
   }
 }
 
@@ -523,8 +522,8 @@ export async function updateMemberStatus(
             leagueUrl
           )
         }
-      } catch (error) {
-        console.error('[LeagueService] Failed to send approval email:', error)
+      } catch {
+        // Error intentionally silenced
       }
     }
 
@@ -548,8 +547,8 @@ export async function updateMemberStatus(
             false // rejected
           )
         }
-      } catch (error) {
-        console.error('[LeagueService] Failed to send rejection email:', error)
+      } catch {
+        // Error intentionally silenced
       }
     }
 
@@ -563,8 +562,8 @@ export async function updateMemberStatus(
             member.league.name
           )
         }
-      } catch (error) {
-        console.error('[LeagueService] Failed to send expulsion email:', error)
+      } catch {
+        // Error intentionally silenced
       }
     }
 
@@ -1153,8 +1152,8 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
     // Fetch ManagerSessionSnapshot data for each member
     // PHASE_START: valori pre-consolidamento (usati per "congelare" i dati durante CONTRATTI)
     // PHASE_END: tagli/indennizzi (usati per report post-consolidamento)
-    let phaseStartMap = new Map<string, { budget: number; totalSalaries: number; contractCount: number }>()
-    let phaseEndMap = new Map<string, { totalReleaseCosts: number | null; totalIndemnities: number | null; totalRenewalCosts: number | null; preConsolidationBudget: number | null }>()
+    const phaseStartMap = new Map<string, { budget: number; totalSalaries: number; contractCount: number }>()
+    const phaseEndMap = new Map<string, { totalReleaseCosts: number | null; totalIndemnities: number | null; totalRenewalCosts: number | null; preConsolidationBudget: number | null }>()
     if (activeSession) {
       const snapshots = await prisma.managerSessionSnapshot.findMany({
         where: {
@@ -1212,7 +1211,7 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
 
     // Durante CONTRATTI, recupera i salari dei giocatori rilasciati da ContractHistory
     // Questi dati sono necessari per calcolare i totali pre-consolidamento
-    let releasedSalariesMap = new Map<string, { totalSalary: number; count: number }>()
+    const releasedSalariesMap = new Map<string, { totalSalary: number; count: number }>()
     if (inContrattiPhase && activeContrattiSession) {
       const releaseHistory = await prisma.contractHistory.findMany({
         where: {
@@ -1439,7 +1438,7 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
             if (costByPosition[pos].postRenewal === null) {
               costByPosition[pos].postRenewal = 0
             }
-            costByPosition[pos].postRenewal! += (p.postRenewalSalary ?? p.preRenewalSalary)
+            costByPosition[pos].postRenewal += (p.postRenewalSalary ?? p.preRenewalSalary)
           }
         }
       }
@@ -1551,7 +1550,6 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
       },
     }
   } catch (error) {
-    console.error('[getLeagueFinancials] Error:', error)
     return { success: false, message: `Errore nel caricamento dati finanziari: ${(error as Error).message}` }
   }
 }
@@ -1723,7 +1721,6 @@ export async function getFinancialTimeline(
       },
     }
   } catch (error) {
-    console.error('[getFinancialTimeline] Error:', error)
     return { success: false, message: `Errore nel caricamento timeline: ${(error as Error).message}` }
   }
 }
@@ -1793,7 +1790,6 @@ export async function getFinancialTrends(leagueId: string, userId: string) {
       data: { trends },
     }
   } catch (error) {
-    console.error('[getFinancialTrends] Error:', error)
     return { success: false, message: `Errore nel caricamento trends: ${(error as Error).message}` }
   }
 }
@@ -1844,7 +1840,6 @@ export async function getStrategySummary(leagueId: string, userId: string): Prom
       data: { targets, topPriority, watching, toSell, total },
     }
   } catch (error) {
-    console.error('[getStrategySummary] Error:', error)
     return { success: false, message: `Errore nel caricamento strategie: ${(error as Error).message}` }
   }
 }

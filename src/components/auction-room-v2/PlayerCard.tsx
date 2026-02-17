@@ -45,9 +45,9 @@ function getMvColor(mv: number | null | undefined): { text: string; bg: string; 
 }
 
 export function PlayerCard({ name, team, position, quotation, age, apiFootballId, appearances, goals, assists, avgRating, size = 'md' }: PlayerCardProps) {
-  const posName = POSITION_NAMES[position as keyof typeof POSITION_NAMES] || position
-  const posGradient = POSITION_GRADIENTS[position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
-  const posBg = POSITION_FILTER_COLORS[position as keyof typeof POSITION_FILTER_COLORS] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+  const posName = POSITION_NAMES[position] || position
+  const posGradient = POSITION_GRADIENTS[position] || 'from-gray-500 to-gray-600'
+  const posBg = POSITION_FILTER_COLORS[position] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'
   const photoUrl = getPlayerPhotoUrl(apiFootballId)
   const [imgError, setImgError] = useState(false)
   const hasStats = appearances != null || goals != null || assists != null || avgRating != null
@@ -61,7 +61,7 @@ export function PlayerCard({ name, team, position, quotation, age, apiFootballId
             src={photoUrl}
             alt={name}
             className="w-7 h-7 rounded-full object-cover bg-slate-700 flex-shrink-0"
-            onError={() => setImgError(true)}
+            onError={() => { setImgError(true); }}
           />
         ) : (
           <span className={`w-7 h-7 rounded-full bg-gradient-to-br ${posGradient} flex items-center justify-center text-sms font-bold text-white flex-shrink-0`}>{position}</span>
@@ -86,7 +86,7 @@ export function PlayerCard({ name, team, position, quotation, age, apiFootballId
               src={photoUrl}
               alt={name}
               className={`rounded-xl object-cover bg-slate-700 flex-shrink-0 ${size === 'lg' ? 'w-20 h-20' : 'w-16 h-16'}`}
-              onError={() => setImgError(true)}
+              onError={() => { setImgError(true); }}
             />
           ) : (
             <span className={`rounded-xl bg-gradient-to-br ${posGradient} flex items-center justify-center text-2xl font-bold text-white flex-shrink-0 ${size === 'lg' ? 'w-20 h-20' : 'w-16 h-16'}`}>

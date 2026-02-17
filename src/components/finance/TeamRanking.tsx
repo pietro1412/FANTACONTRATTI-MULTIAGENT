@@ -38,7 +38,7 @@ export function TeamRanking({ teams, hasFinancialDetails, onTeamClick }: TeamRan
           return (
             <button
               key={team.memberId}
-              onClick={() => onTeamClick(team.memberId)}
+              onClick={() => { onTeamClick(team.memberId); }}
               className="w-full flex items-center gap-2 md:gap-3 p-2 md:p-2.5 rounded-lg hover:bg-surface-100/30 transition-colors text-left"
             >
               <span className="text-xs md:text-sm text-gray-500 w-5 text-right font-medium">

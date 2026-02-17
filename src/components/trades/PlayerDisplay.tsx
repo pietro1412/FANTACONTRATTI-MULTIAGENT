@@ -23,7 +23,7 @@ export function TeamLogo({ team, size = 'md' }: { team: string, size?: 'sm' | 'm
 export function PlayerCard({ player, compact = false }: { player: Player, compact?: boolean }) {
   const roleStyle = getRoleStyle(player.position)
 
-  const gradient = POSITION_GRADIENTS[player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
+  const gradient = POSITION_GRADIENTS[player.position] || 'from-gray-500 to-gray-600'
 
   if (compact) {
     return (
@@ -136,7 +136,7 @@ export function PlayersTable({ players }: { players: Player[] }) {
         {players.map(p => {
           const roleStyle = getRoleStyle(p.position)
           const photoUrl = getPlayerPhotoUrl(p.apiFootballId)
-          const posGradient = POSITION_GRADIENTS[p.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
+          const posGradient = POSITION_GRADIENTS[p.position] || 'from-gray-500 to-gray-600'
           return (
             <tr key={p.id} className="border-t border-surface-50/10">
               <td className="py-2">

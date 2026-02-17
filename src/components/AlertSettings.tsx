@@ -113,7 +113,7 @@ export function AlertSettings({ onClose }: AlertSettingsProps) {
               <input
                 type="checkbox"
                 checked={config.budgetLow.enabled}
-                onChange={e => update('budgetLow', 'enabled', e.target.checked)}
+                onChange={e => { update('budgetLow', 'enabled', e.target.checked); }}
                 className="sr-only peer"
               />
               <div className="w-8 h-4 bg-surface-400 peer-focus:ring-2 peer-focus:ring-primary-500/50 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary-500" />
@@ -128,7 +128,7 @@ export function AlertSettings({ onClose }: AlertSettingsProps) {
               type="number"
               inputMode="numeric"
               value={config.budgetLow.threshold}
-              onChange={e => update('budgetLow', 'threshold', parseInt(e.target.value) || 0)}
+              onChange={e => { update('budgetLow', 'threshold', parseInt(e.target.value) || 0); }}
               className="w-16 px-2 py-1 text-xs text-right bg-surface-400 border border-surface-50/20 rounded text-white"
             />
             <span className="text-xs text-gray-500">cr</span>
@@ -144,7 +144,7 @@ export function AlertSettings({ onClose }: AlertSettingsProps) {
               <input
                 type="checkbox"
                 checked={config.contractExpiring.enabled}
-                onChange={e => update('contractExpiring', 'enabled', e.target.checked)}
+                onChange={e => { update('contractExpiring', 'enabled', e.target.checked); }}
                 className="sr-only peer"
               />
               <div className="w-8 h-4 bg-surface-400 peer-focus:ring-2 peer-focus:ring-primary-500/50 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary-500" />
@@ -160,7 +160,7 @@ export function AlertSettings({ onClose }: AlertSettingsProps) {
               type="number"
               inputMode="numeric"
               value={config.contractExpiring.threshold}
-              onChange={e => update('contractExpiring', 'threshold', parseInt(e.target.value) || 1)}
+              onChange={e => { update('contractExpiring', 'threshold', parseInt(e.target.value) || 1); }}
               className="w-12 px-2 py-1 text-xs text-right bg-surface-400 border border-surface-50/20 rounded text-white"
               min={1}
               max={5}
@@ -178,7 +178,7 @@ export function AlertSettings({ onClose }: AlertSettingsProps) {
               <input
                 type="checkbox"
                 checked={config.salaryHigh.enabled}
-                onChange={e => update('salaryHigh', 'enabled', e.target.checked)}
+                onChange={e => { update('salaryHigh', 'enabled', e.target.checked); }}
                 className="sr-only peer"
               />
               <div className="w-8 h-4 bg-surface-400 peer-focus:ring-2 peer-focus:ring-primary-500/50 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary-500" />
@@ -194,7 +194,7 @@ export function AlertSettings({ onClose }: AlertSettingsProps) {
               type="number"
               inputMode="numeric"
               value={config.salaryHigh.threshold}
-              onChange={e => update('salaryHigh', 'threshold', parseInt(e.target.value) || 0)}
+              onChange={e => { update('salaryHigh', 'threshold', parseInt(e.target.value) || 0); }}
               className="w-12 px-2 py-1 text-xs text-right bg-surface-400 border border-surface-50/20 rounded text-white"
               min={10}
               max={90}
@@ -213,7 +213,7 @@ export function AlertSettings({ onClose }: AlertSettingsProps) {
               <input
                 type="checkbox"
                 checked={config.slotsFull.enabled}
-                onChange={e => update('slotsFull', 'enabled', e.target.checked)}
+                onChange={e => { update('slotsFull', 'enabled', e.target.checked); }}
                 className="sr-only peer"
               />
               <div className="w-8 h-4 bg-surface-400 peer-focus:ring-2 peer-focus:ring-primary-500/50 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary-500" />

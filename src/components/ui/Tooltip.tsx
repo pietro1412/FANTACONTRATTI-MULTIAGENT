@@ -26,7 +26,7 @@ export function Tooltip({ content, children, className = '', position = 'top' }:
       }
     }
     document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
+    return () => { document.removeEventListener('mousedown', handleClick); }
   }, [visible])
 
   const positionClasses = position === 'top'
@@ -37,8 +37,8 @@ export function Tooltip({ content, children, className = '', position = 'top' }:
     <div
       ref={ref}
       className={`relative inline-flex ${className}`}
-      onMouseEnter={() => setVisible(true)}
-      onMouseLeave={() => setVisible(false)}
+      onMouseEnter={() => { setVisible(true); }}
+      onMouseLeave={() => { setVisible(false); }}
       onClick={(e) => {
         e.stopPropagation()
         setVisible((v) => !v)

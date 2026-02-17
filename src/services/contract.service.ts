@@ -231,7 +231,7 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
 
   // If consolidated, fetch renewal history to show what changed
   // This map contains ONLY contracts that were actually modified (RENEWAL or SPALMA)
-  let modifiedContractsMap: Map<string, { newSalary: number; newDuration: number; previousSalary: number; previousDuration: number }> = new Map()
+  const modifiedContractsMap: Map<string, { newSalary: number; newDuration: number; previousSalary: number; previousDuration: number }> = new Map()
   if (isConsolidated && activeSession) {
     const renewalHistory = await prisma.contractHistory.findMany({
       where: {
@@ -1146,7 +1146,7 @@ export async function consolidateContracts(
           const renewalCost = salaryDiff > 0 ? salaryDiff : 0
 
           // Calculate new rescission clause
-          const multiplier = DURATION_MULTIPLIERS[renewal.duration as keyof typeof DURATION_MULTIPLIERS] || 7
+          const multiplier = DURATION_MULTIPLIERS[renewal.duration] || 7
           const newRescissionClause = renewal.salary * multiplier
 
           // Determine if this is a renewal (increase) or spalma (decrease salary with duration > 1)
@@ -1209,7 +1209,7 @@ export async function consolidateContracts(
           }
 
           // Calculate rescission clause
-          const multiplier = DURATION_MULTIPLIERS[nc.duration as keyof typeof DURATION_MULTIPLIERS] || 7
+          const multiplier = DURATION_MULTIPLIERS[nc.duration] || 7
           const rescissionClause = nc.salary * multiplier
 
           // Create contract
@@ -1518,10 +1518,8 @@ export async function consolidateContracts(
     // After successful consolidation, batch create contract history entries
     if (historyEntries.length > 0) {
       try {
-        const createdCount = await createContractHistoryEntries(historyEntries)
-        console.log(`Created ${createdCount} contract history entries for member ${member.id}`)
-      } catch (error) {
-        console.error('Error creating contract history entries:', error)
+        await createContractHistoryEntries(historyEntries)
+      } catch {
         // Don't fail the consolidation if history creation fails
       }
     }
@@ -1529,8 +1527,7 @@ export async function consolidateContracts(
     // After successful consolidation, create PHASE_END snapshot
     try {
       await createPhaseEndSnapshot(activeSession.id, member.id)
-    } catch (error) {
-      console.error('Error creating phase end snapshot:', error)
+    } catch {
       // Don't fail the consolidation if snapshot fails
     }
 
@@ -2022,7 +2019,7 @@ export async function modifyContractPostAcquisition(
   }
 
   // Get existing renewal history or initialize empty array
-  const renewalHistory = (contract.renewalHistory as unknown[] || []) as unknown[]
+  const renewalHistory = (contract.renewalHistory as unknown[] || [])
 
   // Update contract
   const updatedContract = await prisma.playerContract.update({

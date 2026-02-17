@@ -33,7 +33,7 @@ export function ShareButton({
     try {
       await navigator.clipboard.writeText(url)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setTimeout(() => { setCopied(false); }, 2000)
     } catch {
       // Last resort fallback
       const input = document.createElement('input')
@@ -43,7 +43,7 @@ export function ShareButton({
       document.execCommand('copy')
       document.body.removeChild(input)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setTimeout(() => { setCopied(false); }, 2000)
     }
   }, [title, text, url])
 

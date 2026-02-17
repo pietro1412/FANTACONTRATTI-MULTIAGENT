@@ -289,7 +289,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
           <h4 className="text-sm font-semibold text-white mb-3">Aggiungi Risposta</h4>
           <textarea
             value={responseContent}
-            onChange={e => setResponseContent(e.target.value)}
+            onChange={e => { setResponseContent(e.target.value); }}
             placeholder="Scrivi una risposta..."
             rows={4}
             className="w-full px-4 py-3 bg-surface-300/50 border border-surface-50/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none mb-3"
@@ -299,7 +299,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
               <label className="text-xs text-gray-500 mb-1 block">Cambia stato (opzionale):</label>
               <select
                 value={responseStatus}
-                onChange={e => setResponseStatus(e.target.value)}
+                onChange={e => { setResponseStatus(e.target.value); }}
                 className="w-full px-3 py-2 bg-surface-300/50 border border-surface-50/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
               >
                 <option value="">Nessun cambio</option>

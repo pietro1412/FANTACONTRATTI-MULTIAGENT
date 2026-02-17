@@ -104,7 +104,7 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
     loadNotifications()
     // Poll every 30 seconds for new notifications
     const interval = setInterval(loadNotifications, 30000)
-    return () => clearInterval(interval)
+    return () => { clearInterval(interval); }
   }, [leagueId, isAdmin])
 
   // Close dropdown when clicking outside
@@ -115,7 +115,7 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    return () => { document.removeEventListener('mousedown', handleClickOutside); }
   }, [])
 
   async function loadNotifications() {
@@ -165,7 +165,7 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
     <div className="relative" ref={dropdownRef}>
       {/* Bell Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => { setIsOpen(!isOpen); }}
         className="relative p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-surface-300/50"
         title="Notifiche"
         aria-label="Notifiche"
@@ -190,7 +190,7 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
             {isAdmin && requestCount > 0 ? (
               <div className="flex gap-2">
                 <button
-                  onClick={() => setActiveTab('trades')}
+                  onClick={() => { setActiveTab('trades'); }}
                   className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                     activeTab === 'trades'
                       ? 'bg-primary-500/20 text-primary-400'
@@ -200,7 +200,7 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
                   Offerte {tradeCount > 0 && <span className="ml-1 px-1.5 py-0.5 bg-primary-500/30 rounded-full">{tradeCount}</span>}
                 </button>
                 <button
-                  onClick={() => setActiveTab('requests')}
+                  onClick={() => { setActiveTab('requests'); }}
                   className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                     activeTab === 'requests'
                       ? 'bg-accent-500/20 text-accent-400'
@@ -243,7 +243,7 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
                   return (
                     <div
                       key={offer.id}
-                      onClick={() => handleViewOffer(offer.id)}
+                      onClick={() => { handleViewOffer(offer.id); }}
                       className="p-3 border-b border-surface-50/10 last:border-b-0 hover:bg-surface-300/50 cursor-pointer transition-colors"
                     >
                       {/* Sender & Time */}

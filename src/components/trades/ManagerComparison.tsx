@@ -131,7 +131,7 @@ export function ManagerComparison({ myTeam, otherTeam, hasFinancialDetails, onCl
         {/* CTA */}
         <div className="mt-4 pt-3 border-t border-surface-50/20">
           <Button
-            onClick={() => onStartTrade(otherTeam.memberId)}
+            onClick={() => { onStartTrade(otherTeam.memberId); }}
             className="w-full"
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -348,7 +348,7 @@ export async function computeAutoTagsBatch(
     }
 
     // RIGORISTA: from apiFootballStats
-    const stats = player.apiFootballStats as Record<string, unknown> | null
+    const stats = player.apiFootballStats
     if (stats) {
       const penalty = stats.penalty as { scored?: number } | undefined
       if (penalty && (penalty.scored || 0) > 0) tags.push('RIGORISTA')

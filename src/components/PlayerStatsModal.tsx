@@ -131,9 +131,9 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
     setHistoryLoading(true)
     fetch(`${API_URL}/api/players/${player.apiFootballId}/match-history`)
       .then(res => res.ok ? res.json() : { data: [] })
-      .then(data => setMatchHistory(data.data || []))
-      .catch(() => setMatchHistory([]))
-      .finally(() => setHistoryLoading(false))
+      .then(data => { setMatchHistory(data.data || []); })
+      .catch(() => { setMatchHistory([]); })
+      .finally(() => { setHistoryLoading(false); })
   }, [activeTab, player?.apiFootballId])
 
   if (!player) return null
@@ -214,7 +214,7 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
         {/* T-025: Tab bar */}
         <div className="flex gap-1 mb-4 bg-surface-300/50 rounded-lg p-1">
           <button
-            onClick={() => setActiveTab('panoramica')}
+            onClick={() => { setActiveTab('panoramica'); }}
             className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'panoramica' ? 'bg-primary-500/20 text-primary-400' : 'text-gray-400 hover:text-white'
             }`}
@@ -222,7 +222,7 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
             Panoramica
           </button>
           <button
-            onClick={() => setActiveTab('storico')}
+            onClick={() => { setActiveTab('storico'); }}
             className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'storico' ? 'bg-primary-500/20 text-primary-400' : 'text-gray-400 hover:text-white'
             }`}

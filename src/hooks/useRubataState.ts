@@ -102,7 +102,7 @@ export function useRubataState(leagueId: string) {
         })
       }, 1000)
 
-      return () => clearInterval(interval)
+      return () => { clearInterval(interval); }
     } else {
       setTimerDisplay(null)
     }
@@ -369,7 +369,7 @@ export function useRubataState(leagueId: string) {
       }
     }, getPollingInterval())
 
-    return () => clearInterval(interval)
+    return () => { clearInterval(interval); }
   }, [loadBoardOnly, loadFast, loadAckOnly, boardData?.rubataState, isPusherConnected])
 
   // ========== Heartbeat ==========
@@ -388,7 +388,7 @@ export function useRubataState(leagueId: string) {
     sendHeartbeat()
 
     const interval = setInterval(sendHeartbeat, 3000)
-    return () => clearInterval(interval)
+    return () => { clearInterval(interval); }
   }, [leagueId, boardData?.myMemberId, readyStatus?.myMemberId])
 
   // ========== Admin Actions ==========
@@ -684,7 +684,7 @@ export function useRubataState(leagueId: string) {
   useEffect(() => {
     loadAppealStatus()
     const interval = setInterval(loadAppealStatus, 5000)
-    return () => clearInterval(interval)
+    return () => { clearInterval(interval); }
   }, [loadAppealStatus])
 
   async function handleAcknowledgeWithAppeal() {

@@ -303,7 +303,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
       }
     }
     document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
+    return () => { document.removeEventListener('click', handleClickOutside); }
   }, [teamDropdownOpen])
 
   useEffect(() => {
@@ -741,7 +741,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
           <div className="text-6xl mb-4">🔒</div>
           <h1 className="text-2xl font-bold text-white mb-2">Accesso Negato</h1>
           <p className="text-gray-400 mb-6">Non hai i permessi di Superadmin per accedere a questa area.</p>
-          <Button onClick={() => onNavigate('dashboard')} variant="primary">
+          <Button onClick={() => { onNavigate('dashboard'); }} variant="primary">
             Torna alla Dashboard
           </Button>
         </Card>
@@ -854,7 +854,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <label className="block text-sm font-medium text-gray-300 mb-2">Nome Foglio</label>
                   <Input
                     value={sheetName}
-                    onChange={(e) => setSheetName(e.target.value)}
+                    onChange={(e) => { setSheetName(e.target.value); }}
                     placeholder="Es: Tutti"
                     className="max-w-xs"
                   />
@@ -886,7 +886,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     {importing ? 'Importazione in corso...' : 'Importa Quotazioni'}
                   </Button>
                   <Button
-                    onClick={() => setShowDeleteConfirm(true)}
+                    onClick={() => { setShowDeleteConfirm(true); }}
                     disabled={importing || deleting || !stats || stats.totalPlayers === 0}
                     variant="outline"
                     className="border-danger-500/50 text-danger-400 hover:bg-danger-500/20"
@@ -914,7 +914,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                         <Button
                           variant="outline"
                           className="flex-1"
-                          onClick={() => setShowDeleteConfirm(false)}
+                          onClick={() => { setShowDeleteConfirm(false); }}
                           disabled={deleting}
                         >
                           Annulla
@@ -1088,7 +1088,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <label className="block text-xs text-gray-400 mb-1">Cerca</label>
                   <Input
                     value={filters.search}
-                    onChange={(e) => setFilters({ ...filters, search: e.target.value, page: 1 })}
+                    onChange={(e) => { setFilters({ ...filters, search: e.target.value, page: 1 }); }}
                     placeholder="Nome giocatore..."
                     className="w-48"
                   />
@@ -1097,7 +1097,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <label className="block text-xs text-gray-400 mb-1">Ruolo</label>
                   <select
                     value={filters.position}
-                    onChange={(e) => setFilters({ ...filters, position: e.target.value, page: 1 })}
+                    onChange={(e) => { setFilters({ ...filters, position: e.target.value, page: 1 }); }}
                     className="bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm"
                   >
                     <option value="">Tutti</option>
@@ -1111,7 +1111,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <label className="block text-xs text-gray-400 mb-1">Stato</label>
                   <select
                     value={filters.listStatus}
-                    onChange={(e) => setFilters({ ...filters, listStatus: e.target.value, page: 1 })}
+                    onChange={(e) => { setFilters({ ...filters, listStatus: e.target.value, page: 1 }); }}
                     className="bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm"
                   >
                     <option value="">Tutti</option>
@@ -1123,7 +1123,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <label className="block text-xs text-gray-400 mb-1">Squadra</label>
                   <button
                     type="button"
-                    onClick={() => setTeamDropdownOpen(!teamDropdownOpen)}
+                    onClick={() => { setTeamDropdownOpen(!teamDropdownOpen); }}
                     className="bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm flex items-center gap-2 min-w-[160px] justify-between"
                   >
                     <div className="flex items-center gap-2">
@@ -1171,7 +1171,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setFilters({ position: '', listStatus: '', search: '', team: '', page: 1 })}
+                  onClick={() => { setFilters({ position: '', listStatus: '', search: '', team: '', page: 1 }); }}
                 >
                   Reset
                 </Button>
@@ -1256,7 +1256,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                         variant="outline"
                         size="sm"
                         disabled={playersData.page <= 1}
-                        onClick={() => setFilters({ ...filters, page: filters.page - 1 })}
+                        onClick={() => { setFilters({ ...filters, page: filters.page - 1 }); }}
                       >
                         Prec.
                       </Button>
@@ -1267,7 +1267,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                         variant="outline"
                         size="sm"
                         disabled={playersData.page >= playersData.totalPages}
-                        onClick={() => setFilters({ ...filters, page: filters.page + 1 })}
+                        onClick={() => { setFilters({ ...filters, page: filters.page + 1 }); }}
                       >
                         Succ.
                       </Button>
@@ -1294,7 +1294,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <label className="block text-xs text-gray-400 mb-1">Cerca lega o utente</label>
                   <Input
                     value={leagueSearchInput}
-                    onChange={(e) => setLeagueSearchInput(e.target.value)}
+                    onChange={(e) => { setLeagueSearchInput(e.target.value); }}
                     placeholder="Nome lega o username..."
                     onKeyDown={(e) => e.key === 'Enter' && handleLeagueSearch()}
                   />
@@ -1331,7 +1331,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   {leagues.map((league) => (
                     <div key={league.id}>
                       <button
-                        onClick={() => setExpandedLeague(expandedLeague === league.id ? null : league.id)}
+                        onClick={() => { setExpandedLeague(expandedLeague === league.id ? null : league.id); }}
                         className="w-full px-6 py-4 flex items-center justify-between hover:bg-surface-300/50 transition-colors text-left"
                       >
                         <div className="flex items-center gap-4">
@@ -1639,7 +1639,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <Input
                     placeholder="es. clx123..."
                     value={manualMatchPlayerId}
-                    onChange={(e) => setManualMatchPlayerId(e.target.value)}
+                    onChange={(e) => { setManualMatchPlayerId(e.target.value); }}
                   />
                 </div>
                 <div className="flex-1 min-w-[150px]">
@@ -1647,7 +1647,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <Input
                     placeholder="es. 217"
                     value={manualMatchApiId}
-                    onChange={(e) => setManualMatchApiId(e.target.value)}
+                    onChange={(e) => { setManualMatchApiId(e.target.value); }}
                   />
                 </div>
                 <Button
@@ -1687,7 +1687,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                           <span className="text-gray-400 text-sm ml-2">{p.team}</span>
                         </div>
                         <button
-                          onClick={() => setManualMatchPlayerId(p.id)}
+                          onClick={() => { setManualMatchPlayerId(p.id); }}
                           className="text-xs text-primary-400 hover:text-primary-300"
                         >
                           Seleziona
@@ -1838,7 +1838,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => openSearchModal(proposal.dbPlayer)}
+                                onClick={() => { openSearchModal(proposal.dbPlayer); }}
                               >
                                 Cerca
                               </Button>
@@ -1880,7 +1880,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                 <div className="flex gap-2">
                   <Input
                     value={matchedSearch}
-                    onChange={(e) => setMatchedSearch(e.target.value)}
+                    onChange={(e) => { setMatchedSearch(e.target.value); }}
                     placeholder="Cerca giocatore..."
                     className="w-48"
                     onKeyDown={(e) => e.key === 'Enter' && loadMatchedPlayers(matchedSearch)}
@@ -2049,7 +2049,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
 
                             <select
                               value={classifications[player.playerId] || 'RITIRATO'}
-                              onChange={(e) => handleClassificationChange(player.playerId, e.target.value as ExitReason)}
+                              onChange={(e) => { handleClassificationChange(player.playerId, e.target.value as ExitReason); }}
                               className={`px-4 py-2 rounded-lg border text-sm font-medium ${
                                 EXIT_REASON_COLORS[classifications[player.playerId] || 'RITIRATO']
                               } bg-surface-200 cursor-pointer min-w-[140px]`}
@@ -2221,7 +2221,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
               <div className="flex gap-3 mb-4">
                 <Input
                   value={apiSearchQuery}
-                  onChange={(e) => setApiSearchQuery(e.target.value)}
+                  onChange={(e) => { setApiSearchQuery(e.target.value); }}
                   placeholder="Cerca per nome..."
                   className="flex-1"
                   onKeyDown={(e) => e.key === 'Enter' && handleApiSearch()}
@@ -2255,7 +2255,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                           name="apiPlayer"
                           value={player.id}
                           checked={selectedApiPlayer === player.id}
-                          onChange={() => setSelectedApiPlayer(player.id)}
+                          onChange={() => { setSelectedApiPlayer(player.id); }}
                           className="w-4 h-4 text-primary-500"
                         />
                         <div className="flex-1">

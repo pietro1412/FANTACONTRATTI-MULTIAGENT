@@ -1,4 +1,5 @@
-import { PrismaClient, Position } from '@prisma/client'
+import type { Position } from '@prisma/client';
+import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -108,12 +109,6 @@ export async function getPlayersWithStats(filters: PlayerStatsFilters = {}) {
     page = 1,
     limit = 50,
   } = filters
-
-  // Debug: check how many players have stats
-  const withStatsCount = await prisma.serieAPlayer.count({
-    where: { apiFootballStats: { not: { equals: null } } }
-  })
-  console.log(`[PlayerStats] Players with apiFootballStats: ${withStatsCount}`)
 
   const where: Record<string, unknown> = {
     isActive: true,

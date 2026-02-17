@@ -5,14 +5,16 @@
  * deducting budget, and publishing domain events.
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import type {
+  ConflictError} from '@/shared/infrastructure/http/errors';
 import {
   NotFoundError,
-  ConflictError,
   AuctionClosedError,
-} from '../../../../shared/infrastructure/http/errors'
-import { DomainEventTypes } from '../../../../shared/infrastructure/events/domain-events'
-import type { EventBus } from '../../../../shared/infrastructure/events/event-bus'
+} from '@/shared/infrastructure/http/errors'
+import { DomainEventTypes } from '@/shared/infrastructure/events/domain-events'
+import type { EventBus } from '@/shared/infrastructure/events/event-bus'
 import type { IAuctionRepository } from '../../domain/repositories/auction.repository.interface'
 import type { CloseAuctionDto, CloseAuctionResultDto } from '../dto/auction.dto'
 

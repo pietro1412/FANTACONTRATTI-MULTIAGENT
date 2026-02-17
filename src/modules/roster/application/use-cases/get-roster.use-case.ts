@@ -6,8 +6,9 @@
 import type { IRosterRepository } from '../../domain/repositories/roster.repository.interface'
 import type { PlayerRoster } from '../../domain/entities/roster.entity'
 import type { PlayerContract } from '../../domain/entities/contract.entity'
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { InternalError } from '../../../../shared/infrastructure/http/errors'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import { InternalError } from '@/shared/infrastructure/http/errors'
 
 /**
  * Output type for roster entries with contracts

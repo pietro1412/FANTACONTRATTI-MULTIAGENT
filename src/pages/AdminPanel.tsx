@@ -507,7 +507,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
           {TABS.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => { setActiveTab(tab.id); }}
               className={`whitespace-nowrap flex-shrink-0 px-3 md:px-5 py-2 md:py-3 rounded-xl font-semibold flex items-center gap-1.5 md:gap-2 transition-all text-sm md:text-base min-h-[44px] ${
                 activeTab === tab.id
                   ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-glow'
@@ -594,7 +594,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       </main>
 
       {/* Roster Incomplete Modal */}
-      <Modal isOpen={showRosterIncompleteModal} onClose={() => setShowRosterIncompleteModal(false)} size="lg">
+      <Modal isOpen={showRosterIncompleteModal} onClose={() => { setShowRosterIncompleteModal(false); }} size="lg">
         <ModalHeader>Rose Incomplete</ModalHeader>
         <ModalBody>
           <div className="text-center mb-4">
@@ -626,7 +626,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
           <Button
             size="lg"
             className="w-full"
-            onClick={() => setShowRosterIncompleteModal(false)}
+            onClick={() => { setShowRosterIncompleteModal(false); }}
           >
             Ho capito
           </Button>

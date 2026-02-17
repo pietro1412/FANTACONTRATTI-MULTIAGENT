@@ -79,7 +79,7 @@ export function TradeActivityFeed({ receivedOffers, sentOffers, tradeHistory, tr
     <div className="border border-surface-50/20 rounded-xl overflow-hidden">
       {/* Collapsible header */}
       <button
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={() => { setCollapsed(!collapsed); }}
         className="w-full flex items-center justify-between px-4 py-3 bg-surface-300/50 hover:bg-surface-300/80 transition-colors"
       >
         <div className="flex items-center gap-2">
@@ -103,7 +103,7 @@ export function TradeActivityFeed({ receivedOffers, sentOffers, tradeHistory, tr
             {filters.map(f => (
               <button
                 key={f.key}
-                onClick={() => onFilterChange(f.key)}
+                onClick={() => { onFilterChange(f.key); }}
                 className={`whitespace-nowrap px-4 py-2 min-h-[40px] text-sm font-semibold rounded-full border transition-colors ${
                   filter === f.key
                     ? 'bg-accent-500/20 text-accent-400 border-accent-500/40'
@@ -182,7 +182,7 @@ function OfferRow({ offer, onView }: { offer: TimelineOffer; onView: (id: string
         )}
         {isPending && (
           <button
-            onClick={() => onView(offer.id)}
+            onClick={() => { onView(offer.id); }}
             className="text-xs text-primary-400 font-semibold hover:underline flex-shrink-0 ml-1"
           >
             Vedi

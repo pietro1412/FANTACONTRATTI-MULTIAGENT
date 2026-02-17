@@ -130,7 +130,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       <div className="min-h-screen">
         <header className="fm-header py-6">
           <div className="max-w-2xl mx-auto px-4">
-            <button onClick={() => onNavigate('leagueDetail', { leagueId })} className="text-primary-400 hover:text-primary-300 text-sm mb-2 flex items-center gap-1">
+            <button onClick={() => { onNavigate('leagueDetail', { leagueId }); }} className="text-primary-400 hover:text-primary-300 text-sm mb-2 flex items-center gap-1">
               <span>←</span> Torna alla lega
             </button>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Ordine di Chiamata</h1>
@@ -274,7 +274,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       {/* All Modals - Unchanged */}
       <ManagerDetailModal
         selectedManager={selectedManager}
-        onClose={() => setSelectedManager(null)}
+        onClose={() => { setSelectedManager(null); }}
       />
 
       <AcknowledgmentModal

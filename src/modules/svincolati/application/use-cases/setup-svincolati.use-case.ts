@@ -5,8 +5,9 @@
  * Calculates turn order based on budget and sets the first nominator.
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { NotFoundError, ValidationError, ConflictError } from '../../../../shared/infrastructure/http/errors'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import { NotFoundError, ValidationError, ConflictError } from '@/shared/infrastructure/http/errors'
 import type { ISvincolatiRepository } from '../../domain/repositories/svincolati.repository.interface'
 import type { SetupSvincolatiDto, SetupSvincolatiResultDto, TurnOrderMemberDto } from '../dto/svincolati.dto'
 import { calculateTurnOrderByBudget } from '../../domain/entities/turn-order.entity'

@@ -7,8 +7,8 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { SvincolatiPrismaRepository } from '../svincolati.prisma-repository'
-import type { NominateAtomicData } from '../../../domain/repositories/svincolati.repository.interface'
-import type { SvincolatiSession } from '../../../domain/entities/svincolati-session.entity'
+import type { NominateAtomicData } from '@/modules/svincolati/domain/repositories/svincolati.repository.interface'
+import type { SvincolatiSession } from '@/modules/svincolati/domain/entities/svincolati-session.entity'
 
 // Mock the prisma client
 vi.mock('@/lib/prisma', () => ({

@@ -817,7 +817,7 @@ export default function ApiFootballTest() {
           <input
             type="password"
             value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
+            onChange={(e) => { setApiKey(e.target.value); }}
             placeholder="Enter your API-Football key..."
             className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
           />
@@ -833,7 +833,7 @@ export default function ApiFootballTest() {
             {CATEGORIES.map(category => (
               <div key={category} className="mb-2">
                 <button
-                  onClick={() => toggleCategory(category)}
+                  onClick={() => { toggleCategory(category); }}
                   className="w-full flex items-center justify-between px-3 py-2 bg-gray-700 rounded hover:bg-gray-600 transition-colors"
                 >
                   <span className="font-medium text-green-400">{category}</span>
@@ -846,7 +846,7 @@ export default function ApiFootballTest() {
                     {API_ENDPOINTS.filter(e => e.category === category).map(endpoint => (
                       <button
                         key={endpoint.id}
-                        onClick={() => selectEndpoint(endpoint)}
+                        onClick={() => { selectEndpoint(endpoint); }}
                         className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
                           selectedEndpoint?.id === endpoint.id
                             ? 'bg-green-600 text-white'
@@ -886,7 +886,7 @@ export default function ApiFootballTest() {
                         <input
                           type="text"
                           value={paramValues[param.name] || ''}
-                          onChange={(e) => setParamValues(prev => ({ ...prev, [param.name]: e.target.value }))}
+                          onChange={(e) => { setParamValues(prev => ({ ...prev, [param.name]: e.target.value })); }}
                           placeholder={param.example || param.description}
                           className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
                         />
@@ -917,7 +917,7 @@ export default function ApiFootballTest() {
                 {/* View Mode Toggle */}
                 <div className="flex bg-gray-700 rounded overflow-hidden">
                   <button
-                    onClick={() => setViewMode('table')}
+                    onClick={() => { setViewMode('table'); }}
                     className={`px-3 py-1 text-xs font-medium transition-colors ${
                       viewMode === 'table' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-white'
                     }`}
@@ -925,7 +925,7 @@ export default function ApiFootballTest() {
                     Table
                   </button>
                   <button
-                    onClick={() => setViewMode('json')}
+                    onClick={() => { setViewMode('json'); }}
                     className={`px-3 py-1 text-xs font-medium transition-colors ${
                       viewMode === 'json' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-white'
                     }`}
@@ -960,7 +960,7 @@ export default function ApiFootballTest() {
                   >
                     {/* Result Header - Clickable */}
                     <button
-                      onClick={() => toggleResultExpanded(index)}
+                      onClick={() => { toggleResultExpanded(index); }}
                       className="w-full flex items-center justify-between p-3 text-left"
                     >
                       <span className="text-xs font-mono text-gray-400 truncate max-w-[70%]">

@@ -1,4 +1,5 @@
-import { PrismaClient, MemberStatus, RosterStatus, PlayerExitReason, Prisma } from '@prisma/client'
+import type { PlayerExitReason, Prisma } from '@prisma/client';
+import { PrismaClient, MemberStatus, RosterStatus } from '@prisma/client'
 import { recordMovement } from './movement.service'
 import { triggerIndemnityDecisionSubmitted, triggerIndemnityAllDecided } from './pusher.service'
 import type { ServiceResult } from '@/shared/types/service-result'
@@ -560,8 +561,7 @@ export async function submitPlayerDecisions(
         totalCompensation,
       },
     }
-  } catch (error) {
-    console.error('Error processing indemnity decisions:', error)
+  } catch {
     return { success: false, message: 'Errore durante l\'elaborazione delle decisioni' }
   }
 }

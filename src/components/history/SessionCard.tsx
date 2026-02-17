@@ -167,25 +167,25 @@ export function SessionCard({
           <div className="flex overflow-x-auto border-b border-surface-50/20">
             <TabButton
               active={activeTab === 'overview'}
-              onClick={() => setActiveTab('overview')}
+              onClick={() => { setActiveTab('overview'); }}
               label="Riepilogo"
             />
             {isPrimoMercato && (
               <TabButton
                 active={activeTab === 'firstMarket'}
-                onClick={() => setActiveTab('firstMarket')}
+                onClick={() => { setActiveTab('firstMarket'); }}
                 label="Aste"
               />
             )}
             <TabButton
               active={activeTab === 'trades'}
-              onClick={() => setActiveTab('trades')}
+              onClick={() => { setActiveTab('trades'); }}
               label="Scambi"
               count={session.counts.trades}
             />
             <TabButton
               active={activeTab === 'prizes'}
-              onClick={() => setActiveTab('prizes')}
+              onClick={() => { setActiveTab('prizes'); }}
               label="Premi"
               disabled={!session.prizesFinalized}
             />
@@ -193,12 +193,12 @@ export function SessionCard({
               <>
                 <TabButton
                   active={activeTab === 'rubata'}
-                  onClick={() => setActiveTab('rubata')}
+                  onClick={() => { setActiveTab('rubata'); }}
                   label="Rubata"
                 />
                 <TabButton
                   active={activeTab === 'svincolati'}
-                  onClick={() => setActiveTab('svincolati')}
+                  onClick={() => { setActiveTab('svincolati'); }}
                   label="Svincolati"
                 />
               </>

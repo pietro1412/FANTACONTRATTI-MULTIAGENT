@@ -94,12 +94,12 @@ export function playSound(type: SoundType): void {
 
 // Convenience functions for common sounds
 export const sounds = {
-  bid: () => playSound('bid'),
-  outbid: () => playSound('outbid'),
-  warning: () => playSound('warning'),
-  win: () => playSound('win'),
-  lose: () => playSound('lose'),
-  notification: () => playSound('notification'),
+  bid: () => { playSound('bid'); },
+  outbid: () => { playSound('outbid'); },
+  warning: () => { playSound('warning'); },
+  win: () => { playSound('win'); },
+  lose: () => { playSound('lose'); },
+  notification: () => { playSound('notification'); },
 }
 
 export default sounds

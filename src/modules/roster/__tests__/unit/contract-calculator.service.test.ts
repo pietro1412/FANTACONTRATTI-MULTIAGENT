@@ -4,9 +4,10 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest'
+import type {
+  IContractCalculator} from '../../domain/services/contract-calculator.service';
 import {
   ContractCalculator,
-  IContractCalculator,
   DURATION_MULTIPLIERS,
   getRescissionBreakdown,
 } from '../../domain/services/contract-calculator.service'

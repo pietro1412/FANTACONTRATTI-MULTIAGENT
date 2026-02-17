@@ -227,7 +227,7 @@ async function apiFootballFetch<T>(endpoint: string, params: Record<string, stri
   }
 
   const url = new URL(API_BASE + endpoint)
-  Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v))
+  Object.entries(params).forEach(([k, v]) => { url.searchParams.append(k, v); })
 
   const res = await fetch(url.toString(), {
     headers: {
@@ -471,9 +471,8 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
           },
         })
         savedCount++
-      } catch (e) {
+      } catch {
         // Skip duplicates (unique constraint violations)
-        console.log(`Skipped duplicate apiFootballId ${m.apiId} for player ${m.name}`)
       }
     }
 
@@ -498,7 +497,6 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
       },
     }
   } catch (error) {
-    console.error('matchPlayers error:', error)
     return { success: false, message: `Errore matching: ${(error as Error).message}` }
   }
 }
@@ -531,7 +529,6 @@ export async function manualMatch(userId: string, playerId: string, apiFootballI
 
     return { success: true, message: `${player.name} matchato con API-Football ID ${apiFootballId}` }
   } catch (error) {
-    console.error('manualMatch error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
   }
 }
@@ -670,7 +667,6 @@ export async function syncStats(userId: string): Promise<SyncResult> {
       data: { synced, notFound, noApiId, apiCallsUsed },
     }
   } catch (error) {
-    console.error('syncStats error:', error)
     return { success: false, message: `Errore sync: ${(error as Error).message}` }
   }
 }
@@ -708,7 +704,6 @@ export async function getSyncStatus(userId: string): Promise<SyncStatus> {
       },
     }
   } catch (error) {
-    console.error('getSyncStatus error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
   }
 }
@@ -806,7 +801,6 @@ export async function refreshApiFootballCache(userId: string): Promise<{ success
       apiCallsUsed,
     }
   } catch (error) {
-    console.error('refreshApiFootballCache error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}`, apiCallsUsed: 0 }
   }
 }
@@ -957,7 +951,6 @@ export async function getMatchProposals(userId: string): Promise<ProposalsResult
       data: { proposals, apiCallsUsed, cacheRefreshed },
     }
   } catch (error) {
-    console.error('getMatchProposals error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
   }
 }
@@ -1012,7 +1005,6 @@ export async function searchApiFootballPlayers(userId: string, query: string): P
       data: { players: matchingPlayers },
     }
   } catch (error) {
-    console.error('searchApiFootballPlayers error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
   }
 }
@@ -1065,7 +1057,6 @@ export async function getUnmatchedPlayers(userId: string, search?: string): Prom
       },
     }
   } catch (error) {
-    console.error('getUnmatchedPlayers error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
   }
 }
@@ -1128,7 +1119,6 @@ export async function getMatchedPlayers(userId: string, search?: string): Promis
       },
     }
   } catch (error) {
-    console.error('getMatchedPlayers error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
   }
 }
@@ -1224,7 +1214,6 @@ export async function syncStatsInternal(): Promise<SyncResult> {
       data: { synced, notFound, noApiId, apiCallsUsed },
     }
   } catch (error) {
-    console.error('syncStatsInternal error:', error)
     return { success: false, message: `Errore sync: ${(error as Error).message}` }
   }
 }
@@ -1271,7 +1260,6 @@ export async function refreshCacheInternal(): Promise<{ success: boolean; messag
 
     return { success: true, message: `Cache aggiornata: ${allPlayers.length} giocatori da ${teams.length} squadre`, apiCallsUsed }
   } catch (error) {
-    console.error('refreshCacheInternal error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}`, apiCallsUsed: 0 }
   }
 }
@@ -1430,8 +1418,7 @@ export async function syncMatchRatings(options: { maxFixtures?: number } = {}): 
 
         // Rate limiting between fixtures
         await new Promise((resolve) => setTimeout(resolve, 150))
-      } catch (fixtureError) {
-        console.error(`[SYNC] Error processing fixture ${fixture.fixture.id}:`, fixtureError)
+      } catch {
         // Continue with next fixture
       }
     }
@@ -1464,8 +1451,6 @@ export async function syncMatchRatings(options: { maxFixtures?: number } = {}): 
       },
     }
   } catch (error) {
-    console.error('syncMatchRatings error:', error)
-
     // Log failure
     try {
       await prisma.apiFootballSyncLog.create({
@@ -1493,8 +1478,7 @@ export async function getSyncHistory(): Promise<{ success: boolean; data?: unkno
       take: 50,
     })
     return { success: true, data: logs }
-  } catch (error) {
-    console.error('getSyncHistory error:', error)
+  } catch {
     return { success: false }
   }
 }
@@ -1533,7 +1517,6 @@ export async function removeMatch(userId: string, playerId: string): Promise<{ s
 
     return { success: true, message: `Match rimosso per ${player.name}` }
   } catch (error) {
-    console.error('removeMatch error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
   }
 }

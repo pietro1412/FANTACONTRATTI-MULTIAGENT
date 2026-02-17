@@ -21,8 +21,9 @@ import {
   TeamNotFoundError,
   SessionNotFoundError,
 } from '../errors'
+import type {
+  Result} from '../result';
 import {
-  Result,
   Success,
   Failure,
   ok,

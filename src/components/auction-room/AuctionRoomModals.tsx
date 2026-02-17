@@ -71,7 +71,7 @@ export function ManagerDetailModal({ selectedManager, onClose }: ManagerDetailMo
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20" onClick={e => e.stopPropagation()}>
+      <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20" onClick={e => { e.stopPropagation(); }}>
         <div className="p-6">
           <div className="flex justify-between items-start mb-4">
             <div>
@@ -255,7 +255,7 @@ export function AcknowledgmentModal({
           {/* Profezia opzionale */}
           <textarea
             value={prophecyContent}
-            onChange={e => setProphecyContent(e.target.value)}
+            onChange={e => { setProphecyContent(e.target.value); }}
             className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-3 text-white placeholder-gray-500 mb-4"
             rows={2}
             placeholder="Profezia (opzionale)..."
@@ -270,7 +270,7 @@ export function AcknowledgmentModal({
               </p>
               <textarea
                 value={appealContent}
-                onChange={e => setAppealContent(e.target.value)}
+                onChange={e => { setAppealContent(e.target.value); }}
                 className="w-full bg-surface-300 border border-danger-500/50 rounded-lg p-3 text-white placeholder-gray-500"
                 rows={3}
                 placeholder="Descrivi il motivo del ricorso..."
@@ -282,7 +282,7 @@ export function AcknowledgmentModal({
           {/* Bottoni Azione */}
           <div className="flex gap-3">
             <Button
-              onClick={() => onAcknowledge(!!prophecyContent.trim())}
+              onClick={() => { onAcknowledge(!!prophecyContent.trim()); }}
               disabled={ackSubmitting}
               className="flex-1 bg-secondary-500 hover:bg-secondary-600 text-white font-bold py-3"
             >
@@ -290,7 +290,7 @@ export function AcknowledgmentModal({
             </Button>
             {!isAppealMode ? (
               <Button
-                onClick={() => setIsAppealMode(true)}
+                onClick={() => { setIsAppealMode(true); }}
                 disabled={ackSubmitting}
                 variant="outline"
                 className="flex-1 border-danger-500 text-danger-400 hover:bg-danger-500/10 py-3"
@@ -299,7 +299,7 @@ export function AcknowledgmentModal({
               </Button>
             ) : (
               <Button
-                onClick={() => onAcknowledge(false, true)}
+                onClick={() => { onAcknowledge(false, true); }}
                 disabled={ackSubmitting || !appealContent.trim()}
                 className="flex-1 bg-danger-500 hover:bg-danger-600 text-white py-3"
               >
@@ -316,7 +316,7 @@ export function AcknowledgmentModal({
                   {error}
                   {error.includes('PENDING') && (
                     <Button
-                      onClick={() => onNavigate('admin', { leagueId, tab: 'appeals' })}
+                      onClick={() => { onNavigate('admin', { leagueId, tab: 'appeals' }); }}
                       size="sm"
                       className="w-full mt-2 bg-danger-500 hover:bg-danger-600 text-white text-xs"
                     >
@@ -439,7 +439,7 @@ export function AppealReviewModal({
           {/* Admin button */}
           {isAdmin && (
             <Button
-              onClick={() => onNavigate('admin', { leagueId, tab: 'appeals' })}
+              onClick={() => { onNavigate('admin', { leagueId, tab: 'appeals' }); }}
               className="w-full bg-danger-500 hover:bg-danger-600 text-white font-bold py-3"
             >
               Gestisci Ricorso
@@ -473,7 +473,7 @@ export function AppealAckModal({
     if (!appealStatus?.userHasAcked) {
       onAcknowledgeAppealDecision()
     }
-    setTimeout(() => onForceAllAppealAcks(), 500)
+    setTimeout(() => { onForceAllAppealAcks(); }, 500)
   }, [isAdmin, appealStatus?.auctionStatus, pendingAck?.status, appealStatus?.userHasAcked, onAcknowledgeAppealDecision, onForceAllAppealAcks])
 
   if (!(appealStatus?.auctionStatus === 'AWAITING_APPEAL_ACK' || pendingAck?.status === 'AWAITING_APPEAL_ACK')) {
@@ -600,7 +600,7 @@ export function AwaitingResumeModal({
     if (!appealStatus?.userIsReady) {
       onReadyToResume()
     }
-    setTimeout(() => onForceAllReadyResume(), 500)
+    setTimeout(() => { onForceAllReadyResume(); }, 500)
   }, [isAdmin, appealStatus?.auctionStatus, pendingAck?.status, appealStatus?.userIsReady, onReadyToResume, onForceAllReadyResume])
 
   if (!(appealStatus?.auctionStatus === 'AWAITING_RESUME' || pendingAck?.status === 'AWAITING_RESUME')) {

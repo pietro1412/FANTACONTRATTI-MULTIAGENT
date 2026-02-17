@@ -49,7 +49,7 @@ export function RubataStepper({ currentState, className = '' }: RubataStepperPro
   const activeIndex = getStepIndex(currentState)
 
   return (
-    <div className={`${className}`}>
+    <div className={className}>
       {/* Desktop: full stepper */}
       <div className="hidden md:flex items-center gap-1">
         {STEPS.map((step, i) => {

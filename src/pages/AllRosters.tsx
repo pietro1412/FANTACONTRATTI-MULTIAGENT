@@ -184,7 +184,7 @@ function TeamCounters({ roster, onTeamClick }: { roster: RosterEntry[], onTeamCl
       {sortedTeams.map(([team, count]) => (
         <button
           key={team}
-          onClick={() => onTeamClick(team)}
+          onClick={() => { onTeamClick(team); }}
           className="flex items-center gap-1.5 bg-surface-300 rounded-lg px-2 py-1 hover:bg-surface-50/20 hover:scale-105 transition-all cursor-pointer"
         >
           <div className="w-5 h-5 bg-white rounded flex items-center justify-center p-0.5">
@@ -211,8 +211,8 @@ function TeamPlayersModal({
   const teamPlayers = players.filter(p => p.player.team === team)
     .sort((a, b) => {
       const roleOrder = { P: 0, D: 1, C: 2, A: 3 }
-      const roleA = roleOrder[a.player.position as keyof typeof roleOrder] ?? 4
-      const roleB = roleOrder[b.player.position as keyof typeof roleOrder] ?? 4
+      const roleA = roleOrder[a.player.position] ?? 4
+      const roleB = roleOrder[b.player.position] ?? 4
       if (roleA !== roleB) return roleA - roleB
       return a.player.name.localeCompare(b.player.name)
     })
@@ -221,7 +221,7 @@ function TeamPlayersModal({
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
         className="bg-surface-200 rounded-xl border border-surface-50/30 max-w-2xl w-full max-h-[80vh] overflow-hidden"
-        onClick={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); }}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-surface-50/20">
@@ -429,7 +429,7 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
                   return (
                     <button
                       key={member.id}
-                      onClick={() => setSelectedMember(member)}
+                      onClick={() => { setSelectedMember(member); }}
                       className={`w-full p-4 text-left transition-colors hover:bg-surface-300/50 ${
                         selectedMember?.id === member.id ? 'bg-primary-500/20 border-l-4 border-primary-500' : ''
                       }`}
@@ -561,7 +561,7 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
         <TeamPlayersModal
           team={selectedTeam}
           players={selectedMember.roster}
-          onClose={() => setSelectedTeam(null)}
+          onClose={() => { setSelectedTeam(null); }}
         />
       )}
     </div>

@@ -5,12 +5,13 @@ import { usePusherAuction } from '../services/pusher.client'
 import { useServerTime } from './useServerTime'
 import haptic from '../utils/haptics'
 import sounds from '../utils/sounds'
+import type {
+  DragEndEvent} from '@dnd-kit/core';
 import {
   useSensor,
   useSensors,
   PointerSensor,
-  KeyboardSensor,
-  DragEndEvent,
+  KeyboardSensor
 } from '@dnd-kit/core'
 import {
   arrayMove,
@@ -179,7 +180,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
       console.log('[Pusher] Pause requested:', data)
       setPauseRequest({ username: data.username, type: data.type })
       // Auto-dismiss after 10 seconds
-      setTimeout(() => setPauseRequest(null), 10000)
+      setTimeout(() => { setPauseRequest(null); }, 10000)
     },
   })
 
@@ -202,7 +203,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
       }
     }
     document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
+    return () => { document.removeEventListener('click', handleClickOutside); }
   }, [teamDropdownOpen])
 
   const loadCurrentAuction = useCallback(async (): Promise<boolean> => {
@@ -381,7 +382,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     }
     updateTimer()
     const interval = setInterval(updateTimer, 1000)
-    return () => clearInterval(interval)
+    return () => { clearInterval(interval); }
   }, [auction?.timerExpiresAt, loadCurrentAuction, loadPendingAcknowledgment, getRemainingSeconds])
 
   useEffect(() => {
@@ -467,7 +468,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     // Then send every 30 seconds
     const interval = setInterval(sendHeartbeat, 30000)
 
-    return () => clearInterval(interval)
+    return () => { clearInterval(interval); }
   }, [sessionId, managersStatus?.myId])
 
   // Drag end handler
@@ -697,10 +698,10 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
   async function handleRequestPause() {
     setError('')
     const currentPhase = auction?.status === 'ACTIVE' ? 'auction' : 'nomination'
-    const res = await auctionApi.requestPause(sessionId, currentPhase as 'nomination' | 'auction')
+    const res = await auctionApi.requestPause(sessionId, currentPhase)
     if (res.success) {
       setSuccessMessage('Richiesta di pausa inviata')
-      setTimeout(() => setSuccessMessage(''), 3000)
+      setTimeout(() => { setSuccessMessage(''); }, 3000)
     } else {
       setError(res.message || 'Errore')
     }
@@ -969,7 +970,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     }
 
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => { window.removeEventListener('keydown', handleKeyDown); }
   }, [auction, bidAmount])
 
   // Calculate budget percentage for progress bars
@@ -1062,7 +1063,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     handlePauseAuction,
     handleResumeAuction,
     pauseRequest,
-    dismissPauseRequest: () => setPauseRequest(null),
+    dismissPauseRequest: () => { setPauseRequest(null); },
     handleCompleteAllSlots,
     handlePlaceBid,
     handleCloseAuction,

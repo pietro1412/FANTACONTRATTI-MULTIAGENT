@@ -75,7 +75,7 @@ export function PendingAckModal({
             <div className="w-10 h-10 bg-white rounded p-1">
               <TeamLogo team={pendingAck.player.team} />
             </div>
-            <div className={`w-10 h-10 flex items-center justify-center rounded-full ${POSITION_COLORS[pendingAck.player.position as keyof typeof POSITION_COLORS] || 'bg-gray-500/20 text-gray-400'} border-2`}>
+            <div className={`w-10 h-10 flex items-center justify-center rounded-full ${POSITION_COLORS[pendingAck.player.position] || 'bg-gray-500/20 text-gray-400'} border-2`}>
               <span className="font-bold">{pendingAck.player.position}</span>
             </div>
           </div>
@@ -157,7 +157,7 @@ export function PendingAckModal({
             </label>
             <textarea
               value={appealContent}
-              onChange={(e) => setAppealContent(e.target.value)}
+              onChange={(e) => { setAppealContent(e.target.value); }}
               className="w-full bg-danger-500/10 border border-danger-500/30 rounded-xl p-3 text-white placeholder-gray-500 text-sm resize-none focus:border-danger-400 focus:outline-none"
               rows={3}
               placeholder="Descrivi il motivo del ricorso..."
@@ -175,7 +175,7 @@ export function PendingAckModal({
             </label>
             <textarea
               value={prophecyContent}
-              onChange={(e) => setProphecyContent(e.target.value)}
+              onChange={(e) => { setProphecyContent(e.target.value); }}
               className="w-full bg-white/5 border border-purple-500/30 rounded-xl p-3 text-white placeholder-gray-500 text-sm resize-none focus:border-purple-400 focus:outline-none"
               rows={2}
               placeholder="Scrivi una previsione su questa transazione..."
@@ -198,7 +198,7 @@ export function PendingAckModal({
                 {prophecyContent.trim() ? '🔮 CONFERMA CON PROFEZIA' : '✅ CONFERMA TRANSAZIONE'}
               </Button>
               <button
-                onClick={() => setIsAppealMode(true)}
+                onClick={() => { setIsAppealMode(true); }}
                 className="w-full py-2 text-sm text-danger-400 hover:text-danger-300 underline"
               >
                 ⚠️ Voglio fare ricorso
@@ -226,7 +226,7 @@ export function PendingAckModal({
           {isAdmin && (
             <div className="pt-2 border-t border-white/10 space-y-2">
               <button
-                onClick={() => onNavigate('admin', { leagueId, tab: 'appeals' })}
+                onClick={() => { onNavigate('admin', { leagueId, tab: 'appeals' }); }}
                 className="w-full py-2 text-xs text-purple-400 hover:text-purple-300"
               >
                 📋 Vai al pannello ricorsi
@@ -309,7 +309,7 @@ export function AppealReviewModal({ appealStatus, isAdmin, onNavigate, leagueId 
         {/* Admin button */}
         {isAdmin && (
           <Button
-            onClick={() => onNavigate('admin', { leagueId, tab: 'appeals' })}
+            onClick={() => { onNavigate('admin', { leagueId, tab: 'appeals' }); }}
             className="w-full bg-danger-500 hover:bg-danger-600 text-white font-bold py-3"
           >
             Gestisci Ricorso
@@ -584,7 +584,7 @@ export function AuctionReadyCheckModal({
             <div className="w-10 h-10 bg-white rounded p-1">
               <TeamLogo team={boardData.auctionReadyInfo.playerTeam} />
             </div>
-            <div className={`w-10 h-10 flex items-center justify-center rounded-full ${POSITION_COLORS[boardData.auctionReadyInfo.playerPosition as keyof typeof POSITION_COLORS] || 'bg-gray-500/20 text-gray-400'} border-2`}>
+            <div className={`w-10 h-10 flex items-center justify-center rounded-full ${POSITION_COLORS[boardData.auctionReadyInfo.playerPosition] || 'bg-gray-500/20 text-gray-400'} border-2`}>
               <span className="font-bold">{boardData.auctionReadyInfo.playerPosition}</span>
             </div>
           </div>

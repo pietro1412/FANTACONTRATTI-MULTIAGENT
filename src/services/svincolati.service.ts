@@ -1,4 +1,5 @@
-import { PrismaClient, MemberStatus, AuctionStatus, Position, Prisma } from '@prisma/client'
+import type { Position, Prisma } from '@prisma/client';
+import { PrismaClient, MemberStatus, AuctionStatus } from '@prisma/client'
 import { recordMovement } from './movement.service'
 import { calculateDefaultSalary, calculateRescissionClause } from './contract.service'
 import { logAction } from './admin.service'

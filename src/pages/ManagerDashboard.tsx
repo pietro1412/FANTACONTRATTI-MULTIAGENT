@@ -5,14 +5,15 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { Navigation } from '../components/Navigation'
 import { PullToRefresh } from '../components/PullToRefresh'
 import { useSwipeGesture } from '../hooks/useSwipeGesture'
+import type {
+  DragEndEvent} from '@dnd-kit/core';
 import {
   DndContext,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
-  useSensors,
-  DragEndEvent,
+  useSensors
 } from '@dnd-kit/core'
 import {
   arrayMove,
@@ -331,25 +332,25 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
         <div className="flex gap-2 mb-6 flex-wrap">
           <Button
             variant={activeTab === 'overview' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('overview')}
+            onClick={() => { setActiveTab('overview'); }}
           >
             Panoramica
           </Button>
           <Button
             variant={activeTab === 'roster' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('roster')}
+            onClick={() => { setActiveTab('roster'); }}
           >
             Rosa Completa
           </Button>
           <Button
             variant={activeTab === 'contracts' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('contracts')}
+            onClick={() => { setActiveTab('contracts'); }}
           >
             Contratti
           </Button>
           <Button
             variant={activeTab === 'budget' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('budget')}
+            onClick={() => { setActiveTab('budget'); }}
           >
             Budget
           </Button>
@@ -362,7 +363,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
             {/* Edit layout toggle */}
             <div className="flex justify-end">
               <button
-                onClick={() => setIsEditingLayout(prev => !prev)}
+                onClick={() => { setIsEditingLayout(prev => !prev); }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${
                   isEditingLayout
                     ? 'bg-primary-500/20 text-primary-400 border border-primary-500/40'
@@ -391,7 +392,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                       {showAlertSettings ? (
                         <Card>
                           <CardContent className="py-4">
-                            <AlertSettings onClose={() => setShowAlertSettings(false)} />
+                            <AlertSettings onClose={() => { setShowAlertSettings(false); }} />
                           </CardContent>
                         </Card>
                       ) : activeAlerts.length > 0 ? (
@@ -402,7 +403,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                               <span>{activeAlerts.length} alert attiv{activeAlerts.length === 1 ? 'o' : 'i'}</span>
                             </div>
                             <button
-                              onClick={() => setShowAlertSettings(true)}
+                              onClick={() => { setShowAlertSettings(true); }}
                               className="p-1 text-gray-400 hover:text-gray-300 transition-colors"
                               title="Configura alert"
                             >
@@ -432,7 +433,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                             <span>Nessun alert attivo</span>
                           </div>
                           <button
-                            onClick={() => setShowAlertSettings(true)}
+                            onClick={() => { setShowAlertSettings(true); }}
                             className="p-1 text-gray-400 hover:text-gray-300 transition-colors"
                             title="Configura alert"
                           >
@@ -518,7 +519,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => onNavigate('prizes', { leagueId })}
+                              onClick={() => { onNavigate('prizes', { leagueId }); }}
                             >
                               Vedi Dettagli
                             </Button>
@@ -595,7 +596,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                           <Button
                             variant="outline"
                             className="mt-4"
-                            onClick={() => onNavigate('contracts', { leagueId })}
+                            onClick={() => { onNavigate('contracts', { leagueId }); }}
                           >
                             Gestisci Contratti
                           </Button>

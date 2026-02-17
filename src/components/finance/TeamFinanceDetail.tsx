@@ -89,13 +89,13 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => onNavigateToTimeline(team.memberId)}
+            onClick={() => { onNavigateToTimeline(team.memberId); }}
             className="px-3 py-1.5 bg-surface-300/50 hover:bg-surface-300 text-gray-400 hover:text-white rounded-lg text-xs font-medium transition-colors"
           >
             Movimenti
           </button>
           <button
-            onClick={() => onNavigateToPlayers(team.teamName)}
+            onClick={() => { onNavigateToPlayers(team.teamName); }}
             className="px-3 py-1.5 bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 rounded-lg text-xs font-medium transition-colors"
           >
             Vedi Giocatori &rarr;
@@ -297,7 +297,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
       {/* Full roster table - accordion on mobile */}
       <div className="bg-surface-300/50 rounded-lg border border-surface-50/10 overflow-hidden">
         <button
-          onClick={() => toggleSection('roster')}
+          onClick={() => { toggleSection('roster'); }}
           className="w-full flex items-center justify-between p-3 md:p-4 text-left md:cursor-default"
         >
           <span className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider font-medium">
@@ -308,7 +308,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
           </span>
         </button>
 
-        <div className={`${expandedSection === 'roster' ? '' : 'hidden md:block'}`}>
+        <div className={expandedSection === 'roster' ? '' : 'hidden md:block'}>
           <div className="overflow-x-auto">
             <table className="w-full min-w-0 text-xs">
               <thead className="bg-surface-300/50">

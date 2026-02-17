@@ -13,17 +13,19 @@
  * - Publishes FreeAgentNominated domain event
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import type {
+  ForbiddenError} from '@/shared/infrastructure/http/errors';
 import {
   NotFoundError,
   ValidationError,
   ConflictError,
-  ForbiddenError,
   NotYourTurnError,
   InsufficientBudgetError,
   PlayerNotFoundError,
   SessionNotActiveError
-} from '../../../../shared/infrastructure/http/errors'
+} from '@/shared/infrastructure/http/errors'
 import type { ISvincolatiRepository, Player } from '../../domain/repositories/svincolati.repository.interface'
 import type { NominatePlayerDto, NominatePlayerResultDto } from '../dto/svincolati.dto'
 

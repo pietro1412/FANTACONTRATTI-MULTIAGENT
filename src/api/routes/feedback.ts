@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
-import { FeedbackStatus, FeedbackCategory } from '@prisma/client'
+import type { FeedbackCategory } from '@prisma/client';
+import { FeedbackStatus } from '@prisma/client'
 import {
   submitFeedback,
   getFeedbackForManager,

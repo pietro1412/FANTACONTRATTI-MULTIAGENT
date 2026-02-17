@@ -146,25 +146,7 @@ export const pusher: PusherInstance | null = isPusherConfigured
   ? new Pusher(pusherConfig)
   : null
 
-// Log Pusher configuration status on startup
-console.log('[Pusher] === CONFIGURATION STATUS ===')
-console.log(`[Pusher] appId: ${pusherConfig.appId || 'MISSING'}`)
-console.log(`[Pusher] key: ${pusherConfig.key ? pusherConfig.key.slice(0, 8) + '...' : 'MISSING'}`)
-console.log(`[Pusher] secret: ${pusherConfig.secret ? pusherConfig.secret.slice(0, 4) + '...' : 'MISSING'}`)
-console.log(`[Pusher] cluster: ${pusherConfig.cluster || 'MISSING'}`)
-console.log(`[Pusher] configured: ${isPusherConfigured ? 'YES ✓' : 'NO ✗'}`)
-console.log(`[Pusher] instance created: ${pusher ? 'YES ✓' : 'NO ✗'}`)
-console.log('[Pusher] ================================')
-
-if (!isPusherConfigured) {
-  console.error(
-    '[Pusher] NOT CONFIGURED! Missing:',
-    !pusherConfig.appId && 'PUSHER_APP_ID',
-    !pusherConfig.key && 'VITE_PUSHER_KEY',
-    !pusherConfig.secret && 'PUSHER_SECRET',
-    !pusherConfig.cluster && 'VITE_PUSHER_CLUSTER'
-  )
-}
+// Pusher configuration is validated at startup via isPusherConfigured flag
 
 // ==================== CHANNEL NAMING ====================
 
@@ -214,7 +196,6 @@ async function triggerEvent<T extends object>(
   data: T
 ): Promise<boolean> {
   if (!pusher) {
-    console.warn(`[Pusher] Cannot trigger event '${event}' - Pusher not configured`)
     return false
   }
 
@@ -226,10 +207,8 @@ async function triggerEvent<T extends object>(
       serverTimestamp: Date.now()
     }
     await pusher.trigger(channel, event, enrichedData)
-    console.log(`[Pusher] Event '${event}' triggered on channel '${channel}'`)
     return true
-  } catch (error) {
-    console.error(`[Pusher] Failed to trigger event '${event}':`, error)
+  } catch {
     return false
   }
 }
@@ -492,7 +471,6 @@ async function triggerLeagueEvent<T extends object>(
   data: T
 ): Promise<boolean> {
   if (!pusher) {
-    console.warn(`[Pusher] Cannot trigger event '${event}' - Pusher not configured`)
     return false
   }
 
@@ -503,10 +481,8 @@ async function triggerLeagueEvent<T extends object>(
       serverTimestamp: Date.now()
     }
     await pusher.trigger(channel, event, enrichedData)
-    console.log(`[Pusher] Event '${event}' triggered on channel '${channel}'`)
     return true
-  } catch (error) {
-    console.error(`[Pusher] Failed to trigger event '${event}':`, error)
+  } catch {
     return false
   }
 }

@@ -1,4 +1,5 @@
-import { PrismaClient, MemberStatus, TradeStatus } from '@prisma/client'
+import type { TradeStatus } from '@prisma/client';
+import { PrismaClient, MemberStatus } from '@prisma/client'
 import type { ServiceResult } from '@/shared/types/service-result'
 
 const prisma = new PrismaClient()
@@ -1031,8 +1032,7 @@ export async function getTimelineEvents(
   const offset = options?.offset ?? 0
 
   // Build where conditions for movements
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const movementWhere: any = { leagueId }
+  const movementWhere: Record<string, unknown> = { leagueId }
   if (options?.sessionId) {
     movementWhere.marketSessionId = options.sessionId
   }
@@ -1287,8 +1287,7 @@ export async function getProphecies(
   }
 
   // Build where clause
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = { leagueId }
+  const where: Record<string, unknown> = { leagueId }
 
   if (options?.playerId) {
     where.playerId = options.playerId
@@ -1487,8 +1486,7 @@ export async function searchPlayersForHistory(
 
   const uniquePlayerIds = [...new Set(playerIds.map(p => p.playerId))]
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const playerWhere: any = {
+  const playerWhere: Record<string, unknown> = {
     id: { in: uniquePlayerIds },
   }
 

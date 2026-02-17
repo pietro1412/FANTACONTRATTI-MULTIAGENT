@@ -1,4 +1,4 @@
-import { IEmailService } from '../../domain/services/email.service.interface'
+import type { IEmailService } from '../../domain/services/email.service.interface'
 import { ResendEmailService } from './resend-email.service'
 import { GmailEmailService } from './gmail-email.service'
 

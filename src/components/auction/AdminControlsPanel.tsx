@@ -56,7 +56,7 @@ export function AdminControlsPanel({
               {[5, 10, 15, 20, 25, 30, 45, 60].map(sec => (
                 <button
                   key={sec}
-                  onClick={() => onUpdateTimer(sec)}
+                  onClick={() => { onUpdateTimer(sec); }}
                   className={`px-2 py-1 rounded text-xs font-medium transition-all ${
                     timerSetting === sec
                       ? 'bg-primary-500 text-white'

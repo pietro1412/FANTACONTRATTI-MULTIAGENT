@@ -37,9 +37,9 @@ export function KPICard({ title, value, subtitle, description, progress, progres
           <div className="relative">
             <button
               className="text-gray-500 hover:text-gray-300 transition-colors"
-              onMouseEnter={() => setShowTooltip(true)}
-              onMouseLeave={() => setShowTooltip(false)}
-              onClick={() => setShowTooltip(prev => !prev)}
+              onMouseEnter={() => { setShowTooltip(true); }}
+              onMouseLeave={() => { setShowTooltip(false); }}
+              onClick={() => { setShowTooltip(prev => !prev); }}
               aria-label={`Info: ${title}`}
             >
               <svg className="w-3 h-3 md:w-3.5 md:h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -92,9 +92,9 @@ export function SectionHeader({ title, description }: { title: string; descripti
         <div className="relative">
           <button
             className="text-gray-500 hover:text-gray-300 transition-colors"
-            onMouseEnter={() => setShowTooltip(true)}
-            onMouseLeave={() => setShowTooltip(false)}
-            onClick={() => setShowTooltip(prev => !prev)}
+            onMouseEnter={() => { setShowTooltip(true); }}
+            onMouseLeave={() => { setShowTooltip(false); }}
+            onClick={() => { setShowTooltip(prev => !prev); }}
             aria-label={`Info: ${title}`}
           >
             <svg className="w-3 h-3 md:w-3.5 md:h-3.5" fill="currentColor" viewBox="0 0 20 20">

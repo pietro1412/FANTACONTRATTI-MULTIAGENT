@@ -123,7 +123,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
             <div
               ref={dialogRef}
               className="relative bg-surface-200 border border-surface-50/20 rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] max-w-sm w-full p-6 animate-modal-in"
-              onClick={e => e.stopPropagation()}
+              onClick={e => { e.stopPropagation(); }}
             >
               {state.options.variant === 'danger' && (
                 <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">

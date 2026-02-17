@@ -5,7 +5,7 @@
  * - Hides internal details in production
  */
 
-import { Request, Response, NextFunction } from 'express'
+import type { Request, Response, NextFunction } from 'express'
 import { AppError } from './errors'
 
 interface ErrorResponse {

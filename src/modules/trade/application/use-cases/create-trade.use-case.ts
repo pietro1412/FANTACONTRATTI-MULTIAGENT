@@ -7,8 +7,10 @@ import type { ITradeRepository } from '../../domain/repositories/trade.repositor
 import type { ITradeValidator } from '../../domain/services/trade-validator.service'
 import type { TradeOffer } from '../../domain/entities/trade-offer.entity'
 import type { CreateTradeOfferDto, CreateTradeResultDto } from '../dto/trade.dto'
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { ValidationError, NotFoundError, InternalError, ForbiddenError } from '../../../../shared/infrastructure/http/errors'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import type { NotFoundError} from '@/shared/infrastructure/http/errors';
+import { ValidationError, InternalError, ForbiddenError } from '@/shared/infrastructure/http/errors'
 
 /**
  * Input for creating a trade offer

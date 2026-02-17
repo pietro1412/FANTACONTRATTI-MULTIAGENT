@@ -54,7 +54,7 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
     loadInvites()
     // Poll every 60 seconds for new invites
     const interval = setInterval(loadInvites, 60000)
-    return () => clearInterval(interval)
+    return () => { clearInterval(interval); }
   }, [])
 
   // Close dropdown when clicking outside
@@ -65,7 +65,7 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    return () => { document.removeEventListener('mousedown', handleClickOutside); }
   }, [])
 
   async function loadInvites() {
@@ -113,7 +113,7 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
     <div className="relative" ref={dropdownRef}>
       {/* Badge Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => { setIsOpen(!isOpen); }}
         className="relative p-2 text-gray-400 hover:text-white hover:bg-surface-300/50 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400/50"
         title={`${count} invit${count === 1 ? 'o' : 'i'} pendenti`}
       >

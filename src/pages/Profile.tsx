@@ -65,7 +65,7 @@ function NotificationPreferences() {
       if (prefsRes.success && prefsRes.data) {
         setPrefs(prefsRes.data as NotifPrefs)
       }
-    }).catch(() => {}).finally(() => setLoading(false))
+    }).catch(() => {}).finally(() => { setLoading(false); })
   }, [])
 
   const handlePushToggle = useCallback(async () => {
@@ -431,7 +431,7 @@ export function Profile({ onNavigate }: ProfileProps) {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-white">Password</h3>
                 {!showPasswordForm && (
-                  <Button variant="outline" size="sm" onClick={() => setShowPasswordForm(true)}>
+                  <Button variant="outline" size="sm" onClick={() => { setShowPasswordForm(true); }}>
                     Cambia Password
                   </Button>
                 )}
@@ -455,7 +455,7 @@ export function Profile({ onNavigate }: ProfileProps) {
                     <input
                       type="password"
                       value={passwordData.currentPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                      onChange={(e) => { setPasswordData({ ...passwordData, currentPassword: e.target.value }); }}
                       className="w-full px-3 py-2 bg-surface-400 border border-surface-50/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-500"
                       placeholder="Inserisci la password attuale"
                     />
@@ -465,7 +465,7 @@ export function Profile({ onNavigate }: ProfileProps) {
                     <input
                       type="password"
                       value={passwordData.newPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                      onChange={(e) => { setPasswordData({ ...passwordData, newPassword: e.target.value }); }}
                       className="w-full px-3 py-2 bg-surface-400 border border-surface-50/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-500"
                       placeholder="Minimo 6 caratteri"
                     />
@@ -475,7 +475,7 @@ export function Profile({ onNavigate }: ProfileProps) {
                     <input
                       type="password"
                       value={passwordData.confirmNewPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, confirmNewPassword: e.target.value })}
+                      onChange={(e) => { setPasswordData({ ...passwordData, confirmNewPassword: e.target.value }); }}
                       className="w-full px-3 py-2 bg-surface-400 border border-surface-50/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-500"
                       placeholder="Ripeti la nuova password"
                     />
@@ -534,7 +534,7 @@ export function Profile({ onNavigate }: ProfileProps) {
 
         {/* Back Button */}
         <div className="mt-6 text-center">
-          <Button variant="outline" onClick={() => onNavigate('dashboard')}>
+          <Button variant="outline" onClick={() => { onNavigate('dashboard'); }}>
             Torna alla Dashboard
           </Button>
         </div>

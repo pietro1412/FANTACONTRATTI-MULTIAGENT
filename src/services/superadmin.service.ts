@@ -1,4 +1,5 @@
-import { PrismaClient, Position, Prisma, PlayerExitReason } from '@prisma/client'
+import type { Position, Prisma, PlayerExitReason } from '@prisma/client';
+import { PrismaClient } from '@prisma/client'
 import * as XLSX from 'xlsx'
 import type { ServiceResult } from '@/shared/types/service-result'
 
@@ -332,7 +333,6 @@ export async function importQuotazioni(
       },
     }
   } catch (error) {
-    console.error('Import error:', error)
     return {
       success: false,
       message: `Errore durante l'import: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`,
@@ -437,7 +437,6 @@ export async function classifyExitedPlayers(
       data: { classified: classifications.length },
     }
   } catch (error) {
-    console.error('Classification error:', error)
     return {
       success: false,
       message: `Errore durante la classificazione: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`,

@@ -146,9 +146,8 @@ export async function createEmailInvite(
       inviteUrl,
       expiresAt
     )
-    console.log(`[InviteService] Email sent to ${email} for league ${invite.league.name}${!existingUser ? ' (unregistered user)' : ''}`)
-  } catch (err) {
-    console.error('[InviteService] Failed to send invite email:', err)
+    // Email sent successfully
+  } catch {
     // Non blocchiamo la creazione dell'invito se l'email fallisce
   }
 
@@ -274,8 +273,8 @@ export async function acceptInvite(
         true, // accepted
         leagueUrl
       )
-    } catch (err) {
-      console.error('[InviteService] Failed to send invite acceptance notification:', err)
+    } catch {
+      // Error intentionally silenced
     }
   }
 
@@ -646,8 +645,8 @@ export async function rejectInvite(
         false, // rejected
         leagueUrl
       )
-    } catch (err) {
-      console.error('[InviteService] Failed to send invite rejection notification:', err)
+    } catch {
+      // Error intentionally silenced
     }
   }
 

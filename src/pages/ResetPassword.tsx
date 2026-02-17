@@ -145,7 +145,7 @@ export function ResetPassword() {
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); }}
               placeholder="Almeno 8 caratteri"
               required
               autoComplete="new-password"
@@ -163,7 +163,7 @@ export function ResetPassword() {
               id="confirmPassword"
               type="password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => { setConfirmPassword(e.target.value); }}
               placeholder="Ripeti la password"
               required
               autoComplete="new-password"

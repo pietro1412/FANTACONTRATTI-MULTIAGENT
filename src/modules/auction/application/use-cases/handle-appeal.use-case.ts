@@ -5,15 +5,17 @@
  * Appeals can be created by league members and resolved by admins.
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import type {
+  ForbiddenError} from '@/shared/infrastructure/http/errors';
 import {
   ValidationError,
   NotFoundError,
-  ConflictError,
-  ForbiddenError,
-} from '../../../../shared/infrastructure/http/errors'
-import { DomainEventTypes } from '../../../../shared/infrastructure/events/domain-events'
-import type { EventBus } from '../../../../shared/infrastructure/events/event-bus'
+  ConflictError
+} from '@/shared/infrastructure/http/errors'
+import { DomainEventTypes } from '@/shared/infrastructure/events/domain-events'
+import type { EventBus } from '@/shared/infrastructure/events/event-bus'
 import type { IAuctionRepository } from '../../domain/repositories/auction.repository.interface'
 import type { CreateAppealDto, ResolveAppealDto, AppealResultDto } from '../dto/auction.dto'
 

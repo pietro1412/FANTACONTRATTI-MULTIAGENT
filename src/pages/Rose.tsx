@@ -196,7 +196,7 @@ export function Rose({ onNavigate }: RoseProps) {
   const filteredPlayers = useMemo(() => {
     if (!selectedMember?.roster) return []
 
-    let players = selectedMember.roster.filter(entry => {
+    const players = selectedMember.roster.filter(entry => {
       // Position filter
       if (positionFilter !== 'ALL' && entry.player.position !== positionFilter) return false
 
@@ -415,14 +415,14 @@ export function Rose({ onNavigate }: RoseProps) {
                   <input
                     type="text"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => { setSearchQuery(e.target.value); }}
                     placeholder="Cerca giocatore..."
                     className="flex-1 min-w-0 px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
                     inputMode="search"
                     enterKeyHint="search"
                   />
                   <button
-                    onClick={() => setFiltersOpen(true)}
+                    onClick={() => { setFiltersOpen(true); }}
                     className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-xs text-gray-300 hover:text-white transition-colors flex-shrink-0"
                   >
                     <SlidersHorizontal size={14} />
@@ -443,7 +443,7 @@ export function Rose({ onNavigate }: RoseProps) {
                       return (
                         <button
                           key={pos}
-                          onClick={() => setPositionFilter(pos)}
+                          onClick={() => { setPositionFilter(pos); }}
                           className={`px-2 py-1 rounded-lg text-xs font-medium transition-all ${
                             positionFilter === pos
                               ? pos === 'ALL'
@@ -462,7 +462,7 @@ export function Rose({ onNavigate }: RoseProps) {
                   {uniqueTeams.length > 0 && (
                     <select
                       value={teamFilter}
-                      onChange={(e) => setTeamFilter(e.target.value)}
+                      onChange={(e) => { setTeamFilter(e.target.value); }}
                       className="px-2 py-1 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
                     >
                       <option value="ALL">Tutte le squadre</option>
@@ -476,7 +476,7 @@ export function Rose({ onNavigate }: RoseProps) {
                   <input
                     type="text"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => { setSearchQuery(e.target.value); }}
                     placeholder="Cerca giocatore..."
                     className="flex-1 min-w-[120px] px-2 py-1 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
                     inputMode="search"
@@ -506,7 +506,7 @@ export function Rose({ onNavigate }: RoseProps) {
               </div>
 
               {/* Mobile Filters BottomSheet */}
-              <BottomSheet isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filtri">
+              <BottomSheet isOpen={filtersOpen} onClose={() => { setFiltersOpen(false); }} title="Filtri">
                 <div className="p-4 space-y-5">
                   <div>
                     <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Posizione</label>
@@ -516,7 +516,7 @@ export function Rose({ onNavigate }: RoseProps) {
                         return (
                           <button
                             key={pos}
-                            onClick={() => setPositionFilter(pos)}
+                            onClick={() => { setPositionFilter(pos); }}
                             className={`flex-1 px-3 py-2.5 text-sm font-medium rounded-lg transition-all ${
                               positionFilter === pos
                                 ? pos === 'ALL'
@@ -537,7 +537,7 @@ export function Rose({ onNavigate }: RoseProps) {
                       <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Squadra Serie A</label>
                       <select
                         value={teamFilter}
-                        onChange={(e) => setTeamFilter(e.target.value)}
+                        onChange={(e) => { setTeamFilter(e.target.value); }}
                         className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm"
                       >
                         <option value="ALL">Tutte le squadre</option>
@@ -549,7 +549,7 @@ export function Rose({ onNavigate }: RoseProps) {
                   )}
 
                   <button
-                    onClick={() => setFiltersOpen(false)}
+                    onClick={() => { setFiltersOpen(false); }}
                     className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-xl transition-colors"
                   >
                     Applica Filtri
@@ -605,7 +605,7 @@ export function Rose({ onNavigate }: RoseProps) {
                         </div>
                         <div className="flex-1 min-w-0 leading-tight">
                           <button
-                            onClick={() => setSelectedPlayerStats({
+                            onClick={() => { setSelectedPlayerStats({
                               name: entry.player.name,
                               team: entry.player.team,
                               position: entry.player.position,
@@ -613,7 +613,7 @@ export function Rose({ onNavigate }: RoseProps) {
                               apiFootballId: entry.player.apiFootballId,
                               computedStats: entry.player.computedStats,
                               statsSyncedAt: entry.player.statsSyncedAt,
-                            })}
+                            }); }}
                             className="font-medium text-white text-sm truncate block hover:text-primary-400 transition-colors text-left w-full"
                           >
                             {entry.player.name}
@@ -674,7 +674,7 @@ export function Rose({ onNavigate }: RoseProps) {
                         </div>
                         {isOwnRoster && leagueId && (
                           <button
-                            onClick={() => onNavigate('league-detail', { leagueId })}
+                            onClick={() => { onNavigate('league-detail', { leagueId }); }}
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium text-sm transition-colors"
                           >
                             <span>⚡</span>
@@ -720,7 +720,7 @@ export function Rose({ onNavigate }: RoseProps) {
                           scope="col"
                           className={`${col.width} ${col.align} p-2 ${col.color} cursor-pointer select-none hover:text-gray-200 transition-colors`}
                           title={col.title || col.label}
-                          onClick={() => handleSort(col.key)}
+                          onClick={() => { handleSort(col.key); }}
                         >
                           <span className="inline-flex items-center gap-0.5">
                             {col.label}
@@ -756,7 +756,7 @@ export function Rose({ onNavigate }: RoseProps) {
                           {/* Player */}
                           <td className="p-2">
                             <button
-                              onClick={() => setSelectedPlayerStats({
+                              onClick={() => { setSelectedPlayerStats({
                                 name: entry.player.name,
                                 team: entry.player.team,
                                 position: entry.player.position,
@@ -764,7 +764,7 @@ export function Rose({ onNavigate }: RoseProps) {
                                 apiFootballId: entry.player.apiFootballId,
                                 computedStats: entry.player.computedStats,
                                 statsSyncedAt: entry.player.statsSyncedAt,
-                              })}
+                              }); }}
                               className="font-medium text-white text-sm truncate block hover:text-primary-400 transition-colors text-left"
                             >
                               {entry.player.name}
@@ -856,7 +856,7 @@ export function Rose({ onNavigate }: RoseProps) {
                         </div>
                         {isOwnRoster && leagueId && (
                           <button
-                            onClick={() => onNavigate('league-detail', { leagueId })}
+                            onClick={() => { onNavigate('league-detail', { leagueId }); }}
                             className="inline-flex items-center gap-2 px-5 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors"
                           >
                             <span>⚡</span>
@@ -918,7 +918,7 @@ export function Rose({ onNavigate }: RoseProps) {
                         {teamCounts.map(({ team, count }) => (
                           <button
                             key={team}
-                            onClick={() => setTeamFilter(teamFilter === team ? 'ALL' : team)}
+                            onClick={() => { setTeamFilter(teamFilter === team ? 'ALL' : team); }}
                             className={`relative rounded-lg p-1 transition-all ${
                               teamFilter === team
                                 ? 'bg-primary-500/30 ring-1 ring-primary-500/50'
@@ -937,7 +937,7 @@ export function Rose({ onNavigate }: RoseProps) {
                         {teamCounts.map(({ team, count }) => (
                           <button
                             key={team}
-                            onClick={() => setTeamFilter(teamFilter === team ? 'ALL' : team)}
+                            onClick={() => { setTeamFilter(teamFilter === team ? 'ALL' : team); }}
                             className={`flex items-center gap-1.5 rounded-lg px-2 py-1 transition-all ${
                               teamFilter === team
                                 ? 'bg-primary-500/30 border border-primary-500/50'
@@ -1014,7 +1014,7 @@ export function Rose({ onNavigate }: RoseProps) {
       {/* Stats Modal */}
       <PlayerStatsModal
         isOpen={!!selectedPlayerStats}
-        onClose={() => setSelectedPlayerStats(null)}
+        onClose={() => { setSelectedPlayerStats(null); }}
         player={selectedPlayerStats}
       />
     </div>

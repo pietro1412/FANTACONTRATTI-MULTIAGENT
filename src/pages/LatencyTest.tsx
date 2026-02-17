@@ -152,13 +152,13 @@ export default function LatencyTest() {
         {/* Tab selector */}
         <div className="flex gap-2 mb-4">
           <button
-            onClick={() => setActiveTab('ping')}
+            onClick={() => { setActiveTab('ping'); }}
             className={`px-4 py-2 rounded font-medium ${activeTab === 'ping' ? 'bg-primary-500' : 'bg-surface-300 hover:bg-surface-200'}`}
           >
             Simple Ping
           </button>
           <button
-            onClick={() => setActiveTab('auction')}
+            onClick={() => { setActiveTab('auction'); }}
             className={`px-4 py-2 rounded font-medium ${activeTab === 'auction' ? 'bg-amber-500' : 'bg-surface-300 hover:bg-surface-200'}`}
           >
             Auction Simulation
@@ -173,7 +173,7 @@ export default function LatencyTest() {
               <input
                 type="number"
                 value={testCount}
-                onChange={(e) => setTestCount(Math.max(1, Math.min(50, parseInt(e.target.value) || 10)))}
+                onChange={(e) => { setTestCount(Math.max(1, Math.min(50, parseInt(e.target.value) || 10))); }}
                 className="w-20 px-2 py-1 bg-surface-200 rounded border border-surface-100"
                 min={1}
                 max={50}

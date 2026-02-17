@@ -5,8 +5,10 @@
 
 import type { ITradeRepository } from '../../domain/repositories/trade.repository.interface'
 import type { TradeOffer } from '../../domain/entities/trade-offer.entity'
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { ValidationError, InternalError } from '../../../../shared/infrastructure/http/errors'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import type { ValidationError} from '@/shared/infrastructure/http/errors';
+import { InternalError } from '@/shared/infrastructure/http/errors'
 
 /**
  * Input for anti-loop validation

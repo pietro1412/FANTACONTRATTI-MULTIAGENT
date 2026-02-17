@@ -1,4 +1,5 @@
-import Pusher, { Channel } from 'pusher-js';
+import type { Channel } from 'pusher-js';
+import Pusher from 'pusher-js';
 import { useEffect, useState, useRef } from 'react';
 
 // ==================== TYPES ====================

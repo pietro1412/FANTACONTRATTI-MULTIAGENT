@@ -180,13 +180,13 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           </div>
           {!isSuperAdmin && (
             <div className="flex items-center gap-3">
-              <Button variant="outline" size="lg" onClick={() => setShowSearchModal(true)}>
+              <Button variant="outline" size="lg" onClick={() => { setShowSearchModal(true); }}>
                 <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 Cerca Leghe
               </Button>
-              <Button size="lg" onClick={() => onNavigate('create-league')}>
+              <Button size="lg" onClick={() => { onNavigate('create-league'); }}>
                 <span className="mr-2">+</span> Crea Nuova Lega
               </Button>
             </div>
@@ -226,7 +226,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             </p>
 
             {isSuperAdmin ? (
-              <Button size="xl" onClick={() => onNavigate('superadmin')}>
+              <Button size="xl" onClick={() => { onNavigate('superadmin'); }}>
                 Vai al Pannello di Controllo
               </Button>
             ) : (
@@ -257,10 +257,10 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button size="xl" onClick={() => onNavigate('create-league')}>
+                  <Button size="xl" onClick={() => { onNavigate('create-league'); }}>
                     <span className="mr-2">+</span> Crea la tua prima lega
                   </Button>
-                  <Button size="xl" variant="outline" onClick={() => setShowSearchModal(true)}>
+                  <Button size="xl" variant="outline" onClick={() => { setShowSearchModal(true); }}>
                     <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
@@ -463,7 +463,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       {/* Search Leagues Modal */}
       <SearchLeaguesModal
         isOpen={showSearchModal}
-        onClose={() => setShowSearchModal(false)}
+        onClose={() => { setShowSearchModal(false); }}
         onNavigate={onNavigate}
       />
     </div>

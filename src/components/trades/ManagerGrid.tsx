@@ -25,7 +25,7 @@ export function ManagerGrid({ teams, myMemberId, selectedMemberId, hasFinancialD
     <div className="border border-surface-50/20 rounded-xl overflow-hidden">
       {/* Collapsible header */}
       <button
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={() => { setCollapsed(!collapsed); }}
         className="w-full flex items-center justify-between px-4 py-3 bg-surface-300/50 hover:bg-surface-300/80 transition-colors"
       >
         <div className="flex items-center gap-2">
@@ -49,7 +49,7 @@ export function ManagerGrid({ teams, myMemberId, selectedMemberId, hasFinancialD
               team={team}
               isSelected={selectedMemberId === team.memberId}
               hasFinancialDetails={hasFinancialDetails}
-              onClick={() => onSelectManager(team.memberId)}
+              onClick={() => { onSelectManager(team.memberId); }}
             />
           ))}
         </div>

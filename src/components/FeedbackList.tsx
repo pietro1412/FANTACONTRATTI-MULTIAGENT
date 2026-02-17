@@ -121,7 +121,7 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
             return (
               <button
                 key={item.id}
-                onClick={() => onSelectFeedback(item.id)}
+                onClick={() => { onSelectFeedback(item.id); }}
                 className={`w-full p-4 rounded-xl border transition-all text-left ${
                   isSelected
                     ? 'bg-purple-500/10 border-purple-500/50'
@@ -169,7 +169,7 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
           <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
+            onClick={() => { setPage(p => Math.max(1, p - 1)); }}
             disabled={page === 1}
             className="px-3 py-1.5 text-sm bg-surface-300/50 text-gray-400 rounded-lg hover:bg-surface-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -179,7 +179,7 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
             Pagina {page} di {totalPages}
           </span>
           <button
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            onClick={() => { setPage(p => Math.min(totalPages, p + 1)); }}
             disabled={page === totalPages}
             className="px-3 py-1.5 text-sm bg-surface-300/50 text-gray-400 rounded-lg hover:bg-surface-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >

@@ -1,4 +1,4 @@
-import { getPlayerPhotoUrl } from '../../../utils/player-images'
+import { getPlayerPhotoUrl } from '@/utils/player-images'
 import { POSITION_GRADIENTS } from '../../ui/PositionBadge'
 import { getAgeColor } from '../utils'
 import type { RosterEntry } from '../types'
@@ -24,7 +24,7 @@ const SIDE_STYLES = {
 
 export function DealAssetCard({ entry, isSelected, onToggle, side, onViewStats }: DealAssetCardProps) {
   const p = entry.player
-  const gradient = POSITION_GRADIENTS[p.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
+  const gradient = POSITION_GRADIENTS[p.position] || 'from-gray-500 to-gray-600'
   const styles = SIDE_STYLES[side]
 
   return (

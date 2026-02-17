@@ -71,7 +71,7 @@ export function useSvincolatiState(leagueId: string) {
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    return () => { document.removeEventListener('mousedown', handleClickOutside); }
   }, [])
 
   const loadBoard = useCallback(async () => {
@@ -111,7 +111,7 @@ export function useSvincolatiState(leagueId: string) {
   // Poll for board updates (fallback, Pusher handles instant updates)
   useEffect(() => {
     const interval = setInterval(loadBoard, 8000)
-    return () => clearInterval(interval)
+    return () => { clearInterval(interval); }
   }, [loadBoard])
 
   // Pusher real-time updates (#110, #113)
@@ -182,7 +182,7 @@ export function useSvincolatiState(leagueId: string) {
 
     // Then every 3 seconds
     const interval = setInterval(sendHeartbeat, 3000)
-    return () => clearInterval(interval)
+    return () => { clearInterval(interval); }
   }, [leagueId, board?.myMemberId])
 
   // Timer countdown
@@ -213,7 +213,7 @@ export function useSvincolatiState(leagueId: string) {
       }
       updateTimer()
       const interval = setInterval(updateTimer, 1000)
-      return () => clearInterval(interval)
+      return () => { clearInterval(interval); }
     } else {
       setTimerRemaining(null)
     }
@@ -251,7 +251,7 @@ export function useSvincolatiState(leagueId: string) {
   useEffect(() => {
     loadAppealStatus()
     const interval = setInterval(loadAppealStatus, 5000)
-    return () => clearInterval(interval)
+    return () => { clearInterval(interval); }
   }, [loadAppealStatus])
 
   async function loadInitialData() {

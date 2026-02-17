@@ -51,7 +51,7 @@ export function RubataBidPanel({
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setBidAmount(prev => Math.max(activeAuction.currentPrice + 1, prev - 1))}
+                    onClick={() => { setBidAmount(prev => Math.max(activeAuction.currentPrice + 1, prev - 1)); }}
                     disabled={bidAmount <= activeAuction.currentPrice + 1}
                     className="w-12 h-12 rounded-xl bg-surface-300 border border-surface-50/30 text-white text-2xl font-bold hover:bg-surface-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
@@ -71,7 +71,7 @@ export function RubataBidPanel({
                     <p className="text-xs text-gray-500">Min: {activeAuction.currentPrice + 1}M</p>
                   </div>
                   <button
-                    onClick={() => setBidAmount(prev => prev + 1)}
+                    onClick={() => { setBidAmount(prev => prev + 1); }}
                     className="w-12 h-12 rounded-xl bg-surface-300 border border-surface-50/30 text-white text-2xl font-bold hover:bg-surface-200 transition-all"
                   >
                     +

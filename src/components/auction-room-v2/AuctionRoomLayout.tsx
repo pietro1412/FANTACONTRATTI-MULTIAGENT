@@ -27,7 +27,7 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
         currentPhase={phase}
         myRosterSlots={props.myRosterSlots}
         onPauseAuction={props.onPauseAuction}
-        onExit={props.onNavigate && props.leagueId ? () => props.onNavigate!('leagueDetail', { leagueId: props.leagueId! }) : undefined}
+        onExit={props.onNavigate && props.leagueId ? () => { props.onNavigate!('leagueDetail', { leagueId: props.leagueId! }); } : undefined}
         isAdmin={props.isAdmin}
         teamInitial={teamInitial}
         onRequestPause={props.onRequestPause}

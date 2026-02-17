@@ -257,7 +257,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-xl text-danger-400 mb-4">Lega non trovata</p>
-          <Button variant="outline" onClick={() => onNavigate('dashboard')}>
+          <Button variant="outline" onClick={() => { onNavigate('dashboard'); }}>
             Torna alla Dashboard
           </Button>
         </div>
@@ -288,7 +288,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
               <span className="text-danger-400 text-sm">!</span>
             </div>
             <p className="text-gray-300 text-sm flex-1">{error}</p>
-            <button onClick={() => setError('')} className="text-gray-500 hover:text-white transition-colors flex-shrink-0 p-1">
+            <button onClick={() => { setError(''); }} className="text-gray-500 hover:text-white transition-colors flex-shrink-0 p-1">
               <span className="text-lg leading-none">&times;</span>
             </button>
           </div>
@@ -302,7 +302,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           isFirstMarketCompleted={isFirstMarketCompleted()}
           leagueId={leagueId}
           onNavigate={onNavigate}
-          onOpenAuctionClick={() => setShowAuctionConfirm(true)}
+          onOpenAuctionClick={() => { setShowAuctionConfirm(true); }}
         />
 
         {/* Main grid: 2/3 content + 1/3 sidebar */}
@@ -365,7 +365,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           activeMembers={activeMembers.length}
           isCreating={isCreatingSession}
           onConfirm={handleConfirmCreateSession}
-          onCancel={() => setShowAuctionConfirm(false)}
+          onCancel={() => { setShowAuctionConfirm(false); }}
         />
       )}
     </div>

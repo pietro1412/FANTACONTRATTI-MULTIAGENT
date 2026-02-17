@@ -196,7 +196,7 @@ export function WaterfallChart({ team }: WaterfallChartProps) {
               ) : (
                 <span className="text-danger-400">-</span>
               )}
-              <span className={`${item.isTotal ? 'text-white font-medium' : 'text-gray-400'}`}>
+              <span className={item.isTotal ? 'text-white font-medium' : 'text-gray-400'}>
                 {item.name}
               </span>
             </div>

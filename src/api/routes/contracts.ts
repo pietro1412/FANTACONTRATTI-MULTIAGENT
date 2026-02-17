@@ -19,7 +19,8 @@ import {
 } from '../../services/contract.service'
 import { authMiddleware } from '../middleware/auth'
 import { generateRenewalReceipt } from '../../services/pdf.service'
-import { generateContractsExcel, ContractExportData } from '../../services/excel.service'
+import type { ContractExportData } from '../../services/excel.service';
+import { generateContractsExcel } from '../../services/excel.service'
 import { createEmailService } from '../../modules/identity/infrastructure/services/email.factory'
 import { PrismaClient } from '@prisma/client'
 

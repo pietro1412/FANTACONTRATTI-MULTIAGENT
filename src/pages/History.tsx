@@ -109,7 +109,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
         setPlayerResults([])
       }
     }, 300)
-    return () => clearTimeout(debounce)
+    return () => { clearTimeout(debounce); }
   }, [playerSearch])
 
   function formatSessionType(type: string) {
@@ -167,7 +167,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
             {/* View Toggle */}
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setViewMode('sessions')}
+                onClick={() => { setViewMode('sessions'); }}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   viewMode === 'sessions'
                     ? 'bg-primary-500 text-white'
@@ -177,7 +177,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
                 Per Sessione
               </button>
               <button
-                onClick={() => setViewMode('timeline')}
+                onClick={() => { setViewMode('timeline'); }}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   viewMode === 'timeline'
                     ? 'bg-primary-500 text-white'
@@ -203,7 +203,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
                     {selectedPlayer.position}
                   </span>
                   <button
-                    onClick={() => setSelectedPlayer(null)}
+                    onClick={() => { setSelectedPlayer(null); }}
                     className="ml-2 text-gray-400 hover:text-white"
                   >
                     x
@@ -219,7 +219,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
                       setPlayerSearch(e.target.value)
                       setIsPlayerSearchOpen(true)
                     }}
-                    onFocus={() => setIsPlayerSearchOpen(true)}
+                    onFocus={() => { setIsPlayerSearchOpen(true); }}
                     className="w-full sm:w-64 px-4 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
                   />
                   {isPlayerSearchOpen && (playerResults.length > 0 || isSearching) && (
@@ -269,7 +269,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
             leagueId={leagueId}
             playerId={selectedPlayer.id}
             playerName={selectedPlayer.name}
-            onClose={() => setSelectedPlayer(null)}
+            onClose={() => { setSelectedPlayer(null); }}
           />
         )}
 
@@ -305,7 +305,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
         {/* Back button */}
         <div className="mt-8 text-center">
           <button
-            onClick={() => onNavigate('leagueDetail', { leagueId })}
+            onClick={() => { onNavigate('leagueDetail', { leagueId }); }}
             className="px-6 py-3 bg-surface-200 text-gray-300 rounded-xl hover:bg-surface-300 transition-colors border border-surface-50/20"
           >
             Torna alla Lega
@@ -317,7 +317,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
       {isPlayerSearchOpen && (
         <div
           className="fixed inset-0 z-40"
-          onClick={() => setIsPlayerSearchOpen(false)}
+          onClick={() => { setIsPlayerSearchOpen(false); }}
         />
       )}
     </div>

@@ -81,7 +81,7 @@ export function BidControls({
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => setShowMaxConfirm(false)}
+              onClick={() => { setShowMaxConfirm(false); }}
               className="flex-1 py-2 rounded-lg text-sm font-bold bg-slate-700/50 text-gray-300 hover:bg-slate-700/70 border border-white/10 min-h-[44px]"
             >
               Annulla
@@ -103,7 +103,7 @@ export function BidControls({
           return (
             <button
               key={n}
-              onClick={() => setBidAmount(String(newBid))}
+              onClick={() => { setBidAmount(String(newBid)); }}
               disabled={isDisabled || budget < newBid}
               className={`py-2 rounded-lg text-sm font-bold font-mono transition-all min-h-[44px] ${
                 isDisabled || budget < newBid
@@ -117,7 +117,7 @@ export function BidControls({
         })}
         {/* Massive button */}
         <button
-          onClick={() => setBidAmount(String(massiveBid))}
+          onClick={() => { setBidAmount(String(massiveBid)); }}
           disabled={isDisabled || budget < bidNum + 1}
           className={`py-2 rounded-lg text-sm font-bold font-mono transition-all min-h-[44px] col-span-1 ${
             isDisabled || budget < bidNum + 1
@@ -150,7 +150,7 @@ export function BidControls({
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={() => setBidAmount(String(Math.max(currentPrice + 1, bidNum - 1)))}
+          onClick={() => { setBidAmount(String(Math.max(currentPrice + 1, bidNum - 1))); }}
           disabled={isDisabled || bidNum <= currentPrice + 1}
           className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-slate-700/50 text-white hover:bg-slate-700/70 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] border border-white/5 active:scale-95 transition-transform"
         >
@@ -161,7 +161,7 @@ export function BidControls({
             type="number"
             inputMode="numeric"
             value={bidAmount}
-            onChange={e => setBidAmount(e.target.value)}
+            onChange={e => { setBidAmount(e.target.value); }}
             disabled={isDisabled}
             className="flex-1 bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2 text-white text-center font-mono focus:border-sky-500 focus:outline-none"
             placeholder="Importo..."
@@ -172,7 +172,7 @@ export function BidControls({
             type="number"
             inputMode="numeric"
             value={bidAmount}
-            onChange={e => setBidAmount(e.target.value)}
+            onChange={e => { setBidAmount(e.target.value); }}
             disabled={isDisabled}
             className="flex-1 text-sml text-center bg-slate-800/60 border-white/10 text-white font-mono"
             placeholder="Importo..."
@@ -181,7 +181,7 @@ export function BidControls({
         )}
         <button
           type="button"
-          onClick={() => setBidAmount(String(bidNum + 1))}
+          onClick={() => { setBidAmount(String(bidNum + 1)); }}
           disabled={isDisabled || bidNum + 1 > budget}
           className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-slate-700/50 text-white hover:bg-slate-700/70 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] border border-white/5 active:scale-95 transition-transform"
         >

@@ -395,7 +395,7 @@ export async function createAuctionSession(
       const session = await tx.marketSession.create({
         data: {
           leagueId,
-          type: marketType as 'PRIMO_MERCATO' | 'MERCATO_RICORRENTE',
+          type: marketType,
           season: league.currentSeason,
           semester,
           status: 'ACTIVE',
@@ -423,10 +423,9 @@ export async function createAuctionSession(
 
       // Create SESSION_START snapshots for all managers (after duration decrement)
       try {
-        const snapshotResult = await createSessionStartSnapshots(result.session.id, leagueId)
-        console.log(`Created SESSION_START snapshots: ${snapshotResult.created} success, ${snapshotResult.failed} failed`)
-      } catch (error) {
-        console.error('Error creating session start snapshots:', error)
+        await createSessionStartSnapshots(result.session.id, leagueId)
+      } catch {
+        // Error intentionally silenced
       }
     }
 
@@ -435,8 +434,8 @@ export async function createAuctionSession(
     if (isEffectivelyRegularMarket) {
       try {
         ritiratiResult = await autoReleaseRitiratiPlayers(leagueId, result.session.id)
-      } catch (error) {
-        console.error('Error auto-releasing ritirato players:', error)
+      } catch {
+        // Error intentionally silenced
       }
     }
 
@@ -1234,10 +1233,6 @@ export async function placeBid(
   userId: string,
   amount: number
 ): Promise<ServiceResult> {
-  const startTime = Date.now()
-  console.log(`[PLACEBID-TIMING] === Start placeBid ===`)
-
-  const t1 = Date.now()
   const auction = await prisma.auction.findUnique({
     where: { id: auctionId },
     include: {
@@ -1246,7 +1241,6 @@ export async function placeBid(
       marketSession: true,
     },
   })
-  console.log(`[PLACEBID-TIMING] Query auction: ${Date.now() - t1}ms`)
 
   if (!auction) {
     return { success: false, message: 'Asta non trovata' }
@@ -1259,7 +1253,6 @@ export async function placeBid(
   // Verifica timer non scaduto (controllo server-side autoritativo)
   const serverNow = new Date()
   if (auction.timerExpiresAt && serverNow > auction.timerExpiresAt) {
-    console.log(`[PLACEBID] Bid rifiutata: timer scaduto. Server: ${serverNow.toISOString()}, Expiry: ${auction.timerExpiresAt.toISOString()}`)
     return {
       success: false,
       message: 'Tempo scaduto - asta chiusa',
@@ -1268,7 +1261,6 @@ export async function placeBid(
   }
 
   // Get member
-  const t2 = Date.now()
   const member = await prisma.leagueMember.findFirst({
     where: {
       leagueId: auction.leagueId,
@@ -1276,7 +1268,6 @@ export async function placeBid(
       status: MemberStatus.ACTIVE,
     },
   })
-  console.log(`[PLACEBID-TIMING] Query member: ${Date.now() - t2}ms`)
 
   if (!member) {
     return { success: false, message: 'Non sei membro di questa lega' }
@@ -1387,7 +1378,6 @@ export async function placeBid(
   })
 
   // Trigger Pusher event for bid placed (fire and forget)
-  const tPusher = Date.now()
   if (auction.marketSessionId) {
     triggerBidPlaced(auction.marketSessionId, {
       auctionId: auction.id,
@@ -1401,8 +1391,6 @@ export async function placeBid(
       timerSeconds: timerSeconds,
     })
   }
-  console.log(`[PLACEBID-TIMING] Pusher trigger (fire&forget): ${Date.now() - tPusher}ms`)
-  console.log(`[PLACEBID-TIMING] === TOTAL: ${Date.now() - startTime}ms ===`)
 
   return {
     success: true,
@@ -1902,7 +1890,7 @@ export async function getFirstMarketStatus(
   // Find current nominator (skip those with complete current role OR insufficient budget)
   let currentNominator = null
   if (turnOrder && turnOrder.length > 0) {
-    let searchIndex = currentTurnIndex
+    const searchIndex = currentTurnIndex
     for (let i = 0; i < turnOrder.length; i++) {
       const idx = (searchIndex + i) % turnOrder.length
       const memberId = turnOrder[idx]
@@ -3417,7 +3405,7 @@ export async function confirmNomination(
     playerName: session.pendingNominationPlayer!.name,
     playerRole: session.pendingNominationPlayer!.position,
     startingPrice: 1,
-    nominatorId: session.pendingNominatorId!,
+    nominatorId: session.pendingNominatorId,
     nominatorName: member.user.username,
     timerDuration: session.auctionTimerSeconds,
     timestamp: new Date().toISOString(),
@@ -4412,7 +4400,6 @@ export async function resolveAppeal(
       },
     }
     } catch (error) {
-      console.error('[resolveAppeal] Error accepting appeal:', error)
       return {
         success: false,
         message: `Errore nell'accettare il ricorso: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`,

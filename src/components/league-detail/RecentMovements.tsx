@@ -41,7 +41,7 @@ export function RecentMovements({ movements, onNavigate, leagueId }: RecentMovem
           <h3 className="text-base font-bold text-white">Ultimi Movimenti</h3>
         </div>
         <button
-          onClick={() => onNavigate('movements', { leagueId })}
+          onClick={() => { onNavigate('movements', { leagueId }); }}
           className="text-xs text-primary-400 hover:text-primary-300 transition-colors font-medium"
         >
           Vedi tutti &rarr;

@@ -47,7 +47,7 @@ export function ManagersSidebar({
   const handleCopy = async () => {
     await navigator.clipboard.writeText(inviteCode)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setTimeout(() => { setCopied(false); }, 2000)
   }
 
   const giniInfo = totals ? getGiniLabel(totals.giniIndex) : null

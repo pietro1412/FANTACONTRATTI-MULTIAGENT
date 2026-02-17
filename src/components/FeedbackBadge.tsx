@@ -31,7 +31,7 @@ export function FeedbackBadge({ onNavigate }: FeedbackBadgeProps) {
     loadNotifications()
     // Poll every 30 seconds for new notifications
     const interval = setInterval(loadNotifications, 30000)
-    return () => clearInterval(interval)
+    return () => { clearInterval(interval); }
   }, [])
 
   // Close dropdown when clicking outside
@@ -42,7 +42,7 @@ export function FeedbackBadge({ onNavigate }: FeedbackBadgeProps) {
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    return () => { document.removeEventListener('mousedown', handleClickOutside); }
   }, [])
 
   async function loadNotifications() {
@@ -90,7 +90,7 @@ export function FeedbackBadge({ onNavigate }: FeedbackBadgeProps) {
     <div className="relative" ref={dropdownRef}>
       {/* Badge Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => { setIsOpen(!isOpen); }}
         className="relative p-2 text-gray-400 hover:text-white hover:bg-surface-300/50 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400/50"
         title={`${count} notific${count === 1 ? 'a' : 'he'} segnalazioni`}
       >
@@ -146,7 +146,7 @@ export function FeedbackBadge({ onNavigate }: FeedbackBadgeProps) {
                   return (
                     <button
                       key={notification.id}
-                      onClick={() => handleViewFeedback(notification.feedbackId)}
+                      onClick={() => { handleViewFeedback(notification.feedbackId); }}
                       className="w-full px-4 py-3 border-b border-surface-50/10 last:border-0 hover:bg-surface-300/30 transition-colors text-left"
                     >
                       <div className="flex items-start justify-between gap-2 mb-1">

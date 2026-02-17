@@ -79,7 +79,7 @@ export function BottomSheet({
       )
       firstFocusable?.focus()
     }, 50)
-    return () => document.removeEventListener('keydown', handleKeyDown)
+    return () => { document.removeEventListener('keydown', handleKeyDown); }
   }, [isOpen, handleKeyDown])
 
   // Lock body scroll when open

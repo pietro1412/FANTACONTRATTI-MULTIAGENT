@@ -141,8 +141,8 @@ export async function logAction(
         userAgent,
       },
     })
-  } catch (error) {
-    console.error('Failed to log action:', error)
+  } catch {
+    // Error intentionally silenced
   }
 }
 

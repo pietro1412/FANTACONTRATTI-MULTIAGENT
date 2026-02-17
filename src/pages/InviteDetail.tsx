@@ -170,7 +170,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
             </div>
             <h2 className="text-xl font-bold text-white mb-2">Invito non valido</h2>
             <p className="text-gray-400 mb-6">{error}</p>
-            <Button onClick={() => onNavigate('dashboard')}>
+            <Button onClick={() => { onNavigate('dashboard'); }}>
               Torna alla Dashboard
             </Button>
           </div>
@@ -192,7 +192,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => onNavigate('dashboard')}
+            onClick={() => { onNavigate('dashboard'); }}
             className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -68,8 +68,8 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
 
   // Debounce search
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300)
-    return () => clearTimeout(timer)
+    const timer = setTimeout(() => { setDebouncedSearch(search); }, 300)
+    return () => { clearTimeout(timer); }
   }, [search])
 
   useEffect(() => {
@@ -109,12 +109,12 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
       observer.observe(observerTarget.current)
     }
 
-    return () => observer.disconnect()
+    return () => { observer.disconnect(); }
   }, [hasMore, isLoadingMore, isLoading, offset])
 
   async function loadStats() {
     try {
-      const result = await historyApi.getProphecyStats(leagueId!)
+      const result = await historyApi.getProphecyStats(leagueId)
       if (result.success && result.data) {
         setStats(result.data as ProphecyStats)
       }
@@ -123,7 +123,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
     }
   }
 
-  const loadProphecies = useCallback(async (reset = false) => {
+  const loadProphecies = useCallback(async (reset) => {
     if (reset) {
       setIsLoading(true)
     } else {
@@ -132,7 +132,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
 
     try {
       const newOffset = reset ? 0 : offset
-      const result = await historyApi.getProphecies(leagueId!, {
+      const result = await historyApi.getProphecies(leagueId, {
         playerId: selectedPlayerId || undefined,
         authorId: selectedAuthorId || undefined,
         search: debouncedSearch || undefined,
@@ -206,7 +206,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
   const getActiveFilterLabel = () => {
     if (selectedPlayerId) {
       const player = stats?.topPlayers.find(p => p.playerId === selectedPlayerId)
-      if (player) return `${player.name}`
+      if (player) return player.name
       const fromList = prophecies.find(p => p.player.id === selectedPlayerId)
       return fromList?.player.name || 'Giocatore'
     }
@@ -239,7 +239,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
           <div className="flex items-center gap-2">
             {/* Toggle Stats */}
             <button
-              onClick={() => setShowStats(!showStats)}
+              onClick={() => { setShowStats(!showStats); }}
               className={`p-2 rounded-lg transition-colors ${showStats ? 'bg-purple-500/20 text-purple-400' : 'text-gray-400 hover:text-white'}`}
               title={showStats ? 'Nascondi statistiche' : 'Mostra statistiche'}
               aria-label={showStats ? 'Nascondi statistiche' : 'Mostra statistiche'}
@@ -251,7 +251,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
 
             {/* Toggle View */}
             <button
-              onClick={() => setCompactView(!compactView)}
+              onClick={() => { setCompactView(!compactView); }}
               className={`p-2 rounded-lg transition-colors ${compactView ? 'text-gray-400 hover:text-white' : 'bg-primary-500/20 text-primary-400'}`}
               title={compactView ? 'Vista espansa' : 'Vista compatta'}
               aria-label={compactView ? 'Vista espansa' : 'Vista compatta'}
@@ -277,7 +277,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
                 {stats.byAuthor.slice(0, 6).map((author, idx) => (
                   <button
                     key={author.memberId}
-                    onClick={() => handleFilterByAuthor(author.memberId)}
+                    onClick={() => { handleFilterByAuthor(author.memberId); }}
                     className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors ${
                       selectedAuthorId === author.memberId
                         ? 'bg-purple-500/30 text-purple-300 ring-1 ring-purple-500/50'
@@ -306,7 +306,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
                 {stats.topPlayers.slice(0, 6).map((player, idx) => (
                   <button
                     key={player.playerId}
-                    onClick={() => handleFilterByPlayer(player.playerId)}
+                    onClick={() => { handleFilterByPlayer(player.playerId); }}
                     className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors ${
                       selectedPlayerId === player.playerId
                         ? 'bg-purple-500/30 text-purple-300 ring-1 ring-purple-500/50'
@@ -337,7 +337,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
                 type="text"
                 placeholder="Cerca giocatore, manager o testo..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); }}
                 className="w-full pl-9 pr-4 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500"
               />
             </div>
@@ -409,7 +409,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
                   <tr key={prophecy.id} className="hover:bg-surface-300/30 transition-colors">
                     <td className="px-3 py-2">
                       <button
-                        onClick={() => handleFilterByPlayer(prophecy.player.id)}
+                        onClick={() => { handleFilterByPlayer(prophecy.player.id); }}
                         className="flex items-center gap-2 hover:opacity-80"
                       >
                         <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${positionColors[prophecy.player.position]}`}>
@@ -428,7 +428,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
                     </td>
                     <td className="px-3 py-2">
                       <button
-                        onClick={() => handleFilterByAuthor(prophecy.author.memberId)}
+                        onClick={() => { handleFilterByAuthor(prophecy.author.memberId); }}
                         className="text-purple-400 hover:text-purple-300 text-xs"
                       >
                         {prophecy.author.teamName || prophecy.author.username}
@@ -462,7 +462,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
                 <div className="flex items-start gap-3">
                   {/* Player */}
                   <button
-                    onClick={() => handleFilterByPlayer(prophecy.player.id)}
+                    onClick={() => { handleFilterByPlayer(prophecy.player.id); }}
                     className="flex items-center gap-2 hover:opacity-80 shrink-0"
                   >
                     <span className={`w-8 h-8 flex items-center justify-center rounded text-xs font-bold ${positionColors[prophecy.player.position]}`}>
@@ -479,7 +479,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
                     <p className="text-gray-300 text-sm italic">"{prophecy.content}"</p>
                     <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
                       <button
-                        onClick={() => handleFilterByAuthor(prophecy.author.memberId)}
+                        onClick={() => { handleFilterByAuthor(prophecy.author.memberId); }}
                         className="text-purple-400 hover:text-purple-300"
                       >
                         — {prophecy.author.teamName || prophecy.author.username}

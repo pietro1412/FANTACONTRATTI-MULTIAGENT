@@ -1,4 +1,5 @@
-import { PrismaClient, MemberStatus, MovementType, ProphecyRole } from '@prisma/client'
+import type { MovementType} from '@prisma/client';
+import { PrismaClient, MemberStatus, ProphecyRole } from '@prisma/client'
 import type { ServiceResult } from '@/shared/types/service-result'
 
 const prisma = new PrismaClient()
@@ -45,8 +46,7 @@ export async function recordMovement(data: MovementData): Promise<string | null>
       },
     })
     return movement.id
-  } catch (error) {
-    console.error('Error recording movement:', error)
+  } catch {
     return null
   }
 }
@@ -77,8 +77,7 @@ export async function getLeagueMovements(
     return { success: false, message: 'Non sei membro di questa lega' }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const whereConditions: any = {
+  const whereConditions: Record<string, unknown> = {
     leagueId,
   }
 

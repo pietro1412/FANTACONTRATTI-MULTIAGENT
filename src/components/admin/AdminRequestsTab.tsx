@@ -57,10 +57,10 @@ export function AdminRequestsTab({
                     <p className="text-sm text-gray-400">{member.user.email}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button onClick={() => handleMemberAction(member.id, 'accept')} disabled={isSubmitting}>
+                    <Button onClick={() => { handleMemberAction(member.id, 'accept'); }} disabled={isSubmitting}>
                       Accetta
                     </Button>
-                    <Button variant="outline" onClick={() => handleMemberAction(member.id, 'reject')} disabled={isSubmitting}>
+                    <Button variant="outline" onClick={() => { handleMemberAction(member.id, 'reject'); }} disabled={isSubmitting}>
                       Rifiuta
                     </Button>
                   </div>
@@ -87,7 +87,7 @@ export function AdminRequestsTab({
               <Input
                 type="text"
                 value={newInviteEmail}
-                onChange={(e) => setNewInviteEmail(e.target.value)}
+                onChange={(e) => { setNewInviteEmail(e.target.value); }}
                 placeholder="Email o username..."
               />
             </div>
@@ -160,7 +160,7 @@ export function AdminRequestsTab({
                       Inviato: {new Date(invite.createdAt).toLocaleDateString('it-IT')} - Scade: {new Date(invite.expiresAt).toLocaleDateString('it-IT')}
                     </p>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => handleCancelInvite(invite.id)} disabled={isSubmitting}>
+                  <Button size="sm" variant="outline" onClick={() => { handleCancelInvite(invite.id); }} disabled={isSubmitting}>
                     Annulla
                   </Button>
                 </div>

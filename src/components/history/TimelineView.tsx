@@ -154,7 +154,7 @@ export function TimelineView({ leagueId, sessions }: TimelineViewProps) {
             {Object.entries(eventTypeConfig).map(([type, config]) => (
               <button
                 key={type}
-                onClick={() => toggleTypeFilter(type)}
+                onClick={() => { toggleTypeFilter(type); }}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   filterTypes.includes(type)
                     ? 'bg-primary-500 text-white'
@@ -169,7 +169,7 @@ export function TimelineView({ leagueId, sessions }: TimelineViewProps) {
           {/* Session Filter */}
           <select
             value={filterSession}
-            onChange={e => setFilterSession(e.target.value)}
+            onChange={e => { setFilterSession(e.target.value); }}
             className="px-3 py-1.5 bg-surface-300 border border-surface-50/20 rounded-lg text-white text-sm"
           >
             <option value="">Tutte le sessioni</option>

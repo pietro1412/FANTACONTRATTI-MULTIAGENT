@@ -3,7 +3,7 @@
  * Provides a functional approach to error handling without exceptions
  */
 
-import { AppError } from './errors'
+import type { AppError } from './errors'
 
 /**
  * Represents a successful result containing a value

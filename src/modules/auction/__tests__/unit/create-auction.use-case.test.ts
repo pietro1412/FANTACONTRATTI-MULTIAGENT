@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { CreateAuctionUseCase } from '../../application/use-cases/create-auction.use-case'
 import type { IAuctionRepository } from '../../domain/repositories/auction.repository.interface'
 import type { Auction } from '../../domain/entities/auction.entity'
-import type { EventBus } from '../../../../shared/infrastructure/events/event-bus'
+import type { EventBus } from '@/shared/infrastructure/events/event-bus'
 
 describe('CreateAuctionUseCase', () => {
   let createAuctionUseCase: CreateAuctionUseCase

@@ -288,7 +288,7 @@ export function ContractModifier({
             <div className="flex items-center">
               <button
                 type="button"
-                onClick={() => setNewDuration(Math.max(minDuration, newDuration - 1))}
+                onClick={() => { setNewDuration(Math.max(minDuration, newDuration - 1)); }}
                 disabled={isLoading || isSubmitting || newDuration <= minDuration}
                 className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
               >−</button>
@@ -297,7 +297,7 @@ export function ContractModifier({
               </div>
               <button
                 type="button"
-                onClick={() => setNewDuration(Math.min(4, newDuration + 1))}
+                onClick={() => { setNewDuration(Math.min(4, newDuration + 1)); }}
                 disabled={isLoading || isSubmitting || newDuration >= 4}
                 className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-r-lg text-white font-bold disabled:opacity-30 hover:bg-surface-300/80 transition-colors"
               >+</button>

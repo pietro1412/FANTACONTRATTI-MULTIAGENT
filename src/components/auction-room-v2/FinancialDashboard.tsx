@@ -152,7 +152,7 @@ export function FinancialDashboard({ managersStatus, firstMarketStatus, onSelect
               turnIndex={turnIndex}
               isCurrent={m.isCurrentTurn}
               isMe={m.id === managersStatus.myId}
-              onClick={() => onSelectManager(m)}
+              onClick={() => { onSelectManager(m); }}
               avgBudget={avgBudget}
             />
           )

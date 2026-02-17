@@ -149,7 +149,7 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
         ] as const).map(opt => (
           <button
             key={opt.key}
-            onClick={() => setSortBy(opt.key)}
+            onClick={() => { setSortBy(opt.key); }}
             className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
               sortBy === opt.key
                 ? 'bg-primary-500 text-white'

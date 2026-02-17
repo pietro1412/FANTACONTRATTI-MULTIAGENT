@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
-import { Position, PrismaClient } from '@prisma/client'
+import type { Position} from '@prisma/client';
+import { PrismaClient } from '@prisma/client'
 import { getPlayers, getPlayerById, getTeams } from '../../services/player.service'
 import { authMiddleware } from '../middleware/auth'
 

@@ -190,12 +190,12 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
               <Input
                 placeholder="Cerca giocatore..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={e => { setSearchQuery(e.target.value); }}
                 className="bg-surface-300 border-surface-50/30"
               />
             </div>
             <button
-              onClick={() => setFiltersOpen(true)}
+              onClick={() => { setFiltersOpen(true); }}
               className="flex items-center gap-1.5 px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-sm text-gray-300 hover:text-white transition-colors flex-shrink-0"
             >
               <SlidersHorizontal size={16} />
@@ -213,7 +213,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
               <Input
                 placeholder="Cerca giocatore..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={e => { setSearchQuery(e.target.value); }}
                 className="bg-surface-300 border-surface-50/30"
               />
             </div>
@@ -222,7 +222,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
               {['', 'P', 'D', 'C', 'A'].map(pos => (
                 <button
                   key={pos}
-                  onClick={() => setSelectedPosition(pos)}
+                  onClick={() => { setSelectedPosition(pos); }}
                   className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
                     selectedPosition === pos
                       ? pos === ''
@@ -268,7 +268,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
         </div>
 
         {/* Mobile Filters BottomSheet */}
-        <BottomSheet isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filtri">
+        <BottomSheet isOpen={filtersOpen} onClose={() => { setFiltersOpen(false); }} title="Filtri">
           <div className="p-4 space-y-5">
             <div>
               <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Posizione</label>
@@ -276,7 +276,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
                 {['', 'P', 'D', 'C', 'A'].map(pos => (
                   <button
                     key={pos}
-                    onClick={() => setSelectedPosition(pos)}
+                    onClick={() => { setSelectedPosition(pos); }}
                     className={`flex-1 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
                       selectedPosition === pos
                         ? pos === ''
@@ -326,7 +326,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
             )}
 
             <button
-              onClick={() => setFiltersOpen(false)}
+              onClick={() => { setFiltersOpen(false); }}
               className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-xl transition-colors"
             >
               Applica Filtri
@@ -389,7 +389,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
                         </div>
                         <div>
                           <button
-                            onClick={() => setSelectedPlayerStats({
+                            onClick={() => { setSelectedPlayerStats({
                               name: player.name,
                               team: player.team,
                               position: player.position,
@@ -398,7 +398,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
                               apiFootballId: player.apiFootballId,
                               apiFootballStats: player.apiFootballStats,
                               statsSyncedAt: player.statsSyncedAt,
-                            })}
+                            }); }}
                             className="font-medium text-white hover:text-primary-400 transition-colors text-left"
                           >
                             {player.name}
@@ -461,7 +461,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
       {/* Stats Modal */}
       <PlayerStatsModal
         isOpen={!!selectedPlayerStats}
-        onClose={() => setSelectedPlayerStats(null)}
+        onClose={() => { setSelectedPlayerStats(null); }}
         player={selectedPlayerStats}
       />
       </PullToRefresh>

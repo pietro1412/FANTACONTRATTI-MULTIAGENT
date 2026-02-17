@@ -298,8 +298,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             index={index}
                             memberName={memberName}
                             totalItems={orderDraft.length}
-                            onMoveUp={() => moveInOrder(index, 'up')}
-                            onMoveDown={() => moveInOrder(index, 'down')}
+                            onMoveUp={() => { moveInOrder(index, 'up'); }}
+                            onMoveDown={() => { moveInOrder(index, 'down'); }}
                           />
                         )
                       })}
@@ -326,7 +326,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   <input
                     type="number"
                     value={offerTimer}
-                    onChange={(e) => setOfferTimer(parseInt(e.target.value) || 30)}
+                    onChange={(e) => { setOfferTimer(parseInt(e.target.value) || 30); }}
                     min={5}
                     max={120}
                     className="w-full px-4 py-2 bg-surface-300 border border-surface-50/30 rounded-xl text-white focus:border-primary-500 focus:outline-none"
@@ -337,7 +337,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   <input
                     type="number"
                     value={auctionTimer}
-                    onChange={(e) => setAuctionTimer(parseInt(e.target.value) || 15)}
+                    onChange={(e) => { setAuctionTimer(parseInt(e.target.value) || 15); }}
                     min={5}
                     max={60}
                     className="w-full px-4 py-2 bg-surface-300 border border-surface-50/30 rounded-xl text-white focus:border-primary-500 focus:outline-none"
@@ -672,7 +672,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                               </div>
                               <button
                                 type="button"
-                                onClick={() => setSelectedPlayerForStats({
+                                onClick={() => { setSelectedPlayerForStats({
                                   name: player.playerName,
                                   team: player.playerTeam,
                                   position: player.playerPosition,
@@ -680,7 +680,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                                   age: player.playerAge,
                                   apiFootballId: player.playerApiFootballId,
                                   computedStats: player.playerComputedStats,
-                                })}
+                                }); }}
                                 className={`font-medium truncate hover:underline cursor-pointer text-left ${isCurrent ? 'text-white font-bold' : isPassed ? 'text-gray-500' : 'text-gray-300 hover:text-white'}`}
                                 title="Clicca per vedere statistiche"
                               >
@@ -772,7 +772,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                                   {canEditPreferences && (
                                     <button
                                       type="button"
-                                      onClick={() => openPrefsModal({ ...player, preference: pref || null })}
+                                      onClick={() => { openPrefsModal({ ...player, preference: pref || null }); }}
                                       className={`w-6 h-6 rounded flex items-center justify-center text-xs transition-all ${
                                         hasStrategy ? 'bg-indigo-500/30 text-indigo-400' : 'bg-surface-50/20 text-gray-500 hover:bg-indigo-500/20'
                                       }`}
@@ -847,7 +847,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         </span>
                         <button
                           type="button"
-                          onClick={() => setSelectedPlayerForStats({
+                          onClick={() => { setSelectedPlayerForStats({
                             name: player.playerName,
                             team: player.playerTeam,
                             position: player.playerPosition,
@@ -855,7 +855,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             age: player.playerAge,
                             apiFootballId: player.playerApiFootballId,
                             computedStats: player.playerComputedStats,
-                          })}
+                          }); }}
                           className={`font-medium flex-1 truncate text-left ${isCurrent ? 'text-white font-bold' : isPassed ? 'text-gray-500' : 'text-gray-300'}`}
                         >
                           {player.playerName}
@@ -951,7 +951,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                               {canEditPreferences && (
                                 <button
                                   type="button"
-                                  onClick={() => openPrefsModal({ ...player, preference: pref || null })}
+                                  onClick={() => { openPrefsModal({ ...player, preference: pref || null }); }}
                                   className={`px-2 py-1 rounded text-xs transition-all ${
                                     (pref?.priority || pref?.maxBid || pref?.notes) ? 'bg-indigo-500/30 text-indigo-400' : 'bg-surface-50/20 text-gray-500'
                                   }`}
@@ -996,7 +996,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
         {isRubataPhase && isOrderSet && isAdmin && (
           <button
             className="fixed bottom-20 right-4 z-40 lg:hidden bg-primary-500 text-white rounded-full p-3 shadow-lg hover:bg-primary-400 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center gap-2"
-            onClick={() => setAdminSheetOpen(true)}
+            onClick={() => { setAdminSheetOpen(true); }}
           >
             <Settings size={20} />
             <span className="text-sm font-medium">Admin</span>
@@ -1006,7 +1006,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
         {/* Mobile Admin BottomSheet */}
         <BottomSheet
           isOpen={adminSheetOpen}
-          onClose={() => setAdminSheetOpen(false)}
+          onClose={() => { setAdminSheetOpen(false); }}
           title="Controlli Admin"
           maxHeight="85vh"
         >
@@ -1059,7 +1059,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               <span className="text-[9px] text-gray-500 uppercase font-medium">Budget Residuo</span>
               <button
                 type="button"
-                onClick={() => setMobileBudgetExpanded(prev => !prev)}
+                onClick={() => { setMobileBudgetExpanded(prev => !prev); }}
                 className="text-[9px] text-gray-400 px-2 py-0.5 rounded bg-surface-300/50"
               >
                 {mobileBudgetExpanded ? '▼ Chiudi' : '▲ Espandi'}
@@ -1118,7 +1118,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
       {/* Player Stats Modal */}
       <PlayerStatsModal
         isOpen={!!selectedPlayerForStats}
-        onClose={() => setSelectedPlayerForStats(null)}
+        onClose={() => { setSelectedPlayerForStats(null); }}
         player={selectedPlayerForStats}
       />
     </div>

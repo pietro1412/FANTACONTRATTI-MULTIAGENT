@@ -54,7 +54,7 @@ export function PhaseCalendar({ sessions }: PhaseCalendarProps) {
                     ? 'text-gray-400'
                     : 'text-gray-500'
               }`}>
-                <span className={`${isFuture ? 'opacity-40' : ''}`}>{phase.icon}</span>
+                <span className={isFuture ? 'opacity-40' : ''}>{phase.icon}</span>
                 <span>{phase.label}</span>
                 {isDone && <span className="text-secondary-400 ml-0.5">✓</span>}
               </div>

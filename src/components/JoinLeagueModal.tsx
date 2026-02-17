@@ -165,7 +165,7 @@ export function JoinLeagueModal({ isOpen, league, onClose, onSuccess }: JoinLeag
               <Input
                 type="text"
                 value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
+                onChange={(e) => { setTeamName(e.target.value); }}
                 placeholder="Es. FC Campioni, Inter Stars..."
                 autoFocus
               />

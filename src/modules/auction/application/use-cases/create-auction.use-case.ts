@@ -5,16 +5,18 @@
  * Validates session state, player availability, and publishes domain events.
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import type {
+  ValidationError} from '@/shared/infrastructure/http/errors';
 import {
-  ValidationError,
   NotFoundError,
   ConflictError,
   SessionNotActiveError,
   PlayerNotFoundError,
-} from '../../../../shared/infrastructure/http/errors'
-import { DomainEventTypes } from '../../../../shared/infrastructure/events/domain-events'
-import type { EventBus } from '../../../../shared/infrastructure/events/event-bus'
+} from '@/shared/infrastructure/http/errors'
+import { DomainEventTypes } from '@/shared/infrastructure/events/domain-events'
+import type { EventBus } from '@/shared/infrastructure/events/event-bus'
 import type { IAuctionRepository } from '../../domain/repositories/auction.repository.interface'
 import type { AuctionType } from '../../domain/entities/auction.entity'
 import type { CreateAuctionDto, CreateAuctionResultDto } from '../dto/auction.dto'
@@ -123,7 +125,7 @@ export class CreateAuctionUseCase {
       playerId,
       startingPrice,
       timerDuration,
-      type: type as AuctionType,
+      type: type,
       nominatorId,
     })
 

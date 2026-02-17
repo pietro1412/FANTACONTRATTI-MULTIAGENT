@@ -176,7 +176,7 @@ export function FinanceTimeline({ leagueId, data, initialMemberId, onBack }: Fin
         {data.teams.map(team => (
           <button
             key={team.memberId}
-            onClick={() => setSelectedMemberId(team.memberId)}
+            onClick={() => { setSelectedMemberId(team.memberId); }}
             className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
               selectedMemberId === team.memberId
                 ? 'bg-primary-500 text-white'
@@ -252,7 +252,7 @@ export function FinanceTimeline({ leagueId, data, initialMemberId, onBack }: Fin
             ].map(opt => (
               <button
                 key={opt.key}
-                onClick={() => setFilterType(opt.key)}
+                onClick={() => { setFilterType(opt.key); }}
                 className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
                   filterType === opt.key
                     ? 'bg-primary-500 text-white'

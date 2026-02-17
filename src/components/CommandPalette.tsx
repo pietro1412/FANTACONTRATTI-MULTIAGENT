@@ -122,7 +122,7 @@ export function CommandPalette() {
       }
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => { window.removeEventListener('keydown', handleKeyDown); }
   }, [isOpen])
 
   // Focus input when opened
@@ -166,14 +166,14 @@ export function CommandPalette() {
   let flatIndex = 0
 
   return (
-    <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)}>
+    <div className="fixed inset-0 z-[100]" onClick={() => { setIsOpen(false); }}>
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       {/* Palette */}
       <div
         className="absolute top-[15%] left-1/2 -translate-x-1/2 w-[90%] max-w-lg bg-surface-200 rounded-xl border border-surface-50/30 shadow-2xl overflow-hidden"
-        onClick={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); }}
       >
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-surface-50/20">
@@ -182,7 +182,7 @@ export function CommandPalette() {
             ref={inputRef}
             type="text"
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={e => { setQuery(e.target.value); }}
             onKeyDown={handleInputKeyDown}
             placeholder="Cerca pagina o azione..."
             className="flex-1 bg-transparent text-white text-sm placeholder-gray-500 outline-none"
@@ -215,7 +215,7 @@ export function CommandPalette() {
                         item.action()
                         setIsOpen(false)
                       }}
-                      onMouseEnter={() => setSelectedIndex(idx)}
+                      onMouseEnter={() => { setSelectedIndex(idx); }}
                       className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
                         selectedIndex === idx
                           ? 'bg-primary-500/20 text-white'

@@ -90,7 +90,7 @@ export function AdminBanner({
           </div>
         </div>
         {isAdmin && (
-          <Button size="lg" onClick={() => onNavigate('admin', { leagueId })} className="flex-shrink-0">
+          <Button size="lg" onClick={() => { onNavigate('admin', { leagueId }); }} className="flex-shrink-0">
             Pannello Admin
           </Button>
         )}
@@ -145,7 +145,7 @@ export function AdminBanner({
 
     return (
       <button
-        onClick={() => onNavigate(nav.page, nav.params)}
+        onClick={() => { onNavigate(nav.page, nav.params); }}
         className={`bg-gradient-to-r ${colors.bg} border-2 ${colors.border} rounded-2xl p-4 sm:p-6 flex items-center justify-between w-full text-left cursor-pointer hover:translate-x-1 hover:border-primary-500/50 transition-all duration-200 group`}
         role="link"
       >

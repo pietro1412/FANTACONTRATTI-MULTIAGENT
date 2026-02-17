@@ -217,7 +217,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
             <div className="flex items-center gap-2">
               {/* Mobile: Filtri button */}
               <button
-                onClick={() => setFiltersOpen(true)}
+                onClick={() => { setFiltersOpen(true); }}
                 className="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-xs text-gray-300 hover:text-white transition-colors"
               >
                 <SlidersHorizontal size={14} />
@@ -231,7 +231,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
               {/* Desktop: inline selects */}
               <select
                 value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
+                onChange={(e) => { setFilterType(e.target.value); }}
                 className="hidden md:block bg-surface-300 border border-surface-50/30 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none"
               >
                 <option value="">Tutti i tipi</option>
@@ -244,7 +244,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
               </select>
               <select
                 value={filterSemester}
-                onChange={(e) => setFilterSemester(e.target.value)}
+                onChange={(e) => { setFilterSemester(e.target.value); }}
                 className="hidden md:block bg-surface-300 border border-surface-50/30 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none"
               >
                 <option value="">Tutti</option>
@@ -256,14 +256,14 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                 <input
                   type="date"
                   value={filterDateFrom}
-                  onChange={(e) => setFilterDateFrom(e.target.value)}
+                  onChange={(e) => { setFilterDateFrom(e.target.value); }}
                   className="bg-surface-300 border border-surface-50/30 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none [color-scheme:dark]"
                 />
                 <span className="text-xs text-gray-500">al</span>
                 <input
                   type="date"
                   value={filterDateTo}
-                  onChange={(e) => setFilterDateTo(e.target.value)}
+                  onChange={(e) => { setFilterDateTo(e.target.value); }}
                   className="bg-surface-300 border border-surface-50/30 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none [color-scheme:dark]"
                 />
                 {(filterDateFrom || filterDateTo) && (
@@ -283,13 +283,13 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
       </div>
 
       {/* Mobile Filters BottomSheet */}
-      <BottomSheet isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filtri Movimenti">
+      <BottomSheet isOpen={filtersOpen} onClose={() => { setFiltersOpen(false); }} title="Filtri Movimenti">
         <div className="p-4 space-y-5">
           <div>
             <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Tipo Movimento</label>
             <select
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
+              onChange={(e) => { setFilterType(e.target.value); }}
               className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="">Tutti i tipi</option>
@@ -306,7 +306,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
             <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Semestre</label>
             <select
               value={filterSemester}
-              onChange={(e) => setFilterSemester(e.target.value)}
+              onChange={(e) => { setFilterSemester(e.target.value); }}
               className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="">Tutti i semestri</option>
@@ -323,7 +323,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                 <input
                   type="date"
                   value={filterDateFrom}
-                  onChange={(e) => setFilterDateFrom(e.target.value)}
+                  onChange={(e) => { setFilterDateFrom(e.target.value); }}
                   className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm [color-scheme:dark]"
                 />
               </div>
@@ -332,7 +332,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                 <input
                   type="date"
                   value={filterDateTo}
-                  onChange={(e) => setFilterDateTo(e.target.value)}
+                  onChange={(e) => { setFilterDateTo(e.target.value); }}
                   className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm [color-scheme:dark]"
                 />
               </div>
@@ -340,7 +340,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
           </div>
 
           <button
-            onClick={() => setFiltersOpen(false)}
+            onClick={() => { setFiltersOpen(false); }}
             className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-xl transition-colors"
           >
             Applica Filtri
@@ -379,7 +379,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                     {/* Card Header — always visible */}
                     <div
                       className={`px-4 py-3 cursor-pointer ${isExpanded ? 'bg-surface-300/30' : ''}`}
-                      onClick={() => setExpandedMovement(isExpanded ? null : movement.id)}
+                      onClick={() => { setExpandedMovement(isExpanded ? null : movement.id); }}
                     >
                       <div className="flex items-center gap-3">
                         {/* Type badge */}
@@ -468,7 +468,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                           <div>
                             <textarea
                               value={prophecyContent}
-                              onChange={(e) => setProphecyContent(e.target.value)}
+                              onChange={(e) => { setProphecyContent(e.target.value); }}
                               placeholder="Scrivi una profezia..."
                               className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-500/50"
                               rows={2}
@@ -524,7 +524,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                       {/* Main Row */}
                       <div
                         className={`grid grid-cols-12 gap-2 px-4 py-2.5 items-center text-sm hover:bg-surface-300/30 transition-colors cursor-pointer ${isExpanded ? 'bg-surface-300/50' : ''}`}
-                        onClick={() => setExpandedMovement(isExpanded ? null : movement.id)}
+                        onClick={() => { setExpandedMovement(isExpanded ? null : movement.id); }}
                       >
                         {/* Tipo */}
                         <div className="col-span-1">
@@ -626,7 +626,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                                 <div className="mt-2">
                                   <textarea
                                     value={prophecyContent}
-                                    onChange={(e) => setProphecyContent(e.target.value)}
+                                    onChange={(e) => { setProphecyContent(e.target.value); }}
                                     placeholder="Scrivi una profezia..."
                                     className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-500/50"
                                     rows={2}
