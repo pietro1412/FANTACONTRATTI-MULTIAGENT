@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { rubataApi, leagueApi, auctionApi, contractApi } from '../services/api'
 import { usePusherAuction } from '../services/pusher.client'
 import type {
@@ -17,6 +18,7 @@ import type {
 import type { PlayerInfo } from '../components/PlayerStatsModal'
 
 export function useRubataState(leagueId: string) {
+  const { confirm: confirmDialog } = useConfirmDialog()
   // Core state
   const [isLoading, setIsLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -514,7 +516,13 @@ export function useRubataState(leagueId: string) {
   }
 
   async function handleCompleteRubata() {
-    if (!confirm('Vuoi completare la rubata con transazioni casuali? Questo è irreversibile.')) return
+    const ok = await confirmDialog({
+      title: 'Completa rubata',
+      message: 'Vuoi completare la rubata con transazioni casuali? Questo è irreversibile.',
+      confirmLabel: 'Completa',
+      variant: 'danger'
+    })
+    if (!ok) return
     setError('')
     setIsSubmitting(true)
 

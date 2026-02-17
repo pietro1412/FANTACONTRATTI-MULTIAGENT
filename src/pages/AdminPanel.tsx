@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import * as XLSX from 'xlsx'
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { leagueApi, auctionApi, adminApi, inviteApi, contractApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
@@ -35,6 +36,7 @@ function TabLoadingFallback() {
 }
 
 export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps) {
+  const { confirm: confirmDialog } = useConfirmDialog()
   const [isLoading, setIsLoading] = useState(true)
   const [league, setLeague] = useState<League | null>(null)
   const [members, setMembers] = useState<Member[]>([])
@@ -293,8 +295,14 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     setIsSubmitting(false)
   }
 
-  function confirmKick(memberId: string, username: string) {
-    if (window.confirm(`Sei sicuro di voler espellere ${username}? Questa azione non può essere annullata.`)) {
+  async function confirmKick(memberId: string, username: string) {
+    const ok = await confirmDialog({
+      title: 'Espelli membro',
+      message: `Sei sicuro di voler espellere ${username}? Questa azione non può essere annullata.`,
+      confirmLabel: 'Espelli',
+      variant: 'danger'
+    })
+    if (ok) {
       handleMemberAction(memberId, 'kick')
     }
   }

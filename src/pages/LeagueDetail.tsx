@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { leagueApi, auctionApi, superadminApi, movementApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
@@ -71,6 +72,7 @@ interface MovementData {
 }
 
 export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
+  const { confirm: confirmDialog } = useConfirmDialog()
   // Core state
   const [league, setLeague] = useState<League | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
@@ -194,7 +196,13 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
   }
 
   async function handleLeaveLeague() {
-    if (!confirm('Sei sicuro di voler abbandonare questa lega?')) return
+    const ok = await confirmDialog({
+      title: 'Abbandona lega',
+      message: 'Sei sicuro di voler abbandonare questa lega?',
+      confirmLabel: 'Abbandona',
+      variant: 'danger'
+    })
+    if (!ok) return
     setIsLeaving(true)
     const result = await leagueApi.leave(leagueId)
     if (result.success) {

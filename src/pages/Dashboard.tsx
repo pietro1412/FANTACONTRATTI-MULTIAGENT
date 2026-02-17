@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { leagueApi, superadminApi, movementApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
@@ -51,6 +52,7 @@ const MEMBERSHIP_STATUS_LABELS: Record<string, string> = {
 }
 
 export function Dashboard({ onNavigate }: DashboardProps) {
+  const { confirm: confirmDialog } = useConfirmDialog()
   const [leagues, setLeagues] = useState<LeagueData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
@@ -75,7 +77,13 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     e.stopPropagation()
     if (cancellingLeagueId) return
 
-    if (!confirm('Sei sicuro di voler annullare la richiesta di partecipazione?')) return
+    const ok = await confirmDialog({
+      title: 'Annulla richiesta',
+      message: 'Sei sicuro di voler annullare la richiesta di partecipazione?',
+      confirmLabel: 'Annulla richiesta',
+      variant: 'warning'
+    })
+    if (!ok) return
 
     setCancellingLeagueId(leagueId)
     try {

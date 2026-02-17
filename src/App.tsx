@@ -2,6 +2,8 @@ import { lazy, Suspense, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { AuthProvider, useAuth } from './hooks/useAuth'
+import { ToastProvider } from './components/ui/Toast'
+import { ConfirmDialogProvider } from './components/ui/ConfirmDialog'
 
 import { ScrollToTop } from './components/ui/ScrollToTop'
 import { BottomNavBar } from './components/BottomNavBar'
@@ -674,12 +676,16 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
-        <BottomNavSpacer />
-        <BottomNavBar onMenuOpen={handleMobileMenuOpen} />
-        <CommandPalette />
-        <ScrollToTop />
-        <SpeedInsights />
+        <ToastProvider>
+          <ConfirmDialogProvider>
+            <AppRoutes />
+            <BottomNavSpacer />
+            <BottomNavBar onMenuOpen={handleMobileMenuOpen} />
+            <CommandPalette />
+            <ScrollToTop />
+            <SpeedInsights />
+          </ConfirmDialogProvider>
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   )

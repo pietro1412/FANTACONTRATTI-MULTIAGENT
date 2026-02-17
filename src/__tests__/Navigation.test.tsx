@@ -32,6 +32,18 @@ vi.mock('../services/api', () => ({
   },
 }))
 
+// Mock Toast provider so components using useToast don't throw
+vi.mock('../components/ui/Toast', () => ({
+  useToast: () => ({
+    toast: {
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+      info: vi.fn(),
+    },
+  }),
+}))
+
 // Import the mocked api to control behavior in tests
 import { superadminApi } from '../services/api'
 

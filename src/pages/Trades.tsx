@@ -9,6 +9,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { BottomSheet } from '../components/ui/BottomSheet'
 import { DealFinanceBar, DealRosterPanel, DealTable, DealMobileFooter } from '../components/trades/deal-room'
 import { PlayerStatsModal, type PlayerInfo } from '../components/PlayerStatsModal'
+import { useToast } from '@/components/ui/Toast'
 import haptic from '../utils/haptics'
 import type { FinancialsData, TeamData } from '../components/finance/types'
 import {
@@ -24,6 +25,7 @@ interface TradesProps {
 }
 
 export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) {
+  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'create' | 'received' | 'sent' | 'history'>(
     highlightOfferId ? 'received' : 'create'
@@ -468,7 +470,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       setSuccess('Scambio accettato! I contratti dei giocatori ricevuti saranno modificabili nella fase di rinnovo contratti.')
       loadData()
     } else {
-      alert(res.message || 'Errore')
+      toast.error(res.message || 'Errore')
     }
   }
 
@@ -489,7 +491,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         loadData()
       }
     } else {
-      alert(res.message || 'Errore durante la modifica del contratto')
+      toast.error(res.message || 'Errore durante la modifica del contratto')
     }
   }
 
@@ -509,7 +511,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     if (res.success) {
       loadData()
     } else {
-      alert(res.message || 'Errore')
+      toast.error(res.message || 'Errore')
     }
   }
 
@@ -518,7 +520,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     if (res.success) {
       loadData()
     } else {
-      alert(res.message || 'Errore')
+      toast.error(res.message || 'Errore')
     }
   }
 

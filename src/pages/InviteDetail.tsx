@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useToast } from '@/components/ui/Toast'
 import { inviteApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -78,6 +79,7 @@ function getTimeRemaining(expiresAt: string): { text: string; isUrgent: boolean;
 }
 
 export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
+  const { toast } = useToast()
   const [invite, setInvite] = useState<InviteData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -120,7 +122,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
     if (res.success) {
       onNavigate('leagueDetail', { leagueId: invite.league.id })
     } else {
-      alert(res.message || 'Errore nell\'accettare l\'invito')
+      toast.error(res.message || 'Errore nell\'accettare l\'invito')
     }
 
     setActionLoading(null)
@@ -135,7 +137,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
     if (res.success) {
       onNavigate('dashboard')
     } else {
-      alert(res.message || 'Errore nel rifiutare l\'invito')
+      toast.error(res.message || 'Errore nel rifiutare l\'invito')
     }
 
     setActionLoading(null)

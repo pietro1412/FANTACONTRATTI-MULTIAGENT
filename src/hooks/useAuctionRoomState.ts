@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { auctionApi, playerApi, firstMarketApi, adminApi, contractApi } from '../services/api'
 import { usePusherAuction } from '../services/pusher.client'
 import { useServerTime } from './useServerTime'
@@ -33,6 +34,7 @@ import type {
 } from '../types/auctionroom.types'
 
 export function useAuctionRoomState(sessionId: string, leagueId: string) {
+  const { confirm: confirmDialog } = useConfirmDialog()
   const [auction, setAuction] = useState<Auction | null>(null)
   const auctionRef = useRef<Auction | null>(null)
   const [membership, setMembership] = useState<Membership | null>(null)
@@ -672,7 +674,13 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
   }
 
   async function handleResetFirstMarket() {
-    if (!confirm('Sei sicuro di voler resettare il Primo Mercato? Tutti i dati verranno cancellati!')) return
+    const ok = await confirmDialog({
+      title: 'Reset Primo Mercato',
+      message: 'Sei sicuro di voler resettare il Primo Mercato? Tutti i dati verranno cancellati!',
+      confirmLabel: 'Resetta',
+      variant: 'danger'
+    })
+    if (!ok) return
     const result = await adminApi.resetFirstMarket(leagueId)
     if (result.success) {
       setSuccessMessage('Primo Mercato resettato!')
@@ -720,7 +728,13 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
 
   async function handleCompleteAllSlots() {
     if (!sessionId) return
-    if (!confirm('Sei sicuro di voler completare l\'asta riempiendo tutti gli slot di tutti i Direttori Generali?')) return
+    const ok = await confirmDialog({
+      title: 'Completa asta',
+      message: 'Sei sicuro di voler completare l\'asta riempiendo tutti gli slot di tutti i Direttori Generali?',
+      confirmLabel: 'Completa',
+      variant: 'warning'
+    })
+    if (!ok) return
     const result = await auctionApi.completeAllSlots(sessionId)
     if (result.success) {
       const data = result.data as { totalPlayersAdded: number; totalContractsCreated: number; memberResults: string[] }

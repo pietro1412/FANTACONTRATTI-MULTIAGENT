@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useToast } from '@/components/ui/Toast'
 import { userApi, inviteApi } from '../services/api'
 
 interface PendingInvite {
@@ -42,6 +43,7 @@ function getTimeRemaining(expiresAt: string): { text: string; isUrgent: boolean 
 }
 
 export function PendingInvites({ onNavigate }: PendingInvitesProps) {
+  const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [invites, setInvites] = useState<PendingInvite[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -84,7 +86,7 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
       setIsOpen(false)
       onNavigate('leagueDetail', { leagueId: invite.leagueId })
     } else {
-      alert(res.message || 'Errore nell\'accettare l\'invito')
+      toast.error(res.message || 'Errore nell\'accettare l\'invito')
     }
     setActionLoading(null)
   }
@@ -95,7 +97,7 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
     if (res.success) {
       setInvites(prev => prev.filter(i => i.id !== invite.id))
     } else {
-      alert(res.message || 'Errore nel rifiutare l\'invito')
+      toast.error(res.message || 'Errore nel rifiutare l\'invito')
     }
     setActionLoading(null)
   }

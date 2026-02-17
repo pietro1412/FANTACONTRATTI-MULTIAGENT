@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, type ChangeEvent, type FormEvent } from 'react'
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { userApi, pushApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
@@ -195,6 +196,7 @@ function NotificationPreferences() {
 }
 
 export function Profile({ onNavigate }: ProfileProps) {
+  const { confirm: confirmDialog } = useConfirmDialog()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -269,7 +271,13 @@ export function Profile({ onNavigate }: ProfileProps) {
   }
 
   async function handleRemovePhoto() {
-    if (!confirm('Sei sicuro di voler rimuovere la foto profilo?')) return
+    const ok = await confirmDialog({
+      title: 'Rimuovi foto',
+      message: 'Sei sicuro di voler rimuovere la foto profilo?',
+      confirmLabel: 'Rimuovi',
+      variant: 'danger'
+    })
+    if (!ok) return
 
     setIsSaving(true)
     setError('')

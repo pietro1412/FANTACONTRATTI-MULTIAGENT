@@ -158,6 +158,7 @@ export default {
         'modal-out': 'modalOut 0.15s ease-in',
         'backdrop-in': 'backdropIn 0.2s ease-out',
         'backdrop-out': 'backdropOut 0.15s ease-in',
+        'slide-in-up': 'slideInUp 0.3s ease-out',
       },
       keyframes: {
         glow: {
@@ -192,6 +193,10 @@ export default {
         backdropOut: {
           '0%': { opacity: '1' },
           '100%': { opacity: '0' },
+        },
+        slideInUp: {
+          '0%': { opacity: '0', transform: 'translateY(16px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
     },

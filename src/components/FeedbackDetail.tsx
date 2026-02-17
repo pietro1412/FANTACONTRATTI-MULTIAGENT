@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useToast } from '@/components/ui/Toast'
 import { feedbackApi } from '../services/api'
 
 interface FeedbackResponse {
@@ -47,6 +48,7 @@ const categoryConfig: Record<string, { label: string; icon: string }> = {
 }
 
 export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: FeedbackDetailProps) {
+  const { toast } = useToast()
   const [feedback, setFeedback] = useState<FeedbackData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -92,10 +94,10 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
         loadFeedback()
         onUpdated?.()
       } else {
-        alert(res.message || 'Errore nell\'invio della risposta')
+        toast.error(res.message || 'Errore nell\'invio della risposta')
       }
     } catch (err) {
-      alert('Errore di connessione')
+      toast.error('Errore di connessione')
     }
     setIsSubmitting(false)
   }
@@ -107,10 +109,10 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
         loadFeedback()
         onUpdated?.()
       } else {
-        alert(res.message || 'Errore nell\'aggiornamento dello stato')
+        toast.error(res.message || 'Errore nell\'aggiornamento dello stato')
       }
     } catch (err) {
-      alert('Errore di connessione')
+      toast.error('Errore di connessione')
     }
   }
 

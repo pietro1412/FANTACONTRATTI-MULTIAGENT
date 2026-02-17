@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { svincolatiApi, leagueApi, auctionApi, contractApi } from '../services/api'
 import { usePusherAuction } from '../services/pusher.client'
 import type {
@@ -12,6 +13,7 @@ import type {
 } from '../types/svincolati.types'
 
 export function useSvincolatiState(leagueId: string) {
+  const { confirm: confirmDialog } = useConfirmDialog()
   const [isLoading, setIsLoading] = useState(true)
   const [board, setBoard] = useState<BoardState | null>(null)
 
@@ -430,7 +432,13 @@ export function useSvincolatiState(leagueId: string) {
   }
 
   async function handlePassTurn() {
-    if (!confirm('Vuoi passare il turno? Non chiamerai più giocatori in questa fase.')) return
+    const ok = await confirmDialog({
+      title: 'Passa turno',
+      message: 'Vuoi passare il turno? Non chiamerai più giocatori in questa fase.',
+      confirmLabel: 'Passa',
+      variant: 'warning'
+    })
+    if (!ok) return
     setError('')
     setIsSubmitting(true)
 
@@ -741,7 +749,13 @@ export function useSvincolatiState(leagueId: string) {
   // ========== COMPLETE ==========
 
   async function handleCompletePhase() {
-    if (!confirm('Vuoi completare la fase svincolati?')) return
+    const ok = await confirmDialog({
+      title: 'Completa fase svincolati',
+      message: 'Vuoi completare la fase svincolati?',
+      confirmLabel: 'Completa',
+      variant: 'warning'
+    })
+    if (!ok) return
     setError('')
     setIsSubmitting(true)
 

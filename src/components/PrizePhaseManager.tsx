@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Button } from './ui/Button'
 import { prizePhaseApi } from '../services/api'
 import { getTeamLogo } from '../utils/teamLogos'
@@ -86,6 +87,7 @@ interface PrizePhaseManagerProps {
 }
 
 export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseManagerProps) {
+  const { confirm: confirmDialog } = useConfirmDialog()
   const [data, setData] = useState<PrizePhaseData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -192,7 +194,13 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
   }
 
   const handleDeleteCategory = async (categoryId: string) => {
-    if (!confirm('Sei sicuro di voler eliminare questa categoria?')) return
+    const ok = await confirmDialog({
+      title: 'Elimina categoria',
+      message: 'Sei sicuro di voler eliminare questa categoria?',
+      confirmLabel: 'Elimina',
+      variant: 'danger'
+    })
+    if (!ok) return
     setIsSubmitting(true)
     try {
       const result = await prizePhaseApi.deleteCategory(categoryId)
@@ -327,7 +335,13 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
 
   // Handle consolidate indemnities
   const handleConsolidateIndemnities = async () => {
-    if (!confirm('Sei sicuro di voler consolidare gli indennizzi? Una volta consolidati, gli importi verranno mostrati nella tabella premi e non potranno essere modificati.')) return
+    const ok = await confirmDialog({
+      title: 'Consolida indennizzi',
+      message: 'Sei sicuro di voler consolidare gli indennizzi? Una volta consolidati, gli importi verranno mostrati nella tabella premi e non potranno essere modificati.',
+      confirmLabel: 'Consolida',
+      variant: 'warning'
+    })
+    if (!ok) return
 
     setConsolidatingIndemnities(true)
     try {
