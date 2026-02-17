@@ -2011,7 +2011,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                                 className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm disabled:opacity-30"
                                 title={!canDecreaseSalary ? (contract.canSpalmare ? 'Min raggiunto' : 'Riduci durata') : undefined}
                               >−</button>
-                              <span className={`w-10 text-center font-medium ${newSalary > contract.salary ? 'text-primary-400' : 'text-white'}`}>{newSalary > contract.salary ? `↑${newSalary}` : newSalary}M</span>
+                              <span className={`w-10 text-center font-medium ${newSalary > contract.salary ? 'text-primary-400' : 'text-white'}`}>{newSalary}M</span>
                               <button
                                 onClick={() => updateLocalEdit(contract.id, 'newSalary', String(newSalary + 1))}
                                 className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm"
