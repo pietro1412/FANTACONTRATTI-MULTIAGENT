@@ -107,7 +107,7 @@ export function BidControls({
               disabled={isDisabled || budget < newBid}
               className={`py-2 rounded-lg text-sm font-bold font-mono transition-all min-h-[44px] ${
                 isDisabled || budget < newBid
-                  ? 'bg-slate-700/30 text-gray-600 cursor-not-allowed'
+                  ? 'bg-slate-700/30 text-gray-500 cursor-not-allowed'
                   : 'bg-sky-500/20 text-sky-400 border border-sky-500/30 active:scale-95 hover:bg-sky-500/30'
               }`}
             >
@@ -121,7 +121,7 @@ export function BidControls({
           disabled={isDisabled || budget < bidNum + 1}
           className={`py-2 rounded-lg text-sm font-bold font-mono transition-all min-h-[44px] col-span-1 ${
             isDisabled || budget < bidNum + 1
-              ? 'bg-slate-700/30 text-gray-600 cursor-not-allowed'
+              ? 'bg-slate-700/30 text-gray-500 cursor-not-allowed'
               : 'bg-gradient-to-r from-red-500 to-orange-500 text-white active:scale-95 hover:from-red-400 hover:to-orange-400 shadow-lg shadow-red-500/20'
           }`}
         >
@@ -138,7 +138,7 @@ export function BidControls({
           disabled={isDisabled || !budget}
           className={`py-2 rounded-lg text-sm font-bold font-mono transition-all min-h-[44px] col-span-2 ${
             isDisabled || !budget
-              ? 'bg-slate-700/30 text-gray-600 cursor-not-allowed'
+              ? 'bg-slate-700/30 text-gray-500 cursor-not-allowed'
               : 'bg-accent-500 text-dark-900 active:scale-95 hover:bg-accent-400'
           }`}
         >

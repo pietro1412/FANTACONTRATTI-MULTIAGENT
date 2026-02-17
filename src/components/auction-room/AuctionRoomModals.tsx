@@ -133,7 +133,7 @@ export function ManagerDetailModal({ selectedManager, onClose }: ManagerDetailMo
                     </tbody>
                   </table>
                 ) : (
-                  <p className="text-gray-600 italic text-sm ml-8">Nessuno</p>
+                  <p className="text-gray-400 italic text-sm ml-8">Nessuno</p>
                 )}
               </div>
             )

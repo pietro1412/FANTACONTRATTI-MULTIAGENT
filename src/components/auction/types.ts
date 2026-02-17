@@ -190,12 +190,8 @@ export const POSITION_NAMES: Record<string, string> = {
   A: 'Attaccanti'
 }
 
-export const POSITION_COLORS: Record<string, string> = {
-  P: 'from-yellow-500 to-yellow-700',
-  D: 'from-green-500 to-green-700',
-  C: 'from-blue-500 to-blue-700',
-  A: 'from-red-500 to-red-700'
-}
+// Re-exported from canonical source
+export { POSITION_GRADIENTS as POSITION_COLORS } from '@/components/ui/PositionBadge'
 
 export const POSITION_BG: Record<string, string> = {
   P: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50',

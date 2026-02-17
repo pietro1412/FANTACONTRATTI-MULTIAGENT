@@ -158,12 +158,8 @@ export const POSITION_NAMES: Record<string, string> = {
   A: 'Attaccanti',
 }
 
-export const POSITION_COLORS: Record<string, string> = {
-  P: 'bg-yellow-500/20 text-yellow-400',
-  D: 'bg-green-500/20 text-green-400',
-  C: 'bg-blue-500/20 text-blue-400',
-  A: 'bg-red-500/20 text-red-400',
-}
+// Re-exported from canonical source
+export { POSITION_FILTER_COLORS as POSITION_COLORS } from '@/components/ui/PositionBadge'
 
 // Utility: calculate Gini coefficient
 export function calculateGini(values: number[]): number {

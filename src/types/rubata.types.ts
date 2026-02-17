@@ -194,9 +194,5 @@ export interface ProgressStats {
   } | null
 }
 
-export const POSITION_COLORS: Record<string, string> = {
-  P: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  D: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  C: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  A: 'bg-red-500/20 text-red-400 border-red-500/30',
-}
+// Re-exported from canonical source
+export { POSITION_FILTER_COLORS as POSITION_COLORS } from '@/components/ui/PositionBadge'

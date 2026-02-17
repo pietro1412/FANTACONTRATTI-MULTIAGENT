@@ -106,7 +106,7 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
         </div>
       ) : feedback.length === 0 ? (
         <div className="py-12 text-center">
-          <svg className="w-12 h-12 mx-auto text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
           </svg>
           <p className="text-gray-400">Nessuna segnalazione trovata</p>

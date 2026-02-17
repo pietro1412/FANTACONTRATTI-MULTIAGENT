@@ -59,7 +59,7 @@ export function PlayerCard({ player, compact = false }: { player: Player, compac
             </span>
           </div>
         ) : (
-          <span className="text-xs text-gray-600 italic ml-auto">n.d.</span>
+          <span className="text-xs text-gray-400 italic ml-auto">n.d.</span>
         )}
       </div>
     )
@@ -99,7 +99,7 @@ export function PlayerCard({ player, compact = false }: { player: Player, compac
           <div className="space-y-0.5">
             <div className="flex items-center justify-end gap-2">
               <span className="text-accent-400 font-semibold text-sm font-mono">{player.contract.salary}M</span>
-              <span className="text-gray-600">•</span>
+              <span className="text-gray-400">•</span>
               <span className="text-gray-400 text-xs font-mono">{player.contract.duration}sem</span>
             </div>
             <div className="flex items-center justify-end gap-1">
@@ -110,7 +110,7 @@ export function PlayerCard({ player, compact = false }: { player: Player, compac
             </div>
           </div>
         ) : (
-          <p className="text-gray-600 text-xs italic">Contratto n.d.</p>
+          <p className="text-gray-400 text-xs italic">Contratto n.d.</p>
         )}
       </div>
     </div>

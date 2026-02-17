@@ -236,7 +236,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                       {__APP_VERSION__}
                     </span>
                   </div>
-                  <p className="text-[10px] text-gray-600 font-mono truncate max-w-[200px]" title={__GIT_COMMIT_MESSAGE__}>
+                  <p className="text-[10px] text-gray-400 font-mono truncate max-w-[200px]" title={__GIT_COMMIT_MESSAGE__}>
                     {__GIT_COMMIT_MESSAGE__}
                   </p>
                 </div>

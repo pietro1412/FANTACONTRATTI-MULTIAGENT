@@ -249,7 +249,7 @@ function TabButton({
         active
           ? 'text-primary-400 border-b-2 border-primary-400'
           : disabled
-          ? 'text-gray-600 cursor-not-allowed'
+          ? 'text-gray-500 cursor-not-allowed'
           : 'text-gray-400 hover:text-white'
       }`}
     >

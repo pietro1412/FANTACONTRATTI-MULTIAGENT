@@ -214,7 +214,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
                       setIsPlayerSearchOpen(true)
                     }}
                     onFocus={() => setIsPlayerSearchOpen(true)}
-                    className="w-64 px-4 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                    className="w-full sm:w-64 px-4 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
                   />
                   {isPlayerSearchOpen && (playerResults.length > 0 || isSearching) && (
                     <div className="absolute top-full left-0 right-0 mt-1 bg-surface-200 border border-surface-50/20 rounded-lg shadow-xl z-50 max-h-64 overflow-y-auto">

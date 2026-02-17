@@ -36,7 +36,7 @@ export function KPICard({ title, value, subtitle, description, progress, progres
         {description && (
           <div className="relative">
             <button
-              className="text-gray-600 hover:text-gray-400 transition-colors"
+              className="text-gray-500 hover:text-gray-300 transition-colors"
               onMouseEnter={() => setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
               onClick={() => setShowTooltip(prev => !prev)}
@@ -91,7 +91,7 @@ export function SectionHeader({ title, description }: { title: string; descripti
       {description && (
         <div className="relative">
           <button
-            className="text-gray-600 hover:text-gray-400 transition-colors"
+            className="text-gray-500 hover:text-gray-300 transition-colors"
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
             onClick={() => setShowTooltip(prev => !prev)}

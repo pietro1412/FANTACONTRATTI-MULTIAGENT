@@ -9,6 +9,7 @@ import { getTeamLogo } from '../utils/teamLogos'
 import { ChevronDown, SlidersHorizontal } from 'lucide-react'
 import { SkeletonPlayerRow } from '../components/ui/Skeleton'
 import { MOVEMENT_TYPE_LABELS, MOVEMENT_TYPE_SHORT, MOVEMENT_TYPE_COLORS } from '../utils/movement-constants'
+import { POSITION_TEXT_COLORS } from '../components/ui/PositionBadge'
 
 interface MovementsProps {
   leagueId: string
@@ -58,12 +59,6 @@ interface Movement {
   semester?: number
 }
 
-const POSITION_COLORS: Record<string, string> = {
-  P: 'text-amber-400',
-  D: 'text-blue-400',
-  C: 'text-emerald-400',
-  A: 'text-red-400',
-}
 
 // Formatta stagione (es. 25/26)
 function formatSeason(season?: number): string {
@@ -368,7 +363,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
             <div className="md:hidden space-y-2">
               {filteredMovements.map((movement) => {
                 const typeColor = MOVEMENT_TYPE_COLORS[movement.type] || 'bg-gray-500/20 text-gray-400'
-                const posColor = POSITION_COLORS[movement.player.position] || 'text-gray-400'
+                const posColor = POSITION_TEXT_COLORS[movement.player.position] || 'text-gray-400'
                 const hasProphecies = movement.prophecies.length > 0
                 const canAdd = canMakeProphecy[movement.id]?.can
                 const isExpanded = expandedMovement === movement.id
@@ -412,7 +407,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                           {movement.price ? (
                             <span className="text-accent-400 font-bold text-sm">{movement.price}cr</span>
                           ) : (
-                            <span className="text-gray-600 text-sm">—</span>
+                            <span className="text-gray-400 text-sm">—</span>
                           )}
                           <ChevronDown size={16} className={`text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                         </div>
@@ -513,7 +508,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
               <div className="divide-y divide-surface-50/10">
                 {filteredMovements.map((movement) => {
                   const typeColor = MOVEMENT_TYPE_COLORS[movement.type] || 'bg-gray-500/20 text-gray-400'
-                  const posColor = POSITION_COLORS[movement.player.position] || 'text-gray-400'
+                  const posColor = POSITION_TEXT_COLORS[movement.player.position] || 'text-gray-400'
                   const hasProphecies = movement.prophecies.length > 0
                   const canAdd = canMakeProphecy[movement.id]?.can
                   const isExpanded = expandedMovement === movement.id
@@ -559,7 +554,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                         {/* Da → A */}
                         <div className="col-span-2 text-xs">
                           <span className="text-gray-500">{movement.from?.username || '—'}</span>
-                          <span className="text-gray-600 mx-1">→</span>
+                          <span className="text-gray-400 mx-1">→</span>
                           <span className="text-white">{movement.to?.username || '—'}</span>
                         </div>
 
@@ -568,7 +563,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                           {movement.price ? (
                             <span className="text-accent-400 font-semibold">{movement.price}</span>
                           ) : (
-                            <span className="text-gray-600">—</span>
+                            <span className="text-gray-400">—</span>
                           )}
                         </div>
 
@@ -579,14 +574,14 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                               {movement.newContract.salary}M × {movement.newContract.duration}sem
                             </span>
                           ) : (
-                            <span className="text-gray-600">—</span>
+                            <span className="text-gray-400">—</span>
                           )}
                         </div>
 
                         {/* Data */}
                         <div className="col-span-1 text-right text-xs text-gray-500">
                           <div>{formatDate(movement.createdAt)}</div>
-                          <div className="text-gray-600">{formatTime(movement.createdAt)}</div>
+                          <div className="text-gray-400">{formatTime(movement.createdAt)}</div>
                         </div>
                       </div>
 

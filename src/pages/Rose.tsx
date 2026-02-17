@@ -631,7 +631,7 @@ export function Rose({ onNavigate }: RoseProps) {
                       </div>
                       {/* Contract Details Grid */}
                       {entry.contract && (
-                        <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
                           <div className="bg-surface-300/50 rounded p-1.5">
                             <div className="text-gray-500 text-[10px] uppercase">Ing</div>
                             <div className="text-accent-400 font-medium">{entry.contract.salary}M</div>
@@ -802,7 +802,7 @@ export function Rose({ onNavigate }: RoseProps) {
                             {entry.contract ? (
                               <span className="text-accent-400 font-medium">{entry.contract.salary}M</span>
                             ) : (
-                              <span className="text-gray-600">-</span>
+                              <span className="text-gray-400">-</span>
                             )}
                           </td>
 
@@ -811,7 +811,7 @@ export function Rose({ onNavigate }: RoseProps) {
                             {entry.contract && durColors ? (
                               <span className={`${durColors.text} font-medium`}>{entry.contract.duration}s</span>
                             ) : (
-                              <span className="text-gray-600">-</span>
+                              <span className="text-gray-400">-</span>
                             )}
                           </td>
 
@@ -820,7 +820,7 @@ export function Rose({ onNavigate }: RoseProps) {
                             {clause !== null ? (
                               <span className="text-orange-400 font-medium">{clause}M</span>
                             ) : (
-                              <span className="text-gray-600">-</span>
+                              <span className="text-gray-400">-</span>
                             )}
                           </td>
 
@@ -829,7 +829,7 @@ export function Rose({ onNavigate }: RoseProps) {
                             {rubata !== null ? (
                               <span className="text-warning-400 font-bold">{rubata}M</span>
                             ) : (
-                              <span className="text-gray-600">-</span>
+                              <span className="text-gray-400">-</span>
                             )}
                           </td>
                         </tr>

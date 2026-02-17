@@ -1,4 +1,5 @@
 import { MOVEMENT_TYPE_SHORT, MOVEMENT_TYPE_COLORS, MOVEMENT_TYPE_ICONS } from '../../utils/movement-constants'
+import { POSITION_TEXT_COLORS } from '@/components/ui/PositionBadge'
 
 interface Movement {
   id: string
@@ -30,12 +31,6 @@ function timeAgo(dateString: string): string {
   return new Date(dateString).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })
 }
 
-const POSITION_COLORS: Record<string, string> = {
-  P: 'text-amber-400',
-  D: 'text-blue-400',
-  C: 'text-emerald-400',
-  A: 'text-red-400',
-}
 
 export function RecentMovements({ movements, onNavigate, leagueId }: RecentMovementsProps) {
   return (
@@ -62,7 +57,7 @@ export function RecentMovements({ movements, onNavigate, leagueId }: RecentMovem
           {movements.map((m) => {
             const typeColor = MOVEMENT_TYPE_COLORS[m.type] || 'bg-gray-500/20 text-gray-400'
             const icon = MOVEMENT_TYPE_ICONS[m.type] || '\uD83D\uDD04'
-            const posColor = POSITION_COLORS[m.player.position] || 'text-gray-400'
+            const posColor = POSITION_TEXT_COLORS[m.player.position] || 'text-gray-400'
             return (
               <div key={m.id} className="flex items-center gap-3 px-5 py-3 hover:bg-surface-300/30 transition-colors">
                 <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0 ${typeColor}`}>
@@ -81,7 +76,7 @@ export function RecentMovements({ movements, onNavigate, leagueId }: RecentMovem
                     {m.price ? <span className="text-accent-400 ml-1.5">{m.price}cr</span> : null}
                   </div>
                 </div>
-                <span className="text-[10px] text-gray-600 flex-shrink-0">{timeAgo(m.createdAt)}</span>
+                <span className="text-[10px] text-gray-400 flex-shrink-0">{timeAgo(m.createdAt)}</span>
               </div>
             )
           })}

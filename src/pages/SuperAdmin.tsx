@@ -5,6 +5,7 @@ import { Input } from '../components/ui/Input'
 import { Card } from '../components/ui/Card'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
+import { POSITION_GRADIENTS } from '../components/ui/PositionBadge'
 
 interface SuperAdminProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
@@ -149,12 +150,6 @@ const EXIT_REASON_COLORS: Record<ExitReason, string> = {
   ESTERO: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
 }
 
-const POSITION_COLORS: Record<string, string> = {
-  P: 'from-amber-500 to-amber-600',
-  D: 'from-blue-500 to-blue-600',
-  C: 'from-emerald-500 to-emerald-600',
-  A: 'from-red-500 to-red-600',
-}
 
 const POSITION_NAMES: Record<string, string> = {
   P: 'Portieri',
@@ -834,7 +829,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   {(['P', 'D', 'C', 'A'] as const).map(pos => (
                     <div key={pos} className="bg-surface-300 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos]} flex items-center justify-center text-white font-bold text-sm`}>{pos}</span>
+                        <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[pos]} flex items-center justify-center text-white font-bold text-sm`}>{pos}</span>
                         <span className="text-gray-300 font-medium">{POSITION_NAMES[pos]}</span>
                       </div>
                       <div className="flex justify-between text-sm">
@@ -1038,7 +1033,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     <div key={player.playerId} className="bg-surface-300 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
-                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xs`}>
+                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position]} flex items-center justify-center text-white font-bold text-xs`}>
                             {player.position}
                           </span>
                           <div>
@@ -1208,7 +1203,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                           return (
                             <tr key={player.id} className={`hover:bg-surface-300/50 ${isNotInList ? 'opacity-50' : ''}`}>
                               <td className="px-4 py-3">
-                                <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xs`}>
+                                <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position]} flex items-center justify-center text-white font-bold text-xs`}>
                                   {player.position}
                                 </span>
                               </td>
@@ -1795,7 +1790,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                           <div className="flex items-center justify-between flex-wrap gap-4">
                             {/* DB Player */}
                             <div className="flex items-center gap-3 min-w-[200px]">
-                              <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[proposal.dbPlayer.position]} flex items-center justify-center text-white font-bold text-xs`}>
+                              <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[proposal.dbPlayer.position]} flex items-center justify-center text-white font-bold text-xs`}>
                                 {proposal.dbPlayer.position}
                               </span>
                               <div>
@@ -1910,7 +1905,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   {matchedPlayers.map((player) => (
                     <div key={player.id} className="bg-surface-300 rounded-lg p-3 flex items-center justify-between">
                       <div className="flex items-center gap-3 flex-1">
-                        <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xs`}>
+                        <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position]} flex items-center justify-center text-white font-bold text-xs`}>
                           {player.position}
                         </span>
                         <div className="min-w-[180px]">
@@ -2030,7 +2025,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                       <div key={player.playerId} className="bg-surface-300 rounded-lg p-4">
                         <div className="flex items-center justify-between flex-wrap gap-4">
                           <div className="flex items-center gap-3">
-                            <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-sm`}>
+                            <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position]} flex items-center justify-center text-white font-bold text-sm`}>
                               {player.position}
                             </span>
                             <div>
@@ -2095,7 +2090,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     {submittedClassifications.map(({ player, reason }) => (
                       <div key={player.playerId} className="bg-surface-300 rounded-lg p-3 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xs`}>
+                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position]} flex items-center justify-center text-white font-bold text-xs`}>
                             {player.position}
                           </span>
                           <div>
@@ -2351,7 +2346,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     return (
                       <div key={pos}>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className={`w-7 h-7 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos]} flex items-center justify-center text-white font-bold text-xs`}>
+                          <span className={`w-7 h-7 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[pos]} flex items-center justify-center text-white font-bold text-xs`}>
                             {pos}
                           </span>
                           <span className="text-sm font-bold text-gray-300">{POSITION_NAMES[pos]} ({posPlayers.length})</span>

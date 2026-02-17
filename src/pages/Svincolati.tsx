@@ -263,7 +263,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
           </div>
 
           {/* Position Counters */}
-          <div className="grid grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             {(['P', 'D', 'C', 'A'] as const).map(pos => {
               const count = freeAgents.filter(p => p.position === pos).length
               const posNames: Record<string, string> = { P: 'Portieri', D: 'Difensori', C: 'Centrocampisti', A: 'Attaccanti' }
@@ -824,7 +824,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     )}
 
                     {/* Quick Bid Buttons */}
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[2, 5, 10, 20].map(n => {
                         const newBid = parseInt(bidAmount || '0') + n
                         return (
@@ -1548,7 +1548,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                           </tbody>
                         </table>
                       ) : (
-                        <p className="text-gray-600 italic text-sm ml-8">Nessuno</p>
+                        <p className="text-gray-400 italic text-sm ml-8">Nessuno</p>
                       )}
                     </div>
                   )

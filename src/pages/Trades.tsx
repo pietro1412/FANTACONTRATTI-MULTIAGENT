@@ -916,7 +916,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                               </div>
                             )}
                             {(!offer.offeredPlayerDetails?.length && !offer.offeredPlayers?.length && offer.offeredBudget === 0) && (
-                              <p className="text-gray-600 text-sm italic py-2">Nessun giocatore o credito offerto</p>
+                              <p className="text-gray-400 text-sm italic py-2">Nessun giocatore o credito offerto</p>
                             )}
                           </div>
                         </div>
@@ -942,7 +942,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                               </div>
                             )}
                             {(!offer.requestedPlayerDetails?.length && !offer.requestedPlayers?.length && offer.requestedBudget === 0) && (
-                              <p className="text-gray-600 text-sm italic py-2">Nessun giocatore o credito richiesto</p>
+                              <p className="text-gray-400 text-sm italic py-2">Nessun giocatore o credito richiesto</p>
                             )}
                           </div>
                         </div>
@@ -1055,7 +1055,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                               </div>
                             )}
                             {(!offer.offeredPlayerDetails?.length && !offer.offeredPlayers?.length && offer.offeredBudget === 0) && (
-                              <p className="text-gray-600 text-sm italic py-2">Nessun giocatore o credito offerto</p>
+                              <p className="text-gray-400 text-sm italic py-2">Nessun giocatore o credito offerto</p>
                             )}
                           </div>
                         </div>
@@ -1081,7 +1081,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                               </div>
                             )}
                             {(!offer.requestedPlayerDetails?.length && !offer.requestedPlayers?.length && offer.requestedBudget === 0) && (
-                              <p className="text-gray-600 text-sm italic py-2">Nessun giocatore o credito richiesto</p>
+                              <p className="text-gray-400 text-sm italic py-2">Nessun giocatore o credito richiesto</p>
                             )}
                           </div>
                         </div>

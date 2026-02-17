@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Navigation } from '../components/Navigation'
+import { POSITION_GRADIENTS } from '../components/ui/PositionBadge'
 import { leagueApi } from '../services/api'
 import { getTeamLogo } from '../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../utils/player-images'
@@ -74,13 +75,6 @@ function getDurationStyle(duration: number) {
   }
 }
 
-// Position colors for photo badges
-const POSITION_COLORS: Record<string, string> = {
-  P: 'from-yellow-500 to-yellow-600',
-  D: 'from-green-500 to-green-600',
-  C: 'from-blue-500 to-blue-600',
-  A: 'from-red-500 to-red-600',
-}
 
 // Componente card giocatore (stesso stile di Roster.tsx)
 function PlayerCard({ entry }: { entry: RosterEntry }) {
@@ -105,7 +99,7 @@ function PlayerCard({ entry }: { entry: RosterEntry }) {
           />
         ) : null}
         <div
-          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br ${POSITION_COLORS[entry.player.position]} items-center justify-center text-white font-bold text-sm ${playerPhotoUrl ? 'hidden' : 'flex'}`}
+          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position]} items-center justify-center text-white font-bold text-sm ${playerPhotoUrl ? 'hidden' : 'flex'}`}
         >
           {entry.player.position}
         </div>
@@ -386,7 +380,7 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
 
       {/* Page Header */}
       <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
-        <div className="max-w-[1600px] mx-auto px-6 py-6">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6">
           <div className="flex items-center gap-5">
             <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-secondary-500 to-secondary-700 flex items-center justify-center shadow-glow">
               <span className="text-3xl">👥</span>
@@ -399,7 +393,7 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
         </div>
       </div>
 
-      <main className="max-w-[1600px] mx-auto px-6 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {league.inContrattiPhase && (
           <div className="mb-6 p-4 bg-warning-500/10 border border-warning-500/30 rounded-xl">
             <p className="text-warning-400">

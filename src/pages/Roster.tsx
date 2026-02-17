@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { auctionApi, leagueApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
+import { POSITION_GRADIENTS } from '../components/ui/PositionBadge'
 import { getTeamLogo } from '../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../utils/player-images'
 import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
@@ -242,13 +243,6 @@ function TeamPlayersModal({
   )
 }
 
-// Position colors for photo badges
-const POSITION_COLORS: Record<string, string> = {
-  P: 'from-yellow-500 to-yellow-600',
-  D: 'from-green-500 to-green-600',
-  C: 'from-blue-500 to-blue-600',
-  A: 'from-red-500 to-red-600',
-}
 
 // Componente card giocatore
 function PlayerCard({ entry, onPlayerClick }: { entry: RosterEntry; onPlayerClick: () => void }) {
@@ -272,7 +266,7 @@ function PlayerCard({ entry, onPlayerClick }: { entry: RosterEntry; onPlayerClic
           />
         ) : null}
         <div
-          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br ${POSITION_COLORS[entry.player.position]} items-center justify-center text-white font-bold text-sm ${playerPhotoUrl ? 'hidden' : 'flex'}`}
+          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position]} items-center justify-center text-white font-bold text-sm ${playerPhotoUrl ? 'hidden' : 'flex'}`}
         >
           {entry.player.position}
         </div>
@@ -466,20 +460,20 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
 
       {/* Page Header */}
       <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
-        <div className="max-w-[1600px] mx-auto px-6 py-6">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6">
           <div className="flex justify-between items-end">
             <div className="flex items-center gap-5">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-glow">
-                <span className="text-3xl">📋</span>
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-glow">
+                <span className="text-xl sm:text-3xl">📋</span>
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white">La Mia Rosa</h1>
+                <h1 className="text-xl sm:text-3xl font-bold text-white">La Mia Rosa</h1>
                 <p className="text-gray-400 mt-1">{member.user.username}</p>
               </div>
             </div>
 
             {/* Stats Cards */}
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-3">
               <div className="text-center bg-surface-200 rounded-xl px-5 py-3 border border-surface-50/20">
                 <p className="text-xs text-gray-500 uppercase tracking-wide">Budget</p>
                 <p className="text-2xl font-bold text-accent-400">{member.currentBudget}</p>
@@ -497,7 +491,7 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
         </div>
       </div>
 
-      <main className="max-w-[1600px] mx-auto px-6 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Contatori per squadra */}
         <TeamCounters players={allPlayers} onTeamClick={setSelectedTeam} />
 
@@ -527,7 +521,7 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
 
         {/* Filters */}
         <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4 mb-6">
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Search by name */}
             <div>
               <label className="block text-xs text-gray-500 mb-1">Cerca per nome</label>
@@ -603,7 +597,7 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
             <div className="text-center py-12 bg-surface-200 rounded-xl border border-surface-50/20">
               <div className="text-4xl mb-3 opacity-50">🔍</div>
               <p className="text-gray-500">Nessun giocatore trovato</p>
-              <p className="text-gray-600 text-sm mt-1">Prova a modificare i filtri</p>
+              <p className="text-gray-400 text-sm mt-1">Prova a modificare i filtri</p>
             </div>
           ) : (
             sortedPlayers.map(entry => (

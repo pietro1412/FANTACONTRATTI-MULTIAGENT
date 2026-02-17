@@ -94,7 +94,7 @@ export function ManagerComparison({ myTeam, otherTeam, hasFinancialDetails, onCl
                         {POSITION_NAMES[pos]?.slice(0, 3).toUpperCase()}
                       </span>
                       <span className="text-sm font-mono text-white">{myCount}</span>
-                      <span className="text-gray-600 text-xs">vs</span>
+                      <span className="text-gray-400 text-xs">vs</span>
                       <span className="text-sm font-mono text-white">{otherCount}</span>
                       {diff !== 0 && (
                         <span className={`text-sm font-bold font-mono ml-auto ${diff > 0 ? 'text-secondary-400' : 'text-danger-400'}`}>

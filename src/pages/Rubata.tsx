@@ -596,7 +596,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                                 {globalIndex + 1}
                               </span>
                             ) : (
-                              <span className={isPassed ? 'text-gray-600' : 'text-gray-500'}>{globalIndex + 1}</span>
+                              <span className={isPassed ? 'text-gray-500' : 'text-gray-500'}>{globalIndex + 1}</span>
                             )}
                           </td>
                           <td className="pl-2 py-2">
@@ -643,7 +643,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                           </td>
                           <td className="py-2 text-center">
                             <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
-                              isPassed ? 'text-gray-600 bg-transparent' :
+                              isPassed ? 'text-gray-500 bg-transparent' :
                               (player.playerAge ?? 99) <= 23 ? 'text-green-400 bg-green-500/10' :
                               (player.playerAge ?? 99) <= 27 ? 'text-blue-400 bg-blue-500/10' :
                               (player.playerAge ?? 99) <= 30 ? 'text-yellow-400 bg-yellow-500/10' :
@@ -658,7 +658,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             </span>
                           </td>
                           <td className="py-2 text-center">
-                            <span className={`text-xs ${isCurrent ? 'text-accent-400' : isPassed ? 'text-gray-600' : 'text-accent-400'}`}>
+                            <span className={`text-xs ${isCurrent ? 'text-accent-400' : isPassed ? 'text-gray-500' : 'text-accent-400'}`}>
                               {player.contractSalary}
                             </span>
                           </td>
@@ -674,12 +674,12 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             </span>
                           </td>
                           <td className="py-2 text-center">
-                            <span className={`text-xs ${isPassed ? 'text-gray-600' : 'text-gray-400'}`}>
+                            <span className={`text-xs ${isPassed ? 'text-gray-500' : 'text-gray-400'}`}>
                               {player.contractClause}
                             </span>
                           </td>
                           <td className="py-2 text-center">
-                            <span className={`font-bold ${isCurrent ? 'text-primary-400 text-sm' : isPassed ? 'text-gray-600 text-xs' : 'text-warning-400 text-sm'}`}>
+                            <span className={`font-bold ${isCurrent ? 'text-primary-400 text-sm' : isPassed ? 'text-gray-500 text-xs' : 'text-warning-400 text-sm'}`}>
                               {player.rubataPrice}M
                             </span>
                           </td>
@@ -691,14 +691,14 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             ) : isPassed ? (
                               <span className="text-secondary-500/60 text-xs">✓</span>
                             ) : (
-                              <span className="text-gray-600 text-xs">—</span>
+                              <span className="text-gray-500 text-xs">—</span>
                             )}
                           </td>
                           <td className="p-2 text-center">
                             {(() => {
                               const pref = preferencesMap.get(player.playerId)
                               const isMyPlayer = player.memberId === myMemberId
-                              if (isMyPlayer) return <span className="text-gray-600 text-xs">Mio</span>
+                              if (isMyPlayer) return <span className="text-gray-500 text-xs">Mio</span>
                               const hasStrategy = pref?.priority || pref?.maxBid || pref?.notes
                               return (
                                 <div className="flex items-center justify-center gap-1">
@@ -768,7 +768,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             {globalIndex + 1}
                           </span>
                         ) : (
-                          <span className={`text-xs font-mono w-6 text-center ${isPassed ? 'text-gray-600' : 'text-gray-500'}`}>
+                          <span className={`text-xs font-mono w-6 text-center ${isPassed ? 'text-gray-500' : 'text-gray-500'}`}>
                             #{globalIndex + 1}
                           </span>
                         )}
@@ -818,8 +818,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                       {/* Proprietario + Età */}
                       <div className="text-xs text-gray-500 mb-2 pl-6">
                         di <span className={isPassed && wasStolen ? 'text-gray-500 line-through' : 'text-gray-400'}>{player.ownerUsername}</span>
-                        {player.ownerTeamName && <span className="text-gray-600"> ({player.ownerTeamName})</span>}
-                        {player.playerAge && <span className="text-gray-600"> · {player.playerAge}a</span>}
+                        {player.ownerTeamName && <span className="text-gray-500"> ({player.ownerTeamName})</span>}
+                        {player.playerAge && <span className="text-gray-500"> · {player.playerAge}a</span>}
                       </div>
 
                       {/* Nuovo proprietario se rubato */}
@@ -837,14 +837,14 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                       <div className={`grid grid-cols-4 gap-2 rounded p-2 ${isPassed ? 'bg-surface-50/5' : 'bg-surface-50/10'}`}>
                         <div className="text-center">
                           <div className="text-[10px] text-gray-500 uppercase">Ingaggio</div>
-                          <div className={`font-medium text-sm ${isPassed ? 'text-gray-600' : 'text-accent-400'}`}>
+                          <div className={`font-medium text-sm ${isPassed ? 'text-gray-500' : 'text-accent-400'}`}>
                             {player.contractSalary}M
                           </div>
                         </div>
                         <div className="text-center">
                           <div className="text-[10px] text-gray-500 uppercase">Durata</div>
                           <div className={`font-medium text-sm ${
-                            isPassed ? 'text-gray-600' :
+                            isPassed ? 'text-gray-500' :
                             player.contractDuration === 1 ? 'text-danger-400' :
                             player.contractDuration === 2 ? 'text-warning-400' :
                             player.contractDuration === 3 ? 'text-blue-400' :
@@ -855,13 +855,13 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         </div>
                         <div className="text-center">
                           <div className="text-[10px] text-gray-500 uppercase">Clausola</div>
-                          <div className={`font-medium text-sm ${isPassed ? 'text-gray-600' : 'text-gray-400'}`}>
+                          <div className={`font-medium text-sm ${isPassed ? 'text-gray-500' : 'text-gray-400'}`}>
                             {player.contractClause}M
                           </div>
                         </div>
                         <div className="text-center">
                           <div className="text-[10px] text-gray-500 uppercase">Rubata</div>
-                          <div className={`font-bold text-sm ${isPassed ? 'text-gray-600' : isCurrent ? 'text-primary-400' : 'text-warning-400'}`}>
+                          <div className={`font-bold text-sm ${isPassed ? 'text-gray-500' : isCurrent ? 'text-primary-400' : 'text-warning-400'}`}>
                             {player.rubataPrice}M
                           </div>
                         </div>
@@ -971,7 +971,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     {mb.residuo}M
                   </div>
                   {mobileBudgetExpanded && (
-                    <div className="text-[7px] text-gray-600">
+                    <div className="text-[7px] text-gray-500">
                       {mb.currentBudget}M - {mb.totalSalaries}M
                     </div>
                   )}

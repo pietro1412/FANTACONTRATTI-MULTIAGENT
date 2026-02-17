@@ -40,7 +40,7 @@ export function PhaseStepper({ leagueStatus, sessions }: PhaseStepperProps) {
                 {isDone ? '\u2713' : i + 1}
               </div>
               <span className={`text-xs font-medium whitespace-nowrap ${
-                isActive ? 'text-primary-400' : isDone ? 'text-gray-400' : 'text-gray-600'
+                isActive ? 'text-primary-400' : isDone ? 'text-gray-400' : 'text-gray-500'
               }`}>
                 <span className="hidden sm:inline">{step.label}</span>
                 <span className="sm:hidden">{step.shortLabel}</span>

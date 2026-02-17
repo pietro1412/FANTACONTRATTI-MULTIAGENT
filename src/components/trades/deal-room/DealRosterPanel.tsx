@@ -109,7 +109,7 @@ export function DealRosterPanel(props: DealRosterPanelProps) {
             value={searchQuery}
             onChange={e => onSearchChange?.(e.target.value)}
             placeholder="Cerca giocatore..."
-            className="w-full px-2.5 py-2 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none placeholder:text-gray-600"
+            className="w-full px-2.5 py-2 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none placeholder:text-gray-500"
           />
 
           {/* Role tabs */}

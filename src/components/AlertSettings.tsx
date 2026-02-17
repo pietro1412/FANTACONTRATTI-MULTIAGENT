@@ -224,7 +224,7 @@ export function AlertSettings({ onClose }: AlertSettingsProps) {
         </div>
       </div>
 
-      <p className="text-[10px] text-gray-600 text-center">
+      <p className="text-[10px] text-gray-400 text-center">
         Le preferenze vengono salvate localmente. Gli alert push saranno disponibili in un futuro aggiornamento.
       </p>
     </div>

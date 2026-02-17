@@ -110,7 +110,7 @@ function SortableWidget({ id, children }: { id: string; children: React.ReactNod
       <button
         {...attributes}
         {...listeners}
-        className="absolute -left-1 top-3 z-10 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-gray-300 cursor-grab active:cursor-grabbing hidden md:block"
+        className="absolute -left-1 top-3 z-10 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-300 cursor-grab active:cursor-grabbing hidden md:block"
         title="Trascina per riordinare"
       >
         <GripVertical size={16} />
@@ -403,7 +403,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                             </div>
                             <button
                               onClick={() => setShowAlertSettings(true)}
-                              className="p-1 text-gray-600 hover:text-gray-300 transition-colors"
+                              className="p-1 text-gray-400 hover:text-gray-300 transition-colors"
                               title="Configura alert"
                             >
                               <Settings size={14} />
@@ -433,7 +433,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                           </div>
                           <button
                             onClick={() => setShowAlertSettings(true)}
-                            className="p-1 text-gray-600 hover:text-gray-300 transition-colors"
+                            className="p-1 text-gray-400 hover:text-gray-300 transition-colors"
                             title="Configura alert"
                           >
                             <Settings size={14} />
@@ -789,7 +789,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
             <div className="grid md:grid-cols-3 gap-4">
               <Card>
                 <CardContent className="py-4 text-center">
-                  <p className="text-2xl font-bold text-gray-600">{member.league.initialBudget}</p>
+                  <p className="text-2xl font-bold text-gray-400">{member.league.initialBudget}</p>
                   <p className="text-sm text-gray-500">Budget iniziale</p>
                 </CardContent>
               </Card>

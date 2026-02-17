@@ -52,7 +52,7 @@ export function PhaseCalendar({ sessions }: PhaseCalendarProps) {
                   ? 'bg-primary-500/20 border border-primary-500/40 text-primary-300 font-semibold'
                   : isDone
                     ? 'text-gray-400'
-                    : 'text-gray-600'
+                    : 'text-gray-500'
               }`}>
                 <span className={`${isFuture ? 'opacity-40' : ''}`}>{phase.icon}</span>
                 <span>{phase.label}</span>

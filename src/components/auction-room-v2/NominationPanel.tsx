@@ -259,13 +259,13 @@ export function NominationPanel({
                       <img src={getTeamLogo(focalPlayer.team)} alt={focalPlayer.team} className="w-3.5 h-3.5 object-contain" />
                     </div>
                     <span className="text-sm text-gray-400">{focalPlayer.team}</span>
-                    <span className="text-gray-600">·</span>
+                    <span className="text-gray-400">·</span>
                     <span className={`text-sms font-bold px-2.5 py-0.5 rounded-full border ${POSITION_FILTER_COLORS[focalPlayer.position as keyof typeof POSITION_FILTER_COLORS] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}>
                       {POSITION_NAMES[focalPlayer.position as keyof typeof POSITION_NAMES] || focalPlayer.position}
                     </span>
                     {focalPlayer.age != null && (
                       <>
-                        <span className="text-gray-600">·</span>
+                        <span className="text-gray-400">·</span>
                         <span className={`text-sms font-bold px-2 py-0.5 rounded border ${focalAgeBadge.bg} ${focalAgeBadge.text}`}>
                           {focalPlayer.age} anni
                         </span>
@@ -499,7 +499,7 @@ export function NominationPanel({
                           {player.age != null ? (
                             <span className={`text-sm font-bold ${ageBadge.text}`}>{player.age}</span>
                           ) : (
-                            <span className="text-sm text-gray-600">-</span>
+                            <span className="text-sm text-gray-400">-</span>
                           )}
                         </td>
                         {/* Presenze */}

@@ -143,7 +143,7 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
                       priority: p.priority === String(star) ? '' : String(star)
                     }))}
                     className={`w-10 h-10 min-h-[44px] min-w-[44px] text-2xl transition-all transform hover:scale-110 ${
-                      isActive ? 'text-purple-400' : 'text-gray-600 hover:text-purple-400/50'
+                      isActive ? 'text-purple-400' : 'text-gray-500 hover:text-purple-400/50'
                     }`}
                     title={`Priorità ${star}`}
                   >

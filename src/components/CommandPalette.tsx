@@ -201,7 +201,7 @@ export function CommandPalette() {
           ) : (
             Object.entries(grouped).map(([category, items]) => (
               <div key={category} className="mb-2">
-                <div className="text-[10px] text-gray-600 uppercase tracking-wider px-2 py-1 font-medium">
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider px-2 py-1 font-medium">
                   {category}
                 </div>
                 {items.map(item => {
@@ -236,7 +236,7 @@ export function CommandPalette() {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-4 px-4 py-2 border-t border-surface-50/20 text-[10px] text-gray-600">
+        <div className="flex items-center gap-4 px-4 py-2 border-t border-surface-50/20 text-[10px] text-gray-400">
           <span><kbd className="px-1 py-0.5 bg-surface-300 rounded">↑↓</kbd> Naviga</span>
           <span><kbd className="px-1 py-0.5 bg-surface-300 rounded">Enter</kbd> Apri</span>
           <span><kbd className="px-1 py-0.5 bg-surface-300 rounded">Esc</kbd> Chiudi</span>

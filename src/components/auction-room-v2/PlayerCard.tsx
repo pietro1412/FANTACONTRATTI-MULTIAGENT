@@ -102,11 +102,11 @@ export function PlayerCard({ name, team, position, quotation, age, apiFootballId
                 <img src={getTeamLogo(team)} alt={team} className="w-3.5 h-3.5 object-contain" />
               </div>
               <span className="text-sm text-gray-400">{team}</span>
-              <span className="text-gray-600">·</span>
+              <span className="text-gray-400">·</span>
               <span className={`text-sms font-bold px-2.5 py-0.5 rounded-full border ${posBg}`}>{posName}</span>
               {age != null && age > 0 && (
                 <>
-                  <span className="text-gray-600">·</span>
+                  <span className="text-gray-400">·</span>
                   <span className={`text-sms font-bold px-2 py-0.5 rounded border ${getAgeBg(age)} ${getAgeColor(age)}`}>
                     {age} anni
                   </span>

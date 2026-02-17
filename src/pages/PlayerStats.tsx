@@ -12,14 +12,7 @@ import { ShareButton } from '../components/ShareButton'
 import { LandscapeHint } from '../components/ui/LandscapeHint'
 import { PlayerStatsModal, type PlayerInfo } from '../components/PlayerStatsModal'
 import { EmptyState } from '../components/ui/EmptyState'
-
-// Position colors
-const POSITION_COLORS: Record<string, string> = {
-  P: 'from-yellow-500 to-yellow-600',
-  D: 'from-green-500 to-green-600',
-  C: 'from-blue-500 to-blue-600',
-  A: 'from-red-500 to-red-600',
-}
+import { POSITION_GRADIENTS } from '../components/ui/PositionBadge'
 
 const POSITION_LABELS: Record<string, string> = {
   P: 'Portiere',
@@ -156,7 +149,7 @@ const LOCALSTORAGE_KEY = 'playerStats_visibleColumns'
 // ==================== HELPER COMPONENTS ====================
 
 function SortIcon({ column, sortBy, sortOrder }: { column: string; sortBy: string; sortOrder: 'asc' | 'desc' }) {
-  if (sortBy !== column) return <span className="text-gray-600 ml-1">↕</span>
+  if (sortBy !== column) return <span className="text-gray-400 ml-1">↕</span>
   return <span className="text-primary-400 ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
 }
 
@@ -672,7 +665,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                       <h4 className="text-xs font-semibold text-primary-400 uppercase tracking-wider group-hover:text-primary-300 transition-colors">
                         {categoryLabels[category]}
                       </h4>
-                      <span className="text-[10px] text-gray-600 ml-auto">{columns.filter(c => visibleColumns.includes(c.key)).length}/{columns.length}</span>
+                      <span className="text-[10px] text-gray-400 ml-auto">{columns.filter(c => visibleColumns.includes(c.key)).length}/{columns.length}</span>
                     </button>
                     <div className="space-y-1">
                       {columns.map(col => (
@@ -781,7 +774,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                               <h4 className="text-xs font-semibold text-primary-400 uppercase tracking-wider group-hover:text-primary-300 transition-colors">
                                 {categoryLabels[category]}
                               </h4>
-                              <span className="text-[10px] text-gray-600 ml-auto">{columns.filter(c => visibleColumns.includes(c.key)).length}/{columns.length}</span>
+                              <span className="text-[10px] text-gray-400 ml-auto">{columns.filter(c => visibleColumns.includes(c.key)).length}/{columns.length}</span>
                             </button>
                             <div className="space-y-1">
                               {columns.map(col => (
@@ -944,7 +937,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                                   )}
                                   {/* Position badge */}
                                   <span
-                                    className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-[10px] border border-surface-200`}
+                                    className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position]} flex items-center justify-center text-white font-bold text-[10px] border border-surface-200`}
                                   >
                                     {player.position}
                                   </span>
@@ -1122,13 +1115,13 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                             />
                           ) : (
                             <div
-                              className={`w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-lg md:text-xl`}
+                              className={`w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position]} flex items-center justify-center text-white font-bold text-lg md:text-xl`}
                             >
                               {player.position}
                             </div>
                           )}
                           <span
-                            className={`absolute -bottom-1 -right-1 w-5 h-5 md:w-6 md:h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-[10px] md:text-xs border-2 border-surface-200`}
+                            className={`absolute -bottom-1 -right-1 w-5 h-5 md:w-6 md:h-6 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position]} flex items-center justify-center text-white font-bold text-[10px] md:text-xs border-2 border-surface-200`}
                           >
                             {player.position}
                           </span>

@@ -187,7 +187,7 @@ export function MyPortfolio({ myRosterSlots, budget }: MyPortfolioProps) {
                       key={i}
                       className={`border border-dashed ${colors.border} rounded-lg px-2 py-1.5 min-w-[4.5rem] text-center opacity-40 flex items-center justify-center`}
                     >
-                      <span className="text-gray-600 text-lg leading-none">+</span>
+                      <span className="text-gray-400 text-lg leading-none">+</span>
                     </div>
                   )
                 })}

@@ -1294,7 +1294,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           {/* Priority - increased size #186 */}
                           <div className="flex items-center gap-0.5 ml-auto">
                             {[1, 2, 3, 4, 5].map(star => (
-                              <button key={star} onClick={() => updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star)} className={`w-8 h-8 min-h-[44px] min-w-[44px] text-xl flex items-center justify-center ${local.priority >= star ? 'text-purple-400' : 'text-gray-600'}`}>★</button>
+                              <button key={star} onClick={() => updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star)} className={`w-8 h-8 min-h-[44px] min-w-[44px] text-xl flex items-center justify-center ${local.priority >= star ? 'text-purple-400' : 'text-gray-500'}`}>★</button>
                             ))}
                           </div>
                         </div>
@@ -1535,7 +1535,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               {/* Ingaggio */}
                               <td className="p-2 text-center border-l border-surface-50/10">
                                 {isSvincolato ? (
-                                  <span className="text-gray-600">-</span>
+                                  <span className="text-gray-400">-</span>
                                 ) : (
                                   <span className="text-accent-400 font-medium text-xs">{player.contractSalary}M</span>
                                 )}
@@ -1544,7 +1544,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               {/* Durata */}
                               <td className="p-2 text-center">
                                 {isSvincolato ? (
-                                  <span className="text-gray-600">-</span>
+                                  <span className="text-gray-400">-</span>
                                 ) : (
                                   <span className="text-white text-xs">{player.contractDuration}</span>
                                 )}
@@ -1553,7 +1553,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               {/* Clausola */}
                               <td className="p-2 text-center">
                                 {isSvincolato ? (
-                                  <span className="text-gray-600">-</span>
+                                  <span className="text-gray-400">-</span>
                                 ) : (
                                   <span className="text-orange-400 font-medium">{player.contractClause}M</span>
                                 )}
@@ -1562,7 +1562,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               {/* Rubata Price */}
                               <td className="p-2 text-center">
                                 {isSvincolato ? (
-                                  <span className="text-gray-600">-</span>
+                                  <span className="text-gray-400">-</span>
                                 ) : (
                                   <span className="text-warning-400 font-bold">{player.rubataPrice}M</span>
                                 )}
@@ -1636,7 +1636,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                 value={local.maxBid}
                                 onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)}
                                 placeholder="-"
-                                className={`w-10 px-1 py-0.5 bg-surface-300/50 border rounded text-white text-center text-xs font-medium focus:border-blue-500 focus:outline-none placeholder:text-gray-600 ${
+                                className={`w-10 px-1 py-0.5 bg-surface-300/50 border rounded text-white text-center text-xs font-medium focus:border-blue-500 focus:outline-none placeholder:text-gray-500 ${
                                   isSaving ? 'border-blue-500/50' : local.isDirty ? 'border-yellow-500/50' : 'border-surface-50/30'
                                 }`}
                               />
@@ -1667,7 +1667,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                   className={`w-5 h-5 text-sm transition-colors ${
                                     local.priority >= star
                                       ? 'text-purple-400 hover:text-purple-300'
-                                      : 'text-gray-600 hover:text-gray-400'
+                                      : 'text-gray-500 hover:text-gray-300'
                                   }`}
                                 >
                                   ★
@@ -1683,7 +1683,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               value={local.notes}
                               onChange={(e) => updateLocalStrategy(player.playerId, 'notes', e.target.value)}
                               placeholder="Note..."
-                              className={`w-full min-w-[60px] px-1 py-0.5 bg-surface-300/50 border rounded text-white text-xs focus:border-blue-500 focus:outline-none placeholder:text-gray-600 ${
+                              className={`w-full min-w-[60px] px-1 py-0.5 bg-surface-300/50 border rounded text-white text-xs focus:border-blue-500 focus:outline-none placeholder:text-gray-500 ${
                                 isSaving ? 'border-blue-500/50' : local.isDirty ? 'border-yellow-500/50' : 'border-surface-50/30'
                               }`}
                             />

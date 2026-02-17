@@ -65,7 +65,7 @@ export function RubataStepper({ currentState, className = '' }: RubataStepperPro
                   ? `${colors.bg} ${colors.text} border ${colors.border}/40 shadow-sm`
                   : isCompleted
                     ? 'bg-surface-300/50 text-gray-500 line-through'
-                    : 'bg-surface-300/30 text-gray-600'
+                    : 'bg-surface-300/30 text-gray-400'
               }`}>
                 <span className="text-sm">{isActive ? step.icon : isCompleted ? '✓' : '○'}</span>
                 <span>{step.label}</span>
@@ -108,7 +108,7 @@ export function RubataStepper({ currentState, className = '' }: RubataStepperPro
           <span className={`font-bold ${COLOR_MAP[STEPS[activeIndex]?.color]?.text || 'text-gray-400'}`}>
             {STEPS[activeIndex]?.label || currentState}
           </span>
-          <span className="text-gray-600 text-xs">({activeIndex + 1}/{STEPS.length})</span>
+          <span className="text-gray-400 text-xs">({activeIndex + 1}/{STEPS.length})</span>
         </div>
       </div>
     </div>
