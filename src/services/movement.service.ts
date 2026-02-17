@@ -1,12 +1,7 @@
 import { PrismaClient, MemberStatus, MovementType, ProphecyRole } from '@prisma/client'
+import type { ServiceResult } from '@/shared/types/service-result'
 
 const prisma = new PrismaClient()
-
-export interface ServiceResult {
-  success: boolean
-  message?: string
-  data?: unknown
-}
 
 // ==================== REGISTRA MOVIMENTO ====================
 

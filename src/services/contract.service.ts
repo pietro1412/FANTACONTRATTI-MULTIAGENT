@@ -8,14 +8,9 @@ import {
 } from './contract-history.service'
 import type { CreateContractHistoryInput, ContractEventType } from '../types/contract-history'
 import { computeSeasonStatsBatch, type ComputedSeasonStats } from './player-stats.service'
+import type { ServiceResult } from '@/shared/types/service-result'
 
 const prisma = new PrismaClient()
-
-export interface ServiceResult {
-  success: boolean
-  message?: string
-  data?: unknown
-}
 
 // Moltiplicatori per calcolo clausola rescissione (da specifica)
 const DURATION_MULTIPLIERS: Record<number, number> = {

@@ -1,12 +1,7 @@
 import { PrismaClient, FeedbackStatus, FeedbackCategory } from '@prisma/client'
+import type { ServiceResult } from '@/shared/types/service-result'
 
 const prisma = new PrismaClient()
-
-export interface ServiceResult {
-  success: boolean
-  message?: string
-  data?: unknown
-}
 
 // ==================== SUBMIT FEEDBACK ====================
 

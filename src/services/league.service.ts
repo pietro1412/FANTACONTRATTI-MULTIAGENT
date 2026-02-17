@@ -2,6 +2,7 @@ import { PrismaClient, MemberRole, MemberStatus, JoinType, TradeStatus } from '@
 import type { CreateLeagueInput, UpdateLeagueInput } from '../utils/validation'
 import type { IEmailService } from '../modules/identity/domain/services/email.service.interface'
 import { computeSeasonStatsBatch, type ComputedSeasonStats } from './player-stats.service'
+import type { ServiceResult } from '@/shared/types/service-result'
 
 const prisma = new PrismaClient()
 
@@ -17,12 +18,6 @@ async function getEmailService(): Promise<IEmailService | null> {
     console.error('[LeagueService] Failed to initialize email service:', error)
     return null
   }
-}
-
-export interface ServiceResult {
-  success: boolean
-  message?: string
-  data?: unknown
 }
 
 export async function createLeague(userId: string, input: CreateLeagueInput & { teamName?: string }): Promise<ServiceResult> {

@@ -10,14 +10,9 @@ import type {
   ProspettoLineItem,
 } from '../types/contract-history'
 import { calculateReleaseCost } from './contract.service'
+import type { ServiceResult } from '@/shared/types/service-result'
 
 const prisma = new PrismaClient()
-
-export interface ServiceResult {
-  success: boolean
-  message?: string
-  data?: unknown
-}
 
 // ==================== CREATE CONTRACT HISTORY ENTRY ====================
 

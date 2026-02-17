@@ -1,5 +1,6 @@
 import { PrismaClient, Position, Prisma, PlayerExitReason } from '@prisma/client'
 import * as XLSX from 'xlsx'
+import type { ServiceResult } from '@/shared/types/service-result'
 
 const prisma = new PrismaClient()
 
@@ -19,12 +20,6 @@ export interface ExitedPlayerInfo {
     salary: number
     duration: number
   }>
-}
-
-export interface ServiceResult {
-  success: boolean
-  message?: string
-  data?: unknown
 }
 
 // ==================== VERIFY SUPERADMIN ====================

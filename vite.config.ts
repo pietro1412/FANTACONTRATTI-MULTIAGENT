@@ -2,11 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
-import { readFileSync } from 'fs'
 import { execSync } from 'child_process'
-
-// Read version from package.json
-const packageJson = JSON.parse(readFileSync('./package.json', 'utf-8'))
 
 // Get git info for version display
 function getGitInfo() {
