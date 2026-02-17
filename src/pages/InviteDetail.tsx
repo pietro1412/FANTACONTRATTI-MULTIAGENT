@@ -88,7 +88,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
   const [teamNameError, setTeamNameError] = useState<string | null>(null)
 
   useEffect(() => {
-    loadInvite()
+    void loadInvite()
   }, [token])
 
   async function loadInvite() {

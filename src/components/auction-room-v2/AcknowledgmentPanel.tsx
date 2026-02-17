@@ -10,8 +10,8 @@ interface AcknowledgmentPanelProps {
 
 export function AcknowledgmentPanel({
   pendingAck,
-  onAcknowledge,
-  ackSubmitting,
+  onAcknowledge: _onAcknowledge,
+  ackSubmitting: _ackSubmitting,
   isAdmin,
   onForceAcknowledgeAll,
 }: AcknowledgmentPanelProps) {

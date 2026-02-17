@@ -26,7 +26,7 @@ import {
   PlayerNotFoundError,
   SessionNotActiveError
 } from '@/shared/infrastructure/http/errors'
-import type { ISvincolatiRepository, Player } from '../../domain/repositories/svincolati.repository.interface'
+import type { ISvincolatiRepository } from '../../domain/repositories/svincolati.repository.interface'
 import type { NominatePlayerDto, NominatePlayerResultDto } from '../dto/svincolati.dto'
 
 /**
@@ -94,11 +94,9 @@ export class NominatePlayerUseCase {
     }
 
     // Step 3: Check it's the nominator's turn
-    const turnOrder = await this.svincolatiRepository.getTurnOrder(dto.sessionId)
     const currentTurnMemberId = session.currentNominatorId
 
     if (currentTurnMemberId !== dto.nominatorId) {
-      const currentEntry = turnOrder.find(t => t.memberId === currentTurnMemberId)
       return fail(
         new NotYourTurnError({
           yourId: dto.nominatorId,

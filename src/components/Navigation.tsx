@@ -97,7 +97,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
   const mobileMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    loadSuperAdminStatus()
+    void loadSuperAdminStatus()
   }, [])
 
   // Monitor Pusher connection status
@@ -516,7 +516,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                 {/* Logout */}
                 <div className="border-t border-surface-50/20 py-1">
                   <button
-                    onClick={() => { handleLogout(); setProfileDropdownOpen(false) }}
+                    onClick={() => { void handleLogout(); setProfileDropdownOpen(false) }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-danger-400 hover:text-danger-300 hover:bg-danger-500/10 transition-colors duration-150 focus:outline-none focus:bg-danger-500/10"
                     data-testid="logout-button-dropdown"
                     role="menuitem"
@@ -721,7 +721,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             {/* Mobile Logout */}
             <div className="border-t my-3 pt-3 border-gray-600">
               <button
-                onClick={() => { handleLogout(); setMobileMenuOpen(false) }}
+                onClick={() => { void handleLogout(); setMobileMenuOpen(false) }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-danger-400 hover:bg-danger-500/10 transition-colors"
                 data-testid="mobile-logout"
               >

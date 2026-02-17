@@ -49,7 +49,7 @@ export function PrizePhasePage({ leagueId, onNavigate }: PrizePhasePageProps) {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [leagueId])
 
   async function loadData() {

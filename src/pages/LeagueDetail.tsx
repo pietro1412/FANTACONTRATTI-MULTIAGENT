@@ -107,9 +107,9 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
       } else {
         setIsSuperAdmin(false)
       }
-      loadCriticalData()
+      void loadCriticalData()
     }
-    checkSuperAdmin()
+    void checkSuperAdmin()
   }, [leagueId, onNavigate])
 
   async function loadCriticalData() {
@@ -144,7 +144,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
 
     setLazyLoaded(true)
 
-    Promise.all([
+    void Promise.all([
       leagueApi.getFinancials(leagueId),
       movementApi.getLeagueMovements(leagueId, { limit: 5 }),
       leagueApi.getStrategySummary(leagueId),

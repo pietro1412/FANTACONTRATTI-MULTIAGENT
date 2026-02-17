@@ -58,7 +58,7 @@ export function FeedbackForm({ leagueId, pageContext, onSuccess, onCancel }: Fee
       } else {
         setError(res.message || 'Errore nell\'invio della segnalazione')
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Errore di connessione')
     }
 

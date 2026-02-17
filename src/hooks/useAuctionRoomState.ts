@@ -55,7 +55,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
   const [timerSetting, setTimerSetting] = useState(30)
 
   // Server time synchronization for accurate timer display
-  const { getRemainingSeconds, isCalibrating: isTimeSyncing, error: timeSyncError, offset: serverTimeOffset } = useServerTime()
+  const { getRemainingSeconds } = useServerTime()
 
   const [firstMarketStatus, setFirstMarketStatus] = useState<FirstMarketStatus | null>(null)
   const [turnOrderDraft, setTurnOrderDraft] = useState<string[]>([])
@@ -136,13 +136,13 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
         nominatorId: data.nominatorId,
         nominatorUsername: data.nominatorName
       } : null)
-      loadFirstMarketStatus()
+      void loadFirstMarketStatus()
     },
     onNominationConfirmed: (data) => {
       console.log('[Pusher] Nomination confirmed:', data)
       // Nomination confirmed - load current auction to get full auction data
-      loadCurrentAuction()
-      loadReadyStatus()
+      void loadCurrentAuction()
+      void loadReadyStatus()
     },
     onMemberReady: (data) => {
       console.log('[Pusher] Member ready:', data)
@@ -156,8 +156,8 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     },
     onAuctionStarted: (data) => {
       console.log('[Pusher] Auction started:', data)
-      loadCurrentAuction()
-      loadReadyStatus()
+      void loadCurrentAuction()
+      void loadReadyStatus()
     },
     onAuctionClosed: (data) => {
       console.log('[Pusher] Auction closed:', data)
@@ -171,10 +171,10 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
           currentPrice: data.finalPrice || prev.currentPrice
         }
       })
-      loadPendingAcknowledgment()
-      loadFirstMarketStatus()
-      loadMyRosterSlots()
-      loadManagersStatus()
+      void loadPendingAcknowledgment()
+      void loadFirstMarketStatus()
+      void loadMyRosterSlots()
+      void loadManagersStatus()
     },
     onPauseRequested: (data) => {
       console.log('[Pusher] Pause requested:', data)
@@ -374,7 +374,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
 
         // Sync with backend in background (just to close the auction server-side)
         // Then fetch full data including contract info after a short delay
-        loadCurrentAuction().then(() => {
+        void loadCurrentAuction().then(() => {
           // Small delay to ensure contract is created on server
           setTimeout(() => loadPendingAcknowledgment(), 500)
         })
@@ -386,40 +386,40 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
   }, [auction?.timerExpiresAt, loadCurrentAuction, loadPendingAcknowledgment, getRemainingSeconds])
 
   useEffect(() => {
-    loadCurrentAuction()
-    loadFirstMarketStatus()
-    loadPendingAcknowledgment()
-    loadReadyStatus()
-    loadMyRosterSlots()
-    loadManagersStatus()
-    loadTeams()
+    void loadCurrentAuction()
+    void loadFirstMarketStatus()
+    void loadPendingAcknowledgment()
+    void loadReadyStatus()
+    void loadMyRosterSlots()
+    void loadManagersStatus()
+    void loadTeams()
     // Polling as fallback - real-time updates come from Pusher
     // When Pusher is connected, poll slowly (safety net only); otherwise poll faster
     const pollingMs = isConnected ? 30000 : 5000
     const interval = setInterval(() => {
       if (document.hidden) return // Skip polling when tab is hidden
       // Always poll current auction state (lightweight)
-      loadCurrentAuction()
-      loadPendingAcknowledgment()
-      loadReadyStatus()
+      void loadCurrentAuction()
+      void loadPendingAcknowledgment()
+      void loadReadyStatus()
       // Heavy endpoints (all managers + rosters) only when NOT in active bidding
       // During active bidding, Pusher handles bid updates in real-time
       if (!auctionRef.current || auctionRef.current.status !== 'ACTIVE') {
-        loadFirstMarketStatus()
-        loadMyRosterSlots()
-        loadManagersStatus()
+        void loadFirstMarketStatus()
+        void loadMyRosterSlots()
+        void loadManagersStatus()
       }
     }, pollingMs)
 
     // Page Visibility API: refresh immediately when tab becomes visible
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        loadCurrentAuction()
-        loadFirstMarketStatus()
-        loadPendingAcknowledgment()
-        loadReadyStatus()
-        loadMyRosterSlots()
-        loadManagersStatus()
+        void loadCurrentAuction()
+        void loadFirstMarketStatus()
+        void loadPendingAcknowledgment()
+        void loadReadyStatus()
+        void loadMyRosterSlots()
+        void loadManagersStatus()
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -432,12 +432,12 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
 
   // Carica stato ricorso quando cambia pendingAck
   useEffect(() => {
-    loadAppealStatus()
+    void loadAppealStatus()
     // Polling as fallback - real-time updates come from Pusher
     const appealPollingMs = isConnected ? 30000 : 5000
     const interval = setInterval(() => {
       if (document.hidden) return
-      loadAppealStatus()
+      void loadAppealStatus()
     }, appealPollingMs)
     return () => {
       clearInterval(interval)
@@ -447,7 +447,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
   useEffect(() => {
     // Wait until sessionInfo is loaded to know the session type
     if (!sessionInfo) return
-    loadPlayers()
+    void loadPlayers()
   }, [searchQuery, selectedTeam, loadPlayers, sessionInfo])
 
   // Send heartbeat every 10 seconds to track connection status
@@ -463,7 +463,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     }
 
     // Send immediately on mount
-    sendHeartbeat()
+    void sendHeartbeat()
 
     // Then send every 30 seconds
     const interval = setInterval(sendHeartbeat, 30000)
@@ -489,7 +489,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     const result = await firstMarketApi.setTurnOrder(sessionId, turnOrderDraft)
     if (result.success) {
       setSuccessMessage('Ordine turni impostato!')
-      loadFirstMarketStatus()
+      void loadFirstMarketStatus()
     } else {
       setError(result.message || 'Errore')
     }
@@ -501,8 +501,8 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     const result = await auctionApi.setPendingNomination(sessionId, playerId)
     if (result.success) {
       setSuccessMessage('Giocatore selezionato! Conferma o cambia.')
-      loadReadyStatus()
-      loadPlayers()
+      void loadReadyStatus()
+      void loadPlayers()
     } else {
       setError(result.message || 'Errore nella nomina')
     }
@@ -515,8 +515,8 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     setMarkingReady(false)
     if (result.success) {
       setSuccessMessage('Scelta confermata!')
-      loadReadyStatus()
-      loadCurrentAuction()
+      void loadReadyStatus()
+      void loadCurrentAuction()
     } else {
       setError(result.message || 'Errore')
     }
@@ -527,8 +527,8 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     const result = await auctionApi.cancelNomination(sessionId)
     if (result.success) {
       setSuccessMessage('Nomination annullata, scegli un altro giocatore.')
-      loadReadyStatus()
-      loadPlayers()
+      void loadReadyStatus()
+      void loadPlayers()
     } else {
       setError(result.message || 'Errore')
     }
@@ -540,8 +540,8 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     const result = await auctionApi.markReady(sessionId)
     setMarkingReady(false)
     if (result.success) {
-      loadReadyStatus()
-      loadCurrentAuction()
+      void loadReadyStatus()
+      void loadCurrentAuction()
     } else {
       setError(result.message || 'Errore')
     }
@@ -551,8 +551,8 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     const result = await auctionApi.forceAllReady(sessionId)
     if (result.success) {
       setSuccessMessage('Asta avviata!')
-      loadReadyStatus()
-      loadCurrentAuction()
+      void loadReadyStatus()
+      void loadCurrentAuction()
     } else {
       setError(result.message || 'Errore')
     }
@@ -568,7 +568,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
       } else {
         setSuccessMessage('Nessun bot ha fatto offerte')
       }
-      loadCurrentAuction()
+      void loadCurrentAuction()
     } else {
       setError(result.message || 'Errore')
     }
@@ -580,11 +580,11 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     if (result.success) {
       const data = result.data as { player?: { name: string } }
       setSuccessMessage(`Bot ha scelto ${data.player?.name}`)
-      loadCurrentAuction()
-      loadFirstMarketStatus()
-      loadReadyStatus()
-      loadMyRosterSlots()
-      loadManagersStatus()
+      void loadCurrentAuction()
+      void loadFirstMarketStatus()
+      void loadReadyStatus()
+      void loadMyRosterSlots()
+      void loadManagersStatus()
     } else {
       setError(result.message || 'Errore')
     }
@@ -596,11 +596,11 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     if (result.success) {
       const data = result.data as { player?: { name: string } }
       setSuccessMessage(`Scelta confermata: ${data.player?.name}`)
-      loadCurrentAuction()
-      loadFirstMarketStatus()
-      loadReadyStatus()
-      loadMyRosterSlots()
-      loadManagersStatus()
+      void loadCurrentAuction()
+      void loadFirstMarketStatus()
+      void loadReadyStatus()
+      void loadMyRosterSlots()
+      void loadManagersStatus()
     } else {
       setError(result.message || 'Errore')
     }
@@ -610,7 +610,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     const result = await auctionApi.forceAcknowledgeAll(sessionId)
     if (result.success) {
       setSuccessMessage('Conferme forzate!')
-      loadPendingAcknowledgment()
+      void loadPendingAcknowledgment()
     } else {
       setError(result.message || 'Errore')
     }
@@ -631,8 +631,8 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     const result = await auctionApi.acknowledgeAppealDecision(appealStatus.auctionId)
     setAckSubmitting(false)
     if (result.success) {
-      loadAppealStatus()
-      loadPendingAcknowledgment()
+      void loadAppealStatus()
+      void loadPendingAcknowledgment()
     } else {
       setError(result.message || 'Errore nella conferma')
     }
@@ -644,8 +644,8 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     const result = await auctionApi.markReadyToResume(appealStatus.auctionId)
     setMarkingReady(false)
     if (result.success) {
-      loadAppealStatus()
-      loadCurrentAuction()
+      void loadAppealStatus()
+      void loadCurrentAuction()
     } else {
       setError(result.message || 'Errore')
     }
@@ -656,7 +656,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     const result = await auctionApi.forceAllAppealAcks(appealStatus.auctionId)
     if (result.success) {
       setSuccessMessage('Conferme forzate!')
-      loadAppealStatus()
+      void loadAppealStatus()
     } else {
       setError(result.message || 'Errore')
     }
@@ -667,8 +667,8 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     const result = await auctionApi.forceAllReadyResume(appealStatus.auctionId)
     if (result.success) {
       setSuccessMessage('Pronti forzati!')
-      loadAppealStatus()
-      loadCurrentAuction()
+      void loadAppealStatus()
+      void loadCurrentAuction()
     } else {
       setError(result.message || 'Errore')
     }
@@ -685,11 +685,11 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     const result = await adminApi.resetFirstMarket(leagueId)
     if (result.success) {
       setSuccessMessage('Primo Mercato resettato!')
-      loadCurrentAuction()
-      loadFirstMarketStatus()
-      loadMyRosterSlots()
-      loadManagersStatus()
-      loadPlayers()
+      void loadCurrentAuction()
+      void loadFirstMarketStatus()
+      void loadMyRosterSlots()
+      void loadManagersStatus()
+      void loadPlayers()
     } else {
       setError(result.message || 'Errore')
     }
@@ -711,7 +711,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     setError('')
     const res = await auctionApi.pauseAuction(leagueId)
     if (res.success) {
-      loadCurrentAuction()
+      void loadCurrentAuction()
     } else {
       setError(res.message || 'Errore')
     }
@@ -721,7 +721,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     setError('')
     const res = await auctionApi.resumeAuction(leagueId)
     if (res.success) {
-      loadCurrentAuction()
+      void loadCurrentAuction()
     } else {
       setError(res.message || 'Errore')
     }
@@ -740,11 +740,11 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     if (result.success) {
       const data = result.data as { totalPlayersAdded: number; totalContractsCreated: number; memberResults: string[] }
       setSuccessMessage(`Asta completata! ${data.totalPlayersAdded} giocatori, ${data.totalContractsCreated} contratti.`)
-      loadCurrentAuction()
-      loadFirstMarketStatus()
-      loadMyRosterSlots()
-      loadManagersStatus()
-      loadPlayers()
+      void loadCurrentAuction()
+      void loadFirstMarketStatus()
+      void loadMyRosterSlots()
+      void loadManagersStatus()
+      void loadPlayers()
     } else {
       setError(result.message || 'Errore')
     }
@@ -784,7 +784,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
       setBidAmount(String(amount + 1))
       haptic.bid() // Haptic feedback for successful bid
       sounds.bid() // T-020: Audio feedback
-      loadCurrentAuction()
+      void loadCurrentAuction()
     } else {
       setError(result.message || 'Errore')
       haptic.error()
@@ -797,7 +797,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     if (result.success) {
       const data = result.data as { winner?: { username: string; amount: number }; player: Player }
       setSuccessMessage(data.winner ? `${data.player.name} a ${data.winner.username} per ${data.winner.amount}!` : 'Asta chiusa')
-      setTimeout(() => { loadCurrentAuction(); loadPlayers(); loadMyRosterSlots(); loadManagersStatus() }, 2000)
+      setTimeout(() => { void loadCurrentAuction(); void loadPlayers(); void loadMyRosterSlots(); void loadManagersStatus() }, 2000)
     } else {
       setError(result.message || 'Errore')
     }
@@ -843,10 +843,10 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
         setPendingContractModification(data.winnerContractInfo)
       }
 
-      loadPendingAcknowledgment()
-      loadPlayers()
-      loadMyRosterSlots()
-      loadManagersStatus()
+      void loadPendingAcknowledgment()
+      void loadPlayers()
+      void loadMyRosterSlots()
+      void loadManagersStatus()
     } else {
       setError(result.message || 'Errore')
     }
@@ -860,8 +860,8 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     const res = await contractApi.modify(pendingContractModification.contractId, newSalary, newDuration)
     if (res.success) {
       setPendingContractModification(null)
-      loadPlayers()
-      loadMyRosterSlots()
+      void loadPlayers()
+      void loadMyRosterSlots()
     } else {
       setError(res.message || 'Errore durante la modifica del contratto')
     }
@@ -938,7 +938,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
         // Only handle Enter inside bid input
         if (e.key === 'Enter' && target.getAttribute('data-bid-input')) {
           e.preventDefault()
-          handlePlaceBid()
+          void handlePlaceBid()
         }
         return
       }
@@ -948,7 +948,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
       switch (e.key) {
         case 'Enter':
           e.preventDefault()
-          handlePlaceBid()
+          void handlePlaceBid()
           break
         case '+':
         case '=':

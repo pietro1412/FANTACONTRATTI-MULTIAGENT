@@ -83,7 +83,7 @@ export function BottomNavBar({ onMenuOpen, leaguePhase }: BottomNavBarProps) {
                 if (tab.key === 'menu') {
                   onMenuOpen()
                 } else {
-                  navigate(tab.path)
+                  void navigate(tab.path)
                 }
               }}
               className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${

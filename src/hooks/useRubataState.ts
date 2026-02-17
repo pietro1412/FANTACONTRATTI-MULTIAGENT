@@ -7,7 +7,6 @@ import { usePusherAuction } from '../services/pusher.client'
 import type {
   LeagueMember,
   BoardData,
-  BoardPlayer,
   BoardPlayerWithPreference,
   PreviewBoardData,
   ReadyStatus,
@@ -286,7 +285,7 @@ export function useRubataState(leagueId: string) {
   const { isConnected: isPusherConnected } = usePusherAuction(sessionId, {
     onRubataStealDeclared: (data) => {
       console.log('[Pusher] Rubata steal declared - fast refresh', data)
-      loadFast()
+      void loadFast()
     },
     onRubataBidPlaced: (data) => {
       console.log('[Pusher] Rubata bid placed - instant update', data)
@@ -331,13 +330,13 @@ export function useRubataState(leagueId: string) {
     },
     onAuctionClosed: () => {
       console.log('[Pusher] Auction closed - full refresh')
-      loadData()
+      void loadData()
     },
   })
 
   // ========== Initial load ==========
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [loadData])
 
   // ========== Adaptive polling ==========
@@ -361,11 +360,11 @@ export function useRubataState(leagueId: string) {
     const interval = setInterval(() => {
       const state = boardData?.rubataState
       if (state === 'AUCTION' || state === 'AUCTION_READY_CHECK') {
-        loadFast()
+        void loadFast()
       } else if (state === 'PENDING_ACK') {
-        loadAckOnly()
+        void loadAckOnly()
       } else {
-        loadBoardOnly()
+        void loadBoardOnly()
       }
     }, getPollingInterval())
 
@@ -385,7 +384,7 @@ export function useRubataState(leagueId: string) {
       }
     }
 
-    sendHeartbeat()
+    void sendHeartbeat()
 
     const interval = setInterval(sendHeartbeat, 3000)
     return () => { clearInterval(interval); }
@@ -401,7 +400,7 @@ export function useRubataState(leagueId: string) {
     const res = await rubataApi.setOrder(leagueId, orderDraft)
     if (res.success) {
       setSuccess('Ordine rubata impostato!')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -415,7 +414,7 @@ export function useRubataState(leagueId: string) {
     const res = await rubataApi.generateBoard(leagueId)
     if (res.success) {
       setSuccess('Tabellone generato!')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -429,7 +428,7 @@ export function useRubataState(leagueId: string) {
     const res = await rubataApi.start(leagueId)
     if (res.success) {
       setSuccess('Rubata avviata!')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -443,7 +442,7 @@ export function useRubataState(leagueId: string) {
     const res = await rubataApi.updateTimers(leagueId, offerTimer, auctionTimer)
     if (res.success) {
       setSuccess('Timer aggiornati!')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -456,7 +455,7 @@ export function useRubataState(leagueId: string) {
 
     const res = await rubataApi.pause(leagueId)
     if (res.success) {
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -469,7 +468,7 @@ export function useRubataState(leagueId: string) {
 
     const res = await rubataApi.resume(leagueId)
     if (res.success) {
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -482,7 +481,7 @@ export function useRubataState(leagueId: string) {
 
     const res = await rubataApi.advance(leagueId)
     if (res.success) {
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -495,7 +494,7 @@ export function useRubataState(leagueId: string) {
 
     const res = await rubataApi.goBack(leagueId)
     if (res.success) {
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -509,7 +508,7 @@ export function useRubataState(leagueId: string) {
     const res = await rubataApi.closeCurrentAuction(leagueId)
     if (res.success) {
       setSuccess(res.message || 'Asta chiusa!')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -530,7 +529,7 @@ export function useRubataState(leagueId: string) {
     const res = await rubataApi.completeWithTransactions(leagueId, 0.3)
     if (res.success) {
       setSuccess(res.message || 'Rubata completata!')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -546,7 +545,7 @@ export function useRubataState(leagueId: string) {
 
     const res = await rubataApi.makeOffer(leagueId)
     if (res.success) {
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -590,7 +589,7 @@ export function useRubataState(leagueId: string) {
 
     const res = await rubataApi.bidOnAuction(leagueId, submittedAmount)
     if (res.success) {
-      loadBoardOnly()
+      void loadBoardOnly()
     } else {
       setBoardData(previousBoardData)
       setError(res.message || 'Errore')
@@ -606,7 +605,7 @@ export function useRubataState(leagueId: string) {
 
     const res = await rubataApi.setReady(leagueId)
     if (res.success) {
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -619,7 +618,7 @@ export function useRubataState(leagueId: string) {
 
     const res = await rubataApi.forceAllReady(leagueId)
     if (res.success) {
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -646,7 +645,7 @@ export function useRubataState(leagueId: string) {
         })
       }
 
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -659,7 +658,7 @@ export function useRubataState(leagueId: string) {
 
     const res = await rubataApi.forceAllAcknowledge(leagueId)
     if (res.success) {
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -682,7 +681,7 @@ export function useRubataState(leagueId: string) {
   }, [pendingAck?.auctionId])
 
   useEffect(() => {
-    loadAppealStatus()
+    void loadAppealStatus()
     const interval = setInterval(loadAppealStatus, 5000)
     return () => { clearInterval(interval); }
   }, [loadAppealStatus])
@@ -718,8 +717,8 @@ export function useRubataState(leagueId: string) {
         }
       }
 
-      loadData()
-      loadAppealStatus()
+      void loadData()
+      void loadAppealStatus()
     } else {
       setError(res.message || 'Errore')
     }
@@ -732,8 +731,8 @@ export function useRubataState(leagueId: string) {
 
     const result = await auctionApi.acknowledgeAppealDecision(appealStatus.auctionId)
     if (result.success) {
-      loadAppealStatus()
-      loadData()
+      void loadAppealStatus()
+      void loadData()
     } else {
       setError(result.message || 'Errore')
     }
@@ -746,8 +745,8 @@ export function useRubataState(leagueId: string) {
 
     const result = await auctionApi.markReadyToResume(appealStatus.auctionId)
     if (result.success) {
-      loadAppealStatus()
-      loadData()
+      void loadAppealStatus()
+      void loadData()
     } else {
       setError(result.message || 'Errore')
     }
@@ -760,8 +759,8 @@ export function useRubataState(leagueId: string) {
 
     const result = await auctionApi.forceAllAppealAcks(appealStatus.auctionId)
     if (result.success) {
-      loadAppealStatus()
-      loadData()
+      void loadAppealStatus()
+      void loadData()
     } else {
       setError(result.message || 'Errore')
     }
@@ -774,8 +773,8 @@ export function useRubataState(leagueId: string) {
 
     const result = await auctionApi.forceAllReadyResume(appealStatus.auctionId)
     if (result.success) {
-      loadAppealStatus()
-      loadData()
+      void loadAppealStatus()
+      void loadData()
     } else {
       setError(result.message || 'Errore')
     }
@@ -788,7 +787,7 @@ export function useRubataState(leagueId: string) {
     const result = await auctionApi.simulateAppeal(leagueId, pendingAck.auctionId)
     if (result.success) {
       setSuccess('Ricorso simulato!')
-      loadAppealStatus()
+      void loadAppealStatus()
     } else {
       setError(result.message || 'Errore')
     }
@@ -802,7 +801,7 @@ export function useRubataState(leagueId: string) {
     const res = await contractApi.modify(pendingContractModification.contractId, newSalary, newDuration)
     if (res.success) {
       setPendingContractModification(null)
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore durante la modifica del contratto')
     }
@@ -821,7 +820,7 @@ export function useRubataState(leagueId: string) {
 
     const res = await rubataApi.simulateOffer(leagueId, simulateMemberId)
     if (res.success) {
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -837,7 +836,7 @@ export function useRubataState(leagueId: string) {
     if (res.success) {
       setSuccess('Offerta simulata!')
       setSimulateBidAmount(0)
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -860,8 +859,8 @@ export function useRubataState(leagueId: string) {
     const res = await rubataApi.setToPreview(leagueId)
     if (res.success) {
       setSuccess('Tabellone in modalità preview!')
-      loadData()
-      loadPreviewBoard()
+      void loadData()
+      void loadPreviewBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -890,7 +889,7 @@ export function useRubataState(leagueId: string) {
 
     if (res.success) {
       setSuccess('Preferenza salvata!')
-      loadPreviewBoard()
+      void loadPreviewBoard()
       closePrefsModal()
     } else {
       setError(res.message || 'Errore')
@@ -906,7 +905,7 @@ export function useRubataState(leagueId: string) {
     const res = await rubataApi.deletePreference(leagueId, selectedPlayerForPrefs.playerId)
     if (res.success) {
       setSuccess('Preferenza rimossa!')
-      loadPreviewBoard()
+      void loadPreviewBoard()
       closePrefsModal()
     } else {
       setError(res.message || 'Errore')
@@ -917,7 +916,7 @@ export function useRubataState(leagueId: string) {
   // Load preferences whenever there's a board
   useEffect(() => {
     if (boardData?.isRubataPhase && boardData?.board && boardData.board.length > 0) {
-      loadPreviewBoard()
+      void loadPreviewBoard()
     }
   }, [boardData?.isRubataPhase, boardData?.board?.length])
 

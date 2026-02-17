@@ -83,22 +83,6 @@ function getRoleStyle(position: string) {
   }
 }
 
-// Componente logo squadra con sfondo bianco
-function TeamLogo({ team }: { team: string }) {
-  return (
-    <div className="w-7 h-7 sm:w-10 sm:h-10 flex items-center justify-center bg-white rounded-lg p-0.5 sm:p-1">
-      <img
-        src={getTeamLogo(team)}
-        alt={team}
-        className="w-5 h-5 sm:w-8 sm:h-8 object-contain"
-        onError={(e) => {
-          (e.target as HTMLImageElement).style.display = 'none'
-        }}
-      />
-    </div>
-  )
-}
-
 // Colori durata contratto
 function getDurationStyle(duration: number) {
   switch (duration) {
@@ -362,7 +346,7 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
   const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [leagueId])
 
   async function loadData() {
@@ -419,7 +403,7 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
           <div className="text-5xl mb-4">😕</div>
           <p className="text-xl text-danger-400">{error || 'Errore nel caricamento della rosa'}</p>
           <button
-            onClick={() => { setError(null); loadData(); }}
+            onClick={() => { setError(null); void loadData(); }}
             className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
           >
             Riprova

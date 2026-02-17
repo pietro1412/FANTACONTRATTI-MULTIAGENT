@@ -4,7 +4,7 @@
  */
 
 import type { TradeOffer } from '../entities/trade-offer.entity'
-import type { ITradeRepository, RosterInfo, MemberBudgetInfo } from '../repositories/trade.repository.interface'
+import type { ITradeRepository } from '../repositories/trade.repository.interface'
 
 /**
  * Result of asset validation

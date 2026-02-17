@@ -41,7 +41,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
         setIsSuperAdmin(false)
       }
     }
-    checkSuperAdmin()
+    void checkSuperAdmin()
   }, [onNavigate])
   const [description, setDescription] = useState('')
   const [maxParticipants, setMaxParticipants] = useState(8)

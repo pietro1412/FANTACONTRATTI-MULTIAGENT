@@ -99,7 +99,7 @@ export function useLeague(leagueId: string | undefined): UseLeagueResult {
 
   // Initial fetch
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   return {
@@ -145,7 +145,7 @@ export function useUserLeagues() {
   }, [])
 
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   return { leagues, isLoading, error, refresh }

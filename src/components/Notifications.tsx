@@ -101,7 +101,7 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    loadNotifications()
+    void loadNotifications()
     // Poll every 30 seconds for new notifications
     const interval = setInterval(loadNotifications, 30000)
     return () => { clearInterval(interval); }

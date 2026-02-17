@@ -114,7 +114,7 @@ export function useMovements(
       } else {
         setError(response.message || 'Failed to load movements')
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to load movements')
       console.error('useMovements error:', err)
     } finally {
@@ -144,14 +144,14 @@ export function useMovements(
         setMovements((prev) => [...prev, ...(data.movements || [])])
         setCurrentOffset(newOffset)
       }
-    } catch (err) {
+    } catch (_err) {
       console.error('useMovements loadMore error:', err)
     }
   }, [leagueId, isLoading, currentOffset, limit, options.movementType, options.playerId, options.semester])
 
   // Initial fetch
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   const hasMore = movements.length < totalCount
@@ -162,7 +162,7 @@ export function useMovements(
         const response = await movementApi.addProphecy(movementId, content)
         if (response.success) await refresh()
         return { success: response.success, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to add prophecy' }
       }
     },
@@ -223,7 +223,7 @@ export function usePlayerHistory(leagueId: string | undefined, playerId: string 
       if (propheciesRes.success && propheciesRes.data) {
         setProphecies((propheciesRes.data as { prophecies: typeof prophecies }).prophecies || [])
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to load player history')
       console.error('usePlayerHistory error:', err)
     } finally {
@@ -233,7 +233,7 @@ export function usePlayerHistory(leagueId: string | undefined, playerId: string 
 
   // Initial fetch
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   return { movements, prophecies, isLoading, error, refresh }

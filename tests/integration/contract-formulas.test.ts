@@ -3,7 +3,7 @@
  * Verifica Sprint 1-4: salary, duration, rescission, budget, bilancio
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
-import { PrismaClient, Position } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 import {
   cleanDatabase,
   seedTestData,

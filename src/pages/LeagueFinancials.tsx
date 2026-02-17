@@ -49,7 +49,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
   }>> | null>(null)
 
   useEffect(() => {
-    loadFinancials()
+    void loadFinancials()
   }, [leagueId, selectedSession])
 
   async function loadFinancials() {
@@ -90,7 +90,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
     if (tab === 'panoramica') setView({ level: 'panoramica' })
     else if (tab === 'squadre') {
       setView({ level: 'squadre' })
-      loadTrends()
+      void loadTrends()
     }
     else if (tab === 'movimenti') setView({ level: 'movimenti' })
   }

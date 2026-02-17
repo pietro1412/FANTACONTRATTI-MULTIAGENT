@@ -1,7 +1,7 @@
 import { PrismaClient, MemberRole, MemberStatus, JoinType, TradeStatus } from '@prisma/client'
 import type { CreateLeagueInput, UpdateLeagueInput } from '../utils/validation'
 import type { IEmailService } from '../modules/identity/domain/services/email.service.interface'
-import { computeSeasonStatsBatch, type ComputedSeasonStats } from './player-stats.service'
+import { computeSeasonStatsBatch } from './player-stats.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
 const prisma = new PrismaClient()
@@ -1305,8 +1305,6 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
     const teamsData = members.map(member => {
       const isConsolidated = consolidationMap.has(member.id)
       const consolidatedAt = consolidationMap.get(member.id) || null
-      const isOwnTeam = member.id === membership.id
-
       // MODIFICA: Durante fase CONTRATTI, la pagina Finanze NON mostra mai i valori draft/post-rinnovo
       // I nuovi valori saranno visibili solo dopo che l'admin avanza la fase
       // canSeeDraft è sempre false per la pagina Finanze durante CONTRATTI

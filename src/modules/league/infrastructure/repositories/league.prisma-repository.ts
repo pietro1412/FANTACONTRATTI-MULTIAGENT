@@ -7,7 +7,7 @@
 
 import { prisma } from '@/lib/prisma'
 import type { ILeagueRepository } from '../../domain/repositories/league.repository.interface'
-import type { League, CreateLeagueData, MaxPlayersPerRole, LeagueStatus, LEAGUE_DEFAULTS } from '../../domain/entities/league.entity'
+import type { League, CreateLeagueData, LeagueStatus } from '../../domain/entities/league.entity'
 import type { LeagueMember, AddMemberData, LeagueMemberWithUser, MemberRole, MemberStatus, JoinType } from '../../domain/entities/league-member.entity'
 import type { LeagueStatus as PrismaLeagueStatus, MemberRole as PrismaMemberRole, MemberStatus as PrismaMemberStatus, JoinType as PrismaJoinType } from '@prisma/client'
 

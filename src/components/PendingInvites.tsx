@@ -51,7 +51,7 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    loadInvites()
+    void loadInvites()
     // Poll every 60 seconds for new invites
     const interval = setInterval(loadInvites, 60000)
     return () => { clearInterval(interval); }

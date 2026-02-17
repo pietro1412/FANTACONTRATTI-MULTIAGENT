@@ -178,7 +178,7 @@ export function PatchNotes({ leagueId, onNavigate }: PatchNotesProps) {
 
   useEffect(() => {
     if (leagueId) {
-      loadLeagueInfo()
+      void loadLeagueInfo()
     }
   }, [leagueId])
 

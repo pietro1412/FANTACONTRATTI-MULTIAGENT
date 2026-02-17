@@ -26,7 +26,7 @@ export function BiddingPanel({
   timeLeft,
   timerSetting,
   isTimerExpired,
-  isUserWinning,
+  isUserWinning: _isUserWinning,
   currentUsername,
   membership,
   bidAmount,

@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check auth status on mount
   useEffect(() => {
-    checkAuth()
+    void checkAuth()
   }, [])
 
   async function checkAuth() {

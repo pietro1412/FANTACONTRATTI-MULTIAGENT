@@ -138,7 +138,7 @@ export function FeedbackHub({ leagueId, feedbackId: initialFeedbackId, onNavigat
 
   useEffect(() => {
     if (leagueId) {
-      loadLeagueInfo()
+      void loadLeagueInfo()
     }
   }, [leagueId])
 

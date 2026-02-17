@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { Share2, Check, Copy } from 'lucide-react'
+import { Share2, Check } from 'lucide-react'
 
 interface ShareButtonProps {
   title?: string

@@ -101,11 +101,11 @@ export function useSvincolatiState(leagueId: string) {
   }, [leagueId, selectedPosition, selectedTeam, searchQuery])
 
   useEffect(() => {
-    loadInitialData()
+    void loadInitialData()
   }, [leagueId])
 
   useEffect(() => {
-    loadFreeAgents()
+    void loadFreeAgents()
   }, [loadFreeAgents])
 
   // Poll for board updates (fallback, Pusher handles instant updates)
@@ -118,11 +118,11 @@ export function useSvincolatiState(leagueId: string) {
   const { isConnected: isPusherConnected } = usePusherAuction(board?.sessionId, {
     onSvincolatiStateChanged: () => {
       console.log('[Pusher] Svincolati state changed')
-      loadBoard()
+      void loadBoard()
     },
     onSvincolatiNomination: () => {
       console.log('[Pusher] Svincolati nomination')
-      loadBoard()
+      void loadBoard()
     },
     onSvincolatiBidPlaced: (data) => {
       console.log('[Pusher] Svincolati bid placed', data)
@@ -152,15 +152,15 @@ export function useSvincolatiState(leagueId: string) {
     onBidPlaced: (data) => {
       // Also listen to generic bid events (used by svincolati auction engine)
       console.log('[Pusher] Generic bid placed in svincolati', data)
-      loadBoard()
+      void loadBoard()
     },
     onAuctionClosed: () => {
       console.log('[Pusher] Svincolati auction closed')
-      loadBoard()
+      void loadBoard()
     },
     onMemberReady: () => {
       console.log('[Pusher] Svincolati member ready')
-      loadBoard()
+      void loadBoard()
     },
   })
 
@@ -178,7 +178,7 @@ export function useSvincolatiState(leagueId: string) {
     }
 
     // Send immediately on mount
-    sendHeartbeat()
+    void sendHeartbeat()
 
     // Then every 3 seconds
     const interval = setInterval(sendHeartbeat, 3000)
@@ -204,14 +204,14 @@ export function useSvincolatiState(leagueId: string) {
           const res = await svincolatiApi.closeTurnAuction(board.activeAuction!.id)
           console.log('[Svincolati] Close auction result:', res)
           if (res.success) {
-            loadBoard()
+            void loadBoard()
           } else {
             console.error('[Svincolati] Failed to close auction:', res.message)
             isClosingAuction.current = false // Reset so we can try again
           }
         }
       }
-      updateTimer()
+      void updateTimer()
       const interval = setInterval(updateTimer, 1000)
       return () => { clearInterval(interval); }
     } else {
@@ -249,7 +249,7 @@ export function useSvincolatiState(leagueId: string) {
 
   // Poll appeal status when in PENDING_ACK state
   useEffect(() => {
-    loadAppealStatus()
+    void loadAppealStatus()
     const interval = setInterval(loadAppealStatus, 5000)
     return () => { clearInterval(interval); }
   }, [loadAppealStatus])
@@ -317,7 +317,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await svincolatiApi.setTurnOrder(leagueId, turnOrderDraft.map(m => m.id))
     if (res.success) {
       setSuccess('Ordine turni impostato!')
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -396,7 +396,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await svincolatiApi.nominate(leagueId, playerId)
     if (res.success) {
       setSuccess('Giocatore nominato! Conferma la tua scelta.')
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -410,7 +410,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await svincolatiApi.confirmNomination(leagueId)
     if (res.success) {
       setSuccess('Nominazione confermata!')
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -423,7 +423,7 @@ export function useSvincolatiState(leagueId: string) {
 
     const res = await svincolatiApi.cancelNomination(leagueId)
     if (res.success) {
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -447,7 +447,7 @@ export function useSvincolatiState(leagueId: string) {
       if (data.completed) {
         setSuccess('Tutti hanno passato. Fase svincolati completata!')
       }
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -471,7 +471,7 @@ export function useSvincolatiState(leagueId: string) {
       } else {
         setSuccess(res.message || 'Hai dichiarato di aver finito.')
       }
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -485,7 +485,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await svincolatiApi.undoFinished(leagueId)
     if (res.success) {
       setSuccess('Puoi tornare a fare offerte.')
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -499,7 +499,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await svincolatiApi.forceAllFinished(leagueId)
     if (res.success) {
       setSuccess(res.message || 'Tutti i manager sono stati marcati come finiti.')
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -512,7 +512,7 @@ export function useSvincolatiState(leagueId: string) {
 
     const res = await svincolatiApi.markReady(leagueId)
     if (res.success) {
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -525,7 +525,7 @@ export function useSvincolatiState(leagueId: string) {
 
     const res = await svincolatiApi.forceAllReady(leagueId)
     if (res.success) {
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -549,7 +549,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await svincolatiApi.bid(board.activeAuction.id, amount)
     if (res.success) {
       setBidAmount(String(amount + 1))
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -563,7 +563,7 @@ export function useSvincolatiState(leagueId: string) {
 
     const res = await svincolatiApi.closeTurnAuction(board.activeAuction.id)
     if (res.success) {
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -603,8 +603,8 @@ export function useSvincolatiState(leagueId: string) {
         setPendingContractModification(data.winnerContractInfo)
       }
 
-      loadBoard()
-      loadAppealStatus()
+      void loadBoard()
+      void loadAppealStatus()
     } else {
       setError(res.message || 'Errore')
     }
@@ -618,7 +618,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await contractApi.modify(pendingContractModification.contractId, newSalary, newDuration)
     if (res.success) {
       setPendingContractModification(null)
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore durante la modifica del contratto')
     }
@@ -634,7 +634,7 @@ export function useSvincolatiState(leagueId: string) {
 
     const res = await svincolatiApi.forceAllAck(leagueId)
     if (res.success) {
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -647,7 +647,7 @@ export function useSvincolatiState(leagueId: string) {
     const result = await auctionApi.simulateAppeal(leagueId, board?.pendingAck?.auctionId)
     if (result.success) {
       setSuccess('Ricorso simulato! Vai nel pannello Admin per gestirlo.')
-      loadAppealStatus()
+      void loadAppealStatus()
     } else {
       setError(result.message || 'Errore')
     }
@@ -659,8 +659,8 @@ export function useSvincolatiState(leagueId: string) {
     const result = await auctionApi.acknowledgeAppealDecision(appealStatus.auctionId)
     setAckSubmitting(false)
     if (result.success) {
-      loadAppealStatus()
-      loadBoard()
+      void loadAppealStatus()
+      void loadBoard()
     } else {
       setError(result.message || 'Errore')
     }
@@ -672,8 +672,8 @@ export function useSvincolatiState(leagueId: string) {
     const result = await auctionApi.markReadyToResume(appealStatus.auctionId)
     setAckSubmitting(false)
     if (result.success) {
-      loadAppealStatus()
-      loadBoard()
+      void loadAppealStatus()
+      void loadBoard()
     } else {
       setError(result.message || 'Errore')
     }
@@ -684,7 +684,7 @@ export function useSvincolatiState(leagueId: string) {
     const result = await auctionApi.forceAllAppealAcks(appealStatus.auctionId)
     if (result.success) {
       setSuccess('Conferme forzate!')
-      loadAppealStatus()
+      void loadAppealStatus()
     } else {
       setError(result.message || 'Errore')
     }
@@ -695,7 +695,7 @@ export function useSvincolatiState(leagueId: string) {
     const result = await auctionApi.forceAllReadyResume(appealStatus.auctionId)
     if (result.success) {
       setSuccess('Pronti forzati!')
-      loadAppealStatus()
+      void loadAppealStatus()
     } else {
       setError(result.message || 'Errore')
     }
@@ -709,7 +709,7 @@ export function useSvincolatiState(leagueId: string) {
 
     const res = await svincolatiApi.pause(leagueId)
     if (res.success) {
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -722,7 +722,7 @@ export function useSvincolatiState(leagueId: string) {
 
     const res = await svincolatiApi.resume(leagueId)
     if (res.success) {
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -738,7 +738,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await svincolatiApi.setTimer(leagueId, timerInput)
     if (res.success) {
       setSuccess('Timer aggiornato')
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -761,7 +761,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await svincolatiApi.completePhase(leagueId)
     if (res.success) {
       setSuccess('Fase completata!')
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -778,7 +778,7 @@ export function useSvincolatiState(leagueId: string) {
     if (res.success) {
       const data = res.data as { player?: { name: string }, nominator?: string }
       setSuccess(`Bot: ${data.nominator || 'Manager'} ha nominato ${data.player?.name || 'giocatore'}`)
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -793,7 +793,7 @@ export function useSvincolatiState(leagueId: string) {
     if (res.success) {
       const data = res.data as { player?: { name: string } }
       setSuccess(`Bot: Nominazione confermata per ${data.player?.name || 'giocatore'}`)
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -813,7 +813,7 @@ export function useSvincolatiState(leagueId: string) {
       } else {
         setSuccess('Nessun manager ha rilanciato')
       }
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }

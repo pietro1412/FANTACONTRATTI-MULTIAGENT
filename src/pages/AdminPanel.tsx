@@ -112,12 +112,12 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   const [rosterIncompleteDetails, setRosterIncompleteDetails] = useState<string>('')
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [leagueId])
 
   useEffect(() => {
     if (activeTab === 'members') {
-      loadAppeals()
+      void loadAppeals()
     }
   }, [activeTab, leagueId, appealFilter])
 
@@ -153,7 +153,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
         }
       }
 
-      loadAppeals()
+      void loadAppeals()
     } else {
       setError(res.message || 'Errore')
     }
@@ -168,7 +168,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await auctionApi.simulateAppeal(leagueId)
     if (res.success) {
       setSuccess(res.message || 'Ricorso simulato creato')
-      loadAppeals()
+      void loadAppeals()
     } else {
       setError(res.message || 'Errore nella simulazione')
     }
@@ -183,7 +183,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await contractApi.simulateAllConsolidation(leagueId)
     if (res.success) {
       setSuccess(res.message || 'Consolidamento simulato per tutti i manager')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore nella simulazione')
     }
@@ -235,7 +235,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await auctionApi.createSession(leagueId, isRegularMarket, auctionMode)
     if (res.success) {
       setSuccess(isRegularMarket ? 'Mercato ricorrente creato!' : 'Primo mercato creato!')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -249,7 +249,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await auctionApi.closeSession(sessionId)
     if (res.success) {
       setSuccess('Sessione chiusa')
-      loadData()
+      void loadData()
     } else {
       if (res.message?.startsWith('Rose incomplete')) {
         setRosterIncompleteDetails(res.message)
@@ -268,7 +268,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await auctionApi.setPhase(sessionId, phase)
     if (res.success) {
       setSuccess(`Fase impostata: ${phase}`)
-      loadData()
+      void loadData()
     } else {
       if (res.message?.startsWith('Rose incomplete')) {
         setRosterIncompleteDetails(res.message)
@@ -289,7 +289,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       if (action === 'accept') haptic.approve()
       else haptic.reject()
       setSuccess(action === 'accept' ? 'Membro accettato' : action === 'reject' ? 'Richiesta rifiutata' : 'Membro espulso')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -304,7 +304,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       variant: 'danger'
     })
     if (ok) {
-      handleMemberAction(memberId, 'kick')
+      void handleMemberAction(memberId, 'kick')
     }
   }
 
@@ -318,7 +318,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     if (res.success) {
       setSuccess(`Invito inviato a ${newInviteEmail} (valido ${inviteDuration} giorni)`)
       setNewInviteEmail('')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore nell\'invio dell\'invito')
     }
@@ -332,7 +332,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await inviteApi.cancel(inviteId)
     if (res.success) {
       setSuccess('Invito annullato')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -346,7 +346,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await leagueApi.start(leagueId)
     if (res.success) {
       setSuccess('Lega avviata con successo!')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore nell\'avvio della lega')
     }
@@ -361,7 +361,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await adminApi.completeWithTestUsers(leagueId)
     if (res.success) {
       setSuccess(res.message || 'Manager di test aggiunti!')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore nell\'aggiunta dei manager di test')
     }

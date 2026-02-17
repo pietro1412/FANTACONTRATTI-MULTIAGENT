@@ -42,7 +42,7 @@ export function StatusBar({
   marketProgress,
   isPrimoMercato,
   membership,
-  currentPhase,
+  currentPhase: _currentPhase,
   myRosterSlots,
   onPauseAuction,
   onExit,

@@ -44,10 +44,6 @@ interface AddToBoardBody {
   rosterId?: string
 }
 
-interface PlaceOfferBody {
-  amount?: number
-}
-
 interface PlaceBidBody {
   amount: number
 }

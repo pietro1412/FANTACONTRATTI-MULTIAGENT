@@ -55,7 +55,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [leagueId])
 
   async function loadData() {
@@ -77,7 +77,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
       } else {
         setError(result.message || 'Errore nel caricamento')
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Errore di connessione')
     }
     setIsLoading(false)
@@ -104,7 +104,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
   useEffect(() => {
     const debounce = setTimeout(() => {
       if (playerSearch) {
-        searchPlayers(playerSearch)
+        void searchPlayers(playerSearch)
       } else {
         setPlayerResults([])
       }
@@ -153,7 +153,7 @@ export function History({ leagueId, onNavigate }: HistoryProps) {
           <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-xl mb-6">
             <p>{error}</p>
             <button
-              onClick={() => { setError(''); loadData(); }}
+              onClick={() => { setError(''); void loadData(); }}
               className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
             >
               Riprova

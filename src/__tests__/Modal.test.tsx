@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '../components/ui/Modal'
 
 describe('Modal', () => {
@@ -77,7 +77,6 @@ describe('Modal', () => {
             <div data-testid="modal-container">Content</div>
           </Modal>
         )
-        const modalContainer = document.querySelector('.relative.max-w')?.parentElement?.querySelector('.relative')
         // Check the modal container has the size class
         const dialog = screen.getByRole('dialog')
         expect(dialog.innerHTML).toContain(expectedClass)

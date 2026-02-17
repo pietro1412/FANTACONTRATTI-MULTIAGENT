@@ -167,8 +167,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   const [isLeagueAdmin, setIsLeagueAdmin] = useState(false)
   const [isConsolidated, setIsConsolidated] = useState(false)
   const [releasedPlayers, setReleasedPlayers] = useState<ReleasedPlayer[]>([])
-  const [consolidatedAt, setConsolidatedAt] = useState<string | null>(null)
-  const [apiRenewalCost, setApiRenewalCost] = useState(0)  // Costo rinnovi dalla API (post-consolidamento)
+  const [, setConsolidatedAt] = useState<string | null>(null)
+  const [_apiRenewalCost, setApiRenewalCost] = useState(0)  // Costo rinnovi dalla API (post-consolidamento)
   const [isConsolidating, setIsConsolidating] = useState(false)
   const [isSavingDrafts, setIsSavingDrafts] = useState(false)
 
@@ -198,7 +198,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   const [tabInitialized, setTabInitialized] = useState(false)
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [leagueId])
 
   async function loadData() {
@@ -321,31 +321,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         isModified: true,
       }
     }))
-  }
-
-  // Reset contratto ai valori base (annulla modifiche non consolidate)
-  function resetContractToBase(contract: Contract) {
-    setLocalEdits(prev => ({
-      ...prev,
-      [contract.id]: {
-        newSalary: String(contract.salary),
-        newDuration: String(contract.duration),
-        isModified: true, // Marked as modified to trigger preview recalc
-        previewData: null,
-        isSaving: false,
-      }
-    }))
-    // Trigger preview calculation after reset
-    setTimeout(() => calculatePreview(contract.id), 100)
-  }
-
-  // Check if a specific contract has changes different from saved base values
-  function contractHasUnsavedChanges(contract: Contract): boolean {
-    const edit = localEdits[contract.id]
-    if (!edit) return false
-    const currentSalary = parseInt(edit.newSalary) || 0
-    const currentDuration = parseInt(edit.newDuration) || 0
-    return currentSalary !== contract.salary || currentDuration !== contract.duration
   }
 
   // Aggiorna valori locali per un pending contract
@@ -568,27 +543,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
     return total
   }, [contracts, pendingContracts, localEdits, pendingEdits, localReleases, exitDecisions])
-
-  // Calcola effetto netto rinnovi/spalmature sulla differenza ingaggio
-  // Positivo = costo (aumenti ingaggio), Negativo = risparmio (spalmature)
-  const totalRenewalCost = useMemo(() => {
-    // After consolidation, use the API value
-    if (isConsolidated) {
-      return apiRenewalCost
-    }
-
-    // Before consolidation, calculate net effect from local edits
-    let total = 0
-    contracts.forEach(contract => {
-      const edit = localEdits[contract.id]
-      if (edit && edit.isModified) {
-        const newSalary = parseInt(edit.newSalary) || contract.salary
-        const salaryDiff = newSalary - contract.salary
-        total += salaryDiff  // Can be positive (renewal) or negative (spalma)
-      }
-    })
-    return total
-  }, [contracts, localEdits, isConsolidated, apiRenewalCost])
 
   // Calcola costo totale tagli (esclusi giocatori usciti dalla lista - costo 0)
   const totalReleaseCost = useMemo(() => {
@@ -1036,7 +990,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
             <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-2 rounded text-sm">
               <p>{error}</p>
               <button
-                onClick={() => { setError(''); loadContracts(); }}
+                onClick={() => { setError(''); void loadContracts(); }}
                 className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
               >
                 Riprova

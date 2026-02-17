@@ -99,7 +99,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   }
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [])
 
   async function loadData() {
@@ -197,7 +197,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           <div className="bg-danger-500/10 border border-danger-500/30 rounded-lg p-6 text-center mb-6">
             <p className="text-danger-400">{error}</p>
             <button
-              onClick={() => { setError(null); loadData(); }}
+              onClick={() => { setError(null); void loadData(); }}
               className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
             >
               Riprova

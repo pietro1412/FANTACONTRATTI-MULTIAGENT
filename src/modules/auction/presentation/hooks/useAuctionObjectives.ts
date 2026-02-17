@@ -147,7 +147,7 @@ export function useAuctionObjectives(
 
   // Initial fetch
   useEffect(() => {
-    fetchObjectives()
+    void fetchObjectives()
   }, [fetchObjectives])
 
   // Create objective

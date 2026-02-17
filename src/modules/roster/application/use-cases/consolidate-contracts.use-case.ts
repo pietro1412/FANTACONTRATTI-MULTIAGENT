@@ -5,7 +5,7 @@
 
 import type { IRosterRepository } from '../../domain/repositories/roster.repository.interface'
 import type { IContractCalculator } from '../../domain/services/contract-calculator.service'
-import type { PlayerContract } from '../../domain/entities/contract.entity'
+
 import type { Result} from '@/shared/infrastructure/http/result';
 import { ok, fail } from '@/shared/infrastructure/http/result'
 import { InternalError } from '@/shared/infrastructure/http/errors'

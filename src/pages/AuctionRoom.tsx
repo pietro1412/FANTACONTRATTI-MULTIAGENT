@@ -82,7 +82,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     availableTeams,
     teamDropdownOpen, setTeamDropdownOpen,
     isLoading, error, successMessage,
-    sessionInfo, marketProgress, timeLeft, timerSetting,
+    marketProgress, timeLeft, timerSetting,
     firstMarketStatus, turnOrderDraft,
     readyStatus, markingReady,
     pendingAck,

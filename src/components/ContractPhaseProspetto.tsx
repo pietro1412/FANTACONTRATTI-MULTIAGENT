@@ -76,7 +76,7 @@ export function ContractPhaseProspetto({ leagueId, isConsolidated }: Props) {
       }
     }
 
-    fetchProspetto()
+    void fetchProspetto()
   }, [leagueId])
 
   if (loading) {

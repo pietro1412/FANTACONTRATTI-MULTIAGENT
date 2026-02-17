@@ -7,8 +7,6 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { RubataPrismaRepository } from '../rubata.prisma-repository'
-import type { RubataSession } from '@/modules/rubata/domain/entities/rubata-session.entity'
-import type { PlaceOfferData, PlaceOfferResult } from '@/modules/rubata/domain/repositories/rubata.repository.interface'
 
 // Mock the prisma client
 vi.mock('@/lib/prisma', () => ({

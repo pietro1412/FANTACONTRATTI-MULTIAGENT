@@ -149,7 +149,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       } else {
         setError(result.message || 'Errore caricamento dati')
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Errore di connessione')
     } finally {
       setLoading(false)
@@ -157,7 +157,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
   }, [sessionId, isAdmin])
 
   useEffect(() => {
-    fetchData()
+    void fetchData()
   }, [fetchData])
 
   const handleUpdateBaseReincrement = async () => {
@@ -166,7 +166,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       const result = await prizePhaseApi.updateBaseReincrement(sessionId, baseReincrementValue)
       if (result.success) {
         setEditingBaseReincrement(false)
-        fetchData()
+        void fetchData()
         onUpdate?.()
       } else {
         setError(result.message || 'Errore aggiornamento')
@@ -183,7 +183,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       const result = await prizePhaseApi.createCategory(sessionId, newCategoryName.trim())
       if (result.success) {
         setNewCategoryName('')
-        fetchData()
+        void fetchData()
         onUpdate?.()
       } else {
         setError(result.message || 'Errore creazione categoria')
@@ -205,7 +205,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
     try {
       const result = await prizePhaseApi.deleteCategory(categoryId)
       if (result.success) {
-        fetchData()
+        void fetchData()
         onUpdate?.()
       } else {
         setError(result.message || 'Errore eliminazione')
@@ -279,11 +279,11 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       if (!result.success) {
         setError(result.message || 'Errore salvataggio')
         // Revert on error by fetching fresh data
-        fetchData()
+        void fetchData()
       }
     } catch {
       setError('Errore di connessione')
-      fetchData()
+      void fetchData()
     }
   }
 
@@ -293,7 +293,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       const result = await prizePhaseApi.finalize(sessionId)
       if (result.success) {
         setShowFinalizeConfirm(false)
-        fetchData()
+        void fetchData()
         onUpdate?.()
       } else {
         setError(result.message || 'Errore finalizzazione')
@@ -347,7 +347,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
     try {
       const result = await prizePhaseApi.consolidateIndemnities(sessionId)
       if (result.success) {
-        fetchData()
+        void fetchData()
         onUpdate?.()
       } else {
         setError(result.message || 'Errore consolidamento indennizzi')
@@ -825,7 +825,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                           const newValue = parseInt(inputDisplayValue, 10)
                           if (!isNaN(newValue) && newValue >= 0) {
                             handlePrizeChange(cat.id, member.id, newValue)
-                            handleSavePrize(cat.id, member.id, newValue)
+                            void handleSavePrize(cat.id, member.id, newValue)
                           }
                           setFocusedInput(null)
                           setInputDisplayValue('')
@@ -841,13 +841,13 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                       const handleIncrement = () => {
                         const newValue = savedValue + 1
                         handlePrizeChange(cat.id, member.id, newValue)
-                        handleSavePrize(cat.id, member.id, newValue)
+                        void handleSavePrize(cat.id, member.id, newValue)
                       }
 
                       const handleDecrement = () => {
                         const newValue = Math.max(0, savedValue - 1)
                         handlePrizeChange(cat.id, member.id, newValue)
-                        handleSavePrize(cat.id, member.id, newValue)
+                        void handleSavePrize(cat.id, member.id, newValue)
                       }
 
                       return (
@@ -956,7 +956,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                               onClick={() => {
                                 const newValue = Math.max(0, savedValue - 1)
                                 handlePrizeChange(cat.id, member.id, newValue)
-                                handleSavePrize(cat.id, member.id, newValue)
+                                void handleSavePrize(cat.id, member.id, newValue)
                               }}
                               className="w-8 h-8 bg-surface-400 text-white rounded font-bold"
                               disabled={isSubmitting || savedValue === 0}
@@ -966,7 +966,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                               onClick={() => {
                                 const newValue = savedValue + 1
                                 handlePrizeChange(cat.id, member.id, newValue)
-                                handleSavePrize(cat.id, member.id, newValue)
+                                void handleSavePrize(cat.id, member.id, newValue)
                               }}
                               className="w-8 h-8 bg-surface-400 text-white rounded font-bold"
                               disabled={isSubmitting}

@@ -85,11 +85,11 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
   const [isSubmittingProphecy, setIsSubmittingProphecy] = useState(false)
 
   useEffect(() => {
-    loadLeagueInfo()
+    void loadLeagueInfo()
   }, [leagueId])
 
   useEffect(() => {
-    loadMovements()
+    void loadMovements()
   }, [leagueId, filterType, filterSemester])
 
   async function loadLeagueInfo() {
@@ -141,7 +141,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
     if (result.success) {
       setProphecyContent('')
       setExpandedMovement(null)
-      loadMovements()
+      void loadMovements()
     } else {
       setError(result.message || 'Errore nell\'aggiunta della profezia')
     }
@@ -353,7 +353,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
           <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg mb-4 text-sm">
             <p>{error}</p>
             <button
-              onClick={() => { setError(''); loadMovements(); }}
+              onClick={() => { setError(''); void loadMovements(); }}
               className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
             >
               Riprova

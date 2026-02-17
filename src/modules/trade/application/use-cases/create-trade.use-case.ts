@@ -6,7 +6,7 @@
 import type { ITradeRepository } from '../../domain/repositories/trade.repository.interface'
 import type { ITradeValidator } from '../../domain/services/trade-validator.service'
 import type { TradeOffer } from '../../domain/entities/trade-offer.entity'
-import type { CreateTradeOfferDto, CreateTradeResultDto } from '../dto/trade.dto'
+
 import type { Result} from '@/shared/infrastructure/http/result';
 import { ok, fail } from '@/shared/infrastructure/http/result'
 import type { NotFoundError} from '@/shared/infrastructure/http/errors';

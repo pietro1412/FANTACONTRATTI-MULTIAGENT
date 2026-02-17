@@ -200,7 +200,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
 
   // Sort state
-  const [sortMode, setSortMode] = useState<SortMode>('role')
+  const [sortMode] = useState<SortMode>('role')
   const [sortField, setSortField] = useState<SortField>('position')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
 
@@ -284,7 +284,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       }
 
       setLocalStrategies(locals)
-    } catch (err) {
+    } catch (_err) {
       setError('Errore nel caricamento')
     } finally {
       setLoading(false)
@@ -292,7 +292,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   }, [leagueId])
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [loadData])
 
   // Cleanup debounce timers
@@ -489,7 +489,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     // Set new debounce timer (2 seconds)
     debounceTimers.current[playerId] = setTimeout(() => {
       console.log('[Strategie DEBOUNCE fired]', playerId)
-      saveStrategy(playerId)
+      void saveStrategy(playerId)
     }, 2000)
   }, [saveStrategy])
 

@@ -83,7 +83,7 @@ export function FinanceTimeline({ leagueId, data, initialMemberId, onBack }: Fin
 
   useEffect(() => {
     if (selectedMemberId) {
-      loadTimeline(selectedMemberId)
+      void loadTimeline(selectedMemberId)
     }
   }, [selectedMemberId, leagueId])
 

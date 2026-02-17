@@ -210,7 +210,7 @@ export function useServerTime() {
    * Forza una ricalibrazione manuale
    */
   const forceSync = useCallback(() => {
-    calibrate()
+    void calibrate()
   }, [calibrate])
 
   // Setup iniziale e intervallo di risincronizzazione
@@ -218,11 +218,11 @@ export function useServerTime() {
     mountedRef.current = true
 
     // Calibrazione iniziale
-    calibrate()
+    void calibrate()
 
     // Risincronizzazione periodica
     syncIntervalRef.current = setInterval(() => {
-      calibrate()
+      void calibrate()
     }, SYNC_INTERVAL_MS)
 
     return () => {

@@ -5,7 +5,6 @@ import type {
   BoardPlayer,
   RubataPreference,
   RubataStateType,
-  ReadyStatus,
   ProgressStats,
 } from '../../types/rubata.types'
 

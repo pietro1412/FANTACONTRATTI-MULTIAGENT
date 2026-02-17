@@ -80,7 +80,7 @@ export function usePrizes(sessionId: string | undefined): UsePrizesResult {
       } else {
         setError(response.message || 'Failed to load prize data')
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to load prize data')
       console.error('usePrizes error:', err)
     } finally {
@@ -90,7 +90,7 @@ export function usePrizes(sessionId: string | undefined): UsePrizesResult {
 
   // Initial fetch
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   const updateBaseReincrement = useCallback(
@@ -101,7 +101,7 @@ export function usePrizes(sessionId: string | undefined): UsePrizesResult {
         const response = await prizePhaseApi.updateBaseReincrement(sessionId, amount)
         if (response.success) await refresh()
         return { success: response.success, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to update base reincrement' }
       }
     },
@@ -116,7 +116,7 @@ export function usePrizes(sessionId: string | undefined): UsePrizesResult {
         const response = await prizePhaseApi.createCategory(sessionId, name)
         if (response.success) await refresh()
         return { success: response.success, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to create category' }
       }
     },
@@ -129,7 +129,7 @@ export function usePrizes(sessionId: string | undefined): UsePrizesResult {
         const response = await prizePhaseApi.deleteCategory(categoryId)
         if (response.success) await refresh()
         return { success: response.success, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to delete category' }
       }
     },
@@ -142,7 +142,7 @@ export function usePrizes(sessionId: string | undefined): UsePrizesResult {
         const response = await prizePhaseApi.setMemberPrize(categoryId, memberId, amount)
         if (response.success) await refresh()
         return { success: response.success, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to set member prize' }
       }
     },
@@ -156,7 +156,7 @@ export function usePrizes(sessionId: string | undefined): UsePrizesResult {
       const response = await prizePhaseApi.finalize(sessionId)
       if (response.success) await refresh()
       return { success: response.success, message: response.message }
-    } catch (err) {
+    } catch (_err) {
       return { success: false, message: 'Failed to finalize prize phase' }
     }
   }, [sessionId, refresh])

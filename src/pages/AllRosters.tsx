@@ -323,7 +323,7 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
   }, [leagueId])
 
   useEffect(() => {
-    loadLeague()
+    void loadLeague()
   }, [loadLeague])
 
   const getRosterByPosition = (roster: RosterEntry[]): { P: RosterEntry[]; D: RosterEntry[]; C: RosterEntry[]; A: RosterEntry[] } => {
@@ -376,7 +376,7 @@ export function AllRosters({ leagueId, onNavigate }: AllRostersProps) {
         <div className="max-w-[1600px] mx-auto px-4 py-8 text-center">
           <p className="text-gray-400">{error || 'Lega non trovata'}</p>
           <button
-            onClick={() => { setError(null); loadLeague(); }}
+            onClick={() => { setError(null); void loadLeague(); }}
             className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
           >
             Riprova

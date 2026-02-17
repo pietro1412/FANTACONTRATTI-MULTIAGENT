@@ -141,7 +141,7 @@ export class ResolveAppealUseCase {
   async execute(
     dto: ResolveAppealDto
   ): Promise<Result<AppealResultDto, ValidationError | NotFoundError | ForbiddenError>> {
-    const { appealId, resolution, notes, adminUserId } = dto
+    const { appealId, resolution, notes } = dto
 
     // ==================== VALIDATE INPUT ====================
     if (!notes || notes.trim().length === 0) {

@@ -6,7 +6,7 @@ import {
   LineChart, Line,
 } from 'recharts'
 import { TeamRanking } from './TeamRanking'
-import { SectionHeader } from './KPICard'
+
 import { LandscapeHint } from '../ui/LandscapeHint'
 import {
   type FinancialsData, type LeagueTotals,

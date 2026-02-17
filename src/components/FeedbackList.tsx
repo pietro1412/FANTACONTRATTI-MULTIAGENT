@@ -40,7 +40,7 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
   const [totalPages, setTotalPages] = useState(1)
 
   useEffect(() => {
-    loadFeedback()
+    void loadFeedback()
   }, [isAdmin, statusFilter, page])
 
   async function loadFeedback() {

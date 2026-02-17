@@ -1,6 +1,5 @@
 import { Button } from '../ui/Button'
 import type {
-  BoardData,
   LeagueMember,
   ActiveAuction,
   MemberBudgetInfo,

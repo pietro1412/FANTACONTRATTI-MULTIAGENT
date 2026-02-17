@@ -95,7 +95,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   const [isModifyingContract, setIsModifyingContract] = useState(false)
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [leagueId])
 
   // Scroll to highlighted offer and clear highlight after a few seconds
@@ -115,10 +115,10 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   // Pusher real-time: auto-refresh when trade events arrive
   const { isConnected: pusherConnected } = usePusherTrades(leagueId, {
     onTradeOfferReceived: useCallback(() => {
-      loadData()
+      void loadData()
     }, [leagueId]),
     onTradeUpdated: useCallback(() => {
-      loadData()
+      void loadData()
     }, [leagueId]),
   })
 
@@ -461,7 +461,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         setSuccess('Offerta inviata!')
       }
       resetCreateForm()
-      loadData()
+      void loadData()
       setActiveTab('sent')
     } else {
       setError(res.message || 'Errore durante l\'invio dell\'offerta')
@@ -474,7 +474,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     const res = await tradeApi.accept(tradeId)
     if (res.success) {
       setSuccess('Scambio accettato! I contratti dei giocatori ricevuti saranno modificabili nella fase di rinnovo contratti.')
-      loadData()
+      void loadData()
     } else {
       toast.error(res.message || 'Errore')
     }
@@ -494,7 +494,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         setIsModifyingContract(false)
         setPendingContractModifications([])
         setCurrentModificationIndex(0)
-        loadData()
+        void loadData()
       }
     } else {
       toast.error(res.message || 'Errore durante la modifica del contratto')
@@ -508,14 +508,14 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       setIsModifyingContract(false)
       setPendingContractModifications([])
       setCurrentModificationIndex(0)
-      loadData()
+      void loadData()
     }
   }
 
   async function handleReject(tradeId: string) {
     const res = await tradeApi.reject(tradeId)
     if (res.success) {
-      loadData()
+      void loadData()
     } else {
       toast.error(res.message || 'Errore')
     }
@@ -524,7 +524,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   async function handleCancel(tradeId: string) {
     const res = await tradeApi.cancel(tradeId)
     if (res.success) {
-      loadData()
+      void loadData()
     } else {
       toast.error(res.message || 'Errore')
     }
@@ -665,7 +665,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
           <div className="bg-danger-500/10 border border-danger-500/30 rounded-lg p-4 mb-4 text-center">
             <p className="text-danger-400">{loadError}</p>
             <button
-              onClick={() => { setLoadError(''); loadData(); }}
+              onClick={() => { setLoadError(''); void loadData(); }}
               className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
             >
               Riprova

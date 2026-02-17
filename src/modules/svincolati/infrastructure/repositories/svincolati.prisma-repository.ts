@@ -35,18 +35,6 @@ interface TurnOrderJson {
   hasFinished: boolean
 }
 
-interface NominationJson {
-  id: string
-  playerId: string
-  nominatorId: string
-  round: number
-  status: 'PENDING' | 'CONFIRMED' | 'IN_AUCTION' | 'SOLD' | 'UNSOLD'
-  createdAt: string
-  auctionId?: string
-  winnerId?: string
-  finalPrice?: number
-}
-
 // =============================================================================
 // Repository Implementation
 // =============================================================================

@@ -14,7 +14,6 @@ import type {
   AddToBoardData,
   PlaceOfferData,
   PlaceOfferResult,
-  BoardEntriesFilter,
 } from '../../domain/repositories/rubata.repository.interface'
 import type { RubataSession, RubataStatus, RubataPhase } from '../../domain/entities/rubata-session.entity'
 import type { RubataBoardEntry, RubataBoardEntryWithDetails, RubataBoardStatus } from '../../domain/entities/rubata-board.entity'
@@ -35,15 +34,6 @@ interface RubataBoardEntryJson {
   currentOffer?: number
   highestOfferId?: string
   offeredById?: string
-}
-
-interface RubataOfferJson {
-  id: string
-  boardEntryId: string
-  offeredByMemberId: string
-  amount: number
-  status: 'PENDING' | 'ACCEPTED' | 'OUTBID' | 'CANCELLED'
-  placedAt: string
 }
 
 // =============================================================================
@@ -365,7 +355,7 @@ export class RubataPrismaRepository implements IRubataRepository {
     })
   }
 
-  async initializeReadyStatuses(sessionId: string, memberIds: string[]): Promise<void> {
+  async initializeReadyStatuses(sessionId: string, _memberIds: string[]): Promise<void> {
     // Initialize with empty ready list - all members start as not ready
     await prisma.marketSession.update({
       where: { id: sessionId },

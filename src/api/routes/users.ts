@@ -80,7 +80,7 @@ router.put('/password', async (req: Request, res: Response) => {
       return
     }
 
-    const { confirmNewPassword: _, ...input } = validation.data
+    const { confirmNewPassword: _confirmNewPassword, ...input } = validation.data
     const result = await changePassword(req.user!.userId, input)
 
     if (!result.success) {

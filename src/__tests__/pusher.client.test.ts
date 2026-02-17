@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 
 // Use vi.hoisted to define mocks that are hoisted with vi.mock
@@ -11,7 +11,6 @@ const {
   mockConnect,
   mockDisconnect,
   mockConnectionBind,
-  mockConnectionUnbind,
   mockChannel,
   MockPusherClient,
 } = vi.hoisted(() => {
@@ -69,7 +68,6 @@ vi.mock('pusher-js', () => {
 })
 
 import {
-  pusherClient,
   subscribeToAuction,
   unsubscribeFromAuction,
   unbindAuctionHandlers,
@@ -260,7 +258,7 @@ describe('pusher.client', () => {
       expect(bindings.length).toBeGreaterThanOrEqual(7)
 
       // Find and invoke each handler
-      bindings.forEach(([eventName, handler]: [string, (data: unknown) => void]) => {
+      bindings.forEach(([_eventName, handler]: [string, (data: unknown) => void]) => {
         const testData = { test: 'data' }
         handler(testData)
       })

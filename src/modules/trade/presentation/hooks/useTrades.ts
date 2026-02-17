@@ -110,7 +110,7 @@ export function useTrades(leagueId: string | undefined): UseTradesResult {
       if (historyRes.success && historyRes.data) {
         setHistory((historyRes.data as { offers: TradeOffer[] }).offers || [])
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to load trades')
       console.error('useTrades error:', err)
     } finally {
@@ -120,7 +120,7 @@ export function useTrades(leagueId: string | undefined): UseTradesResult {
 
   // Initial fetch
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   const createOffer = useCallback(
@@ -139,7 +139,7 @@ export function useTrades(leagueId: string | undefined): UseTradesResult {
         const response = await tradeApi.create(leagueId, data)
         if (response.success) await refresh()
         return { success: response.success, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to create trade offer' }
       }
     },
@@ -152,7 +152,7 @@ export function useTrades(leagueId: string | undefined): UseTradesResult {
         const response = await tradeApi.accept(tradeId)
         if (response.success) await refresh()
         return { success: response.success, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to accept trade' }
       }
     },
@@ -165,7 +165,7 @@ export function useTrades(leagueId: string | undefined): UseTradesResult {
         const response = await tradeApi.reject(tradeId)
         if (response.success) await refresh()
         return { success: response.success, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to reject trade' }
       }
     },
@@ -178,7 +178,7 @@ export function useTrades(leagueId: string | undefined): UseTradesResult {
         const response = await tradeApi.cancel(tradeId)
         if (response.success) await refresh()
         return { success: response.success, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to cancel trade' }
       }
     },
@@ -200,7 +200,7 @@ export function useTrades(leagueId: string | undefined): UseTradesResult {
         const response = await tradeApi.counter(tradeId, data)
         if (response.success) await refresh()
         return { success: response.success, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to counter trade' }
       }
     },

@@ -79,7 +79,7 @@ export function TimelineView({ leagueId, sessions }: TimelineViewProps) {
   const limit = 50
 
   useEffect(() => {
-    loadEvents(true)
+    void loadEvents(true)
   }, [leagueId, filterTypes, filterSession])
 
   async function loadEvents(reset = false) {

@@ -301,7 +301,7 @@ app.get('/api/debug/ping', async (_req, res) => {
     const count = await diagPrisma.user.count()
     results.dbDataQueryMs = Date.now() - dbDataStart
     results.userCount = count
-  } catch (err) {
+  } catch (_err) {
     results.dbDataQueryMs = Date.now() - dbDataStart
   }
 

@@ -146,7 +146,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
   }, [leagueId, selectedPosition, searchQuery])
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [loadData])
 
   // Enrich players with roster info

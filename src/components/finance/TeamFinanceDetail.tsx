@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ZAxis } from 'recharts'
 import { WaterfallChart } from './WaterfallChart'
 import { ContractExpiryGantt } from './ContractExpiryGantt'
-import { KPICard, SectionHeader } from './KPICard'
+import { KPICard } from './KPICard'
 import {
   type TeamData, type FinancialsData,
   getTeamBalance, getHealthStatus,

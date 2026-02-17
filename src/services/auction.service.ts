@@ -1,9 +1,8 @@
-import { PrismaClient, AuctionStatus, AuctionType, MemberRole, MemberStatus, AcquisitionType, RosterStatus, Position, SessionStatus, Prisma } from '@prisma/client'
+import { PrismaClient, AuctionStatus, AuctionType, MemberRole, MemberStatus, AcquisitionType, RosterStatus, Position, Prisma } from '@prisma/client'
 import { calculateRescissionClause, calculateDefaultSalary, canAdvanceFromContratti } from './contract.service'
 import { autoReleaseRitiratiPlayers } from './indemnity-phase.service'
 import { recordMovement } from './movement.service'
 import {
-  createContractHistoryEntry,
   createContractHistoryEntries,
   createSessionStartSnapshots,
 } from './contract-history.service'
@@ -1379,7 +1378,7 @@ export async function placeBid(
 
   // Trigger Pusher event for bid placed (fire and forget)
   if (auction.marketSessionId) {
-    triggerBidPlaced(auction.marketSessionId, {
+    void triggerBidPlaced(auction.marketSessionId, {
       auctionId: auction.id,
       memberId: member.id,
       memberName: bid.bidder.user.username,
@@ -1463,7 +1462,7 @@ export async function closeAuction(
 
     // Trigger Pusher event for auction closed (fire and forget)
     if (auction.marketSessionId) {
-      triggerAuctionClosed(auction.marketSessionId, {
+      void triggerAuctionClosed(auction.marketSessionId, {
         auctionId: auction.id,
         playerId: auction.playerId,
         playerName: auction.player.name,
@@ -1553,7 +1552,7 @@ export async function closeAuction(
 
   // Trigger Pusher event for auction closed (fire and forget)
   if (auction.marketSessionId) {
-    triggerAuctionClosed(auction.marketSessionId, {
+    void triggerAuctionClosed(auction.marketSessionId, {
       auctionId: auction.id,
       playerId: auction.playerId,
       playerName: auction.player.name,
@@ -2081,7 +2080,7 @@ export async function requestPause(
   }
 
   // Send Pusher notification to all (admin will see the request)
-  triggerPauseRequested(sessionId, {
+  void triggerPauseRequested(sessionId, {
     memberId: member.id,
     username: member.user.username,
     type: pauseType,
@@ -3320,7 +3319,7 @@ export async function setPendingNomination(
   })
 
   // Trigger Pusher event for nomination pending (fire and forget)
-  triggerNominationPending(sessionId, {
+  void triggerNominationPending(sessionId, {
     auctionId: '', // no auction yet
     nominatorId: member.id,
     nominatorName: member.user.username,
@@ -3399,7 +3398,7 @@ export async function confirmNomination(
   })
 
   // Trigger Pusher event for nomination confirmed (fire and forget)
-  triggerNominationConfirmed(sessionId, {
+  void triggerNominationConfirmed(sessionId, {
     auctionId: '',
     playerId: session.pendingNominationPlayer!.id,
     playerName: session.pendingNominationPlayer!.name,
@@ -3580,7 +3579,7 @@ export async function markReady(
     .map(m => ({ id: m.id, username: m.user.username }))
 
   // Trigger Pusher event for member ready (fire and forget)
-  triggerMemberReady(sessionId, {
+  void triggerMemberReady(sessionId, {
     memberId: member.id,
     memberName: member.user.username,
     isReady: true,
@@ -3677,7 +3676,7 @@ async function startPendingAuction(sessionId: string): Promise<ServiceResult> {
   })
 
   // Trigger Pusher event for auction started (fire and forget)
-  triggerAuctionStarted(sessionId, {
+  void triggerAuctionStarted(sessionId, {
     sessionId,
     auctionType: session.type,
     nominatorId: nominator!.id,

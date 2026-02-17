@@ -11,12 +11,9 @@ import type {
 } from '../entities/svincolati-session.entity'
 import type {
   SvincolatiTurnOrder,
-  CreateTurnOrderData,
-  UpdateTurnOrderData
 } from '../entities/turn-order.entity'
 import type {
   SvincolatiNomination,
-  CreateNominationData,
   UpdateNominationData,
   NominateResult
 } from '../entities/nomination.entity'

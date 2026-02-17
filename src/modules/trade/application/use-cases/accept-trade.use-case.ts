@@ -5,7 +5,6 @@
 
 import type { ITradeRepository } from '../../domain/repositories/trade.repository.interface'
 import type { ITradeValidator } from '../../domain/services/trade-validator.service'
-import type { TradeOffer } from '../../domain/entities/trade-offer.entity'
 import { canRespondToTrade, isTradeExpired } from '../../domain/entities/trade-offer.entity'
 import type { Result} from '@/shared/infrastructure/http/result';
 import { ok, fail } from '@/shared/infrastructure/http/result'

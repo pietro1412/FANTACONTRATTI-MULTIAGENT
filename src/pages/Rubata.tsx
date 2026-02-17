@@ -247,7 +247,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
           <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-3 rounded-lg mb-4">
             <p>{error}</p>
             <button
-              onClick={() => { setError(''); loadData(); }}
+              onClick={() => { setError(''); void loadData(); }}
               className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
             >
               Riprova
@@ -488,7 +488,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 {readyStatus.pendingMembers.length > 0 && (
                   <div className="flex items-center gap-2 flex-wrap text-sm">
                     <span className="text-gray-500">In attesa:</span>
-                    {readyStatus.pendingMembers.map((member, idx) => (
+                    {readyStatus.pendingMembers.map((member, _idx) => (
                       <span key={member.id} className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-warning-500/20 text-warning-400 rounded text-xs">
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
@@ -558,7 +558,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   {readyStatus.pendingMembers.length > 0 && (
                     <div className="flex items-center gap-2 flex-wrap text-sm">
                       <span className="text-gray-500">In attesa:</span>
-                      {readyStatus.pendingMembers.map((member, idx) => (
+                      {readyStatus.pendingMembers.map((member, _idx) => (
                         <span key={member.id} className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-warning-500/20 text-warning-400 rounded text-xs">
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${

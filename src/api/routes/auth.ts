@@ -61,7 +61,7 @@ router.post('/register', verifyTurnstile, async (req: Request, res: Response) =>
       return
     }
 
-    const { confirmPassword: _, ...input } = validation.data
+    const { confirmPassword: _confirmPassword, ...input } = validation.data
     const result = await registerUser(input)
 
     if (!result.success) {

@@ -38,8 +38,8 @@ export function SessionCard({
   session,
   isExpanded,
   onToggle,
-  formatSessionType,
-  formatSemester,
+  formatSessionType: _formatSessionType,
+  formatSemester: _formatSemester,
   formatSessionTitle,
 }: SessionCardProps) {
   const [activeTab, setActiveTab] = useState<TabType>('overview')
@@ -57,7 +57,7 @@ export function SessionCard({
 
   useEffect(() => {
     if (isExpanded && !tabData[activeTab]) {
-      loadTabData(activeTab)
+      void loadTabData(activeTab)
     }
   }, [isExpanded, activeTab])
 

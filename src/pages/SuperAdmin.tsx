@@ -195,7 +195,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
   })
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false)
   const [availableTeams, setAvailableTeams] = useState<Array<{ name: string; playerCount: number }>>([])
-  const [_teamsLoading, setTeamsLoading] = useState(false)
+  const [, setTeamsLoading] = useState(false)
 
   // Leagues state
   const [leagues, setLeagues] = useState<League[]>([])
@@ -284,7 +284,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
   const [classifiedCount, setClassifiedCount] = useState(0)
 
   useEffect(() => {
-    loadStatus()
+    void loadStatus()
   }, [])
 
   // Sync activeTab with URL parameter
@@ -309,19 +309,19 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
   useEffect(() => {
     if (isSuperAdmin) {
       if (activeTab === 'upload') {
-        loadUploadHistory()
-        loadPlayersNeedingClassification()
+        void loadUploadHistory()
+        void loadPlayersNeedingClassification()
       }
       if (activeTab === 'players') {
-        loadPlayers()
-        loadTeams()
+        void loadPlayers()
+        void loadTeams()
       }
-      if (activeTab === 'leagues') loadLeagues()
-      if (activeTab === 'users') loadUsers()
+      if (activeTab === 'leagues') void loadLeagues()
+      if (activeTab === 'users') void loadUsers()
       if (activeTab === 'stats') {
-        loadApiFootballStatus()
-        loadMatchProposals() // Auto-load proposals
-        loadMatchedPlayers() // Auto-load matched players
+        void loadApiFootballStatus()
+        void loadMatchProposals() // Auto-load proposals
+        void loadMatchedPlayers() // Auto-load matched players
       }
     }
   }, [isSuperAdmin, activeTab, filters, leagueSearch])
@@ -386,7 +386,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
         // Remove from proposals
         setMatchProposals(prev => prev.filter(p => p.dbPlayer.id !== dbPlayerId))
         // Refresh status
-        loadApiFootballStatus()
+        void loadApiFootballStatus()
       }
     } catch (err) {
       console.error('Error confirming match:', err)
@@ -448,8 +448,8 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
         // Remove from matched list
         setMatchedPlayers(prev => prev.filter(p => p.id !== playerId))
         // Refresh proposals and status
-        loadMatchProposals()
-        loadApiFootballStatus()
+        void loadMatchProposals()
+        void loadApiFootballStatus()
       }
     } catch (err) {
       console.error('Error removing match:', err)
@@ -467,8 +467,8 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
         // Remove from proposals
         setMatchProposals(prev => prev.filter(p => p.dbPlayer.id !== searchModalPlayer.id))
         closeSearchModal()
-        loadApiFootballStatus()
-        loadMatchedPlayers(matchedSearch) // Refresh matched list
+        void loadApiFootballStatus()
+        void loadMatchedPlayers(matchedSearch) // Refresh matched list
       }
     } catch (err) {
       console.error('Error manual association:', err)
@@ -483,7 +483,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
     if (result.success && result.data) {
       setIsSuperAdmin((result.data as { isSuperAdmin: boolean }).isSuperAdmin)
       if ((result.data as { isSuperAdmin: boolean }).isSuperAdmin) {
-        loadStats()
+        void loadStats()
       }
     }
     setIsLoading(false)
@@ -636,15 +636,15 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
         setClassifiedCount(classificationArray.length)
         setClassificationStep('success')
         // Reload data after successful classification
-        loadPlayersNeedingClassification()
-        loadStats()
+        void loadPlayersNeedingClassification()
+        void loadStats()
       } else {
         setClassificationResult({
           success: false,
           message: result.message || 'Errore sconosciuto'
         })
       }
-    } catch (error) {
+    } catch (_error) {
       setClassificationResult({
         success: false,
         message: 'Errore durante la classificazione'
@@ -672,8 +672,8 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
         data: result.data
       })
       if (result.success) {
-        loadStats()
-        loadUploadHistory()
+        void loadStats()
+        void loadUploadHistory()
         if (fileInputRef.current) {
           fileInputRef.current.value = ''
         }
@@ -693,7 +693,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
           openClassificationModal()
         }
       }
-    } catch (error) {
+    } catch (_error) {
       setImportResult({ success: false, message: 'Errore durante l\'upload' })
     }
 
@@ -712,10 +712,10 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
         data: result.data
       })
       if (result.success) {
-        loadStats()
-        loadUploadHistory()
+        void loadStats()
+        void loadUploadHistory()
       }
-    } catch (error) {
+    } catch (_error) {
       setImportResult({ success: false, message: 'Errore durante la cancellazione' })
     }
 
@@ -1384,7 +1384,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                                   className="w-full"
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    loadMemberRoster(member.id)
+                                    void loadMemberRoster(member.id)
                                   }}
                                 >
                                   Vedi Rosa

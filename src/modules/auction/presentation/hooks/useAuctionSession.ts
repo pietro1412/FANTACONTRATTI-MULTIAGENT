@@ -58,7 +58,7 @@ export function useAuctionSession(leagueId: string | undefined): UseAuctionSessi
       } else {
         setError(response.message || 'Failed to load sessions')
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to load sessions')
       console.error('useAuctionSession error:', err)
     } finally {
@@ -68,7 +68,7 @@ export function useAuctionSession(leagueId: string | undefined): UseAuctionSessi
 
   // Initial fetch
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   // Find active session
@@ -92,7 +92,7 @@ export function useAuctionSession(leagueId: string | undefined): UseAuctionSessi
         }
 
         return { success: false, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to create session' }
       }
     },
@@ -113,7 +113,7 @@ export function useAuctionSession(leagueId: string | undefined): UseAuctionSessi
       }
 
       return { success: false, message: response.message }
-    } catch (err) {
+    } catch (_err) {
       return { success: false, message: 'Failed to close session' }
     }
   }, [activeSession, refresh])
@@ -133,7 +133,7 @@ export function useAuctionSession(leagueId: string | undefined): UseAuctionSessi
         }
 
         return { success: false, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to set phase' }
       }
     },
@@ -155,7 +155,7 @@ export function useAuctionSession(leagueId: string | undefined): UseAuctionSessi
         }
 
         return { success: false, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to update timer' }
       }
     },

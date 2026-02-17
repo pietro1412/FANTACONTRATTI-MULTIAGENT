@@ -18,7 +18,7 @@ import {
 import { DomainEventTypes } from '@/shared/infrastructure/events/domain-events'
 import type { EventBus } from '@/shared/infrastructure/events/event-bus'
 import type { IAuctionRepository } from '../../domain/repositories/auction.repository.interface'
-import type { AuctionType } from '../../domain/entities/auction.entity'
+
 import type { CreateAuctionDto, CreateAuctionResultDto } from '../dto/auction.dto'
 
 /**

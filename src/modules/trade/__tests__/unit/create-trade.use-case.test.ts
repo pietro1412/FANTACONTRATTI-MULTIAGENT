@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { CreateTradeUseCase } from '../../application/use-cases/create-trade.use-case'
 import type { ITradeRepository } from '../../domain/repositories/trade.repository.interface'
-import type { ITradeValidator, ValidationResult } from '../../domain/services/trade-validator.service'
+import type { ITradeValidator } from '../../domain/services/trade-validator.service'
 import type { TradeOffer } from '../../domain/entities/trade-offer.entity'
 
 describe('CreateTradeUseCase', () => {

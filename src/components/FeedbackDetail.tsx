@@ -59,7 +59,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    loadFeedback()
+    void loadFeedback()
   }, [feedbackId])
 
   async function loadFeedback() {
@@ -72,7 +72,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
       } else {
         setError(res.message || 'Errore nel caricamento')
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Errore di connessione')
     }
     setIsLoading(false)
@@ -91,12 +91,12 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
       if (res.success) {
         setResponseContent('')
         setResponseStatus('')
-        loadFeedback()
+        void loadFeedback()
         onUpdated?.()
       } else {
         toast.error(res.message || 'Errore nell\'invio della risposta')
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error('Errore di connessione')
     }
     setIsSubmitting(false)
@@ -106,12 +106,12 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
     try {
       const res = await feedbackApi.updateStatus(feedbackId, newStatus as 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA')
       if (res.success) {
-        loadFeedback()
+        void loadFeedback()
         onUpdated?.()
       } else {
         toast.error(res.message || 'Errore nell\'aggiornamento dello stato')
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error('Errore di connessione')
     }
   }

@@ -265,8 +265,8 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
   }, [])
 
   useEffect(() => {
-    loadLeagueInfo()
-    loadTeams()
+    void loadLeagueInfo()
+    void loadTeams()
   }, [leagueId])
 
   async function loadLeagueInfo() {
@@ -284,7 +284,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
   }
 
   useEffect(() => {
-    loadPlayers()
+    void loadPlayers()
   }, [positionFilter, teamFilter, sortBy, sortOrder, page])
 
   async function loadTeams() {
@@ -328,7 +328,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
 
   function handleSearch() {
     setPage(1)
-    loadPlayers()
+    void loadPlayers()
   }
 
   function handleSort(column: string) {

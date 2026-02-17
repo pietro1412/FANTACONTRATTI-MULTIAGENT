@@ -90,7 +90,7 @@ export class CronJobManager {
 
     entry.job.isRunning = true
     entry.intervalId = setInterval(() => {
-      this.executeJob(entry)
+      void this.executeJob(entry)
     }, entry.job.intervalMs)
   }
 

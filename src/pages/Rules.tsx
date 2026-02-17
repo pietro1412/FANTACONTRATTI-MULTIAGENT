@@ -69,9 +69,9 @@ export function Rules() {
 
   const handleBack = () => {
     if (isAuthenticated) {
-      navigate('/dashboard')
+      void navigate('/dashboard')
     } else {
-      navigate('/login')
+      void navigate('/login')
     }
   }
 

@@ -19,7 +19,6 @@ import type {
   PrizeCategory,
   PrizePhaseConfig,
   SessionPrize,
-  PrizePhaseStatus,
 } from '../../domain/entities/prize.entity'
 
 export class PrizePrismaRepository implements IPrizeRepository {

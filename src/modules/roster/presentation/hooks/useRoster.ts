@@ -89,7 +89,7 @@ export function useRoster(leagueId: string | undefined): UseRosterResult {
 
   // Initial fetch
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   // Derived state - players by position
@@ -158,7 +158,7 @@ export function useMemberRoster(
 
   // Initial fetch
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   // Derived state - players by position
@@ -225,7 +225,7 @@ export function useAllRosters(leagueId: string | undefined) {
 
   // Initial fetch
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   return { rosters, isLoading, error, refresh }

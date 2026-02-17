@@ -1,13 +1,11 @@
 import { PrismaClient, MemberStatus, RosterStatus, AcquisitionType } from '@prisma/client'
 import { recordMovement } from './movement.service'
 import {
-  createContractHistoryEntry,
   createContractHistoryEntries,
-  createPhaseStartSnapshot,
   createPhaseEndSnapshot,
 } from './contract-history.service'
 import type { CreateContractHistoryInput, ContractEventType } from '../types/contract-history'
-import { computeSeasonStatsBatch, type ComputedSeasonStats } from './player-stats.service'
+import { computeSeasonStatsBatch } from './player-stats.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
 const prisma = new PrismaClient()

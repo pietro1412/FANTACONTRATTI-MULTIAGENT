@@ -74,9 +74,9 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
 
   useEffect(() => {
     if (leagueId) {
-      loadLeagueInfo()
-      loadStats()
-      loadProphecies(true)
+      void loadLeagueInfo()
+      void loadStats()
+      void loadProphecies(true)
     }
   }, [leagueId])
 
@@ -90,7 +90,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
 
   useEffect(() => {
     if (leagueId) {
-      loadProphecies(true)
+      void loadProphecies(true)
     }
   }, [selectedPlayerId, selectedAuthorId, debouncedSearch])
 
@@ -99,7 +99,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isLoading) {
-          loadProphecies(false)
+          void loadProphecies(false)
         }
       },
       { threshold: 0.1 }
@@ -303,7 +303,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
             <div className="bg-surface-200 rounded-lg border border-surface-50/20 p-3">
               <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">Top Giocatori</h3>
               <div className="flex flex-wrap gap-1">
-                {stats.topPlayers.slice(0, 6).map((player, idx) => (
+                {stats.topPlayers.slice(0, 6).map((player, _idx) => (
                   <button
                     key={player.playerId}
                     onClick={() => { handleFilterByPlayer(player.playerId); }}

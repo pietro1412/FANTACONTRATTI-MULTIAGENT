@@ -106,7 +106,7 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
   const [indennizzoEstero, setIndennizzoEstero] = useState(50) // Default 50M, fetched from API
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [leagueId])
 
   async function loadData() {
@@ -193,7 +193,7 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
       setHasSubmitted(true)
       setSubmittedAt(new Date().toISOString())
       // Refresh data
-      loadData()
+      void loadData()
     } else {
       setError(result.message || 'Errore durante l\'invio delle decisioni')
     }

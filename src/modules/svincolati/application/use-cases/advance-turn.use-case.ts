@@ -96,7 +96,6 @@ export class AdvanceTurnUseCase {
     }
 
     // Step 6: Find next member who hasn't passed or finished
-    const currentIndex = turnOrder.findIndex(t => t.memberId === previousNominatorId)
     const nextEntry = await this.svincolatiRepository.advanceToNextMember(dto.sessionId)
 
     // Step 7: Check if we need to start a new round

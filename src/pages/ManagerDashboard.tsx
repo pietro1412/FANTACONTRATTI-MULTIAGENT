@@ -194,7 +194,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [leagueId])
 
   async function loadData() {

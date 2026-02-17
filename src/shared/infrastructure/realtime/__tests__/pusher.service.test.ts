@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   BatchedPusherService,
-  type PusherEvent,
   type BatchedEventPayload,
   type Member,
   type TimerResetData,

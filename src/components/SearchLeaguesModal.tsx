@@ -28,7 +28,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   COMPLETED: { label: 'Completata', color: 'bg-gray-500/20 text-gray-400' },
 }
 
-export function SearchLeaguesModal({ isOpen, onClose, onNavigate }: SearchLeaguesModalProps) {
+export function SearchLeaguesModal({ isOpen, onClose, onNavigate: _onNavigate }: SearchLeaguesModalProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)

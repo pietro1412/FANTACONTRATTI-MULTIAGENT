@@ -4,7 +4,7 @@
  * Tests for the JwtTokenService implementation.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { JwtTokenService } from '../services/jwt-token.service'
 
 describe('JwtTokenService', () => {

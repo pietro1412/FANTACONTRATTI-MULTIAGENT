@@ -217,7 +217,7 @@ export function Profile({ onNavigate }: ProfileProps) {
   const [isChangingPassword, setIsChangingPassword] = useState(false)
 
   useEffect(() => {
-    loadProfile()
+    void loadProfile()
   }, [])
 
   async function loadProfile() {
@@ -260,7 +260,7 @@ export function Profile({ onNavigate }: ProfileProps) {
       const result = await userApi.updateProfilePhoto(base64)
       if (result.success) {
         setSuccess('Foto profilo aggiornata!')
-        loadProfile()
+        void loadProfile()
       } else {
         setError(result.message || 'Errore nell\'aggiornamento della foto')
         setPhotoPreview(null)
@@ -285,7 +285,7 @@ export function Profile({ onNavigate }: ProfileProps) {
     if (result.success) {
       setSuccess('Foto profilo rimossa')
       setPhotoPreview(null)
-      loadProfile()
+      void loadProfile()
     } else {
       setError(result.message || 'Errore nella rimozione della foto')
     }

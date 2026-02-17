@@ -101,9 +101,9 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 function LoginWrapper() {
   const navigate = useNavigate()
   const onNavigate = useCallback((page: string) => {
-    if (page === 'register') navigate('/register')
-    else if (page === 'dashboard') navigate('/dashboard')
-    else navigate('/' + page)
+    if (page === 'register') void navigate('/register')
+    else if (page === 'dashboard') void navigate('/dashboard')
+    else void navigate('/' + page)
   }, [navigate])
   return <Login onNavigate={onNavigate} />
 }
@@ -111,9 +111,9 @@ function LoginWrapper() {
 function RegisterWrapper() {
   const navigate = useNavigate()
   const onNavigate = useCallback((page: string) => {
-    if (page === 'login') navigate('/login')
-    else if (page === 'dashboard') navigate('/dashboard')
-    else navigate('/' + page)
+    if (page === 'login') void navigate('/login')
+    else if (page === 'dashboard') void navigate('/dashboard')
+    else void navigate('/' + page)
   }, [navigate])
   return <Register onNavigate={onNavigate} />
 }
@@ -121,16 +121,16 @@ function RegisterWrapper() {
 function DashboardWrapper() {
   const navigate = useNavigate()
   const onNavigate = useCallback((page: string, params?: Record<string, string>) => {
-    if (page === 'create-league') navigate('/leagues/new')
-    else if (page === 'profile') navigate('/profile')
-    else if (page === 'leagueDetail' && params?.leagueId) navigate(`/leagues/${params.leagueId}`)
-    else if (page === 'inviteDetail' && params?.token) navigate(`/invite/${params.token}`)
-    else if (page === 'login') navigate('/login')
+    if (page === 'create-league') void navigate('/leagues/new')
+    else if (page === 'profile') void navigate('/profile')
+    else if (page === 'leagueDetail' && params?.leagueId) void navigate(`/leagues/${params.leagueId}`)
+    else if (page === 'inviteDetail' && params?.token) void navigate(`/invite/${params.token}`)
+    else if (page === 'login') void navigate('/login')
     else if (page === 'superadmin') {
-      if (params?.tab) navigate(`/superadmin?tab=${params.tab}`)
-      else navigate('/superadmin')
+      if (params?.tab) void navigate(`/superadmin?tab=${params.tab}`)
+      else void navigate('/superadmin')
     }
-    else navigate('/' + page)
+    else void navigate('/' + page)
   }, [navigate])
   return <Dashboard onNavigate={onNavigate} />
 }
@@ -138,11 +138,11 @@ function DashboardWrapper() {
 function CreateLeagueWrapper() {
   const navigate = useNavigate()
   const onNavigate = useCallback((page: string, params?: Record<string, string>) => {
-    if (page === 'dashboard') navigate('/dashboard')
-    else if (page === 'profile') navigate('/profile')
-    else if (page === 'leagueDetail' && params?.leagueId) navigate(`/leagues/${params.leagueId}`)
-    else if (page === 'inviteDetail' && params?.token) navigate(`/invite/${params.token}`)
-    else navigate('/' + page)
+    if (page === 'dashboard') void navigate('/dashboard')
+    else if (page === 'profile') void navigate('/profile')
+    else if (page === 'leagueDetail' && params?.leagueId) void navigate(`/leagues/${params.leagueId}`)
+    else if (page === 'inviteDetail' && params?.token) void navigate(`/invite/${params.token}`)
+    else void navigate('/' + page)
   }, [navigate])
   return <CreateLeague onNavigate={onNavigate} />
 }
@@ -150,14 +150,14 @@ function CreateLeagueWrapper() {
 function ProfileWrapper() {
   const navigate = useNavigate()
   const onNavigate = useCallback((page: string, params?: Record<string, string>) => {
-    if (page === 'dashboard') navigate('/dashboard')
-    else if (page === 'leagueDetail' && params?.leagueId) navigate(`/leagues/${params.leagueId}`)
-    else if (page === 'inviteDetail' && params?.token) navigate(`/invite/${params.token}`)
+    if (page === 'dashboard') void navigate('/dashboard')
+    else if (page === 'leagueDetail' && params?.leagueId) void navigate(`/leagues/${params.leagueId}`)
+    else if (page === 'inviteDetail' && params?.token) void navigate(`/invite/${params.token}`)
     else if (page === 'superadmin') {
-      if (params?.tab) navigate(`/superadmin?tab=${params.tab}`)
-      else navigate('/superadmin')
+      if (params?.tab) void navigate(`/superadmin?tab=${params.tab}`)
+      else void navigate('/superadmin')
     }
-    else navigate('/' + page)
+    else void navigate('/' + page)
   }, [navigate])
   return <Profile onNavigate={onNavigate} />
 }
@@ -167,53 +167,53 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
   return (page: string, params?: Record<string, string>) => {
     const lid = params?.leagueId || leagueId
     switch (page) {
-      case 'dashboard': navigate('/dashboard'); break
-      case 'profile': navigate('/profile'); break
-      case 'leagueDetail': navigate(`/leagues/${lid}`); break
-      case 'inviteDetail': navigate(`/invite/${params?.token}`); break
-      case 'auction': navigate(`/leagues/${lid}/auction/${params?.sessionId}`); break
-      case 'rose': navigate(`/leagues/${lid}/rose`); break
+      case 'dashboard': void navigate('/dashboard'); break
+      case 'profile': void navigate('/profile'); break
+      case 'leagueDetail': void navigate(`/leagues/${lid}`); break
+      case 'inviteDetail': void navigate(`/invite/${params?.token}`); break
+      case 'auction': void navigate(`/leagues/${lid}/auction/${params?.sessionId}`); break
+      case 'rose': void navigate(`/leagues/${lid}/rose`); break
       // Keep backward compatibility for old routes
-      case 'roster': navigate(`/leagues/${lid}/rose`); break
+      case 'roster': void navigate(`/leagues/${lid}/rose`); break
       case 'allRosters':
-      case 'rosters': navigate(`/leagues/${lid}/rose`); break
-      case 'contracts': navigate(`/leagues/${lid}/contracts`); break
+      case 'rosters': void navigate(`/leagues/${lid}/rose`); break
+      case 'contracts': void navigate(`/leagues/${lid}/contracts`); break
       case 'trades':
         if (params?.highlight) {
-          navigate(`/leagues/${lid}/trades`, { state: { highlight: params.highlight } })
+          void navigate(`/leagues/${lid}/trades`, { state: { highlight: params.highlight } })
         } else {
-          navigate(`/leagues/${lid}/trades`)
+          void navigate(`/leagues/${lid}/trades`)
         }
         break
-      case 'rubata': navigate(`/leagues/${lid}/rubata`); break
-      case 'strategie-rubata': navigate(`/leagues/${lid}/strategie-rubata`); break
-      case 'svincolati': navigate(`/leagues/${lid}/svincolati`); break
-      case 'prizes': navigate(`/leagues/${lid}/prizes`); break
+      case 'rubata': void navigate(`/leagues/${lid}/rubata`); break
+      case 'strategie-rubata': void navigate(`/leagues/${lid}/strategie-rubata`); break
+      case 'svincolati': void navigate(`/leagues/${lid}/svincolati`); break
+      case 'prizes': void navigate(`/leagues/${lid}/prizes`); break
       case 'allPlayers':
-        if (params?.team) navigate(`/leagues/${lid}/players?team=${encodeURIComponent(params.team)}`)
-        else navigate(`/leagues/${lid}/players`)
+        if (params?.team) void navigate(`/leagues/${lid}/players?team=${encodeURIComponent(params.team)}`)
+        else void navigate(`/leagues/${lid}/players`)
         break
-      case 'manager-dashboard': navigate(`/leagues/${lid}/manager`); break
+      case 'manager-dashboard': void navigate(`/leagues/${lid}/manager`); break
       case 'admin':
       case 'adminPanel':
-        if (params?.tab) navigate(`/leagues/${lid}/admin?tab=${params.tab}`)
-        else navigate(`/leagues/${lid}/admin`)
+        if (params?.tab) void navigate(`/leagues/${lid}/admin?tab=${params.tab}`)
+        else void navigate(`/leagues/${lid}/admin`)
         break
-      case 'movements': navigate(`/leagues/${lid}/movements`); break
-      case 'history': navigate(`/leagues/${lid}/history`); break
-      case 'prophecies': navigate(`/leagues/${lid}/prophecies`); break
-      case 'playerStats': navigate(`/leagues/${lid}/stats`); break
-      case 'financials': navigate(`/leagues/${lid}/financials`); break
-      case 'patchNotes': navigate(`/leagues/${lid}/patch-notes`); break
+      case 'movements': void navigate(`/leagues/${lid}/movements`); break
+      case 'history': void navigate(`/leagues/${lid}/history`); break
+      case 'prophecies': void navigate(`/leagues/${lid}/prophecies`); break
+      case 'playerStats': void navigate(`/leagues/${lid}/stats`); break
+      case 'financials': void navigate(`/leagues/${lid}/financials`); break
+      case 'patchNotes': void navigate(`/leagues/${lid}/patch-notes`); break
       case 'feedbackHub':
-        if (params?.feedbackId) navigate(`/leagues/${lid}/feedback?id=${params.feedbackId}`)
-        else navigate(`/leagues/${lid}/feedback`)
+        if (params?.feedbackId) void navigate(`/leagues/${lid}/feedback?id=${params.feedbackId}`)
+        else void navigate(`/leagues/${lid}/feedback`)
         break
       case 'superadmin':
-        if (params?.tab) navigate(`/superadmin?tab=${params.tab}`)
-        else navigate('/superadmin')
+        if (params?.tab) void navigate(`/superadmin?tab=${params.tab}`)
+        else void navigate('/superadmin')
         break
-      default: navigate('/' + page)
+      default: void navigate('/' + page)
     }
   }
 }
@@ -414,11 +414,11 @@ function SuperAdminWrapper() {
   const tabParam = searchParams.get('tab') as 'upload' | 'players' | 'leagues' | 'users' | null
 
   const onNavigate = useCallback((page: string, params?: Record<string, string>) => {
-    if (page === 'dashboard') navigate('/dashboard')
+    if (page === 'dashboard') void navigate('/dashboard')
     else if (page === 'superadmin' && params?.tab) {
-      navigate(`/superadmin?tab=${params.tab}`)
+      void navigate(`/superadmin?tab=${params.tab}`)
     }
-    else navigate('/' + page)
+    else void navigate('/' + page)
   }, [navigate])
 
   return <SuperAdmin onNavigate={onNavigate} initialTab={tabParam || undefined} />
@@ -428,9 +428,9 @@ function InviteDetailWrapper() {
   const navigate = useNavigate()
   const { token } = useParams<{ token: string }>()
   const onNavigate = useCallback((page: string, params?: Record<string, string>) => {
-    if (page === 'dashboard') navigate('/dashboard')
-    else if (page === 'leagueDetail' && params?.leagueId) navigate(`/leagues/${params.leagueId}`)
-    else navigate('/' + page)
+    if (page === 'dashboard') void navigate('/dashboard')
+    else if (page === 'leagueDetail' && params?.leagueId) void navigate(`/leagues/${params.leagueId}`)
+    else void navigate('/' + page)
   }, [navigate])
 
   if (!token) return <Navigate to="/dashboard" replace />

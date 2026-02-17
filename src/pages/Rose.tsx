@@ -171,7 +171,7 @@ export function Rose({ onNavigate }: RoseProps) {
   }, [leagueId])
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [loadData])
 
   // Get selected member
