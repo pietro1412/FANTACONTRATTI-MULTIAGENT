@@ -175,6 +175,7 @@ enum TradeStatus {
   COUNTERED
   CANCELLED
   EXPIRED
+  INVALIDATED
 }
 
 // ==================== INVITE ENUMS ====================
@@ -704,6 +705,11 @@ model User {
   passwordResetToken    String?   @unique
   passwordResetExpires  DateTime?
 
+  // Account lockout
+  failedLoginAttempts  Int       @default(0)
+  lockedUntil          DateTime?
+  lastFailedLogin      DateTime?
+
   // Relazioni
   leagueMemberships LeagueMember[]         // see: league.prisma
   sentOffers        TradeOffer[]     @relation("OfferSender")   // see: trade.prisma
@@ -717,6 +723,64 @@ model User {
   userFeedback           UserFeedback[]             // see: feedback.prisma
   feedbackResponses      FeedbackResponse[]  @relation("FeedbackAdmin")  // see: feedback.prisma
   feedbackNotifications  FeedbackNotification[]     // see: feedback.prisma
+
+  // Token rotation
+  refreshTokens           RefreshToken[]
+
+  // Push notifications
+  pushSubscriptions       PushSubscription[]
+  notificationPreference  NotificationPreference?
+}
+
+// =============================================================================
+// Refresh Token Rotation
+// =============================================================================
+
+model RefreshToken {
+  id          String   @id @default(cuid())
+  userId      String
+  tokenHash   String   @unique    // SHA-256 hash del refresh token
+  familyId    String              // Identifica la catena di token (per detect reuse)
+  isRevoked   Boolean  @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+}
+
+// =============================================================================
+// Push Notification Models
+// =============================================================================
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+}
+
+model NotificationPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  pushEnabled     Boolean  @default(false)
+  tradeOffers     Boolean  @default(true)
+  contractExpiry  Boolean  @default(true)
+  auctionStart    Boolean  @default(true)
+  phaseChange     Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 
@@ -787,7 +851,7 @@ model LeagueMember {
   // Come e entrato nella lega
   joinType    JoinType @default(REQUEST)      // see: _base.prisma
 
-  // Budget
+  // Budget (M-12: runtime validated >= 0, see validateBudgetNotNegative)
   currentBudget Int    @default(0)
   preConsolidationBudget Int?  // Budget prima del consolidamento (per fase CONTRATTI)
 
@@ -877,6 +941,9 @@ model MarketSession {
   status      SessionStatus @default(SCHEDULED)  // see: _base.prisma
   currentPhase MarketPhase?                       // see: _base.prisma
 
+  // Modalita asta: REMOTE (default) o IN_PRESENCE (skip ready-check, admin gestisce)
+  auctionMode  String   @default("REMOTE")  // "REMOTE" | "IN_PRESENCE"
+
   // ===== PRIMO MERCATO ASSOLUTO =====
   // Ruolo attualmente in asta (P, D, C, A)
   currentRole       Position?            // see: _base.prisma
@@ -942,6 +1009,9 @@ model MarketSession {
   svincolatiNominatorConfirmed Boolean @default(false)
   // Pending acknowledgment dopo chiusura asta (JSON: {auctionId, playerId, winnerId, price, acknowledgedMembers[], pendingMembers[]})
   svincolatiPendingAck    Json?
+  // M-1: Pausa svincolati
+  svincolatiPausedRemainingSeconds Int?
+  svincolatiPausedFromState String?
 
   // ===== READY CHECK =====
   // Manager pronti per la prossima asta (JSON array di leagueMemberId)
@@ -1213,6 +1283,32 @@ model PlayerMatchRating {
   @@unique([playerId, apiFixtureId])
   @@index([playerId, season])
   @@index([season])
+}
+
+// Sync log for tracking API-Football scheduler runs
+model ApiFootballSyncLog {
+  id                String    @id @default(cuid())
+  jobType           String    // "MATCH_RATINGS" | "SEASON_STATS" | "CACHE_REFRESH"
+  status            String    // "SUCCESS" | "PARTIAL" | "FAILED"
+  fixturesProcessed Int       @default(0)
+  apiCallsUsed      Int       @default(0)
+  details           Json?
+  startedAt         DateTime
+  completedAt       DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([jobType, createdAt])
+}
+
+// Tracks which API-Football fixtures have already been synced
+model ApiFootballFixtureSync {
+  apiFixtureId     Int      @id  // API-Football fixture ID (not auto-generated)
+  round            String?
+  matchDate        DateTime
+  playersProcessed Int      @default(0)
+  syncedAt         DateTime @default(now())
+
+  @@index([matchDate])
 }
 
 
@@ -1496,11 +1592,12 @@ model RubataPreference {
   player      SerieAPlayer @relation(fields: [playerId], references: [id])
 
   // Preferenze
-  isWatchlist Boolean  @default(false)  // Giocatore nella watchlist
-  isAutoPass  Boolean  @default(false)  // Salta automaticamente (non fare offerte)
-  maxBid      Int?                       // Budget massimo per questo giocatore
-  priority    Int?                       // Priorità (1 = più alta)
-  notes       String?                    // Note private del manager
+  isWatchlist         Boolean  @default(false)  // Giocatore nella watchlist
+  isAutoPass          Boolean  @default(false)  // Salta automaticamente (non fare offerte)
+  maxBid              Int?                       // Budget massimo per questo giocatore
+  priority            Int?                       // Priorità (1 = più alta)
+  notes               String?                    // Note private del manager
+  watchlistCategory   String?                    // Categoria watchlist: DA_RUBARE, SOTTO_OSSERVAZIONE, POTENZIALE_ACQUISTO, SCAMBIO, DA_VENDERE
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

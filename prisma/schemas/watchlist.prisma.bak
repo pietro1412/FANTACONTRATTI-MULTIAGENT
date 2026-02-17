@@ -1,0 +1,63 @@
+// =============================================================================
+// watchlist.prisma - WatchlistCategory, WatchlistEntry
+// =============================================================================
+//
+// This file contains models for the watchlist system that allows managers
+// to organize players they're interested in into categories (e.g., "Da Rubare",
+// "Sotto Osservazione", "Potenziali Acquisti", etc.)
+//
+// =============================================================================
+
+model WatchlistCategory {
+  id              String   @id @default(cuid())
+
+  leagueId        String
+  league          League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+
+  name            String
+  description     String?
+  icon            String?   // Emoji or icon name
+  color           String?   // Hex color (e.g., "#ef4444")
+
+  isSystemDefault Boolean  @default(false)  // System-created default categories
+  sortOrder       Int      @default(0)
+
+  createdAt       DateTime @default(now())
+
+  entries         WatchlistEntry[]
+  analyticsConfig CategoryAnalyticsConfig?
+
+  @@unique([leagueId, name])
+  @@index([leagueId])
+}
+
+model WatchlistEntry {
+  id          String            @id @default(cuid())
+
+  categoryId  String
+  category    WatchlistCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  memberId    String
+  member      LeagueMember      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  playerId    String
+  player      SerieAPlayer      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  // Strategy fields
+  maxBid      Int?              // Maximum bid willing to place
+  targetPrice Int?              // Ideal price to acquire
+  priority    Int       @default(3)  // 1-5 stars (5 = highest priority)
+  notes       String?           // Personal notes about the player
+
+  addedAt     DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Snapshot of player stats when added (for tracking changes)
+  statsAtAdd  Json?             // { quotation, rating, form, etc. }
+
+  // Each member can only add a player once per category
+  @@unique([categoryId, memberId, playerId])
+  @@index([memberId, categoryId])
+  @@index([playerId])
+  @@index([categoryId])
+}

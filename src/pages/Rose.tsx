@@ -4,7 +4,11 @@ import { leagueApi } from '../services/api'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
+import { BottomSheet } from '../components/ui/BottomSheet'
 import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
+import { SlidersHorizontal, PanelRightClose, PanelRightOpen } from 'lucide-react'
+import { SkeletonPlayerRow } from '../components/ui/Skeleton'
+import { ShareButton } from '../components/ShareButton'
 
 interface RoseProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
@@ -106,6 +110,35 @@ export function Rose({ onNavigate }: RoseProps) {
   const [positionFilter, setPositionFilter] = useState<string>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
+  const [filtersOpen, setFiltersOpen] = useState(false)
+
+  // Sorting
+  const [sortColumn, setSortColumn] = useState<string>('position')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  function handleSort(column: string) {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortColumn(column)
+      setSortDirection('asc')
+    }
+  }
+
+  // Sidebar collapse
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('rose-sidebar-collapsed') === 'true'
+    }
+    return false
+  })
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem('rose-sidebar-collapsed', String(next))
+      return next
+    })
+  }, [])
 
   // Stats modal
   const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
@@ -182,17 +215,64 @@ export function Rose({ onNavigate }: RoseProps) {
       return true
     })
 
-    // Sort by position (P, D, C, A) then alphabetically
+    // Sort by selected column
     const posOrder: Record<string, number> = { P: 0, D: 1, C: 2, A: 3 }
+    const dir = sortDirection === 'asc' ? 1 : -1
+
     players.sort((a, b) => {
-      const posA = posOrder[a.player.position] ?? 99
-      const posB = posOrder[b.player.position] ?? 99
-      if (posA !== posB) return posA - posB
-      return a.player.name.localeCompare(b.player.name)
+      let cmp = 0
+      switch (sortColumn) {
+        case 'position': {
+          const posA = posOrder[a.player.position] ?? 99
+          const posB = posOrder[b.player.position] ?? 99
+          cmp = posA - posB
+          if (cmp === 0) cmp = a.player.name.localeCompare(b.player.name)
+          break
+        }
+        case 'name':
+          cmp = a.player.name.localeCompare(b.player.name)
+          break
+        case 'team':
+          cmp = a.player.team.localeCompare(b.player.team)
+          break
+        case 'appearances':
+          cmp = (a.player.computedStats?.appearances ?? 0) - (b.player.computedStats?.appearances ?? 0)
+          break
+        case 'goals':
+          cmp = (a.player.computedStats?.totalGoals ?? 0) - (b.player.computedStats?.totalGoals ?? 0)
+          break
+        case 'assists':
+          cmp = (a.player.computedStats?.totalAssists ?? 0) - (b.player.computedStats?.totalAssists ?? 0)
+          break
+        case 'rating':
+          cmp = (a.player.computedStats?.avgRating ?? 0) - (b.player.computedStats?.avgRating ?? 0)
+          break
+        case 'salary':
+          cmp = (a.contract?.salary ?? 0) - (b.contract?.salary ?? 0)
+          break
+        case 'duration':
+          cmp = (a.contract?.duration ?? 0) - (b.contract?.duration ?? 0)
+          break
+        case 'clause':
+          cmp = (a.contract?.rescissionClause ?? 0) - (b.contract?.rescissionClause ?? 0)
+          break
+        case 'rubata': {
+          const rubA = a.contract?.rescissionClause != null ? (a.contract.rescissionClause + a.contract.salary) : 0
+          const rubB = b.contract?.rescissionClause != null ? (b.contract.rescissionClause + b.contract.salary) : 0
+          cmp = rubA - rubB
+          break
+        }
+        default: {
+          const posA2 = posOrder[a.player.position] ?? 99
+          const posB2 = posOrder[b.player.position] ?? 99
+          cmp = posA2 - posB2
+        }
+      }
+      return cmp * dir
     })
 
     return players
-  }, [selectedMember, positionFilter, teamFilter, searchQuery])
+  }, [selectedMember, positionFilter, teamFilter, searchQuery, sortColumn, sortDirection])
 
   // Stats
   const stats = useMemo(() => {
@@ -225,12 +305,12 @@ export function Rose({ onNavigate }: RoseProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="rose" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
-        <main className="max-w-[1600px] mx-auto px-4 py-8">
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-400"></div>
-          </div>
+        <main className="max-w-[1600px] mx-auto px-4 py-8 space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <SkeletonPlayerRow key={i} />
+          ))}
         </main>
       </div>
     )
@@ -238,7 +318,7 @@ export function Rose({ onNavigate }: RoseProps) {
 
   if (!leagueData) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="rose" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <main className="max-w-[1600px] mx-auto px-4 py-8">
           <div className="text-center text-gray-400 py-20">
@@ -250,7 +330,7 @@ export function Rose({ onNavigate }: RoseProps) {
   }
 
   return (
-    <div className="min-h-screen bg-dark-300 pb-6">
+    <div className="min-h-screen pb-6">
       <Navigation
         currentPage="rose"
         leagueId={leagueId}
@@ -260,14 +340,17 @@ export function Rose({ onNavigate }: RoseProps) {
 
       <main className="max-w-[1400px] mx-auto px-4 py-6">
         {/* Header */}
-        <div className="mb-4">
-          <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 mb-2">
-            <span className="text-2xl">📋</span>
-            Rose
-          </h1>
-          <p className="text-gray-400 text-sm">
-            Visualizza le rose di tutti i Direttori Generali della lega.
-          </p>
+        <div className="mb-4 flex items-start justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 mb-2">
+              <span className="text-2xl">📋</span>
+              Rose
+            </h1>
+            <p className="text-gray-400 text-sm">
+              Visualizza le rose di tutti i Direttori Generali della lega.
+            </p>
+          </div>
+          <ShareButton title="Rose" text="Rose della lega" compact />
         </div>
 
         {/* Warning for contracts phase */}
@@ -325,9 +408,34 @@ export function Rose({ onNavigate }: RoseProps) {
                 </div>
               </div>
 
-              {/* Filters Row */}
+              {/* Filters Row — Mobile: compact search + Filtri button */}
               <div className="p-3 border-b border-surface-50/20 bg-surface-300/20">
-                <div className="flex flex-wrap gap-2 items-center">
+                {/* Mobile compact */}
+                <div className="flex gap-2 items-center md:hidden">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cerca giocatore..."
+                    className="flex-1 min-w-0 px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
+                    inputMode="search"
+                    enterKeyHint="search"
+                  />
+                  <button
+                    onClick={() => setFiltersOpen(true)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-xs text-gray-300 hover:text-white transition-colors flex-shrink-0"
+                  >
+                    <SlidersHorizontal size={14} />
+                    Filtri{(positionFilter !== 'ALL' || teamFilter !== 'ALL') && (
+                      <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-bold bg-primary-500/30 text-primary-400 rounded-full">
+                        {[positionFilter !== 'ALL', teamFilter !== 'ALL'].filter(Boolean).length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {/* Desktop: full inline filters */}
+                <div className="hidden md:flex flex-wrap gap-2 items-center">
                   {/* Position Filter */}
                   <div className="flex gap-1">
                     {['ALL', 'P', 'D', 'C', 'A'].map(pos => {
@@ -371,9 +479,83 @@ export function Rose({ onNavigate }: RoseProps) {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Cerca giocatore..."
                     className="flex-1 min-w-[120px] px-2 py-1 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
+                    inputMode="search"
+                    enterKeyHint="search"
                   />
                 </div>
+                {/* Duration color legend */}
+                <div className="flex items-center gap-3 text-xs text-gray-400 mt-2 flex-wrap">
+                  <span>Durata:</span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded bg-gradient-to-r from-red-500 to-red-600" />
+                    1 sem
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded bg-gradient-to-r from-yellow-500 to-yellow-600" />
+                    2 sem
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded bg-gradient-to-r from-green-500 to-green-600" />
+                    3 sem
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded bg-gradient-to-r from-blue-500 to-blue-600" />
+                    4+ sem
+                  </span>
+                </div>
               </div>
+
+              {/* Mobile Filters BottomSheet */}
+              <BottomSheet isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filtri">
+                <div className="p-4 space-y-5">
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Posizione</label>
+                    <div className="flex gap-2">
+                      {['ALL', 'P', 'D', 'C', 'A'].map(pos => {
+                        const colors = POSITION_COLORS[pos]
+                        return (
+                          <button
+                            key={pos}
+                            onClick={() => setPositionFilter(pos)}
+                            className={`flex-1 px-3 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                              positionFilter === pos
+                                ? pos === 'ALL'
+                                  ? 'bg-white/20 text-white'
+                                  : `${colors?.bg} ${colors?.text}`
+                                : 'bg-surface-300 text-gray-500'
+                            }`}
+                          >
+                            {pos === 'ALL' ? 'Tutti' : pos}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {uniqueTeams.length > 0 && (
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Squadra Serie A</label>
+                      <select
+                        value={teamFilter}
+                        onChange={(e) => setTeamFilter(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm"
+                      >
+                        <option value="ALL">Tutte le squadre</option>
+                        {uniqueTeams.map(team => (
+                          <option key={team} value={team}>{team}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => setFiltersOpen(false)}
+                    className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-xl transition-colors"
+                  >
+                    Applica Filtri
+                  </button>
+                </div>
+              </BottomSheet>
 
               {/* Stats Bar */}
               {selectedMember && (
@@ -475,11 +657,42 @@ export function Rose({ onNavigate }: RoseProps) {
                   )
                 })}
                 {filteredPlayers.length === 0 && (
-                  <div className="text-center text-gray-500 py-8">
-                    {selectedMember?.roster.length === 0
-                      ? 'Nessun giocatore in rosa'
-                      : 'Nessun giocatore trovato con i filtri selezionati'
-                    }
+                  <div className="text-center py-12 px-4">
+                    {selectedMember?.roster.length === 0 ? (
+                      <div className="space-y-4">
+                        <div className="w-16 h-16 rounded-full bg-surface-300 flex items-center justify-center mx-auto">
+                          <span className="text-3xl">📋</span>
+                        </div>
+                        <div>
+                          <p className="text-gray-300 font-semibold text-base">Rosa vuota</p>
+                          <p className="text-gray-500 text-sm mt-1">
+                            {isOwnRoster
+                              ? 'Non hai ancora acquistato giocatori. Partecipa a un\'asta per costruire la tua squadra!'
+                              : 'Questo manager non ha ancora acquistato giocatori.'
+                            }
+                          </p>
+                        </div>
+                        {isOwnRoster && leagueId && (
+                          <button
+                            onClick={() => onNavigate('league-detail', { leagueId })}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium text-sm transition-colors"
+                          >
+                            <span>⚡</span>
+                            Vai alla Lega
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-gray-500">Nessun giocatore trovato con i filtri selezionati</p>
+                        <button
+                          onClick={() => { setPositionFilter('ALL'); setTeamFilter('ALL'); setSearchQuery('') }}
+                          className="text-primary-400 hover:text-primary-300 text-sm font-medium transition-colors"
+                        >
+                          Resetta filtri
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -489,17 +702,34 @@ export function Rose({ onNavigate }: RoseProps) {
                 <table className="w-full min-w-[600px] text-sm table-fixed">
                   <thead className="bg-surface-300/50">
                     <tr className="text-xs text-gray-400 uppercase">
-                      <th className="w-12 p-2 text-center">R</th>
-                      <th className="w-auto text-left p-2">Giocatore</th>
-                      <th className="w-36 text-left p-2">Squadra</th>
-                      <th className="w-10 text-center p-2" title="Presenze">Pr</th>
-                      <th className="w-10 text-center p-2" title="Gol">G</th>
-                      <th className="w-10 text-center p-2" title="Assist">A</th>
-                      <th className="w-12 text-center p-2" title="Rating">Vt</th>
-                      <th className="w-16 text-center p-2 text-accent-400">Ing</th>
-                      <th className="w-14 text-center p-2">Dur</th>
-                      <th className="w-16 text-center p-2 text-orange-400">Cls</th>
-                      <th className="w-16 text-center p-2 text-warning-400">Rub</th>
+                      {[
+                        { key: 'position', label: 'R', width: 'w-12', align: 'text-center', color: '' },
+                        { key: 'name', label: 'Giocatore', width: 'w-auto', align: 'text-left', color: '' },
+                        { key: 'team', label: 'Squadra', width: 'w-36', align: 'text-left', color: '' },
+                        { key: 'appearances', label: 'Pr', width: 'w-10', align: 'text-center', color: '', title: 'Presenze' },
+                        { key: 'goals', label: 'G', width: 'w-10', align: 'text-center', color: '', title: 'Gol' },
+                        { key: 'assists', label: 'A', width: 'w-10', align: 'text-center', color: '', title: 'Assist' },
+                        { key: 'rating', label: 'Vt', width: 'w-12', align: 'text-center', color: '', title: 'Rating' },
+                        { key: 'salary', label: 'Ing', width: 'w-16', align: 'text-center', color: 'text-accent-400' },
+                        { key: 'duration', label: 'Dur', width: 'w-14', align: 'text-center', color: '' },
+                        { key: 'clause', label: 'Cls', width: 'w-16', align: 'text-center', color: 'text-orange-400' },
+                        { key: 'rubata', label: 'Rub', width: 'w-16', align: 'text-center', color: 'text-warning-400' },
+                      ].map(col => (
+                        <th
+                          key={col.key}
+                          scope="col"
+                          className={`${col.width} ${col.align} p-2 ${col.color} cursor-pointer select-none hover:text-gray-200 transition-colors`}
+                          title={col.title || col.label}
+                          onClick={() => handleSort(col.key)}
+                        >
+                          <span className="inline-flex items-center gap-0.5">
+                            {col.label}
+                            {sortColumn === col.key && (
+                              <span className="text-primary-400">{sortDirection === 'asc' ? '▲' : '▼'}</span>
+                            )}
+                          </span>
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -609,11 +839,42 @@ export function Rose({ onNavigate }: RoseProps) {
                 </table>
 
                 {filteredPlayers.length === 0 && (
-                  <div className="text-center text-gray-500 py-12">
-                    {selectedMember?.roster.length === 0
-                      ? 'Nessun giocatore in rosa'
-                      : 'Nessun giocatore trovato con i filtri selezionati'
-                    }
+                  <div className="text-center py-16 px-4">
+                    {selectedMember?.roster.length === 0 ? (
+                      <div className="space-y-4">
+                        <div className="w-20 h-20 rounded-full bg-surface-300 flex items-center justify-center mx-auto">
+                          <span className="text-4xl">📋</span>
+                        </div>
+                        <div>
+                          <p className="text-gray-300 font-semibold text-lg">Rosa vuota</p>
+                          <p className="text-gray-500 text-sm mt-1 max-w-sm mx-auto">
+                            {isOwnRoster
+                              ? 'Non hai ancora acquistato giocatori. Partecipa a un\'asta per costruire la tua squadra!'
+                              : 'Questo manager non ha ancora acquistato giocatori.'
+                            }
+                          </p>
+                        </div>
+                        {isOwnRoster && leagueId && (
+                          <button
+                            onClick={() => onNavigate('league-detail', { leagueId })}
+                            className="inline-flex items-center gap-2 px-5 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors"
+                          >
+                            <span>⚡</span>
+                            Vai alla Lega
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-gray-500">Nessun giocatore trovato con i filtri selezionati</p>
+                        <button
+                          onClick={() => { setPositionFilter('ALL'); setTeamFilter('ALL'); setSearchQuery('') }}
+                          className="text-primary-400 hover:text-primary-300 text-sm font-medium transition-colors"
+                        >
+                          Resetta filtri
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -626,42 +887,76 @@ export function Rose({ onNavigate }: RoseProps) {
             </div>
           </div>
 
-          {/* Sidebar - Team Distribution */}
-          <div className="xl:w-72 flex-shrink-0">
+          {/* Sidebar - Team Distribution (collapsible on desktop) */}
+          <div className={`flex-shrink-0 transition-all duration-200 ${sidebarCollapsed ? 'xl:w-14' : 'xl:w-72'}`}>
             <div className="xl:sticky xl:top-4 space-y-4">
+              {/* Toggle button - visible only on xl */}
+              <button
+                onClick={toggleSidebar}
+                className="hidden xl:flex items-center justify-center w-full p-2 bg-surface-200 rounded-xl border border-surface-50/20 text-gray-400 hover:text-white transition-colors"
+                title={sidebarCollapsed ? 'Espandi sidebar' : 'Comprimi sidebar'}
+                aria-label={sidebarCollapsed ? 'Espandi sidebar' : 'Comprimi sidebar'}
+              >
+                {sidebarCollapsed ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}
+              </button>
+
               {/* Team Counts */}
               {teamCounts.length > 0 && (
                 <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
-                  <div className="p-3 border-b border-surface-50/20 bg-surface-300/30">
-                    <h2 className="font-bold text-gray-300 text-sm flex items-center gap-2">
-                      <span>🏟️</span>
-                      Giocatori per Squadra
-                    </h2>
-                  </div>
-                  <div className="p-3">
-                    <div className="flex flex-wrap gap-2">
-                      {teamCounts.map(({ team, count }) => (
-                        <button
-                          key={team}
-                          onClick={() => setTeamFilter(teamFilter === team ? 'ALL' : team)}
-                          className={`flex items-center gap-1.5 rounded-lg px-2 py-1 transition-all ${
-                            teamFilter === team
-                              ? 'bg-primary-500/30 border border-primary-500/50'
-                              : 'bg-surface-300 hover:bg-surface-50/20'
-                          }`}
-                        >
-                          <TeamLogo team={team} />
-                          <span className="text-xs text-gray-400 max-w-[60px] truncate">{team}</span>
-                          <span className="text-xs font-bold text-white">{count}</span>
-                        </button>
-                      ))}
+                  {!sidebarCollapsed && (
+                    <div className="p-3 border-b border-surface-50/20 bg-surface-300/30">
+                      <h2 className="font-bold text-gray-300 text-sm flex items-center gap-2">
+                        <span>🏟️</span>
+                        Giocatori per Squadra
+                      </h2>
                     </div>
+                  )}
+                  <div className="p-2">
+                    {sidebarCollapsed ? (
+                      /* Collapsed: only logos with count */
+                      <div className="flex flex-col gap-1.5 items-center">
+                        {teamCounts.map(({ team, count }) => (
+                          <button
+                            key={team}
+                            onClick={() => setTeamFilter(teamFilter === team ? 'ALL' : team)}
+                            className={`relative rounded-lg p-1 transition-all ${
+                              teamFilter === team
+                                ? 'bg-primary-500/30 ring-1 ring-primary-500/50'
+                                : 'hover:bg-surface-50/20'
+                            }`}
+                            title={`${team}: ${count}`}
+                          >
+                            <TeamLogo team={team} />
+                            <span className="absolute -top-1 -right-1 text-[9px] font-bold text-white bg-surface-300 rounded-full w-4 h-4 flex items-center justify-center">{count}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      /* Expanded: full chips */
+                      <div className="flex flex-wrap gap-2 p-1">
+                        {teamCounts.map(({ team, count }) => (
+                          <button
+                            key={team}
+                            onClick={() => setTeamFilter(teamFilter === team ? 'ALL' : team)}
+                            className={`flex items-center gap-1.5 rounded-lg px-2 py-1 transition-all ${
+                              teamFilter === team
+                                ? 'bg-primary-500/30 border border-primary-500/50'
+                                : 'bg-surface-300 hover:bg-surface-50/20'
+                            }`}
+                          >
+                            <TeamLogo team={team} />
+                            <span className="text-xs text-gray-400 max-w-[60px] truncate">{team}</span>
+                            <span className="text-xs font-bold text-white">{count}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* Quick Stats Card */}
-              {selectedMember && (
+              {selectedMember && !sidebarCollapsed && (
                 <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
                   <div className="p-3 border-b border-surface-50/20 bg-surface-300/30">
                     <h2 className="font-bold text-gray-300 text-sm flex items-center gap-2">
@@ -694,6 +989,20 @@ export function Rose({ onNavigate }: RoseProps) {
                         <span className="text-warning-400 font-bold">{stats.salary}M</span>
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Collapsed stats - icons only */}
+              {selectedMember && sidebarCollapsed && (
+                <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-2 space-y-2 text-center">
+                  <div title={`Budget: ${selectedMember.currentBudget}M`}>
+                    <div className="text-[10px] text-gray-500">Bdg</div>
+                    <div className="text-xs text-accent-400 font-bold">{selectedMember.currentBudget}</div>
+                  </div>
+                  <div title={`Ingaggi: ${stats.salary}M`}>
+                    <div className="text-[10px] text-gray-500">Ing</div>
+                    <div className="text-xs text-warning-400 font-bold">{stats.salary}</div>
                   </div>
                 </div>
               )}

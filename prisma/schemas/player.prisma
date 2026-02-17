@@ -100,3 +100,29 @@ model PlayerMatchRating {
   @@index([playerId, season])
   @@index([season])
 }
+
+// Sync log for tracking API-Football scheduler runs
+model ApiFootballSyncLog {
+  id                String    @id @default(cuid())
+  jobType           String    // "MATCH_RATINGS" | "SEASON_STATS" | "CACHE_REFRESH"
+  status            String    // "SUCCESS" | "PARTIAL" | "FAILED"
+  fixturesProcessed Int       @default(0)
+  apiCallsUsed      Int       @default(0)
+  details           Json?
+  startedAt         DateTime
+  completedAt       DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([jobType, createdAt])
+}
+
+// Tracks which API-Football fixtures have already been synced
+model ApiFootballFixtureSync {
+  apiFixtureId     Int      @id  // API-Football fixture ID (not auto-generated)
+  round            String?
+  matchDate        DateTime
+  playersProcessed Int      @default(0)
+  syncedAt         DateTime @default(now())
+
+  @@index([matchDate])
+}

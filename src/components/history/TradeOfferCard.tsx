@@ -33,6 +33,7 @@ const statusConfig: Record<string, { bg: string; text: string; label: string }> 
   COUNTERED: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Controproposta' },
   CANCELLED: { bg: 'bg-gray-500/20', text: 'text-gray-400', label: 'Annullato' },
   EXPIRED: { bg: 'bg-gray-500/20', text: 'text-gray-400', label: 'Scaduto' },
+  INVALIDATED: { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Decaduta' },
 }
 
 const positionColors: Record<string, string> = {
@@ -81,68 +82,76 @@ export function TradeOfferCard({ trade }: TradeOfferCardProps) {
 
       {/* Content */}
       <div className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Offered */}
-          <div>
-            <h5 className="text-sm font-medium text-gray-400 mb-2">
-              Offerta di {trade.sender.teamName || trade.sender.username}
-            </h5>
-            <div className="space-y-2">
-              {trade.offeredPlayers.map(player => (
-                <PlayerRow key={player.id} player={player} />
-              ))}
-              {trade.offeredPlayers.length === 0 && trade.offeredBudget === 0 && (
-                <p className="text-sm text-gray-500 italic">Nessun giocatore</p>
-              )}
-              {trade.offeredBudget > 0 && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-primary-400 font-medium">+{trade.offeredBudget}M</span>
-                  <span className="text-gray-500">budget</span>
+        {trade.status === 'PENDING' || trade.status === 'COUNTERED' ? (
+          <p className="text-center text-yellow-400/70 italic py-4">
+            Trattativa in corso
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Offered */}
+              <div>
+                <h5 className="text-sm font-medium text-gray-400 mb-2">
+                  Offerta di {trade.sender.teamName || trade.sender.username}
+                </h5>
+                <div className="space-y-2">
+                  {trade.offeredPlayers.map(player => (
+                    <PlayerRow key={player.id} player={player} />
+                  ))}
+                  {trade.offeredPlayers.length === 0 && trade.offeredBudget === 0 && (
+                    <p className="text-sm text-gray-500 italic">Nessun giocatore</p>
+                  )}
+                  {trade.offeredBudget > 0 && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-primary-400 font-medium">+{trade.offeredBudget}M</span>
+                      <span className="text-gray-500">budget</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
 
-          {/* Requested */}
-          <div>
-            <h5 className="text-sm font-medium text-gray-400 mb-2">
-              Richiesta a {trade.receiver.teamName || trade.receiver.username}
-            </h5>
-            <div className="space-y-2">
-              {trade.requestedPlayers.map(player => (
-                <PlayerRow key={player.id} player={player} />
-              ))}
-              {trade.requestedPlayers.length === 0 && trade.requestedBudget === 0 && (
-                <p className="text-sm text-gray-500 italic">Nessun giocatore</p>
-              )}
-              {trade.requestedBudget > 0 && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-primary-400 font-medium">+{trade.requestedBudget}M</span>
-                  <span className="text-gray-500">budget</span>
+              {/* Requested */}
+              <div>
+                <h5 className="text-sm font-medium text-gray-400 mb-2">
+                  Richiesta a {trade.receiver.teamName || trade.receiver.username}
+                </h5>
+                <div className="space-y-2">
+                  {trade.requestedPlayers.map(player => (
+                    <PlayerRow key={player.id} player={player} />
+                  ))}
+                  {trade.requestedPlayers.length === 0 && trade.requestedBudget === 0 && (
+                    <p className="text-sm text-gray-500 italic">Nessun giocatore</p>
+                  )}
+                  {trade.requestedBudget > 0 && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-primary-400 font-medium">+{trade.requestedBudget}M</span>
+                      <span className="text-gray-500">budget</span>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Message */}
-        {trade.message && (
-          <div className="mt-4 pt-3 border-t border-surface-50/10">
-            <p className="text-sm text-gray-400 italic">"{trade.message}"</p>
-          </div>
-        )}
+            {/* Message */}
+            {trade.message && (
+              <div className="mt-4 pt-3 border-t border-surface-50/10">
+                <p className="text-sm text-gray-400 italic">"{trade.message}"</p>
+              </div>
+            )}
 
-        {/* Response date */}
-        {trade.respondedAt && trade.status !== 'PENDING' && (
-          <div className="mt-3 text-xs text-gray-500">
-            Risposta: {new Date(trade.respondedAt).toLocaleDateString('it-IT', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </div>
+            {/* Response date */}
+            {trade.respondedAt && (
+              <div className="mt-3 text-xs text-gray-500">
+                Risposta: {new Date(trade.respondedAt).toLocaleDateString('it-IT', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

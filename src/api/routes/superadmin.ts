@@ -26,6 +26,8 @@ import {
   getMatchedPlayers,
   removeMatch,
   refreshApiFootballCache,
+  syncMatchRatings,
+  getSyncHistory,
 } from '../../services/api-football.service'
 import { PlayerExitReason } from '@prisma/client'
 import { authMiddleware } from '../middleware/auth'
@@ -540,6 +542,50 @@ router.delete('/superadmin/api-football/match/:playerId', authMiddleware, async 
     res.json(result)
   } catch (error) {
     console.error('Remove match error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== API-FOOTBALL SYNC MATCH RATINGS ====================
+
+// POST /api/superadmin/api-football/sync-match-ratings - Manually trigger match ratings sync
+router.post('/superadmin/api-football/sync-match-ratings', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    // Verify superadmin
+    const { verifySuperAdmin } = await import('../../services/superadmin.service')
+    if (!(await verifySuperAdmin(req.user!.userId))) {
+      res.status(403).json({ success: false, message: 'Non autorizzato: solo super admin' })
+      return
+    }
+
+    const maxFixtures = (req.body as { maxFixtures?: number }).maxFixtures || 5
+    const result = await syncMatchRatings({ maxFixtures })
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Sync match ratings error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/superadmin/api-football/sync-history - Get sync logs
+router.get('/superadmin/api-football/sync-history', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { verifySuperAdmin } = await import('../../services/superadmin.service')
+    if (!(await verifySuperAdmin(req.user!.userId))) {
+      res.status(403).json({ success: false, message: 'Non autorizzato: solo super admin' })
+      return
+    }
+
+    const result = await getSyncHistory()
+    res.json(result)
+  } catch (error) {
+    console.error('Get sync history error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

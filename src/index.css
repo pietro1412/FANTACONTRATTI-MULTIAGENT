@@ -506,6 +506,10 @@
   100% { transform: translateX(100%); }
 }
 
+.animate-shimmer {
+  animation: shimmer 2.5s ease-in-out infinite;
+}
+
 /* Bid history scrollable */
 .bid-history {
   @apply overflow-y-auto;
@@ -649,177 +653,37 @@
 }
 
 /* ============================================ */
-/* DYNAMIC THEME OVERRIDES                      */
-/* These MUST be at the end of the file to      */
-/* override Tailwind utility classes            */
+/* DARK PREMIUM — Fixed global background       */
 /* ============================================ */
 
-/* Body base styles with theme */
 body {
-  background-color: var(--bg, #0a0a0b) !important;
-  color: var(--text, #f3f4f6) !important;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  background: radial-gradient(ellipse at center, #1e1b4b 0%, #020617 70%);
+  background-attachment: fixed;
+  color: #f3f4f6;
 }
 
-/* === BACKGROUND OVERRIDES === */
-
-/* Main body backgrounds */
-.bg-dark-300,
-.bg-dark-400,
-.bg-dark-500,
-.min-h-screen.bg-dark-300 {
-  background-color: var(--bg, #0a0a0b) !important;
+/* Nomination glow animation */
+@keyframes nominationGlow {
+  0%, 100% {
+    box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.3);
+  }
+  50% {
+    box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.5), 0 0 30px rgba(14, 165, 233, 0.2);
+  }
 }
 
-/* Card/elevated backgrounds */
-.bg-dark-200,
-.bg-surface-200,
-.bg-surface-300 {
-  background-color: var(--bg-card, #111214) !important;
+.animate-nomination-glow {
+  animation: nominationGlow 2s ease-in-out infinite;
 }
 
-/* Hover/lighter backgrounds */
-.bg-dark-100,
-.bg-dark-50,
-.bg-surface-100,
-.bg-surface-50 {
-  background-color: var(--bg-hover, #1a1c20) !important;
-}
-
-/* Backgrounds with opacity */
-[class*="bg-surface-300\/"],
-[class*="bg-surface-200\/"],
-[class*="bg-dark-200\/"],
-[class*="bg-dark-100\/"] {
-  background-color: color-mix(in srgb, var(--bg-hover, #1a1c20) 60%, transparent) !important;
-}
-
-/* === TEXT COLOR OVERRIDES === */
-
-/* Primary text */
-.text-white,
-.text-gray-50,
-.text-gray-100 {
-  color: var(--text, #ffffff) !important;
-}
-
-/* Secondary/muted text */
-.text-gray-200,
-.text-gray-300,
-.text-gray-400 {
-  color: var(--text-muted, #9ca3af) !important;
-}
-
-/* Dim/tertiary text */
-.text-gray-500,
-.text-gray-600,
-.text-gray-700 {
-  color: var(--text-dim, #6b7280) !important;
-}
-
-/* === BORDER COLOR OVERRIDES === */
-
-.border-gray-600,
-.border-gray-700,
-.border-gray-800,
-[class*="border-surface-50"],
-[class*="border-dark-"] {
-  border-color: var(--border, rgba(55, 65, 81, 0.4)) !important;
-}
-
-/* === GRADIENT OVERRIDES === */
-
-.from-dark-200 {
-  --tw-gradient-from: var(--bg-card, #111214) !important;
-}
-
-.via-surface-200 {
-  --tw-gradient-via: var(--bg-card, #111214) !important;
-}
-
-.to-dark-200 {
-  --tw-gradient-to: var(--bg-card, #111214) !important;
-}
-
-.from-surface-300 {
-  --tw-gradient-from: var(--bg-hover, #1a1c20) !important;
-}
-
-.to-surface-200 {
-  --tw-gradient-to: var(--bg-card, #111214) !important;
-}
-
-.to-surface-300 {
-  --tw-gradient-to: var(--bg-hover, #1a1c20) !important;
-}
-
-/* Gradient backgrounds need direct override */
-.bg-gradient-to-r.from-dark-200,
-.bg-gradient-to-r.from-surface-300,
-header.bg-gradient-to-r {
-  background: linear-gradient(to right, var(--bg-card, #111214), var(--bg-card, #111214), var(--bg-card, #111214)) !important;
-}
-
-/* === ACCENT COLOR OVERRIDES === */
-
-.text-primary-400 {
-  color: var(--primary, #60a5fa) !important;
-}
-
-.text-primary-500 {
-  color: var(--primary, #3b82f6) !important;
-}
-
-.bg-primary-500 {
-  background-color: var(--primary, #3b82f6) !important;
-}
-
-[class*="bg-primary-500\/"] {
-  background-color: var(--primary-bg, rgba(59, 130, 246, 0.15)) !important;
-}
-
-.border-primary-500,
-[class*="border-primary-500\/"],
-[class*="border-primary-400\/"] {
-  border-color: var(--primary, #3b82f6) !important;
-}
-
-.text-accent-400,
-.text-accent-500 {
-  color: var(--accent, #fbbf24) !important;
-}
-
-[class*="bg-accent-500\/"],
-[class*="bg-accent-600\/"] {
-  background-color: var(--accent-bg, rgba(251, 191, 36, 0.15)) !important;
-}
-
-/* === HOVER STATE OVERRIDES === */
-
-.hover\:bg-surface-300:hover,
-.hover\:bg-dark-100:hover {
-  background-color: var(--bg-hover, #1a1c20) !important;
-}
-
-.hover\:bg-surface-200:hover,
-.hover\:bg-dark-200:hover {
-  background-color: var(--bg-card, #111214) !important;
-}
-
-.hover\:text-white:hover {
-  color: var(--text, #ffffff) !important;
-}
-
-/* === SCROLLBAR THEME === */
-
-::-webkit-scrollbar-track {
-  background-color: var(--bg, #0a0a0b) !important;
-}
-
-::-webkit-scrollbar-thumb {
-  background-color: var(--bg-hover, #1a1c20) !important;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background-color: var(--primary, #3b82f6) !important;
+/* T-005: Respect user motion preferences (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

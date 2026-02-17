@@ -1,5 +1,8 @@
+import { useState, useEffect } from 'react'
 import { Modal, ModalHeader, ModalBody } from './ui/Modal'
 import { getPlayerPhotoUrl, getTeamLogoUrl } from '../utils/player-images'
+
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3003')
 
 // Position colors
 const POSITION_COLORS: Record<string, string> = {
@@ -112,7 +115,34 @@ function StatSection({ title, children }: { title: string; children: React.React
   )
 }
 
+interface MatchRating {
+  matchDate: string
+  round: string | null
+  rating: number | null
+  minutesPlayed: number | null
+  goals: number | null
+  assists: number | null
+}
+
 export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalProps) {
+  const [activeTab, setActiveTab] = useState<'panoramica' | 'storico'>('panoramica')
+  const [matchHistory, setMatchHistory] = useState<MatchRating[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+
+  // Reset tab when player changes
+  useEffect(() => { setActiveTab('panoramica') }, [player?.name])
+
+  // T-025: Fetch match history when storico tab is selected
+  useEffect(() => {
+    if (activeTab !== 'storico' || !player?.apiFootballId) return
+    setHistoryLoading(true)
+    fetch(`${API_URL}/api/players/${player.apiFootballId}/match-history`)
+      .then(res => res.ok ? res.json() : { data: [] })
+      .then(data => setMatchHistory(data.data || []))
+      .catch(() => setMatchHistory([]))
+      .finally(() => setHistoryLoading(false))
+  }, [activeTab, player?.apiFootballId])
+
   if (!player) return null
 
   const stats = player.computedStats
@@ -188,7 +218,68 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
       </ModalHeader>
 
       <ModalBody className="max-h-[70vh]">
-        {!stats || stats.appearances === 0 ? (
+        {/* T-025: Tab bar */}
+        <div className="flex gap-1 mb-4 bg-surface-300/50 rounded-lg p-1">
+          <button
+            onClick={() => setActiveTab('panoramica')}
+            className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'panoramica' ? 'bg-primary-500/20 text-primary-400' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Panoramica
+          </button>
+          <button
+            onClick={() => setActiveTab('storico')}
+            className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'storico' ? 'bg-primary-500/20 text-primary-400' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Storico Partite
+          </button>
+        </div>
+
+        {/* Storico tab */}
+        {activeTab === 'storico' && (
+          historyLoading ? (
+            <div className="text-center py-8 text-gray-400">Caricamento...</div>
+          ) : matchHistory.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-gray-400 mb-2">Storico partite non disponibile</div>
+              <div className="text-sm text-gray-500">
+                {!player.apiFootballId
+                  ? 'Giocatore non associato ad API-Football'
+                  : 'Nessun dato match-by-match disponibile'}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <div className="grid grid-cols-6 gap-2 text-[10px] text-gray-500 uppercase tracking-wider px-2 pb-1 border-b border-surface-50/20">
+                <span className="col-span-2">Giornata</span>
+                <span className="text-center">Min</span>
+                <span className="text-center">Rating</span>
+                <span className="text-center">Gol</span>
+                <span className="text-center">Assist</span>
+              </div>
+              {matchHistory.map((m, i) => (
+                <div key={i} className="grid grid-cols-6 gap-2 text-sm px-2 py-1.5 rounded hover:bg-surface-300/50">
+                  <span className="col-span-2 text-gray-300 truncate text-xs">
+                    {m.round?.replace('Regular Season - ', 'G') || new Date(m.matchDate).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}
+                  </span>
+                  <span className="text-center text-gray-400">{m.minutesPlayed ?? '-'}</span>
+                  <span className={`text-center font-medium ${
+                    m.rating && m.rating >= 7 ? 'text-secondary-400' :
+                    m.rating && m.rating >= 6 ? 'text-white' : 'text-danger-400'
+                  }`}>{m.rating?.toFixed(1) ?? '-'}</span>
+                  <span className="text-center text-white">{m.goals || '-'}</span>
+                  <span className="text-center text-white">{m.assists || '-'}</span>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+
+        {/* Panoramica tab */}
+        {activeTab === 'panoramica' && (!stats || stats.appearances === 0 ? (
           <div className="text-center py-8">
             <div className="text-gray-400 mb-2">Statistiche non disponibili</div>
             <div className="text-sm text-gray-500">
@@ -263,7 +354,7 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
               </div>
             </StatSection>
           </div>
-        )}
+        ))}
 
         {player.statsSyncedAt && (
           <div className="mt-4 text-xs text-gray-500 text-center">

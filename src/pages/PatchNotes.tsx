@@ -205,7 +205,7 @@ export function PatchNotes({ leagueId, onNavigate }: PatchNotesProps) {
   }
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation
         currentPage="patchNotes"
         leagueId={leagueId}

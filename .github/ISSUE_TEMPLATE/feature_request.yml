@@ -1,0 +1,31 @@
+name: Feature Request
+description: Proponi una nuova evolutiva
+title: "[FEAT]: "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - 1.x - Web App
+        - 2.x - Mobile App
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Descrizione
+      description: Descrivi la feature richiesta
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criteri di accettazione
+      description: Come verificare che la feature e completa
+  - type: textarea
+    id: bibbia
+    attributes:
+      label: Bibbia di riferimento
+      description: Quale Bibbia (docs/bibbie/) e coinvolta?

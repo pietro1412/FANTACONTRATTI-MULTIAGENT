@@ -41,6 +41,11 @@ import {
   forceAllAppealDecisionAcks,
   getAppealStatus,
   completeAllRosterSlots,
+  requestPause,
+  pauseAuction,
+  resumeAuction,
+  cancelActiveAuction,
+  rectifyTransaction,
 } from '../../services/auction.service'
 import { simulateFirstMarketBotBidding, completeBotTurn, botNominate, botConfirmNomination } from '../../services/bot.service'
 import { authMiddleware } from '../middleware/auth'
@@ -54,8 +59,8 @@ const router = Router()
 router.post('/leagues/:leagueId/auctions', authMiddleware, async (req: Request, res: Response) => {
   try {
     const leagueId = req.params.leagueId as string
-    const { isRegularMarket } = req.body as { isRegularMarket?: boolean }
-    const result = await createAuctionSession(leagueId, req.user!.userId, isRegularMarket ?? false)
+    const { isRegularMarket, auctionMode } = req.body as { isRegularMarket?: boolean, auctionMode?: 'REMOTE' | 'IN_PRESENCE' }
+    const result = await createAuctionSession(leagueId, req.user!.userId, isRegularMarket ?? false, auctionMode ?? 'REMOTE')
 
     if (!result.success) {
       res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
@@ -948,6 +953,104 @@ router.post('/leagues/:leagueId/appeals/simulate', authMiddleware, async (req: R
     res.status(201).json(result)
   } catch (error) {
     console.error('Simulate appeal error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== MANAGER: REQUEST PAUSE ====================
+
+router.post('/auctions/sessions/:sessionId/request-pause', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params
+    const { type } = req.body as { type: 'nomination' | 'auction' }
+    const result = await requestPause(sessionId, req.user!.userId, type || 'auction')
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Request pause error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== ADMIN: PAUSE / RESUME ====================
+
+router.post('/:leagueId/auctions/pause', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { leagueId } = req.params
+    const result = await pauseAuction(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Pause auction error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+router.post('/:leagueId/auctions/resume', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { leagueId } = req.params
+    const result = await resumeAuction(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Resume auction error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== ADMIN: CANCEL / RECTIFY ====================
+
+router.post('/:leagueId/auctions/cancel', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { leagueId } = req.params
+    const { auctionId } = req.body as { auctionId: string }
+    const result = await cancelActiveAuction(leagueId, req.user!.userId, auctionId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Cancel auction error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+router.post('/:leagueId/auctions/rectify', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { leagueId } = req.params
+    const { auctionId, newWinnerId, newPrice } = req.body as {
+      auctionId: string
+      newWinnerId?: string
+      newPrice?: number
+    }
+    const result = await rectifyTransaction(leagueId, req.user!.userId, auctionId, newWinnerId, newPrice)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Rectify transaction error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

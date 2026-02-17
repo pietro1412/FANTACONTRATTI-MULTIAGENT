@@ -83,7 +83,7 @@ export function PrizePhasePage({ leagueId, onNavigate }: PrizePhasePageProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="prizes" leagueId={leagueId} isLeagueAdmin={true} onNavigate={onNavigate} />
         <div className="flex items-center justify-center h-[80vh]">
           <div className="text-center">
@@ -219,7 +219,7 @@ export function PrizePhasePage({ leagueId, onNavigate }: PrizePhasePageProps) {
   // Allow access during PREMI phase OR after (to view finalized prizes)
   if (!activeSession) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="prizes" leagueId={leagueId} isLeagueAdmin={true} onNavigate={onNavigate} />
         <main className="max-w-[1600px] mx-auto px-4 py-8">
           <div className="text-center mb-8">
@@ -250,7 +250,7 @@ export function PrizePhasePage({ leagueId, onNavigate }: PrizePhasePageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="prizes" leagueId={leagueId} isLeagueAdmin={true} onNavigate={onNavigate} />
 
       <main className="max-w-[1600px] mx-auto px-4 py-8">

@@ -195,6 +195,11 @@ export const PUSHER_EVENTS = {
   // Indemnity phase events
   INDEMNITY_DECISION_SUBMITTED: 'indemnity-decision-submitted',
   INDEMNITY_ALL_DECIDED: 'indemnity-all-decided',
+  // Pause request events
+  PAUSE_REQUESTED: 'pause-requested',
+  // Trade events (league channel)
+  TRADE_OFFER_RECEIVED: 'trade-offer-received',
+  TRADE_UPDATED: 'trade-updated',
 } as const
 
 // ==================== HELPER FUNCTIONS ====================
@@ -299,6 +304,16 @@ export async function triggerTimerUpdate(
   data: TimerUpdateData
 ): Promise<boolean> {
   return triggerEvent(sessionId, PUSHER_EVENTS.TIMER_UPDATE, data)
+}
+
+/**
+ * Trigger when a manager requests a pause
+ */
+export async function triggerPauseRequested(
+  sessionId: string,
+  data: { memberId: string; username: string; type: 'nomination' | 'auction' }
+): Promise<boolean> {
+  return triggerEvent(sessionId, PUSHER_EVENTS.PAUSE_REQUESTED, data)
 }
 
 // ==================== UTILITY FUNCTIONS ====================
@@ -463,4 +478,75 @@ export async function triggerIndemnityAllDecided(
   data: IndemnityAllDecidedData
 ): Promise<boolean> {
   return triggerEvent(sessionId, PUSHER_EVENTS.INDEMNITY_ALL_DECIDED, data)
+}
+
+// ==================== LEAGUE CHANNEL (TRADES) ====================
+
+function getLeagueChannel(leagueId: string): string {
+  return `league-${leagueId}`
+}
+
+async function triggerLeagueEvent<T extends object>(
+  leagueId: string,
+  event: string,
+  data: T
+): Promise<boolean> {
+  if (!pusher) {
+    console.warn(`[Pusher] Cannot trigger event '${event}' - Pusher not configured`)
+    return false
+  }
+
+  try {
+    const channel = getLeagueChannel(leagueId)
+    const enrichedData = {
+      ...data,
+      serverTimestamp: Date.now()
+    }
+    await pusher.trigger(channel, event, enrichedData)
+    console.log(`[Pusher] Event '${event}' triggered on channel '${channel}'`)
+    return true
+  } catch (error) {
+    console.error(`[Pusher] Failed to trigger event '${event}':`, error)
+    return false
+  }
+}
+
+export interface TradeOfferReceivedData {
+  tradeId: string
+  senderUsername: string
+  receiverUserId: string
+  timestamp: string
+}
+
+export interface TradeUpdatedData {
+  tradeId: string
+  newStatus: string
+  timestamp: string
+}
+
+/**
+ * Trigger when a new trade offer is created
+ */
+export async function triggerTradeOfferReceived(
+  leagueId: string,
+  data: TradeOfferReceivedData
+): Promise<boolean> {
+  return triggerLeagueEvent(leagueId, PUSHER_EVENTS.TRADE_OFFER_RECEIVED, data)
+}
+
+/**
+ * Trigger when a trade offer status changes (accepted, rejected, countered, cancelled)
+ */
+export async function triggerTradeUpdated(
+  leagueId: string,
+  data: TradeUpdatedData
+): Promise<boolean> {
+  return triggerLeagueEvent(leagueId, PUSHER_EVENTS.TRADE_UPDATED, data)
+}
+
+/**
+ * Get the league channel name for a given league ID
+ */
+export function getLeagueChannelName(leagueId: string): string {
+  return getLeagueChannel(leagueId)
 }

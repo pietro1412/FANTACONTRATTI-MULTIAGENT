@@ -107,34 +107,34 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
   // Show loading while checking superadmin status
   if (isSuperAdmin === null) {
     return (
-      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="create-league" onNavigate={onNavigate} />
 
       {/* Main content */}
-      <main className="max-w-4xl mx-auto px-6 py-10">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
           {/* Card Header */}
-          <div className="p-8 border-b border-surface-50/20 bg-gradient-to-r from-surface-300 to-surface-200">
+          <div className="p-4 sm:p-6 md:p-8 border-b border-surface-50/20 bg-gradient-to-r from-surface-300 to-surface-200">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-glow-gold">
                 <span className="text-3xl">🏆</span>
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white">Crea una Nuova Lega</h1>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Crea una Nuova Lega</h1>
                 <p className="text-gray-400 mt-1">Configura la tua lega fantasy</p>
               </div>
             </div>
           </div>
 
           {/* Card Content */}
-          <div className="p-8">
+          <div className="p-4 sm:p-6 md:p-8">
             {success ? (
               <div className="text-center py-12">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-secondary-500 to-secondary-700 flex items-center justify-center mx-auto mb-6 shadow-lg">
@@ -214,7 +214,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                     <h3 className="text-xl font-bold text-white">Configurazione</h3>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div className="bg-surface-300 rounded-xl p-5 border border-surface-50/20">
                       <NumberStepper
                         label="Max Partecipanti"

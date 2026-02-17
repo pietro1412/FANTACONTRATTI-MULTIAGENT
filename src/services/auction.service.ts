@@ -1,5 +1,5 @@
 import { PrismaClient, AuctionStatus, AuctionType, MemberRole, MemberStatus, AcquisitionType, RosterStatus, Position, SessionStatus, Prisma } from '@prisma/client'
-import { calculateRescissionClause, canAdvanceFromContratti } from './contract.service'
+import { calculateRescissionClause, calculateDefaultSalary, canAdvanceFromContratti } from './contract.service'
 import { autoReleaseRitiratiPlayers } from './indemnity-phase.service'
 import { recordMovement } from './movement.service'
 import {
@@ -14,8 +14,11 @@ import {
   triggerMemberReady,
   triggerAuctionStarted,
   triggerAuctionClosed,
+  triggerPauseRequested,
 } from './pusher.service'
+import { computeSeasonStatsBatch } from './player-stats.service'
 import { withRetry } from '../utils/db-retry'
+import { notifyAuctionStart, notifyPhaseChange } from './notification.service'
 
 const prisma = new PrismaClient()
 
@@ -25,13 +28,31 @@ export interface ServiceResult {
   data?: unknown
 }
 
+// ==================== PLAYER STATS ENRICHMENT ====================
+
+/** Enrich a raw SerieAPlayer record with mini-stats extracted from apiFootballStats JSON blob */
+function enrichPlayerWithStats<T extends Record<string, unknown>>(player: T): T & { appearances: number | null; goals: number | null; assists: number | null; avgRating: number | null } {
+  const stats = (player as Record<string, unknown>).apiFootballStats as {
+    games?: { appearences?: number; rating?: number }
+    goals?: { total?: number; assists?: number }
+  } | null | undefined
+
+  return {
+    ...player,
+    appearances: stats?.games?.appearences ?? null,
+    goals: stats?.goals?.total ?? null,
+    assists: stats?.goals?.assists ?? null,
+    avgRating: stats?.games?.rating ? Math.round(stats.games.rating * 10) / 10 : null,
+  }
+}
+
 // ==================== HEARTBEAT / CONNECTION STATUS ====================
 
 // In-memory storage for heartbeats (sessionId -> memberId -> timestamp)
 const heartbeats = new Map<string, Map<string, number>>()
 
-// Heartbeat timeout in milliseconds (10 seconds)
-const HEARTBEAT_TIMEOUT = 10000
+// Heartbeat timeout in milliseconds (45 seconds — 1.5× the 30s client interval)
+const HEARTBEAT_TIMEOUT = 45000
 
 export function registerHeartbeat(sessionId: string, memberId: string): void {
   if (!heartbeats.has(sessionId)) {
@@ -216,6 +237,19 @@ async function decrementContractDurations(leagueId: string, marketSessionId: str
         },
       })
 
+      // M-13: Record PlayerMovement for auto-release on contract expiry
+      await recordMovement({
+        leagueId,
+        playerId: contract.roster.playerId,
+        movementType: 'RELEASE',
+        fromMemberId: contract.roster.leagueMemberId,
+        price: 0,
+        oldSalary: contract.salary,
+        oldDuration: contract.duration,
+        oldClause: contract.rescissionClause,
+        marketSessionId,
+      })
+
       released.push(contract.roster.player.name)
     } else {
       // Decrement duration and recalculate rescission clause
@@ -262,7 +296,8 @@ async function decrementContractDurations(leagueId: string, marketSessionId: str
 export async function createAuctionSession(
   leagueId: string,
   adminUserId: string,
-  isRegularMarket: boolean = false
+  isRegularMarket: boolean = false,
+  auctionMode: 'REMOTE' | 'IN_PRESENCE' = 'REMOTE'
 ): Promise<ServiceResult> {
   // Usa retry per gestire cold start del database
   return withRetry(async () => {
@@ -302,11 +337,12 @@ export async function createAuctionSession(
       },
     })
 
-    // Check minimum participants
-    if (activeMembersCount < league.minParticipants) {
+    // Check minimum participants (platform rule: min 6, league.minParticipants is the target max)
+    const PLATFORM_MIN_PARTICIPANTS = 6
+    if (activeMembersCount < PLATFORM_MIN_PARTICIPANTS) {
       return {
         success: false,
-        message: `Servono almeno ${league.minParticipants} partecipanti. Attualmente: ${activeMembersCount}`
+        message: `Servono almeno ${PLATFORM_MIN_PARTICIPANTS} partecipanti. Attualmente: ${activeMembersCount}`
       }
     }
 
@@ -368,6 +404,7 @@ export async function createAuctionSession(
           semester,
           status: 'ACTIVE',
           currentPhase: effectiveIsRegularMarket ? 'OFFERTE_PRE_RINNOVO' : 'ASTA_LIBERA',
+          auctionMode,
           startsAt: now,
           phaseStartedAt: now,
         },
@@ -410,6 +447,9 @@ export async function createAuctionSession(
     const message = isEffectivelyRegularMarket
       ? `Mercato regolare aperto (fase: Scambi Pre-Rinnovo). Contratti decrementati: ${decrementResult.decremented}, Svincolati per scadenza: ${decrementResult.released.length}${ritiratiResult.released > 0 ? `, Ritirati auto-rilasciati: ${ritiratiResult.released}` : ''}`
       : 'Sessione PRIMO MERCATO creata'
+
+    // Push notification: auction started (fire-and-forget)
+    notifyAuctionStart(leagueId, result.marketType).catch(() => {})
 
     return {
       success: true,
@@ -562,6 +602,9 @@ export async function setMarketPhase(
     },
   })
 
+  // Push notification: phase changed (fire-and-forget)
+  notifyPhaseChange(session.leagueId, phase).catch(() => {})
+
   return {
     success: true,
     message: `Fase cambiata a ${phase}`,
@@ -679,10 +722,10 @@ export async function closeAuctionSession(
       },
     })
 
-    // Create contracts: 10% of acquisition price, 2 semesters
+    // Create contracts: 10% of acquisition price, 3 semesters
     for (const roster of rostersWithoutContracts) {
-      const salary = Math.max(1, Math.round(roster.acquisitionPrice * 0.1))
-      const duration = 2
+      const salary = calculateDefaultSalary(roster.acquisitionPrice)
+      const duration = 3
       const rescissionClause = calculateRescissionClause(salary, duration)
 
       await prisma.playerContract.create({
@@ -961,7 +1004,9 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
         take: 10,
         include: {
           bidder: {
-            include: {
+            select: {
+              id: true,
+              teamName: true,
               user: {
                 select: { username: true },
               },
@@ -998,10 +1043,9 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
         },
       })
 
-      // Create contract: 10% salary (min 1, rounded to 0.5), 2 semesters
-      const rawSalary = winningBid.amount * 0.1
-      const salary = Math.max(1, Math.round(rawSalary * 2) / 2)
-      const duration = 2
+      // Create contract: 10% salary (integer, min 1), 3 semesters
+      const salary = calculateDefaultSalary(winningBid.amount)
+      const duration = 3
       const rescissionClause = calculateRescissionClause(salary, duration)
 
       await prisma.playerContract.create({
@@ -1162,10 +1206,15 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
     isWinning: auction?.bids[0]?.bidderId === m.id,
   }))
 
+  // Enrich auction player with mini-stats from apiFootballStats JSON blob
+  const enrichedAuction = auction && auction.player
+    ? { ...auction, player: enrichPlayerWithStats(auction.player as unknown as Record<string, unknown>) }
+    : auction
+
   return {
     success: true,
     data: {
-      auction,
+      auction: enrichedAuction,
       userMembership: member,
       session: {
         id: session.id,
@@ -1173,6 +1222,7 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
         currentRole: session.currentRole,
         currentPhase: session.currentPhase,
         auctionTimerSeconds: session.auctionTimerSeconds,
+        auctionMode: session.auctionMode,
       },
       marketProgress,
       justCompleted, // Info about just-completed auction for prophecy modal
@@ -1197,6 +1247,7 @@ export async function placeBid(
     include: {
       player: true,
       league: true,
+      marketSession: true,
     },
   })
   console.log(`[PLACEBID-TIMING] Query auction: ${Date.now() - t1}ms`)
@@ -1235,9 +1286,29 @@ export async function placeBid(
     return { success: false, message: 'Non sei membro di questa lega' }
   }
 
-  // Check budget
-  if (amount > member.currentBudget) {
-    return { success: false, message: 'Budget insufficiente' }
+  // Check budget using bilancio (budget - monteIngaggi)
+  const monteIngaggiAuction = await prisma.playerContract.aggregate({
+    where: { leagueMemberId: member.id },
+    _sum: { salary: true },
+  })
+  const bilancio = member.currentBudget - (monteIngaggiAuction._sum.salary || 0)
+
+  // Primo Mercato: reserve budget for remaining empty slots (2 per slot = 1 min bid + 1 min salary)
+  const isPrimoMercato = auction.marketSession?.type === 'PRIMO_MERCATO'
+  let slotReserve = 0
+  if (isPrimoMercato) {
+    const totalSlots = auction.league.goalkeeperSlots + auction.league.defenderSlots
+      + auction.league.midfielderSlots + auction.league.forwardSlots
+    const filledSlots = await prisma.playerRoster.count({
+      where: { leagueMemberId: member.id, status: 'ACTIVE' },
+    })
+    const remainingAfter = Math.max(0, totalSlots - filledSlots - 1)
+    slotReserve = remainingAfter * 2
+  }
+
+  if (amount + calculateDefaultSalary(amount) > bilancio - slotReserve) {
+    const maxBid = bilancio - slotReserve
+    return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBid}${isPrimoMercato && slotReserve > 0 ? ` (riservati ${slotReserve} per ${slotReserve / 2} slot rimanenti)` : ''}` }
   }
 
   // Check minimum bid
@@ -1441,10 +1512,9 @@ export async function closeAuction(
     },
   })
 
-  // Create contract: 10% salary (min 1, rounded to 0.5), 2 semesters
-  const rawSalary = winningBid.amount * 0.1
-  const salary = Math.max(1, Math.round(rawSalary * 2) / 2)
-  const duration = 2
+  // Create contract: 10% salary (integer, min 1), 3 semesters
+  const salary = calculateDefaultSalary(winningBid.amount)
+  const duration = 3
   const rescissionClause = calculateRescissionClause(salary, duration)
 
   await prisma.playerContract.create({
@@ -1568,12 +1638,24 @@ export async function getRoster(leagueId: string, userId: string, targetMemberId
     },
   })
 
+  // Compute season stats for all players
+  const allPlayerIds = roster.map(r => r.playerId)
+  const statsMap = await computeSeasonStatsBatch(allPlayerIds)
+
+  const enriched = roster.map(r => ({
+    ...r,
+    player: {
+      ...r.player,
+      computedStats: statsMap.get(r.playerId) || null,
+    },
+  }))
+
   // Group by position
   const grouped = {
-    P: roster.filter(r => r.player.position === 'P'),
-    D: roster.filter(r => r.player.position === 'D'),
-    C: roster.filter(r => r.player.position === 'C'),
-    A: roster.filter(r => r.player.position === 'A'),
+    P: enriched.filter(r => r.player.position === 'P'),
+    D: enriched.filter(r => r.player.position === 'D'),
+    C: enriched.filter(r => r.player.position === 'C'),
+    A: enriched.filter(r => r.player.position === 'A'),
   }
 
   return {
@@ -1645,6 +1727,8 @@ export async function getLeagueRosters(leagueId: string, userId: string): Promis
       position: r.player.position,
       team: r.player.team,
       quotation: r.player.quotation,
+      age: r.player.age,
+      apiFootballId: r.player.apiFootballId,
       apiFootballStats: r.player.apiFootballStats,
       statsSyncedAt: r.player.statsSyncedAt,
       contract: r.contract ? {
@@ -1776,7 +1860,7 @@ export async function getFirstMarketStatus(
       user: { select: { username: true } },
       roster: {
         where: { status: 'ACTIVE' },
-        include: { player: true },
+        include: { player: true, contract: true },
       },
     },
     orderBy: { firstMarketOrder: 'asc' },
@@ -1802,18 +1886,24 @@ export async function getFirstMarketStatus(
       A: session.league.forwardSlots - rosterByRole.A,
     }
 
+    // Calculate bilancio for turn eligibility (bilancio < 2 → excluded)
+    const monteIngaggi = m.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
+    const bilancio = m.currentBudget - monteIngaggi
+
     return {
       memberId: m.id,
       username: m.user.username,
       teamName: m.teamName,
       rosterByRole,
       slotsNeeded,
+      bilancio,
       isComplete: Object.values(slotsNeeded).every(s => s <= 0),
       isCurrentRoleComplete: slotsNeeded[currentRole as keyof typeof slotsNeeded] <= 0,
+      isExcludedBudget: bilancio < 2,
     }
   })
 
-  // Find current nominator (skip those with complete current role)
+  // Find current nominator (skip those with complete current role OR insufficient budget)
   let currentNominator = null
   if (turnOrder && turnOrder.length > 0) {
     let searchIndex = currentTurnIndex
@@ -1821,7 +1911,7 @@ export async function getFirstMarketStatus(
       const idx = (searchIndex + i) % turnOrder.length
       const memberId = turnOrder[idx]
       const status = memberStatus.find(m => m.memberId === memberId)
-      if (status && !status.isCurrentRoleComplete) {
+      if (status && !status.isCurrentRoleComplete && !status.isExcludedBudget) {
         currentNominator = {
           memberId,
           username: status.username,
@@ -1932,7 +2022,39 @@ export async function advanceToNextTurn(
   }
 
   const currentIndex = session.currentTurnIndex ?? 0
-  const nextIndex = (currentIndex + 1) % turnOrder.length
+
+  // M-3: Skip members with bilancio < 2 (budget - monteIngaggi)
+  let nextIndex = (currentIndex + 1) % turnOrder.length
+  let searchCount = 0
+  const skippedMembers: string[] = []
+  while (searchCount < turnOrder.length) {
+    const candidateId = turnOrder[nextIndex] as string
+    const candidate = await prisma.leagueMember.findUnique({
+      where: { id: candidateId },
+    })
+    if (candidate) {
+      const monteIngaggi = await prisma.playerContract.aggregate({
+        where: { leagueMemberId: candidateId },
+        _sum: { salary: true },
+      })
+      const bilancio = candidate.currentBudget - (monteIngaggi._sum.salary || 0)
+      if (bilancio >= 2) {
+        break // This member has enough budget
+      }
+      skippedMembers.push(candidateId)
+    }
+    nextIndex = (nextIndex + 1) % turnOrder.length
+    searchCount++
+  }
+
+  // If all members have bilancio < 2, no one can play
+  if (searchCount >= turnOrder.length) {
+    return {
+      success: false,
+      message: 'Nessun manager ha bilancio sufficiente (>= 2) per continuare',
+      data: { allInsufficientBudget: true, skippedMembers },
+    }
+  }
 
   await prisma.marketSession.update({
     where: { id: sessionId },
@@ -1942,7 +2064,154 @@ export async function advanceToNextTurn(
   return {
     success: true,
     message: 'Turno avanzato',
-    data: { previousIndex: currentIndex, currentIndex: nextIndex },
+    data: { previousIndex: currentIndex, currentIndex: nextIndex, skippedMembers },
+  }
+}
+
+// ==================== MANAGER PAUSE REQUEST ====================
+
+export async function requestPause(
+  sessionId: string,
+  userId: string,
+  pauseType: 'nomination' | 'auction'
+): Promise<ServiceResult> {
+  const session = await prisma.marketSession.findUnique({
+    where: { id: sessionId },
+  })
+
+  if (!session) {
+    return { success: false, message: 'Sessione non trovata' }
+  }
+
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: session.leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+    include: { user: { select: { username: true } } },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Send Pusher notification to all (admin will see the request)
+  triggerPauseRequested(sessionId, {
+    memberId: member.id,
+    username: member.user.username,
+    type: pauseType,
+  })
+
+  return {
+    success: true,
+    message: 'Richiesta di pausa inviata all\'admin',
+  }
+}
+
+// ==================== M-1: PAUSE/RESUME AUCTION TIMER ====================
+
+export async function pauseAuction(
+  auctionId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  const auction = await prisma.auction.findUnique({
+    where: { id: auctionId },
+    include: { marketSession: true },
+  })
+
+  if (!auction || !auction.marketSession) {
+    return { success: false, message: 'Asta non trovata' }
+  }
+
+  // Verify admin
+  const admin = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: auction.leagueId,
+      userId: adminUserId,
+      role: MemberRole.ADMIN,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (auction.status !== AuctionStatus.ACTIVE) {
+    return { success: false, message: 'Puoi mettere in pausa solo un\'asta attiva' }
+  }
+
+  // Calculate remaining seconds
+  let remainingSeconds = auction.timerSeconds || 30
+  if (auction.timerExpiresAt) {
+    const remainingMs = auction.timerExpiresAt.getTime() - Date.now()
+    remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000))
+  }
+
+  await prisma.auction.update({
+    where: { id: auctionId },
+    data: {
+      status: AuctionStatus.AWAITING_RESUME,
+      timerExpiresAt: null,
+      timerSeconds: remainingSeconds,
+      resumeReadyMembers: [],
+    },
+  })
+
+  return {
+    success: true,
+    message: `Asta in pausa (${remainingSeconds} secondi rimanenti)`,
+    data: { remainingSeconds },
+  }
+}
+
+export async function resumeAuction(
+  auctionId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  const auction = await prisma.auction.findUnique({
+    where: { id: auctionId },
+    include: { marketSession: true },
+  })
+
+  if (!auction || !auction.marketSession) {
+    return { success: false, message: 'Asta non trovata' }
+  }
+
+  // Verify admin
+  const admin = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: auction.leagueId,
+      userId: adminUserId,
+      role: MemberRole.ADMIN,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (auction.status !== AuctionStatus.AWAITING_RESUME) {
+    return { success: false, message: 'L\'asta non è in pausa' }
+  }
+
+  const remainingSeconds = auction.timerSeconds || 30
+
+  await prisma.auction.update({
+    where: { id: auctionId },
+    data: {
+      status: AuctionStatus.ACTIVE,
+      timerExpiresAt: new Date(Date.now() + remainingSeconds * 1000),
+      resumeReadyMembers: null,
+    },
+  })
+
+  return {
+    success: true,
+    message: `Asta ripresa (${remainingSeconds} secondi)`,
+    data: { remainingSeconds },
   }
 }
 
@@ -2043,6 +2312,189 @@ export async function cancelLastBid(
   }
 }
 
+// ==================== M-2: ADMIN CANCEL ACTIVE AUCTION ====================
+
+export async function cancelActiveAuction(
+  auctionId: string,
+  adminUserId: string,
+  reason: string
+): Promise<ServiceResult> {
+  const auction = await prisma.auction.findUnique({
+    where: { id: auctionId },
+    include: { marketSession: true, player: true },
+  })
+
+  if (!auction || !auction.marketSession) {
+    return { success: false, message: 'Asta non trovata' }
+  }
+
+  // Verify admin
+  const admin = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: auction.leagueId,
+      userId: adminUserId,
+      role: MemberRole.ADMIN,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (auction.status !== AuctionStatus.ACTIVE && auction.status !== AuctionStatus.PENDING) {
+    return { success: false, message: 'Asta non attiva o pendente' }
+  }
+
+  // Cancel the auction (no winner)
+  await prisma.auction.update({
+    where: { id: auctionId },
+    data: {
+      status: AuctionStatus.NO_BIDS,
+      timerExpiresAt: null,
+      endsAt: new Date(),
+    },
+  })
+
+  // Cancel all bids
+  await prisma.auctionBid.updateMany({
+    where: { auctionId, isCancelled: false },
+    data: { isCancelled: true, cancelledAt: new Date(), cancelledBy: adminUserId },
+  })
+
+  // M-7: Audit log
+  await prisma.auditLog.create({
+    data: {
+      userId: adminUserId,
+      leagueId: auction.leagueId,
+      action: 'AUCTION_CANCELLED_BY_ADMIN',
+      entityType: 'Auction',
+      entityId: auctionId,
+      oldValues: { status: auction.status, playerName: auction.player.name } as never,
+      newValues: { status: 'NO_BIDS', reason } as never,
+    },
+  })
+
+  return {
+    success: true,
+    message: `Asta per ${auction.player.name} annullata dall'admin. Motivo: ${reason}`,
+    data: { auctionId, playerName: auction.player.name },
+  }
+}
+
+// ==================== M-2: ADMIN RECTIFY COMPLETED TRANSACTION ====================
+
+export async function rectifyTransaction(
+  auctionId: string,
+  adminUserId: string,
+  reason: string
+): Promise<ServiceResult> {
+  const auction = await prisma.auction.findUnique({
+    where: { id: auctionId },
+    include: {
+      marketSession: true,
+      player: true,
+      bids: { where: { isWinning: true }, take: 1 },
+    },
+  })
+
+  if (!auction || !auction.marketSession) {
+    return { success: false, message: 'Asta non trovata' }
+  }
+
+  // Verify admin
+  const admin = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId: auction.leagueId,
+      userId: adminUserId,
+      role: MemberRole.ADMIN,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (auction.status !== AuctionStatus.COMPLETED) {
+    return { success: false, message: 'Solo aste completate possono essere rettificate' }
+  }
+
+  if (!auction.winnerId) {
+    return { success: false, message: 'Nessun vincitore da rettificare' }
+  }
+
+  const winningBid = auction.bids[0]
+  if (!winningBid) {
+    return { success: false, message: 'Nessuna offerta vincente trovata' }
+  }
+
+  // Rollback: restore budget to winner
+  await prisma.leagueMember.update({
+    where: { id: auction.winnerId },
+    data: { currentBudget: { increment: winningBid.amount } },
+  })
+
+  // Rollback: remove roster entry and contract
+  const roster = await prisma.playerRoster.findFirst({
+    where: {
+      leagueMemberId: auction.winnerId,
+      playerId: auction.playerId,
+      status: 'ACTIVE',
+    },
+    include: { contract: true },
+  })
+
+  if (roster) {
+    if (roster.contract) {
+      await prisma.playerContract.delete({ where: { id: roster.contract.id } })
+    }
+    await prisma.playerRoster.delete({ where: { id: roster.id } })
+  }
+
+  // For RUBATA: also restore seller's roster/contract and deduct seller payment
+  if (auction.type === 'RUBATA' && auction.sellerId) {
+    // Note: Full rubata rollback is complex (seller's contract was transferred).
+    // This is a basic version — the admin may need to manually fix the seller's state.
+  }
+
+  // Mark auction as cancelled
+  await prisma.auction.update({
+    where: { id: auctionId },
+    data: {
+      status: AuctionStatus.NO_BIDS,
+      winnerId: null,
+    },
+  })
+
+  // M-7: Audit log
+  await prisma.auditLog.create({
+    data: {
+      userId: adminUserId,
+      leagueId: auction.leagueId,
+      action: 'TRANSACTION_RECTIFIED_BY_ADMIN',
+      entityType: 'Auction',
+      entityId: auctionId,
+      oldValues: {
+        winnerId: auction.winnerId,
+        amount: winningBid.amount,
+        playerName: auction.player.name,
+      } as never,
+      newValues: { status: 'NO_BIDS', reason } as never,
+    },
+  })
+
+  return {
+    success: true,
+    message: `Transazione rettificata: ${auction.player.name}. Budget restituito (${winningBid.amount}). Motivo: ${reason}`,
+    data: {
+      auctionId,
+      playerName: auction.player.name,
+      refundedAmount: winningBid.amount,
+    },
+  }
+}
+
 // ==================== PRIMO MERCATO: NOMINA GIOCATORE (Manager) ====================
 
 export async function nominatePlayerByManager(
@@ -2115,19 +2567,19 @@ export async function nominatePlayerByManager(
     return { success: false, message: `Hai già completato gli slot per il ruolo ${currentRole}. Aspetta il prossimo ruolo.` }
   }
 
-  // Find current nominator (skip those with complete current role)
+  // Find current nominator (skip those with complete current role OR insufficient budget)
   let currentNominatorId: string | null = null
   for (let i = 0; i < turnOrder.length; i++) {
     const idx = (currentTurnIndex + i) % turnOrder.length
     const memberId = turnOrder[idx]
 
-    // Get this member's roster
+    // Get this member's roster with contracts
     const m = await prisma.leagueMember.findUnique({
       where: { id: memberId },
       include: {
         roster: {
           where: { status: 'ACTIVE' },
-          include: { player: true },
+          include: { player: true, contract: true },
         },
       },
     })
@@ -2140,7 +2592,11 @@ export async function nominatePlayerByManager(
         A: m.roster.filter(r => r.player.position === 'A').length,
       }
 
-      if ((mRoster[currentRole as keyof typeof mRoster] ?? 0) < (slotLimits[currentRole] ?? 0)) {
+      // Check bilancio >= 2 (min bid 1 + min salary 1)
+      const monteIngaggi = m.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
+      const bilancio = m.currentBudget - monteIngaggi
+
+      if ((mRoster[currentRole as keyof typeof mRoster] ?? 0) < (slotLimits[currentRole] ?? 0) && bilancio >= 2) {
         currentNominatorId = memberId ?? null
         break
       }
@@ -2519,12 +2975,15 @@ export async function getPendingAcknowledgment(
     }
   }
 
+  // Enrich player with stats
+  const enrichedPlayer = enrichPlayerWithStats(recentCompletedAuction.player as unknown as Record<string, unknown>)
+
   return {
     success: true,
     data: {
       pendingAuction: {
         id: recentCompletedAuction.id,
-        player: recentCompletedAuction.player,
+        player: enrichedPlayer,
         winner: recentCompletedAuction.winner ? {
           id: recentCompletedAuction.winnerId,
           username: recentCompletedAuction.winner.user.username,
@@ -2794,7 +3253,7 @@ export async function setPendingNomination(
     return { success: false, message: `Hai già completato gli slot per il ruolo ${currentRole}` }
   }
 
-  // Find current nominator (who should call)
+  // Find current nominator (who should call — skip completed role OR insufficient budget)
   let currentNominatorId: string | null = null
   const currentTurnIndex = session.currentTurnIndex ?? 0
 
@@ -2807,7 +3266,7 @@ export async function setPendingNomination(
       include: {
         roster: {
           where: { status: 'ACTIVE' },
-          include: { player: true },
+          include: { player: true, contract: true },
         },
       },
     })
@@ -2820,7 +3279,11 @@ export async function setPendingNomination(
         A: m.roster.filter(r => r.player.position === 'A').length,
       }
 
-      if ((mRoster[currentRole as keyof typeof mRoster] ?? 0) < (slotLimits[currentRole] ?? 0)) {
+      // Check bilancio >= 2 (min bid 1 + min salary 1)
+      const monteIngaggi = m.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
+      const bilancio = m.currentBudget - monteIngaggi
+
+      if ((mRoster[currentRole as keyof typeof mRoster] ?? 0) < (slotLimits[currentRole] ?? 0) && bilancio >= 2) {
         currentNominatorId = memberId ?? null
         break
       }
@@ -2964,7 +3427,7 @@ export async function confirmNomination(
     timestamp: new Date().toISOString(),
   })
 
-  // Check if we're the only member (auto-start)
+  // Check if we're the only member or IN_PRESENCE mode (auto-start)
   const totalMembers = await prisma.leagueMember.count({
     where: {
       leagueId: session.leagueId,
@@ -2972,8 +3435,8 @@ export async function confirmNomination(
     },
   })
 
-  if (totalMembers === 1) {
-    // Solo member, start auction immediately
+  if (totalMembers === 1 || session.auctionMode === 'IN_PRESENCE') {
+    // Solo member or in-presence mode: start auction immediately (skip ready-check)
     return await startPendingAuction(sessionId)
   }
 
@@ -3333,12 +3796,17 @@ export async function getReadyStatus(
   const readyMemberIds = (session.readyMembers as string[]) || []
   const nominator = allMembers.find(m => m.id === session.pendingNominatorId)
 
+  // Enrich player with stats
+  const enrichedPlayer = session.pendingNominationPlayer
+    ? enrichPlayerWithStats(session.pendingNominationPlayer as unknown as Record<string, unknown>)
+    : null
+
   return {
     success: true,
     data: {
       hasPendingNomination: true,
       nominatorConfirmed: session.nominatorConfirmed,
-      player: session.pendingNominationPlayer,
+      player: enrichedPlayer,
       nominatorId: session.pendingNominatorId,
       nominatorUsername: nominator?.user.username || 'Unknown',
       readyMembers: allMembers
@@ -3452,11 +3920,12 @@ export async function getMyRosterSlots(
     A: session.league.forwardSlots,
   }
 
+  type RosterSlotData = { id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; age?: number | null; apiFootballId?: number | null; contract?: { salary: number; duration: number; rescissionClause: number } | null }
   const rosterByPosition: {
-    P: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; contract?: { salary: number; duration: number; rescissionClause: number } | null }>
-    D: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; contract?: { salary: number; duration: number; rescissionClause: number } | null }>
-    C: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; contract?: { salary: number; duration: number; rescissionClause: number } | null }>
-    A: Array<{ id: string; playerId: string; playerName: string; playerTeam: string; acquisitionPrice: number; contract?: { salary: number; duration: number; rescissionClause: number } | null }>
+    P: RosterSlotData[]
+    D: RosterSlotData[]
+    C: RosterSlotData[]
+    A: RosterSlotData[]
   } = {
     P: [],
     D: [],
@@ -3473,6 +3942,8 @@ export async function getMyRosterSlots(
         playerName: r.player.name,
         playerTeam: r.player.team,
         acquisitionPrice: r.acquisitionPrice,
+        age: r.player.age ?? null,
+        apiFootballId: r.player.apiFootballId ?? null,
         contract: r.contract ? {
           salary: r.contract.salary,
           duration: r.contract.duration,
@@ -3582,7 +4053,10 @@ export async function getManagersStatus(
       const m = members.find(x => x.id === memberId)
       if (m) {
         const roleCount = m.roster.filter(r => r.player.position === currentRole).length
-        if (roleCount < slotLimits[currentRole as keyof typeof slotLimits]) {
+        // Also check bilancio >= 2 (min bid 1 + min salary 1)
+        const monteIngaggi = m.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
+        const bilancio = m.currentBudget - monteIngaggi
+        if (roleCount < slotLimits[currentRole as keyof typeof slotLimits] && bilancio >= 2) {
           currentTurnMemberId = memberId
           break
         }
@@ -3624,6 +4098,7 @@ export async function getManagersStatus(
         playerTeam: r.player.team,
         position: r.player.position,
         acquisitionPrice: r.acquisitionPrice,
+        quotation: r.player.quotation,
         contract: r.contract ? {
           salary: r.contract.salary,
           duration: r.contract.duration,
@@ -4790,11 +5265,10 @@ export async function completeAllRosterSlots(
           },
         })
 
-        // Create default contract (10% of acquisition price, minimum 1, 2 semesters)
-        const rawSalary = finalPrice * 0.1
-        const salary = Math.max(1, Math.round(rawSalary * 2) / 2) // Round to 0.5, min 1
-        const duration = 2
-        const rescissionClause = Math.round(salary * duration * 2)
+        // Create default contract (10% of acquisition price, integer min 1, 3 semesters)
+        const salary = calculateDefaultSalary(finalPrice)
+        const duration = 3
+        const rescissionClause = calculateRescissionClause(salary, duration)
 
         await prisma.playerContract.create({
           data: {

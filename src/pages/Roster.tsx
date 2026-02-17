@@ -402,7 +402,7 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-lg text-gray-400">Caricamento rosa...</p>
@@ -413,7 +413,7 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
 
   if (!rosterData) {
     return (
-      <div className="min-h-screen bg-dark-300 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-5xl mb-4">😕</div>
           <p className="text-xl text-danger-400">Errore nel caricamento della rosa</p>
@@ -461,7 +461,7 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
   const totalValue = allPlayers.reduce((sum, e) => sum + e.acquisitionPrice, 0)
 
   return (
-    <div className="min-h-screen bg-dark-300">
+    <div className="min-h-screen">
       <Navigation currentPage="roster" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
       {/* Page Header */}

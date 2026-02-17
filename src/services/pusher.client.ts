@@ -108,6 +108,51 @@ export interface RubataReadyChangedData {
   timestamp: string;
 }
 
+// ==================== SVINCOLATI TYPES ====================
+
+export interface SvincolatiStateChangedData {
+  state: string;
+  currentTurnMemberId: string | null;
+  currentTurnUsername: string | null;
+  passedMembers: string[];
+}
+
+export interface SvincolatiNominationData {
+  playerId: string;
+  playerName: string;
+  nominatorId: string;
+  nominatorUsername: string;
+  confirmed: boolean;
+}
+
+export interface SvincolatiBidPlacedData {
+  auctionId: string;
+  playerId: string;
+  bidderId: string;
+  bidderUsername: string;
+  amount: number;
+}
+
+export interface SvincolatiReadyChangedData {
+  readyMembers: string[];
+  totalMembers: number;
+}
+
+// ==================== TRADE TYPES ====================
+
+export interface TradeOfferReceivedData {
+  tradeId: string;
+  senderUsername: string;
+  receiverUserId: string;
+  timestamp: string;
+}
+
+export interface TradeUpdatedData {
+  tradeId: string;
+  newStatus: string;
+  timestamp: string;
+}
+
 // ==================== INDEMNITY TYPES ====================
 
 export interface IndemnityDecisionSubmittedData {
@@ -135,9 +180,23 @@ export interface AuctionEventHandlers {
   onRubataStealDeclared?: (data: RubataStealDeclaredData) => void;
   onRubataBidPlaced?: (data: RubataBidPlacedData) => void;
   onRubataReadyChanged?: (data: RubataReadyChangedData) => void;
+  // Svincolati events
+  onSvincolatiStateChanged?: (data: SvincolatiStateChangedData) => void;
+  onSvincolatiNomination?: (data: SvincolatiNominationData) => void;
+  onSvincolatiBidPlaced?: (data: SvincolatiBidPlacedData) => void;
+  onSvincolatiReadyChanged?: (data: SvincolatiReadyChangedData) => void;
   // Indemnity events
   onIndemnityDecisionSubmitted?: (data: IndemnityDecisionSubmittedData) => void;
   onIndemnityAllDecided?: (data: IndemnityAllDecidedData) => void;
+  // Pause request event
+  onPauseRequested?: (data: PauseRequestedData) => void;
+}
+
+export interface PauseRequestedData {
+  memberId: string;
+  username: string;
+  type: 'nomination' | 'auction';
+  serverTimestamp: number;
 }
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'failed' | 'unavailable';
@@ -229,6 +288,23 @@ export function subscribeToAuction(
     channel.bind('rubata-ready-changed', handlers.onRubataReadyChanged);
   }
 
+  // Svincolati events
+  if (handlers.onSvincolatiStateChanged) {
+    channel.bind('svincolati-state-changed', handlers.onSvincolatiStateChanged);
+  }
+
+  if (handlers.onSvincolatiNomination) {
+    channel.bind('svincolati-nomination', handlers.onSvincolatiNomination);
+  }
+
+  if (handlers.onSvincolatiBidPlaced) {
+    channel.bind('svincolati-bid-placed', handlers.onSvincolatiBidPlaced);
+  }
+
+  if (handlers.onSvincolatiReadyChanged) {
+    channel.bind('svincolati-ready-changed', handlers.onSvincolatiReadyChanged);
+  }
+
   // Indemnity events
   if (handlers.onIndemnityDecisionSubmitted) {
     channel.bind('indemnity-decision-submitted', handlers.onIndemnityDecisionSubmitted);
@@ -236,6 +312,11 @@ export function subscribeToAuction(
 
   if (handlers.onIndemnityAllDecided) {
     channel.bind('indemnity-all-decided', handlers.onIndemnityAllDecided);
+  }
+
+  // Pause request event
+  if (handlers.onPauseRequested) {
+    channel.bind('pause-requested', handlers.onPauseRequested);
   }
 
   return channel;
@@ -305,12 +386,29 @@ export function unbindAuctionHandlers(
     if (handlers.onRubataReadyChanged) {
       channel.unbind('rubata-ready-changed', handlers.onRubataReadyChanged);
     }
+    // Svincolati events
+    if (handlers.onSvincolatiStateChanged) {
+      channel.unbind('svincolati-state-changed', handlers.onSvincolatiStateChanged);
+    }
+    if (handlers.onSvincolatiNomination) {
+      channel.unbind('svincolati-nomination', handlers.onSvincolatiNomination);
+    }
+    if (handlers.onSvincolatiBidPlaced) {
+      channel.unbind('svincolati-bid-placed', handlers.onSvincolatiBidPlaced);
+    }
+    if (handlers.onSvincolatiReadyChanged) {
+      channel.unbind('svincolati-ready-changed', handlers.onSvincolatiReadyChanged);
+    }
     // Indemnity events
     if (handlers.onIndemnityDecisionSubmitted) {
       channel.unbind('indemnity-decision-submitted', handlers.onIndemnityDecisionSubmitted);
     }
     if (handlers.onIndemnityAllDecided) {
       channel.unbind('indemnity-all-decided', handlers.onIndemnityAllDecided);
+    }
+    // Pause request event
+    if (handlers.onPauseRequested) {
+      channel.unbind('pause-requested', handlers.onPauseRequested);
     }
   }
 }
@@ -329,9 +427,16 @@ export interface UsePusherAuctionOptions {
   onRubataStealDeclared?: (data: RubataStealDeclaredData) => void;
   onRubataBidPlaced?: (data: RubataBidPlacedData) => void;
   onRubataReadyChanged?: (data: RubataReadyChangedData) => void;
+  // Svincolati events
+  onSvincolatiStateChanged?: (data: SvincolatiStateChangedData) => void;
+  onSvincolatiNomination?: (data: SvincolatiNominationData) => void;
+  onSvincolatiBidPlaced?: (data: SvincolatiBidPlacedData) => void;
+  onSvincolatiReadyChanged?: (data: SvincolatiReadyChangedData) => void;
   // Indemnity events
   onIndemnityDecisionSubmitted?: (data: IndemnityDecisionSubmittedData) => void;
   onIndemnityAllDecided?: (data: IndemnityAllDecidedData) => void;
+  // Pause request event
+  onPauseRequested?: (data: PauseRequestedData) => void;
 }
 
 export interface UsePusherAuctionResult {
@@ -396,6 +501,13 @@ export function usePusherAuction(
       onRubataStealDeclared: (data) => handlersRef.current.onRubataStealDeclared?.(data),
       onRubataBidPlaced: (data) => handlersRef.current.onRubataBidPlaced?.(data),
       onRubataReadyChanged: (data) => handlersRef.current.onRubataReadyChanged?.(data),
+      // Svincolati events
+      onSvincolatiStateChanged: (data) => handlersRef.current.onSvincolatiStateChanged?.(data),
+      onSvincolatiNomination: (data) => handlersRef.current.onSvincolatiNomination?.(data),
+      onSvincolatiBidPlaced: (data) => handlersRef.current.onSvincolatiBidPlaced?.(data),
+      onSvincolatiReadyChanged: (data) => handlersRef.current.onSvincolatiReadyChanged?.(data),
+      // Pause request event
+      onPauseRequested: (data) => handlersRef.current.onPauseRequested?.(data),
     };
 
     const subscribedChannel = subscribeToAuction(sessionId, handlers);
@@ -413,6 +525,82 @@ export function usePusherAuction(
     connectionStatus,
     isConnected,
     channel,
+  };
+}
+
+// ==================== TRADE REACT HOOK ====================
+
+export interface UsePusherTradesOptions {
+  onTradeOfferReceived?: (data: TradeOfferReceivedData) => void;
+  onTradeUpdated?: (data: TradeUpdatedData) => void;
+}
+
+export interface UsePusherTradesResult {
+  connectionStatus: ConnectionStatus;
+  isConnected: boolean;
+}
+
+/**
+ * React hook for subscribing to Pusher trade events on a league channel
+ * @param leagueId - The league ID (null/undefined to skip subscription)
+ * @param options - Event handler callbacks
+ */
+export function usePusherTrades(
+  leagueId: string | null | undefined,
+  options: UsePusherTradesOptions = {}
+): UsePusherTradesResult {
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
+  const handlersRef = useRef<UsePusherTradesOptions>(options);
+
+  useEffect(() => {
+    handlersRef.current = options;
+  }, [options]);
+
+  useEffect(() => {
+    const handleStateChange = (states: { current: string; previous: string }) => {
+      setConnectionStatus(states.current as ConnectionStatus);
+    };
+    pusherClient.connection.bind('state_change', handleStateChange);
+    setConnectionStatus(pusherClient.connection.state as ConnectionStatus);
+    return () => {
+      pusherClient.connection.unbind('state_change', handleStateChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!leagueId) return;
+
+    const channelName = `league-${leagueId}`;
+    let channel = activeChannels.get(channelName);
+
+    if (!channel) {
+      channel = pusherClient.subscribe(channelName);
+      activeChannels.set(channelName, channel);
+    }
+
+    const onReceived = (data: TradeOfferReceivedData) => handlersRef.current.onTradeOfferReceived?.(data);
+    const onUpdated = (data: TradeUpdatedData) => handlersRef.current.onTradeUpdated?.(data);
+
+    channel.bind('trade-offer-received', onReceived);
+    channel.bind('trade-updated', onUpdated);
+
+    return () => {
+      if (channel) {
+        channel.unbind('trade-offer-received', onReceived);
+        channel.unbind('trade-updated', onUpdated);
+      }
+      // Only unsubscribe if no other bindings
+      const ch = activeChannels.get(channelName);
+      if (ch) {
+        pusherClient.unsubscribe(channelName);
+        activeChannels.delete(channelName);
+      }
+    };
+  }, [leagueId]);
+
+  return {
+    connectionStatus,
+    isConnected: connectionStatus === 'connected',
   };
 }
 

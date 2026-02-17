@@ -20,6 +20,19 @@ export function Login({ onNavigate }: LoginProps) {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [isLoading, setIsLoading] = useState(false)
 
+  function validateField(field: keyof FieldErrors) {
+    setFieldErrors(prev => {
+      const next = { ...prev }
+      if (field === 'emailOrUsername') {
+        next.emailOrUsername = emailOrUsername.trim() ? undefined : 'Inserisci email o username'
+      }
+      if (field === 'password') {
+        next.password = password ? undefined : 'Inserisci la password'
+      }
+      return next
+    })
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
@@ -55,7 +68,7 @@ export function Login({ onNavigate }: LoginProps) {
   }
 
   return (
-    <div className="min-h-screen bg-dark-300 flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-6">
       {/* Background pattern */}
       <div className="absolute inset-0 pitch-overlay opacity-30"></div>
 
@@ -66,13 +79,13 @@ export function Login({ onNavigate }: LoginProps) {
           <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center mx-auto mb-6 shadow-glow">
             <span className="text-5xl">⚽</span>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Fantacontratti</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">Fantacontratti</h1>
           <p className="text-lg text-gray-400">Dynasty Fantasy Football</p>
         </div>
 
         {/* Card */}
-        <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-8 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white text-center mb-8">Accedi al tuo account</h2>
+        <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-4 sm:p-8 shadow-2xl">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white text-center mb-8">Accedi al tuo account</h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className={`min-h-[56px] transition-all duration-200 ${error ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
@@ -86,8 +99,11 @@ export function Login({ onNavigate }: LoginProps) {
             <Input
               label="Email o Username"
               type="text"
+              inputMode="email"
+              autoComplete="email"
               value={emailOrUsername}
-              onChange={e => setEmailOrUsername(e.target.value)}
+              onChange={e => { setEmailOrUsername(e.target.value); if (fieldErrors.emailOrUsername) setFieldErrors(prev => ({ ...prev, emailOrUsername: undefined })) }}
+              onBlur={() => validateField('emailOrUsername')}
               placeholder="mario@email.com"
               required
               error={fieldErrors.emailOrUsername}
@@ -97,7 +113,8 @@ export function Login({ onNavigate }: LoginProps) {
               label="Password"
               type="password"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={e => { setPassword(e.target.value); if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: undefined })) }}
+              onBlur={() => validateField('password')}
               placeholder="••••••••"
               required
               error={fieldErrors.password}

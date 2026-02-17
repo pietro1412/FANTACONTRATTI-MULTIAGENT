@@ -6,7 +6,12 @@ import { Notifications } from './Notifications'
 import { PendingInvites } from './PendingInvites'
 import { FeedbackBadge } from './FeedbackBadge'
 import { pusherClient } from '../services/pusher.client'
-import { ThemeSelector, ThemeButton } from './ThemeSelector'
+import {
+  Home, Settings, User, Users, UserPlus, Clock, Lightbulb,
+  ArrowLeft, Trophy, CircleUserRound, BookOpen, CloudUpload,
+  CircleDollarSign, ChevronRight, ChevronDown, ShieldCheck,
+  BarChart3, FileText, MessageSquare, Menu, X, Star, LogOut,
+} from 'lucide-react'
 
 interface NavigationProps {
   currentPage: string
@@ -19,114 +24,30 @@ interface NavigationProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
 }
 
-// SVG Icons for menu items
+// Icons for menu items — using lucide-react (tree-shakeable)
+const ICON_SIZE = 16 // w-4 h-4
 const MenuIcons = {
-  dashboard: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-    </svg>
-  ),
-  admin: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  ),
-  roster: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-    </svg>
-  ),
-  allRosters: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-    </svg>
-  ),
-  svincolati: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-    </svg>
-  ),
-  history: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  ),
-  prophecy: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-    </svg>
-  ),
-  back: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-    </svg>
-  ),
-  leagues: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-    </svg>
-  ),
-  profile: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  ),
-  rules: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-    </svg>
-  ),
-  upload: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-    </svg>
-  ),
-  players: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-    </svg>
-  ),
-  users: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-    </svg>
-  ),
-  home: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-    </svg>
-  ),
-  financials: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  ),
-  chevronRight: (
-    <svg className="w-3 h-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-    </svg>
-  ),
-  strategy: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-    </svg>
-  ),
-  stats: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-    </svg>
-  ),
-  patchNotes: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-    </svg>
-  ),
-  feedbackHub: (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-    </svg>
-  ),
+  dashboard: <Home size={ICON_SIZE} />,
+  admin: <Settings size={ICON_SIZE} />,
+  roster: <User size={ICON_SIZE} />,
+  allRosters: <Users size={ICON_SIZE} />,
+  svincolati: <UserPlus size={ICON_SIZE} />,
+  history: <Clock size={ICON_SIZE} />,
+  prophecy: <Lightbulb size={ICON_SIZE} />,
+  back: <ArrowLeft size={ICON_SIZE} />,
+  leagues: <Trophy size={ICON_SIZE} />,
+  profile: <CircleUserRound size={ICON_SIZE} />,
+  rules: <BookOpen size={ICON_SIZE} />,
+  upload: <CloudUpload size={ICON_SIZE} />,
+  players: <Users size={ICON_SIZE} />,
+  users: <Users size={ICON_SIZE} />,
+  home: <Home size={ICON_SIZE} />,
+  financials: <CircleDollarSign size={ICON_SIZE} />,
+  chevronRight: <ChevronRight size={12} className="text-gray-500" />,
+  strategy: <ShieldCheck size={ICON_SIZE} />,
+  stats: <BarChart3 size={ICON_SIZE} />,
+  patchNotes: <FileText size={ICON_SIZE} />,
+  feedbackHub: <MessageSquare size={ICON_SIZE} />,
 }
 
 // League menu items configuration
@@ -172,7 +93,6 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const [pusherConnected, setPusherConnected] = useState(false)
-  const [themeSelectorOpen, setThemeSelectorOpen] = useState(false)
   const profileDropdownRef = useRef<HTMLDivElement>(null)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
 
@@ -233,6 +153,13 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
     return () => document.removeEventListener('keydown', handleEscape)
   }, [])
 
+  // Listen for BottomNavBar "Menu" tap (custom event)
+  useEffect(() => {
+    const handleOpenMobileMenu = () => setMobileMenuOpen(true)
+    window.addEventListener('open-mobile-menu', handleOpenMobileMenu)
+    return () => window.removeEventListener('open-mobile-menu', handleOpenMobileMenu)
+  }, [])
+
   // Handle keyboard navigation for profile dropdown
   const handleProfileKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -269,19 +196,17 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
           <div className="flex items-center gap-2">
             {/* Mobile menu button - a sinistra */}
             <button
-              className="lg:hidden text-gray-400 hover:text-white p-2 hover:bg-surface-300/50 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400/50"
+              className="lg:hidden text-gray-400 hover:text-white p-2 w-11 h-11 flex items-center justify-center hover:bg-surface-300/50 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400/50"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               data-testid="mobile-menu-toggle"
               aria-expanded={mobileMenuOpen}
               aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
             >
-              <svg className={`w-6 h-6 transition-transform duration-300 ${mobileMenuOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                {mobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
+              {mobileMenuOpen ? (
+                <X size={24} className={`transition-transform duration-300 ${mobileMenuOpen ? 'rotate-90' : ''}`} />
+              ) : (
+                <Menu size={24} className="transition-transform duration-300" />
+              )}
             </button>
 
             {/* Logo */}
@@ -323,9 +248,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
               {/* Admin Badge - shown when user is league admin */}
               {leagueId && isLeagueAdmin && (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-accent-500/20 to-accent-600/10 border border-accent-500/30 rounded-lg shadow-sm" data-testid="admin-badge">
-                  <svg className="w-3.5 h-3.5 text-accent-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 1l2.928 6.856L20 8.485l-5 4.428 1.325 7.087L10 16.5 3.675 20l1.325-7.087-5-4.428 7.072-.629L10 1z" clipRule="evenodd" />
-                  </svg>
+                  <Star size={14} className="text-accent-400" fill="currentColor" />
                   <span className="text-[10px] font-semibold text-accent-400 uppercase tracking-wider">Admin</span>
                 </div>
               )}
@@ -339,6 +262,21 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
               )}
             </div>
           </div>
+
+          {/* T-023: Mobile breadcrumbs - compact, shown only on small screens */}
+          {leagueId && leagueName && currentPage !== 'leagueDetail' && (
+            <nav className="flex md:hidden items-center gap-1 text-[11px] mt-1" aria-label="Mobile breadcrumb">
+              <button
+                onClick={() => onNavigate('leagueDetail', { leagueId })}
+                className="text-gray-500 hover:text-primary-300 transition-colors truncate max-w-[100px]"
+                title={leagueName}
+              >
+                {leagueName}
+              </button>
+              {MenuIcons.chevronRight}
+              <span className="text-primary-300 font-medium truncate max-w-[100px]">{getPageDisplayName(currentPage)}</span>
+            </nav>
+          )}
 
           {/* Breadcrumbs - shown on medium screens only (hidden on lg where menu is visible) */}
           {leagueId && leagueName && (
@@ -453,9 +391,6 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
               </a>
             )}
 
-            {/* Theme Selector Button */}
-            <ThemeButton onClick={() => setThemeSelectorOpen(true)} />
-
             {/* Pending Invites - shown globally */}
             <PendingInvites onNavigate={onNavigate} />
 
@@ -471,9 +406,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                   className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-white bg-surface-300/50 hover:bg-surface-300 rounded-lg transition-all duration-200 hover:shadow-md group"
                   data-testid="back-to-leagues"
                 >
-                  <svg className="w-4 h-4 transform group-hover:-translate-x-0.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                  </svg>
+                  <ArrowLeft size={16} className="transform group-hover:-translate-x-0.5 transition-transform duration-200" />
                   Leghe
                 </button>
               </>
@@ -505,9 +438,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                     {teamName || user?.username}
                   </p>
                 </div>
-                <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Profile Dropdown Menu */}
@@ -590,9 +521,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                     data-testid="logout-button-dropdown"
                     role="menuitem"
                   >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
+                    <LogOut size={16} />
                     Esci
                   </button>
                 </div>
@@ -608,9 +537,6 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
       </div>
 
     </header>
-
-    {/* Theme Selector Modal */}
-    <ThemeSelector isOpen={themeSelectorOpen} onClose={() => setThemeSelectorOpen(false)} />
 
     {/* Mobile Navigation - FUORI dall'header per evitare vincoli di altezza */}
     {mobileMenuOpen && (
@@ -657,9 +583,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
               className="p-2 text-gray-400 hover:text-white rounded-lg bg-white/10"
               aria-label="Chiudi menu"
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X size={24} />
             </button>
           </div>
 
@@ -794,20 +718,6 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
               </>
             )}
 
-            {/* Theme Selector for Mobile */}
-            <div className="border-t my-3 pt-3 border-gray-600">
-              <button
-                onClick={() => { setThemeSelectorOpen(true); setMobileMenuOpen(false) }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-surface-300/60 hover:text-white transition-colors"
-                data-testid="mobile-theme-selector"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                </svg>
-                Personalizza Tema
-              </button>
-            </div>
-
             {/* Mobile Logout */}
             <div className="border-t my-3 pt-3 border-gray-600">
               <button
@@ -815,9 +725,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-danger-400 hover:bg-danger-500/10 transition-colors"
                 data-testid="mobile-logout"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
+                <LogOut size={20} />
                 Esci
               </button>
             </div>
@@ -859,9 +767,7 @@ function NavButton({ label, active, onClick, accent, highlight, large, isAdmin, 
   const getIcon = () => {
     if (isAdmin) {
       return (
-        <svg className="w-3.5 h-3.5 transition-transform duration-200 group-hover:scale-110" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M10 1l2.928 6.856L20 8.485l-5 4.428 1.325 7.087L10 16.5 3.675 20l1.325-7.087-5-4.428 7.072-.629L10 1z" clipRule="evenodd" />
-        </svg>
+        <Star size={14} fill="currentColor" className="transition-transform duration-200 group-hover:scale-110" />
       )
     }
     if (iconKey && MenuIcons[iconKey as keyof typeof MenuIcons]) {
@@ -958,18 +864,10 @@ function MobileNavButton({ label, active, onClick, accent, highlight, icon, isAd
       return <span className="w-5 h-5 flex items-center justify-center">{iconElement}</span>
     }
     if (icon === 'back') {
-      return (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-      )
+      return <ArrowLeft size={20} />
     }
     if ((highlight || isAdmin) && !iconElement) {
-      return (
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M10 1l2.928 6.856L20 8.485l-5 4.428 1.325 7.087L10 16.5 3.675 20l1.325-7.087-5-4.428 7.072-.629L10 1z" clipRule="evenodd" />
-        </svg>
-      )
+      return <Star size={20} fill="currentColor" />
     }
     if (iconElement) {
       return <span className="w-5 h-5 flex items-center justify-center">{iconElement}</span>

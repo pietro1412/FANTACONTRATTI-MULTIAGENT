@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { Turnstile } from '../components/ui/Turnstile'
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3003')
 
@@ -10,6 +11,19 @@ export function ForgotPassword() {
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const handleTurnstileVerify = useCallback((token: string) => setTurnstileToken(token), [])
+
+  function validateEmail() {
+    if (!email.trim()) {
+      setEmailError('Inserisci la tua email')
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailError('Formato email non valido')
+    } else {
+      setEmailError('')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -20,7 +34,7 @@ export function ForgotPassword() {
       const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email, turnstileToken })
       })
 
       const data = await response.json()
@@ -39,7 +53,7 @@ export function ForgotPassword() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-dark-300 px-4">
+      <div className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-surface-200 rounded-2xl p-8 text-center">
           <div className="w-16 h-16 bg-secondary-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <svg className="w-8 h-8 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -65,7 +79,7 @@ export function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-dark-300 px-4">
+    <div className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-surface-200 rounded-2xl p-8">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-white mb-2">Password dimenticata?</h1>
@@ -88,13 +102,18 @@ export function ForgotPassword() {
             <Input
               id="email"
               type="email"
+              inputMode="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError('') }}
+              onBlur={validateEmail}
               placeholder="La tua email"
               required
               autoComplete="email"
+              error={emailError || undefined}
             />
           </div>
+
+          <Turnstile onVerify={handleTurnstileVerify} />
 
           <Button
             type="submit"

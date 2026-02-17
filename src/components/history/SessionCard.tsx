@@ -514,6 +514,7 @@ function TradesTab({ data }: { data: unknown }) {
     COUNTERED: { label: '↩', color: 'text-blue-400' },
     CANCELLED: { label: '—', color: 'text-gray-500' },
     EXPIRED: { label: '⏰', color: 'text-gray-500' },
+    INVALIDATED: { label: '⚡', color: 'text-orange-400' },
   }
 
   const formatPlayers = (players: Array<{ name: string; position: string }>) => {
@@ -546,6 +547,7 @@ function TradesTab({ data }: { data: unknown }) {
           <tbody>
             {trades.map(trade => {
               const config = statusConfig[trade.status] || { label: '?', color: 'text-gray-400' }
+              const isPending = trade.status === 'PENDING' || trade.status === 'COUNTERED'
               return (
                 <tr key={trade.id} className="border-b border-surface-50/10 hover:bg-surface-300/20">
                   <td className={`py-2 px-2 text-center font-bold ${config.color}`} title={trade.status}>
@@ -557,19 +559,27 @@ function TradesTab({ data }: { data: unknown }) {
                   <td className="py-2 px-2 text-white whitespace-nowrap">
                     {trade.receiver.teamName || trade.receiver.username}
                   </td>
-                  <td className="py-2 px-2 text-gray-300 max-w-[200px] truncate" title={formatPlayers(trade.offeredPlayers)}>
-                    {formatPlayers(trade.offeredPlayers)}
-                    {trade.offeredBudget > 0 && <span className="text-primary-400 ml-1">+{trade.offeredBudget}M</span>}
-                  </td>
-                  <td className="py-2 px-2 text-gray-300 max-w-[200px] truncate" title={formatPlayers(trade.requestedPlayers)}>
-                    {formatPlayers(trade.requestedPlayers)}
-                    {trade.requestedBudget > 0 && <span className="text-primary-400 ml-1">+{trade.requestedBudget}M</span>}
-                  </td>
-                  <td className="py-2 px-2 text-center text-gray-500 hidden sm:table-cell">
-                    {trade.offeredBudget > 0 || trade.requestedBudget > 0
-                      ? `${trade.offeredBudget}/${trade.requestedBudget}`
-                      : '-'}
-                  </td>
+                  {isPending ? (
+                    <td colSpan={3} className="py-2 px-2 text-yellow-400/70 italic text-center">
+                      Trattativa in corso
+                    </td>
+                  ) : (
+                    <>
+                      <td className="py-2 px-2 text-gray-300 max-w-[200px] truncate" title={formatPlayers(trade.offeredPlayers)}>
+                        {formatPlayers(trade.offeredPlayers)}
+                        {trade.offeredBudget > 0 && <span className="text-primary-400 ml-1">+{trade.offeredBudget}M</span>}
+                      </td>
+                      <td className="py-2 px-2 text-gray-300 max-w-[200px] truncate" title={formatPlayers(trade.requestedPlayers)}>
+                        {formatPlayers(trade.requestedPlayers)}
+                        {trade.requestedBudget > 0 && <span className="text-primary-400 ml-1">+{trade.requestedBudget}M</span>}
+                      </td>
+                      <td className="py-2 px-2 text-center text-gray-500 hidden sm:table-cell">
+                        {trade.offeredBudget > 0 || trade.requestedBudget > 0
+                          ? `${trade.offeredBudget}/${trade.requestedBudget}`
+                          : '-'}
+                      </td>
+                    </>
+                  )}
                 </tr>
               )
             })}

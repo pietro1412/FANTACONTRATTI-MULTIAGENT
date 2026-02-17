@@ -8,19 +8,10 @@ const prisma = new PrismaClient()
 
 async function simulateOffers() {
   try {
-    // Find admin_lega
-    const adminUser = await prisma.user.findFirst({
-      where: { username: 'admin_lega' }
-    })
-
-    if (!adminUser) {
-      console.error('admin_lega not found!')
-      return
-    }
-
-    const league = await prisma.league.findFirst({
-      where: { name: 'Lega Fantacontratti 2025' }
-    })
+    const leagueId = process.argv[2] || null
+    const league = leagueId
+      ? await prisma.league.findUnique({ where: { id: leagueId } })
+      : await prisma.league.findFirst({ where: { name: 'Lega Fantacontratti 2025' } })
 
     if (!league) {
       console.error('League not found!')
@@ -43,28 +34,30 @@ async function simulateOffers() {
 
     console.log(`Market session: ${marketSession.id} (${marketSession.currentPhase})`)
 
-    // Find admin_lega's membership
+    // Find the admin member for this league
     const adminMember = await prisma.leagueMember.findFirst({
-      where: { leagueId: league.id, userId: adminUser.id, status: 'ACTIVE' },
+      where: { leagueId: league.id, role: 'ADMIN', status: 'ACTIVE' },
       include: {
+        user: { select: { id: true, username: true } },
         roster: { where: { status: 'ACTIVE' }, include: { player: true } }
       }
     })
 
     if (!adminMember) {
-      console.error('admin_lega membership not found!')
+      console.error('Admin membership not found!')
       return
     }
 
-    console.log(`Admin member: ${adminMember.id}`)
+    const adminUser = adminMember.user
+    console.log(`Admin: ${adminUser.username} (${adminMember.id})`)
     console.log(`Admin has ${adminMember.roster.length} players`)
 
-    // Find other managers (need their user IDs)
+    // Find other managers
     const otherMembers = await prisma.leagueMember.findMany({
       where: {
         leagueId: league.id,
         status: 'ACTIVE',
-        userId: { not: adminUser.id }
+        id: { not: adminMember.id }
       },
       include: {
         user: { select: { id: true, username: true } },

@@ -1,6 +1,17 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { rubataApi, leagueApi } from '../services/api'
+import { AUTO_TAG_DEFS, type AutoTagId } from '../services/player-stats.service'
+
+// Watchlist categories (#219)
+const WATCHLIST_CATEGORIES = {
+  DA_RUBARE: { label: 'Da Rubare', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: 'T' },
+  SOTTO_OSSERVAZIONE: { label: 'Osservazione', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: 'O' },
+  POTENZIALE_ACQUISTO: { label: 'Pot. Acquisto', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: 'A' },
+  SCAMBIO: { label: 'Scambio', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: 'S' },
+  DA_VENDERE: { label: 'Da Vendere', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', icon: 'V' },
+} as const
+type WatchlistCategoryId = keyof typeof WATCHLIST_CATEGORIES
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../utils/player-images'
@@ -42,6 +53,7 @@ interface StrategyPlayer {
   playerApiFootballId?: number | null
   playerApiFootballStats?: PlayerStats | null
   playerComputedStats?: ComputedSeasonStats | null
+  playerAutoTags?: AutoTagId[]
   ownerUsername: string
   ownerTeamName: string | null
   ownerRubataOrder: number | null
@@ -60,6 +72,7 @@ interface SvincolatoPlayer {
   playerApiFootballId?: number | null
   playerApiFootballStats?: PlayerStats | null
   playerComputedStats?: ComputedSeasonStats | null
+  playerAutoTags?: AutoTagId[]
 }
 
 interface RubataPreference {
@@ -71,6 +84,7 @@ interface RubataPreference {
   notes: string | null
   isWatchlist: boolean
   isAutoPass: boolean
+  watchlistCategory: string | null
 }
 
 interface StrategyPlayerWithPreference extends StrategyPlayer {
@@ -101,7 +115,7 @@ interface SvincolatiData {
   totalPlayers: number
 }
 
-type ViewMode = 'myRoster' | 'owned' | 'svincolati' | 'all'
+type ViewMode = 'myRoster' | 'owned' | 'svincolati' | 'all' | 'overview'
 type DataViewMode = 'contracts' | 'stats' | 'merge'
 
 // Stats column definitions for stats/merge views
@@ -391,6 +405,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     notes,
                     isWatchlist: hasStrategy,
                     isAutoPass: false,
+                    watchlistCategory: p.preference?.watchlistCategory || null,
                   } : null
                 }
               }
@@ -410,6 +425,42 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       })
     }
   }, [leagueId])
+
+  // Set watchlist category for a player (immediate save, no debounce) (#219)
+  const setWatchlistCategory = useCallback(async (playerId: string, category: string | null) => {
+    if (!leagueId) return
+    setSavingPlayerIds(prev => new Set(prev).add(playerId))
+    try {
+      await rubataApi.setPreference(leagueId, playerId, {
+        watchlistCategory: category,
+        isWatchlist: category !== null,
+      })
+      // Optimistic update for both datasets
+      const updatePlayer = (p: StrategyPlayerWithPreference | SvincolatoPlayerWithPreference) => {
+        if (p.playerId !== playerId) return p
+        return {
+          ...p,
+          preference: {
+            id: p.preference?.id || 'temp',
+            playerId,
+            memberId: strategiesData?.myMemberId || '',
+            maxBid: p.preference?.maxBid ?? null,
+            priority: p.preference?.priority ?? null,
+            notes: p.preference?.notes ?? null,
+            isWatchlist: category !== null,
+            isAutoPass: p.preference?.isAutoPass ?? false,
+            watchlistCategory: category,
+          }
+        }
+      }
+      setStrategiesData(prev => prev ? { ...prev, players: prev.players.map(updatePlayer) } : prev)
+      setSvincolatiData(prev => prev ? { ...prev, players: prev.players.map(updatePlayer) } : prev)
+    } catch {
+      console.error('Error setting watchlist category for', playerId)
+    } finally {
+      setSavingPlayerIds(prev => { const next = new Set(prev); next.delete(playerId); return next })
+    }
+  }, [leagueId, strategiesData?.myMemberId])
 
   // Update local strategy with debounced save
   const updateLocalStrategy = useCallback((
@@ -681,7 +732,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="strategie-rubata" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <main className="max-w-[1600px] mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-20">
@@ -693,7 +744,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   }
 
   return (
-    <div className="min-h-screen bg-dark-300 pb-6">
+    <div className="min-h-screen pb-6">
       <Navigation currentPage="strategie-rubata" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
       <main className="max-w-[1600px] mx-auto px-4 py-6">
@@ -761,9 +812,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           ? 'bg-violet-500 text-white shadow-md'
                           : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
                       }`}
-                      title="Vista mista"
+                      title="Vista mista contratti e statistiche"
                     >
-                      🔀 Merge
+                      🔀 Contratti e Stats
                     </button>
                   </div>
                   <div className="text-sm text-gray-400">
@@ -839,11 +890,22 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       {(strategiesData?.players.length || 0) + (svincolatiData?.players.length || 0)}
                     </span>
                   </button>
+                  <button
+                    onClick={() => { setViewMode('overview'); setOwnerFilter('ALL'); }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                      viewMode === 'overview'
+                        ? 'bg-accent-500 text-white shadow-lg shadow-accent-500/25'
+                        : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
+                    }`}
+                    title="Overview watchlist e priorità"
+                  >
+                    <span>📋 Overview</span>
+                  </button>
                 </div>
               </div>
 
-              {/* LEVEL 3: Filters */}
-              <div className="p-2 border-b border-surface-50/20 bg-surface-300/30">
+              {/* LEVEL 3: Filters (hidden in overview mode) */}
+              {viewMode !== 'overview' && <div className="p-2 border-b border-surface-50/20 bg-surface-300/30">
                 {/* Row 1: Position + Dropdowns */}
                 <div className="flex flex-wrap items-center gap-2 mb-2">
                   {/* Position Filter Group */}
@@ -942,10 +1004,140 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     </div>
                   )}
                 </div>
-              </div>
+              </div>}
+
+              {/* Overview Tab #219 */}
+              {viewMode === 'overview' && (
+                <div className="p-4 space-y-6">
+                  {/* Category cards */}
+                  {(Object.entries(WATCHLIST_CATEGORIES) as [WatchlistCategoryId, typeof WATCHLIST_CATEGORIES[WatchlistCategoryId]][]).map(([catId, cat]) => {
+                    // Collect all players in this category from both datasets
+                    const categoryPlayers: DisplayPlayer[] = []
+                    strategiesData?.players.forEach(p => {
+                      if (p.preference?.watchlistCategory === catId) {
+                        const isMy = p.memberId === myMemberId
+                        categoryPlayers.push({ ...p, type: isMy ? 'myRoster' : 'owned' })
+                      }
+                    })
+                    svincolatiData?.players.forEach(p => {
+                      if (p.preference?.watchlistCategory === catId) {
+                        categoryPlayers.push({ ...p, type: 'svincolato' })
+                      }
+                    })
+
+                    return (
+                      <div key={catId} className={`rounded-xl border ${cat.color} p-4`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="font-semibold text-base">{cat.icon} {cat.label}</h3>
+                          <span className="text-xs opacity-70">{categoryPlayers.length} giocatori</span>
+                        </div>
+                        {categoryPlayers.length === 0 ? (
+                          <p className="text-xs text-gray-500 italic">Nessun giocatore in questa categoria</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {categoryPlayers.map(player => {
+                              const posC = POSITION_COLORS[player.playerPosition] ?? { bg: 'bg-gray-500', text: 'text-white', border: '' }
+                              const local = getLocalStrategy(player.playerId)
+                              return (
+                                <div key={player.playerId} className="flex items-center gap-3 bg-surface-300/50 rounded-lg p-2">
+                                  <span className={`w-8 h-8 rounded-full ${posC.bg} ${posC.text} flex items-center justify-center text-xs font-bold flex-shrink-0`}>
+                                    {player.playerPosition}
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium text-white truncate">{player.playerName}</div>
+                                    <div className="text-[10px] text-gray-500">{player.playerTeam} {player.type === 'svincolato' ? '(Svincolato)' : `(${(player as StrategyPlayerWithPreference).ownerUsername || ''})`}</div>
+                                  </div>
+                                  {local.priority > 0 && (
+                                    <span className="text-purple-400 text-xs font-bold">{'★'.repeat(local.priority)}</span>
+                                  )}
+                                  {local.maxBid && (
+                                    <span className="text-accent-400 text-xs font-bold">{local.maxBid}M</span>
+                                  )}
+                                  {/* Auto-tags */}
+                                  {player.playerAutoTags && player.playerAutoTags.length > 0 && (
+                                    <div className="flex gap-1">
+                                      {player.playerAutoTags.slice(0, 2).map(tagId => {
+                                        const def = AUTO_TAG_DEFS[tagId]
+                                        return def ? (
+                                          <span key={tagId} className={`text-[9px] px-1 py-0.5 rounded-full bg-surface-300 ${def.color}`} title={def.description}>
+                                            {def.icon}
+                                          </span>
+                                        ) : null
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+
+                  {/* Top Priority Players */}
+                  <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
+                    <h3 className="font-semibold text-base text-purple-400 mb-3">Top Priorità</h3>
+                    {(() => {
+                      const allWithPriority: DisplayPlayer[] = []
+                      strategiesData?.players.forEach(p => {
+                        const local = getLocalStrategy(p.playerId)
+                        if (local.priority > 0) {
+                          const isMy = p.memberId === myMemberId
+                          allWithPriority.push({ ...p, type: isMy ? 'myRoster' : 'owned' })
+                        }
+                      })
+                      svincolatiData?.players.forEach(p => {
+                        const local = getLocalStrategy(p.playerId)
+                        if (local.priority > 0) {
+                          allWithPriority.push({ ...p, type: 'svincolato' })
+                        }
+                      })
+                      allWithPriority.sort((a, b) => {
+                        const prioA = getLocalStrategy(a.playerId).priority
+                        const prioB = getLocalStrategy(b.playerId).priority
+                        return prioB - prioA
+                      })
+
+                      if (allWithPriority.length === 0) {
+                        return <p className="text-xs text-gray-500 italic">Nessun giocatore con priorità impostata</p>
+                      }
+
+                      return (
+                        <div className="space-y-2">
+                          {allWithPriority.slice(0, 10).map(player => {
+                            const posC = POSITION_COLORS[player.playerPosition] ?? { bg: 'bg-gray-500', text: 'text-white', border: '' }
+                            const local = getLocalStrategy(player.playerId)
+                            const catId = player.preference?.watchlistCategory as WatchlistCategoryId | null
+                            const cat = catId ? WATCHLIST_CATEGORIES[catId] : null
+                            return (
+                              <div key={player.playerId} className="flex items-center gap-3 bg-surface-300/50 rounded-lg p-2">
+                                <span className={`w-8 h-8 rounded-full ${posC.bg} ${posC.text} flex items-center justify-center text-xs font-bold flex-shrink-0`}>
+                                  {player.playerPosition}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium text-white truncate">{player.playerName}</div>
+                                  <div className="text-[10px] text-gray-500">{player.playerTeam}</div>
+                                </div>
+                                <span className="text-purple-400 text-sm font-bold">{'★'.repeat(local.priority)}</span>
+                                {local.maxBid && (
+                                  <span className="text-accent-400 text-xs font-bold">{local.maxBid}M</span>
+                                )}
+                                {cat && (
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${cat.color}`}>{cat.icon}</span>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                </div>
+              )}
 
               {/* Mobile Card Layout */}
-              <div className="md:hidden space-y-3 p-3">
+              {viewMode !== 'overview' && <div className="md:hidden space-y-3 p-3">
                 {filteredPlayers.map(player => {
                   const defaultColors = { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white', border: '' }
                   const posColors = POSITION_COLORS[player.playerPosition] ?? defaultColors
@@ -1007,6 +1199,19 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           >
                             {player.playerName}
                           </button>
+                          {/* Auto-tags #220 */}
+                          {player.playerAutoTags && player.playerAutoTags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-0.5">
+                              {player.playerAutoTags.map(tagId => {
+                                const def = AUTO_TAG_DEFS[tagId]
+                                return def ? (
+                                  <span key={tagId} className={`text-[10px] px-1.5 py-0.5 rounded-full bg-surface-300 ${def.color} font-medium`} title={def.description}>
+                                    {def.icon} {def.label}
+                                  </span>
+                                ) : null
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
                       {/* Player details: Squadra, Età, Owner */}
@@ -1082,19 +1287,34 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           {/* Max Bid */}
                           <div className="flex items-center gap-1">
                             <span className="text-[10px] text-gray-500 uppercase">Max:</span>
-                            <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, (parseInt(local.maxBid) || 0) - 1).toString())} className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 text-sm font-bold">−</button>
-                            <input type="number" value={local.maxBid} onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)} placeholder="-" className="w-12 px-1 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-center text-sm" />
-                            <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', ((parseInt(local.maxBid) || 0) + 1).toString())} className="w-6 h-6 rounded bg-surface-300/70 text-gray-400 text-sm font-bold">+</button>
+                            <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, (parseInt(local.maxBid) || 0) - 1).toString())} className="w-6 h-6 min-h-[44px] min-w-[44px] rounded bg-surface-300/70 text-gray-400 text-sm font-bold flex items-center justify-center">−</button>
+                            <input type="number" inputMode="decimal" value={local.maxBid} onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)} placeholder="-" className="w-12 px-1 py-1 min-h-[44px] bg-surface-300/50 border border-surface-50/30 rounded text-white text-center text-sm" />
+                            <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', ((parseInt(local.maxBid) || 0) + 1).toString())} className="w-6 h-6 min-h-[44px] min-w-[44px] rounded bg-surface-300/70 text-gray-400 text-sm font-bold flex items-center justify-center">+</button>
                           </div>
                           {/* Priority - increased size #186 */}
                           <div className="flex items-center gap-0.5 ml-auto">
                             {[1, 2, 3, 4, 5].map(star => (
-                              <button key={star} onClick={() => updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star)} className={`w-8 h-8 text-xl ${local.priority >= star ? 'text-purple-400' : 'text-gray-600'}`}>★</button>
+                              <button key={star} onClick={() => updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star)} className={`w-8 h-8 min-h-[44px] min-w-[44px] text-xl flex items-center justify-center ${local.priority >= star ? 'text-purple-400' : 'text-gray-600'}`}>★</button>
                             ))}
                           </div>
                         </div>
                         {/* Notes */}
                         <input type="text" value={local.notes} onChange={(e) => updateLocalStrategy(player.playerId, 'notes', e.target.value)} placeholder="Note..." className="w-full px-2 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-sm" />
+                        {/* Watchlist Category #219 */}
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {(Object.entries(WATCHLIST_CATEGORIES) as [WatchlistCategoryId, typeof WATCHLIST_CATEGORIES[WatchlistCategoryId]][]).map(([catId, cat]) => {
+                            const isActive = player.preference?.watchlistCategory === catId
+                            return (
+                              <button
+                                key={catId}
+                                onClick={() => setWatchlistCategory(player.playerId, isActive ? null : catId)}
+                                className={`px-2 py-1 rounded-full text-[10px] font-medium border transition-all ${isActive ? cat.color : 'bg-surface-300/50 text-gray-500 border-surface-50/20 hover:text-gray-300'}`}
+                              >
+                                {cat.icon} {cat.label}
+                              </button>
+                            )
+                          })}
+                        </div>
                       </div>
                     </div>
                   )
@@ -1102,10 +1322,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                 {filteredPlayers.length === 0 && (
                   <div className="text-center text-gray-500 py-8">Nessun giocatore trovato</div>
                 )}
-              </div>
+              </div>}
 
               {/* Desktop Table */}
-              <div className="hidden md:block overflow-x-auto">
+              {viewMode !== 'overview' && <div className="hidden md:block overflow-x-auto">
                 <table className="w-full min-w-[900px] text-sm">
                   <thead className="bg-surface-300/50">
                     {/* Group headers */}
@@ -1119,12 +1339,15 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           Contratto
                         </th>
                       )}
+                      {dataViewMode === 'contracts' && (
+                        <th className="text-center py-1 px-3 bg-cyan-500/10 border-l border-surface-50/20">Stat</th>
+                      )}
                       {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
                         <th colSpan={dataViewMode === 'stats' ? STATS_COLUMNS.length : MERGE_STATS_KEYS.length} className="text-center py-1 px-3 bg-cyan-500/10 border-l border-surface-50/20">
                           Statistiche
                         </th>
                       )}
-                      <th colSpan={3} className="text-center py-1 px-3 bg-indigo-500/10 border-l border-surface-50/20">
+                      <th colSpan={4} className="text-center py-1 px-3 bg-indigo-500/10 border-l border-surface-50/20">
                         Strategia
                       </th>
                     </tr>
@@ -1153,6 +1376,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           <SortableHeader field="rubata" label="Rub." className="text-center p-2" />
                         </>
                       )}
+                      {dataViewMode === 'contracts' && (
+                        <th className="text-center p-2 text-cyan-400 border-l border-surface-50/20" title="Rating medio">Rat</th>
+                      )}
                       {/* Stats columns */}
                       {dataViewMode === 'stats' && STATS_COLUMNS.map((col, idx) => (
                         <th key={col.key} className={`text-center p-2 ${col.colorClass || ''} ${idx === 0 ? 'border-l border-surface-50/20' : ''}`} title={col.label}>
@@ -1168,6 +1394,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       <th className="text-center p-2 bg-indigo-500/5 border-l border-surface-50/20">Max</th>
                       <th className="text-center p-2 bg-indigo-500/5">★</th>
                       <th className="text-left p-2 bg-indigo-500/5">Note</th>
+                      <th className="text-center p-2 bg-indigo-500/5">Cat.</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1230,20 +1457,35 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                   {player.playerPosition}
                                 </div>
                               </div>
-                              <button
-                                onClick={() => setSelectedPlayerStats({
-                                  name: player.playerName,
-                                  team: player.playerTeam,
-                                  position: player.playerPosition,
-                                  quotation: isSvincolato ? undefined : player.playerQuotation,
-                                  age: player.playerAge,
-                                  apiFootballId: player.playerApiFootballId,
-                                  computedStats: player.playerComputedStats,
-                                })}
-                                className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
-                              >
-                                {player.playerName}
-                              </button>
+                              <div className="min-w-0">
+                                <button
+                                  onClick={() => setSelectedPlayerStats({
+                                    name: player.playerName,
+                                    team: player.playerTeam,
+                                    position: player.playerPosition,
+                                    quotation: isSvincolato ? undefined : player.playerQuotation,
+                                    age: player.playerAge,
+                                    apiFootballId: player.playerApiFootballId,
+                                    computedStats: player.playerComputedStats,
+                                  })}
+                                  className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
+                                >
+                                  {player.playerName}
+                                </button>
+                                {/* Auto-tags #220 */}
+                                {player.playerAutoTags && player.playerAutoTags.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-0.5">
+                                    {player.playerAutoTags.map(tagId => {
+                                      const def = AUTO_TAG_DEFS[tagId]
+                                      return def ? (
+                                        <span key={tagId} className={`text-[10px] px-1.5 py-0.5 rounded-full bg-surface-300 ${def.color} font-medium`} title={def.description}>
+                                          {def.icon} {def.label}
+                                        </span>
+                                      ) : null
+                                    })}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </td>
 
@@ -1328,6 +1570,15 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             </>
                           )}
 
+                          {/* Rating column in contracts view */}
+                          {dataViewMode === 'contracts' && (
+                            <td className="p-2 text-center text-xs text-cyan-400 border-l border-surface-50/10">
+                              {player.playerComputedStats?.avgRating != null
+                                ? player.playerComputedStats.avgRating.toFixed(1)
+                                : '-'}
+                            </td>
+                          )}
+
                           {/* Stats columns - full set for stats view (using computedStats for main stats) */}
                           {dataViewMode === 'stats' && STATS_COLUMNS.map((col, idx) => {
                             // Use computedStats for main stats (more accurate data)
@@ -1381,6 +1632,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               </button>
                               <input
                                 type="number"
+                                inputMode="decimal"
                                 value={local.maxBid}
                                 onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)}
                                 placeholder="-"
@@ -1436,6 +1688,20 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               }`}
                             />
                           </td>
+
+                          {/* Watchlist Category #219 */}
+                          <td className="p-2 bg-indigo-500/5">
+                            <select
+                              value={player.preference?.watchlistCategory || ''}
+                              onChange={(e) => setWatchlistCategory(player.playerId, e.target.value || null)}
+                              className="w-full min-w-[80px] px-1 py-0.5 bg-surface-300/50 border border-surface-50/30 rounded text-xs focus:border-blue-500 focus:outline-none text-white"
+                            >
+                              <option value="">-</option>
+                              {(Object.entries(WATCHLIST_CATEGORIES) as [WatchlistCategoryId, typeof WATCHLIST_CATEGORIES[WatchlistCategoryId]][]).map(([catId, cat]) => (
+                                <option key={catId} value={catId}>{cat.icon} {cat.label}</option>
+                              ))}
+                            </select>
+                          </td>
                         </tr>
                       )
                     })}
@@ -1447,6 +1713,18 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     Nessun giocatore trovato
                   </div>
                 )}
+              </div>}
+
+              {/* Legend */}
+              <div className="p-3 border-t border-surface-50/20 bg-surface-300/20 text-[10px] text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
+                <span><b className="text-accent-400">Ing.</b> = Ingaggio</span>
+                <span><b>Dur.</b> = Durata contratto (semestri)</span>
+                <span><b className="text-orange-400">Cls</b> = Clausola rescissoria</span>
+                <span><b>Rub.</b> = Prezzo rubata</span>
+                <span><b>Max</b> = Offerta massima</span>
+                <span><b>★</b> = Priorità (1-3)</span>
+                <span><b>Rat</b> = Rating medio</span>
+                <span><b>Gol</b> / <b>Ass</b> = Gol / Assist</span>
               </div>
 
               {/* Footer */}

@@ -1,5 +1,7 @@
 import { PrismaClient, MemberStatus, RosterStatus, TradeStatus } from '@prisma/client'
 import { recordMovement } from './movement.service'
+import { notifyTradeOffer, notifyTradeInvalidated } from './notification.service'
+import { triggerTradeOfferReceived, triggerTradeUpdated } from './pusher.service'
 
 const prisma = new PrismaClient()
 
@@ -7,6 +9,7 @@ export interface ServiceResult {
   success: boolean
   message?: string
   data?: unknown
+  warnings?: string[]
 }
 
 // ==================== PHASE CHECK ====================
@@ -138,6 +141,30 @@ export async function createTradeOffer(
   // Combine all involved player IDs
   const involvedPlayers = [...offeredPlayerIds, ...requestedPlayerIds]
 
+  // Check for players already in pending offers (warning only, not blocking)
+  const warnings: string[] = []
+  if (involvedPlayers.length > 0) {
+    const existingPendingOffers = await prisma.tradeOffer.findMany({
+      where: {
+        marketSessionId: activeSession.id,
+        status: TradeStatus.PENDING,
+        OR: [
+          { senderId: fromUserId },
+          { receiverId: fromUserId },
+        ],
+      },
+    })
+
+    const playersInOtherOffers = existingPendingOffers.filter(offer => {
+      const involved = offer.involvedPlayers as string[]
+      return involved.some(pid => involvedPlayers.includes(pid))
+    })
+
+    if (playersInOtherOffers.length > 0) {
+      warnings.push(`Attenzione: ${playersInOtherOffers.length} offerta/e in corso coinvolgono gli stessi giocatori. Se una viene accettata, le altre decadranno automaticamente.`)
+    }
+  }
+
   // Calculate expiration date
   const expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000)
 
@@ -162,10 +189,27 @@ export async function createTradeOffer(
     },
   })
 
+  // Send push notification to receiver (fire-and-forget)
+  const league = await prisma.league.findUnique({ where: { id: leagueId }, select: { name: true } })
+  notifyTradeOffer(
+    toMember.userId,
+    trade.sender.username,
+    league?.name || 'Lega'
+  ).catch(() => {}) // non-blocking
+
+  // Real-time Pusher notification (fire-and-forget)
+  triggerTradeOfferReceived(leagueId, {
+    tradeId: trade.id,
+    senderUsername: trade.sender.username,
+    receiverUserId: toMember.userId,
+    timestamp: new Date().toISOString(),
+  }).catch(() => {})
+
   return {
     success: true,
     message: 'Offerta inviata',
     data: trade,
+    warnings: warnings.length > 0 ? warnings : undefined,
   }
 }
 
@@ -447,6 +491,51 @@ export async function acceptTrade(tradeId: string, userId: string): Promise<Serv
   const offeredPlayerIds = trade.offeredPlayers as string[]
   const requestedPlayerIds = trade.requestedPlayers as string[]
 
+  // Re-validate player ownership (may have changed since offer was created)
+  if (offeredPlayerIds.length > 0) {
+    const validOffered = await prisma.playerRoster.findMany({
+      where: {
+        id: { in: offeredPlayerIds },
+        leagueMemberId: senderMember.id,
+        status: RosterStatus.ACTIVE,
+      },
+    })
+    if (validOffered.length !== offeredPlayerIds.length) {
+      await prisma.tradeOffer.update({
+        where: { id: tradeId },
+        data: { status: TradeStatus.INVALIDATED, respondedAt: new Date() },
+      })
+      triggerTradeUpdated(leagueId, {
+        tradeId,
+        newStatus: 'INVALIDATED',
+        timestamp: new Date().toISOString(),
+      }).catch(() => {})
+      return { success: false, message: 'Alcuni giocatori offerti non sono più nella rosa del mittente. L\'offerta è stata invalidata.' }
+    }
+  }
+
+  if (requestedPlayerIds.length > 0) {
+    const validRequested = await prisma.playerRoster.findMany({
+      where: {
+        id: { in: requestedPlayerIds },
+        leagueMemberId: receiverMember.id,
+        status: RosterStatus.ACTIVE,
+      },
+    })
+    if (validRequested.length !== requestedPlayerIds.length) {
+      await prisma.tradeOffer.update({
+        where: { id: tradeId },
+        data: { status: TradeStatus.INVALIDATED, respondedAt: new Date() },
+      })
+      triggerTradeUpdated(leagueId, {
+        tradeId,
+        newStatus: 'INVALIDATED',
+        timestamp: new Date().toISOString(),
+      }).catch(() => {})
+      return { success: false, message: 'Alcuni giocatori richiesti non sono più nella rosa del destinatario. L\'offerta è stata invalidata.' }
+    }
+  }
+
   // Execute trade in transaction
   await prisma.$transaction(async (tx) => {
     // Transfer offered players (from sender to receiver)
@@ -513,6 +602,58 @@ export async function acceptTrade(tradeId: string, userId: string): Promise<Serv
       },
     })
   })
+
+  // === AUTO-INVALIDATE CONFLICTING OFFERS ===
+  const allInvolvedPlayerIds = [...offeredPlayerIds, ...requestedPlayerIds]
+
+  // Find all PENDING offers in this session that may overlap
+  const conflictingOffers = await prisma.tradeOffer.findMany({
+    where: {
+      id: { not: tradeId },
+      marketSessionId: trade.marketSessionId,
+      status: TradeStatus.PENDING,
+    },
+  })
+
+  // Filter by involvedPlayers overlap (JSON field)
+  const offersToInvalidate = conflictingOffers.filter(offer => {
+    const involved = offer.involvedPlayers as string[]
+    return involved.some(pid => allInvolvedPlayerIds.includes(pid))
+  })
+
+  if (offersToInvalidate.length > 0) {
+    // Bulk update to INVALIDATED
+    await prisma.tradeOffer.updateMany({
+      where: { id: { in: offersToInvalidate.map(o => o.id) } },
+      data: { status: TradeStatus.INVALIDATED, respondedAt: new Date() },
+    })
+
+    // Collect affected managers (exclude the 2 already in the accepted trade)
+    const affectedUserIds = new Set<string>()
+    for (const offer of offersToInvalidate) {
+      affectedUserIds.add(offer.senderId)
+      affectedUserIds.add(offer.receiverId)
+    }
+    affectedUserIds.delete(trade.senderId)
+    affectedUserIds.delete(trade.receiverId)
+
+    // Send Pusher events for each invalidated offer
+    for (const offer of offersToInvalidate) {
+      triggerTradeUpdated(leagueId, {
+        tradeId: offer.id,
+        newStatus: 'INVALIDATED',
+        timestamp: new Date().toISOString(),
+      }).catch(() => {})
+    }
+
+    // Send push notifications to affected managers
+    if (affectedUserIds.size > 0) {
+      const league = await prisma.league.findUnique({ where: { id: leagueId }, select: { name: true } })
+      for (const uid of affectedUserIds) {
+        notifyTradeInvalidated(uid, league?.name || 'Lega').catch(() => {})
+      }
+    }
+  }
 
   // Record movements for each traded player
   // Get offered players details
@@ -587,6 +728,13 @@ export async function acceptTrade(tradeId: string, userId: string): Promise<Serv
     } : null,
   }))
 
+  // Real-time Pusher notification (fire-and-forget)
+  triggerTradeUpdated(leagueId, {
+    tradeId,
+    newStatus: 'ACCEPTED',
+    timestamp: new Date().toISOString(),
+  }).catch(() => {})
+
   return {
     success: true,
     message: 'Scambio completato!',
@@ -616,13 +764,21 @@ export async function rejectTrade(tradeId: string, userId: string): Promise<Serv
     return { success: false, message: 'Questa offerta non è più valida' }
   }
 
-  await prisma.tradeOffer.update({
+  const updatedTrade = await prisma.tradeOffer.update({
     where: { id: tradeId },
     data: {
       status: TradeStatus.REJECTED,
       respondedAt: new Date(),
     },
+    include: { marketSession: { select: { leagueId: true } } },
   })
+
+  // Real-time Pusher notification (fire-and-forget)
+  triggerTradeUpdated(updatedTrade.marketSession.leagueId, {
+    tradeId,
+    newStatus: 'REJECTED',
+    timestamp: new Date().toISOString(),
+  }).catch(() => {})
 
   return {
     success: true,
@@ -725,7 +881,7 @@ export async function getTradeHistory(leagueId: string, userId: string): Promise
   const trades = await prisma.tradeOffer.findMany({
     where: {
       marketSession: { leagueId },
-      status: { in: [TradeStatus.ACCEPTED, TradeStatus.REJECTED] },
+      status: { in: [TradeStatus.ACCEPTED, TradeStatus.REJECTED, TradeStatus.INVALIDATED, TradeStatus.CANCELLED, TradeStatus.EXPIRED] },
     },
     include: {
       sender: { select: { id: true, username: true } },
@@ -816,12 +972,20 @@ export async function cancelTradeOffer(tradeId: string, userId: string): Promise
     return { success: false, message: 'Questa offerta non può essere cancellata' }
   }
 
-  await prisma.tradeOffer.update({
+  const cancelledTrade = await prisma.tradeOffer.update({
     where: { id: tradeId },
     data: {
       status: TradeStatus.CANCELLED,
     },
+    include: { marketSession: { select: { leagueId: true } } },
   })
+
+  // Real-time Pusher notification (fire-and-forget)
+  triggerTradeUpdated(cancelledTrade.marketSession.leagueId, {
+    tradeId,
+    newStatus: 'CANCELLED',
+    timestamp: new Date().toISOString(),
+  }).catch(() => {})
 
   return {
     success: true,

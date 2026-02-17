@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
 import { contractApi, leagueApi } from '../services/api'
 import { Button } from '../components/ui/Button'
+import { Tooltip } from '../components/ui/Tooltip'
+import { StickyActionBar } from '../components/ui/StickyActionBar'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
 import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
 import { getPlayerPhotoUrl } from '../utils/player-images'
+import haptic from '../utils/haptics'
 
 interface ContractsProps {
   leagueId: string
@@ -150,7 +153,7 @@ const DURATION_MULTIPLIERS: Record<number, number> = {
   4: 11,
   3: 9,
   2: 7,
-  1: 4,
+  1: 3,
 }
 
 // Massimo numero di giocatori in rosa dopo consolidamento
@@ -186,8 +189,13 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   const [filterRole, setFilterRole] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Tab contratti (T-006)
+  const [contractTab, setContractTab] = useState<'rinnovi' | 'nuovi' | 'usciti'>('rinnovi')
+
   // State for player stats modal
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerInfo | null>(null)
+  // Auto-select initial tab based on data (T-006)
+  const [tabInitialized, setTabInitialized] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -284,6 +292,21 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         }
       })
       setLocalReleases(releases)
+
+      // T-006: Auto-select initial tab
+      if (!tabInitialized) {
+        if (data.pendingContracts.length > 0) {
+          setContractTab('nuovi')
+        } else {
+          const hasUndecidedExited = data.contracts.some(c => c.isExitedPlayer && !c.draftExitDecision)
+          if (hasUndecidedExited) {
+            setContractTab('usciti')
+          } else {
+            setContractTab('rinnovi')
+          }
+        }
+        setTabInitialized(true)
+      }
     }
     setIsLoading(false)
   }
@@ -460,6 +483,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     }))
     const result = await contractApi.saveDrafts(leagueId, renewals, newContracts, Array.from(localReleases), exitDecisionsArray)
     if (result.success) {
+      haptic.save()
       setSuccess('Bozze salvate! Puoi tornare a modificarle in qualsiasi momento.')
       await loadContracts() // Ricarica per aggiornare i draft
     } else {
@@ -506,6 +530,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     // Invia al backend
     const result = await contractApi.consolidateAll(leagueId, renewals, newContracts)
     if (result.success) {
+      haptic.success()
       setSuccess(result.message || 'Contratti consolidati!')
       setIsConsolidated(true)
       const data = result.data as { consolidatedAt?: string }
@@ -865,7 +890,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dark-300">
+      <div className="min-h-screen">
         <Navigation currentPage="contracts" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <div className="flex items-center justify-center h-[80vh]">
           <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
@@ -875,7 +900,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   }
 
   return (
-    <div className="min-h-screen bg-dark-300 pb-20">
+    <div className="min-h-screen pb-20">
       <Navigation currentPage="contracts" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
       {/* Header compatto - sticky sotto la Navigation su desktop */}
@@ -929,6 +954,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Cerca..."
+                inputMode="search"
+                enterKeyHint="search"
                 className="w-32 px-2 py-1 bg-surface-300 border border-surface-50/30 rounded text-white text-sm"
               />
               <select
@@ -942,6 +969,27 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 <option value="C">C</option>
                 <option value="A">A</option>
               </select>
+            </div>
+
+            {/* Duration color legend */}
+            <div className="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
+              <span>Durata:</span>
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded bg-gradient-to-r from-red-500 to-red-600" />
+                1 sem
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded bg-gradient-to-r from-yellow-500 to-yellow-600" />
+                2 sem
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded bg-gradient-to-r from-green-500 to-green-600" />
+                3 sem
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded bg-gradient-to-r from-blue-500 to-blue-600" />
+                4+ sem
+              </span>
             </div>
 
             {/* Azioni - Desktop only */}
@@ -989,6 +1037,42 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         </div>
       )}
 
+      {/* T-006: Tab bar */}
+      {inContrattiPhase && !isConsolidated && (
+        <div className="max-w-[1600px] mx-auto px-4 pt-3">
+          <div className="flex gap-1 bg-surface-300/30 p-1 rounded-xl border border-surface-50/20">
+            {([
+              { key: 'rinnovi' as const, label: 'Rinnovi', count: filteredContracts.length, icon: '📝' },
+              { key: 'nuovi' as const, label: 'Nuovi', count: filteredPending.length, icon: '⚡', alert: filteredPending.length > 0 },
+              { key: 'usciti' as const, label: 'Usciti', count: exitedContracts.length, icon: '⚖️', alert: exitedContracts.length > 0 },
+            ]).map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setContractTab(tab.key)}
+                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  contractTab === tab.key
+                    ? 'bg-surface-200 text-white shadow-md border border-surface-50/20'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-surface-300/30'
+                }`}
+              >
+                <span className="hidden sm:inline">{tab.icon}</span>
+                <span>{tab.label}</span>
+                {tab.count > 0 && (
+                  <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                    tab.alert && contractTab !== tab.key
+                      ? 'bg-warning-500/30 text-warning-400'
+                      : contractTab === tab.key
+                        ? 'bg-primary-500/30 text-primary-400'
+                        : 'bg-surface-50/20 text-gray-500'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Box Regole Rinnovi */}
       {inContrattiPhase && !isConsolidated && (
@@ -1048,8 +1132,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         <div className="flex flex-col xl:flex-row gap-4">
           {/* Colonna principale - Contratti */}
           <div className="flex-1 min-w-0">
-        {/* Pending Contracts - Da impostare */}
-        {filteredPending.length > 0 && (
+        {/* Pending Contracts - Da impostare (T-006: tab 'nuovi' or always when consolidated) */}
+        {filteredPending.length > 0 && (contractTab === 'nuovi' || isConsolidated || !inContrattiPhase) && (
           <div className="mb-6">
             <h2 className="text-sm font-bold text-warning-400 uppercase tracking-wide mb-2">
               Da Impostare ({filteredPending.length})
@@ -1119,15 +1203,15 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                           <button
                             onClick={() => updatePendingEdit(pending.rosterId, 'newSalary', String(Math.max(pending.minSalary, currentSalary - 1)))}
                             disabled={!inContrattiPhase || isConsolidated || currentSalary <= pending.minSalary}
-                            className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
+                            className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
                           >−</button>
-                          <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
+                          <div className="flex-1 px-2 py-2 min-h-[44px] flex items-center justify-center bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
                             {currentSalary}M
                           </div>
                           <button
                             onClick={() => updatePendingEdit(pending.rosterId, 'newSalary', String(currentSalary + 1))}
                             disabled={!inContrattiPhase || isConsolidated}
-                            className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold disabled:opacity-30"
+                            className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold disabled:opacity-30"
                           >+</button>
                         </div>
                       </div>
@@ -1137,15 +1221,15 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                           <button
                             onClick={() => updatePendingEdit(pending.rosterId, 'newDuration', String(Math.max(1, currentDuration - 1)))}
                             disabled={!inContrattiPhase || isConsolidated || currentDuration <= 1}
-                            className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
+                            className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
                           >−</button>
-                          <div className={`flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-center font-medium ${getDurationColor(currentDuration)}`}>
+                          <div className={`flex-1 px-2 py-2 min-h-[44px] flex items-center justify-center bg-surface-300 border-y border-primary-500/30 text-center font-medium ${getDurationColor(currentDuration)}`}>
                             {currentDuration}s
                           </div>
                           <button
                             onClick={() => updatePendingEdit(pending.rosterId, 'newDuration', String(Math.min(4, currentDuration + 1)))}
                             disabled={!inContrattiPhase || isConsolidated || currentDuration >= 4}
-                            className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold disabled:opacity-30"
+                            className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold disabled:opacity-30"
                           >+</button>
                         </div>
                       </div>
@@ -1173,13 +1257,13 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-warning-500/10 text-xs text-gray-400 uppercase">
-                      <th className="text-left p-2">Giocatore</th>
-                      <th className="text-center p-2">Acquisto</th>
-                      <th className="text-center p-2">Min Ing.</th>
-                      <th className="text-center p-2 border-l border-surface-50/20">Ingaggio</th>
-                      <th className="text-center p-2">Durata</th>
-                      <th className="text-center p-2">Clausola</th>
-                      <th className="text-center p-2">Nuova Rubata</th>
+                      <th scope="col" className="text-left p-2">Giocatore</th>
+                      <th scope="col" className="text-center p-2">Acquisto</th>
+                      <th scope="col" className="text-center p-2">Min Ing.</th>
+                      <th scope="col" className="text-center p-2 border-l border-surface-50/20">Ingaggio</th>
+                      <th scope="col" className="text-center p-2">Durata</th>
+                      <th scope="col" className="text-center p-2">Clausola</th>
+                      <th scope="col" className="text-center p-2">Nuova Rubata</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1282,8 +1366,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
           </div>
         )}
 
-        {/* Giocatori Usciti dalla Serie A - Solo INDECISI */}
-        {exitedContracts.length > 0 && (
+        {/* Giocatori Usciti dalla Serie A - Solo INDECISI (T-006: tab 'usciti' or always when consolidated) */}
+        {exitedContracts.length > 0 && (contractTab === 'usciti' || isConsolidated || !inContrattiPhase) && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-lg">⚖️</span>
@@ -1395,8 +1479,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
           </div>
         )}
 
-        {/* Contratti Esistenti */}
-        <div>
+        {/* Contratti Esistenti (T-006: tab 'rinnovi' or always when consolidated) */}
+        {(contractTab === 'rinnovi' || isConsolidated || !inContrattiPhase) && <div>
           <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-2">
             Contratti ({filteredContracts.length})
           </h2>
@@ -1481,28 +1565,30 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     </button>
                     {contract.canSpalmare && !isMarkedForRelease && (
                       newSalary < contract.salary ? (
-                        <span
-                          className="px-1.5 py-0.5 bg-secondary-500/20 border border-secondary-500/40 rounded text-secondary-400 text-[10px] font-bold"
-                          title={`Spalma applicato: ${newSalary}M × ${newDuration}s = ${newSalary * newDuration} ≥ ${contract.initialSalary}`}
-                        >
-                          SPALMATO
-                        </span>
+                        <Tooltip content={`Spalma applicato: ingaggio ridotto a ${newSalary}M allungando la durata a ${newDuration}s. Il costo totale (${newSalary * newDuration}M) resta ≥ ${contract.initialSalary}M.`}>
+                          <span className="px-1.5 py-0.5 bg-secondary-500/20 border border-secondary-500/40 rounded text-secondary-400 text-[10px] font-bold cursor-help">
+                            SPALMATO
+                          </span>
+                        </Tooltip>
                       ) : (
-                        <span
-                          className="px-1.5 py-0.5 bg-warning-500/20 border border-warning-500/40 rounded text-warning-400 text-[10px] font-bold"
-                          title={`Spalma disponibile: Nuovo Ing. × Nuova Dur. ≥ ${contract.initialSalary}M`}
-                        >
-                          SPALMABILE
-                        </span>
+                        <Tooltip content={`Puoi ridurre l'ingaggio allungando la durata. Regola: Nuovo Ing. × Nuova Dur. ≥ ${contract.initialSalary}M.`}>
+                          <span className="px-1.5 py-0.5 bg-warning-500/20 border border-warning-500/40 rounded text-warning-400 text-[10px] font-bold cursor-help">
+                            SPALMABILE
+                          </span>
+                        </Tooltip>
                       )
                     )}
                     {isMarkedForRelease && (
-                      <span className="text-danger-400 text-[10px] font-bold">DA TAGLIARE</span>
+                      <Tooltip content="Questo giocatore verrà tagliato al consolidamento. Il costo del taglio è (Ingaggio × Durata) / 2.">
+                        <span className="text-danger-400 text-[10px] font-bold cursor-help">DA TAGLIARE</span>
+                      </Tooltip>
                     )}
                     {isKeptExited && (
-                      <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 rounded text-green-400 text-[10px] font-bold">
-                        MANTENUTO
-                      </span>
+                      <Tooltip content="Contratto scaduto ma hai scelto di mantenere il giocatore. Rinnova ingaggio e durata.">
+                        <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 rounded text-green-400 text-[10px] font-bold cursor-help">
+                          MANTENUTO
+                        </span>
+                      </Tooltip>
                     )}
                   </div>
 
@@ -1526,9 +1612,11 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
                   {/* Trade info badge */}
                   {contract.roster.acquisitionType === 'TRADE' && (
-                    <div className="bg-purple-500/20 border border-purple-500/50 rounded px-2 py-1 mb-2 text-center">
-                      <span className="text-purple-400 text-xs font-bold">↔️ SCAMBIO</span>
-                    </div>
+                    <Tooltip content="Giocatore acquisito tramite scambio. Il contratto originale viene mantenuto." position="bottom">
+                      <div className="bg-purple-500/20 border border-purple-500/50 rounded px-2 py-1 mb-2 text-center cursor-help">
+                        <span className="text-purple-400 text-xs font-bold">↔️ SCAMBIO</span>
+                      </div>
+                    </Tooltip>
                   )}
 
                   {/* Current contract info */}
@@ -1580,15 +1668,15 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                             <button
                               onClick={() => updateLocalEdit(contract.id, 'newSalary', String(Math.max(minSalaryAllowed, newSalary - 1)))}
                               disabled={!canDecreaseSalary}
-                              className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
+                              className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
                               title={!canDecreaseSalary ? (contract.canSpalmare ? 'Ingaggio minimo raggiunto' : 'Riduci prima la durata per diminuire l\'ingaggio') : undefined}
                             >−</button>
-                            <div className="flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
+                            <div className="flex-1 px-2 py-2 min-h-[44px] flex items-center justify-center bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
                               {newSalary}M
                             </div>
                             <button
                               onClick={() => updateLocalEdit(contract.id, 'newSalary', String(newSalary + 1))}
-                              className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold"
+                              className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold"
                             >+</button>
                           </div>
                         </div>
@@ -1598,16 +1686,16 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                             <button
                               onClick={() => updateLocalEdit(contract.id, 'newDuration', String(newDuration - 1))}
                               disabled={!canDecreaseDuration}
-                              className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
+                              className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
                               title={!canDecreaseDuration && contract.canSpalmare ? 'Aumenta l\'ingaggio per ridurre la durata' : undefined}
                             >−</button>
-                            <div className={`flex-1 px-2 py-2 bg-surface-300 border-y border-primary-500/30 text-center font-medium ${getDurationColor(newDuration)}`}>
+                            <div className={`flex-1 px-2 py-2 min-h-[44px] flex items-center justify-center bg-surface-300 border-y border-primary-500/30 text-center font-medium ${getDurationColor(newDuration)}`}>
                               {newDuration}s
                             </div>
                             <button
                               onClick={() => updateLocalEdit(contract.id, 'newDuration', String(newDuration + 1))}
                               disabled={newDuration >= 4 || !canIncreaseDuration}
-                              className="px-3 py-2 bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold disabled:opacity-30"
+                              className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold disabled:opacity-30"
                               title={!canIncreaseDuration ? 'Aumenta prima l\'ingaggio per estendere la durata' : undefined}
                             >+</button>
                           </div>
@@ -1832,32 +1920,35 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                             </button>
                             {contract.canSpalmare && !isMarkedForRelease && (
                               newSalary < contract.salary ? (
-                                <span
-                                  className="px-1.5 py-0.5 bg-secondary-500/20 border border-secondary-500/40 rounded text-secondary-400 text-[10px] font-bold cursor-help"
-                                  title={`Spalma applicato: ${newSalary}M × ${newDuration}s = ${newSalary * newDuration} ≥ ${contract.initialSalary}`}
-                                >
-                                  SPALMATO
-                                </span>
+                                <Tooltip content={`Spalma applicato: ingaggio ridotto a ${newSalary}M allungando la durata a ${newDuration}s. Costo totale (${newSalary * newDuration}M) ≥ ${contract.initialSalary}M.`}>
+                                  <span className="px-1.5 py-0.5 bg-secondary-500/20 border border-secondary-500/40 rounded text-secondary-400 text-[10px] font-bold cursor-help">
+                                    SPALMATO
+                                  </span>
+                                </Tooltip>
                               ) : (
-                                <span
-                                  className="px-1.5 py-0.5 bg-warning-500/20 border border-warning-500/40 rounded text-warning-400 text-[10px] font-bold cursor-help"
-                                  title={`Spalma disponibile: Nuovo Ing. × Nuova Dur. ≥ ${contract.initialSalary}M`}
-                                >
-                                  SPALMABILE
-                                </span>
+                                <Tooltip content={`Puoi ridurre l'ingaggio allungando la durata. Regola: Nuovo Ing. × Nuova Dur. ≥ ${contract.initialSalary}M.`}>
+                                  <span className="px-1.5 py-0.5 bg-warning-500/20 border border-warning-500/40 rounded text-warning-400 text-[10px] font-bold cursor-help">
+                                    SPALMABILE
+                                  </span>
+                                </Tooltip>
                               )
                             )}
                             {contract.roster.acquisitionType === 'TRADE' && (
-                              <span className="text-purple-400 text-[10px] font-bold px-1 py-0.5 bg-purple-500/20 rounded">↔️ SCAMBIO</span>
+                              <Tooltip content="Acquisito tramite scambio. Il contratto originale viene mantenuto.">
+                                <span className="text-purple-400 text-[10px] font-bold px-1 py-0.5 bg-purple-500/20 rounded cursor-help">↔️ SCAMBIO</span>
+                              </Tooltip>
                             )}
                             {isMarkedForRelease && (
-                              <span className="text-danger-400 text-xs font-medium">DA TAGLIARE</span>
+                              <Tooltip content="Verrà tagliato al consolidamento. Costo: (Ingaggio × Durata) / 2.">
+                                <span className="text-danger-400 text-xs font-medium cursor-help">DA TAGLIARE</span>
+                              </Tooltip>
                             )}
                             {isKeptExited && (
-                              <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 rounded text-green-400 text-[10px] font-bold cursor-help"
-                                title="Giocatore uscito mantenuto in rosa">
-                                MANTENUTO
-                              </span>
+                              <Tooltip content="Contratto scaduto ma mantenuto in rosa. Rinnova ingaggio e durata.">
+                                <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 rounded text-green-400 text-[10px] font-bold cursor-help">
+                                  MANTENUTO
+                                </span>
+                              </Tooltip>
                             )}
                           </div>
                         </td>
@@ -2000,7 +2091,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
               </table>
             </div>
           </div>
-        </div>
+        </div>}
         {/* Fine sezione contratti esistenti */}
 
         {/* Sezione Giocatori Rilasciati (solo dopo consolidamento) */}
@@ -2050,11 +2141,11 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-danger-500/10 text-xs text-danger-400 uppercase">
-                    <th className="text-left p-2">Giocatore</th>
-                    <th className="text-center p-2">Ing.</th>
-                    <th className="text-center p-2">Dur.</th>
-                    <th className="text-center p-2">Costo Taglio</th>
-                    <th className="text-center p-2">Note</th>
+                    <th scope="col" className="text-left p-2">Giocatore</th>
+                    <th scope="col" className="text-center p-2">Ing.</th>
+                    <th scope="col" className="text-center p-2">Dur.</th>
+                    <th scope="col" className="text-center p-2">Costo Taglio</th>
+                    <th scope="col" className="text-center p-2">Note</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2257,7 +2348,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       </main>
 
       {/* Sticky Budget Bar - Prominente */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-surface-200 via-surface-200 to-surface-200 border-t-2 border-primary-500/50 z-40 shadow-lg shadow-black/30">
+      <StickyActionBar>
         <div className="max-w-[1600px] mx-auto px-4 py-3">
           {/* Mobile: layout con pulsanti azione fissi */}
           <div className="md:hidden">
@@ -2384,7 +2475,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
             </div>
           </div>
         </div>
-      </div>
+      </StickyActionBar>
 
       {/* Player Stats Modal */}
       <PlayerStatsModal
@@ -2392,6 +2483,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         onClose={() => setSelectedPlayer(null)}
         player={selectedPlayer}
       />
+
     </div>
   )
 }
