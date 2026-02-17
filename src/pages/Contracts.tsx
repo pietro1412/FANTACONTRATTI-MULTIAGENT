@@ -1052,10 +1052,10 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         <div className="max-w-[1600px] mx-auto px-4 pt-3">
           <div className="flex gap-1 bg-surface-300/30 p-1 rounded-xl border border-surface-50/20">
             {([
-              { key: 'rinnovi' as const, label: 'Rinnovi', count: filteredContracts.length, icon: '📝' },
-              { key: 'nuovi' as const, label: 'Nuovi', count: filteredPending.length, icon: '⚡', alert: filteredPending.length > 0 },
-              { key: 'usciti' as const, label: 'Usciti', count: exitedContracts.length, icon: '⚖️', alert: exitedContracts.length > 0 },
-            ]).map(tab => (
+              { key: 'rinnovi' as const, label: 'Rinnovi', count: filteredContracts.length, icon: '📝', alwaysShow: true },
+              { key: 'nuovi' as const, label: 'Nuovi', count: filteredPending.length, icon: '⚡', alert: filteredPending.length > 0, alwaysShow: false },
+              { key: 'usciti' as const, label: 'Usciti', count: exitedContracts.length, icon: '⚖️', alert: exitedContracts.length > 0, alwaysShow: false },
+            ]).filter(tab => tab.alwaysShow || tab.count > 0).map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setContractTab(tab.key)}
@@ -1542,7 +1542,11 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
               return (
                 <div key={contract.id} className={`bg-surface-200 rounded-lg border p-3 ${
-                  isMarkedForRelease ? 'border-danger-500/50 bg-danger-500/10' : isConsolidated && contract.wasModified ? 'border-secondary-500/30' : 'border-surface-50/20'
+                  isMarkedForRelease ? 'border-danger-500/50 bg-danger-500/10'
+                    : hasChanges && newSalary > contract.salary ? 'border-primary-500/50 bg-primary-500/10 shadow-[0_0_8px_rgba(var(--color-primary-500),0.15)]'
+                    : hasChanges ? 'border-accent-500/30 bg-accent-500/5'
+                    : isConsolidated && contract.wasModified ? 'border-secondary-500/30'
+                    : 'border-surface-50/20'
                 }`}>
                   {/* Header: Player info */}
                   <div className="flex items-center gap-2 mb-3">
@@ -1599,6 +1603,11 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                           MANTENUTO
                         </span>
                       </Tooltip>
+                    )}
+                    {hasChanges && newSalary > contract.salary && !isMarkedForRelease && (
+                      <span className="px-1.5 py-0.5 bg-primary-500/20 border border-primary-500/40 rounded text-primary-400 text-[10px] font-bold">
+                        RIALZO
+                      </span>
                     )}
                   </div>
 
@@ -1668,8 +1677,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                     </div>
                   )}
 
-                  {/* Renewal inputs (only if can renew) */}
-                  {contract.canRenew && inContrattiPhase && !isConsolidated && (
+                  {/* Renewal inputs (only if can renew and not marked for release) */}
+                  {contract.canRenew && inContrattiPhase && !isConsolidated && !isMarkedForRelease && (
                     <>
                       <div className="flex gap-3 mb-3">
                         <div className="flex-1">
@@ -1737,6 +1746,14 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                       </div>
 
                     </>
+                  )}
+
+                  {/* Message when marked for release: inputs hidden */}
+                  {contract.canRenew && inContrattiPhase && !isConsolidated && isMarkedForRelease && (
+                    <div className="flex items-center justify-center gap-2 py-3 mb-3 rounded-lg bg-danger-500/10 border border-danger-500/30">
+                      <span className="text-danger-400 text-sm font-bold">DA TAGLIARE</span>
+                      <span className="text-gray-500 text-xs">— deseleziona il taglio per modificare</span>
+                    </div>
                   )}
 
                   {/* Post-consolidation display: show NUOVO values for all contracts */}
@@ -1897,7 +1914,12 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
                     return (
                       <tr key={contract.id} className={`border-t border-surface-50/10 hover:bg-surface-300/30 ${
-                        isKeptExited ? 'bg-green-500/5' : isMarkedForRelease ? 'bg-danger-500/20 opacity-70' : hasChanges ? 'bg-primary-500/5' : isConsolidated && contract.wasModified ? 'bg-secondary-500/5' : ''
+                        isKeptExited ? 'bg-green-500/5'
+                          : isMarkedForRelease ? 'bg-danger-500/20 opacity-70'
+                          : hasChanges && newSalary > contract.salary ? 'bg-primary-500/10'
+                          : hasChanges ? 'bg-accent-500/5'
+                          : isConsolidated && contract.wasModified ? 'bg-secondary-500/5'
+                          : ''
                       }`}>
                         <td className="p-2">
                           <div className="flex items-center gap-2">
@@ -1960,6 +1982,11 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                                 </span>
                               </Tooltip>
                             )}
+                            {hasChanges && newSalary > contract.salary && !isMarkedForRelease && (
+                              <span className="px-1.5 py-0.5 bg-primary-500/20 border border-primary-500/40 rounded text-primary-400 text-[10px] font-bold">
+                                RIALZO
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className={`text-center p-2 ${getAgeColor(contract.roster.player.age)}`}>
@@ -1976,7 +2003,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                         <td className={`text-center p-2 ${getDurationColor(contract.duration)}`}>{contract.duration}s</td>
                         <td className="text-center p-2 text-warning-400 font-medium">{currentRubata}M</td>
                         <td className="text-center p-2 border-l border-surface-50/20">
-                          {contract.canRenew && inContrattiPhase && !isConsolidated ? (
+                          {contract.canRenew && inContrattiPhase && !isConsolidated && !isMarkedForRelease ? (
                             <div className="flex items-center justify-center gap-1">
                               <button
                                 onClick={() => updateLocalEdit(contract.id, 'newSalary', String(Math.max(minSalaryAllowed, newSalary - 1)))}
@@ -1984,12 +2011,14 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                                 className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm disabled:opacity-30"
                                 title={!canDecreaseSalary ? (contract.canSpalmare ? 'Min raggiunto' : 'Riduci durata') : undefined}
                               >−</button>
-                              <span className="w-10 text-white text-center font-medium">{newSalary}M</span>
+                              <span className={`w-10 text-center font-medium ${newSalary > contract.salary ? 'text-primary-400' : 'text-white'}`}>{newSalary > contract.salary ? `↑${newSalary}` : newSalary}M</span>
                               <button
                                 onClick={() => updateLocalEdit(contract.id, 'newSalary', String(newSalary + 1))}
                                 className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm"
                               >+</button>
                             </div>
+                          ) : isMarkedForRelease && inContrattiPhase && !isConsolidated ? (
+                            <span className="text-danger-400 text-xs font-bold">DA TAGLIARE</span>
                           ) : isConsolidated && contract.draftSalary != null ? (
                             <span className="text-accent-400 font-medium">
                               {contract.draftSalary}M
@@ -1999,7 +2028,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                           )}
                         </td>
                         <td className="text-center p-2">
-                          {contract.canRenew && inContrattiPhase && !isConsolidated ? (
+                          {contract.canRenew && inContrattiPhase && !isConsolidated && !isMarkedForRelease ? (
                             <div className="flex items-center justify-center gap-1">
                               <button
                                 onClick={() => updateLocalEdit(contract.id, 'newDuration', String(newDuration - 1))}
@@ -2015,6 +2044,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                                 title={!canIncreaseDuration ? 'Aumenta prima l\'ingaggio per estendere la durata' : undefined}
                               >+</button>
                             </div>
+                          ) : isMarkedForRelease && inContrattiPhase && !isConsolidated ? (
+                            <span className="text-danger-400 text-xs font-bold">-</span>
                           ) : isConsolidated && contract.draftDuration != null ? (
                             <span className={`font-medium ${getDurationColor(contract.draftDuration)}`}>
                               {contract.draftDuration}s
