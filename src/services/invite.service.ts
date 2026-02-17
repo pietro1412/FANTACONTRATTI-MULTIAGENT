@@ -1,15 +1,10 @@
 import { PrismaClient, MemberStatus, InviteStatus, JoinType } from '@prisma/client'
 import { randomBytes } from 'crypto'
 import { createEmailService } from '../modules/identity/infrastructure/services/email.factory'
+import type { ServiceResult } from '@/shared/types/service-result'
 
 const prisma = new PrismaClient()
 const emailService = createEmailService()
-
-export interface ServiceResult {
-  success: boolean
-  message?: string
-  data?: unknown
-}
 
 // ==================== GENERA TOKEN ====================
 

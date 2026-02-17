@@ -2,15 +2,9 @@ import { PrismaClient, MemberStatus, RosterStatus, TradeStatus } from '@prisma/c
 import { recordMovement } from './movement.service'
 import { notifyTradeOffer, notifyTradeInvalidated } from './notification.service'
 import { triggerTradeOfferReceived, triggerTradeUpdated } from './pusher.service'
+import type { ServiceResult } from '@/shared/types/service-result'
 
 const prisma = new PrismaClient()
-
-export interface ServiceResult {
-  success: boolean
-  message?: string
-  data?: unknown
-  warnings?: string[]
-}
 
 // ==================== PHASE CHECK ====================
 

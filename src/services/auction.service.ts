@@ -20,13 +20,9 @@ import { computeSeasonStatsBatch } from './player-stats.service'
 import { withRetry } from '../utils/db-retry'
 import { notifyAuctionStart, notifyPhaseChange } from './notification.service'
 
-const prisma = new PrismaClient()
+import type { ServiceResult } from '@/shared/types/service-result'
 
-export interface ServiceResult {
-  success: boolean
-  message?: string
-  data?: unknown
-}
+const prisma = new PrismaClient()
 
 // ==================== PLAYER STATS ENRICHMENT ====================
 

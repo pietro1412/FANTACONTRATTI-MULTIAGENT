@@ -1,5 +1,6 @@
 import { PrismaClient, MemberStatus, AuctionStatus, Position, AuctionType } from '@prisma/client'
 import { placeBid } from './auction.service'
+import type { ServiceResult } from '@/shared/types/service-result'
 
 const prisma = new PrismaClient()
 
@@ -344,12 +345,6 @@ export async function completeBotTurn(
 
   // Step 3: No auction and no pending nomination - check if it's a bot's turn to nominate
   return await botNominate(sessionId, excludeUserId)
-}
-
-export interface ServiceResult {
-  success: boolean
-  message?: string
-  data?: unknown
 }
 
 // Bot behavior types

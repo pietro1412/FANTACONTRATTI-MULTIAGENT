@@ -35,7 +35,6 @@ const LeagueFinancials = lazy(() => import('./pages/LeagueFinancials'))
 const SuperAdmin = lazy(() => import('./pages/SuperAdmin').then(m => ({ default: m.SuperAdmin })))
 const PrizePhasePage = lazy(() => import('./pages/PrizePhasePage').then(m => ({ default: m.PrizePhasePage })))
 const LatencyTest = lazy(() => import('./pages/LatencyTest'))
-const TestStrategyFormats = lazy(() => import('./pages/TestStrategyFormats'))
 const ApiFootballTest = lazy(() => import('./pages/ApiFootballTest'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })))
 const ResetPassword = lazy(() => import('./pages/ResetPassword').then(m => ({ default: m.ResetPassword })))
@@ -457,11 +456,6 @@ function AppRoutes() {
       <Route path="/test-latency" element={
         <Suspense fallback={<PageLoader />}>
           <LatencyTest />
-        </Suspense>
-      } />
-      <Route path="/test-strategy-formats" element={
-        <Suspense fallback={<PageLoader />}>
-          <TestStrategyFormats />
         </Suspense>
       } />
       <Route path="/api-football-test" element={

@@ -2,14 +2,9 @@ import { PrismaClient, MemberStatus, AuctionStatus, Position, Prisma } from '@pr
 import { recordMovement } from './movement.service'
 import { calculateDefaultSalary, calculateRescissionClause } from './contract.service'
 import { logAction } from './admin.service'
+import type { ServiceResult } from '@/shared/types/service-result'
 
 const prisma = new PrismaClient()
-
-export interface ServiceResult {
-  success: boolean
-  message?: string
-  data?: unknown
-}
 
 // ==================== HEARTBEAT / CONNECTION STATUS ====================
 
