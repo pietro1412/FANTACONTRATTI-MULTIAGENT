@@ -253,7 +253,31 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         const memberId = memberRoster.memberId || memberRoster.id || ''
         const username = memberRoster.username || memberRoster.user?.username || ''
 
-        if (memberId === currentMemberId) continue
+        if (memberId === currentMemberId) {
+          // Extract computedStats from allRosters for own players (reliable source with stats)
+          const myStatsFromAllRosters = new Map<string, RosterEntry['player']['computedStats']>()
+          const myPlayers = memberRoster.players || memberRoster.roster?.map(r => ({
+            id: r.player.id,
+            computedStats: r.player.computedStats,
+            statsSyncedAt: r.player.statsSyncedAt,
+          })) || []
+          for (const p of myPlayers) {
+            if (p.computedStats) {
+              myStatsFromAllRosters.set(p.id, p.computedStats)
+            }
+          }
+          // Enrich myRoster with computedStats from allRosters
+          if (myStatsFromAllRosters.size > 0) {
+            setMyRoster(prev => prev.map(entry => ({
+              ...entry,
+              player: {
+                ...entry.player,
+                computedStats: entry.player.computedStats || myStatsFromAllRosters.get(entry.player.id) || null,
+              },
+            })))
+          }
+          continue
+        }
 
         const players = memberRoster.players || memberRoster.roster?.map(r => ({
           id: r.player.id,
