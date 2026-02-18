@@ -112,7 +112,7 @@ export function useTrades(leagueId: string | undefined): UseTradesResult {
       }
     } catch (_err) {
       setError('Failed to load trades')
-      console.error('useTrades error:', err)
+      console.error('useTrades error:', _err)
     } finally {
       setIsLoading(false)
     }

@@ -202,7 +202,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
     } catch (e) {
       console.error('Error loading column preferences:', e)
     }
-    return COLUMN_PRESETS.essential.columns
+    return COLUMN_PRESETS.essential!.columns
   })
   const [showColumnSelector, setShowColumnSelector] = useState(false)
 
@@ -292,7 +292,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
       const res = await playerApi.getTeams()
       if (res.success && res.data) {
         // Extract team names from objects
-        const teamNames = res.data.map((t: { name: string }) => t.name)
+        const teamNames = (res.data as { name: string }[]).map((t: { name: string }) => t.name)
         setTeams(teamNames)
       }
     } catch (err) {
@@ -395,7 +395,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
       if (!grouped[col.category]) {
         grouped[col.category] = []
       }
-      grouped[col.category].push(col)
+      grouped[col.category]!.push(col)
     }
     return grouped
   }, [])
@@ -1155,7 +1155,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                       size={320}
                       players={playersToCompare.map((p, i) => ({
                         name: p.name,
-                        color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                        color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#3b82f6'
                       }))}
                       data={[
                         { label: 'Gol', values: playersToCompare.map(p => p.stats?.goals ?? 0) },
@@ -1174,7 +1174,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                       size={320}
                       players={playersToCompare.map((p, i) => ({
                         name: p.name,
-                        color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                        color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#3b82f6'
                       }))}
                       data={[
                         { label: 'Contrasti', values: playersToCompare.map(p => p.stats?.tacklesTotal ?? 0) },
@@ -1234,7 +1234,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                             <tr key={row.key} className="hover:bg-surface-300/30">
                               <td className="px-3 md:px-4 py-3 text-xs md:text-sm text-gray-300">{row.label}</td>
                               {playersToCompare.map((player, idx) => {
-                                const val = values[idx]
+                                const val = values[idx] ?? 0
                                 const isMax = val === maxVal && maxVal > 0
                                 const formatted = row.format ? row.format(val) : val
 

@@ -6,6 +6,7 @@
  */
 
 import jwt from 'jsonwebtoken'
+import type { StringValue } from 'ms'
 import type { ITokenService, TokenPayload } from '../../domain/services/token.service'
 
 /**
@@ -51,8 +52,8 @@ export class JwtTokenService implements ITokenService {
    */
   generateAccessToken(userId: string): string {
     const payload: TokenPayload = { userId }
-    return jwt.sign(payload, this.accessTokenSecret, {
-      expiresIn: this.accessTokenExpiry
+    return jwt.sign(payload as object, this.accessTokenSecret, {
+      expiresIn: this.accessTokenExpiry as StringValue
     })
   }
 
@@ -63,8 +64,8 @@ export class JwtTokenService implements ITokenService {
    */
   generateRefreshToken(userId: string): string {
     const payload: TokenPayload = { userId }
-    return jwt.sign(payload, this.refreshTokenSecret, {
-      expiresIn: this.refreshTokenExpiry
+    return jwt.sign(payload as object, this.refreshTokenSecret, {
+      expiresIn: this.refreshTokenExpiry as StringValue
     })
   }
 

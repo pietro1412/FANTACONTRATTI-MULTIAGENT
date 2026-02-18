@@ -87,7 +87,7 @@ export class ImportPlayersUseCase {
     }
 
     for (let i = startIndex; i < lines.length; i++) {
-      const line = lines[i].trim()
+      const line = lines[i]?.trim() ?? ''
       if (!line) continue
 
       // Try to parse as CSV or tab-separated
@@ -105,7 +105,7 @@ export class ImportPlayersUseCase {
       const [position, name, team, quotationStr] = parts.map(p => p.trim())
 
       // Validate position
-      if (!VALID_POSITIONS.includes(position.toUpperCase())) {
+      if (!position || !VALID_POSITIONS.includes(position.toUpperCase())) {
         errors.push(`Line ${i + 1}: ruolo non valido "${position ?? ''}"`)
         continue
       }
@@ -123,14 +123,14 @@ export class ImportPlayersUseCase {
       }
 
       // Validate quotation
-      const quotation = parseInt(quotationStr, 10)
+      const quotation = parseInt(quotationStr ?? '', 10)
       if (isNaN(quotation) || quotation < 1) {
         errors.push(`Line ${i + 1}: quotazione non valida "${quotationStr ?? ''}"`)
         continue
       }
 
       players.push({
-        position: position.toUpperCase(),
+        position: position!.toUpperCase(),
         name,
         team,
         quotation,

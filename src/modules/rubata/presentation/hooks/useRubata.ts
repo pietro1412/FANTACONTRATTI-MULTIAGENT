@@ -148,7 +148,7 @@ export function useRubata(
       }
     } catch (_err) {
       setError('Failed to load rubata state')
-      console.error('useRubata error:', err)
+      console.error('useRubata error:', _err)
     } finally {
       setIsLoading(false)
     }

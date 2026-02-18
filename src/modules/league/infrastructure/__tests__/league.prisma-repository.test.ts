@@ -150,7 +150,7 @@ describe('LeaguePrismaRepository', () => {
         include: { league: true }
       })
       expect(result).toHaveLength(1)
-      expect(result[0].id).toBe('league-123')
+      expect(result[0]!.id).toBe('league-123')
     })
 
     it('should return empty array when user has no memberships', async () => {
@@ -303,7 +303,7 @@ describe('LeaguePrismaRepository', () => {
         include: { user: true }
       })
       expect(result).toHaveLength(1)
-      expect(result[0].user.username).toBe('testuser')
+      expect(result[0]!.user.username).toBe('testuser')
     })
   })
 

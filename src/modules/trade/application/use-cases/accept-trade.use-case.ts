@@ -113,7 +113,7 @@ export class AcceptTradeUseCase {
       // This ensures nothing has changed since the offer was created
       const assetValidation = await this.tradeValidator.validateAssets(trade)
       if (!assetValidation.isValid) {
-        return fail(new ValidationError(assetValidation.errors[0]))
+        return fail(new ValidationError(assetValidation.errors[0] ?? 'Validazione asset fallita'))
       }
 
       // Execute the trade (swap players and budgets)

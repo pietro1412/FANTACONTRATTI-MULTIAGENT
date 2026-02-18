@@ -138,7 +138,7 @@ export class PlaceOfferUseCase {
     errorCode: NonNullable<
       Awaited<ReturnType<IRubataRepository['placeOfferAtomic']>>['errorCode']
     >
-  ): ReturnType<typeof fail> {
+  ): Result<never, ValidationError | ForbiddenError | NotFoundError | ConflictError> {
     const errorMessages = {
       ENTRY_NOT_FOUND: 'Voce tabellone non trovata',
       ENTRY_ALREADY_IN_AUCTION: 'Questa voce è già in asta',

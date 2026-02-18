@@ -74,6 +74,8 @@ describe('pusher.service', () => {
         playerId: 'player-1',
         playerName: 'Test Player',
         timestamp: new Date().toISOString(),
+        timerExpiresAt: new Date(Date.now() + 30000).toISOString(),
+        timerSeconds: 30,
       }
 
       const result = await triggerBidPlaced('session-123', data)
@@ -134,6 +136,8 @@ describe('pusher.service', () => {
         isReady: true,
         readyCount: 5,
         totalMembers: 8,
+        readyMembers: [{ id: 'member-1', username: 'Test User' }],
+        pendingMembers: [],
         timestamp: new Date().toISOString(),
       }
 
@@ -235,6 +239,8 @@ describe('pusher.service', () => {
         playerId: 'player-1',
         playerName: 'Test Player',
         timestamp: new Date().toISOString(),
+        timerExpiresAt: new Date(Date.now() + 30000).toISOString(),
+        timerSeconds: 30,
       }
 
       const result = await triggerBidPlaced('session-123', data)

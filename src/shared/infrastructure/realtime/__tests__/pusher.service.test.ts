@@ -100,10 +100,10 @@ describe('BatchedPusherService', () => {
       await vi.advanceTimersByTimeAsync(1)
       expect(mockTrigger).toHaveBeenCalledTimes(1)
 
-      const call = mockTrigger.mock.calls[0]
+      const call = mockTrigger.mock.calls[0]!
       const payload = call[2] as BatchedEventPayload
       expect(payload.events).toHaveLength(1)
-      expect(payload.events[0].type).toBe('test-event')
+      expect(payload.events[0]!.type).toBe('test-event')
     })
 
     it('should reset timer when new event is added', async () => {
@@ -124,7 +124,7 @@ describe('BatchedPusherService', () => {
       await vi.advanceTimersByTimeAsync(20)
       expect(mockTrigger).toHaveBeenCalledTimes(1)
 
-      const payload = mockTrigger.mock.calls[0][2] as BatchedEventPayload
+      const payload = mockTrigger.mock.calls[0]![2] as BatchedEventPayload
       expect(payload.events).toHaveLength(2)
     })
 
@@ -135,9 +135,9 @@ describe('BatchedPusherService', () => {
 
       await vi.advanceTimersByTimeAsync(100)
 
-      const payload = mockTrigger.mock.calls[0][2] as BatchedEventPayload
-      expect(payload.events[0].timestamp).toBeGreaterThanOrEqual(beforeTime)
-      expect(payload.events[0].timestamp).toBeLessThanOrEqual(afterTime)
+      const payload = mockTrigger.mock.calls[0]![2] as BatchedEventPayload
+      expect(payload.events[0]!.timestamp).toBeGreaterThanOrEqual(beforeTime)
+      expect(payload.events[0]!.timestamp).toBeLessThanOrEqual(afterTime)
     })
   })
 
@@ -194,8 +194,8 @@ describe('BatchedPusherService', () => {
       expect(channel1Call).toBeDefined()
       expect(channel2Call).toBeDefined()
 
-      expect((channel1Call![2] as BatchedEventPayload).events[0].type).toBe('event-a')
-      expect((channel2Call![2] as BatchedEventPayload).events[0].type).toBe('event-b')
+      expect((channel1Call![2] as BatchedEventPayload).events[0]!.type).toBe('event-a')
+      expect((channel2Call![2] as BatchedEventPayload).events[0]!.type).toBe('event-b')
     })
 
     it('should have independent timers for each channel', async () => {
@@ -252,7 +252,7 @@ describe('BatchedPusherService', () => {
       await vi.advanceTimersByTimeAsync(0)
       expect(mockTrigger).toHaveBeenCalledTimes(1)
 
-      const payload = mockTrigger.mock.calls[0][2] as BatchedEventPayload
+      const payload = mockTrigger.mock.calls[0]![2] as BatchedEventPayload
       expect(payload.events).toHaveLength(3)
 
       smallBatchService.dispose()
@@ -326,7 +326,7 @@ describe('BatchedPusherService', () => {
 
       const members = service.getOnlineMembers('auction-123')
       expect(members).toHaveLength(1)
-      expect(members[0].id).toBe('user-1')
+      expect(members[0]!.id).toBe('user-1')
     })
 
     it('should not add duplicate members', () => {
@@ -424,8 +424,8 @@ describe('BatchedPusherService', () => {
       service.queueEvent('channel-1', 'event-2', {})
       await vi.advanceTimersByTimeAsync(100)
 
-      const batchId1 = (mockTrigger.mock.calls[0][2] as BatchedEventPayload).batchId
-      const batchId2 = (mockTrigger.mock.calls[1][2] as BatchedEventPayload).batchId
+      const batchId1 = (mockTrigger.mock.calls[0]![2] as BatchedEventPayload).batchId
+      const batchId2 = (mockTrigger.mock.calls[1]![2] as BatchedEventPayload).batchId
 
       expect(batchId1).not.toBe(batchId2)
       expect(batchId1).toMatch(/^batch-\d+-\d+$/)

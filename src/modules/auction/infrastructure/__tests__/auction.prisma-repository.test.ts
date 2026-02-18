@@ -251,7 +251,8 @@ describe('AuctionPrismaRepository', () => {
       }
 
       // Mock transaction execution
-      vi.mocked(prisma.$transaction).mockImplementation((callback: (tx: unknown) => unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
+      vi.mocked(prisma.$transaction).mockImplementation(((callback: (tx: unknown) => unknown) => {
         const tx = {
           $queryRaw: vi.fn().mockResolvedValue([mockPrismaAuction]),
           auctionBid: {
@@ -266,7 +267,7 @@ describe('AuctionPrismaRepository', () => {
           },
         }
         return callback(tx)
-      })
+      }) as any)
 
       const bidData: PlaceBidData = {
         auctionId: 'auction-1',
@@ -291,12 +292,13 @@ describe('AuctionPrismaRepository', () => {
     })
 
     it('should return AUCTION_NOT_FOUND if auction does not exist', async () => {
-      vi.mocked(prisma.$transaction).mockImplementation((callback: (tx: unknown) => unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
+      vi.mocked(prisma.$transaction).mockImplementation(((callback: (tx: unknown) => unknown) => {
         const tx = {
           $queryRaw: vi.fn().mockResolvedValue([]), // Empty array = not found
         }
         return callback(tx)
-      })
+      }) as any)
 
       const bidData: PlaceBidData = {
         auctionId: 'non-existent',
@@ -317,12 +319,13 @@ describe('AuctionPrismaRepository', () => {
         status: 'COMPLETED' as const,
       }
 
-      vi.mocked(prisma.$transaction).mockImplementation((callback: (tx: unknown) => unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
+      vi.mocked(prisma.$transaction).mockImplementation(((callback: (tx: unknown) => unknown) => {
         const tx = {
           $queryRaw: vi.fn().mockResolvedValue([closedAuction]),
         }
         return callback(tx)
-      })
+      }) as any)
 
       const bidData: PlaceBidData = {
         auctionId: 'auction-1',
@@ -338,12 +341,13 @@ describe('AuctionPrismaRepository', () => {
     })
 
     it('should return BID_TOO_LOW if bid amount <= current price', async () => {
-      vi.mocked(prisma.$transaction).mockImplementation((callback: (tx: unknown) => unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
+      vi.mocked(prisma.$transaction).mockImplementation(((callback: (tx: unknown) => unknown) => {
         const tx = {
           $queryRaw: vi.fn().mockResolvedValue([mockPrismaAuction]), // currentPrice = 10
         }
         return callback(tx)
-      })
+      }) as any)
 
       const bidData: PlaceBidData = {
         auctionId: 'auction-1',
@@ -359,12 +363,13 @@ describe('AuctionPrismaRepository', () => {
     })
 
     it('should return BID_TOO_LOW if bid amount is less than current price', async () => {
-      vi.mocked(prisma.$transaction).mockImplementation((callback: (tx: unknown) => unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
+      vi.mocked(prisma.$transaction).mockImplementation(((callback: (tx: unknown) => unknown) => {
         const tx = {
           $queryRaw: vi.fn().mockResolvedValue([mockPrismaAuction]), // currentPrice = 10
         }
         return callback(tx)
-      })
+      }) as any)
 
       const bidData: PlaceBidData = {
         auctionId: 'auction-1',
@@ -382,7 +387,8 @@ describe('AuctionPrismaRepository', () => {
     it('should update previous winning bid to isWinning = false', async () => {
       const mockUpdateMany = vi.fn().mockResolvedValue({ count: 1 })
 
-      vi.mocked(prisma.$transaction).mockImplementation((callback: (tx: unknown) => unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
+      vi.mocked(prisma.$transaction).mockImplementation(((callback: (tx: unknown) => unknown) => {
         const tx = {
           $queryRaw: vi.fn().mockResolvedValue([mockPrismaAuction]),
           auctionBid: {
@@ -397,7 +403,7 @@ describe('AuctionPrismaRepository', () => {
           },
         }
         return callback(tx)
-      })
+      }) as any)
 
       const bidData: PlaceBidData = {
         auctionId: 'auction-1',
@@ -423,7 +429,8 @@ describe('AuctionPrismaRepository', () => {
       const newExpiresAt = new Date(Date.now() + 30000)
       const mockAuctionUpdate = vi.fn().mockResolvedValue(mockPrismaAuction)
 
-      vi.mocked(prisma.$transaction).mockImplementation((callback: (tx: unknown) => unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
+      vi.mocked(prisma.$transaction).mockImplementation(((callback: (tx: unknown) => unknown) => {
         const tx = {
           $queryRaw: vi.fn().mockResolvedValue([mockPrismaAuction]),
           auctionBid: {
@@ -438,7 +445,7 @@ describe('AuctionPrismaRepository', () => {
           },
         }
         return callback(tx)
-      })
+      }) as any)
 
       const bidData: PlaceBidData = {
         auctionId: 'auction-1',
@@ -458,7 +465,8 @@ describe('AuctionPrismaRepository', () => {
     })
 
     it('should use Serializable isolation level for concurrency safety', async () => {
-      vi.mocked(prisma.$transaction).mockImplementation((callback: (tx: unknown) => unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
+      vi.mocked(prisma.$transaction).mockImplementation(((callback: (tx: unknown) => unknown) => {
         const tx = {
           $queryRaw: vi.fn().mockResolvedValue([mockPrismaAuction]),
           auctionBid: {
@@ -473,7 +481,7 @@ describe('AuctionPrismaRepository', () => {
           },
         }
         return callback(tx)
-      })
+      }) as any)
 
       await repository.placeBidAtomic('auction-1', {
         auctionId: 'auction-1',
@@ -587,7 +595,7 @@ describe('AuctionPrismaRepository', () => {
       })
 
       expect(result).toHaveLength(1)
-      expect(result[0].amount).toBe(15)
+      expect(result[0]!.amount).toBe(15)
     })
   })
 
@@ -757,7 +765,7 @@ describe('AuctionPrismaRepository', () => {
       })
 
       expect(result).toHaveLength(1)
-      expect(result[0].status).toBe('PENDING')
+      expect(result[0]!.status).toBe('PENDING')
     })
   })
 

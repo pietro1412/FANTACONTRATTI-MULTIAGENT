@@ -404,7 +404,7 @@ export class BatchedPusherService implements IBatchedPusherService {
       // Notify callbacks
       const callbacks = this.presenceCallbacks.get(presenceChannel)
       if (callbacks) {
-        callbacks.onLeave(removedMember)
+        callbacks.onLeave(removedMember!)
       }
     }
   }

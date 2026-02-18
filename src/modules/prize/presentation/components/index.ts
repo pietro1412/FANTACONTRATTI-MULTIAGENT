@@ -5,7 +5,7 @@
  */
 
 // Re-export existing components
-export { default as PrizePhaseManager } from '@/components/PrizePhaseManager'
+export { PrizePhaseManager } from '@/components/PrizePhaseManager'
 
 // Future exports:
 // export { PrizeCategoryEditor } from './PrizeCategoryEditor'

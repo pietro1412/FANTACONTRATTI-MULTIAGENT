@@ -269,7 +269,7 @@ export async function acceptInvite(
       await emailService.sendInviteResponseNotificationEmail(
         adminMember.user.email,
         invite.league.name,
-        user.email.split('@')[0], // username approximation from email
+        user.email.split('@')[0] ?? user.email, // username approximation from email
         true, // accepted
         leagueUrl
       )
@@ -641,7 +641,7 @@ export async function rejectInvite(
       await emailService.sendInviteResponseNotificationEmail(
         adminMember.user.email,
         invite.league.name,
-        user.email.split('@')[0], // username approximation from email
+        user.email.split('@')[0] ?? user.email, // username approximation from email
         false, // rejected
         leagueUrl
       )

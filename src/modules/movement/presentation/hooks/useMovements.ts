@@ -116,7 +116,7 @@ export function useMovements(
       }
     } catch (_err) {
       setError('Failed to load movements')
-      console.error('useMovements error:', err)
+      console.error('useMovements error:', _err)
     } finally {
       setIsLoading(false)
     }
@@ -145,7 +145,7 @@ export function useMovements(
         setCurrentOffset(newOffset)
       }
     } catch (_err) {
-      console.error('useMovements loadMore error:', err)
+      console.error('useMovements loadMore error:', _err)
     }
   }, [leagueId, isLoading, currentOffset, limit, options.movementType, options.playerId, options.semester])
 
@@ -225,7 +225,7 @@ export function usePlayerHistory(leagueId: string | undefined, playerId: string 
       }
     } catch (_err) {
       setError('Failed to load player history')
-      console.error('usePlayerHistory error:', err)
+      console.error('usePlayerHistory error:', _err)
     } finally {
       setIsLoading(false)
     }

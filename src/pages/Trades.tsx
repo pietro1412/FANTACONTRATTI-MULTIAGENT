@@ -1177,7 +1177,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                   CANCELLED: { label: 'Annullato', bg: 'bg-surface-300', text: 'text-gray-400', border: 'border-surface-50/30', borderLeft: 'border-l-gray-500' },
                   EXPIRED: { label: 'Scaduto', bg: 'bg-surface-300', text: 'text-gray-400', border: 'border-surface-50/30', borderLeft: 'border-l-gray-500' },
                 }
-                const cfg = statusConfig[offer.status] || statusConfig.CANCELLED
+                const cfg = (statusConfig[offer.status] || statusConfig.CANCELLED)!
 
                 return (
                   <Card key={offer.id} className={`overflow-hidden border-l-4 ${cfg.borderLeft}`}>

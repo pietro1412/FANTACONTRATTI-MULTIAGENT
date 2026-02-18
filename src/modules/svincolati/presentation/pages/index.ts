@@ -5,4 +5,4 @@
  */
 
 // Re-export from existing locations
-export { default as Svincolati } from '@/pages/Svincolati'
+export { Svincolati } from '@/pages/Svincolati'

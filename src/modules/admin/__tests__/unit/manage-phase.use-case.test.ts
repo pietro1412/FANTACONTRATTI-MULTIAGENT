@@ -23,6 +23,7 @@ describe('ManagePhaseUseCase', () => {
       updateMarketPhase: vi.fn(),
       getSessionWithLeague: vi.fn(),
       importPlayers: vi.fn(),
+      isPrizePhaseFinalized: vi.fn(),
     }
 
     mockAuditLogRepository = {
@@ -107,6 +108,7 @@ describe('ManagePhaseUseCase', () => {
         id: 'session-123',
         leagueId: 'league-456',
         status: 'ACTIVE',
+        currentPhase: null,
       })
       vi.mocked(mockAdminRepository.verifyAdmin).mockResolvedValue({
         isAdmin: false,
@@ -130,6 +132,7 @@ describe('ManagePhaseUseCase', () => {
         id: 'session-123',
         leagueId: 'league-456',
         status: 'COMPLETED',
+        currentPhase: null,
       })
       vi.mocked(mockAdminRepository.verifyAdmin).mockResolvedValue({
         isAdmin: true,
@@ -153,6 +156,7 @@ describe('ManagePhaseUseCase', () => {
         id: 'session-123',
         leagueId: 'league-456',
         status: 'ACTIVE',
+        currentPhase: null,
       })
       vi.mocked(mockAdminRepository.verifyAdmin).mockResolvedValue({
         isAdmin: true,
@@ -193,6 +197,7 @@ describe('ManagePhaseUseCase', () => {
         id: 'session-123',
         leagueId: 'league-456',
         status: 'ACTIVE',
+        currentPhase: null,
       })
       vi.mocked(mockAdminRepository.verifyAdmin).mockResolvedValue({
         isAdmin: true,
@@ -235,6 +240,7 @@ describe('ManagePhaseUseCase', () => {
         id: 'session-123',
         leagueId: 'league-456',
         status: 'ACTIVE',
+        currentPhase: null,
       })
       vi.mocked(mockAdminRepository.verifyAdmin).mockResolvedValue({
         isAdmin: true,

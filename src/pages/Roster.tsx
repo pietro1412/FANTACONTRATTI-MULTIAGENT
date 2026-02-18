@@ -607,7 +607,6 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
                   position: entry.player.position,
                   quotation: entry.player.quotation,
                   apiFootballId: entry.player.apiFootballId,
-                  apiFootballStats: entry.player.apiFootballStats,
                 }); }}
               />
             ))

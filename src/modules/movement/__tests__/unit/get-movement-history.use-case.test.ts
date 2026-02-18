@@ -150,8 +150,8 @@ describe('GetMovementHistoryUseCase', () => {
       expect(result.isSuccess).toBe(true)
       if (result.isSuccess) {
         expect(result.value.movements).toHaveLength(2)
-        expect(result.value.movements[0].id).toBe('movement-1')
-        expect(result.value.movements[1].prophecies).toHaveLength(1)
+        expect(result.value.movements[0]!.id).toBe('movement-1')
+        expect(result.value.movements[1]!.prophecies).toHaveLength(1)
       }
     })
 

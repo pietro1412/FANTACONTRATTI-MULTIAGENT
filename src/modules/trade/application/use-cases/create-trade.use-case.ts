@@ -118,7 +118,7 @@ export class CreateTradeUseCase {
       // Validate assets (players and budget)
       const assetValidation = await this.tradeValidator.validateAssets(tempTrade)
       if (!assetValidation.isValid) {
-        return fail(new ValidationError(assetValidation.errors[0]))
+        return fail(new ValidationError(assetValidation.errors[0] ?? 'Validazione asset fallita'))
       }
 
       // Validate anti-loop rule

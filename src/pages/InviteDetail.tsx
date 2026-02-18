@@ -180,7 +180,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
   }
 
   const timeRemaining = getTimeRemaining(invite.expiresAt)
-  const status = STATUS_LABELS[invite.league.status] || STATUS_LABELS.DRAFT
+  const status = (STATUS_LABELS[invite.league.status] || STATUS_LABELS.DRAFT)!
   const totalSlots = invite.league.config.slots.goalkeeper + invite.league.config.slots.defender +
     invite.league.config.slots.midfielder + invite.league.config.slots.forward
 
@@ -299,7 +299,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
-                          {member.username[0].toUpperCase()}
+                          {member.username[0]?.toUpperCase()}
                         </div>
                       )}
                       {member.role === 'ADMIN' && (
@@ -341,7 +341,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
                   />
                 ) : (
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-secondary-400 to-secondary-600 flex items-center justify-center text-white font-bold text-lg">
-                    {invite.inviter.username[0].toUpperCase()}
+                    {invite.inviter.username[0]?.toUpperCase()}
                   </div>
                 )}
                 <div>

@@ -77,8 +77,8 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
         )
         if (!focusable || focusable.length === 0) return
 
-        const first = focusable[0]
-        const last = focusable[focusable.length - 1]
+        const first = focusable[0]!
+        const last = focusable[focusable.length - 1]!
 
         if (e.shiftKey) {
           if (document.activeElement === first) {

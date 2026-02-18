@@ -245,7 +245,7 @@ export async function getAllFeedback(
   const where: {
     status?: FeedbackStatus
     category?: FeedbackCategory
-    OR?: { title: { contains: string; mode: 'insensitive' }; description: { contains: string; mode: 'insensitive' } }[]
+    OR?: { title?: { contains: string; mode: 'insensitive' }; description?: { contains: string; mode: 'insensitive' } }[]
   } = {}
 
   if (options?.status) {

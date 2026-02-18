@@ -645,9 +645,10 @@ export default function ApiFootballTest() {
 
       setResults(prev => {
         const updated = [...prev]
+        const base = updated[0]!
         updated[0] = {
-          ...updated[0],
-          status: response.ok ? 'success' : 'error',
+          ...base,
+          status: response.ok ? 'success' as const : 'error' as const,
           data,
           responseTime,
           error: !response.ok ? `HTTP ${response.status}` : undefined
@@ -658,9 +659,10 @@ export default function ApiFootballTest() {
       const responseTime = Date.now() - startTime
       setResults(prev => {
         const updated = [...prev]
+        const base = updated[0]!
         updated[0] = {
-          ...updated[0],
-          status: 'error',
+          ...base,
+          status: 'error' as const,
           data: null,
           responseTime,
           error: err instanceof Error ? err.message : 'Unknown error'
@@ -675,7 +677,7 @@ export default function ApiFootballTest() {
     setExpandedResults(new Set([0]))
   }
 
-  const renderValue = (value: unknown, depth = 0): JSX.Element => {
+  const renderValue = (value: unknown, depth = 0): React.JSX.Element => {
     if (value === null) return <span className="text-gray-500">null</span>
     if (value === undefined) return <span className="text-gray-500">undefined</span>
     if (typeof value === 'boolean') return <span className="text-purple-400">{value.toString()}</span>
@@ -988,7 +990,7 @@ export default function ApiFootballTest() {
                           <div className="text-red-400 text-sm mt-2">{result.error}</div>
                         )}
 
-                        {result.data && (
+                        {result.data != null && (
                           <div className="mt-2">
                             {viewMode === 'table' ? (
                               <TableView data={result.data} />

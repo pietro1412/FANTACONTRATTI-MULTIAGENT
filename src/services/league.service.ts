@@ -1770,9 +1770,9 @@ export async function getFinancialTrends(leagueId: string, userId: string) {
     for (const snap of allSnapshots) {
       const member = memberMap.get(snap.leagueMemberId)
       if (!member) continue
-      const key = member.teamName
+      const key = member.teamName ?? member.id
       if (!trends[key]) trends[key] = []
-      trends[key].push({
+      trends[key]!.push({
         snapshotType: snap.snapshotType,
         budget: snap.budget,
         totalSalaries: snap.totalSalaries,

@@ -492,11 +492,13 @@ router.get('/leagues/:leagueId/contracts/export-excel', authMiddleware, async (r
     }
 
     // Transform data for Excel export
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = result.data as { contracts: any[]; pendingContracts: any[]; memberBudget: number }
     const excelData: ContractExportData = {
       teamName: member.teamName || member.user.username,
       leagueName: member.league.name,
       exportDate: new Date(),
-      contracts: result.data.contracts.map((c: {
+      contracts: data.contracts.map((c: {
         roster: { player: { name: string; position: string; team: string } }
         salary: number
         duration: number
@@ -533,7 +535,7 @@ router.get('/leagues/:leagueId/contracts/export-excel', authMiddleware, async (r
           indemnityAmount: c.indemnityCompensation,
         }
       }),
-      pendingContracts: result.data.pendingContracts.map((p: {
+      pendingContracts: data.pendingContracts.map((p: {
         player: { name: string; position: string; team: string }
         acquisitionPrice: number
         acquisitionType: string
@@ -550,7 +552,7 @@ router.get('/leagues/:leagueId/contracts/export-excel', authMiddleware, async (r
         draftSalary: p.draftSalary,
         draftDuration: p.draftDuration,
       })),
-      budget: result.data.memberBudget,
+      budget: data.memberBudget,
     }
 
     // Generate Excel

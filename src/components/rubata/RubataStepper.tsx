@@ -55,7 +55,7 @@ export function RubataStepper({ currentState, className = '' }: RubataStepperPro
         {STEPS.map((step, i) => {
           const isActive = i === activeIndex
           const isCompleted = i < activeIndex
-          const colors = COLOR_MAP[step.color]
+          const colors = COLOR_MAP[step.color]!
 
           return (
             <div key={step.key} className="flex items-center">
@@ -87,7 +87,7 @@ export function RubataStepper({ currentState, className = '' }: RubataStepperPro
           {STEPS.map((step, i) => {
             const isActive = i === activeIndex
             const isCompleted = i < activeIndex
-            const colors = COLOR_MAP[step.color]
+            const colors = COLOR_MAP[step.color]!
 
             return (
               <div
@@ -105,7 +105,7 @@ export function RubataStepper({ currentState, className = '' }: RubataStepperPro
         </div>
         <div className="flex items-center gap-1.5 text-sm">
           <span>{STEPS[activeIndex]?.icon}</span>
-          <span className={`font-bold ${COLOR_MAP[STEPS[activeIndex]?.color]?.text || 'text-gray-400'}`}>
+          <span className={`font-bold ${(STEPS[activeIndex] ? COLOR_MAP[STEPS[activeIndex].color]?.text : undefined) || 'text-gray-400'}`}>
             {STEPS[activeIndex]?.label || currentState}
           </span>
           <span className="text-gray-400 text-xs">({activeIndex + 1}/{STEPS.length})</span>

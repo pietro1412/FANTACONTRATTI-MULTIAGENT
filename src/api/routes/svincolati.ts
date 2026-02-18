@@ -634,7 +634,7 @@ router.post('/leagues/:leagueId/svincolati/heartbeat', authMiddleware, (req: Req
 router.post('/:leagueId/svincolati/pause', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { leagueId } = req.params
-    const result = await pauseSvincolati(leagueId, req.user!.userId)
+    const result = await pauseSvincolati(leagueId!, req.user!.userId)
 
     if (!result.success) {
       res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
@@ -651,7 +651,7 @@ router.post('/:leagueId/svincolati/pause', authMiddleware, async (req: Request, 
 router.post('/:leagueId/svincolati/resume', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { leagueId } = req.params
-    const result = await resumeSvincolati(leagueId, req.user!.userId)
+    const result = await resumeSvincolati(leagueId!, req.user!.userId)
 
     if (!result.success) {
       res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)

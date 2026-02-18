@@ -95,11 +95,12 @@ describe('CreateAuctionUseCase', () => {
       isPlayerAvailable: vi.fn().mockResolvedValue(true),
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.fn() partial mocks
     createAuctionUseCase = new CreateAuctionUseCase(
       mockAuctionRepository,
       mockEventBus,
-      mockSessionService,
-      mockPlayerService
+      mockSessionService as any,
+      mockPlayerService as any
     )
   })
 

@@ -321,7 +321,7 @@ export default function LatencyTest() {
                         <td className="px-2 py-2 text-right font-mono text-xs">{r.timing['4_countWinningBids'] ?? '-'}ms</td>
                         <td className="px-2 py-2 text-right font-mono text-xs">{r.timing['5_findSession'] ?? '-'}ms</td>
                         <td className="px-2 py-2 text-right font-mono text-xs">
-                          <span className={r.timing['6_pusherTrigger'] > 100 ? 'text-amber-400' : 'text-green-400'}>
+                          <span className={(r.timing['6_pusherTrigger'] ?? 0) > 100 ? 'text-amber-400' : 'text-green-400'}>
                             {r.timing['6_pusherTrigger'] ?? '-'}ms
                           </span>
                         </td>

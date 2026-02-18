@@ -33,7 +33,6 @@ export {
 
 // Result type for use cases
 export {
-  Result,
   Success,
   Failure,
   ok,
@@ -44,3 +43,4 @@ export {
   isSuccess,
   isFailure,
 } from './result'
+export type { Result } from './result'

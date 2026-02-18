@@ -257,7 +257,7 @@ describe('pusher.client', () => {
       expect(bindings.length).toBeGreaterThanOrEqual(7)
 
       // Find and invoke each handler
-      bindings.forEach(([_eventName, handler]: [string, (data: unknown) => void]) => {
+      ;(bindings as [string, (data: unknown) => void][]).forEach(([_eventName, handler]) => {
         const testData = { test: 'data' }
         handler(testData)
       })
@@ -278,9 +278,9 @@ describe('pusher.client', () => {
       )
 
       // Find the state_change handler that was bound
-      const connectionBindCalls = mockConnectionBind.mock.calls
+      const connectionBindCalls = mockConnectionBind.mock.calls as [string, (...args: unknown[]) => void][]
       const stateChangeBinding = connectionBindCalls.find(
-        ([event]: [string]) => event === 'state_change'
+        ([event]) => event === 'state_change'
       )
 
       expect(stateChangeBinding).toBeDefined()

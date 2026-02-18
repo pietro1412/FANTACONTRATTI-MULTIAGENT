@@ -7,7 +7,11 @@
 
 import { useCallback, useState, useEffect } from 'react'
 import { contractApi } from '@/services/api'
-import { calculateRescissionClause, calculateReleaseCost } from '../../domain/services/contract-calculator.service'
+import { ContractCalculator } from '../../domain/services/contract-calculator.service'
+
+const _calculator = new ContractCalculator()
+const calculateRescissionClause = (salary: number, duration: number): number => _calculator.calculateRescission(salary, duration)
+const calculateReleaseCost = (salary: number, duration: number): number => _calculator.calculateReleaseCost(salary, duration)
 
 export interface ContractPlayer {
   id: string
@@ -125,7 +129,7 @@ export function useContracts(leagueId: string | undefined): UseContractsResult {
       }
     } catch (_err) {
       setError('Failed to load contracts')
-      console.error('useContracts error:', err)
+      console.error('useContracts error:', _err)
     } finally {
       setIsLoading(false)
     }
@@ -300,7 +304,7 @@ export function useConsolidationStatus(leagueId: string | undefined) {
       }
     } catch (_err) {
       setError('Failed to load consolidation status')
-      console.error('useConsolidationStatus error:', err)
+      console.error('useConsolidationStatus error:', _err)
     } finally {
       setIsLoading(false)
     }

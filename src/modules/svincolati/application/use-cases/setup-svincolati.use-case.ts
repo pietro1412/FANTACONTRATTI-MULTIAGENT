@@ -94,7 +94,7 @@ export class SetupSvincolatiUseCase {
     const timerSeconds = dto.timerSeconds ?? DEFAULT_SVINCOLATI_TIMER_SECONDS
 
     // Update session to READY_CHECK status with first nominator
-    const firstNominatorId = turnOrderMemberIds[0]
+    const firstNominatorId = turnOrderMemberIds[0]!
 
     await this.svincolatiRepository.updateSession(dto.sessionId, {
       status: 'READY_CHECK',

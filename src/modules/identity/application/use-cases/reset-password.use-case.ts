@@ -1,5 +1,5 @@
 import type { IUserRepository } from '../../domain/repositories/user.repository.interface'
-import type { IPasswordService } from '../../domain/services/password.service.interface'
+import type { IPasswordService } from '../../domain/services/password.service'
 import type { ResetPasswordDto, ResetPasswordResultDto } from '../dto/password-reset.dto'
 import type { Result} from '@/shared/infrastructure/http/result';
 import { ok, fail } from '@/shared/infrastructure/http/result'

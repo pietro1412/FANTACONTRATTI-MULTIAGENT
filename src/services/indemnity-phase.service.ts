@@ -839,7 +839,7 @@ export async function autoProcessExitedPlayers(
       // Use the first non-zero value as default if available
       const values = prevCategory.managerPrizes.map(p => p.amount).filter(a => a > 0)
       if (values.length > 0) {
-        defaultIndennizzoEstero = values[0]
+        defaultIndennizzoEstero = values[0]!
       }
     }
   }
@@ -1035,14 +1035,14 @@ export async function autoReleaseRitiratiPlayers(
 
   // Record movements outside transaction
   for (const roster of affectedRosters) {
-    await recordMovement(prisma, {
+    await recordMovement({
       leagueId,
-      sessionId,
+      marketSessionId: sessionId,
       playerId: roster.player.id,
       fromMemberId: roster.leagueMember.id,
       toMemberId: null,
-      type: 'RETIREMENT',
-      amount: 0,
+      movementType: 'RETIREMENT',
+      price: 0,
     })
   }
 

@@ -223,7 +223,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           isUserWinning={isUserWinning}
           currentUsername={currentUsername}
           managersStatus={managersStatus}
-          currentTurnManager={currentTurnManager}
+          currentTurnManager={currentTurnManager ?? null}
           firstMarketStatus={firstMarketStatus}
           myRosterSlots={myRosterSlots}
           marketProgress={marketProgress}
@@ -249,7 +249,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           availableTeams={availableTeams}
           teamDropdownOpen={teamDropdownOpen}
           setTeamDropdownOpen={setTeamDropdownOpen}
-          onNominatePlayer={() => void handleNominatePlayer()}
+          onNominatePlayer={(playerId: string) => void handleNominatePlayer(playerId)}
           onSelectManager={setSelectedManager}
           onCloseAuction={() => void handleCloseAuction()}
           onUpdateTimer={() => void handleUpdateTimer()}
@@ -289,8 +289,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
         ackSubmitting={ackSubmitting}
         isAdmin={isAdmin}
         error={error}
-        onAcknowledge={() => void handleAcknowledge()}
-        onSimulateAppeal={() => void handleSimulateAppeal()}
+        onAcknowledge={() => void handleAcknowledge(false)}
+     onSimulateAppeal={() => void handleSimulateAppeal()}
         onNavigate={onNavigate}
         leagueId={leagueId}
       />

@@ -134,7 +134,7 @@ export function FeedbackHub({ leagueId, feedbackId: initialFeedbackId, onNavigat
   const [showForm, setShowForm] = useState(false)
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | undefined>(initialFeedbackId)
 
-  const isSuperAdmin = user?.isSuperAdmin || false
+  const isSuperAdmin = (user as (typeof user & { isSuperAdmin?: boolean }) | null)?.isSuperAdmin || false
 
   useEffect(() => {
     if (leagueId) {

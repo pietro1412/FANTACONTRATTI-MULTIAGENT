@@ -105,7 +105,7 @@ export function CommandPalette() {
 
     for (const item of filtered) {
       if (!groups[item.category]) groups[item.category] = []
-      groups[item.category].push(item)
+      groups[item.category]!.push(item)
     }
     return groups
   }, [filtered, query, commands])

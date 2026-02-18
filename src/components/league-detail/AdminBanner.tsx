@@ -137,7 +137,7 @@ export function AdminBanner({
     const phase = activeSession.currentPhase || 'ASTA_LIBERA'
     const isFirstMarket = activeSession.type === 'PRIMO_MERCATO'
     const config = PHASE_CONFIG[phase] || { icon: '\uD83D\uDD28', color: 'secondary' }
-    const colors = COLOR_MAP[config.color] || COLOR_MAP.secondary
+    const colors = (COLOR_MAP[config.color] || COLOR_MAP.secondary)!
     const nav = getPhaseNavTarget(phase, activeSession.id, leagueId)
     const showButton = !(config.adminOnly && !isAdmin)
 

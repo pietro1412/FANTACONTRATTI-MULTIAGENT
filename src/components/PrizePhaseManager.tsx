@@ -588,7 +588,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                       ESTERO: { bg: 'bg-cyan-500/10', text: 'text-cyan-400', label: 'Estero', indemnity: '50M' },
                     }
                     const posColors = posColorMap[player.position] || { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white' }
-                    const cfg = exitConfig[player.exitReason]
+                    const cfg = exitConfig[player.exitReason]!
                     const isFirstOfMember = idx === 0
                     const memberRowSpan = member.indemnityPlayers.length
 

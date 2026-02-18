@@ -412,7 +412,7 @@ export const inviteApi = {
     }>(`/api/invites/${token}/details`),
 
   // Accept invite
-  accept: (token: string, teamName: string) =>
+  accept: (token: string, teamName?: string) =>
     request(`/api/invites/${token}/accept`, {
       method: 'POST',
       body: JSON.stringify({ teamName }),

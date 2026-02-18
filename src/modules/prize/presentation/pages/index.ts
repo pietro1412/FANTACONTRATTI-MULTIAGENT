@@ -5,4 +5,4 @@
  */
 
 // Re-export from existing locations
-export { default as PrizePhasePage } from '@/pages/PrizePhasePage'
+export { PrizePhasePage } from '@/pages/PrizePhasePage'

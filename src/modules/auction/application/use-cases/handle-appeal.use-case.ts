@@ -126,11 +126,16 @@ export class CreateAppealUseCase {
  * If accepted, may reopen auction or reassign player.
  */
 export class ResolveAppealUseCase {
+  // Reserved for future authorization checks
+  readonly authorizationService: IAuthorizationService
+
   constructor(
     private readonly auctionRepository: IAuctionRepository,
     private readonly eventBus: EventBus,
-    private readonly authorizationService: IAuthorizationService
-  ) {}
+    authorizationService: IAuthorizationService
+  ) {
+    this.authorizationService = authorizationService
+  }
 
   /**
    * Execute the resolve appeal use case

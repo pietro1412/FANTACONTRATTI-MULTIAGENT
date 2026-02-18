@@ -123,7 +123,7 @@ export function useServerTime() {
     // Usa la mediana degli offset
     samples.sort((a, b) => a.offset - b.offset)
     const medianIndex = Math.floor(samples.length / 2)
-    const medianOffset = samples[medianIndex].offset
+    const medianOffset = samples[medianIndex]!.offset
 
     // Media delle latenze
     const avgLatency = Math.round(

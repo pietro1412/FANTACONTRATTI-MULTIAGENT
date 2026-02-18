@@ -87,7 +87,7 @@ describe('EventBus', () => {
       await eventBus.publish('test.event', event)
 
       expect(handler).toHaveBeenCalledWith(event)
-      const receivedEvent = handler.mock.calls[0][0]
+      const receivedEvent = handler.mock.calls[0]![0]
       expect(receivedEvent.id).toBe('test-123')
       expect(receivedEvent.value).toBe(42)
     })
@@ -275,7 +275,7 @@ describe('EventBus', () => {
       eventBus.subscribe<UserCreatedEvent>('user.created', handler)
       await eventBus.publish('user.created', event)
 
-      const receivedEvent = handler.mock.calls[0][0]
+      const receivedEvent = handler.mock.calls[0]![0]
       expect(receivedEvent.userId).toBe('user-123')
       expect(receivedEvent.email).toBe('test@example.com')
       expect(receivedEvent.createdAt).toEqual(new Date('2024-01-01'))

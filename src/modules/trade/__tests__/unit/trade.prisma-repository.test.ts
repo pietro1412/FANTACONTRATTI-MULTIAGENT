@@ -437,7 +437,7 @@ describe('TradePrismaRepository', () => {
         endsAt: null,
         phaseStartedAt: null,
         createdAt: new Date(),
-      })
+      } as unknown as Awaited<ReturnType<typeof prisma.marketSession.findFirst>>)
 
       const result = await repository.getActiveMarketSessionId('league-1')
 

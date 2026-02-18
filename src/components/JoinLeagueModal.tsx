@@ -35,7 +35,7 @@ export function JoinLeagueModal({ isOpen, league, onClose, onSuccess }: JoinLeag
 
   if (!league) return null
 
-  const status = STATUS_LABELS[league.status] || STATUS_LABELS.DRAFT
+  const status = (STATUS_LABELS[league.status] || STATUS_LABELS.DRAFT)!
   const availableSpots = league.maxParticipants - league.currentParticipants
 
   async function handleSubmit(e: React.FormEvent) {
@@ -49,7 +49,7 @@ export function JoinLeagueModal({ isOpen, league, onClose, onSuccess }: JoinLeag
     setIsSubmitting(true)
     setError(null)
 
-    const res = await leagueApi.requestJoin(league.id, teamName.trim())
+    const res = await leagueApi.requestJoin(league!.id, teamName.trim())
 
     if (res.success) {
       setSuccess(true)

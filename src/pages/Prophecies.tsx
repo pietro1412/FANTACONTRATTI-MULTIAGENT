@@ -98,7 +98,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isLoading) {
+        if (entries[0]?.isIntersecting && hasMore && !isLoadingMore && !isLoading) {
           void loadProphecies(false)
         }
       },
@@ -123,7 +123,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
     }
   }
 
-  const loadProphecies = useCallback(async (reset) => {
+  const loadProphecies = useCallback(async (reset: boolean) => {
     if (reset) {
       setIsLoading(true)
     } else {

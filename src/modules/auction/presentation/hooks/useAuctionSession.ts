@@ -60,7 +60,7 @@ export function useAuctionSession(leagueId: string | undefined): UseAuctionSessi
       }
     } catch (_err) {
       setError('Failed to load sessions')
-      console.error('useAuctionSession error:', err)
+      console.error('useAuctionSession error:', _err)
     } finally {
       setIsLoading(false)
     }
@@ -75,7 +75,7 @@ export function useAuctionSession(leagueId: string | undefined): UseAuctionSessi
   const activeSession = sessions.find((s) => s.status === 'ACTIVE') || null
 
   const createSession = useCallback(
-    async (isRegularMarket) => {
+    async (isRegularMarket?: boolean) => {
       if (!leagueId) {
         return { success: false, message: 'No league ID' }
       }

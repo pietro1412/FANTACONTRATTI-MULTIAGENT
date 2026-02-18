@@ -250,7 +250,7 @@ describe('CreateTradeUseCase', () => {
       })
 
       // Verify create was called with an expiresAt roughly 48 hours from now
-      const createCall = vi.mocked(mockRepository.create).mock.calls[0][0]
+      const createCall = vi.mocked(mockRepository.create).mock.calls[0]![0]
       const expiresAt = createCall.expiresAt as Date
       const hoursDiff = (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60)
       expect(hoursDiff).toBeGreaterThan(47.9)
@@ -274,7 +274,7 @@ describe('CreateTradeUseCase', () => {
         receiverBudget: 0,
       })
 
-      const createCall = vi.mocked(mockRepository.create).mock.calls[0][0]
+      const createCall = vi.mocked(mockRepository.create).mock.calls[0]![0]
       const expiresAt = createCall.expiresAt as Date
       const hoursDiff = (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60)
       expect(hoursDiff).toBeGreaterThan(23.9)

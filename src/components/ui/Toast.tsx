@@ -56,7 +56,7 @@ const DEFAULT_DURATIONS: Record<ToastVariant, number> = {
 let toastCounter = 0
 
 function ToastMessage({ item, onDismiss }: { item: ToastItem; onDismiss: (id: string) => void }) {
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
     timerRef.current = setTimeout(() => { onDismiss(item.id); }, item.duration)

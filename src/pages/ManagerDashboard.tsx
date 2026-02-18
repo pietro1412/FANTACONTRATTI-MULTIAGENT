@@ -177,12 +177,12 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
 
   const swipeToNextTab = useCallback(() => {
     const idx = DASHBOARD_TABS.indexOf(activeTab)
-    if (idx < DASHBOARD_TABS.length - 1) setActiveTab(DASHBOARD_TABS[idx + 1])
+    if (idx < DASHBOARD_TABS.length - 1) setActiveTab(DASHBOARD_TABS[idx + 1]!)
   }, [activeTab])
 
   const swipeToPrevTab = useCallback(() => {
     const idx = DASHBOARD_TABS.indexOf(activeTab)
-    if (idx > 0) setActiveTab(DASHBOARD_TABS[idx - 1])
+    if (idx > 0) setActiveTab(DASHBOARD_TABS[idx - 1]!)
   }, [activeTab])
 
   const { handlers: swipeHandlers } = useSwipeGesture({

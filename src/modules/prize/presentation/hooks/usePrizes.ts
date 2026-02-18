@@ -82,7 +82,7 @@ export function usePrizes(sessionId: string | undefined): UsePrizesResult {
       }
     } catch (_err) {
       setError('Failed to load prize data')
-      console.error('usePrizes error:', err)
+      console.error('usePrizes error:', _err)
     } finally {
       setIsLoading(false)
     }

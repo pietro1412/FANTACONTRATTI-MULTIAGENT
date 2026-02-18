@@ -138,7 +138,7 @@ describe('Button', () => {
       sizes.forEach((size, index) => {
         const { unmount } = render(<Button isLoading size={size}>Button</Button>)
         const svg = screen.getByRole('button').querySelector('svg')
-        expect(svg?.classList.contains(expectedHeights[index])).toBe(true)
+        expect(svg?.classList.contains(expectedHeights[index]!)).toBe(true)
         unmount()
       })
     })

@@ -106,7 +106,7 @@ export function useSvincolati(leagueId: string | undefined): UseSvincolatiResult
       }
     } catch (_err) {
       setError('Failed to load svincolati state')
-      console.error('useSvincolati error:', err)
+      console.error('useSvincolati error:', _err)
     } finally {
       setIsLoading(false)
     }

@@ -124,7 +124,7 @@ export function useRubataState(leagueId: string) {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsCurrentPlayerVisible(entry.isIntersecting)
+        setIsCurrentPlayerVisible(entry?.isIntersecting ?? true)
       },
       { threshold: 0.1 }
     )
@@ -955,7 +955,7 @@ export function useRubataState(leagueId: string) {
 
     let managerProcessed = 0
     for (let i = 0; i <= currentIndex; i++) {
-      if (board[i].memberId === currentManagerId) {
+      if (board[i]?.memberId === currentManagerId) {
         managerProcessed++
       }
     }

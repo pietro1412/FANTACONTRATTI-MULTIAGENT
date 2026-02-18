@@ -1125,8 +1125,8 @@ export async function getPrizeHistory(
             total: session.prizePhaseConfig?.baseReincrement ?? 0,
           }
         }
-        memberTotals[prize.leagueMemberId].categoryPrizes[cat.name] = prize.amount
-        memberTotals[prize.leagueMemberId].total += prize.amount
+        memberTotals[prize.leagueMemberId]!.categoryPrizes[cat.name] = prize.amount
+        memberTotals[prize.leagueMemberId]!.total += prize.amount
       }
     }
 

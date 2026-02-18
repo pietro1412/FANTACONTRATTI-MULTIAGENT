@@ -1,3 +1,4 @@
+// @ts-expect-error no types available for canvas-confetti
 import confetti from 'canvas-confetti'
 
 /**

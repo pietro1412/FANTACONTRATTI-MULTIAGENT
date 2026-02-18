@@ -48,6 +48,8 @@ describe('PrizePrismaRepository', () => {
     id: 'config-1',
     marketSessionId: 'session-1',
     baseReincrement: 100,
+    indemnityConsolidated: false,
+    indemnityConsolidatedAt: null,
     isFinalized: false,
     finalizedAt: null,
     createdAt: new Date('2024-01-01'),
@@ -175,8 +177,8 @@ describe('PrizePrismaRepository', () => {
       const result = await repository.getCategoriesForSession('session-1')
 
       expect(result).toHaveLength(1)
-      expect(result[0].name).toBe('Capocannoniere')
-      expect(result[0].isCustom).toBe(true)
+      expect(result[0]!.name).toBe('Capocannoniere')
+      expect(result[0]!.isCustom).toBe(true)
     })
   })
 
@@ -229,13 +231,13 @@ describe('PrizePrismaRepository', () => {
   describe('getPrizes', () => {
     it('should return all prizes for a session', async () => {
       vi.mocked(prisma.sessionPrize.findMany).mockResolvedValue([
-        { ...mockPrize, prizeCategory: mockCategory },
+        { ...mockPrize } as unknown as typeof mockPrize,
       ])
 
       const result = await repository.getPrizes('session-1')
 
       expect(result).toHaveLength(1)
-      expect(result[0].amount).toBe(50)
+      expect(result[0]!.amount).toBe(50)
     })
   })
 
@@ -348,7 +350,7 @@ describe('PrizePrismaRepository', () => {
         endsAt: null,
         phaseStartedAt: null,
         createdAt: new Date(),
-      })
+      } as unknown as Awaited<ReturnType<typeof prisma.marketSession.findUnique>>)
 
       const result = await repository.getSession('session-1')
 
@@ -369,18 +371,19 @@ describe('PrizePrismaRepository', () => {
           status: 'ACTIVE',
           joinType: 'REQUEST',
           currentBudget: 100,
+          preConsolidationBudget: null,
           rubataOrder: null,
           firstMarketOrder: null,
           joinedAt: new Date(),
           user: { username: 'user1' },
-        },
+        } as unknown as Awaited<ReturnType<typeof prisma.leagueMember.findMany>>[0],
       ])
 
       const result = await repository.getActiveMembers('league-1')
 
       expect(result).toHaveLength(1)
-      expect(result[0].teamName).toBe('Team A')
-      expect(result[0].currentBudget).toBe(100)
+      expect(result[0]!.teamName).toBe('Team A')
+      expect(result[0]!.currentBudget).toBe(100)
     })
   })
 
@@ -395,10 +398,11 @@ describe('PrizePrismaRepository', () => {
         status: 'ACTIVE',
         joinType: 'REQUEST',
         currentBudget: 150,
+        preConsolidationBudget: null,
         rubataOrder: null,
         firstMarketOrder: null,
         joinedAt: new Date(),
-      })
+      } as unknown as Awaited<ReturnType<typeof prisma.leagueMember.update>>)
 
       const result = await repository.updateMemberBudget('member-1', 50)
 

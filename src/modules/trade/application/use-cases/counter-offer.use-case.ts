@@ -131,7 +131,7 @@ export class CounterOfferUseCase {
       // Validate assets for the counter offer
       const assetValidation = await this.tradeValidator.validateAssets(tempTrade)
       if (!assetValidation.isValid) {
-        return fail(new ValidationError(assetValidation.errors[0]))
+        return fail(new ValidationError(assetValidation.errors[0] ?? 'Validazione asset fallita'))
       }
 
       // Mark original trade as countered

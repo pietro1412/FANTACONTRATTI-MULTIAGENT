@@ -238,7 +238,7 @@ router.post('/forgot-password', verifyTurnstile, async (req: Request, res: Respo
     // Always return success to prevent email enumeration
     res.json({
       success: true,
-      message: result.value?.message || 'Se l\'email esiste, riceverai un link per reimpostare la password'
+      message: (result.isSuccess ? result.value?.message : undefined) || 'Se l\'email esiste, riceverai un link per reimpostare la password'
     })
   } catch (error) {
     console.error('Forgot password error:', error)

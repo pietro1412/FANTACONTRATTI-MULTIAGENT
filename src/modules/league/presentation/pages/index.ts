@@ -6,7 +6,7 @@
  */
 
 // Re-export from existing locations
-export { default as CreateLeague } from '@/pages/CreateLeague'
-export { default as LeagueDetail } from '@/pages/LeagueDetail'
-export { default as Dashboard } from '@/pages/Dashboard'
-export { default as AdminPanel } from '@/pages/AdminPanel'
+export { CreateLeague } from '@/pages/CreateLeague'
+export { LeagueDetail } from '@/pages/LeagueDetail'
+export { Dashboard } from '@/pages/Dashboard'
+export { AdminPanel } from '@/pages/AdminPanel'
