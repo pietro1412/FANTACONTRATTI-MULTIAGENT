@@ -97,7 +97,7 @@ export function ManagerDetailModal({ selectedManager, onClose }: ManagerDetailMo
               <div key={pos} className="mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className={`w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos]} flex items-center justify-center text-xs font-bold text-white`}>{pos}</span>
+                    <span className={`w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos] ?? ''} flex items-center justify-center text-xs font-bold text-white`}>{pos}</span>
                     <span className="text-gray-300">{POSITION_NAMES[pos]}</span>
                   </div>
                   <span className={`text-sm font-bold ${slot.filled >= slot.total ? 'text-secondary-400' : 'text-gray-500'}`}>{slot.filled}/{slot.total}</span>
@@ -202,7 +202,7 @@ export function AcknowledgmentModal({
             <h2 className="text-2xl font-bold text-white">{pendingAck.winner ? 'Transazione Completata' : 'Asta Conclusa'}</h2>
           </div>
           <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-            <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[pendingAck.player.position]} flex items-center justify-center text-white font-bold flex-shrink-0`}>{pendingAck.player.position}</span>
+            <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[pendingAck.player.position] ?? ''} flex items-center justify-center text-white font-bold flex-shrink-0`}>{pendingAck.player.position}</span>
             <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
               <img
                 src={getTeamLogo(pendingAck.player.team)}
@@ -396,7 +396,7 @@ export function AppealReviewModal({
           {/* Player info */}
           {(appealStatus?.player || pendingAck?.player) && (
             <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-              <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}>
+              <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P'] ?? ''} flex items-center justify-center text-white font-bold flex-shrink-0`}>
                 {(appealStatus?.player || pendingAck?.player)?.position}
               </span>
               <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
@@ -502,7 +502,7 @@ export function AppealAckModal({
           {/* Player info */}
           {(appealStatus?.player || pendingAck?.player) && (
             <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-              <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}>
+              <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P'] ?? ''} flex items-center justify-center text-white font-bold flex-shrink-0`}>
                 {(appealStatus?.player || pendingAck?.player)?.position}
               </span>
               <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
@@ -623,7 +623,7 @@ export function AwaitingResumeModal({
           {/* Player info */}
           {(appealStatus?.player || pendingAck?.player) && (
             <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-              <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}>
+              <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P'] ?? ''} flex items-center justify-center text-white font-bold flex-shrink-0`}>
                 {(appealStatus?.player || pendingAck?.player)?.position}
               </span>
               <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">

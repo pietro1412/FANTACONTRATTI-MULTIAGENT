@@ -136,7 +136,7 @@ export function PlayerCareerPanel({ leagueId, playerId, playerName, onClose }: P
             {/* Position Badge */}
             <div
               className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-bold border ${
-                positionColors[career.player.position]
+                positionColors[career.player.position] ?? ''
               }`}
             >
               {career.player.position}

@@ -263,7 +263,7 @@ export class AdminPrismaRepository implements IAdminRepository {
           imported++
         }
       } catch (error) {
-        errors.push(`Failed to import player ${player.name}: ${error}`)
+        errors.push(`Failed to import player ${player.name}: ${error instanceof Error ? error.message : String(error)}`)
       }
     }
 

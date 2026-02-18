@@ -313,7 +313,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
                         : 'bg-surface-300/50 text-gray-300 hover:bg-surface-300'
                     }`}
                   >
-                    <span className={`px-1 rounded text-[10px] font-bold ${positionColors[player.position]}`}>
+                    <span className={`px-1 rounded text-[10px] font-bold ${positionColors[player.position] ?? ''}`}>
                       {player.position}
                     </span>
                     <span className="truncate max-w-[80px]">{player.name}</span>
@@ -347,7 +347,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
               <div className="flex items-center gap-2">
                 {getActiveFilterLabel() && (
                   <span className="inline-flex items-center gap-1.5 px-2 py-1.5 bg-purple-500/20 border border-purple-500/30 rounded-lg text-xs text-purple-300">
-                    {selectedPlayerId && <span className={`px-1 rounded text-[10px] font-bold ${positionColors[prophecies.find(p => p.player.id === selectedPlayerId)?.player.position || 'P']}`}>{prophecies.find(p => p.player.id === selectedPlayerId)?.player.position}</span>}
+                    {selectedPlayerId && <span className={`px-1 rounded text-[10px] font-bold ${positionColors[prophecies.find(p => p.player.id === selectedPlayerId)?.player.position || 'P'] ?? ''}`}>{prophecies.find(p => p.player.id === selectedPlayerId)?.player.position}</span>}
                     {getActiveFilterLabel()}
                     <button onClick={clearFilters} className="ml-1 hover:text-white">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -412,7 +412,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
                         onClick={() => { handleFilterByPlayer(prophecy.player.id); }}
                         className="flex items-center gap-2 hover:opacity-80"
                       >
-                        <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${positionColors[prophecy.player.position]}`}>
+                        <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${positionColors[prophecy.player.position] ?? ''}`}>
                           {prophecy.player.position}
                         </span>
                         <div>
@@ -436,7 +436,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
                     </td>
                     <td className="px-3 py-2 hidden sm:table-cell">
                       {prophecy.movementType && (
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${getMovementLabel(prophecy.movementType)?.color}`}>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${getMovementLabel(prophecy.movementType)?.color ?? ''}`}>
                           {getMovementLabel(prophecy.movementType)?.label}
                         </span>
                       )}
@@ -465,7 +465,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
                     onClick={() => { handleFilterByPlayer(prophecy.player.id); }}
                     className="flex items-center gap-2 hover:opacity-80 shrink-0"
                   >
-                    <span className={`w-8 h-8 flex items-center justify-center rounded text-xs font-bold ${positionColors[prophecy.player.position]}`}>
+                    <span className={`w-8 h-8 flex items-center justify-center rounded text-xs font-bold ${positionColors[prophecy.player.position] ?? ''}`}>
                       {prophecy.player.position}
                     </span>
                     <div className="text-left">
@@ -485,7 +485,7 @@ export function Prophecies({ leagueId, onNavigate }: PropheciesProps) {
                         — {prophecy.author.teamName || prophecy.author.username}
                       </button>
                       {prophecy.movementType && (
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${getMovementLabel(prophecy.movementType)?.color}`}>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${getMovementLabel(prophecy.movementType)?.color ?? ''}`}>
                           {getMovementLabel(prophecy.movementType)?.label}
                         </span>
                       )}

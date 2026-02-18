@@ -313,7 +313,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               return (
                 <div
                   key={pos}
-                  className={`bg-gradient-to-br ${POSITION_COLORS[pos]} rounded-xl p-3 text-center`}
+                  className={`bg-gradient-to-br ${POSITION_COLORS[pos] ?? ''} rounded-xl p-3 text-center`}
                 >
                   <div className="text-2xl font-bold text-white">{count}</div>
                   <div className="text-xs text-white/80">{posNames[pos]}</div>
@@ -347,7 +347,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     freeAgents.map(player => (
                       <tr key={player.id} className="border-b border-surface-50/10 hover:bg-surface-300/30">
                         <td className="py-2 px-4">
-                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-xs font-bold text-white`}>
+                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position] ?? ''} flex items-center justify-center text-xs font-bold text-white`}>
                             {player.position}
                           </span>
                         </td>
@@ -666,7 +666,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                         className="w-full flex items-center p-3 rounded-lg bg-surface-300 hover:bg-primary-500/10 border border-transparent hover:border-primary-500/30 transition-all text-left"
                       >
                         <div className="flex items-center gap-3 flex-1">
-                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>
+                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position] ?? ''} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>
                             {player.position}
                           </span>
                           <div className="w-7 h-7 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
@@ -721,12 +721,12 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   <h2 className="text-xl font-bold text-white mb-2">
                     {board.pendingNominatorId === board.myMemberId && !board.nominatorConfirmed
                       ? 'Conferma la tua scelta'
-                      : `${board.nominatorUsername} ha chiamato`}
+                      : `${board.nominatorUsername ?? ''} ha chiamato`}
                   </h2>
 
                   {/* Player Card */}
                   <div className="inline-flex items-center gap-3 bg-surface-300 rounded-lg p-4 mb-4">
-                    <span className={`w-12 h-12 rounded-full bg-gradient-to-br ${POSITION_COLORS[board.pendingPlayer.position]} flex items-center justify-center text-white font-bold text-lg`}>
+                    <span className={`w-12 h-12 rounded-full bg-gradient-to-br ${POSITION_COLORS[board.pendingPlayer.position] ?? ''} flex items-center justify-center text-white font-bold text-lg`}>
                       {board.pendingPlayer.position}
                     </span>
                     <div className="w-10 h-10 bg-white/90 rounded flex items-center justify-center p-0.5">
@@ -839,7 +839,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   {/* Player Display */}
                   <div className="text-center p-5 bg-gradient-to-br from-surface-300 to-surface-200 rounded-xl border border-surface-50/20">
                     <div className="flex items-center justify-center gap-4 mb-3">
-                      <span className={`px-4 py-1.5 rounded-full text-sm font-bold border ${POSITION_BG[board.activeAuction.player.position]}`}>
+                      <span className={`px-4 py-1.5 rounded-full text-sm font-bold border ${POSITION_BG[board.activeAuction.player.position] ?? ''}`}>
                         {board.activeAuction.player.position}
                       </span>
                       <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1 shadow-lg">
@@ -1565,7 +1565,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <div key={pos} className="mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${POSITION_COLORS[pos]}`}>{pos}</span>
+                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${POSITION_COLORS[pos] ?? ''}`}>{pos}</span>
                           <span className="text-gray-300">{POSITION_NAMES[pos]}</span>
                         </div>
                         <span className={`text-sm font-bold ${slot.filled >= slot.total ? 'text-secondary-400' : 'text-gray-500'}`}>{slot.filled}/{slot.total}</span>

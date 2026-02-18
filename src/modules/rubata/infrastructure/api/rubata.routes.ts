@@ -151,7 +151,7 @@ router.post(
 router.delete(
   '/:sessionId/board/:entryId',
   authMiddleware,
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler((req: Request, res: Response) => {
     const { sessionId, entryId } = req.params
     const userId = req.user!.userId
 
@@ -164,6 +164,7 @@ router.delete(
       userId,
       sessionId,
     })
+    return Promise.resolve()
   })
 )
 

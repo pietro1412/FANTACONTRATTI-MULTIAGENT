@@ -106,26 +106,26 @@ export class ImportPlayersUseCase {
 
       // Validate position
       if (!VALID_POSITIONS.includes(position.toUpperCase())) {
-        errors.push(`Line ${i + 1}: ruolo non valido "${position}"`)
+        errors.push(`Line ${i + 1}: ruolo non valido "${position ?? ''}"`)
         continue
       }
 
       // Validate name
       if (!name || name.length < 2) {
-        errors.push(`Line ${i + 1}: nome non valido "${name}"`)
+        errors.push(`Line ${i + 1}: nome non valido "${name ?? ''}"`)
         continue
       }
 
       // Validate team
       if (!team || team.length < 2) {
-        errors.push(`Line ${i + 1}: squadra non valida "${team}"`)
+        errors.push(`Line ${i + 1}: squadra non valida "${team ?? ''}"`)
         continue
       }
 
       // Validate quotation
       const quotation = parseInt(quotationStr, 10)
       if (isNaN(quotation) || quotation < 1) {
-        errors.push(`Line ${i + 1}: quotazione non valida "${quotationStr}"`)
+        errors.push(`Line ${i + 1}: quotazione non valida "${quotationStr ?? ''}"`)
         continue
       }
 

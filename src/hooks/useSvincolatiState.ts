@@ -809,7 +809,7 @@ export function useSvincolatiState(leagueId: string) {
     if (res.success) {
       const data = res.data as { hasBotBid: boolean, winningBot?: string, newCurrentPrice?: number }
       if (data.hasBotBid) {
-        setSuccess(`Bot: ${data.winningBot} ha offerto ${data.newCurrentPrice}!`)
+        setSuccess(`Bot: ${data.winningBot ?? 'Bot'} ha offerto ${data.newCurrentPrice ?? 0}!`)
       } else {
         setSuccess('Nessun manager ha rilanciato')
       }

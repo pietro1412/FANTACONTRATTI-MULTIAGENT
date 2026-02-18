@@ -232,7 +232,7 @@ export function Profile({ onNavigate }: ProfileProps) {
     fileInputRef.current?.click()
   }
 
-  async function handlePhotoChange(e: ChangeEvent<HTMLInputElement>) {
+  function handlePhotoChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
 

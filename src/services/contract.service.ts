@@ -872,7 +872,7 @@ export async function releasePlayer(
   })
 
   const releaseMessage = isExitedPlayer
-    ? `${playerName} svincolato gratuitamente (${player.exitReason}).`
+    ? `${playerName} svincolato gratuitamente (${player.exitReason ?? 'sconosciuto'}).`
     : `${playerName} svincolato. Costo taglio: ${releaseCost}M (${contract.salary}×${contract.duration}/2)`
 
   return {
@@ -1451,7 +1451,7 @@ export async function consolidateContracts(
           newSalary: contract.salary,
           newDuration: contract.duration,
           newClause: contract.rescissionClause,
-          notes: `Mantenuto ${contract.roster.player.name} (${contract.roster.player.exitReason})`,
+          notes: `Mantenuto ${contract.roster.player.name} (${contract.roster.player.exitReason ?? 'sconosciuto'})`,
         })
 
         await recordMovement({

@@ -448,7 +448,7 @@ export function Rose({ onNavigate }: RoseProps) {
                             positionFilter === pos
                               ? pos === 'ALL'
                                 ? 'bg-white/20 text-white'
-                                : `${colors?.bg} ${colors?.text}`
+                                : `${colors?.bg ?? ''} ${colors?.text ?? ''}`
                               : 'bg-surface-300 text-gray-500 hover:text-gray-300'
                           }`}
                         >
@@ -521,7 +521,7 @@ export function Rose({ onNavigate }: RoseProps) {
                               positionFilter === pos
                                 ? pos === 'ALL'
                                   ? 'bg-white/20 text-white'
-                                  : `${colors?.bg} ${colors?.text}`
+                                  : `${colors?.bg ?? ''} ${colors?.text ?? ''}`
                                 : 'bg-surface-300 text-gray-500'
                             }`}
                           >

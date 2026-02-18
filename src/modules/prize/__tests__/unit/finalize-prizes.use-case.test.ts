@@ -113,7 +113,7 @@ describe('FinalizePrizesUseCase', () => {
       vi.mocked(mockRepository.getConfig).mockResolvedValue(mockConfig)
       vi.mocked(mockRepository.getActiveMembers).mockResolvedValue(mockMembers)
       vi.mocked(mockRepository.getPrizes).mockResolvedValue(mockPrizes)
-      vi.mocked(mockRepository.updateMemberBudget).mockImplementation(async (memberId, amount) => {
+      vi.mocked(mockRepository.updateMemberBudget).mockImplementation((memberId, amount) => {
         const member = mockMembers.find(m => m.id === memberId)
         return (member?.currentBudget ?? 0) + amount
       })
@@ -232,7 +232,7 @@ describe('FinalizePrizesUseCase', () => {
       vi.mocked(mockRepository.getConfig).mockResolvedValue(mockConfig)
       vi.mocked(mockRepository.getActiveMembers).mockResolvedValue(mockMembers)
       vi.mocked(mockRepository.getPrizes).mockResolvedValue([]) // No prizes assigned
-      vi.mocked(mockRepository.updateMemberBudget).mockImplementation(async (memberId, amount) => {
+      vi.mocked(mockRepository.updateMemberBudget).mockImplementation((memberId, amount) => {
         const member = mockMembers.find(m => m.id === memberId)
         return (member?.currentBudget ?? 0) + amount
       })

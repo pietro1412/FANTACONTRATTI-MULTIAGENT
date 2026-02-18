@@ -586,7 +586,7 @@ export async function setMemberPrize(
 
   return {
     success: true,
-    message: `Premio di ${amount}M assegnato a ${targetMember.teamName}`,
+    message: `Premio di ${amount}M assegnato a ${targetMember.teamName ?? 'squadra'}`,
     data: { memberId, amount },
   }
 }

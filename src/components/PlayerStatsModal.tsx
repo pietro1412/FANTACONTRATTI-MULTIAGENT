@@ -3,7 +3,7 @@ import { Modal, ModalHeader, ModalBody } from './ui/Modal'
 import { POSITION_GRADIENTS } from './ui/PositionBadge'
 import { getPlayerPhotoUrl, getTeamLogoUrl } from '../utils/player-images'
 
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3003')
+const API_URL = String(import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3003'))
 
 // Age color function - younger is better
 function getAgeColor(age: number | null | undefined): string {
@@ -167,13 +167,13 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
               />
             ) : (
               <div
-                className={`w-16 h-16 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position]} flex items-center justify-center text-white font-bold text-xl`}
+                className={`w-16 h-16 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position] ?? ''} flex items-center justify-center text-white font-bold text-xl`}
               >
                 {player.position}
               </div>
             )}
             <span
-              className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position]} flex items-center justify-center text-white font-bold text-xs border-2 border-surface-200`}
+              className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position] ?? ''} flex items-center justify-center text-white font-bold text-xs border-2 border-surface-200`}
             >
               {player.position}
             </span>

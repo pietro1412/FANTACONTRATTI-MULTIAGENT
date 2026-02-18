@@ -175,7 +175,7 @@ export async function importQuotazioni(
 
       const position = parsePosition(positionStr)
       if (!position) {
-        stats.errors.push(`Ruolo non valido per ${name}: ${positionStr}`)
+        stats.errors.push(`Ruolo non valido per ${name}: ${positionStr ?? ''}`)
         continue
       }
 

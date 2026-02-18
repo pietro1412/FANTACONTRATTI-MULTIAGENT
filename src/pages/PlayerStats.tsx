@@ -937,7 +937,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                                   )}
                                   {/* Position badge */}
                                   <span
-                                    className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position]} flex items-center justify-center text-white font-bold text-[10px] border border-surface-200`}
+                                    className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position] ?? ''} flex items-center justify-center text-white font-bold text-[10px] border border-surface-200`}
                                   >
                                     {player.position}
                                   </span>
@@ -1115,13 +1115,13 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                             />
                           ) : (
                             <div
-                              className={`w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position]} flex items-center justify-center text-white font-bold text-lg md:text-xl`}
+                              className={`w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position] ?? ''} flex items-center justify-center text-white font-bold text-lg md:text-xl`}
                             >
                               {player.position}
                             </div>
                           )}
                           <span
-                            className={`absolute -bottom-1 -right-1 w-5 h-5 md:w-6 md:h-6 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position]} flex items-center justify-center text-white font-bold text-[10px] md:text-xs border-2 border-surface-200`}
+                            className={`absolute -bottom-1 -right-1 w-5 h-5 md:w-6 md:h-6 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position] ?? ''} flex items-center justify-center text-white font-bold text-[10px] md:text-xs border-2 border-surface-200`}
                           >
                             {player.position}
                           </span>

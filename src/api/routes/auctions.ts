@@ -629,7 +629,7 @@ router.get('/auctions/sessions/:sessionId/managers-status', authMiddleware, asyn
 // ==================== HEARTBEAT / CONNECTION STATUS ====================
 
 // POST /api/auctions/sessions/:sessionId/heartbeat - Register heartbeat for connection tracking
-router.post('/auctions/sessions/:sessionId/heartbeat', authMiddleware, async (req: Request, res: Response) => {
+router.post('/auctions/sessions/:sessionId/heartbeat', authMiddleware, (req: Request, res: Response) => {
   try {
     const sessionId = req.params.sessionId as string
     const { memberId } = req.body as { memberId?: string }

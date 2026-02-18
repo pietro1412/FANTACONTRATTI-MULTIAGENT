@@ -250,7 +250,7 @@ describe('AuctionPrismaRepository', () => {
       }
 
       // Mock transaction execution
-      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+      vi.mocked(prisma.$transaction).mockImplementation((callback: any) => {
         const tx = {
           $queryRaw: vi.fn().mockResolvedValue([mockPrismaAuction]),
           auctionBid: {
@@ -290,7 +290,7 @@ describe('AuctionPrismaRepository', () => {
     })
 
     it('should return AUCTION_NOT_FOUND if auction does not exist', async () => {
-      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+      vi.mocked(prisma.$transaction).mockImplementation((callback: any) => {
         const tx = {
           $queryRaw: vi.fn().mockResolvedValue([]), // Empty array = not found
         }
@@ -316,7 +316,7 @@ describe('AuctionPrismaRepository', () => {
         status: 'COMPLETED' as const,
       }
 
-      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+      vi.mocked(prisma.$transaction).mockImplementation((callback: any) => {
         const tx = {
           $queryRaw: vi.fn().mockResolvedValue([closedAuction]),
         }
@@ -337,7 +337,7 @@ describe('AuctionPrismaRepository', () => {
     })
 
     it('should return BID_TOO_LOW if bid amount <= current price', async () => {
-      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+      vi.mocked(prisma.$transaction).mockImplementation((callback: any) => {
         const tx = {
           $queryRaw: vi.fn().mockResolvedValue([mockPrismaAuction]), // currentPrice = 10
         }
@@ -358,7 +358,7 @@ describe('AuctionPrismaRepository', () => {
     })
 
     it('should return BID_TOO_LOW if bid amount is less than current price', async () => {
-      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+      vi.mocked(prisma.$transaction).mockImplementation((callback: any) => {
         const tx = {
           $queryRaw: vi.fn().mockResolvedValue([mockPrismaAuction]), // currentPrice = 10
         }
@@ -381,7 +381,7 @@ describe('AuctionPrismaRepository', () => {
     it('should update previous winning bid to isWinning = false', async () => {
       const mockUpdateMany = vi.fn().mockResolvedValue({ count: 1 })
 
-      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+      vi.mocked(prisma.$transaction).mockImplementation((callback: any) => {
         const tx = {
           $queryRaw: vi.fn().mockResolvedValue([mockPrismaAuction]),
           auctionBid: {
@@ -422,7 +422,7 @@ describe('AuctionPrismaRepository', () => {
       const newExpiresAt = new Date(Date.now() + 30000)
       const mockAuctionUpdate = vi.fn().mockResolvedValue(mockPrismaAuction)
 
-      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+      vi.mocked(prisma.$transaction).mockImplementation((callback: any) => {
         const tx = {
           $queryRaw: vi.fn().mockResolvedValue([mockPrismaAuction]),
           auctionBid: {
@@ -457,7 +457,7 @@ describe('AuctionPrismaRepository', () => {
     })
 
     it('should use Serializable isolation level for concurrency safety', async () => {
-      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+      vi.mocked(prisma.$transaction).mockImplementation((callback: any) => {
         const tx = {
           $queryRaw: vi.fn().mockResolvedValue([mockPrismaAuction]),
           auctionBid: {

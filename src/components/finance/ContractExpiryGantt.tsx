@@ -64,7 +64,7 @@ export function ContractExpiryGantt({ players }: ContractExpiryGanttProps) {
           return (
             <div key={player.id} className="flex items-center gap-2">
               <div className="w-24 md:w-32 flex items-center gap-1.5 min-w-0">
-                <span className={`px-1 py-0.5 rounded text-[8px] md:text-[10px] font-bold ${POSITION_COLORS[player.position]}`}>
+                <span className={`px-1 py-0.5 rounded text-[8px] md:text-[10px] font-bold ${POSITION_COLORS[player.position] ?? ''}`}>
                   {player.position}
                 </span>
                 <span className="text-[10px] md:text-xs text-white truncate">{player.name}</span>

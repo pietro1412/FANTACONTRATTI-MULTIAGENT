@@ -188,7 +188,7 @@ export async function botConfirmNomination(
 
   return {
     success: true,
-    message: `Nomination confermata per ${session.pendingNominationPlayer?.name}`,
+    message: `Nomination confermata per ${session.pendingNominationPlayer?.name ?? 'giocatore'}`,
     data: {
       player: session.pendingNominationPlayer,
       nominatorId,
@@ -294,7 +294,7 @@ export async function botMarkAllReady(
 
     return {
       success: true,
-      message: `Asta per ${player?.name} iniziata!`,
+      message: `Asta per ${player?.name ?? 'giocatore'} iniziata!`,
       data: {
         auctionStarted: true,
         auctionId: auction.id,
@@ -846,7 +846,7 @@ export async function simulateFirstMarketBotBidding(
     if (!result.success) {
       return {
         success: false,
-        message: `Bot ${bestBidBot.user.username} non è riuscito a fare offerta: ${result.message}`,
+        message: `Bot ${bestBidBot.user.username} non è riuscito a fare offerta: ${result.message ?? 'errore sconosciuto'}`,
       }
     }
   }

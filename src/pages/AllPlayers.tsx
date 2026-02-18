@@ -227,7 +227,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
                     selectedPosition === pos
                       ? pos === ''
                         ? 'bg-primary-500/30 text-primary-400'
-                        : POSITION_BG[pos]
+                        : (POSITION_BG[pos] ?? '')
                       : 'bg-surface-300 text-gray-400 hover:text-white'
                   }`}
                 >
@@ -281,7 +281,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
                       selectedPosition === pos
                         ? pos === ''
                           ? 'bg-primary-500/30 text-primary-400'
-                          : POSITION_BG[pos]
+                          : (POSITION_BG[pos] ?? '')
                         : 'bg-surface-300 text-gray-400'
                     }`}
                   >
@@ -377,12 +377,12 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
                             />
                           ) : null}
                           <div
-                            className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} items-center justify-center text-sm font-bold text-white ${player.apiFootballId ? 'hidden' : 'flex'}`}
+                            className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position] ?? ''} items-center justify-center text-sm font-bold text-white ${player.apiFootballId ? 'hidden' : 'flex'}`}
                           >
                             {player.position}
                           </div>
                           <span
-                            className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-[10px] border border-surface-200`}
+                            className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position] ?? ''} flex items-center justify-center text-white font-bold text-[10px] border border-surface-200`}
                           >
                             {player.position}
                           </span>

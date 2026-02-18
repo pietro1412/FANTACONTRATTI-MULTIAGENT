@@ -857,7 +857,7 @@ export async function nominatePlayer(
       const roleNames: Record<string, string> = { P: 'Portieri', D: 'Difensori', C: 'Centrocampisti', A: 'Attaccanti' }
       return {
         success: false,
-        message: `Fase ${roleNames[currentRole]}: puoi nominare solo giocatori di ruolo ${currentRole}`
+        message: `Fase ${roleNames[currentRole] ?? currentRole}: puoi nominare solo giocatori di ruolo ${currentRole}`
       }
     }
 
@@ -1968,7 +1968,7 @@ export async function advanceToNextRole(
 
   return {
     success: true,
-    message: `Passato al ruolo ${nextRole}`,
+    message: `Passato al ruolo ${nextRole ?? ''}`,
     data: { previousRole: currentRole, currentRole: nextRole },
   }
 }

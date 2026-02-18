@@ -286,7 +286,7 @@ export function FinanceTimeline({ leagueId, data, initialMemberId, onBack }: Fin
                         <div className={`hidden md:block absolute left-2 top-3 w-2.5 h-2.5 rounded-full ${EVENT_DOT_COLORS[event.color] || 'bg-gray-400'} ring-2 ring-surface-200`} />
 
                         {/* Card */}
-                        <div className={`flex-1 rounded-lg p-2.5 md:p-3 border ${EVENT_BG_COLORS[event.color] || EVENT_BG_COLORS.gray}`}>
+                        <div className={`flex-1 rounded-lg p-2.5 md:p-3 border ${EVENT_BG_COLORS[event.color] ?? EVENT_BG_COLORS.gray ?? ''}`}>
                           <div className="flex items-center justify-between mb-1">
                             <div className="flex items-center gap-2">
                               <span className="text-xs md:text-sm font-medium text-white">{event.label}</span>

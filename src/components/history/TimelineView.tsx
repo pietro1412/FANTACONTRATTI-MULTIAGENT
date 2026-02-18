@@ -250,7 +250,7 @@ export function TimelineView({ leagueId, sessions }: TimelineViewProps) {
                       <td className={`py-1.5 px-2 text-xs font-medium ${config.color}`}>
                         {config.label}
                       </td>
-                      <td className={`py-1.5 px-2 font-bold ${(positionColors[event.player.position] || 'bg-gray-500/20 text-gray-400').split(' ')[1]}`}>
+                      <td className={`py-1.5 px-2 font-bold ${(positionColors[event.player.position] ?? 'bg-gray-500/20 text-gray-400').split(' ')[1] ?? ''}`}>
                         {event.player.position}
                       </td>
                       <td className="py-1.5 px-3 text-white">{event.player.name}</td>

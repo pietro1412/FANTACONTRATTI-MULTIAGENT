@@ -564,7 +564,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     if (result.success) {
       const data = result.data as { hasBotBid: boolean; winningBot: string | null; newCurrentPrice: number }
       if (data.hasBotBid) {
-        setSuccessMessage(`${data.winningBot} ha offerto ${data.newCurrentPrice}!`)
+        setSuccessMessage(`${data.winningBot ?? 'Bot'} ha offerto ${data.newCurrentPrice}!`)
       } else {
         setSuccessMessage('Nessun bot ha fatto offerte')
       }
@@ -579,7 +579,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     const result = await auctionApi.botNominate(sessionId)
     if (result.success) {
       const data = result.data as { player?: { name: string } }
-      setSuccessMessage(`Bot ha scelto ${data.player?.name}`)
+      setSuccessMessage(`Bot ha scelto ${data.player?.name ?? 'giocatore'}`)
       void loadCurrentAuction()
       void loadFirstMarketStatus()
       void loadReadyStatus()
@@ -595,7 +595,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     const result = await auctionApi.botConfirmNomination(sessionId)
     if (result.success) {
       const data = result.data as { player?: { name: string } }
-      setSuccessMessage(`Scelta confermata: ${data.player?.name}`)
+      setSuccessMessage(`Scelta confermata: ${data.player?.name ?? 'giocatore'}`)
       void loadCurrentAuction()
       void loadFirstMarketStatus()
       void loadReadyStatus()

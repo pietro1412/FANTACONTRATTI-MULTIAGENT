@@ -485,7 +485,7 @@ export async function getContractPhaseProspetto(
       costiRinnovi += event.cost
       lineItems.push({
         id: event.id,
-        description: `Rinnovo ${event.player.name}: ${event.previousSalary}→${event.newSalary}`,
+        description: `Rinnovo ${event.player.name}: ${event.previousSalary ?? 0}→${event.newSalary ?? 0}`,
         playerName: event.player.name,
         eventType,
         debit: event.cost,
@@ -496,7 +496,7 @@ export async function getContractPhaseProspetto(
     if (eventType === 'SPALMA') {
       lineItems.push({
         id: event.id,
-        description: `Spalma ${event.player.name}: ${event.previousSalary}/${event.previousDuration}s→${event.newSalary}/${event.newDuration}s`,
+        description: `Spalma ${event.player.name}: ${event.previousSalary ?? 0}/${event.previousDuration ?? 0}s→${event.newSalary ?? 0}/${event.newDuration ?? 0}s`,
         playerName: event.player.name,
         eventType,
         timestamp: event.createdAt,

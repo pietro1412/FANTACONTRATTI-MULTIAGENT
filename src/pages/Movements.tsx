@@ -663,7 +663,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
         <div className="mt-4 flex flex-wrap gap-3 text-xs">
           {Object.entries(MOVEMENT_TYPE_LABELS).map(([key, label]) => (
             <div key={key} className="flex items-center gap-1.5">
-              <span className={`px-1.5 py-0.5 rounded font-bold ${MOVEMENT_TYPE_COLORS[key]}`}>
+              <span className={`px-1.5 py-0.5 rounded font-bold ${MOVEMENT_TYPE_COLORS[key] ?? ''}`}>
                 {MOVEMENT_TYPE_SHORT[key]}
               </span>
               <span className="text-gray-500">{label}</span>

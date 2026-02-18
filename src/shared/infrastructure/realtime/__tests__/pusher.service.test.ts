@@ -51,7 +51,7 @@ describe('BatchedPusherService', () => {
   })
 
   describe('Event Batching', () => {
-    it('should queue events and not send immediately', async () => {
+    it('should queue events and not send immediately', () => {
       service.queueEvent('test-channel', 'test-event', { data: 'value1' })
       service.queueEvent('test-channel', 'test-event', { data: 'value2' })
 

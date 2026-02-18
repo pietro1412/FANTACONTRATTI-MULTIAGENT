@@ -59,7 +59,7 @@ export function RubataTimerPanel({
           <div className="flex items-center gap-4">
             {currentPlayer ? (
               <>
-                <div className={`w-12 h-12 rounded-full ${POSITION_COLORS[currentPlayer.playerPosition]} border flex items-center justify-center font-bold text-lg`}>
+                <div className={`w-12 h-12 rounded-full ${POSITION_COLORS[currentPlayer.playerPosition] ?? ''} border flex items-center justify-center font-bold text-lg`}>
                   {currentPlayer.playerPosition}
                 </div>
                 <div>

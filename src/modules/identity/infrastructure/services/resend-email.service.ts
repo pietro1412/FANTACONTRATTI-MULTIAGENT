@@ -603,7 +603,7 @@ export class ResendEmailService implements IEmailService {
     renewalCount: number,
     excelBuffer?: Buffer
   ): Promise<void> {
-    const dateStr = new Date().toISOString().split('T')[0]
+    const dateStr = new Date().toISOString().split('T')[0] ?? ''
     const safeTeamName = teamName.replace(/\s+/g, '_')
     const pdfFilename = `Ricevuta_Rinnovi_${safeTeamName}_${dateStr}.pdf`
     const excelFilename = `Contratti_${safeTeamName}_${dateStr}.xlsx`

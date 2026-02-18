@@ -663,7 +663,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                                   }}
                                 />
                               ) : (
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition]}`}>
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
                                   {player.playerPosition}
                                 </div>
                               )}
@@ -689,7 +689,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             </div>
                           </td>
                           <td className="py-2 text-center">
-                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold ${isPassed ? 'opacity-40' : ''} ${POSITION_COLORS[player.playerPosition]}`}>
+                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold ${isPassed ? 'opacity-40' : ''} ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
                               {player.playerPosition}
                             </span>
                           </td>
@@ -835,14 +835,14 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             }}
                           />
                         ) : (
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition]}`}>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
                             {player.playerPosition}
                           </div>
                         )}
                         <div className="w-6 h-6 bg-white rounded p-0.5 flex-shrink-0">
                           <TeamLogo team={player.playerTeam} />
                         </div>
-                        <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[8px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition]}`}>
+                        <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[8px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
                           {player.playerPosition}
                         </span>
                         <button

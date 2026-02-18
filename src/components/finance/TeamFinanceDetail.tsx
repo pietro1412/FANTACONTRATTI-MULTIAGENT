@@ -177,7 +177,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
                 const pct = totalSalary > 0 ? Math.round((cost / totalSalary) * 100) : 0
                 return (
                   <div key={pos} className="flex items-center gap-2 text-xs">
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${POSITION_COLORS[pos]}`}>{pos}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${POSITION_COLORS[pos] ?? ''}`}>{pos}</span>
                     <span className="text-gray-400 w-20">{POSITION_NAMES[pos]}</span>
                     <span className="text-white font-medium">{cost}M</span>
                     <span className="text-gray-500">({pct}%)</span>
@@ -210,7 +210,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
               return (
                 <div key={player.id} className="flex items-center gap-2">
                   <span className="text-xs text-gray-500 w-4">{i + 1}.</span>
-                  <span className={`px-1 py-0.5 rounded text-[8px] font-bold ${POSITION_COLORS[player.position]}`}>
+                  <span className={`px-1 py-0.5 rounded text-[8px] font-bold ${POSITION_COLORS[player.position] ?? ''}`}>
                     {player.position}
                   </span>
                   <span className="text-xs text-white font-medium flex-1 truncate">{player.name}</span>
@@ -330,7 +330,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
                     <tr key={player.id} className="hover:bg-surface-100/20">
                       <td className="px-2 md:px-3 py-2 text-white">{player.name}</td>
                       <td className="px-2 py-2 text-center">
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${POSITION_COLORS[player.position]}`}>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${POSITION_COLORS[player.position] ?? ''}`}>
                           {player.position}
                         </span>
                       </td>

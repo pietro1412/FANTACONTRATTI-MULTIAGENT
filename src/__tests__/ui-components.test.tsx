@@ -906,7 +906,7 @@ describe('Input', () => {
       expect(screen.getByText('11/100')).toBeInTheDocument()
     })
 
-    it('does not update internal state when controlled input changes', async () => {
+    it('does not update internal state when controlled input changes', () => {
       const handleChange = vi.fn()
       render(<Input value="controlled" onChange={handleChange} showCharCount maxLength={100} />)
       const input = screen.getByRole('textbox')

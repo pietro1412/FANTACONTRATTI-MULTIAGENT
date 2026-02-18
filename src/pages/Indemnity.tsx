@@ -361,7 +361,7 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className={`w-10 h-10 rounded-full ${
-                        POSITION_COLORS[player.position] || 'bg-gray-500'
+                        POSITION_COLORS[player.position]?.bg ?? 'bg-gray-500'
                       } flex items-center justify-center text-white font-bold text-sm`}>
                         {player.position}
                       </span>
@@ -427,7 +427,7 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <span className={`w-12 h-12 rounded-full ${
-                          POSITION_COLORS[player.position] || 'bg-gray-500'
+                          POSITION_COLORS[player.position]?.bg ?? 'bg-gray-500'
                         } flex items-center justify-center text-white font-bold`}>
                           {player.position}
                         </span>

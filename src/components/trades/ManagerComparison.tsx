@@ -90,7 +90,7 @@ export function ManagerComparison({ myTeam, otherTeam, hasFinancialDetails, onCl
                   const diff = otherCount - myCount
                   return (
                     <div key={pos} className="flex items-center gap-2 bg-surface-300/60 rounded-lg px-3 py-2 border border-surface-50/10">
-                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${POSITION_COLORS[pos]}`}>
+                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${POSITION_COLORS[pos] ?? ''}`}>
                         {POSITION_NAMES[pos]?.slice(0, 3).toUpperCase()}
                       </span>
                       <span className="text-sm font-mono text-white">{myCount}</span>

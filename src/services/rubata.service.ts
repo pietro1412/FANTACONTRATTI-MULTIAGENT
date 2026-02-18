@@ -745,7 +745,7 @@ export async function skipRubataTurn(
 
   return {
     success: true,
-    message: `Turno passato. Ora tocca a ${nextMember?.user.username}`,
+    message: `Turno passato. Ora tocca a ${nextMember?.user.username ?? ''}`,
     data: {
       nextMemberId: newOrder[0],
       remainingTurns: newOrder.length,

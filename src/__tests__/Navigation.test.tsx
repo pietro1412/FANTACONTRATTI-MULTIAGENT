@@ -60,8 +60,8 @@ describe('Navigation Component', () => {
   })
 
   describe('Authenticated User Rendering', () => {
-    it('renders correctly for authenticated user without league', async () => {
-      await act(async () => {
+    it('renders correctly for authenticated user without league', () => {
+      act(() => {
         render(
           <Navigation
             currentPage="dashboard"
@@ -84,8 +84,8 @@ describe('Navigation Component', () => {
       expect(screen.getByTestId('desktop-nav-main')).toBeInTheDocument()
     })
 
-    it('renders correctly for authenticated user with league', async () => {
-      await act(async () => {
+    it('renders correctly for authenticated user with league', () => {
+      act(() => {
         render(
           <Navigation
             currentPage="leagueDetail"
@@ -114,8 +114,8 @@ describe('Navigation Component', () => {
       expect(screen.queryByTestId('nav-admin')).not.toBeInTheDocument()
     })
 
-    it('displays user initials in avatar', async () => {
-      await act(async () => {
+    it('displays user initials in avatar', () => {
+      act(() => {
         render(
           <Navigation
             currentPage="dashboard"
@@ -131,7 +131,7 @@ describe('Navigation Component', () => {
   })
 
   describe('Non-Authenticated User Rendering', () => {
-    it('handles non-authenticated state gracefully', async () => {
+    it('handles non-authenticated state gracefully', () => {
       // Override the mock for this test
       vi.doMock('../hooks/useAuth', () => ({
         useAuth: () => ({
@@ -142,7 +142,7 @@ describe('Navigation Component', () => {
         }),
       }))
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="dashboard"
@@ -157,8 +157,8 @@ describe('Navigation Component', () => {
   })
 
   describe('Admin Menu Items', () => {
-    it('shows admin panel button when user is league admin', async () => {
-      await act(async () => {
+    it('shows admin panel button when user is league admin', () => {
+      act(() => {
         render(
           <Navigation
             currentPage="leagueDetail"
@@ -176,8 +176,8 @@ describe('Navigation Component', () => {
       expect(screen.getByTestId('admin-badge')).toBeInTheDocument()
     })
 
-    it('hides admin panel button when user is not league admin', async () => {
-      await act(async () => {
+    it('hides admin panel button when user is not league admin', () => {
+      act(() => {
         render(
           <Navigation
             currentPage="leagueDetail"
@@ -201,7 +201,7 @@ describe('Navigation Component', () => {
         data: { isSuperAdmin: true },
       })
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="superadmin"
@@ -226,7 +226,7 @@ describe('Navigation Component', () => {
     it('calls onNavigate when logo is clicked', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="leagueDetail"
@@ -243,7 +243,7 @@ describe('Navigation Component', () => {
     it('calls onNavigate with correct params when nav button is clicked', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="leagueDetail"
@@ -260,7 +260,7 @@ describe('Navigation Component', () => {
     it('calls onNavigate when back to leagues button is clicked', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="leagueDetail"
@@ -277,7 +277,7 @@ describe('Navigation Component', () => {
     it('calls logout and navigates to login when logout is clicked from dropdown', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="dashboard"
@@ -304,7 +304,7 @@ describe('Navigation Component', () => {
     it('navigates to profile when profile link is clicked', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="dashboard"
@@ -332,7 +332,7 @@ describe('Navigation Component', () => {
     it('toggles mobile menu when hamburger button is clicked', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="dashboard"
@@ -366,7 +366,7 @@ describe('Navigation Component', () => {
     it('closes mobile menu when navigation item is clicked', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="leagueDetail"
@@ -397,7 +397,7 @@ describe('Navigation Component', () => {
     it('shows mobile logout button and handles logout', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="dashboard"
@@ -422,8 +422,8 @@ describe('Navigation Component', () => {
   })
 
   describe('Active State Highlighting', () => {
-    it('highlights current page in navigation', async () => {
-      await act(async () => {
+    it('highlights current page in navigation', () => {
+      act(() => {
         render(
           <Navigation
             currentPage="strategie-rubata"
@@ -444,8 +444,8 @@ describe('Navigation Component', () => {
       expect(dashboardButton).not.toHaveClass('from-primary-500/30')
     })
 
-    it('highlights admin button with accent color when active', async () => {
-      await act(async () => {
+    it('highlights admin button with accent color when active', () => {
+      act(() => {
         render(
           <Navigation
             currentPage="adminPanel"
@@ -466,7 +466,7 @@ describe('Navigation Component', () => {
     it('shows active indicator dot in mobile menu', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="strategie-rubata"
@@ -496,7 +496,7 @@ describe('Navigation Component', () => {
         data: { isSuperAdmin: true },
       })
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="superadmin"
@@ -525,7 +525,7 @@ describe('Navigation Component', () => {
     it('opens and closes profile dropdown on click', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="dashboard"
@@ -561,7 +561,7 @@ describe('Navigation Component', () => {
     it('closes profile dropdown when clicking outside', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
-      await act(async () => {
+      act(() => {
         render(
           <div>
             <div data-testid="outside-element">Outside</div>
@@ -593,7 +593,7 @@ describe('Navigation Component', () => {
     it('displays user email in dropdown', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="dashboard"
@@ -617,7 +617,7 @@ describe('Navigation Component', () => {
     it('rotates chevron icon when dropdown is open', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="dashboard"
@@ -648,8 +648,8 @@ describe('Navigation Component', () => {
   })
 
   describe('Visual Elements', () => {
-    it('renders online status indicator in profile avatar', async () => {
-      await act(async () => {
+    it('renders online status indicator in profile avatar', () => {
+      act(() => {
         render(
           <Navigation
             currentPage="dashboard"
@@ -666,8 +666,8 @@ describe('Navigation Component', () => {
       expect(onlineIndicator).toHaveClass('rounded-full')
     })
 
-    it('renders admin badge with star icon when user is admin', async () => {
-      await act(async () => {
+    it('renders admin badge with star icon when user is admin', () => {
+      act(() => {
         render(
           <Navigation
             currentPage="leagueDetail"
@@ -689,7 +689,7 @@ describe('Navigation Component', () => {
     it('renders mobile user profile section with admin badge when admin', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="leagueDetail"
@@ -715,10 +715,10 @@ describe('Navigation Component', () => {
   })
 
   describe('Edge Cases', () => {
-    it('handles missing username gracefully', async () => {
+    it('handles missing username gracefully', () => {
       // This test uses the default mock which has a username
       // The component shows '?' when username is not available
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="dashboard"
@@ -731,14 +731,14 @@ describe('Navigation Component', () => {
       expect(screen.getByTestId('profile-button')).toBeInTheDocument()
     })
 
-    it('handles superadmin API failure gracefully', async () => {
+    it('handles superadmin API failure gracefully', () => {
       // Mock API to return a failed response (not reject)
       vi.mocked(superadminApi.getStatus).mockResolvedValueOnce({
         success: false,
         message: 'API Error',
       })
 
-      await act(async () => {
+      act(() => {
         render(
           <Navigation
             currentPage="dashboard"
@@ -754,8 +754,8 @@ describe('Navigation Component', () => {
       expect(screen.getByTestId('nav-le-mie-leghe')).toBeInTheDocument()
     })
 
-    it('handles empty leagueId correctly', async () => {
-      await act(async () => {
+    it('handles empty leagueId correctly', () => {
+      act(() => {
         render(
           <Navigation
             currentPage="dashboard"

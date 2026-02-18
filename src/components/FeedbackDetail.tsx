@@ -270,7 +270,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
                     <p className="text-sm text-gray-300 whitespace-pre-wrap">{response.content}</p>
                     {response.statusChange && (
                       <div className="mt-2 pt-2 border-t border-surface-50/20">
-                        <span className={`text-xs px-2 py-0.5 rounded ${statusConfig[response.statusChange]?.bgColor} ${statusConfig[response.statusChange]?.color}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded ${statusConfig[response.statusChange]?.bgColor ?? ''} ${statusConfig[response.statusChange]?.color ?? ''}`}>
                           Stato cambiato a: {statusConfig[response.statusChange]?.label}
                         </span>
                       </div>

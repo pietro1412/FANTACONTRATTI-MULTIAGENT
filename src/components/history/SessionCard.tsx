@@ -430,7 +430,7 @@ function FirstMarketTab({ data }: { data: unknown }) {
                     className={`border-b border-surface-50/10 hover:bg-surface-300/20 ${hasProphecies ? 'cursor-pointer' : ''}`}
                     onClick={() => hasProphecies && setExpandedAuction(isExpanded ? null : auction.id)}
                   >
-                    <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position]}`}>
+                    <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position] ?? ''}`}>
                       {auction.player.position}
                     </td>
                     <td className="py-1.5 px-2 text-white">{auction.player.name}</td>
@@ -820,7 +820,7 @@ function RubataTab({ data }: { data: unknown }) {
                     <span className="text-green-400 font-bold" title="Trattenuto">✓</span>
                   )}
                 </td>
-                <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position]}`}>
+                <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position] ?? ''}`}>
                   {auction.player.position}
                 </td>
                 <td className="py-1.5 px-2 text-white">{auction.player.name}</td>
@@ -894,7 +894,7 @@ function SvincolatiTab({ data }: { data: unknown }) {
           <tbody>
             {auctions.map(auction => (
               <tr key={auction.id} className="border-b border-surface-50/10 hover:bg-surface-300/20">
-                <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position]}`}>
+                <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position] ?? ''}`}>
                   {auction.player.position}
                 </td>
                 <td className="py-1.5 px-2 text-white">{auction.player.name}</td>

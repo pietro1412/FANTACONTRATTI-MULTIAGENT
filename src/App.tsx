@@ -165,13 +165,13 @@ function ProfileWrapper() {
 // Shared navigation handler for all league pages
 function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueId: string | undefined) {
   return (page: string, params?: Record<string, string>) => {
-    const lid = params?.leagueId || leagueId
+    const lid = params?.leagueId ?? leagueId ?? ''
     switch (page) {
       case 'dashboard': void navigate('/dashboard'); break
       case 'profile': void navigate('/profile'); break
       case 'leagueDetail': void navigate(`/leagues/${lid}`); break
-      case 'inviteDetail': void navigate(`/invite/${params?.token}`); break
-      case 'auction': void navigate(`/leagues/${lid}/auction/${params?.sessionId}`); break
+      case 'inviteDetail': void navigate(`/invite/${params?.token ?? ''}`); break
+      case 'auction': void navigate(`/leagues/${lid}/auction/${params?.sessionId ?? ''}`); break
       case 'rose': void navigate(`/leagues/${lid}/rose`); break
       // Keep backward compatibility for old routes
       case 'roster': void navigate(`/leagues/${lid}/rose`); break

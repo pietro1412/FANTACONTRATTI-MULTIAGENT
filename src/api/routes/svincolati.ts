@@ -610,7 +610,7 @@ router.post('/leagues/:leagueId/svincolati/force-all-finished', authMiddleware, 
 // ==================== HEARTBEAT / CONNECTION STATUS ====================
 
 // POST /api/leagues/:leagueId/svincolati/heartbeat - Register heartbeat for connection tracking
-router.post('/leagues/:leagueId/svincolati/heartbeat', authMiddleware, async (req: Request, res: Response) => {
+router.post('/leagues/:leagueId/svincolati/heartbeat', authMiddleware, (req: Request, res: Response) => {
   try {
     const leagueId = req.params.leagueId as string
     const { memberId } = req.body as { memberId?: string }

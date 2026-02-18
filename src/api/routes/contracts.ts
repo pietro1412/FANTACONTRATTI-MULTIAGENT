@@ -557,7 +557,7 @@ router.get('/leagues/:leagueId/contracts/export-excel', authMiddleware, async (r
     const excelBuffer = generateContractsExcel(excelData)
 
     // Send file as binary
-    const filename = `Contratti_${excelData.teamName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`
+    const filename = `Contratti_${(excelData.teamName ?? '').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0] ?? ''}.xlsx`
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
     res.setHeader('Content-Length', excelBuffer.length)

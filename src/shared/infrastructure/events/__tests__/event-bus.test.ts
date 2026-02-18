@@ -220,7 +220,7 @@ describe('EventBus', () => {
   })
 
   describe('clear', () => {
-    it('should remove all handlers', async () => {
+    it('should remove all handlers', () => {
       const handler1 = vi.fn()
       const handler2 = vi.fn()
 

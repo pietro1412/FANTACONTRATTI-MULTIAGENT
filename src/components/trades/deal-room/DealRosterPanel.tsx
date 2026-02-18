@@ -116,7 +116,7 @@ export function DealRosterPanel(props: DealRosterPanelProps) {
           <div className="flex gap-1">
             {ROLES.map(r => {
               const isActive = filterRole === r.key
-              const filterColor = r.key ? POSITION_FILTER_COLORS[r.key] : ''
+              const filterColor = r.key ? (POSITION_FILTER_COLORS[r.key] ?? '') : ''
               return (
                 <button
                   key={r.key}

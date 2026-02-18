@@ -99,7 +99,7 @@ function PlayerCard({ entry }: { entry: RosterEntry }) {
           />
         ) : null}
         <div
-          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position]} items-center justify-center text-white font-bold text-sm ${playerPhotoUrl ? 'hidden' : 'flex'}`}
+          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[entry.player.position] ?? ''} items-center justify-center text-white font-bold text-sm ${playerPhotoUrl ? 'hidden' : 'flex'}`}
         >
           {entry.player.position}
         </div>
