@@ -66,29 +66,33 @@ Rimangono solo in file test con `eslint-disable` esplicito (standard practice pe
 
 ## Step 3 — Coverage
 
-| Metrica | Valore |
-|---------|--------|
-| Statements | 49.26% |
-| Branches | 40.17% |
-| Functions | 48.42% |
-| Lines | 51.87% |
+| Metrica | Prima | Dopo |
+|---------|-------|------|
+| Statements | 49.26% | **65.62%** |
+| Branches | 40.17% | **56.26%** |
+| Functions | 48.42% | **61.79%** |
+| Lines | 51.87% | **68.13%** |
+
+**Services coverage: 19.68% → 75.11%** (+55 punti percentuali)
+
+75 test suite, 1490 test totali (era 62 suite, 1085 test).
 
 **Aree con bassa coverage:**
 
 | Area | Lines | Note |
 |------|-------|------|
-| `src/pages/` | 4.54% | Componenti React quasi non testati |
-| `src/services/` | 20.23% | Business logic backend coperta parzialmente |
+| `src/pages/` | ~5% | Componenti React — richiedono test con DOM |
 | `src/components/` | N/A | Non strumentati dalla coverage |
 
 **Aree con buona coverage:**
 
 | Area | Lines | Note |
 |------|-------|------|
+| `src/services/` | 75.11% | Business logic backend ben coperta |
 | `src/shared/infrastructure/` | 86-100% | Cron, events, HTTP, result |
 | `src/modules/*/application/` | 80-100% | Use case DDD ben testati |
 
-Target configurato: 95%. Gap significativo — richiede settimane di lavoro dedicato.
+Target configurato: 95%. Il gap rimanente e' principalmente nelle pagine React.
 
 ---
 
@@ -127,12 +131,13 @@ Target configurato: 95%. Gap significativo — richiede settimane di lavoro dedi
 |---------|-----------------|-------------|--------------|--------------|
 | ESLint errori | 4.379 | 4.370 | **0** | **-4.379** |
 | ESLint warning | 570 | 573 | 1.436 | +866 (intenzionale) |
-| Test passed | 1.136 | 1.085 | 1.085 | Stabile |
+| Test passed | 1.136 | 1.085 | **1.490** | **+354** |
 | Test failed | 15 | **0** | **0** | **-15** |
-| Test suite verdi | 62/64 | 62/62 | 62/62 | **100%** |
+| Test suite verdi | 62/64 | 62/62 | **75/75** | **100%** |
 | TS errori (strict) | ~950 | ~764 | **0** | **-950** |
 | ServiceResult duplicati | 18 | 0 | 0 | **-18** |
 | console.log/error | 89 | 89 | **2** | **-87** |
 | Deep imports | 77 | 84 | **0** | **-77** |
 | `: any` (production) | 12 | 12 | **0** | **-12** |
-| Coverage (lines) | N/A | 51.87% | 51.87% | Invariato |
+| Coverage (lines) | N/A | 51.87% | **68.13%** | **+16.3%** |
+| Coverage (services) | N/A | 19.68% | **75.11%** | **+55.4%** |
