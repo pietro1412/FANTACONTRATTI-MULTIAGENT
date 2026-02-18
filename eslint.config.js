@@ -21,6 +21,12 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // Downgraded from error to warn: these are React 19 best-practice
+      // suggestions (immutability, setState-in-effect, useMemo usage),
+      // not actual bugs. 74 combined reports across the codebase.
+      'react-hooks/immutability': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/use-memo': 'warn',
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },

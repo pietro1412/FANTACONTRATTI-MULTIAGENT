@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { PieChart, Pie, ResponsiveContainer, Tooltip } from 'recharts'
+import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
 import { KPICard, SectionHeader } from './KPICard'
 import { LandscapeHint } from '../ui/LandscapeHint'
 import { HealthIndicator, HealthIndicatorCompact } from './HealthIndicator'
@@ -125,7 +126,7 @@ export function FinanceDashboard({ data }: FinanceDashboardProps) {
                   <Tooltip
                     contentStyle={{ backgroundColor: '#1a1c20', border: '1px solid #2d3139', borderRadius: 8, fontSize: 12 }}
                     itemStyle={{ color: '#fff' }}
-                    formatter={((value: number) => [`${value}M`, '']) as any}
+                    formatter={((value: number) => [`${value}M`, '']) as Formatter<number, string>}
                   />
                 </PieChart>
               </ResponsiveContainer>

@@ -5,6 +5,7 @@ import {
   ScatterChart, Scatter, ZAxis,
   LineChart, Line,
 } from 'recharts'
+import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
 import { TeamRanking } from './TeamRanking'
 
 import { LandscapeHint } from '../ui/LandscapeHint'
@@ -188,11 +189,11 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
                   itemStyle={{ color: '#fff' }}
-                  formatter={((value: number, name: string) => [`${value}M`, name === 'bilancio' ? 'Bilancio' : name === 'ingaggi' ? 'Ingaggi' : 'Acquisti']) as any}
+                  formatter={((value: number, name: string) => [`${value}M`, name === 'bilancio' ? 'Bilancio' : name === 'ingaggi' ? 'Ingaggi' : 'Acquisti']) as Formatter<number, string>}
                   labelFormatter={((label: string) => {
                     const item = stackedBarData.find(d => d.name === label)
                     return item?.fullName || label
-                  }) as any}
+                  }) as (label: string) => string}
                 />
                 <Legend
                   formatter={(value: string) => value === 'bilancio' ? 'Bilancio' : value === 'ingaggi' ? 'Ingaggi' : 'Acquisti'}
@@ -247,11 +248,11 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
                 <YAxis type="category" dataKey="name" tick={{ fill: '#9ca3af', fontSize: 10 }} width={80} />
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
-                  formatter={((value: number) => [`${value} semestri`, 'Durata media']) as any}
+                  formatter={((value: number) => [`${value} semestri`, 'Durata media']) as Formatter<number, string>}
                   labelFormatter={((label: string) => {
                     const item = durationData.find(d => d.name === label)
                     return item?.fullName || label
-                  }) as any}
+                  }) as (label: string) => string}
                 />
                 <Bar dataKey="avgDuration" fill="#8b5cf6" radius={[0, 4, 4, 0]} fillOpacity={0.7} />
               </BarChart>
@@ -288,7 +289,7 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
                   formatter={((value: number, name: string) => [
                     name === 'Bilancio' ? `${value}M` : `${value}%`,
                     name
-                  ]) as any}
+                  ]) as Formatter<number, string>}
                   labelFormatter={(_, payload) => {
                     const item = payload?.[0]?.payload as (typeof scatterData)[0] | undefined
                     return item?.name || ''
@@ -319,7 +320,7 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
                   itemStyle={{ color: '#fff' }}
-                  formatter={((value: number) => [`${value}M`, '']) as any}
+                  formatter={((value: number) => [`${value}M`, '']) as Formatter<number, string>}
                 />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
                 {trendsChartData.teamNames.map((name, i) => (

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { PieChart, Pie, ResponsiveContainer, Tooltip, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ZAxis } from 'recharts'
+import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
 import { WaterfallChart } from './WaterfallChart'
 import { ContractExpiryGantt } from './ContractExpiryGantt'
 import { KPICard } from './KPICard'
@@ -164,7 +165,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
                   />
                   <Tooltip
                     contentStyle={TOOLTIP_STYLE}
-                    formatter={((value: number) => [`${value}M`, '']) as any}
+                    formatter={((value: number) => [`${value}M`, '']) as Formatter<number, string>}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -268,7 +269,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
                       formatter={((value: number, name: string) => [
                         `${value}M`,
                         name
-                      ]) as any}
+                      ]) as Formatter<number, string>}
                       labelFormatter={(_, payload) => {
                         const item = payload?.[0]?.payload as (typeof clauseData)[0] | undefined
                         return item ? `${item.name} (${item.position})` : ''

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
 import { leagueApi } from '../../services/api'
 import { type FinancialsData, POSITION_COLORS } from './types'
 
@@ -226,7 +227,7 @@ export function FinanceTimeline({ leagueId, data, initialMemberId, onBack }: Fin
                       formatter={((value: number, name: string) => [
                         `${value}M`,
                         name === 'bilancio' ? 'Bilancio' : name === 'budget' ? 'Budget' : 'Ingaggi',
-                      ]) as any}
+                      ]) as Formatter<number, string>}
                     />
                     <Legend
                       formatter={(value: string) => value === 'bilancio' ? 'Bilancio' : value === 'budget' ? 'Budget' : 'Ingaggi'}

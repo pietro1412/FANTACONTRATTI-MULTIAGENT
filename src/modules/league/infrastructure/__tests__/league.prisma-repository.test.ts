@@ -140,6 +140,7 @@ describe('LeaguePrismaRepository', () => {
     it('should return all leagues user is member of', async () => {
       vi.mocked(prisma.leagueMember.findMany).mockResolvedValue([
         { ...mockPrismaMember, league: mockPrismaLeague }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
       ] as any)
 
       const result = await repository.findByUserId('user-123')
@@ -292,6 +293,7 @@ describe('LeaguePrismaRepository', () => {
     it('should return all members with user info', async () => {
       vi.mocked(prisma.leagueMember.findMany).mockResolvedValue([
         { ...mockPrismaMember, user: mockPrismaUser }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
       ] as any)
 
       const result = await repository.getMembers('league-123')

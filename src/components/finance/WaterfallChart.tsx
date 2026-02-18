@@ -1,4 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
 import { type TeamData } from './types'
 
 interface WaterfallChartProps {
@@ -171,7 +172,7 @@ export function WaterfallChart({ team }: WaterfallChartProps) {
               formatter={((_value: number, _name: string, props: { payload: { displayValue: number } }) => {
                 const dv = props.payload.displayValue
                 return [`${dv >= 0 ? '+' : ''}${dv}M`, '']
-              }) as any}
+              }) as Formatter<number, string>}
             />
             <ReferenceLine y={0} stroke="#6b7280" />
             <Bar dataKey="base" stackId="a" fill="transparent" />

@@ -15,6 +15,7 @@ import {
   deleteObjective,
   getObjectivesSummary
 } from '../../services/objectives.service'
+import type { UpdateObjectiveInput } from '../../services/objectives.service'
 import { authMiddleware } from '../middleware/auth'
 
 const router = Router()
@@ -108,7 +109,7 @@ router.put('/objectives/:objectiveId', authMiddleware, async (req: Request, res:
       priority,
       notes,
       maxPrice,
-      status: status as any
+      status: status as UpdateObjectiveInput['status']
     })
 
     if (!result.success) {

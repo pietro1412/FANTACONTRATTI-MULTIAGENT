@@ -402,6 +402,7 @@ describe('RosterPrismaRepository', () => {
       vi.mocked(prisma.leagueMember.findUnique).mockResolvedValue({
         id: 'member-1',
         currentBudget: 150,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
       } as any)
 
       const result = await repository.getMemberBudget('member-1')
@@ -426,6 +427,7 @@ describe('RosterPrismaRepository', () => {
       vi.mocked(prisma.leagueMember.update).mockResolvedValue({
         id: 'member-1',
         currentBudget: 200,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
       } as any)
 
       const result = await repository.updateMemberBudget('member-1', 50)
@@ -447,6 +449,7 @@ describe('RosterPrismaRepository', () => {
       vi.mocked(prisma.leagueMember.update).mockResolvedValue({
         id: 'member-1',
         currentBudget: 100,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
       } as any)
 
       const result = await repository.updateMemberBudget('member-1', -50)

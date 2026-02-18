@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- vi.mocked partial mocks require any for Prisma model types */
 /**
  * SvincolatiPrismaRepository Tests
  *

@@ -1,4 +1,4 @@
-import { PrismaClient, MemberStatus, RosterStatus, AcquisitionType } from '@prisma/client'
+import { PrismaClient, MemberStatus, RosterStatus, AcquisitionType, MovementType } from '@prisma/client'
 import { recordMovement } from './movement.service'
 import {
   createContractHistoryEntries,
@@ -1433,8 +1433,8 @@ export async function consolidateContracts(
       })
 
       for (const contract of keptExitedPlayers) {
-        const movementType = contract.roster.player.exitReason === 'ESTERO'
-          ? 'ABROAD_KEEP' : 'RELEGATION_KEEP'
+        const movementType: MovementType = contract.roster.player.exitReason === 'ESTERO'
+          ? MovementType.ABROAD_KEEP : MovementType.RELEGATION_KEEP
         const eventType: ContractEventType = contract.roster.player.exitReason === 'ESTERO'
           ? 'KEEP_ESTERO' : 'KEEP_RETROCESSO'
 
@@ -1460,7 +1460,7 @@ export async function consolidateContracts(
           playerId: contract.roster.player.id,
           fromMemberId: null,
           toMemberId: member.id,
-          movementType: movementType as any,
+          movementType,
           price: 0,
         })
       }

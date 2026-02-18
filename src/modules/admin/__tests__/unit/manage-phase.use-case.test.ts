@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { ManagePhaseUseCase } from '../../application/use-cases/manage-phase.use-case'
 import type { IAdminRepository, IAuditLogRepository } from '../../domain/repositories/admin.repository.interface'
+import type { MarketPhase } from '../../domain/entities/audit-log.entity'
 
 describe('ManagePhaseUseCase', () => {
   let managePhaseUseCase: ManagePhaseUseCase
@@ -64,7 +65,7 @@ describe('ManagePhaseUseCase', () => {
       const result = await managePhaseUseCase.execute({
         sessionId: 'session-123',
         adminUserId: 'admin-123',
-        newPhase: '' as any,
+        newPhase: '' as unknown as MarketPhase,
       })
 
       expect(result.isFailure).toBe(true)
@@ -77,7 +78,7 @@ describe('ManagePhaseUseCase', () => {
       const result = await managePhaseUseCase.execute({
         sessionId: 'session-123',
         adminUserId: 'admin-123',
-        newPhase: 'INVALID_PHASE' as any,
+        newPhase: 'INVALID_PHASE' as unknown as MarketPhase,
       })
 
       expect(result.isFailure).toBe(true)
