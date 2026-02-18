@@ -185,7 +185,7 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
             // Assign to both the forwarded ref and our internal ref
             containerRef.current = node
             if (typeof ref === 'function') ref(node)
-            else if (ref) (ref as React.RefObject<HTMLDivElement | null>).current = node
+            else if (ref) ref.current = node
           }}
           className={`
             relative ${sizeStyles[size]}

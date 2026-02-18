@@ -1,4 +1,5 @@
-import { PrismaClient, Prisma, MemberStatus, RosterStatus, TradeStatus } from '@prisma/client'
+import { PrismaClient, MemberStatus, RosterStatus, TradeStatus } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 import { recordMovement } from './movement.service'
 import { notifyTradeOffer, notifyTradeInvalidated } from './notification.service'
 import { triggerTradeOfferReceived, triggerTradeUpdated } from './pusher.service'

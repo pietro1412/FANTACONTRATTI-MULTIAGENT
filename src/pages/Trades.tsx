@@ -454,7 +454,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
 
     if (res.success) {
       haptic.send()
-      const warnings = (res as any).warnings as string[] | undefined
+      const warnings = (res as unknown as { warnings?: string[] }).warnings
       if (warnings?.length) {
         setSuccess(`Offerta inviata! ${warnings.join(' ')}`)
       } else {
@@ -855,7 +855,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                   offeredCount={selectedOfferedPlayers.length}
                   requestedCount={selectedRequestedPlayers.length}
                   isSubmitting={isSubmitting}
-                  onSubmit={() => { void (handleCreateOffer({ preventDefault: () => {) }} } as React.FormEvent)}
+                  onSubmit={() => { void handleCreateOffer({ preventDefault: () => {} } as React.FormEvent) }}
                   canSubmit={!!(selectedMemberId && (selectedOfferedPlayers.length > 0 || offeredBudget > 0 || selectedRequestedPlayers.length > 0 || requestedBudget > 0))}
                   hasSelections={hasTradeSelections}
                 />
