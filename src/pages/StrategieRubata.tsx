@@ -254,7 +254,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
           samplePrefs: withPrefs.slice(0, 3).map(p => ({ name: p.playerName, pref: p.preference }))
         })
 
-        setStrategiesData(ownedRes.data)
+        setStrategiesData(ownedRes.data as StrategiesData)
         ownedRes.data.players.forEach(p => {
           if (p.preference) {
             locals[p.playerId] = {
@@ -270,7 +270,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       }
 
       if (svincolatiRes.success && svincolatiRes.data) {
-        setSvincolatiData(svincolatiRes.data)
+        setSvincolatiData(svincolatiRes.data as SvincolatiData)
         svincolatiRes.data.players.forEach(p => {
           if (p.preference) {
             locals[p.playerId] = {
@@ -379,13 +379,17 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
       if (res.success) {
         // Mark as not dirty
-        setLocalStrategies(prev => ({
-          ...prev,
-          [playerId]: {
-            ...prev[playerId],
-            isDirty: false,
+        setLocalStrategies(prev => {
+          const existing = prev[playerId]
+          if (!existing) return prev
+          return {
+            ...prev,
+            [playerId]: {
+              ...existing,
+              isDirty: false,
+            }
           }
-        }))
+        })
 
         // Update server data optimistically
         setStrategiesData(prev => {
@@ -436,25 +440,25 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         isWatchlist: category !== null,
       })
       // Optimistic update for both datasets
-      const updatePlayer = (p: StrategyPlayerWithPreference | SvincolatoPlayerWithPreference) => {
-        if (p.playerId !== playerId) return p
-        return {
-          ...p,
-          preference: {
-            id: p.preference?.id || 'temp',
-            playerId,
-            memberId: strategiesData?.myMemberId || '',
-            maxBid: p.preference?.maxBid ?? null,
-            priority: p.preference?.priority ?? null,
-            notes: p.preference?.notes ?? null,
-            isWatchlist: category !== null,
-            isAutoPass: p.preference?.isAutoPass ?? false,
-            watchlistCategory: category,
-          }
-        }
-      }
-      setStrategiesData(prev => prev ? { ...prev, players: prev.players.map(updatePlayer) } : prev)
-      setSvincolatiData(prev => prev ? { ...prev, players: prev.players.map(updatePlayer) } : prev)
+      const buildPref = (p: { preference?: RubataPreference | null }): RubataPreference => ({
+        id: p.preference?.id || 'temp',
+        playerId,
+        memberId: strategiesData?.myMemberId || '',
+        maxBid: p.preference?.maxBid ?? null,
+        priority: p.preference?.priority ?? null,
+        notes: p.preference?.notes ?? null,
+        isWatchlist: category !== null,
+        isAutoPass: p.preference?.isAutoPass ?? false,
+        watchlistCategory: category,
+      })
+      setStrategiesData(prev => prev ? {
+        ...prev,
+        players: prev.players.map(p => p.playerId !== playerId ? p : { ...p, preference: buildPref(p) })
+      } : prev)
+      setSvincolatiData(prev => prev ? {
+        ...prev,
+        players: prev.players.map(p => p.playerId !== playerId ? p : { ...p, preference: buildPref(p) })
+      } : prev)
     } catch {
       console.error('Error setting watchlist category for', playerId)
     } finally {
@@ -1843,7 +1847,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           size={280}
                           players={playersToCompare.map((p, i) => ({
                             name: p.playerName,
-                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#6b7280'
                           }))}
                           data={[
                             { label: 'Parate', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.saves ?? 0) },
@@ -1863,7 +1867,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           size={280}
                           players={playersToCompare.map((p, i) => ({
                             name: p.playerName,
-                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#6b7280'
                           }))}
                           data={[
                             { label: 'Gol Subiti', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.conceded ?? 0) },
@@ -1892,7 +1896,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         size={280}
                         players={playersToCompare.map((p, i) => ({
                           name: p.playerName,
-                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#6b7280'
                         }))}
                         data={[
                           { label: 'Gol', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.total ?? 0) },
@@ -1912,7 +1916,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         size={280}
                         players={playersToCompare.map((p, i) => ({
                           name: p.playerName,
-                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#6b7280'
                         }))}
                         data={[
                           { label: 'Contrasti', values: playersToCompare.map(p => p.playerApiFootballStats?.tackles?.total ?? 0) },

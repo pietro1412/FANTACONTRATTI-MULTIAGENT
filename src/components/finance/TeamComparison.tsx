@@ -190,10 +190,11 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
                   contentStyle={TOOLTIP_STYLE}
                   itemStyle={{ color: '#fff' }}
                   formatter={((value: number, name: string) => [`${value}M`, name === 'bilancio' ? 'Bilancio' : name === 'ingaggi' ? 'Ingaggi' : 'Acquisti']) as Formatter<number, string>}
-                  labelFormatter={((label: string) => {
-                    const item = stackedBarData.find(d => d.name === label)
-                    return item?.fullName || label
-                  }) as (label: string) => string}
+                  labelFormatter={((label: unknown) => {
+                    const labelStr = String(label)
+                    const item = stackedBarData.find(d => d.name === labelStr)
+                    return item?.fullName ?? labelStr
+                  }) as never}
                 />
                 <Legend
                   formatter={(value: string) => value === 'bilancio' ? 'Bilancio' : value === 'ingaggi' ? 'Ingaggi' : 'Acquisti'}
@@ -249,10 +250,11 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
                   formatter={((value: number) => [`${value} semestri`, 'Durata media']) as Formatter<number, string>}
-                  labelFormatter={((label: string) => {
-                    const item = durationData.find(d => d.name === label)
-                    return item?.fullName || label
-                  }) as (label: string) => string}
+                  labelFormatter={((label: unknown) => {
+                    const labelStr = String(label)
+                    const item = durationData.find(d => d.name === labelStr)
+                    return item?.fullName ?? labelStr
+                  }) as never}
                 />
                 <Bar dataKey="avgDuration" fill="#8b5cf6" radius={[0, 4, 4, 0]} fillOpacity={0.7} />
               </BarChart>

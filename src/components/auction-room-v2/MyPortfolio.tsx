@@ -122,7 +122,7 @@ export function MyPortfolio({ myRosterSlots, budget }: MyPortfolioProps) {
           const slot = myRosterSlots.slots[pos]
           if (slot.total === 0) return null
           const isCurrent = myRosterSlots.currentRole === pos
-          const colors = POS_COLORS[pos]
+          const colors = POS_COLORS[pos] ?? { bg: 'bg-gray-500/15', border: 'border-gray-500/40', text: 'text-gray-400', badge: 'from-gray-500 to-gray-600' }
           const posName = POSITION_NAMES[pos as keyof typeof POSITION_NAMES] || pos
 
           return (

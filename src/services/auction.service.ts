@@ -126,7 +126,7 @@ export async function canAdvanceFromAstaLibera(leagueId: string): Promise<{
     for (const entry of member.roster) {
       const pos = entry.player.position
       if (pos in positionCounts) {
-        positionCounts[pos]++
+        positionCounts[pos] = (positionCounts[pos] ?? 0) + 1
       }
     }
 
@@ -136,7 +136,7 @@ export async function canAdvanceFromAstaLibera(leagueId: string): Promise<{
       const current = positionCounts[pos] || 0
       if (current < required) {
         const positionNames: Record<string, string> = { P: 'Portieri', D: 'Difensori', C: 'Centrocampisti', A: 'Attaccanti' }
-        missing.push({ position: positionNames[pos], count: required - current })
+        missing.push({ position: positionNames[pos] ?? pos, count: required - current })
       }
     }
 
@@ -443,7 +443,7 @@ export async function createAuctionSession(
       : 'Sessione PRIMO MERCATO creata'
 
     // Push notification: auction started (fire-and-forget)
-    notifyAuctionStart(leagueId, result.marketType).catch(() => {})
+    notifyAuctionStart(leagueId, result.marketType!).catch(() => {})
 
     return {
       success: true,
@@ -2187,7 +2187,7 @@ export async function resumeAuction(
     data: {
       status: AuctionStatus.ACTIVE,
       timerExpiresAt: new Date(Date.now() + remainingSeconds * 1000),
-      resumeReadyMembers: null,
+      resumeReadyMembers: Prisma.DbNull,
     },
   })
 
@@ -4355,7 +4355,7 @@ export async function resolveAppeal(
         data: {
           svincolatiState: 'AWAITING_RESUME',
           svincolatiTimerStartedAt: null,
-          svincolatiPendingAck: null, // Pulisci il pending ack precedente
+          svincolatiPendingAck: Prisma.DbNull, // Pulisci il pending ack precedente
         },
       })
     }
@@ -4525,7 +4525,7 @@ export async function acknowledgeAppealDecision(
         // Find next member who hasn't passed
         let nextIndex = (currentTurnIndex + 1) % turnOrder.length
         let searchCount = 0
-        while (newPassedMembers.includes(turnOrder[nextIndex]) && searchCount < turnOrder.length) {
+        while (newPassedMembers.includes(turnOrder[nextIndex]!) && searchCount < turnOrder.length) {
           nextIndex = (nextIndex + 1) % turnOrder.length
           searchCount++
         }
@@ -4541,7 +4541,7 @@ export async function acknowledgeAppealDecision(
               svincolatiPendingPlayerId: null,
               svincolatiPendingNominatorId: null,
               svincolatiNominatorConfirmed: false,
-              svincolatiPendingAck: null,
+              svincolatiPendingAck: Prisma.DbNull,
               svincolatiReadyMembers: [],
             },
           })
@@ -4555,7 +4555,7 @@ export async function acknowledgeAppealDecision(
               svincolatiPendingPlayerId: null,
               svincolatiPendingNominatorId: null,
               svincolatiNominatorConfirmed: false,
-              svincolatiPendingAck: null,
+              svincolatiPendingAck: Prisma.DbNull,
               svincolatiReadyMembers: [],
               svincolatiPassedMembers: newPassedMembers,
             },
@@ -4817,7 +4817,7 @@ export async function forceAllAppealDecisionAcks(
       // Find next member who hasn't passed
       let nextIndex = (currentTurnIndex + 1) % turnOrder.length
       let searchCount = 0
-      while (newPassedMembers.includes(turnOrder[nextIndex]) && searchCount < turnOrder.length) {
+      while (newPassedMembers.includes(turnOrder[nextIndex]!) && searchCount < turnOrder.length) {
         nextIndex = (nextIndex + 1) % turnOrder.length
         searchCount++
       }
@@ -4833,7 +4833,7 @@ export async function forceAllAppealDecisionAcks(
             svincolatiPendingPlayerId: null,
             svincolatiPendingNominatorId: null,
             svincolatiNominatorConfirmed: false,
-            svincolatiPendingAck: null,
+            svincolatiPendingAck: Prisma.DbNull,
             svincolatiReadyMembers: [],
           },
         })
@@ -4847,7 +4847,7 @@ export async function forceAllAppealDecisionAcks(
             svincolatiPendingPlayerId: null,
             svincolatiPendingNominatorId: null,
             svincolatiNominatorConfirmed: false,
-            svincolatiPendingAck: null,
+            svincolatiPendingAck: Prisma.DbNull,
             svincolatiReadyMembers: [],
             svincolatiPassedMembers: newPassedMembers,
           },

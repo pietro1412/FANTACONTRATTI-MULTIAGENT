@@ -1214,6 +1214,7 @@ export async function consolidateContracts(
           await tx.playerContract.create({
             data: {
               rosterId: nc.rosterId,
+              leagueMemberId: member.id,
               salary: nc.salary,
               duration: nc.duration,
               initialSalary: nc.salary,
@@ -2017,7 +2018,7 @@ export async function modifyContractPostAcquisition(
   }
 
   // Get existing renewal history or initialize empty array
-  const renewalHistory = (contract.renewalHistory as unknown[] || [])
+  const renewalHistory = (contract.renewalHistory as Record<string, unknown>[] || [])
 
   // Update contract
   const updatedContract = await prisma.playerContract.update({
@@ -2026,7 +2027,7 @@ export async function modifyContractPostAcquisition(
       salary: newSalary,
       duration: newDuration,
       rescissionClause: newRescissionClause,
-      renewalHistory: [...renewalHistory, oldValues],
+      renewalHistory: [...renewalHistory, oldValues] as unknown as import('@prisma/client').Prisma.InputJsonValue,
     },
     include: {
       roster: {
@@ -2037,9 +2038,13 @@ export async function modifyContractPostAcquisition(
     },
   })
 
+  const contractWithRoster = updatedContract as typeof updatedContract & {
+    roster: { player: { name: string; id: string; position: string; team: string } }
+  }
+
   return {
     success: true,
-    message: `Contratto di ${updatedContract.roster.player.name} modificato con successo`,
+    message: `Contratto di ${contractWithRoster.roster.player.name} modificato con successo`,
     data: {
       contract: {
         id: updatedContract.id,
@@ -2049,7 +2054,7 @@ export async function modifyContractPostAcquisition(
         initialSalary: updatedContract.initialSalary,
         initialDuration: updatedContract.initialDuration,
       },
-      player: updatedContract.roster.player,
+      player: contractWithRoster.roster.player,
     },
   }
 }

@@ -35,6 +35,9 @@ const router = Router()
 
 // ==================== TYPES ====================
 
+// Type helper for accessing dynamic properties on service result data
+type ResultData = Record<string, unknown>
+
 interface CreateAuctionBody {
   playerId: string
   basePrice?: number
@@ -94,7 +97,7 @@ router.post(
       getAuctionChannel(sessionId),
       BATCHED_PUSHER_EVENTS.AUCTION_STARTED,
       {
-        auctionId: result.data?.auctionId,
+        auctionId: (result.data as ResultData | undefined)?.auctionId,
         playerId,
         basePrice,
         nominatedBy: userId,
@@ -117,7 +120,7 @@ router.post(
   '/:auctionId/bid',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { auctionId } = req.params
+    const auctionId = req.params.auctionId as string
     const { amount } = req.body as PlaceBidBody
     const userId = req.user!.userId
 
@@ -135,7 +138,8 @@ router.post(
 
     // Queue real-time event for bid placed
     // Extract sessionId from auction context if available
-    const sessionId = result.data?.sessionId
+    const data = result.data as ResultData | undefined
+    const sessionId = data?.sessionId as string | undefined
     if (sessionId) {
       batchedPusherService.queueEvent(
         getAuctionChannel(sessionId),
@@ -144,17 +148,19 @@ router.post(
           auctionId,
           amount,
           bidderId: userId,
-          timerExpiresAt: result.data?.timerExpiresAt,
+          timerExpiresAt: data?.timerExpiresAt,
           timestamp: Date.now(),
         }
       )
 
       // Send immediate timer reset for time-sensitive update
-      if (result.data?.timerExpiresAt) {
+      if (data?.timerExpiresAt) {
+        const remainingSeconds = (data.remainingSeconds as number) || 30
+        const totalSeconds = (data.totalSeconds as number) || 30
         await batchedPusherService.sendTimerReset(getAuctionChannel(sessionId), {
           auctionId,
-          remainingSeconds: result.data.remainingSeconds || 30,
-          totalSeconds: result.data.totalSeconds || 30,
+          remainingSeconds,
+          totalSeconds,
           resetReason: 'bid',
           triggeredBy: userId,
           timestamp: Date.now(),
@@ -176,7 +182,7 @@ router.get(
   '/:sessionId/active',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await getCurrentAuction(sessionId, userId)
@@ -200,7 +206,7 @@ router.post(
   '/:auctionId/close',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { auctionId } = req.params
+    const auctionId = req.params.auctionId as string
     const userId = req.user!.userId
 
     const result = await closeAuction(auctionId, userId)
@@ -212,16 +218,17 @@ router.post(
     }
 
     // Queue real-time event for auction closed
-    const sessionId = result.data?.sessionId
+    const data = result.data as ResultData | undefined
+    const sessionId = data?.sessionId as string | undefined
     if (sessionId) {
       batchedPusherService.queueEvent(
         getAuctionChannel(sessionId),
         BATCHED_PUSHER_EVENTS.AUCTION_CLOSED,
         {
           auctionId,
-          winnerId: result.data?.winnerId,
-          winningBid: result.data?.winningBid,
-          playerId: result.data?.playerId,
+          winnerId: data?.winnerId,
+          winningBid: data?.winningBid,
+          playerId: data?.playerId,
           timestamp: Date.now(),
         }
       )
@@ -244,7 +251,7 @@ router.post(
   '/:auctionId/appeal',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { auctionId } = req.params
+    const auctionId = req.params.auctionId as string
     const { content } = req.body as CreateAppealBody
     const userId = req.user!.userId
 
@@ -274,7 +281,7 @@ router.get(
   '/:auctionId/appeal',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { auctionId } = req.params
+    const auctionId = req.params.auctionId as string
     const userId = req.user!.userId
 
     const result = await getAppealStatus(auctionId, userId)
@@ -299,7 +306,7 @@ router.put(
   '/:auctionId/appeal/resolve',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { auctionId } = req.params
+    const auctionId = req.params.auctionId as string
     const { decision, resolutionNote } = req.body as ResolveAppealBody
     const userId = req.user!.userId
 

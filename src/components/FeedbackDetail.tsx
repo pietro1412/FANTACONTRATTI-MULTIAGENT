@@ -153,8 +153,10 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
     )
   }
 
-  const statusCfg = statusConfig[feedback.status] || statusConfig.APERTA
-  const categoryCfg = categoryConfig[feedback.category] || categoryConfig.ALTRO
+  const defaultStatus = { label: 'Aperta', color: 'text-amber-400', bgColor: 'bg-amber-500/20' }
+  const defaultCategory = { label: 'Altro', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' }
+  const statusCfg = statusConfig[feedback.status] ?? defaultStatus
+  const categoryCfg = categoryConfig[feedback.category] ?? defaultCategory
 
   return (
     <div className="space-y-6">
@@ -215,7 +217,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
             <div className="flex gap-2">
               {['APERTA', 'IN_LAVORAZIONE', 'RISOLTA'].map(status => {
                 if (status === feedback.status) return null
-                const cfg = statusConfig[status]
+                const cfg = statusConfig[status] ?? defaultStatus
                 return (
                   <button
                     key={status}

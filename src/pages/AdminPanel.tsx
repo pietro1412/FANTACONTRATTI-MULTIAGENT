@@ -79,12 +79,14 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   // Swipe gesture for tab navigation (mobile)
   const swipeToNextTab = useCallback(() => {
     const idx = TABS.findIndex(t => t.id === activeTab)
-    if (idx < TABS.length - 1) setActiveTab(TABS[idx + 1].id)
+    const nextTab = TABS[idx + 1]
+    if (idx < TABS.length - 1 && nextTab) setActiveTab(nextTab.id)
   }, [activeTab])
 
   const swipeToPrevTab = useCallback(() => {
     const idx = TABS.findIndex(t => t.id === activeTab)
-    if (idx > 0) setActiveTab(TABS[idx - 1].id)
+    const prevTab = TABS[idx - 1]
+    if (idx > 0 && prevTab) setActiveTab(prevTab.id)
   }, [activeTab])
 
   const { handlers: swipeHandlers } = useSwipeGesture({
@@ -541,9 +543,9 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                 auctionMode={auctionMode}
                 setAuctionMode={setAuctionMode}
                 handleStartLeague={() => void handleStartLeague()}
-                handleSetPhase={() => void handleSetPhase()}
-                handleCloseSession={() => void handleCloseSession()}
-                handleCreateSession={() => void handleCreateSession()}
+                handleSetPhase={(sessionId, phase) => void handleSetPhase(sessionId, phase)}
+                handleCloseSession={(sessionId) => void handleCloseSession(sessionId)}
+                handleCreateSession={(isRegularMarket) => void handleCreateSession(isRegularMarket)}
                 handleSimulateAllConsolidation={() => void handleSimulateAllConsolidation()}
               />
             )}
@@ -552,7 +554,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
               <AdminMembersTab
                 activeMembers={activeMembers}
                 isSubmitting={isSubmitting}
-                confirmKick={() => void confirmKick()}
+                confirmKick={(memberId, username) => void confirmKick(memberId, username)}
                 handleCompleteWithTestUsers={() => void handleCompleteWithTestUsers()}
                 appeals={appeals}
                 isLoadingAppeals={isLoadingAppeals}
@@ -562,7 +564,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                 setResolutionNote={setResolutionNote}
                 selectedAppealId={selectedAppealId}
                 setSelectedAppealId={setSelectedAppealId}
-                handleResolveAppeal={() => void handleResolveAppeal()}
+                handleResolveAppeal={(appealId, decision) => void handleResolveAppeal(appealId, decision)}
                 handleSimulateAppeal={() => void handleSimulateAppeal()}
               />
             )}
@@ -576,9 +578,9 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                 inviteDuration={inviteDuration}
                 setInviteDuration={setInviteDuration}
                 isSubmitting={isSubmitting}
-                handleMemberAction={() => void handleMemberAction()}
+                handleMemberAction={(memberId, action) => void handleMemberAction(memberId, action)}
                 handleCreateInvite={() => void handleCreateInvite()}
-                handleCancelInvite={() => void handleCancelInvite()}
+                handleCancelInvite={(inviteId) => void handleCancelInvite(inviteId)}
               />
             )}
 

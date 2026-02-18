@@ -104,6 +104,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
           amount: data.amount,
           placedAt: data.timestamp,
           bidder: {
+            teamName: null,
             user: { username: data.memberName }
           }
         }

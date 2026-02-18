@@ -63,7 +63,7 @@ router.get(
     const { sessionId } = req.params
     const userId = req.user!.userId
 
-    const result = await getPrizePhaseData(sessionId, userId)
+    const result = await getPrizePhaseData(sessionId as string, userId)
 
     if (!result.success) {
       const status = result.message === 'Non autorizzato' ? 403 : 400
@@ -94,7 +94,7 @@ router.post(
     const userId = req.user!.userId
 
     // Initialize prize phase
-    const initResult = await initializePrizePhase(sessionId, userId)
+    const initResult = await initializePrizePhase(sessionId as string, userId)
 
     if (!initResult.success) {
       const status = initResult.message === 'Non autorizzato' ? 403 : 400
@@ -104,7 +104,7 @@ router.post(
 
     // Update base reincrement if provided
     if (baseReincrement !== undefined) {
-      const updateResult = await updateBaseReincrement(sessionId, userId, baseReincrement)
+      const updateResult = await updateBaseReincrement(sessionId as string, userId, baseReincrement)
       if (!updateResult.success) {
         res.status(400).json(updateResult)
         return
@@ -114,7 +114,7 @@ router.post(
     // Create categories if provided
     if (categories && categories.length > 0) {
       for (const categoryName of categories) {
-        const categoryResult = await createPrizeCategory(sessionId, userId, categoryName)
+        const categoryResult = await createPrizeCategory(sessionId as string, userId, categoryName)
         if (!categoryResult.success) {
           // Log but continue - partial setup is acceptable
           console.warn(`Failed to create category ${categoryName}:`, categoryResult.message)
@@ -123,7 +123,7 @@ router.post(
     }
 
     // Get updated prize data
-    const result = await getPrizePhaseData(sessionId, userId)
+    const result = await getPrizePhaseData(sessionId as string, userId)
 
     res.status(201).json(result)
   })
@@ -191,7 +191,7 @@ router.delete(
     // Individual prize assignments are handled by setMemberPrize with amount 0
 
     // Try to delete as category first
-    const result = await deletePrizeCategory(prizeId, userId)
+    const result = await deletePrizeCategory(prizeId as string, userId)
 
     if (!result.success) {
       const status = result.message === 'Non autorizzato' ? 403 : 400
@@ -217,7 +217,7 @@ router.post(
     const { sessionId } = req.params
     const userId = req.user!.userId
 
-    const result = await finalizePrizePhase(sessionId, userId)
+    const result = await finalizePrizePhase(sessionId as string, userId)
 
     if (!result.success) {
       const status = result.message === 'Non autorizzato' ? 403 : 400
@@ -254,7 +254,7 @@ router.post(
       return
     }
 
-    const result = await createPrizeCategory(sessionId, userId, name)
+    const result = await createPrizeCategory(sessionId as string, userId, name)
 
     if (!result.success) {
       const status = result.message === 'Non autorizzato' ? 403 : 400
@@ -289,7 +289,7 @@ router.patch(
       return
     }
 
-    const result = await updateBaseReincrement(sessionId, userId, amount)
+    const result = await updateBaseReincrement(sessionId as string, userId, amount)
 
     if (!result.success) {
       const status = result.message === 'Non autorizzato' ? 403 : 400

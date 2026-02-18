@@ -313,26 +313,32 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
   // Aggiorna valori locali per un contratto
   function updateLocalEdit(contractId: string, field: 'newSalary' | 'newDuration', value: string) {
-    setLocalEdits(prev => ({
-      ...prev,
-      [contractId]: {
-        ...prev[contractId],
-        [field]: value,
-        isModified: true,
+    setLocalEdits(prev => {
+      const existing = prev[contractId] ?? { newSalary: '', newDuration: '', isModified: false, previewData: null, isSaving: false }
+      return {
+        ...prev,
+        [contractId]: {
+          ...existing,
+          [field]: value,
+          isModified: true,
+        }
       }
-    }))
+    })
   }
 
   // Aggiorna valori locali per un pending contract
   function updatePendingEdit(rosterId: string, field: 'newSalary' | 'newDuration', value: string) {
-    setPendingEdits(prev => ({
-      ...prev,
-      [rosterId]: {
-        ...prev[rosterId],
-        [field]: value,
-        isModified: true,
+    setPendingEdits(prev => {
+      const existing = prev[rosterId] ?? { newSalary: '', newDuration: '', isModified: false, previewData: null, isSaving: false }
+      return {
+        ...prev,
+        [rosterId]: {
+          ...existing,
+          [field]: value,
+          isModified: true,
+        }
       }
-    }))
+    })
   }
 
   // Calcola preview per contratto esistente
@@ -346,13 +352,17 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
     const result = await contractApi.preview(contractId, salary, duration)
     if (result.success && result.data) {
-      setLocalEdits(prev => ({
-        ...prev,
-        [contractId]: {
-          ...prev[contractId],
-          previewData: result.data as LocalEdit['previewData'],
+      setLocalEdits(prev => {
+        const existing = prev[contractId]
+        if (!existing) return prev
+        return {
+          ...prev,
+          [contractId]: {
+            ...existing,
+            previewData: result.data as LocalEdit['previewData'],
+          }
         }
-      }))
+      })
     }
   }
 
@@ -367,13 +377,17 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
 
     const result = await contractApi.previewCreate(rosterId, salary, duration)
     if (result.success && result.data) {
-      setPendingEdits(prev => ({
-        ...prev,
-        [rosterId]: {
-          ...prev[rosterId],
-          previewData: result.data as LocalEdit['previewData'],
+      setPendingEdits(prev => {
+        const existing = prev[rosterId]
+        if (!existing) return prev
+        return {
+          ...prev,
+          [rosterId]: {
+            ...existing,
+            previewData: result.data as LocalEdit['previewData'],
+          }
         }
-      }))
+      })
     }
   }
 
@@ -1348,7 +1362,8 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                   RETROCESSO: { bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'Retrocesso' },
                   ESTERO: { bg: 'bg-cyan-500/20', text: 'text-cyan-400', label: 'Estero' },
                 }
-                const config = exitConfig[contract.exitReason || ''] || exitConfig.RETROCESSO
+                const defaultConfig = { bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'Retrocesso' }
+                const config = exitConfig[contract.exitReason || ''] ?? defaultConfig
 
                 return (
                   <div key={contract.id} className="rounded-xl border p-4 bg-surface-200 border-cyan-500/30">
@@ -2280,7 +2295,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                       3: { bg: 'rgba(99, 102, 241, 0.2)', bar: '#6366f1', text: '#818cf8' }, // primary/indigo
                       4: { bg: 'rgba(34, 197, 94, 0.2)', bar: '#22c55e', text: '#4ade80' },  // secondary/green
                     }
-                    const c = colors[dur]
+                    const c = colors[dur] ?? { bg: 'rgba(107,114,128,0.2)', bar: '#6b7280', text: '#9ca3af' }
                     return (
                       <div key={dur} className="flex items-center gap-2">
                         <div

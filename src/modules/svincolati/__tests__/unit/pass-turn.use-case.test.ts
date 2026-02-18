@@ -23,11 +23,11 @@ describe('PassTurnUseCase', () => {
     timerSeconds: 30
   }
 
-  const mockTurnOrder: SvincolatiTurnOrder[] = [
-    { id: 'turn-1', sessionId: 'session-123', memberId: 'member-1', orderIndex: 0, hasPassed: false, hasFinished: false },
-    { id: 'turn-2', sessionId: 'session-123', memberId: 'member-2', orderIndex: 1, hasPassed: false, hasFinished: false },
-    { id: 'turn-3', sessionId: 'session-123', memberId: 'member-3', orderIndex: 2, hasPassed: false, hasFinished: false },
-  ]
+  const turn1: SvincolatiTurnOrder = { id: 'turn-1', sessionId: 'session-123', memberId: 'member-1', orderIndex: 0, hasPassed: false, hasFinished: false }
+  const turn2: SvincolatiTurnOrder = { id: 'turn-2', sessionId: 'session-123', memberId: 'member-2', orderIndex: 1, hasPassed: false, hasFinished: false }
+  const turn3: SvincolatiTurnOrder = { id: 'turn-3', sessionId: 'session-123', memberId: 'member-3', orderIndex: 2, hasPassed: false, hasFinished: false }
+
+  const mockTurnOrder: SvincolatiTurnOrder[] = [turn1, turn2, turn3]
 
   const mockMembers = [
     { id: 'member-1', userId: 'user-1', username: 'Team A', currentBudget: 100, isAdmin: true },
@@ -47,7 +47,7 @@ describe('PassTurnUseCase', () => {
       markFinished: vi.fn(),
       unmarkFinished: vi.fn(),
       getCurrentTurnMemberId: vi.fn().mockResolvedValue('member-1'),
-      advanceToNextMember: vi.fn().mockResolvedValue(mockTurnOrder[1]),
+      advanceToNextMember: vi.fn().mockResolvedValue(turn2),
       nominatePlayerAtomic: vi.fn(),
       getNominations: vi.fn().mockResolvedValue([]),
       getPendingNomination: vi.fn().mockResolvedValue(null),
@@ -122,9 +122,9 @@ describe('PassTurnUseCase', () => {
     it('should return failure if member already passed', async () => {
       // Arrange
       vi.mocked(mockRepository.getTurnOrder).mockResolvedValue([
-        { ...mockTurnOrder[0], hasPassed: true },
-        mockTurnOrder[1],
-        mockTurnOrder[2],
+        { ...turn1, hasPassed: true },
+        turn2,
+        turn3,
       ])
 
       // Act
@@ -145,9 +145,9 @@ describe('PassTurnUseCase', () => {
       vi.mocked(mockRepository.getTurnOrder)
         .mockResolvedValueOnce(mockTurnOrder) // First call
         .mockResolvedValueOnce([ // After marking passed
-          { ...mockTurnOrder[0], hasPassed: true },
-          mockTurnOrder[1],
-          mockTurnOrder[2],
+          { ...turn1, hasPassed: true },
+          turn2,
+          turn3,
         ])
 
       // Act
@@ -165,9 +165,9 @@ describe('PassTurnUseCase', () => {
       vi.mocked(mockRepository.getTurnOrder)
         .mockResolvedValueOnce(mockTurnOrder)
         .mockResolvedValueOnce([
-          { ...mockTurnOrder[0], hasPassed: true },
-          mockTurnOrder[1],
-          mockTurnOrder[2],
+          { ...turn1, hasPassed: true },
+          turn2,
+          turn3,
         ])
 
       // Act
@@ -195,9 +195,9 @@ describe('PassTurnUseCase', () => {
       vi.mocked(mockRepository.getTurnOrder)
         .mockResolvedValueOnce(mockTurnOrder)
         .mockResolvedValueOnce([
-          { ...mockTurnOrder[0], hasPassed: true },
-          { ...mockTurnOrder[1], hasPassed: true },
-          { ...mockTurnOrder[2], hasPassed: true },
+          { ...turn1, hasPassed: true },
+          { ...turn2, hasPassed: true },
+          { ...turn3, hasPassed: true },
         ])
 
       // Act
@@ -225,17 +225,17 @@ describe('PassTurnUseCase', () => {
       // Arrange - member-2 already passed
       vi.mocked(mockRepository.getTurnOrder)
         .mockResolvedValueOnce([
-          mockTurnOrder[0],
-          { ...mockTurnOrder[1], hasPassed: true },
-          mockTurnOrder[2],
+          turn1,
+          { ...turn2, hasPassed: true },
+          turn3,
         ])
         .mockResolvedValueOnce([
-          { ...mockTurnOrder[0], hasPassed: true },
-          { ...mockTurnOrder[1], hasPassed: true },
-          mockTurnOrder[2],
+          { ...turn1, hasPassed: true },
+          { ...turn2, hasPassed: true },
+          turn3,
         ])
 
-      vi.mocked(mockRepository.advanceToNextMember).mockResolvedValue(mockTurnOrder[2])
+      vi.mocked(mockRepository.advanceToNextMember).mockResolvedValue(turn3)
 
       // Act
       const result = await useCase.execute({
@@ -255,17 +255,17 @@ describe('PassTurnUseCase', () => {
       // Arrange - member-2 finished
       vi.mocked(mockRepository.getTurnOrder)
         .mockResolvedValueOnce([
-          mockTurnOrder[0],
-          { ...mockTurnOrder[1], hasFinished: true },
-          mockTurnOrder[2],
+          turn1,
+          { ...turn2, hasFinished: true },
+          turn3,
         ])
         .mockResolvedValueOnce([
-          { ...mockTurnOrder[0], hasPassed: true },
-          { ...mockTurnOrder[1], hasFinished: true },
-          mockTurnOrder[2],
+          { ...turn1, hasPassed: true },
+          { ...turn2, hasFinished: true },
+          turn3,
         ])
 
-      vi.mocked(mockRepository.advanceToNextMember).mockResolvedValue(mockTurnOrder[2])
+      vi.mocked(mockRepository.advanceToNextMember).mockResolvedValue(turn3)
 
       // Act
       const result = await useCase.execute({
@@ -285,9 +285,9 @@ describe('PassTurnUseCase', () => {
       vi.mocked(mockRepository.getTurnOrder)
         .mockResolvedValueOnce(mockTurnOrder)
         .mockResolvedValueOnce([
-          { ...mockTurnOrder[0], hasPassed: true },
-          mockTurnOrder[1],
-          mockTurnOrder[2],
+          { ...turn1, hasPassed: true },
+          turn2,
+          turn3,
         ])
 
       // Act

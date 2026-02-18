@@ -390,8 +390,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   onUpdateTimers={() => void handleUpdateTimers()}
                 />
                 <BotSimulationPanel
-                  rubataState={rubataState}
-                  activeAuction={activeAuction}
+                  rubataState={rubataState ?? null}
+                  activeAuction={activeAuction ?? null}
                   members={members}
                   myMemberId={myMemberId}
                   currentPlayerMemberId={currentPlayer?.memberId}
@@ -404,7 +404,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   onSimulateBid={() => void handleSimulateBid()}
                 />
                 <CompleteRubataPanel
-                  rubataState={rubataState}
+                  rubataState={rubataState ?? null}
                   isSubmitting={isSubmitting}
                   onCompleteRubata={() => void handleCompleteRubata()}
                 />
@@ -414,12 +414,12 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             {/* Main Content */}
             <div className="lg:col-span-4">
             {/* Stepper visivo flusso rubata */}
-            <RubataStepper currentState={rubataState} className="mb-4" />
+            <RubataStepper currentState={rubataState ?? null} className="mb-4" />
 
             {/* Timer e stato corrente */}
             <RubataTimerPanel
-              rubataState={rubataState}
-              currentPlayer={currentPlayer}
+              rubataState={rubataState ?? null}
+              currentPlayer={currentPlayer ?? null}
               currentPlayerPreference={currentPlayerPreference}
               myMemberId={myMemberId}
               timerDisplay={timerDisplay}
@@ -512,7 +512,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     <span className="text-xl">⏸️</span>
                     <div>
                       <span className="font-bold text-gray-300">IN PAUSA</span>
-                      {boardData?.pausedRemainingSeconds !== null && boardData.pausedRemainingSeconds !== undefined && (
+                      {boardData?.pausedRemainingSeconds != null && (
                         <span className="text-yellow-400 text-sm ml-2">
                           ({boardData.pausedRemainingSeconds}s rimanenti - {boardData.pausedFromState === 'AUCTION' ? 'Asta' : 'Offerta'})
                         </span>
@@ -1027,8 +1027,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 onUpdateTimers={() => void handleUpdateTimers()}
               />
               <BotSimulationPanel
-                rubataState={rubataState}
-                activeAuction={activeAuction}
+                rubataState={rubataState ?? null}
+                activeAuction={activeAuction ?? null}
                 members={members}
                 myMemberId={myMemberId}
                 currentPlayerMemberId={currentPlayer?.memberId}
@@ -1041,7 +1041,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 onSimulateBid={() => void handleSimulateBid()}
               />
               <CompleteRubataPanel
-                rubataState={rubataState}
+                rubataState={rubataState ?? null}
                 isSubmitting={isSubmitting}
                 onCompleteRubata={() => void handleCompleteRubata()}
               />

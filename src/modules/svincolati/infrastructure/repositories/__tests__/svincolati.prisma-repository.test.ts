@@ -80,7 +80,7 @@ describe('SvincolatiPrismaRepository', () => {
     it('should return mapped SvincolatiSession when found', async () => {
       vi.mocked(prisma.marketSession.findUnique).mockResolvedValue({
         id: 'session-1',
-        currentPhase: 'SVINCOLATI',
+        currentPhase: 'ASTA_SVINCOLATI',
         svincolatiState: 'NOMINATION',
         svincolatiPendingNominatorId: 'member-1',
         svincolatiCurrentTurnIndex: 2,
@@ -564,7 +564,7 @@ describe('SvincolatiPrismaRepository', () => {
           leagueId: 'league-1',
           marketSessionId: 'session-1',
           playerId: 'player-1',
-          type: 'SVINCOLATI',
+          type: 'FREE_BID',
           basePrice: 1,
           currentPrice: 1,
           status: 'ACTIVE',

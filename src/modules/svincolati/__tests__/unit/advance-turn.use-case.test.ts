@@ -20,14 +20,14 @@ describe('AdvanceTurnUseCase', () => {
     currentNominatorId: 'member-1',
     currentRound: 1,
     totalRounds: 99,
-    timerSeconds: 30
+    timerSeconds: 30,
   }
 
-  const mockTurnOrder: SvincolatiTurnOrder[] = [
-    { id: 'turn-1', sessionId: 'session-123', memberId: 'member-1', orderIndex: 0, hasPassed: false, hasFinished: false },
-    { id: 'turn-2', sessionId: 'session-123', memberId: 'member-2', orderIndex: 1, hasPassed: false, hasFinished: false },
-    { id: 'turn-3', sessionId: 'session-123', memberId: 'member-3', orderIndex: 2, hasPassed: false, hasFinished: false },
-  ]
+  const turn1: SvincolatiTurnOrder = { id: 'turn-1', sessionId: 'session-123', memberId: 'member-1', orderIndex: 0, hasPassed: false, hasFinished: false }
+  const turn2: SvincolatiTurnOrder = { id: 'turn-2', sessionId: 'session-123', memberId: 'member-2', orderIndex: 1, hasPassed: false, hasFinished: false }
+  const turn3: SvincolatiTurnOrder = { id: 'turn-3', sessionId: 'session-123', memberId: 'member-3', orderIndex: 2, hasPassed: false, hasFinished: false }
+
+  const mockTurnOrder: SvincolatiTurnOrder[] = [turn1, turn2, turn3]
 
   const mockMembers = [
     { id: 'member-1', userId: 'user-1', username: 'Team A', currentBudget: 100, isAdmin: true },
@@ -47,7 +47,7 @@ describe('AdvanceTurnUseCase', () => {
       markFinished: vi.fn(),
       unmarkFinished: vi.fn(),
       getCurrentTurnMemberId: vi.fn().mockResolvedValue('member-1'),
-      advanceToNextMember: vi.fn().mockResolvedValue(mockTurnOrder[1]),
+      advanceToNextMember: vi.fn().mockResolvedValue(turn2),
       nominatePlayerAtomic: vi.fn(),
       getNominations: vi.fn().mockResolvedValue([]),
       getPendingNomination: vi.fn().mockResolvedValue(null),
@@ -75,7 +75,7 @@ describe('AdvanceTurnUseCase', () => {
       // Act
       const result = await useCase.execute({
         sessionId: 'nonexistent',
-        auctionId: 'auction-123'
+        auctionId: 'auction-123',
       })
 
       // Assert
@@ -89,13 +89,13 @@ describe('AdvanceTurnUseCase', () => {
       // Arrange
       vi.mocked(mockRepository.getSession).mockResolvedValue({
         ...mockSession,
-        status: 'READY_CHECK'
+        status: 'READY_CHECK',
       })
 
       // Act
       const result = await useCase.execute({
         sessionId: 'session-123',
-        auctionId: 'auction-123'
+        auctionId: 'auction-123',
       })
 
       // Assert
@@ -109,7 +109,7 @@ describe('AdvanceTurnUseCase', () => {
       // Act
       const result = await useCase.execute({
         sessionId: 'session-123',
-        auctionId: 'auction-123'
+        auctionId: 'auction-123',
       })
 
       // Assert
@@ -130,15 +130,15 @@ describe('AdvanceTurnUseCase', () => {
     it('should complete session when all members have finished', async () => {
       // Arrange
       vi.mocked(mockRepository.getTurnOrder).mockResolvedValue([
-        { ...mockTurnOrder[0], hasFinished: true },
-        { ...mockTurnOrder[1], hasFinished: true },
-        { ...mockTurnOrder[2], hasFinished: true },
+        { ...turn1, hasFinished: true },
+        { ...turn2, hasFinished: true },
+        { ...turn3, hasFinished: true },
       ])
 
       // Act
       const result = await useCase.execute({
         sessionId: 'session-123',
-        auctionId: 'auction-123'
+        auctionId: 'auction-123',
       })
 
       // Assert
@@ -158,9 +158,9 @@ describe('AdvanceTurnUseCase', () => {
       // Arrange
       vi.mocked(mockRepository.getTurnOrder)
         .mockResolvedValueOnce([
-          { ...mockTurnOrder[0], hasPassed: true },
-          { ...mockTurnOrder[1], hasPassed: true },
-          { ...mockTurnOrder[2], hasPassed: true },
+          { ...turn1, hasPassed: true },
+          { ...turn2, hasPassed: true },
+          { ...turn3, hasPassed: true },
         ])
         .mockResolvedValueOnce(mockTurnOrder) // After reset
 
@@ -169,7 +169,7 @@ describe('AdvanceTurnUseCase', () => {
       // Act
       const result = await useCase.execute({
         sessionId: 'session-123',
-        auctionId: 'auction-123'
+        auctionId: 'auction-123',
       })
 
       // Assert
@@ -187,13 +187,13 @@ describe('AdvanceTurnUseCase', () => {
       vi.mocked(mockRepository.getSession).mockResolvedValue({
         ...mockSession,
         currentRound: 99,
-        totalRounds: 99
+        totalRounds: 99,
       })
 
       vi.mocked(mockRepository.getTurnOrder).mockResolvedValue([
-        { ...mockTurnOrder[0], hasPassed: true },
-        { ...mockTurnOrder[1], hasPassed: true },
-        { ...mockTurnOrder[2], hasPassed: true },
+        { ...turn1, hasPassed: true },
+        { ...turn2, hasPassed: true },
+        { ...turn3, hasPassed: true },
       ])
 
       vi.mocked(mockRepository.advanceToNextMember).mockResolvedValue(null)
@@ -201,7 +201,7 @@ describe('AdvanceTurnUseCase', () => {
       // Act
       const result = await useCase.execute({
         sessionId: 'session-123',
-        auctionId: 'auction-123'
+        auctionId: 'auction-123',
       })
 
       // Assert
@@ -214,17 +214,17 @@ describe('AdvanceTurnUseCase', () => {
     it('should skip members who have passed and find next active', async () => {
       // Arrange
       vi.mocked(mockRepository.getTurnOrder).mockResolvedValue([
-        mockTurnOrder[0],
-        { ...mockTurnOrder[1], hasPassed: true },
-        mockTurnOrder[2],
+        turn1,
+        { ...turn2, hasPassed: true },
+        turn3,
       ])
 
-      vi.mocked(mockRepository.advanceToNextMember).mockResolvedValue(mockTurnOrder[2])
+      vi.mocked(mockRepository.advanceToNextMember).mockResolvedValue(turn3)
 
       // Act
       const result = await useCase.execute({
         sessionId: 'session-123',
-        auctionId: 'auction-123'
+        auctionId: 'auction-123',
       })
 
       // Assert
@@ -238,13 +238,13 @@ describe('AdvanceTurnUseCase', () => {
       // Arrange
       vi.mocked(mockRepository.getSession).mockResolvedValue({
         ...mockSession,
-        status: 'AUCTION'
+        status: 'AUCTION',
       })
 
       // Act
       const result = await useCase.execute({
         sessionId: 'session-123',
-        auctionId: 'auction-123'
+        auctionId: 'auction-123',
       })
 
       // Assert
@@ -255,13 +255,13 @@ describe('AdvanceTurnUseCase', () => {
       // Arrange
       vi.mocked(mockRepository.getSession).mockResolvedValue({
         ...mockSession,
-        currentRound: 3
+        currentRound: 3,
       })
 
       // Act
       const result = await useCase.execute({
         sessionId: 'session-123',
-        auctionId: 'auction-123'
+        auctionId: 'auction-123',
       })
 
       // Assert
@@ -278,7 +278,7 @@ describe('AdvanceTurnUseCase', () => {
       // Act
       const result = await useCase.execute({
         sessionId: 'session-123',
-        auctionId: 'auction-123'
+        auctionId: 'auction-123',
       })
 
       // Assert

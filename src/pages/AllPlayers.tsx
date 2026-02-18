@@ -354,6 +354,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
                 <div style={{ height: `${virtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
                 {virtualizer.getVirtualItems().map(virtualRow => {
                   const player = filteredPlayers[virtualRow.index]
+                  if (!player) return null
                   return (
                   <div
                     key={player.id}
@@ -396,7 +397,6 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
                               quotation: player.quotation,
                               age: player.age,
                               apiFootballId: player.apiFootballId,
-                              apiFootballStats: player.apiFootballStats,
                               statsSyncedAt: player.statsSyncedAt,
                             }); }}
                             className="font-medium text-white hover:text-primary-400 transition-colors text-left"

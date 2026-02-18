@@ -75,7 +75,7 @@ export function ManagerRow({ manager: m, turnIndex, isCurrent, isMe, onClick, av
           {(['P', 'D', 'C', 'A'] as const).map(pos => {
             const slot = m.slotsByPosition[pos]
             const fillPercent = slot.total > 0 ? (slot.filled / slot.total) * 100 : 0
-            const barColors = POS_BAR_COLORS[pos]
+            const barColors = POS_BAR_COLORS[pos] ?? { filled: 'bg-gray-400', empty: 'bg-gray-400/20', label: 'text-gray-400' }
             return (
               <div key={pos} className="flex flex-col items-center gap-0.5" title={`${pos} ${slot.filled}/${slot.total}`}>
                 <span className={`text-sm font-bold ${barColors.label}`}>{pos}</span>

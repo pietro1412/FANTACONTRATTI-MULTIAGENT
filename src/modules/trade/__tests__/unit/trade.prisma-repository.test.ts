@@ -64,7 +64,7 @@ describe('TradePrismaRepository', () => {
 
   describe('findById', () => {
     it('should return trade offer when found', async () => {
-      vi.mocked(prisma.tradeOffer.findUnique).mockResolvedValue(mockTradeOffer)
+      vi.mocked(prisma.tradeOffer.findUnique).mockResolvedValue(mockTradeOffer as never)
 
       const result = await repository.findById('trade-1')
 
@@ -89,12 +89,12 @@ describe('TradePrismaRepository', () => {
 
   describe('findByLeague', () => {
     it('should return all trades for a league', async () => {
-      vi.mocked(prisma.tradeOffer.findMany).mockResolvedValue([mockTradeOffer])
+      vi.mocked(prisma.tradeOffer.findMany).mockResolvedValue([mockTradeOffer] as never)
 
       const result = await repository.findByLeague('league-1')
 
       expect(result).toHaveLength(1)
-      expect(result[0].id).toBe('trade-1')
+      expect(result[0]!.id).toBe('trade-1')
       expect(prisma.tradeOffer.findMany).toHaveBeenCalledWith({
         where: {
           marketSession: {
@@ -120,13 +120,13 @@ describe('TradePrismaRepository', () => {
         rubataOrder: null,
         firstMarketOrder: null,
         joinedAt: new Date(),
-      })
-      vi.mocked(prisma.tradeOffer.findMany).mockResolvedValue([mockTradeOffer])
+      } as never)
+      vi.mocked(prisma.tradeOffer.findMany).mockResolvedValue([mockTradeOffer] as never)
 
       const result = await repository.findPendingForMember('member-1')
 
       expect(result).toHaveLength(1)
-      expect(result[0].receiverId).toBe('user-2')
+      expect(result[0]!.receiverId).toBe('user-2')
     })
 
     it('should return empty array when member not found', async () => {
@@ -153,7 +153,7 @@ describe('TradePrismaRepository', () => {
           rubataOrder: null,
           firstMarketOrder: null,
           joinedAt: new Date(),
-        })
+        } as never)
         .mockResolvedValueOnce({
           id: 'member-2',
           userId: 'user-2',
@@ -166,7 +166,7 @@ describe('TradePrismaRepository', () => {
           rubataOrder: null,
           firstMarketOrder: null,
           joinedAt: new Date(),
-        })
+        } as never)
       vi.mocked(prisma.marketSession.findFirst).mockResolvedValue({
         id: 'session-1',
         leagueId: 'league-1',
@@ -209,8 +209,8 @@ describe('TradePrismaRepository', () => {
         endsAt: null,
         phaseStartedAt: null,
         createdAt: new Date(),
-      })
-      vi.mocked(prisma.tradeOffer.create).mockResolvedValue(mockTradeOffer)
+      } as never)
+      vi.mocked(prisma.tradeOffer.create).mockResolvedValue(mockTradeOffer as never)
 
       const result = await repository.create({
         leagueId: 'league-1',
@@ -243,7 +243,7 @@ describe('TradePrismaRepository', () => {
           rubataOrder: null,
           firstMarketOrder: null,
           joinedAt: new Date(),
-        })
+        } as never)
 
       await expect(
         repository.create({
@@ -265,7 +265,7 @@ describe('TradePrismaRepository', () => {
         ...mockTradeOffer,
         status: 'ACCEPTED',
         respondedAt: new Date(),
-      })
+      } as never)
 
       await repository.updateStatus('trade-1', 'ACCEPTED')
 
@@ -291,13 +291,13 @@ describe('TradePrismaRepository', () => {
           acquiredAt: new Date(),
           releasedAt: null,
         },
-      ])
+      ] as never)
 
       const result = await repository.getRosterInfo(['roster-1'])
 
       expect(result).toHaveLength(1)
-      expect(result[0].id).toBe('roster-1')
-      expect(result[0].status).toBe('ACTIVE')
+      expect(result[0]!.id).toBe('roster-1')
+      expect(result[0]!.status).toBe('ACTIVE')
     })
   })
 
@@ -315,7 +315,7 @@ describe('TradePrismaRepository', () => {
         rubataOrder: null,
         firstMarketOrder: null,
         joinedAt: new Date(),
-      })
+      } as never)
 
       const result = await repository.getMemberBudget('member-1')
 
@@ -377,7 +377,7 @@ describe('TradePrismaRepository', () => {
         endsAt: null,
         phaseStartedAt: null,
         createdAt: new Date(),
-      })
+      } as never)
 
       const result = await repository.isTradeWindowOpen('league-1')
 

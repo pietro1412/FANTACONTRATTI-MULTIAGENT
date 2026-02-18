@@ -59,8 +59,9 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
         : await feedbackApi.getMyFeedback(options)
 
       if (res.success && res.data) {
-        setFeedback(res.data.feedback || [])
-        setTotalPages(res.data.pagination?.totalPages || 1)
+        const data = res.data as { feedback?: FeedbackItem[]; pagination?: { totalPages: number } }
+        setFeedback(data.feedback ?? [])
+        setTotalPages(data.pagination?.totalPages ?? 1)
       }
     } catch (err) {
       console.error('Failed to load feedback:', err)
@@ -114,8 +115,10 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
       ) : (
         <div className="space-y-2">
           {feedback.map(item => {
-            const statusCfg = statusConfig[item.status] || statusConfig.APERTA
-            const categoryCfg = categoryConfig[item.category] || categoryConfig.ALTRO
+            const defaultStatus = { label: 'Aperta', color: 'text-amber-400', bgColor: 'bg-amber-500/20' }
+            const defaultCategory = { label: 'Altro', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' }
+            const statusCfg = statusConfig[item.status] ?? defaultStatus
+            const categoryCfg = categoryConfig[item.category] ?? defaultCategory
             const isSelected = selectedId === item.id
 
             return (

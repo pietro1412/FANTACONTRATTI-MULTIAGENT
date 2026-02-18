@@ -50,8 +50,9 @@ export function FeedbackBadge({ onNavigate }: FeedbackBadgeProps) {
     try {
       const res = await feedbackApi.getUnreadNotifications()
       if (res.success && res.data) {
-        setNotifications(res.data.notifications || [])
-        setCount(res.data.count || 0)
+        const data = res.data as { notifications?: FeedbackNotification[]; count?: number }
+        setNotifications(data.notifications ?? [])
+        setCount(data.count ?? 0)
       }
     } catch (err) {
       console.error('Failed to load feedback notifications:', err)
@@ -141,7 +142,7 @@ export function FeedbackBadge({ onNavigate }: FeedbackBadgeProps) {
             ) : (
               <div className="py-2">
                 {notifications.map(notification => {
-                  const statusCfg = statusConfig[notification.feedbackStatus] || statusConfig.APERTA
+                  const statusCfg = statusConfig[notification.feedbackStatus] ?? { label: 'Aperta', color: 'bg-amber-500/20 text-amber-400' }
 
                   return (
                     <button
