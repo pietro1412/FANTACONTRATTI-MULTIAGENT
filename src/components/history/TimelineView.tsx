@@ -275,7 +275,7 @@ export function TimelineView({ leagueId, sessions }: TimelineViewProps) {
         {hasMore && !isLoading && (
           <div className="text-center py-3 border-t border-surface-50/20">
             <button
-              onClick={() => loadEvents(false)}
+              onClick={() => { void loadEvents(false) }}
               className="px-6 py-2 bg-surface-300 text-gray-300 rounded-lg hover:bg-surface-400 transition-colors text-sm"
             >
               Carica altri

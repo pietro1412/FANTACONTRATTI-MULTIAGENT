@@ -702,14 +702,14 @@ export async function getSessionPrizes(
     for (const cat of categories) {
       const prize = cat.managerPrizes.find(p => p.leagueMemberId === m.id)
       if (prize) {
-        memberTotals[m.id] += prize.amount
+        memberTotals[m.id] = (memberTotals[m.id] ?? 0) + prize.amount
       }
     }
 
     // Add indemnity totals
     const memberIndemnities = indemnityByMember[m.id] || []
     for (const ind of memberIndemnities) {
-      memberIndemnityTotals[m.id] += ind.indemnityAmount
+      memberIndemnityTotals[m.id] = (memberIndemnityTotals[m.id] ?? 0) + ind.indemnityAmount
     }
   }
 

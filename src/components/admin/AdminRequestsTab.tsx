@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { NumberStepper } from '../ui/NumberStepper'
@@ -28,6 +29,18 @@ export function AdminRequestsTab({
   handleCreateInvite,
   handleCancelInvite,
 }: AdminRequestsTabProps) {
+  const [expiryDateLabel, setExpiryDateLabel] = useState('')
+  useEffect(() => {
+    setExpiryDateLabel(
+      new Date(Date.now() + inviteDuration * 24 * 60 * 60 * 1000).toLocaleDateString('it-IT', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    )
+  }, [inviteDuration])
+
   return (
     <div className="space-y-6">
       {/* Pending Members */}
@@ -111,12 +124,7 @@ export function AdminRequestsTab({
                   <span className="text-gray-400">
                     Scade il{' '}
                     <span className="text-white font-medium">
-                      {new Date(Date.now() + inviteDuration * 24 * 60 * 60 * 1000).toLocaleDateString('it-IT', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
+                      {expiryDateLabel}
                     </span>
                   </span>
                 </div>

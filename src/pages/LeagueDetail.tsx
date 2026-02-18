@@ -352,7 +352,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
               isAdmin={isAdmin}
               isLeaving={isLeaving}
               totals={leagueTotals}
-              onLeaveLeague={handleLeaveLeague}
+              onLeaveLeague={() => void handleLeaveLeague()}
             />
           </div>
         </div>
@@ -364,7 +364,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           isRegularMarket={isFirstMarketCompleted()}
           activeMembers={activeMembers.length}
           isCreating={isCreatingSession}
-          onConfirm={handleConfirmCreateSession}
+          onConfirm={() => void handleConfirmCreateSession()}
           onCancel={() => { setShowAuctionConfirm(false); }}
         />
       )}

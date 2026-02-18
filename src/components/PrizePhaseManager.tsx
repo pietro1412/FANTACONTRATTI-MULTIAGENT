@@ -265,10 +265,12 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
     setEditingPrizes(prev => {
       const newState = { ...prev }
       if (newState[categoryId]) {
-        delete newState[categoryId][memberId]
-        if (Object.keys(newState[categoryId]).length === 0) {
-          delete newState[categoryId]
+        const { [memberId]: _, ...restMembers } = newState[categoryId]
+        if (Object.keys(restMembers).length === 0) {
+          const { [categoryId]: __, ...restCategories } = newState
+          return restCategories
         }
+        return { ...newState, [categoryId]: restMembers }
       }
       return newState
     })
@@ -372,7 +374,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
     return (
       <div className="bg-danger-500/20 border border-danger-500/30 rounded-xl p-6">
         <p className="text-danger-400 mb-4">{error}</p>
-        <Button variant="outline" onClick={fetchData}>Riprova</Button>
+        <Button variant="outline" onClick={() => void fetchData()}>Riprova</Button>
       </div>
     )
   }
@@ -494,7 +496,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
             <span className="text-gray-400 text-lg">M</span>
             <Button
               size="sm"
-              onClick={handleUpdateBaseReincrement}
+              onClick={() => void handleUpdateBaseReincrement()}
               disabled={isSubmitting}
             >
               Salva
@@ -639,7 +641,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                                 <button
                                   type="button"
                                   className="w-6 h-6 bg-surface-400 hover:bg-surface-500 text-white rounded text-sm font-bold flex items-center justify-center transition-colors disabled:opacity-50"
-                                  onClick={() => handleIndemnityChange(player.playerId, -1)}
+                                  onClick={() => { void handleIndemnityChange(player.playerId, -1) }}
                                   disabled={savingIndemnity === player.playerId || getIndemnityAmount(player.playerId) <= 0}
                                 >
                                   −
@@ -650,7 +652,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                                 <button
                                   type="button"
                                   className="w-6 h-6 bg-surface-400 hover:bg-surface-500 text-white rounded text-sm font-bold flex items-center justify-center transition-colors disabled:opacity-50"
-                                  onClick={() => handleIndemnityChange(player.playerId, 1)}
+                                  onClick={() => { void handleIndemnityChange(player.playerId, 1) }}
                                   disabled={savingIndemnity === player.playerId}
                                 >
                                   +
@@ -700,7 +702,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                   </div>
                 </div>
                 <Button
-                  onClick={handleConsolidateIndemnities}
+                  onClick={() => void handleConsolidateIndemnities()}
                   disabled={consolidatingIndemnities}
                   className="bg-cyan-600 hover:bg-cyan-500"
                 >
@@ -768,7 +770,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                         <span className="truncate">{cat.name}</span>
                         {!cat.isSystemPrize && !config.isFinalized && (
                           <button
-                            onClick={() => handleDeleteCategory(cat.id)}
+                            onClick={() => { void handleDeleteCategory(cat.id) }}
                             className="text-danger-400 hover:text-danger-300 text-sm"
                             title="Elimina categoria"
                           >
@@ -1000,7 +1002,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                   className="flex-1 px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white placeholder-gray-500"
                 />
                 <Button
-                  onClick={handleCreateCategory}
+                  onClick={() => void handleCreateCategory()}
                   disabled={!newCategoryName.trim() || isSubmitting}
                 >
                   Aggiungi Categoria
@@ -1099,7 +1101,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
               <span className="text-warning-400">Confermi la finalizzazione dei premi?</span>
               <Button
                 size="sm"
-                onClick={handleFinalize}
+                onClick={() => void handleFinalize()}
                 disabled={isSubmitting}
               >
                 Conferma

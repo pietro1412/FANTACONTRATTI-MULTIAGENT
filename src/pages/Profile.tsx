@@ -155,7 +155,7 @@ function NotificationPreferences() {
             <input
               type="checkbox"
               checked={prefs.pushEnabled}
-              onChange={handlePushToggle}
+              onChange={() => void handlePushToggle()}
               disabled={pushStatus === 'unsupported' || pushStatus === 'denied' || !vapidKey}
               className="sr-only peer"
             />
@@ -183,7 +183,7 @@ function NotificationPreferences() {
               <input
                 type="checkbox"
                 checked={prefs[opt.key]}
-                onChange={() => toggle(opt.key)}
+                onChange={() => { void toggle(opt.key) }}
                 className="sr-only peer"
               />
               <div className="w-8 h-4 bg-surface-400 peer-focus:ring-2 peer-focus:ring-primary-500/50 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary-500" />
@@ -392,7 +392,7 @@ export function Profile({ onNavigate }: ProfileProps) {
                     Cambia Foto
                   </Button>
                   {currentPhoto && (
-                    <Button variant="ghost" size="sm" onClick={handleRemovePhoto} disabled={isSaving} className="text-danger-400 hover:bg-danger-500/10">
+                    <Button variant="ghost" size="sm" onClick={() => void handleRemovePhoto()} disabled={isSaving} className="text-danger-400 hover:bg-danger-500/10">
                       Rimuovi Foto
                     </Button>
                   )}
@@ -449,7 +449,7 @@ export function Profile({ onNavigate }: ProfileProps) {
               )}
 
               {showPasswordForm && (
-                <form onSubmit={handleChangePassword} className="bg-surface-300 rounded-lg p-4 space-y-4">
+                <form onSubmit={(e) => { void handleChangePassword(e) }} className="bg-surface-300 rounded-lg p-4 space-y-4">
                   <div>
                     <label className="block text-sm text-gray-400 mb-1">Password Attuale</label>
                     <input

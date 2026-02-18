@@ -481,7 +481,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                               <Button
                                 size="sm"
                                 variant="accent"
-                                onClick={() => handleAddProphecy(movement.id)}
+                                onClick={() => { void handleAddProphecy(movement.id) }}
                                 disabled={!prophecyContent.trim() || isSubmittingProphecy}
                               >
                                 {isSubmittingProphecy ? '...' : 'Pubblica'}
@@ -639,7 +639,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                                     <Button
                                       size="sm"
                                       variant="accent"
-                                      onClick={() => handleAddProphecy(movement.id)}
+                                      onClick={() => { void handleAddProphecy(movement.id) }}
                                       disabled={!prophecyContent.trim() || isSubmittingProphecy}
                                     >
                                       {isSubmittingProphecy ? '...' : 'Pubblica'}

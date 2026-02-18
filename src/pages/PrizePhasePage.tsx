@@ -263,7 +263,7 @@ export function PrizePhasePage({ leagueId, onNavigate }: PrizePhasePageProps) {
         <PrizePhaseManager
           sessionId={activeSession.id}
           isAdmin={isAdmin}
-          onUpdate={loadData}
+          onUpdate={() => void loadData()}
         />
 
         {/* Prize History Section */}

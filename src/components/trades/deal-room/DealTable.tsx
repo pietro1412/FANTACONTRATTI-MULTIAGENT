@@ -281,6 +281,11 @@ export function DealTable(props: DealTableProps) {
   const requestedEntries = selectedRequestedPlayers.map(id => allOtherPlayers.find(r => r.id === id)).filter(Boolean) as RosterEntry[]
 
   const durationIndex = DURATIONS.indexOf(offerDuration)
+  const [expiryLabel, setExpiryLabel] = useState('')
+  useEffect(() => {
+    if (offerDuration <= 0) { setExpiryLabel(''); return }
+    setExpiryLabel(new Date(Date.now() + offerDuration * 3600000).toLocaleString('it-IT', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }))
+  }, [offerDuration])
 
   // Build deal summary text
   const summaryParts: string[] = []
@@ -480,7 +485,7 @@ export function DealTable(props: DealTableProps) {
             <div className="mt-2 flex items-center gap-1.5 text-xs">
               <span className="text-gray-500">Scade:</span>
               <span className={`font-medium ${offerDuration <= 6 ? 'text-warning-400' : 'text-gray-300'}`}>
-                {new Date(Date.now() + offerDuration * 3600000).toLocaleString('it-IT', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                {expiryLabel}
               </span>
             </div>
           )}

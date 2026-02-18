@@ -298,7 +298,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     } else {
       setAppealStatus(null)
     }
-  }, [pendingAck?.id])
+  }, [pendingAck])
 
   const loadPlayers = useCallback(async () => {
     const filters: { available: boolean; leagueId: string; position?: string; search?: string; team?: string } = { available: true, leagueId }
@@ -376,7 +376,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
         // Then fetch full data including contract info after a short delay
         void loadCurrentAuction().then(() => {
           // Small delay to ensure contract is created on server
-          setTimeout(() => loadPendingAcknowledgment(), 500)
+          setTimeout(() => { void loadPendingAcknowledgment() }, 500)
         })
       }
     }
@@ -466,7 +466,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     void sendHeartbeat()
 
     // Then send every 30 seconds
-    const interval = setInterval(sendHeartbeat, 30000)
+    const interval = setInterval(() => { void sendHeartbeat() }, 30000)
 
     return () => { clearInterval(interval); }
   }, [sessionId, managersStatus?.myId])

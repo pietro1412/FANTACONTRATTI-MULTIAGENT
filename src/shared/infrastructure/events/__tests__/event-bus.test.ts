@@ -80,7 +80,7 @@ describe('EventBus', () => {
         value: number
       }
 
-      const handler = vi.fn<[TestEvent], void>()
+      const handler = vi.fn<(event: TestEvent) => void>()
       const event: TestEvent = { id: 'test-123', value: 42 }
 
       eventBus.subscribe<TestEvent>('test.event', handler)
@@ -265,7 +265,7 @@ describe('EventBus', () => {
         createdAt: Date
       }
 
-      const handler = vi.fn<[UserCreatedEvent], void>()
+      const handler = vi.fn<(event: UserCreatedEvent) => void>()
       const event: UserCreatedEvent = {
         userId: 'user-123',
         email: 'test@example.com',

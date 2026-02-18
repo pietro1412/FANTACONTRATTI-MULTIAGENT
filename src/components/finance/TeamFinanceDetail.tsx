@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ZAxis } from 'recharts'
+import { PieChart, Pie, ResponsiveContainer, Tooltip, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ZAxis } from 'recharts'
 import { WaterfallChart } from './WaterfallChart'
 import { ContractExpiryGantt } from './ContractExpiryGantt'
 import { KPICard } from './KPICard'
@@ -34,6 +34,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
       name: POSITION_NAMES[pos],
       value: team.costByPosition[pos].preRenewal,
       color: POSITION_CHART_COLORS[pos],
+      fill: POSITION_CHART_COLORS[pos],
     })).filter(d => d.value > 0)
   }, [team])
 
@@ -59,6 +60,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
         y: p.clause,
         z: p.duration,
         position: p.position,
+        fill: POSITION_CHART_COLORS[p.position] || '#3b82f6',
       }))
   }, [team.players])
 
@@ -159,11 +161,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
                     outerRadius={75}
                     dataKey="value"
                     stroke="rgba(0,0,0,0.3)"
-                  >
-                    {donutData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
+                  />
                   <Tooltip
                     contentStyle={TOOLTIP_STYLE}
                     formatter={((value: number) => [`${value}M`, '']) as any}
@@ -276,11 +274,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
                         return item ? `${item.name} (${item.position})` : ''
                       }}
                     />
-                    <Scatter data={clauseData}>
-                      {clauseData.map((entry, i) => (
-                        <Cell key={i} fill={POSITION_CHART_COLORS[entry.position] || '#3b82f6'} fillOpacity={0.7} />
-                      ))}
-                    </Scatter>
+                    <Scatter data={clauseData} fillOpacity={0.7} />
                   </ScatterChart>
                 </ResponsiveContainer>
               </div>

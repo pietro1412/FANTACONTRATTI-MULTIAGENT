@@ -4,7 +4,7 @@ type Position = 'P' | 'D' | 'C' | 'A'
 type BadgeSize = 'xs' | 'sm' | 'md' | 'lg'
 
 interface PositionBadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  position: Position | string
+  position: string
   size?: BadgeSize
   showIcon?: boolean
   showLabel?: boolean
@@ -144,7 +144,7 @@ export function PositionBadge({
 /**
  * Returns position colors for custom usage
  */
-export function getPositionColors(position: Position | string): string {
+export function getPositionColors(position: string): string {
   const normalizedPosition = position?.toUpperCase() as Position
   return POSITION_CONFIG[normalizedPosition]?.colors || 'bg-gray-500 text-white'
 }
@@ -152,7 +152,7 @@ export function getPositionColors(position: Position | string): string {
 /**
  * Returns position full label
  */
-export function getPositionLabel(position: Position | string): string {
+export function getPositionLabel(position: string): string {
   const normalizedPosition = position?.toUpperCase() as Position
   return POSITION_CONFIG[normalizedPosition]?.label || position
 }

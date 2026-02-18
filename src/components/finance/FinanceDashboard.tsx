@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import { PieChart, Pie, ResponsiveContainer, Tooltip } from 'recharts'
 import { KPICard, SectionHeader } from './KPICard'
 import { LandscapeHint } from '../ui/LandscapeHint'
 import { HealthIndicator, HealthIndicatorCompact } from './HealthIndicator'
@@ -25,11 +25,11 @@ export function FinanceDashboard({ data }: FinanceDashboardProps) {
     : 0
 
   const distributionData = [
-    { name: 'Budget Residuo', value: Math.max(0, totals.totalBudget - totals.totalAcquisitions - totals.totalContracts), color: '#3b82f6' },
-    { name: 'Monte Ingaggi', value: totals.totalContracts, color: '#f59e0b' },
-    { name: 'Speso Aste', value: totals.totalAcquisitions, color: '#ea580c' },
-    ...(totals.totalReleaseCosts ? [{ name: 'Tagli', value: totals.totalReleaseCosts, color: '#ef4444' }] : []),
-    ...(totals.hasTradeData ? [{ name: 'Scambi', value: totals.totalTradeBudgetIn, color: '#8b5cf6' }] : []),
+    { name: 'Budget Residuo', value: Math.max(0, totals.totalBudget - totals.totalAcquisitions - totals.totalContracts), color: '#3b82f6', fill: '#3b82f6' },
+    { name: 'Monte Ingaggi', value: totals.totalContracts, color: '#f59e0b', fill: '#f59e0b' },
+    { name: 'Speso Aste', value: totals.totalAcquisitions, color: '#ea580c', fill: '#ea580c' },
+    ...(totals.totalReleaseCosts ? [{ name: 'Tagli', value: totals.totalReleaseCosts, color: '#ef4444', fill: '#ef4444' }] : []),
+    ...(totals.hasTradeData ? [{ name: 'Scambi', value: totals.totalTradeBudgetIn, color: '#8b5cf6', fill: '#8b5cf6' }] : []),
   ].filter(d => d.value > 0)
 
   return (
@@ -121,11 +121,7 @@ export function FinanceDashboard({ data }: FinanceDashboardProps) {
                     dataKey="value"
                     stroke="rgba(0,0,0,0.3)"
                     strokeWidth={1}
-                  >
-                    {distributionData.map((entry, index) => (
-                      <Cell key={index} fill={entry.color} />
-                    ))}
-                  </Pie>
+                  />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#1a1c20', border: '1px solid #2d3139', borderRadius: 8, fontSize: 12 }}
                     itemStyle={{ color: '#fff' }}

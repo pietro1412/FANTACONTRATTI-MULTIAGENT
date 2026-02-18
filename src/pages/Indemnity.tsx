@@ -525,7 +525,7 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
                 </div>
               </div>
               <Button
-                onClick={handleSubmitDecisions}
+                onClick={() => void handleSubmitDecisions()}
                 disabled={isSubmitting || playersNeedingDecision.length === 0}
                 className="btn-primary"
               >

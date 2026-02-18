@@ -879,7 +879,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
 
                 <div className="flex gap-3">
                   <Button
-                    onClick={handleFileUpload}
+                    onClick={() => void handleFileUpload()}
                     disabled={importing || deleting}
                     className="btn-primary"
                   >
@@ -921,7 +921,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                         </Button>
                         <Button
                           className="flex-1 bg-danger-500 hover:bg-danger-600"
-                          onClick={handleDeleteAllPlayers}
+                          onClick={() => void handleDeleteAllPlayers()}
                           disabled={deleting}
                         >
                           {deleting ? 'Cancellazione...' : 'Conferma'}
@@ -1296,7 +1296,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     value={leagueSearchInput}
                     onChange={(e) => { setLeagueSearchInput(e.target.value); }}
                     placeholder="Nome lega o username..."
-                    onKeyDown={(e) => e.key === 'Enter' && handleLeagueSearch()}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleLeagueSearch(); }}
                   />
                 </div>
                 <Button onClick={handleLeagueSearch} variant="primary">
@@ -1476,7 +1476,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <p className="text-sm text-gray-400">Statistiche giocatori da API-Football v3</p>
                 </div>
                 <Button
-                  onClick={async () => {
+                  onClick={() => { void (async () => {
                     setApiFootballLoading(true)
                     try {
                       const res = await superadminApi.getApiFootballStatus()
@@ -1488,7 +1488,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     } finally {
                       setApiFootballLoading(false)
                     }
-                  }}
+                  })()}}
                   variant="secondary"
                   size="sm"
                   disabled={apiFootballLoading}
@@ -1547,7 +1547,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   Circa 20 chiamate API.
                 </p>
                 <Button
-                  onClick={async () => {
+                  onClick={() => { void (async () => {
                     setApiFootballLoading(true)
                     setMatchingResult(null)
                     try {
@@ -1563,7 +1563,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     } finally {
                       setApiFootballLoading(false)
                     }
-                  }}
+                  })()}}
                   disabled={apiFootballLoading}
                   className="w-full"
                 >
@@ -1591,7 +1591,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   Circa 25 chiamate API.
                 </p>
                 <Button
-                  onClick={async () => {
+                  onClick={() => { void (async () => {
                     setApiFootballLoading(true)
                     setSyncResult(null)
                     try {
@@ -1607,7 +1607,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     } finally {
                       setApiFootballLoading(false)
                     }
-                  }}
+                  })()}}
                   disabled={apiFootballLoading}
                   variant="secondary"
                   className="w-full"
@@ -1651,7 +1651,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   />
                 </div>
                 <Button
-                  onClick={async () => {
+                  onClick={() => { void (async () => {
                     if (!manualMatchPlayerId || !manualMatchApiId) return
                     setApiFootballLoading(true)
                     try {
@@ -1668,7 +1668,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     } finally {
                       setApiFootballLoading(false)
                     }
-                  }}
+                  })()}}
                   disabled={apiFootballLoading || !manualMatchPlayerId || !manualMatchApiId}
                 >
                   Match
@@ -1710,7 +1710,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                 </div>
                 <div className="flex gap-2">
                   <Button
-                    onClick={handleRefreshCache}
+                    onClick={() => void handleRefreshCache()}
                     disabled={cacheRefreshing || proposalsLoading}
                     variant="secondary"
                     size="sm"
@@ -1718,7 +1718,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     {cacheRefreshing ? 'Aggiornando Cache...' : 'Aggiorna Cache API'}
                   </Button>
                   <Button
-                    onClick={loadMatchProposals}
+                    onClick={() => void loadMatchProposals()}
                     disabled={proposalsLoading || cacheRefreshing}
                     variant="outline"
                     size="sm"
@@ -1829,7 +1829,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                                 <Button
                                   size="sm"
                                   variant="secondary"
-                                  onClick={() => handleConfirmProposal(proposal.dbPlayer.id, proposal.apiPlayer!.id)}
+                                  onClick={() => { void handleConfirmProposal(proposal.dbPlayer.id, proposal.apiPlayer!.id) }}
                                   disabled={confirmingMatch}
                                 >
                                   Conferma
@@ -1883,10 +1883,10 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     onChange={(e) => { setMatchedSearch(e.target.value); }}
                     placeholder="Cerca giocatore..."
                     className="w-48"
-                    onKeyDown={(e) => e.key === 'Enter' && loadMatchedPlayers(matchedSearch)}
+                    onKeyDown={(e) => { void (e.key === 'Enter' && loadMatchedPlayers(matchedSearch)) }}
                   />
                   <Button
-                    onClick={() => loadMatchedPlayers(matchedSearch)}
+                    onClick={() => { void loadMatchedPlayers(matchedSearch) }}
                     variant="outline"
                     size="sm"
                     disabled={matchedLoading}
@@ -1925,7 +1925,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                         size="sm"
                         variant="outline"
                         className="border-danger-500/50 text-danger-400 hover:bg-danger-500/20"
-                        onClick={() => handleRemoveMatch(player.id)}
+                        onClick={() => { void handleRemoveMatch(player.id) }}
                         disabled={removingMatch === player.id}
                       >
                         {removingMatch === player.id ? '...' : 'Rimuovi'}
@@ -2170,7 +2170,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   </Button>
                   <Button
                     className="flex-1 btn-primary"
-                    onClick={handleSubmitClassifications}
+                    onClick={() => void handleSubmitClassifications()}
                     disabled={classifyingPlayers}
                   >
                     {classifyingPlayers ? 'Salvataggio...' : 'Conferma e Salva'}
@@ -2224,10 +2224,10 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   onChange={(e) => { setApiSearchQuery(e.target.value); }}
                   placeholder="Cerca per nome..."
                   className="flex-1"
-                  onKeyDown={(e) => e.key === 'Enter' && handleApiSearch()}
+                  onKeyDown={(e) => { void (e.key === 'Enter' && handleApiSearch()) }}
                 />
                 <Button
-                  onClick={handleApiSearch}
+                  onClick={() => void handleApiSearch()}
                   disabled={apiSearchLoading || apiSearchQuery.length < 2}
                 >
                   {apiSearchLoading ? 'Ricerca...' : 'Cerca'}
@@ -2291,7 +2291,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
               </Button>
               <Button
                 className="flex-1 btn-primary"
-                onClick={handleManualAssociation}
+                onClick={() => void handleManualAssociation()}
                 disabled={!selectedApiPlayer || confirmingMatch}
               >
                 {confirmingMatch ? 'Associazione...' : 'Associa'}

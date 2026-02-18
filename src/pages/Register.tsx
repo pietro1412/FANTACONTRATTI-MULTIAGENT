@@ -144,7 +144,7 @@ export function Register({ onNavigate }: RegisterProps) {
 
         {/* Card */}
         <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-4 sm:p-8 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={(e) => { void handleSubmit(e) }} className="space-y-5">
             <div className={`min-h-[56px] transition-all duration-200 ${error ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
               {error && (
                 <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-lg text-base">

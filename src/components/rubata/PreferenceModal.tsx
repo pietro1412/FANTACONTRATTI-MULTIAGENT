@@ -169,7 +169,7 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
       <ModalFooter>
         {player.preference && (
           <Button
-            onClick={onDelete}
+            onClick={() => void onDelete()}
             disabled={isSubmitting}
             variant="outline"
             className="border-danger-500/50 text-danger-400 hover:bg-danger-500/10"
@@ -180,7 +180,7 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
         <Button onClick={onClose} variant="outline" className="flex-1">
           Annulla
         </Button>
-        <Button onClick={handleSave} disabled={isSubmitting} className="flex-1">
+        <Button onClick={() => void handleSave()} disabled={isSubmitting} className="flex-1">
           Salva
         </Button>
       </ModalFooter>

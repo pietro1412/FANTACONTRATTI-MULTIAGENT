@@ -143,7 +143,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
         try {
           const parsed = JSON.parse(saved)
           if (Array.isArray(parsed) && parsed.length > 0) return parsed
-        } catch {}
+        } catch { /* ignore invalid JSON */ }
       }
     }
     return DEFAULT_WIDGET_ORDER
@@ -285,6 +285,23 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
     setIsLoading(false)
   }
 
+  // Must be before early returns to satisfy rules-of-hooks
+  const activeAlerts = useMemo(() => {
+    if (!member) return []
+    const totalSlotsCalc = slots.P + slots.D + slots.C + slots.A
+    const allPlayersCalc = [...(roster.P ?? []), ...(roster.D ?? []), ...(roster.C ?? []), ...(roster.A ?? [])]
+    const expiringCount = allPlayersCalc.filter(e => e.contract && e.contract.duration <= 1).length
+    const totalSalariesCalc = allPlayersCalc.reduce((sum, e) => sum + (e.contract?.salary || 0), 0)
+    return evaluateAlerts(alertConfig, {
+      budget: member.currentBudget,
+      totalSalaries: totalSalariesCalc,
+      initialBudget: member.league.initialBudget,
+      expiringCount,
+      totalSlots: totalSlotsCalc,
+      filledSlots: totals.total,
+    })
+  }, [alertConfig, member, slots, roster, totals.total])
+
   if (isLoading) {
     return (
       <div className="min-h-screen">
@@ -312,15 +329,6 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
   const expiringContracts = allPlayers.filter(e => e.contract && e.contract.duration <= 1)
   const totalSalaries = allPlayers.reduce((sum, e) => sum + (e.contract?.salary || 0), 0)
   const totalClausole = allPlayers.reduce((sum, e) => sum + (e.contract?.rescissionClause || 0), 0)
-
-  const activeAlerts = useMemo(() => evaluateAlerts(alertConfig, {
-    budget: member.currentBudget,
-    totalSalaries,
-    initialBudget: member.league.initialBudget,
-    expiringCount: expiringContracts.length,
-    totalSlots,
-    filledSlots: totals.total,
-  }), [alertConfig, member, totalSalaries, expiringContracts.length, totalSlots, totals.total])
 
   return (
     <div className="min-h-screen">

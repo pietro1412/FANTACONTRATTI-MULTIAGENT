@@ -713,7 +713,7 @@ export default function ApiFootballTest() {
       )
     }
 
-    return <span>{String(value)}</span>
+    return <span>{String(value as string | number | symbol | bigint)}</span>
   }
 
   const renderCellValue = (value: unknown): string => {
@@ -721,7 +721,7 @@ export default function ApiFootballTest() {
     if (value === undefined) return '-'
     if (typeof value === 'boolean') return value ? 'Yes' : 'No'
     if (typeof value === 'object') return JSON.stringify(value)
-    return String(value)
+    return String(value as string | number | symbol | bigint)
   }
 
   const TableView = useMemo(() => {
@@ -897,7 +897,7 @@ export default function ApiFootballTest() {
                 )}
 
                 <button
-                  onClick={executeTest}
+                  onClick={() => void executeTest()}
                   disabled={!apiKey}
                   className="w-full mt-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded transition-colors"
                 >

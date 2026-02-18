@@ -110,7 +110,7 @@ export function useSvincolatiState(leagueId: string) {
 
   // Poll for board updates (fallback, Pusher handles instant updates)
   useEffect(() => {
-    const interval = setInterval(loadBoard, 8000)
+    const interval = setInterval(() => { void loadBoard() }, 8000)
     return () => { clearInterval(interval); }
   }, [loadBoard])
 
@@ -143,7 +143,7 @@ export function useSvincolatiState(leagueId: string) {
           }
         })
       }
-      setTimeout(() => loadBoard(), 100)
+      setTimeout(() => { void loadBoard() }, 100)
     },
     onSvincolatiReadyChanged: (data) => {
       console.log('[Pusher] Svincolati ready changed', data)
@@ -181,7 +181,7 @@ export function useSvincolatiState(leagueId: string) {
     void sendHeartbeat()
 
     // Then every 3 seconds
-    const interval = setInterval(sendHeartbeat, 3000)
+    const interval = setInterval(() => { void sendHeartbeat() }, 3000)
     return () => { clearInterval(interval); }
   }, [leagueId, board?.myMemberId])
 
@@ -212,7 +212,7 @@ export function useSvincolatiState(leagueId: string) {
         }
       }
       void updateTimer()
-      const interval = setInterval(updateTimer, 1000)
+      const interval = setInterval(() => { void updateTimer() }, 1000)
       return () => { clearInterval(interval); }
     } else {
       setTimerRemaining(null)
@@ -250,7 +250,7 @@ export function useSvincolatiState(leagueId: string) {
   // Poll appeal status when in PENDING_ACK state
   useEffect(() => {
     void loadAppealStatus()
-    const interval = setInterval(loadAppealStatus, 5000)
+    const interval = setInterval(() => { void loadAppealStatus() }, 5000)
     return () => { clearInterval(interval); }
   }, [loadAppealStatus])
 

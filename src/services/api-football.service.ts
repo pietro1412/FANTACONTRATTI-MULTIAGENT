@@ -727,9 +727,9 @@ function levenshteinDistance(a: string, b: string): number {
         matrix[i][j] = matrix[i - 1][j - 1]
       } else {
         matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
+          (matrix[i - 1][j - 1] ?? 0) + 1,
+          (matrix[i][j - 1] ?? 0) + 1,
+          (matrix[i - 1][j] ?? 0) + 1
         )
       }
     }

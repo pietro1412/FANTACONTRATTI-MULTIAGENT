@@ -219,7 +219,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
                 return (
                   <button
                     key={status}
-                    onClick={() => handleChangeStatus(status)}
+                    onClick={() => { void handleChangeStatus(status) }}
                     className={`px-3 py-1.5 text-xs font-medium rounded-lg ${cfg.bgColor} ${cfg.color} hover:opacity-80 transition-opacity`}
                   >
                     {cfg.label}
@@ -308,7 +308,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
               </select>
             </div>
             <button
-              onClick={handleSubmitResponse}
+              onClick={() => void handleSubmitResponse()}
               disabled={isSubmitting || !responseContent.trim()}
               className="px-6 py-2 bg-purple-500 hover:bg-purple-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >

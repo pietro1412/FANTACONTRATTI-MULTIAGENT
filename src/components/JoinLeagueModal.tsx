@@ -157,7 +157,7 @@ export function JoinLeagueModal({ isOpen, league, onClose, onSuccess }: JoinLeag
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6">
+          <form onSubmit={(e) => { void handleSubmit(e) }} className="p-6">
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-300 mb-2">
                 Nome della tua squadra

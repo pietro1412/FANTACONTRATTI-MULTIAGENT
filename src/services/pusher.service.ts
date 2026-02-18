@@ -190,10 +190,10 @@ export const PUSHER_EVENTS = {
  * Generic trigger function with error handling
  * Logs errors but doesn't throw to prevent breaking the main flow
  */
-async function triggerEvent<T extends object>(
+async function triggerEvent(
   sessionId: string,
   event: string,
-  data: T
+  data: object
 ): Promise<boolean> {
   if (!pusher) {
     return false
@@ -465,10 +465,10 @@ function getLeagueChannel(leagueId: string): string {
   return `league-${leagueId}`
 }
 
-async function triggerLeagueEvent<T extends object>(
+async function triggerLeagueEvent(
   leagueId: string,
   event: string,
-  data: T
+  data: object
 ): Promise<boolean> {
   if (!pusher) {
     return false

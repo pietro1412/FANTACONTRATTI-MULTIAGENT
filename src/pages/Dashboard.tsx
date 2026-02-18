@@ -289,7 +289,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                         ? ''
                         : 'hover:border-primary-500/40 hover:shadow-glow cursor-pointer group'
                   }`}
-                  onClick={() => !isSuperAdmin && !isPending && onNavigate('leagueDetail', { leagueId: league.id })}
+                  onClick={() => { if (!isSuperAdmin && !isPending) onNavigate('leagueDetail', { leagueId: league.id }); }}
                 >
                   {/* Pending Banner (#49) */}
                   {isPending && (
@@ -408,7 +408,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                       <Button
                         variant="outline"
                         className="w-full border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
-                        onClick={(e) => handleCancelRequest(e, league.id)}
+                        onClick={(e) => { void handleCancelRequest(e, league.id) }}
                         disabled={cancellingLeagueId === league.id}
                       >
                         {cancellingLeagueId === league.id ? 'Annullando...' : '✕ Annulla Richiesta'}

@@ -160,7 +160,7 @@ export async function notifyTradeOffer(
 
   await sendPushToUser(receiverUserId, {
     title: 'Nuova offerta di scambio',
-    body: `${senderName} ti ha inviato un\'offerta in ${leagueName}`,
+    body: `${senderName} ti ha inviato un'offerta in ${leagueName}`,
     tag: 'trade-offer',
     data: { type: 'trade-offer' },
   })

@@ -299,7 +299,7 @@ router.post('/leagues/:leagueId/contracts/consolidate', authMiddleware, async (r
 
     if (member) {
       // Generate PDF receipt and send email (async, don't block response)
-      generateAndSendReceipt(leagueId, member.id).catch(err => {
+      generateAndSendReceipt(leagueId, member.id).catch((err: unknown) => {
         console.error('Error generating/sending receipt:', err)
       })
     }

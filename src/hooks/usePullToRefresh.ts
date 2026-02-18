@@ -53,19 +53,17 @@ export function usePullToRefresh({
     }
   }, [isRefreshing, maxPull])
 
-  const onTouchEnd = useCallback(async () => {
+  const onTouchEnd = useCallback(() => {
     if (!isPulling.current) return
     isPulling.current = false
 
     if (pullOffset >= threshold) {
       setIsRefreshing(true)
       setPullOffset(threshold * 0.5) // Snap to spinner position
-      try {
-        await onRefresh()
-      } finally {
+      void onRefresh().finally(() => {
         setIsRefreshing(false)
         setPullOffset(0)
-      }
+      })
     } else {
       setPullOffset(0)
     }

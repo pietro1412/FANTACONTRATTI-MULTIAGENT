@@ -156,7 +156,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
           <div className="bg-danger-500/10 border border-danger-500/30 rounded-lg p-6 text-center">
             <p className="text-danger-400">{error}</p>
             <button
-              onClick={loadFinancials}
+              onClick={() => void loadFinancials()}
               className="mt-4 px-4 py-2 bg-primary-500 text-white rounded hover:bg-primary-600 transition-colors"
             >
               Riprova

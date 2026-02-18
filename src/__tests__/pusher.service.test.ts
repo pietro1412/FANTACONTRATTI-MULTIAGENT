@@ -6,7 +6,6 @@ const mockTrigger = vi.fn().mockResolvedValue({})
 // Create a mock class that can be instantiated with `new`
 class MockPusher {
   trigger = mockTrigger
-  constructor() {}
 }
 
 vi.mock('pusher', () => {

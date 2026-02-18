@@ -69,7 +69,7 @@ export class UserPrismaRepository implements IUserRepository {
   /**
    * Find a user by their password reset token
    */
-  async findByPasswordResetToken(token: string): Promise<(import('../../domain/entities/user.entity').UserWithCredentials & { passwordResetExpires: Date | null }) | null> {
+  async findByPasswordResetToken(token: string): Promise<(UserWithCredentials & { passwordResetExpires: Date | null }) | null> {
     const user = await prisma.user.findUnique({
       where: { passwordResetToken: token }
     })

@@ -166,7 +166,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             </div>
 
             <div className="p-4 border-t border-surface-50/20">
-              <Button onClick={handleSetTurnOrder} className="w-full btn-accent py-3 text-lg font-bold">
+              <Button onClick={() => void handleSetTurnOrder()} className="w-full btn-accent py-3 text-lg font-bold">
                 Conferma e Inizia Aste
               </Button>
             </div>
@@ -229,17 +229,17 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           marketProgress={marketProgress}
           bidAmount={bidAmount}
           setBidAmount={setBidAmount}
-          onPlaceBid={handlePlaceBid}
+          onPlaceBid={() => void handlePlaceBid()}
           isBidding={isBidding}
           isConnected={isConnected}
           connectionStatus={connectionStatus}
           readyStatus={readyStatus}
-          onMarkReady={handleMarkReady}
-          onConfirmNomination={handleConfirmNomination}
-          onCancelNomination={handleCancelNomination}
+          onMarkReady={() => void handleMarkReady()}
+          onConfirmNomination={() => void handleConfirmNomination()}
+          onCancelNomination={() => void handleCancelNomination()}
           markingReady={markingReady}
           pendingAck={pendingAck}
-          onAcknowledge={() => handleAcknowledge(false)}
+          onAcknowledge={() => { void handleAcknowledge(false) }}
           ackSubmitting={ackSubmitting}
           players={players}
           searchQuery={searchQuery}
@@ -249,20 +249,20 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           availableTeams={availableTeams}
           teamDropdownOpen={teamDropdownOpen}
           setTeamDropdownOpen={setTeamDropdownOpen}
-          onNominatePlayer={handleNominatePlayer}
+          onNominatePlayer={() => void handleNominatePlayer()}
           onSelectManager={setSelectedManager}
-          onCloseAuction={handleCloseAuction}
-          onUpdateTimer={handleUpdateTimer}
-          onBotNominate={handleBotNominate}
-          onBotConfirmNomination={handleBotConfirmNomination}
-          onBotBid={handleBotBid}
-          onForceAllReady={handleForceAllReady}
-          onForceAcknowledgeAll={handleForceAcknowledgeAll}
-          onCompleteAllSlots={handleCompleteAllSlots}
-          onResetFirstMarket={handleResetFirstMarket}
-          onPauseAuction={handlePauseAuction}
-          onResumeAuction={handleResumeAuction}
-          onRequestPause={handleRequestPause}
+          onCloseAuction={() => void handleCloseAuction()}
+          onUpdateTimer={() => void handleUpdateTimer()}
+          onBotNominate={() => void handleBotNominate()}
+          onBotConfirmNomination={() => void handleBotConfirmNomination()}
+          onBotBid={() => void handleBotBid()}
+          onForceAllReady={() => void handleForceAllReady()}
+          onForceAcknowledgeAll={() => void handleForceAcknowledgeAll()}
+          onCompleteAllSlots={() => void handleCompleteAllSlots()}
+          onResetFirstMarket={() => void handleResetFirstMarket()}
+          onPauseAuction={() => void handlePauseAuction()}
+          onResumeAuction={() => void handleResumeAuction()}
+          onRequestPause={() => void handleRequestPause()}
           pauseRequest={pauseRequest}
           dismissPauseRequest={dismissPauseRequest}
           isPrimoMercato={isPrimoMercato}
@@ -289,8 +289,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
         ackSubmitting={ackSubmitting}
         isAdmin={isAdmin}
         error={error}
-        onAcknowledge={handleAcknowledge}
-        onSimulateAppeal={handleSimulateAppeal}
+        onAcknowledge={() => void handleAcknowledge()}
+        onSimulateAppeal={() => void handleSimulateAppeal()}
         onNavigate={onNavigate}
         leagueId={leagueId}
       />
@@ -299,7 +299,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
         pendingAck={pendingAck}
         appealStatus={appealStatus}
         isAdmin={isAdmin}
-        onForceAcknowledgeAll={handleForceAcknowledgeAll}
+        onForceAcknowledgeAll={() => void handleForceAcknowledgeAll()}
       />
 
       <AppealReviewModal
@@ -315,8 +315,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
         pendingAck={pendingAck}
         ackSubmitting={ackSubmitting}
         isAdmin={isAdmin}
-        onAcknowledgeAppealDecision={handleAcknowledgeAppealDecision}
-        onForceAllAppealAcks={handleForceAllAppealAcks}
+        onAcknowledgeAppealDecision={() => void handleAcknowledgeAppealDecision()}
+        onForceAllAppealAcks={() => void handleForceAllAppealAcks()}
       />
 
       <AwaitingResumeModal
@@ -324,8 +324,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
         pendingAck={pendingAck}
         markingReady={markingReady}
         isAdmin={isAdmin}
-        onReadyToResume={handleReadyToResume}
-        onForceAllReadyResume={handleForceAllReadyResume}
+        onReadyToResume={() => void handleReadyToResume()}
+        onForceAllReadyResume={() => void handleForceAllReadyResume()}
       />
 
       {/* Contract Modification Modal after Primo Mercato Win */}

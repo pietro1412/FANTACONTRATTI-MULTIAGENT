@@ -80,7 +80,7 @@ export function FeedbackForm({ leagueId, pageContext, onSuccess, onCancel }: Fee
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={(e) => { void handleSubmit(e) }} className="space-y-6">
       {/* Category Selection */}
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-3">Tipo di segnalazione</label>

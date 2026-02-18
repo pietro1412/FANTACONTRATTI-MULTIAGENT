@@ -21,7 +21,7 @@ export function loadAlertConfig(): AlertConfig {
   try {
     const saved = localStorage.getItem(ALERT_STORAGE_KEY)
     if (saved) return { ...DEFAULT_CONFIG, ...JSON.parse(saved) }
-  } catch {}
+  } catch { /* ignore invalid JSON */ }
   return DEFAULT_CONFIG
 }
 

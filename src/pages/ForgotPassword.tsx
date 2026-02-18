@@ -88,7 +88,7 @@ export function ForgotPassword() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={(e) => { void handleSubmit(e) }} className="space-y-6">
           {error && (
             <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-3 rounded-lg text-sm">
               {error}

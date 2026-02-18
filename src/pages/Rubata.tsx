@@ -193,9 +193,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
           setAppealContent={setAppealContent}
           prophecyContent={prophecyContent}
           setProphecyContent={setProphecyContent}
-          onAcknowledgeWithAppeal={handleAcknowledgeWithAppeal}
-          onSimulateAppeal={handleSimulateAppeal}
-          onForceAllAcknowledge={handleForceAllAcknowledge}
+          onAcknowledgeWithAppeal={() => void handleAcknowledgeWithAppeal()}
+          onSimulateAppeal={() => void handleSimulateAppeal()}
+          onForceAllAcknowledge={() => void handleForceAllAcknowledge()}
           onNavigate={onNavigate}
           leagueId={leagueId}
         />
@@ -215,8 +215,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
           appealStatus={appealStatus}
           isAdmin={isAdmin}
           isSubmitting={isSubmitting}
-          onAcknowledgeAppealDecision={handleAcknowledgeAppealDecision}
-          onForceAllAppealAcks={handleForceAllAppealAcks}
+          onAcknowledgeAppealDecision={() => void handleAcknowledgeAppealDecision()}
+          onForceAllAppealAcks={() => void handleForceAllAppealAcks()}
         />
       )}
 
@@ -225,8 +225,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
           appealStatus={appealStatus}
           isAdmin={isAdmin}
           isSubmitting={isSubmitting}
-          onMarkReadyToResume={handleMarkReadyToResume}
-          onForceAllReadyResume={handleForceAllReadyResume}
+          onMarkReadyToResume={() => void handleMarkReadyToResume()}
+          onForceAllReadyResume={() => void handleForceAllReadyResume()}
         />
       )}
 
@@ -236,8 +236,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
           readyStatus={readyStatus}
           isAdmin={isAdmin}
           isSubmitting={isSubmitting}
-          onSetReady={handleSetReady}
-          onForceAllReady={handleForceAllReady}
+          onSetReady={() => void handleSetReady()}
+          onForceAllReady={() => void handleForceAllReady()}
         />
       )}
 
@@ -306,7 +306,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     </div>
                   </SortableContext>
                 </DndContext>
-                <Button onClick={handleSetOrder} disabled={isSubmitting} className="w-full">
+                <Button onClick={() => void handleSetOrder()} disabled={isSubmitting} className="w-full">
                   {isSubmitting ? 'Salvando...' : 'Conferma Ordine'}
                 </Button>
               </div>
@@ -343,11 +343,11 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     className="w-full px-4 py-2 bg-surface-300 border border-surface-50/30 rounded-xl text-white focus:border-primary-500 focus:outline-none"
                   />
                 </div>
-                <Button onClick={handleUpdateTimers} disabled={isSubmitting} variant="outline" className="w-full">
+                <Button onClick={() => void handleUpdateTimers()} disabled={isSubmitting} variant="outline" className="w-full">
                   Salva Timer
                 </Button>
                 <hr className="border-surface-50/20" />
-                <Button onClick={handleGenerateBoard} disabled={isSubmitting} className="w-full">
+                <Button onClick={() => void handleGenerateBoard()} disabled={isSubmitting} className="w-full">
                   Genera Tabellone
                 </Button>
               </div>
@@ -387,7 +387,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   auctionTimer={auctionTimer}
                   setAuctionTimer={setAuctionTimer}
                   isSubmitting={isSubmitting}
-                  onUpdateTimers={handleUpdateTimers}
+                  onUpdateTimers={() => void handleUpdateTimers()}
                 />
                 <BotSimulationPanel
                   rubataState={rubataState}
@@ -400,13 +400,13 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   simulateBidAmount={simulateBidAmount}
                   setSimulateBidAmount={setSimulateBidAmount}
                   isSubmitting={isSubmitting}
-                  onSimulateOffer={handleSimulateOffer}
-                  onSimulateBid={handleSimulateBid}
+                  onSimulateOffer={() => void handleSimulateOffer()}
+                  onSimulateBid={() => void handleSimulateBid()}
                 />
                 <CompleteRubataPanel
                   rubataState={rubataState}
                   isSubmitting={isSubmitting}
-                  onCompleteRubata={handleCompleteRubata}
+                  onCompleteRubata={() => void handleCompleteRubata()}
                 />
               </>)}
             </div>
@@ -429,13 +429,13 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               isAdmin={isAdmin}
               isSubmitting={isSubmitting}
               boardData={boardData}
-              onStartRubata={handleStartRubata}
-              onResume={handleResume}
-              onPause={handlePause}
-              onGoBack={handleGoBack}
-              onAdvance={handleAdvance}
-              onCloseAuction={handleCloseAuction}
-              onMakeOffer={handleMakeOffer}
+              onStartRubata={() => void handleStartRubata()}
+              onResume={() => void handleResume()}
+              onPause={() => void handlePause()}
+              onGoBack={() => void handleGoBack()}
+              onAdvance={() => void handleAdvance()}
+              onCloseAuction={() => void handleCloseAuction()}
+              onMakeOffer={() => void handleMakeOffer()}
             />
 
 
@@ -469,7 +469,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   </div>
                   <div className="flex gap-2">
                     {!readyStatus.userIsReady ? (
-                      <Button onClick={handleSetReady} disabled={isSubmitting} size="sm">
+                      <Button onClick={() => void handleSetReady()} disabled={isSubmitting} size="sm">
                         ✅ Sono Pronto
                       </Button>
                     ) : (
@@ -478,7 +478,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                       </span>
                     )}
                     {isAdmin && (
-                      <Button onClick={handleForceAllReady} disabled={isSubmitting} variant="outline" size="sm" className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
+                      <Button onClick={() => void handleForceAllReady()} disabled={isSubmitting} variant="outline" size="sm" className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
                         🤖 Forza Tutti Pronti
                       </Button>
                     )}
@@ -539,7 +539,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     </div>
                     <div className="flex gap-2">
                       {!readyStatus.userIsReady ? (
-                        <Button onClick={handleSetReady} disabled={isSubmitting} size="sm">
+                        <Button onClick={() => void handleSetReady()} disabled={isSubmitting} size="sm">
                           ✅ Sono Pronto
                         </Button>
                       ) : (
@@ -548,7 +548,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         </span>
                       )}
                       {isAdmin && (
-                        <Button onClick={handleForceAllReady} disabled={isSubmitting} variant="outline" size="sm" className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
+                        <Button onClick={() => void handleForceAllReady()} disabled={isSubmitting} variant="outline" size="sm" className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
                           🤖 Forza Tutti Pronti
                         </Button>
                       )}
@@ -589,7 +589,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 bidAmount={bidAmount}
                 setBidAmount={setBidAmount}
                 isSubmitting={isSubmitting}
-                onBid={handleBid}
+                onBid={() => void handleBid()}
               />
             )}
 
@@ -1024,7 +1024,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 auctionTimer={auctionTimer}
                 setAuctionTimer={setAuctionTimer}
                 isSubmitting={isSubmitting}
-                onUpdateTimers={handleUpdateTimers}
+                onUpdateTimers={() => void handleUpdateTimers()}
               />
               <BotSimulationPanel
                 rubataState={rubataState}
@@ -1037,13 +1037,13 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 simulateBidAmount={simulateBidAmount}
                 setSimulateBidAmount={setSimulateBidAmount}
                 isSubmitting={isSubmitting}
-                onSimulateOffer={handleSimulateOffer}
-                onSimulateBid={handleSimulateBid}
+                onSimulateOffer={() => void handleSimulateOffer()}
+                onSimulateBid={() => void handleSimulateBid()}
               />
               <CompleteRubataPanel
                 rubataState={rubataState}
                 isSubmitting={isSubmitting}
-                onCompleteRubata={handleCompleteRubata}
+                onCompleteRubata={() => void handleCompleteRubata()}
               />
             </>)}
           </div>

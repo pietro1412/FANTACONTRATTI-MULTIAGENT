@@ -180,7 +180,7 @@ export default function LatencyTest() {
               />
             </label>
             <button
-              onClick={runTests}
+              onClick={() => void runTests()}
               disabled={isRunning}
               className={`px-4 py-2 ${activeTab === 'ping' ? 'bg-primary-500 hover:bg-primary-600' : 'bg-amber-500 hover:bg-amber-600'} disabled:opacity-50 rounded font-medium`}
             >

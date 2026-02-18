@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  ScatterChart, Scatter, Cell, ZAxis,
+  ScatterChart, Scatter, ZAxis,
   LineChart, Line,
 } from 'recharts'
 import { TeamRanking } from './TeamRanking'
@@ -89,12 +89,14 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
       const balance = getTeamBalance(t, totals.hasFinancialDetails)
       const initialBudget = t.budget + t.totalAcquisitionCost
       const salaryPct = initialBudget > 0 ? (t.annualContractCost / initialBudget) * 100 : 0
+      const health = getHealthStatus(balance)
       return {
         name: t.teamName,
         memberId: t.memberId,
         x: Math.round(salaryPct),
         y: balance,
-        health: getHealthStatus(balance),
+        health,
+        fill: health === 'good' ? '#22c55e' : health === 'warning' ? '#fbbf24' : '#ef4444',
       }
     })
   }, [sortedTeams, totals.hasFinancialDetails])
@@ -123,7 +125,7 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
 
   // Contract duration averages
   const durationData = useMemo(() => {
-    return sortedTeams.map(t => {
+    return sortedTeams.map((t, i) => {
       const players = t.players.filter(p => p.duration > 0)
       const avgDur = players.length > 0
         ? players.reduce((s, p) => s + p.duration, 0) / players.length
@@ -132,6 +134,7 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
         name: t.teamName.length > 10 ? t.teamName.substring(0, 10) + '..' : t.teamName,
         fullName: t.teamName,
         avgDuration: Math.round(avgDur * 10) / 10,
+        fill: TEAM_COLORS[i % TEAM_COLORS.length],
       }
     }).sort((a, b) => b.avgDuration - a.avgDuration)
   }, [sortedTeams])
@@ -250,11 +253,7 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
                     return item?.fullName || label
                   }) as any}
                 />
-                <Bar dataKey="avgDuration" fill="#8b5cf6" radius={[0, 4, 4, 0]}>
-                  {durationData.map((_, i) => (
-                    <Cell key={i} fill={TEAM_COLORS[i % TEAM_COLORS.length]} fillOpacity={0.7} />
-                  ))}
-                </Bar>
+                <Bar dataKey="avgDuration" fill="#8b5cf6" radius={[0, 4, 4, 0]} fillOpacity={0.7} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -295,14 +294,7 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
                     return item?.name || ''
                   }}
                 />
-                <Scatter data={scatterData} name="Squadre">
-                  {scatterData.map((entry, i) => (
-                    <Cell
-                      key={i}
-                      fill={entry.health === 'good' ? '#22c55e' : entry.health === 'warning' ? '#fbbf24' : '#ef4444'}
-                    />
-                  ))}
-                </Scatter>
+                <Scatter data={scatterData} name="Squadre" />
               </ScatterChart>
             </ResponsiveContainer>
           </div>

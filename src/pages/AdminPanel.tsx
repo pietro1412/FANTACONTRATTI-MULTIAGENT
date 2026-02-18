@@ -540,11 +540,11 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                 isSubmitting={isSubmitting}
                 auctionMode={auctionMode}
                 setAuctionMode={setAuctionMode}
-                handleStartLeague={handleStartLeague}
-                handleSetPhase={handleSetPhase}
-                handleCloseSession={handleCloseSession}
-                handleCreateSession={handleCreateSession}
-                handleSimulateAllConsolidation={handleSimulateAllConsolidation}
+                handleStartLeague={() => void handleStartLeague()}
+                handleSetPhase={() => void handleSetPhase()}
+                handleCloseSession={() => void handleCloseSession()}
+                handleCreateSession={() => void handleCreateSession()}
+                handleSimulateAllConsolidation={() => void handleSimulateAllConsolidation()}
               />
             )}
 
@@ -552,8 +552,8 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
               <AdminMembersTab
                 activeMembers={activeMembers}
                 isSubmitting={isSubmitting}
-                confirmKick={confirmKick}
-                handleCompleteWithTestUsers={handleCompleteWithTestUsers}
+                confirmKick={() => void confirmKick()}
+                handleCompleteWithTestUsers={() => void handleCompleteWithTestUsers()}
                 appeals={appeals}
                 isLoadingAppeals={isLoadingAppeals}
                 appealFilter={appealFilter}
@@ -562,8 +562,8 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                 setResolutionNote={setResolutionNote}
                 selectedAppealId={selectedAppealId}
                 setSelectedAppealId={setSelectedAppealId}
-                handleResolveAppeal={handleResolveAppeal}
-                handleSimulateAppeal={handleSimulateAppeal}
+                handleResolveAppeal={() => void handleResolveAppeal()}
+                handleSimulateAppeal={() => void handleSimulateAppeal()}
               />
             )}
 
@@ -576,9 +576,9 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                 inviteDuration={inviteDuration}
                 setInviteDuration={setInviteDuration}
                 isSubmitting={isSubmitting}
-                handleMemberAction={handleMemberAction}
-                handleCreateInvite={handleCreateInvite}
-                handleCancelInvite={handleCancelInvite}
+                handleMemberAction={() => void handleMemberAction()}
+                handleCreateInvite={() => void handleCreateInvite()}
+                handleCancelInvite={() => void handleCancelInvite()}
               />
             )}
 
@@ -586,7 +586,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
               <AdminExportTab
                 isSubmitting={isSubmitting}
                 exportToExcel={exportToExcel}
-                exportRostersToExcel={exportRostersToExcel}
+                exportRostersToExcel={() => void exportRostersToExcel()}
               />
             )}
           </Suspense>

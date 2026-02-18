@@ -311,7 +311,7 @@ export function useRubataState(leagueId: string) {
           }
         })
       }
-      setTimeout(() => loadBoardOnly(), 100)
+      setTimeout(() => { void loadBoardOnly() }, 100)
     },
     onRubataReadyChanged: (data) => {
       console.log('[Pusher] Rubata ready changed - instant update', data)
@@ -326,7 +326,7 @@ export function useRubataState(leagueId: string) {
           allReady: data.readyCount >= data.totalMembers,
         }
       })
-      setTimeout(() => loadReadyOnly(), 100)
+      setTimeout(() => { void loadReadyOnly() }, 100)
     },
     onAuctionClosed: () => {
       console.log('[Pusher] Auction closed - full refresh')
@@ -386,7 +386,7 @@ export function useRubataState(leagueId: string) {
 
     void sendHeartbeat()
 
-    const interval = setInterval(sendHeartbeat, 3000)
+    const interval = setInterval(() => { void sendHeartbeat() }, 3000)
     return () => { clearInterval(interval); }
   }, [leagueId, boardData?.myMemberId, readyStatus?.myMemberId])
 
@@ -678,11 +678,11 @@ export function useRubataState(leagueId: string) {
     } else {
       setAppealStatus(null)
     }
-  }, [pendingAck?.auctionId])
+  }, [pendingAck])
 
   useEffect(() => {
     void loadAppealStatus()
-    const interval = setInterval(loadAppealStatus, 5000)
+    const interval = setInterval(() => { void loadAppealStatus() }, 5000)
     return () => { clearInterval(interval); }
   }, [loadAppealStatus])
 
@@ -931,7 +931,7 @@ export function useRubataState(leagueId: string) {
       })
     }
     return map
-  }, [previewBoard?.board])
+  }, [previewBoard])
 
   // Progress stats
   const progressStats = useMemo<ProgressStats | null>(() => {
@@ -970,7 +970,7 @@ export function useRubataState(leagueId: string) {
         username: currentPlayer.ownerUsername
       }
     }
-  }, [boardData?.board, boardData?.currentIndex, boardData?.currentPlayer])
+  }, [boardData])
 
   // ========== Drag & Drop ==========
 

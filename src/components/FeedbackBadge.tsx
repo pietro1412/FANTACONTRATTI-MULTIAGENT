@@ -30,7 +30,7 @@ export function FeedbackBadge({ onNavigate }: FeedbackBadgeProps) {
   useEffect(() => {
     void loadNotifications()
     // Poll every 30 seconds for new notifications
-    const interval = setInterval(loadNotifications, 30000)
+    const interval = setInterval(() => { void loadNotifications() }, 30000)
     return () => { clearInterval(interval); }
   }, [])
 
@@ -119,7 +119,7 @@ export function FeedbackBadge({ onNavigate }: FeedbackBadgeProps) {
               </div>
               {count > 0 && (
                 <button
-                  onClick={handleMarkAllRead}
+                  onClick={() => void handleMarkAllRead()}
                   className="text-xs text-gray-400 hover:text-white transition-colors"
                 >
                   Segna tutte lette

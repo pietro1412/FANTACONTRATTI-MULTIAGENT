@@ -369,7 +369,7 @@ export function ContractModifier({
             Mantieni contratto
           </Button>
           <Button
-            onClick={handleConfirm}
+            onClick={() => void handleConfirm()}
             disabled={!preview.isValid || isLoading || isSubmitting}
             isLoading={isSubmitting}
             className="flex-1"

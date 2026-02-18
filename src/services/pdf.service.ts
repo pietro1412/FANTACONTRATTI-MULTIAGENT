@@ -86,7 +86,7 @@ export function generateRenewalReceipt(data: RenewalReceiptData): Promise<Buffer
 
       doc.end()
     } catch (error) {
-      reject(error)
+      reject(error instanceof Error ? error : new Error(String(error)))
     }
   })
 }

@@ -382,7 +382,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     const timeouts: NodeJS.Timeout[] = []
     Object.entries(localEdits).forEach(([contractId, edit]) => {
       if (edit.isModified) {
-        const timeout = setTimeout(() => calculatePreview(contractId), 300)
+        const timeout = setTimeout(() => { void calculatePreview(contractId) }, 300)
         timeouts.push(timeout)
       }
     })
@@ -394,7 +394,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     Object.entries(pendingEdits).forEach(([rosterId, edit]) => {
       // Calcola preview sempre (anche per valori di default), non solo quando modificato
       if (!edit.previewData || edit.isModified) {
-        const timeout = setTimeout(() => calculatePendingPreview(rosterId), 300)
+        const timeout = setTimeout(() => { void calculatePendingPreview(rosterId) }, 300)
         timeouts.push(timeout)
       }
     })
@@ -811,7 +811,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges && inContrattiPhase && !isConsolidated) {
         e.preventDefault()
-        e.returnValue = ''
       }
     }
 
@@ -960,7 +959,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 <Button
                   size="sm"
                   variant={hasUnsavedChanges ? "accent" : "secondary"}
-                  onClick={handleSaveDrafts}
+                  onClick={() => void handleSaveDrafts()}
                   disabled={isSavingDrafts}
                 >
                   {isSavingDrafts ? 'Salvando...' : 'Salva'}
@@ -968,7 +967,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                 {/* Consolida (definitivo) */}
                 <Button
                   size="sm"
-                  onClick={handleConsolidate}
+                  onClick={() => void handleConsolidate()}
                   disabled={isConsolidating || !canConsolidate}
                   title={consolidateBlockReason}
                 >
@@ -2366,14 +2365,14 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
                   <Button
                     size="sm"
                     variant={hasUnsavedChanges ? "accent" : "secondary"}
-                    onClick={handleSaveDrafts}
+                    onClick={() => void handleSaveDrafts()}
                     disabled={isSavingDrafts}
                   >
                     {isSavingDrafts ? 'Salvando...' : 'Salva'}
                   </Button>
                   <Button
                     size="sm"
-                    onClick={handleConsolidate}
+                    onClick={() => void handleConsolidate()}
                     disabled={isConsolidating || !canConsolidate}
                     title={consolidateBlockReason}
                   >

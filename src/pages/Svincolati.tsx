@@ -163,7 +163,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                 +
               </button>
             </div>
-            <Button size="sm" onClick={handleSetTimer} disabled={isSubmitting} className="w-full mt-3">
+            <Button size="sm" onClick={() => void handleSetTimer()} disabled={isSubmitting} className="w-full mt-3">
               Imposta Timer
             </Button>
           </div>
@@ -194,7 +194,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
             )}
 
             <div className="p-4 border-t border-surface-50/20">
-              <Button onClick={handleSetTurnOrder} disabled={isSubmitting || turnOrderDraft.length === 0} className="w-full py-3 text-lg font-bold">
+              <Button onClick={() => void handleSetTurnOrder()} disabled={isSubmitting || turnOrderDraft.length === 0} className="w-full py-3 text-lg font-bold">
                 Conferma e Inizia Aste
               </Button>
             </div>
@@ -481,7 +481,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={handlePause}
+                        onClick={() => void handlePause()}
                         disabled={isSubmitting}
                         className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10"
                       >
@@ -494,7 +494,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={handleResume}
+                        onClick={() => void handleResume()}
                         disabled={isSubmitting}
                         className="w-full text-xs border-secondary-500/50 text-secondary-400 hover:bg-secondary-500/10"
                       >
@@ -509,7 +509,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={handleBotNominate}
+                      onClick={() => void handleBotNominate()}
                       disabled={isSubmitting || state !== 'READY_CHECK'}
                       className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10"
                     >
@@ -518,7 +518,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={handleBotConfirmNomination}
+                      onClick={() => void handleBotConfirmNomination()}
                       disabled={isSubmitting || state !== 'NOMINATION' || board?.nominatorConfirmed}
                       className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10"
                     >
@@ -528,7 +528,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={handleBotBid}
+                        onClick={() => void handleBotBid()}
                         disabled={isSubmitting}
                         className="w-full text-xs border-primary-500/50 text-primary-400 hover:bg-primary-500/10"
                       >
@@ -538,7 +538,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={handleForceReady}
+                      onClick={() => void handleForceReady()}
                       disabled={isSubmitting || state !== 'NOMINATION' || !board?.nominatorConfirmed}
                       className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
                     >
@@ -547,7 +547,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={handleForceAck}
+                      onClick={() => void handleForceAck()}
                       disabled={isSubmitting || state !== 'PENDING_ACK'}
                       className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
                     >
@@ -556,7 +556,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <Button
                       size="sm"
                       variant="danger"
-                      onClick={handleCompletePhase}
+                      onClick={() => void handleCompletePhase()}
                       disabled={isSubmitting}
                       className="w-full text-xs"
                     >
@@ -661,7 +661,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     freeAgents.slice(0, 50).map(player => (
                       <button
                         key={player.id}
-                        onClick={() => handleNominate(player.id)}
+                        onClick={() => { void handleNominate(player.id) }}
                         disabled={isSubmitting}
                         className="w-full flex items-center p-3 rounded-lg bg-surface-300 hover:bg-primary-500/10 border border-transparent hover:border-primary-500/30 transition-all text-left"
                       >
@@ -686,7 +686,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                 <div className="p-4 border-t border-surface-50/20">
                   <Button
                     variant="outline"
-                    onClick={handlePassTurn}
+                    onClick={() => void handlePassTurn()}
                     disabled={isSubmitting}
                     className="w-full border-warning-500/30 text-warning-400 hover:bg-warning-500/10"
                   >
@@ -742,10 +742,10 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   {board.pendingNominatorId === board.myMemberId && !board.nominatorConfirmed && (
                     <div className="space-y-3">
                       <div className="flex gap-3 justify-center">
-                        <Button onClick={handleConfirmNomination} disabled={isSubmitting} className="px-8 py-3 text-lg font-bold">
+                        <Button onClick={() => void handleConfirmNomination()} disabled={isSubmitting} className="px-8 py-3 text-lg font-bold">
                           {isSubmitting ? 'Attendi...' : '✓ CONFERMA'}
                         </Button>
-                        <Button onClick={handleCancelNomination} variant="outline" className="border-gray-500 text-gray-300 px-6 py-3">
+                        <Button onClick={() => void handleCancelNomination()} variant="outline" className="border-gray-500 text-gray-300 px-6 py-3">
                           Cambia
                         </Button>
                       </div>
@@ -787,7 +787,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       {/* Non-nominator: SONO PRONTO button */}
                       {board.pendingNominatorId !== board.myMemberId && (
                         !board.readyMembers.includes(board.myMemberId) ? (
-                          <Button onClick={handleMarkReady} disabled={isSubmitting} className="px-12 py-3 text-lg font-bold">
+                          <Button onClick={() => void handleMarkReady()} disabled={isSubmitting} className="px-12 py-3 text-lg font-bold">
                             {isSubmitting ? 'Attendi...' : 'SONO PRONTO'}
                           </Button>
                         ) : (
@@ -922,7 +922,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                         +
                       </button>
                       <Button
-                        onClick={handleBid}
+                        onClick={() => void handleBid()}
                         disabled={isTimerExpired || !bidAmount || parseInt(bidAmount) > board.myBudget || board.isFinished}
                         className="px-6 lg:px-8 font-bold"
                       >
@@ -937,7 +937,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     </div>
 
                     {isAdmin && (
-                      <Button variant="secondary" onClick={handleCloseAuction} className="w-full mt-2">
+                      <Button variant="secondary" onClick={() => void handleCloseAuction()} className="w-full mt-2">
                         Chiudi Asta Manualmente
                       </Button>
                     )}
@@ -1051,7 +1051,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <button
-                            onClick={() => handleViewManagerRoster(member)}
+                            onClick={() => { void handleViewManagerRoster(member) }}
                             className={`font-medium truncate hover:underline cursor-pointer text-left ${isCurrent ? 'text-white' : 'text-gray-300'}`}
                             title="Clicca per vedere la rosa"
                           >
@@ -1103,7 +1103,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={handleForceAllFinished}
+                      onClick={() => void handleForceAllFinished()}
                       disabled={isSubmitting}
                       className="w-full mt-2"
                     >
@@ -1116,7 +1116,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={handleCompletePhase}
+                      onClick={() => void handleCompletePhase()}
                       disabled={isSubmitting}
                       className="w-full mt-2"
                     >
@@ -1165,7 +1165,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                 </Button>
                 <Button
                   variant="primary"
-                  onClick={confirmDeclareFinished}
+                  onClick={() => void confirmDeclareFinished()}
                   disabled={isSubmitting}
                   className="flex-1"
                 >
@@ -1221,7 +1221,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               {/* Appeal mode toggle */}
               {!isAppealMode ? (
                 <div className="space-y-3">
-                  <Button onClick={() => handleAcknowledge(false)} disabled={ackSubmitting} className="w-full py-3 font-bold">
+                  <Button onClick={() => { void handleAcknowledge(false) }} disabled={ackSubmitting} className="w-full py-3 font-bold">
                     {ackSubmitting ? 'Conferma...' : 'Ho Visto, Conferma'}
                   </Button>
                   <button
@@ -1253,7 +1253,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       Annulla
                     </Button>
                     <Button
-                      onClick={() => handleAcknowledge(true)}
+                      onClick={() => { void handleAcknowledge(true) }}
                       disabled={ackSubmitting || !appealContent.trim()}
                       className="flex-1 bg-danger-500 hover:bg-danger-600 text-white"
                     >
@@ -1266,7 +1266,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               {/* Admin: Test button */}
               {isAdmin && !isAppealMode && (
                 <Button
-                  onClick={handleSimulateAppeal}
+                  onClick={() => void handleSimulateAppeal()}
                   variant="outline"
                   className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
                 >
@@ -1292,7 +1292,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               Mancano: {board.turnOrder.filter(m => !board.pendingAck!.acknowledgedMembers.includes(m.id)).map(m => m.username).join(', ')}
             </p>
             {isAdmin && (
-              <Button size="sm" variant="outline" onClick={handleForceAck} className="border-accent-500/50 text-accent-400">
+              <Button size="sm" variant="outline" onClick={() => void handleForceAck()} className="border-accent-500/50 text-accent-400">
                 [TEST] Forza Conferme
               </Button>
             )}
@@ -1408,7 +1408,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
               {!appealStatus.userHasAcked ? (
                 <Button
-                  onClick={handleAcknowledgeAppealDecision}
+                  onClick={() => void handleAcknowledgeAppealDecision()}
                   disabled={ackSubmitting}
                   className="w-full py-3 font-bold"
                 >
@@ -1422,7 +1422,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
               {isAdmin && (
                 <Button
-                  onClick={handleForceAllAppealAcks}
+                  onClick={() => void handleForceAllAppealAcks()}
                   variant="outline"
                   className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
                 >
@@ -1480,7 +1480,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
               {!appealStatus.userIsReady ? (
                 <Button
-                  onClick={handleReadyToResume}
+                  onClick={() => void handleReadyToResume()}
                   disabled={ackSubmitting}
                   className="w-full py-3 font-bold bg-accent-500 hover:bg-accent-600"
                 >
@@ -1494,7 +1494,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
               {isAdmin && (
                 <Button
-                  onClick={handleForceAllReadyResume}
+                  onClick={() => void handleForceAllReadyResume()}
                   variant="outline"
                   className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
                 >

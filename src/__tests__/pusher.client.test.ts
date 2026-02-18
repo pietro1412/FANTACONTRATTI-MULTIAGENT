@@ -42,7 +42,6 @@ const {
       state: 'connected',
     }
     static logToConsole = false
-    constructor() {}
   }
 
   return {

@@ -527,7 +527,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
     // Position order: P (0) > D (1) > C (2) > A (3)
     const getPositionOrder = (pos: string): number => {
-      const normalized = (pos || '').toString().trim().toUpperCase()
+      const normalized = (pos || '').trim().toUpperCase()
       const order: Record<string, number> = { P: 0, D: 1, C: 2, A: 3 }
       return order[normalized] ?? 99
     }
@@ -1307,7 +1307,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             return (
                               <button
                                 key={catId}
-                                onClick={() => setWatchlistCategory(player.playerId, isActive ? null : catId)}
+                                onClick={() => { void setWatchlistCategory(player.playerId, isActive ? null : catId) }}
                                 className={`px-2 py-1 rounded-full text-[10px] font-medium border transition-all ${isActive ? cat.color : 'bg-surface-300/50 text-gray-500 border-surface-50/20 hover:text-gray-300'}`}
                               >
                                 {cat.icon} {cat.label}
@@ -1358,7 +1358,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         <input
                           type="checkbox"
                           checked={selectedForCompare.size > 0}
-                          onChange={() => selectedForCompare.size > 0 ? clearComparison() : null}
+                          onChange={() => { if (selectedForCompare.size > 0) clearComparison(); }}
                           className="w-4 h-4 rounded bg-surface-300 border-cyan-500/50 text-cyan-500 focus:ring-cyan-500"
                         />
                       </th>
@@ -1693,7 +1693,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           <td className="p-2 bg-indigo-500/5">
                             <select
                               value={player.preference?.watchlistCategory || ''}
-                              onChange={(e) => setWatchlistCategory(player.playerId, e.target.value || null)}
+                              onChange={(e) => { void setWatchlistCategory(player.playerId, e.target.value || null) }}
                               className="w-full min-w-[80px] px-1 py-0.5 bg-surface-300/50 border border-surface-50/30 rounded text-xs focus:border-blue-500 focus:outline-none text-white"
                             >
                               <option value="">-</option>
@@ -2023,7 +2023,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       {[
                         { label: 'Presenze', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.appearences },
                         { label: 'Minuti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.minutes },
-                        { label: 'Rating', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.rating, format: (v: number | null) => v != null ? Number(v).toFixed(2) : '-' },
+                        { label: 'Rating', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.rating, format: (v: number | null) => v != null ? v.toFixed(2) : '-' },
                         // Goalkeeper-specific stats
                         { label: '🧤 Parate', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.goals?.saves : null, colorClass: 'text-yellow-400', goalkeeperOnly: true },
                         { label: '🧤 Gol Subiti', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.goals?.conceded : null, colorClass: 'text-yellow-400', goalkeeperOnly: true, lowerIsBetter: true },
@@ -2049,7 +2049,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       }).map(row => {
                         const values = playersToCompare.map(p => {
                           const val = row.getValue(p)
-                          return val != null ? Number(val) : 0
+                          return val != null ? val : 0
                         })
                         const maxVal = Math.max(...values.filter(v => v > 0))
 

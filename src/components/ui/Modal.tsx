@@ -55,6 +55,7 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
   ) => {
     // Swipe-to-dismiss state (mobile)
     const [dragOffset, setDragOffset] = useState(0)
+    const [isDraggingState, setIsDraggingState] = useState(false)
     const isDragging = useRef(false)
     const startY = useRef(0)
 
@@ -105,6 +106,7 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
       if (touch) {
         startY.current = touch.clientY
         isDragging.current = true
+        setIsDraggingState(true)
       }
     }
 
@@ -120,6 +122,7 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
 
     const handleTouchEnd = () => {
       isDragging.current = false
+      setIsDraggingState(false)
       if (dragOffset > 100) {
         onClose()
       }
@@ -182,7 +185,7 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
             // Assign to both the forwarded ref and our internal ref
             containerRef.current = node
             if (typeof ref === 'function') ref(node)
-            else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node
+            else if (ref) (ref as React.RefObject<HTMLDivElement | null>).current = node
           }}
           className={`
             relative ${sizeStyles[size]}
@@ -194,7 +197,7 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
           style={dragOffset > 0 ? {
             transform: `translateY(${dragOffset}px)`,
             opacity: Math.max(0.5, 1 - dragOffset / 300),
-            transition: isDragging.current ? 'none' : 'transform 0.3s ease, opacity 0.3s ease',
+            transition: isDraggingState ? 'none' : 'transform 0.3s ease, opacity 0.3s ease',
           } : undefined}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}

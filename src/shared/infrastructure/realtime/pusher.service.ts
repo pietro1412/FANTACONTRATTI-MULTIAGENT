@@ -206,7 +206,7 @@ export class BatchedPusherService implements IBatchedPusherService {
     // Check if we've hit max batch size
     if (queue.length >= this.config.maxBatchSize) {
       // Flush immediately if batch is full
-      this.flushChannel(channel).catch(err => {
+      this.flushChannel(channel).catch((err: unknown) => {
         console.error(`[BatchedPusher] Error flushing full batch for channel ${channel}:`, err)
       })
       return
@@ -228,7 +228,7 @@ export class BatchedPusherService implements IBatchedPusherService {
 
     // Set new timer
     const timer = setTimeout(() => {
-      this.flushChannel(channel).catch(err => {
+      this.flushChannel(channel).catch((err: unknown) => {
         console.error(`[BatchedPusher] Error flushing channel ${channel}:`, err)
       })
     }, this.config.batchIntervalMs)

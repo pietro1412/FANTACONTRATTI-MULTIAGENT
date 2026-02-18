@@ -154,7 +154,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                 </Button>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-8">
+              <form onSubmit={(e) => { void handleSubmit(e) }} className="space-y-8">
                 {error && (
                   <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-xl text-base">
                     {error}

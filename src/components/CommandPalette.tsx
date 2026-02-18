@@ -43,34 +43,34 @@ export function CommandPalette() {
   const commands = useMemo<CommandItem[]>(() => {
     const items: CommandItem[] = [
       // Global pages
-      { id: 'dashboard', label: 'Dashboard', category: 'Navigazione', icon: '🏠', action: () => navigate('/dashboard'), keywords: 'home principale' },
-      { id: 'profile', label: 'Profilo', category: 'Navigazione', icon: '👤', action: () => navigate('/profile'), keywords: 'account utente impostazioni' },
-      { id: 'create-league', label: 'Crea Lega', category: 'Azioni', icon: '➕', action: () => navigate('/leagues/new'), keywords: 'nuova lega creare' },
-      { id: 'rules', label: 'Regolamento', category: 'Navigazione', icon: '📖', action: () => navigate('/rules'), keywords: 'regole guida' },
+      { id: 'dashboard', label: 'Dashboard', category: 'Navigazione', icon: '🏠', action: () => { void navigate('/dashboard') }, keywords: 'home principale' },
+      { id: 'profile', label: 'Profilo', category: 'Navigazione', icon: '👤', action: () => { void navigate('/profile') }, keywords: 'account utente impostazioni' },
+      { id: 'create-league', label: 'Crea Lega', category: 'Azioni', icon: '➕', action: () => { void navigate('/leagues/new') }, keywords: 'nuova lega creare' },
+      { id: 'rules', label: 'Regolamento', category: 'Navigazione', icon: '📖', action: () => { void navigate('/rules') }, keywords: 'regole guida' },
     ]
 
     // League-specific pages
     if (leagueId) {
       items.push(
-        { id: 'league', label: 'Dettaglio Lega', category: 'Lega', icon: '🏆', action: () => navigate(`/leagues/${leagueId}`), keywords: 'lega info' },
-        { id: 'rose', label: 'Rose', category: 'Lega', icon: '📋', action: () => navigate(`/leagues/${leagueId}/rose`), keywords: 'rosa squadra giocatori roster' },
-        { id: 'contracts', label: 'Contratti', category: 'Lega', icon: '📝', action: () => navigate(`/leagues/${leagueId}/contracts`), keywords: 'contratto rinnovo taglio' },
-        { id: 'trades', label: 'Scambi', category: 'Lega', icon: '🔄', action: () => navigate(`/leagues/${leagueId}/trades`), keywords: 'trade scambio offerta' },
-        { id: 'rubata', label: 'Rubata', category: 'Lega', icon: '🎯', action: () => navigate(`/leagues/${leagueId}/rubata`), keywords: 'clausola rescissione' },
-        { id: 'svincolati', label: 'Svincolati', category: 'Lega', icon: '📂', action: () => navigate(`/leagues/${leagueId}/svincolati`), keywords: 'free agent libero' },
-        { id: 'financials', label: 'Finanze', category: 'Lega', icon: '💰', action: () => navigate(`/leagues/${leagueId}/financials`), keywords: 'budget soldi bilancio' },
-        { id: 'movements', label: 'Movimenti', category: 'Lega', icon: '📜', action: () => navigate(`/leagues/${leagueId}/movements`), keywords: 'storico operazioni' },
-        { id: 'stats', label: 'Statistiche Giocatori', category: 'Lega', icon: '📊', action: () => navigate(`/leagues/${leagueId}/stats`), keywords: 'stats gol assist rating' },
-        { id: 'players', label: 'Tutti i Giocatori', category: 'Lega', icon: '⚽', action: () => navigate(`/leagues/${leagueId}/players`), keywords: 'calciatori ricerca' },
-        { id: 'manager', label: 'Dashboard Manager', category: 'Lega', icon: '📈', action: () => navigate(`/leagues/${leagueId}/manager`), keywords: 'manager panoramica' },
-        { id: 'history', label: 'Storico', category: 'Lega', icon: '📚', action: () => navigate(`/leagues/${leagueId}/history`), keywords: 'cronologia passato' },
-        { id: 'prizes', label: 'Premi', category: 'Lega', icon: '🏅', action: () => navigate(`/leagues/${leagueId}/prizes`), keywords: 'premio classifica' },
-        { id: 'prophecies', label: 'Profezie', category: 'Lega', icon: '🔮', action: () => navigate(`/leagues/${leagueId}/prophecies`), keywords: 'profezia previsione' },
-        { id: 'strategie', label: 'Strategie Rubata', category: 'Lega', icon: '🧠', action: () => navigate(`/leagues/${leagueId}/strategie-rubata`), keywords: 'strategia rubata piano' },
-        { id: 'indemnity', label: 'Indennizzi', category: 'Lega', icon: '💵', action: () => navigate(`/leagues/${leagueId}/indemnity`), keywords: 'indennizzo compenso' },
-        { id: 'admin', label: 'Pannello Admin', category: 'Lega', icon: '⚙️', action: () => navigate(`/leagues/${leagueId}/admin`), keywords: 'amministrazione gestione' },
-        { id: 'feedback', label: 'Feedback Hub', category: 'Lega', icon: '💬', action: () => navigate(`/leagues/${leagueId}/feedback`), keywords: 'segnalazione bug suggerimento' },
-        { id: 'patchnotes', label: 'Patch Notes', category: 'Lega', icon: '📰', action: () => navigate(`/leagues/${leagueId}/patch-notes`), keywords: 'aggiornamenti novita changelog' },
+        { id: 'league', label: 'Dettaglio Lega', category: 'Lega', icon: '🏆', action: () => { void navigate(`/leagues/${leagueId}`) }, keywords: 'lega info' },
+        { id: 'rose', label: 'Rose', category: 'Lega', icon: '📋', action: () => { void navigate(`/leagues/${leagueId}/rose`) }, keywords: 'rosa squadra giocatori roster' },
+        { id: 'contracts', label: 'Contratti', category: 'Lega', icon: '📝', action: () => { void navigate(`/leagues/${leagueId}/contracts`) }, keywords: 'contratto rinnovo taglio' },
+        { id: 'trades', label: 'Scambi', category: 'Lega', icon: '🔄', action: () => { void navigate(`/leagues/${leagueId}/trades`) }, keywords: 'trade scambio offerta' },
+        { id: 'rubata', label: 'Rubata', category: 'Lega', icon: '🎯', action: () => { void navigate(`/leagues/${leagueId}/rubata`) }, keywords: 'clausola rescissione' },
+        { id: 'svincolati', label: 'Svincolati', category: 'Lega', icon: '📂', action: () => { void navigate(`/leagues/${leagueId}/svincolati`) }, keywords: 'free agent libero' },
+        { id: 'financials', label: 'Finanze', category: 'Lega', icon: '💰', action: () => { void navigate(`/leagues/${leagueId}/financials`) }, keywords: 'budget soldi bilancio' },
+        { id: 'movements', label: 'Movimenti', category: 'Lega', icon: '📜', action: () => { void navigate(`/leagues/${leagueId}/movements`) }, keywords: 'storico operazioni' },
+        { id: 'stats', label: 'Statistiche Giocatori', category: 'Lega', icon: '📊', action: () => { void navigate(`/leagues/${leagueId}/stats`) }, keywords: 'stats gol assist rating' },
+        { id: 'players', label: 'Tutti i Giocatori', category: 'Lega', icon: '⚽', action: () => { void navigate(`/leagues/${leagueId}/players`) }, keywords: 'calciatori ricerca' },
+        { id: 'manager', label: 'Dashboard Manager', category: 'Lega', icon: '📈', action: () => { void navigate(`/leagues/${leagueId}/manager`) }, keywords: 'manager panoramica' },
+        { id: 'history', label: 'Storico', category: 'Lega', icon: '📚', action: () => { void navigate(`/leagues/${leagueId}/history`) }, keywords: 'cronologia passato' },
+        { id: 'prizes', label: 'Premi', category: 'Lega', icon: '🏅', action: () => { void navigate(`/leagues/${leagueId}/prizes`) }, keywords: 'premio classifica' },
+        { id: 'prophecies', label: 'Profezie', category: 'Lega', icon: '🔮', action: () => { void navigate(`/leagues/${leagueId}/prophecies`) }, keywords: 'profezia previsione' },
+        { id: 'strategie', label: 'Strategie Rubata', category: 'Lega', icon: '🧠', action: () => { void navigate(`/leagues/${leagueId}/strategie-rubata`) }, keywords: 'strategia rubata piano' },
+        { id: 'indemnity', label: 'Indennizzi', category: 'Lega', icon: '💵', action: () => { void navigate(`/leagues/${leagueId}/indemnity`) }, keywords: 'indennizzo compenso' },
+        { id: 'admin', label: 'Pannello Admin', category: 'Lega', icon: '⚙️', action: () => { void navigate(`/leagues/${leagueId}/admin`) }, keywords: 'amministrazione gestione' },
+        { id: 'feedback', label: 'Feedback Hub', category: 'Lega', icon: '💬', action: () => { void navigate(`/leagues/${leagueId}/feedback`) }, keywords: 'segnalazione bug suggerimento' },
+        { id: 'patchnotes', label: 'Patch Notes', category: 'Lega', icon: '📰', action: () => { void navigate(`/leagues/${leagueId}/patch-notes`) }, keywords: 'aggiornamenti novita changelog' },
       )
     }
 

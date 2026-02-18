@@ -406,7 +406,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
                 <Button
                   size="lg"
                   className="w-full"
-                  onClick={handleAccept}
+                  onClick={() => void handleAccept()}
                   disabled={actionLoading !== null || teamName.trim().length < 2}
                 >
                   {actionLoading === 'accept' ? (
@@ -427,7 +427,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
                   variant="outline"
                   size="lg"
                   className="w-full"
-                  onClick={handleReject}
+                  onClick={() => void handleReject()}
                   disabled={actionLoading !== null}
                 >
                   {actionLoading === 'reject' ? (

@@ -103,7 +103,7 @@ export function Notifications({ leagueId, isAdmin, onNavigate }: NotificationsPr
   useEffect(() => {
     void loadNotifications()
     // Poll every 30 seconds for new notifications
-    const interval = setInterval(loadNotifications, 30000)
+    const interval = setInterval(() => { void loadNotifications() }, 30000)
     return () => { clearInterval(interval); }
   }, [leagueId, isAdmin])
 

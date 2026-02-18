@@ -89,6 +89,16 @@ function MarketPulseWidget({ managersStatus }: { managersStatus: ManagersStatusD
 }
 
 export function FinancialDashboard({ managersStatus, firstMarketStatus, onSelectManager }: FinancialDashboardProps) {
+  // Compute average effective budget for PAR calculation (must be before early return)
+  const avgBudget = useMemo(() => {
+    if (!managersStatus || managersStatus.managers.length === 0) return 0
+    const totalBudget = managersStatus.managers.reduce((sum, m) => {
+      const monte = m.roster.reduce((s, r) => s + (r.contract?.salary || 0), 0)
+      return sum + (m.currentBudget - monte)
+    }, 0)
+    return Math.round(totalBudget / managersStatus.managers.length)
+  }, [managersStatus])
+
   if (!managersStatus) {
     return (
       <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl p-4">
@@ -103,16 +113,6 @@ export function FinancialDashboard({ managersStatus, firstMarketStatus, onSelect
   })
 
   const leagueSize = managersStatus.managers.length
-
-  // Compute average effective budget for PAR calculation
-  const avgBudget = useMemo(() => {
-    if (managersStatus.managers.length === 0) return 0
-    const totalBudget = managersStatus.managers.reduce((sum, m) => {
-      const monte = m.roster.reduce((s, r) => s + (r.contract?.salary || 0), 0)
-      return sum + (m.currentBudget - monte)
-    }, 0)
-    return Math.round(totalBudget / managersStatus.managers.length)
-  }, [managersStatus])
 
   return (
     <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden h-full flex flex-col">

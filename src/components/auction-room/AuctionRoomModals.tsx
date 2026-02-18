@@ -463,10 +463,18 @@ export function AppealAckModal({
 }: AppealAckModalProps) {
   const autoAckedRef = useRef(false)
 
+  const isVisible = appealStatus?.auctionStatus === 'AWAITING_APPEAL_ACK' || pendingAck?.status === 'AWAITING_APPEAL_ACK'
+
+  // Reset auto-ack flag when modal becomes invisible
+  useEffect(() => {
+    if (!isVisible) {
+      autoAckedRef.current = false
+    }
+  }, [isVisible])
+
   // Admin auto-ack: automatically acknowledge and force all when modal opens
   useEffect(() => {
     if (!isAdmin || autoAckedRef.current) return
-    const isVisible = appealStatus?.auctionStatus === 'AWAITING_APPEAL_ACK' || pendingAck?.status === 'AWAITING_APPEAL_ACK'
     if (!isVisible) return
     autoAckedRef.current = true
     // Auto-ack own, then force all
@@ -474,10 +482,9 @@ export function AppealAckModal({
       onAcknowledgeAppealDecision()
     }
     setTimeout(() => { onForceAllAppealAcks(); }, 500)
-  }, [isAdmin, appealStatus?.auctionStatus, pendingAck?.status, appealStatus?.userHasAcked, onAcknowledgeAppealDecision, onForceAllAppealAcks])
+  }, [isAdmin, isVisible, appealStatus?.userHasAcked, onAcknowledgeAppealDecision, onForceAllAppealAcks])
 
-  if (!(appealStatus?.auctionStatus === 'AWAITING_APPEAL_ACK' || pendingAck?.status === 'AWAITING_APPEAL_ACK')) {
-    autoAckedRef.current = false
+  if (!isVisible) {
     return null
   }
 
@@ -589,11 +596,18 @@ export function AwaitingResumeModal({
   onForceAllReadyResume,
 }: AwaitingResumeModalProps) {
   const autoReadyRef = useRef(false)
+  const isVisible = appealStatus?.auctionStatus === 'AWAITING_RESUME' || pendingAck?.status === 'AWAITING_RESUME'
+
+  // Reset auto-ready flag when modal becomes invisible
+  useEffect(() => {
+    if (!isVisible) {
+      autoReadyRef.current = false
+    }
+  }, [isVisible])
 
   // Admin auto-ready: automatically mark ready and force all when modal opens
   useEffect(() => {
     if (!isAdmin || autoReadyRef.current) return
-    const isVisible = appealStatus?.auctionStatus === 'AWAITING_RESUME' || pendingAck?.status === 'AWAITING_RESUME'
     if (!isVisible) return
     autoReadyRef.current = true
     // Auto-ready own, then force all
@@ -601,10 +615,9 @@ export function AwaitingResumeModal({
       onReadyToResume()
     }
     setTimeout(() => { onForceAllReadyResume(); }, 500)
-  }, [isAdmin, appealStatus?.auctionStatus, pendingAck?.status, appealStatus?.userIsReady, onReadyToResume, onForceAllReadyResume])
+  }, [isAdmin, isVisible, appealStatus?.userIsReady, onReadyToResume, onForceAllReadyResume])
 
-  if (!(appealStatus?.auctionStatus === 'AWAITING_RESUME' || pendingAck?.status === 'AWAITING_RESUME')) {
-    autoReadyRef.current = false
+  if (!isVisible) {
     return null
   }
 

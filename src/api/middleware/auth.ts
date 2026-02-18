@@ -2,11 +2,9 @@ import type { Request, Response, NextFunction } from 'express'
 import { verifyAccessToken, type TokenPayload } from '../../utils/jwt'
 
 // Extend Express Request type
-declare global {
-  namespace Express {
-    interface Request {
-      user?: TokenPayload
-    }
+declare module 'express-serve-static-core' {
+  interface Request {
+    user?: TokenPayload
   }
 }
 

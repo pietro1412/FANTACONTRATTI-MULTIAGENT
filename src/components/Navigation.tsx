@@ -529,7 +529,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             </div>
 
             {/* Logout button for smaller screens */}
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="hidden sm:flex lg:hidden" data-testid="logout-button">
+            <Button variant="ghost" size="sm" onClick={() => void handleLogout()} className="hidden sm:flex lg:hidden" data-testid="logout-button">
               Esci
             </Button>
           </div>

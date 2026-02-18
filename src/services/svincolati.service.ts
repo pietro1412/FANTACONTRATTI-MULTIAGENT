@@ -2106,7 +2106,7 @@ export async function botNominateSvincolati(
   }
 
   if (activeSession.svincolatiState !== 'READY_CHECK') {
-    return { success: false, message: 'Non è il momento di nominare (stato: ' + activeSession.svincolatiState + ')' }
+    return { success: false, message: `Non è il momento di nominare (stato: ${activeSession.svincolatiState ?? 'N/A'})` }
   }
 
   // Get current turn member

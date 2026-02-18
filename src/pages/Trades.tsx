@@ -752,7 +752,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                       onMessageChange={setMessage}
                       isSubmitting={isSubmitting}
                       canSubmit={!!(selectedMemberId && (selectedOfferedPlayers.length > 0 || offeredBudget > 0 || selectedRequestedPlayers.length > 0 || requestedBudget > 0))}
-                      onSubmit={handleCreateOffer}
+                      onSubmit={(e) => { void handleCreateOffer(e) }}
                       onOpenMyRoster={() => { setShowMyRosterModal(true); }}
                       onOpenPartnerRoster={() => { setShowPartnerRosterModal(true); }}
                       onViewStats={handleViewStats}
@@ -855,7 +855,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                   offeredCount={selectedOfferedPlayers.length}
                   requestedCount={selectedRequestedPlayers.length}
                   isSubmitting={isSubmitting}
-                  onSubmit={() => handleCreateOffer({ preventDefault: () => {} } as React.FormEvent)}
+                  onSubmit={() => { void (handleCreateOffer({ preventDefault: () => {) }} } as React.FormEvent)}
                   canSubmit={!!(selectedMemberId && (selectedOfferedPlayers.length > 0 || offeredBudget > 0 || selectedRequestedPlayers.length > 0 || requestedBudget > 0))}
                   hasSelections={hasTradeSelections}
                 />
@@ -977,13 +977,13 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
 
                       {isInTradePhase && !timeRemaining.isExpired && (
                         <div className="flex gap-3 mt-6 pt-5 border-t border-surface-50/20">
-                          <Button variant="primary" onClick={() => handleAccept(offer.id)} className="flex-1">
+                          <Button variant="primary" onClick={() => { void handleAccept(offer.id) }} className="flex-1">
                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                             Accetta Scambio
                           </Button>
-                          <Button variant="outline" onClick={() => handleReject(offer.id)} className="flex-1">
+                          <Button variant="outline" onClick={() => { void handleReject(offer.id) }} className="flex-1">
                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
@@ -1110,7 +1110,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
 
                       {offer.status === 'PENDING' && !timeRemaining.isExpired && (
                         <div className="mt-6 pt-5 border-t border-surface-50/20">
-                          <Button variant="outline" onClick={() => handleCancel(offer.id)} className="text-danger-400 border-danger-500/40 hover:bg-danger-500/10">
+                          <Button variant="outline" onClick={() => { void handleCancel(offer.id) }} className="text-danger-400 border-danger-500/40 hover:bg-danger-500/10">
                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>

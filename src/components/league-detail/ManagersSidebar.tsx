@@ -119,7 +119,7 @@ export function ManagersSidebar({
                 {inviteCode}
               </code>
               <button
-                onClick={handleCopy}
+                onClick={() => void handleCopy()}
                 className="px-3 py-1.5 bg-primary-500/20 text-primary-400 text-xs rounded hover:bg-primary-500/30 transition-colors font-medium"
               >
                 {copied ? 'Copiato!' : 'Copia'}

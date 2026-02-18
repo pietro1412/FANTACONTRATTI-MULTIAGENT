@@ -457,7 +457,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                       value={search}
                       onChange={(e) => { setSearch(e.target.value); }}
                       placeholder="Nome..."
-                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
                       className="min-w-0 flex-1"
                     />
                     <Button onClick={handleSearch} variant="outline" className="flex-shrink-0">
@@ -502,7 +502,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                     value={search}
                     onChange={(e) => { setSearch(e.target.value); }}
                     placeholder="Nome..."
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
                     className="min-w-0 flex-1"
                   />
                   <Button onClick={handleSearch} variant="outline" className="flex-shrink-0">
@@ -814,7 +814,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
           {error && (
             <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg text-sm mb-4 flex items-center justify-between">
               <span>{error}</span>
-              <Button size="sm" variant="outline" onClick={() => loadPlayers()}>Riprova</Button>
+              <Button size="sm" variant="outline" onClick={() => { void loadPlayers() }}>Riprova</Button>
             </div>
           )}
 
@@ -844,7 +844,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                             type="checkbox"
                             className="rounded"
                             checked={selectedForCompare.size > 0}
-                            onChange={() => selectedForCompare.size > 0 ? clearComparison() : null}
+                            onChange={() => { if (selectedForCompare.size > 0) clearComparison(); }}
                           />
                         </th>
                         <th
@@ -886,7 +886,7 @@ export default function PlayerStats({ leagueId, onNavigate }: PlayerStatsProps) 
                             scope="col"
                             aria-sort={col.sortable && sortBy === col.key ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                             className="px-2 py-3 text-center text-xs font-medium text-gray-400 cursor-pointer hover:text-white whitespace-nowrap"
-                            onClick={() => col.sortable && handleSort(col.key)}
+                            onClick={() => { if (col.sortable) handleSort(col.key); }}
                             title={col.label}
                           >
                             {col.shortLabel} {col.sortable && <SortIcon column={col.key} sortBy={sortBy} sortOrder={sortOrder} />}

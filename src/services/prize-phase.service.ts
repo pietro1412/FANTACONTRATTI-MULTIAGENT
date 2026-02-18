@@ -186,7 +186,7 @@ export async function getPrizePhaseData(
     for (const cat of categories) {
       const prize = cat.managerPrizes.find(p => p.leagueMemberId === m.id)
       if (prize) {
-        memberTotals[m.id] += prize.amount
+        memberTotals[m.id] = (memberTotals[m.id] ?? 0) + prize.amount
       }
     }
   }
@@ -664,7 +664,7 @@ export async function finalizePrizePhase(
   for (const prize of prizes) {
     if (memberTotals[prize.leagueMemberId] !== undefined) {
       if (!prize.prizeCategory.isSystemPrize) {
-        memberTotals[prize.leagueMemberId] += prize.amount
+        memberTotals[prize.leagueMemberId] = (memberTotals[prize.leagueMemberId] ?? 0) + prize.amount
       }
     }
   }

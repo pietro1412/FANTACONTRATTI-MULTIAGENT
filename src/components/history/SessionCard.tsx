@@ -428,7 +428,7 @@ function FirstMarketTab({ data }: { data: unknown }) {
                   <tr
                     key={auction.id}
                     className={`border-b border-surface-50/10 hover:bg-surface-300/20 ${hasProphecies ? 'cursor-pointer' : ''}`}
-                    onClick={() => hasProphecies && setExpandedAuction(isExpanded ? null : auction.id)}
+                    onClick={() => { if (hasProphecies) setExpandedAuction(isExpanded ? null : auction.id); }}
                   >
                     <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position] ?? ''}`}>
                       {auction.player.position}

@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 // User validation schemas
 export const registerSchema = z.object({
-  email: z.string().email('Email non valida'),
+  email: z.email('Email non valida'),
   username: z
     .string()
     .min(3, 'Username deve essere di almeno 3 caratteri')
@@ -25,7 +25,7 @@ export const loginSchema = z.object({
 })
 
 export const updateProfileSchema = z.object({
-  email: z.string().email('Email non valida').optional(),
+  email: z.email('Email non valida').optional(),
   username: z
     .string()
     .min(3, 'Username deve essere di almeno 3 caratteri')

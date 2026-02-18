@@ -420,7 +420,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
                             <span title="Gol">{player.apiFootballStats?.goals?.total ?? 0}G</span>
                             <span title="Assist">{player.apiFootballStats?.goals?.assists ?? 0}A</span>
                             {player.apiFootballStats?.games?.rating && (
-                              <span title="Rating" className="text-primary-400">{Number(player.apiFootballStats.games.rating).toFixed(1)}</span>
+                              <span title="Rating" className="text-primary-400">{player.apiFootballStats.games.rating.toFixed(1)}</span>
                             )}
                           </div>
                         )}

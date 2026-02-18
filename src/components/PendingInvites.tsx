@@ -53,7 +53,7 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
   useEffect(() => {
     void loadInvites()
     // Poll every 60 seconds for new invites
-    const interval = setInterval(loadInvites, 60000)
+    const interval = setInterval(() => { void loadInvites() }, 60000)
     return () => { clearInterval(interval); }
   }, [])
 
@@ -211,7 +211,7 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
                       <div className="flex flex-col gap-2">
                         <div className="flex gap-2">
                           <button
-                            onClick={() => handleAccept(invite)}
+                            onClick={() => { void handleAccept(invite) }}
                             disabled={isProcessing}
                             className="flex-1 px-3 py-1.5 text-xs font-medium bg-secondary-500 hover:bg-secondary-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
@@ -224,7 +224,7 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
                             )}
                           </button>
                           <button
-                            onClick={() => handleReject(invite)}
+                            onClick={() => { void handleReject(invite) }}
                             disabled={isProcessing}
                             className="flex-1 px-3 py-1.5 text-xs font-medium bg-surface-300 hover:bg-surface-400 text-gray-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
