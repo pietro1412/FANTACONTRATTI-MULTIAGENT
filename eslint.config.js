@@ -39,6 +39,14 @@ export default tseslint.config(
         allowNullish: false,
         allowRegExp: false,
       }],
+      // Downgraded: ~429 reports are mostly defensive runtime guards
+      // (e.g. null checks on API data, array.length guards) that are good
+      // practice even when TypeScript considers them redundant.
+      '@typescript-eslint/no-unnecessary-condition': 'warn',
+      // Disabled: produces ~934 false positives with Prisma client methods
+      // (e.g. prisma.player.findMany) and React event handlers.
+      // This is the standard community approach for projects using Prisma/ORMs.
+      '@typescript-eslint/unbound-method': 'off',
     },
   },
 )
