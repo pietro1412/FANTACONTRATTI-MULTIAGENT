@@ -1025,7 +1025,7 @@ export async function getUnmatchedPlayers(userId: string, search?: string): Prom
     }
 
     if (search && search.length >= 2) {
-      where!.name = {
+      where.name = {
         contains: search,
         mode: 'insensitive',
       }
@@ -1077,7 +1077,7 @@ export async function getMatchedPlayers(userId: string, search?: string): Promis
     }
 
     if (search && search.length >= 2) {
-      where!.name = {
+      where.name = {
         contains: search,
         mode: 'insensitive',
       }

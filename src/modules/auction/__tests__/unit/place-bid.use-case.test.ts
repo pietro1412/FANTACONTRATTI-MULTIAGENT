@@ -82,12 +82,13 @@ describe('PlaceBidUseCase', () => {
       hasSlotAvailable: vi.fn().mockResolvedValue(true),
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.fn() partial mock
+    /* eslint-disable @typescript-eslint/no-explicit-any -- vi.fn() partial mock */
     placeBidUseCase = new PlaceBidUseCase(
       mockAuctionRepository,
       mockEventBus,
       mockBudgetService as any
     )
+    /* eslint-enable @typescript-eslint/no-explicit-any */
   })
 
   describe('execute', () => {

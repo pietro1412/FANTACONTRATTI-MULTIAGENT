@@ -99,7 +99,7 @@ describe('CloseAuctionUseCase', () => {
       getMemberName: vi.fn().mockResolvedValue('Winner User'),
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.fn() partial mocks
+    /* eslint-disable @typescript-eslint/no-explicit-any -- vi.fn() partial mocks */
     closeAuctionUseCase = new CloseAuctionUseCase(
       mockAuctionRepository,
       mockEventBus,
@@ -107,6 +107,7 @@ describe('CloseAuctionUseCase', () => {
       mockPlayerService as any,
       mockMemberService as any
     )
+    /* eslint-enable @typescript-eslint/no-explicit-any */
   })
 
   describe('execute', () => {

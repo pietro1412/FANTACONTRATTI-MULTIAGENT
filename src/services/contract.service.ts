@@ -1,4 +1,5 @@
 import { PrismaClient, MemberStatus, RosterStatus, AcquisitionType, MovementType } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 import { recordMovement } from './movement.service'
 import {
   createContractHistoryEntries,
@@ -2027,7 +2028,7 @@ export async function modifyContractPostAcquisition(
       salary: newSalary,
       duration: newDuration,
       rescissionClause: newRescissionClause,
-      renewalHistory: [...renewalHistory, oldValues] as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      renewalHistory: [...renewalHistory, oldValues] as unknown as Prisma.InputJsonValue,
     },
     include: {
       roster: {

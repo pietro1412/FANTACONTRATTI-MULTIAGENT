@@ -130,7 +130,7 @@ export class ImportPlayersUseCase {
       }
 
       players.push({
-        position: position!.toUpperCase(),
+        position: position.toUpperCase(),
         name,
         team,
         quotation,

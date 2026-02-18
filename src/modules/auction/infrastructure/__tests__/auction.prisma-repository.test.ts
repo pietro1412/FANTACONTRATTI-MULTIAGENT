@@ -4,6 +4,7 @@
  * Tests the AuctionPrismaRepository with mocked Prisma client.
  * CRITICAL: Includes tests for atomic bid placement.
  */
+/* eslint-disable @typescript-eslint/no-explicit-any -- vi.mocked partial Prisma transaction mocks */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { AuctionPrismaRepository } from '../repositories/auction.prisma-repository'
