@@ -170,7 +170,10 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
       <div className="min-h-screen">
         <Navigation currentPage="rubata" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
         <div className="flex items-center justify-center h-[80vh]">
-          <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-400">Caricamento rubata...</p>
+          </div>
         </div>
       </div>
     )

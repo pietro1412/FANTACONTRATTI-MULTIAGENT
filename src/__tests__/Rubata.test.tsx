@@ -307,6 +307,7 @@ describe('Rubata', () => {
     // The loading spinner has the animate-spin class
     const spinner = document.querySelector('.animate-spin')
     expect(spinner).toBeTruthy()
+    expect(screen.getByText('Caricamento rubata...')).toBeInTheDocument()
   })
 
   // ---- Phase not active ----
