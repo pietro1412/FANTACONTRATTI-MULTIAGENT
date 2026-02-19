@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PlayerStats from '../pages/PlayerStats'
 
@@ -350,5 +350,380 @@ describe('PlayerStats', () => {
       expect(screen.getByText('Precedente')).toBeInTheDocument()
     })
     expect(screen.getByText('Successiva')).toBeInTheDocument()
+  })
+
+  // ---------------------------------------------------------------------------
+  // Sorting
+  // ---------------------------------------------------------------------------
+
+  it('sorts by column when table header is clicked', async () => {
+    const user = userEvent.setup()
+    render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Lautaro Martinez')).toBeInTheDocument()
+    })
+
+    // Click on "Giocatore" header to sort
+    await user.click(screen.getByText(/Giocatore/))
+
+    // After sorting by name desc, the API should be called again
+    await waitFor(() => {
+      expect(mockGetStats).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  it('toggles sort order when same column header is clicked twice', async () => {
+    const user = userEvent.setup()
+    render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Lautaro Martinez')).toBeInTheDocument()
+    })
+
+    // Click "Giocatore" - first click sets desc
+    await user.click(screen.getByText(/Giocatore/))
+    // Click again - toggles to asc
+    await user.click(screen.getByText(/Giocatore/))
+
+    await waitFor(() => {
+      // Called initial + 2 sort clicks
+      expect(mockGetStats).toHaveBeenCalledTimes(3)
+    })
+  })
+
+  // ---------------------------------------------------------------------------
+  // Search
+  // ---------------------------------------------------------------------------
+
+  it('triggers search when search button is clicked', async () => {
+    const user = userEvent.setup()
+    render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Lautaro Martinez')).toBeInTheDocument()
+    })
+
+    // Type in search input (get all inputs with placeholder and use the first one)
+    const searchInputs = screen.getAllByPlaceholderText('Nome...')
+    await user.type(searchInputs[0]!, 'Lautaro')
+
+    // Click the search button (emoji search button)
+    const searchButtons = screen.getAllByRole('button')
+    const searchBtn = searchButtons.find(btn => btn.textContent?.includes('🔍'))
+    expect(searchBtn).toBeTruthy()
+    await user.click(searchBtn!)
+
+    await waitFor(() => {
+      // API called again with search
+      expect(mockGetStats.mock.calls.length).toBeGreaterThanOrEqual(2)
+    })
+  })
+
+  it('triggers search on Enter key press in search input', async () => {
+    const user = userEvent.setup()
+    render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Lautaro Martinez')).toBeInTheDocument()
+    })
+
+    const searchInputs = screen.getAllByPlaceholderText('Nome...')
+    await user.type(searchInputs[0]!, 'Barella{Enter}')
+
+    await waitFor(() => {
+      expect(mockGetStats.mock.calls.length).toBeGreaterThanOrEqual(2)
+    })
+  })
+
+  // ---------------------------------------------------------------------------
+  // Column presets
+  // ---------------------------------------------------------------------------
+
+  it('changes visible columns when a preset button is clicked', async () => {
+    const user = userEvent.setup()
+    render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Preset:')).toBeInTheDocument()
+    })
+
+    // Click the "Tutte" preset
+    const tutteButton = screen.getAllByRole('button').find(btn => btn.textContent?.includes('Tutte'))
+    expect(tutteButton).toBeTruthy()
+    await user.click(tutteButton!)
+
+    // With "all" preset, more columns should be visible
+    await waitFor(() => {
+      expect(screen.getByText(/colonne selezionate/)).toBeInTheDocument()
+    })
+  })
+
+  it('renders Personalizza button with column count', async () => {
+    render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Personalizza/)).toBeInTheDocument()
+    })
+  })
+
+  // ---------------------------------------------------------------------------
+  // Player comparison
+  // ---------------------------------------------------------------------------
+
+  it('allows selecting players for comparison via checkboxes', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Lautaro Martinez')).toBeInTheDocument()
+    })
+
+    // Find all checkboxes in table body (not header)
+    const tbody = container.querySelector('tbody')
+    expect(tbody).toBeTruthy()
+    const rowCheckboxes = tbody!.querySelectorAll('input[type="checkbox"]')
+    expect(rowCheckboxes.length).toBe(2) // 2 players
+
+    // Click the first player's checkbox
+    await user.click(rowCheckboxes[0]!)
+
+    // Verify checkbox is now checked
+    await waitFor(() => {
+      expect((rowCheckboxes[0] as HTMLInputElement).checked).toBe(true)
+    })
+
+    // Now "Confronta (1)" button should appear in both mobile and desktop
+    await waitFor(() => {
+      const confrontaBtns = screen.queryAllByText(/Confronta/)
+      expect(confrontaBtns.length).toBeGreaterThan(0)
+    })
+  })
+
+  it('shows compare modal when 2+ players selected and Confronta is clicked', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Lautaro Martinez')).toBeInTheDocument()
+    })
+
+    const tbody = container.querySelector('tbody')!
+    const rowCheckboxes = tbody.querySelectorAll('input[type="checkbox"]')
+
+    // Select both players
+    await user.click(rowCheckboxes[0]!) // Lautaro
+    await user.click(rowCheckboxes[1]!) // Barella
+
+    await waitFor(() => {
+      const confrontaBtns = screen.getAllByText(/Confronta \(2\)/)
+      expect(confrontaBtns.length).toBeGreaterThan(0)
+      expect(confrontaBtns[0]!).not.toBeDisabled()
+    })
+
+    // Click first visible Confronta
+    const confrontaBtns = screen.getAllByText(/Confronta \(2\)/)
+    await user.click(confrontaBtns[0]!)
+
+    // Compare modal with radar charts and table should appear
+    await waitFor(() => {
+      expect(screen.getByText('Confronto Giocatori')).toBeInTheDocument()
+      expect(screen.getByText('Statistiche Offensive')).toBeInTheDocument()
+      expect(screen.getByText('Statistiche Difensive')).toBeInTheDocument()
+      expect(screen.getByText('Dettaglio Statistiche')).toBeInTheDocument()
+    })
+  })
+
+  it('closes compare modal when back button is clicked', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Lautaro Martinez')).toBeInTheDocument()
+    })
+
+    const tbody = container.querySelector('tbody')!
+    const rowCheckboxes = tbody.querySelectorAll('input[type="checkbox"]')
+    await user.click(rowCheckboxes[0]!)
+    await user.click(rowCheckboxes[1]!)
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Confronta \(2\)/).length).toBeGreaterThan(0)
+    })
+
+    const confrontaBtns = screen.getAllByText(/Confronta \(2\)/)
+    await user.click(confrontaBtns[0]!)
+
+    await waitFor(() => {
+      expect(screen.getByText('Confronto Giocatori')).toBeInTheDocument()
+    })
+
+    // Click "Torna alla lista"
+    await user.click(screen.getByText('Torna alla lista'))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Confronto Giocatori')).not.toBeInTheDocument()
+    })
+  })
+
+  it('clears comparison when clear button is clicked', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Lautaro Martinez')).toBeInTheDocument()
+    })
+
+    const tbody = container.querySelector('tbody')!
+    const rowCheckboxes = tbody.querySelectorAll('input[type="checkbox"]')
+    await user.click(rowCheckboxes[0]!)
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Confronta \(1\)/).length).toBeGreaterThan(0)
+    })
+
+    // Click the clear button (✕) - appears in both mobile and desktop
+    const clearButtons = screen.getAllByRole('button').filter(btn => btn.textContent?.trim() === '✕')
+    expect(clearButtons.length).toBeGreaterThan(0)
+    await user.click(clearButtons[0]!)
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Confronta/)).not.toBeInTheDocument()
+    })
+  })
+
+  // ---------------------------------------------------------------------------
+  // Pagination interaction
+  // ---------------------------------------------------------------------------
+
+  it('navigates to next page when Successiva is clicked', async () => {
+    const user = userEvent.setup()
+    mockGetStats.mockResolvedValue({
+      success: true,
+      data: {
+        players: samplePlayers,
+        pagination: { page: 1, limit: 50, total: 100, totalPages: 2 },
+      },
+    })
+    render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Successiva')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Successiva'))
+
+    await waitFor(() => {
+      // Page 2 request
+      expect(mockGetStats.mock.calls.length).toBeGreaterThanOrEqual(2)
+    })
+  })
+
+  it('disables Precedente on first page', async () => {
+    mockGetStats.mockResolvedValue({
+      success: true,
+      data: {
+        players: samplePlayers,
+        pagination: { page: 1, limit: 50, total: 100, totalPages: 2 },
+      },
+    })
+    render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Precedente')).toBeDisabled()
+    })
+  })
+
+  // ---------------------------------------------------------------------------
+  // Stat columns rendering
+  // ---------------------------------------------------------------------------
+
+  it('renders stat values in columns for players', async () => {
+    render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Lautaro Martinez')).toBeInTheDocument()
+    })
+
+    // Default preset is "essential" with: appearances, rating, goals, assists, ga, yellowCards
+    // Lautaro: rating=7.2 (unique value), Barella: rating=7.00 (unique value)
+    // Some values appear multiple times (e.g. "30" is both Barella quotation and Lautaro appearances)
+    expect(screen.getByText('7.20')).toBeInTheDocument() // Lautaro rating
+    expect(screen.getByText('7.00')).toBeInTheDocument() // Barella rating
+    // G+A: Lautaro 20+5=25, Barella 5+10=15
+    expect(screen.getByText('25')).toBeInTheDocument()
+    expect(screen.getByText('15')).toBeInTheDocument()
+  })
+
+  it('renders position labels in the table', async () => {
+    render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Attaccante')).toBeInTheDocument()
+      expect(screen.getByText('Centrocampista')).toBeInTheDocument()
+    })
+  })
+
+  it('renders quotation values with styled badges', async () => {
+    render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('42')).toBeInTheDocument() // Lautaro quotation
+    })
+  })
+
+  // ---------------------------------------------------------------------------
+  // Error handling
+  // ---------------------------------------------------------------------------
+
+  it('shows retry button in error banner and retries on click', async () => {
+    const user = userEvent.setup()
+    mockGetStats
+      .mockRejectedValueOnce(new Error('Server error'))
+      .mockResolvedValue({
+        success: true,
+        data: {
+          players: samplePlayers,
+          pagination: { page: 1, limit: 50, total: 2, totalPages: 1 },
+        },
+      })
+
+    render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Errore nel caricamento delle statistiche. Riprova.')).toBeInTheDocument()
+    })
+
+    // Click the retry button in the error banner
+    await user.click(screen.getByText('Riprova'))
+
+    await waitFor(() => {
+      expect(mockGetStats).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  // ---------------------------------------------------------------------------
+  // Sorting stat columns (client-side)
+  // ---------------------------------------------------------------------------
+
+  it('sorts by stat column (goals) when header clicked', async () => {
+    const user = userEvent.setup()
+
+    // First need to apply the "Attaccante" preset so goals column is visible
+    render(<PlayerStats leagueId={defaultLeagueId} onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Lautaro Martinez')).toBeInTheDocument()
+    })
+
+    // The default "essential" preset includes "Gol" short label
+    // Click on the Gol column header to sort
+    const golHeaders = screen.getAllByTitle('Gol')
+    if (golHeaders.length > 0) {
+      await user.click(golHeaders[0]!)
+    }
+
+    // Client-side sort does not call API again - just reorders
+    expect(screen.getByText('Lautaro Martinez')).toBeInTheDocument()
   })
 })

@@ -33,13 +33,17 @@ vi.mock('../components/ui/Button', () => ({
 }))
 
 // Mock xlsx
+const mockWriteFile = vi.fn()
+const mockAoaToSheet = vi.fn(() => ({}))
+const mockBookNew = vi.fn(() => ({}))
+const mockBookAppendSheet = vi.fn()
 vi.mock('xlsx', () => ({
   utils: {
-    aoa_to_sheet: vi.fn(() => ({})),
-    book_new: vi.fn(() => ({})),
-    book_append_sheet: vi.fn(),
+    aoa_to_sheet: (...args: unknown[]) => mockAoaToSheet(...args),
+    book_new: (...args: unknown[]) => mockBookNew(...args),
+    book_append_sheet: (...args: unknown[]) => mockBookAppendSheet(...args),
   },
-  writeFile: vi.fn(),
+  writeFile: (...args: unknown[]) => mockWriteFile(...args),
 }))
 
 // Mock haptics
@@ -61,29 +65,43 @@ vi.mock('../hooks/useSwipeGesture', () => ({
   }),
 }))
 
+// Capture props for tab components to enable testing callbacks
+let capturedPhasesProps: Record<string, unknown> = {}
+let capturedMembersProps: Record<string, unknown> = {}
+let capturedRequestsProps: Record<string, unknown> = {}
+let capturedExportProps: Record<string, unknown> = {}
+
 // Mock lazy-loaded tab components
 vi.mock('../components/admin/AdminPhasesTab', () => ({
-  AdminPhasesTab: ({ league }: { league: { name: string } | null }) => (
-    <div data-testid="phases-tab">Phases Tab - {league?.name}</div>
-  ),
+  AdminPhasesTab: (props: Record<string, unknown>) => {
+    capturedPhasesProps = props
+    const league = props.league as { name: string } | null
+    return <div data-testid="phases-tab">Phases Tab - {league?.name}</div>
+  },
 }))
 
 vi.mock('../components/admin/AdminMembersTab', () => ({
-  AdminMembersTab: ({ activeMembers }: { activeMembers: Array<{ id: string }> }) => (
-    <div data-testid="members-tab">Members Tab - {activeMembers.length} members</div>
-  ),
+  AdminMembersTab: (props: Record<string, unknown>) => {
+    capturedMembersProps = props
+    const activeMembers = props.activeMembers as Array<{ id: string }>
+    return <div data-testid="members-tab">Members Tab - {activeMembers.length} members</div>
+  },
 }))
 
 vi.mock('../components/admin/AdminRequestsTab', () => ({
-  AdminRequestsTab: ({ pendingMembers, invites }: { pendingMembers: Array<{ id: string }>; invites: Array<{ id: string }> }) => (
-    <div data-testid="requests-tab">Requests Tab - {pendingMembers.length} pending, {invites.length} invites</div>
-  ),
+  AdminRequestsTab: (props: Record<string, unknown>) => {
+    capturedRequestsProps = props
+    const pendingMembers = props.pendingMembers as Array<{ id: string }>
+    const invites = props.invites as Array<{ id: string }>
+    return <div data-testid="requests-tab">Requests Tab - {pendingMembers.length} pending, {invites.length} invites</div>
+  },
 }))
 
 vi.mock('../components/admin/AdminExportTab', () => ({
-  AdminExportTab: () => (
-    <div data-testid="export-tab">Export Tab</div>
-  ),
+  AdminExportTab: (props: Record<string, unknown>) => {
+    capturedExportProps = props
+    return <div data-testid="export-tab">Export Tab</div>
+  },
 }))
 
 // Mock API
@@ -93,35 +111,47 @@ const mockGetSessions = vi.fn()
 const mockGetPending = vi.fn()
 const mockGetAllConsolidationStatus = vi.fn()
 const mockGetAppeals = vi.fn()
+const mockUpdateMember = vi.fn()
+const mockLeagueStart = vi.fn()
+const mockCreateSession = vi.fn()
+const mockCloseSession = vi.fn()
+const mockSetPhase = vi.fn()
+const mockResolveAppeal = vi.fn()
+const mockSimulateAppeal = vi.fn()
+const mockCompleteWithTestUsers = vi.fn()
+const mockExportRosters = vi.fn()
+const mockInviteCreate = vi.fn()
+const mockInviteCancel = vi.fn()
+const mockSimulateAllConsolidation = vi.fn()
 
 vi.mock('../services/api', () => ({
   leagueApi: {
     getById: (...args: unknown[]) => mockGetById(...args),
     getMembers: (...args: unknown[]) => mockGetMembers(...args),
-    updateMember: vi.fn().mockResolvedValue({ success: true }),
-    start: vi.fn().mockResolvedValue({ success: true }),
+    updateMember: (...args: unknown[]) => mockUpdateMember(...args),
+    start: (...args: unknown[]) => mockLeagueStart(...args),
   },
   auctionApi: {
     getSessions: (...args: unknown[]) => mockGetSessions(...args),
-    createSession: vi.fn().mockResolvedValue({ success: true }),
-    closeSession: vi.fn().mockResolvedValue({ success: true }),
-    setPhase: vi.fn().mockResolvedValue({ success: true }),
+    createSession: (...args: unknown[]) => mockCreateSession(...args),
+    closeSession: (...args: unknown[]) => mockCloseSession(...args),
+    setPhase: (...args: unknown[]) => mockSetPhase(...args),
     getAppeals: (...args: unknown[]) => mockGetAppeals(...args),
-    resolveAppeal: vi.fn().mockResolvedValue({ success: true }),
-    simulateAppeal: vi.fn().mockResolvedValue({ success: true }),
+    resolveAppeal: (...args: unknown[]) => mockResolveAppeal(...args),
+    simulateAppeal: (...args: unknown[]) => mockSimulateAppeal(...args),
   },
   adminApi: {
-    completeWithTestUsers: vi.fn().mockResolvedValue({ success: true }),
-    exportRosters: vi.fn().mockResolvedValue({ success: true, data: [] }),
+    completeWithTestUsers: (...args: unknown[]) => mockCompleteWithTestUsers(...args),
+    exportRosters: (...args: unknown[]) => mockExportRosters(...args),
   },
   inviteApi: {
     getPending: (...args: unknown[]) => mockGetPending(...args),
-    create: vi.fn().mockResolvedValue({ success: true }),
-    cancel: vi.fn().mockResolvedValue({ success: true }),
+    create: (...args: unknown[]) => mockInviteCreate(...args),
+    cancel: (...args: unknown[]) => mockInviteCancel(...args),
   },
   contractApi: {
     getAllConsolidationStatus: (...args: unknown[]) => mockGetAllConsolidationStatus(...args),
-    simulateAllConsolidation: vi.fn().mockResolvedValue({ success: true }),
+    simulateAllConsolidation: (...args: unknown[]) => mockSimulateAllConsolidation(...args),
   },
 }))
 
@@ -159,6 +189,11 @@ describe('AdminPanel', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    capturedPhasesProps = {}
+    capturedMembersProps = {}
+    capturedRequestsProps = {}
+    capturedExportProps = {}
+
     mockGetById.mockResolvedValue({
       success: true,
       data: { league: sampleLeague, isAdmin: true },
@@ -183,6 +218,18 @@ describe('AdminPanel', () => {
       success: true,
       data: { appeals: [] },
     })
+    mockUpdateMember.mockResolvedValue({ success: true })
+    mockLeagueStart.mockResolvedValue({ success: true })
+    mockCreateSession.mockResolvedValue({ success: true })
+    mockCloseSession.mockResolvedValue({ success: true })
+    mockSetPhase.mockResolvedValue({ success: true })
+    mockResolveAppeal.mockResolvedValue({ success: true })
+    mockSimulateAppeal.mockResolvedValue({ success: true })
+    mockCompleteWithTestUsers.mockResolvedValue({ success: true })
+    mockExportRosters.mockResolvedValue({ success: true, data: [] })
+    mockInviteCreate.mockResolvedValue({ success: true })
+    mockInviteCancel.mockResolvedValue({ success: true })
+    mockSimulateAllConsolidation.mockResolvedValue({ success: true })
   })
 
   it('renders loading state initially', () => {
@@ -364,5 +411,412 @@ describe('AdminPanel', () => {
       expect(mockGetPending).toHaveBeenCalledWith('league1')
       expect(mockGetAllConsolidationStatus).toHaveBeenCalledWith('league1')
     })
+  })
+
+  // ---- NEW TESTS: Tab mapping and edge cases ----
+
+  it('maps old tab ID "overview" to "phases"', async () => {
+    render(<AdminPanel leagueId="league1" initialTab="overview" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('phases-tab')).toBeInTheDocument()
+    })
+  })
+
+  it('maps old tab ID "sessions" to "phases"', async () => {
+    render(<AdminPanel leagueId="league1" initialTab="sessions" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('phases-tab')).toBeInTheDocument()
+    })
+  })
+
+  it('maps old tab ID "appeals" to "members"', async () => {
+    const user = userEvent.setup()
+    render(<AdminPanel leagueId="league1" initialTab="appeals" onNavigate={mockOnNavigate} />)
+
+    // "appeals" maps to "members" tab
+    await waitFor(() => {
+      expect(screen.getByTestId('members-tab')).toBeInTheDocument()
+    })
+  })
+
+  it('defaults unknown initialTab to "phases"', async () => {
+    render(<AdminPanel leagueId="league1" initialTab="unknownTab" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('phases-tab')).toBeInTheDocument()
+    })
+  })
+
+  // ---- NEW TESTS: Error and success alerts ----
+
+  it('passes correct props to AdminPhasesTab including consolidation status', async () => {
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('phases-tab')).toBeInTheDocument()
+    })
+
+    expect(capturedPhasesProps.league).toEqual(sampleLeague)
+    expect(capturedPhasesProps.activeSession).toBeTruthy()
+    expect(capturedPhasesProps.consolidationStatus).toBeTruthy()
+    expect(capturedPhasesProps.isSubmitting).toBe(false)
+  })
+
+  it('passes correct active members to AdminMembersTab', async () => {
+    const user = userEvent.setup()
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Gestione Membri')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Gestione Membri'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('members-tab')).toBeInTheDocument()
+    })
+
+    const activeMembers = capturedMembersProps.activeMembers as Array<{ id: string }>
+    // Only ACTIVE members (m1 and m2), not PENDING (m3)
+    expect(activeMembers).toHaveLength(2)
+    expect(capturedMembersProps.isSubmitting).toBe(false)
+    expect(capturedMembersProps.appeals).toEqual([])
+  })
+
+  it('passes correct pending members and invites to AdminRequestsTab', async () => {
+    const user = userEvent.setup()
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Richieste')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Richieste'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('requests-tab')).toBeInTheDocument()
+    })
+
+    const pendingMembers = capturedRequestsProps.pendingMembers as Array<{ id: string }>
+    const invites = capturedRequestsProps.invites as Array<{ id: string }>
+    expect(pendingMembers).toHaveLength(1) // Only m3 is PENDING
+    expect(invites).toHaveLength(1) // sampleInvites has 1
+  })
+
+  it('loads appeals when switching to members tab', async () => {
+    const user = userEvent.setup()
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Gestione Membri')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Gestione Membri'))
+
+    await waitFor(() => {
+      expect(mockGetAppeals).toHaveBeenCalledWith('league1', undefined)
+    })
+  })
+
+  it('handles handleStartLeague called from phases tab', async () => {
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('phases-tab')).toBeInTheDocument()
+    })
+
+    // Call the handleStartLeague through captured props
+    const handleStartLeague = capturedPhasesProps.handleStartLeague as () => void
+    handleStartLeague()
+
+    await waitFor(() => {
+      expect(mockLeagueStart).toHaveBeenCalledWith('league1')
+    })
+  })
+
+  it('handles handleCreateSession from phases tab', async () => {
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('phases-tab')).toBeInTheDocument()
+    })
+
+    const handleCreateSession = capturedPhasesProps.handleCreateSession as (isRegularMarket: boolean) => void
+    handleCreateSession(false)
+
+    await waitFor(() => {
+      expect(mockCreateSession).toHaveBeenCalledWith('league1', false, 'REMOTE')
+    })
+  })
+
+  it('handles handleCloseSession from phases tab', async () => {
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('phases-tab')).toBeInTheDocument()
+    })
+
+    const handleCloseSession = capturedPhasesProps.handleCloseSession as (sessionId: string) => void
+    handleCloseSession('s1')
+
+    await waitFor(() => {
+      expect(mockCloseSession).toHaveBeenCalledWith('s1')
+    })
+  })
+
+  it('shows roster incomplete modal when closeSession returns incomplete rosters error', async () => {
+    mockCloseSession.mockResolvedValue({
+      success: false,
+      message: 'Rose incomplete. Team1: mancano 2P, 1D; Team2: mancano 1A',
+    })
+
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('phases-tab')).toBeInTheDocument()
+    })
+
+    const handleCloseSession = capturedPhasesProps.handleCloseSession as (sessionId: string) => void
+    handleCloseSession('s1')
+
+    await waitFor(() => {
+      expect(screen.getByTestId('modal')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Rose Incomplete')).toBeInTheDocument()
+  })
+
+  it('handles handleSetPhase from phases tab', async () => {
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('phases-tab')).toBeInTheDocument()
+    })
+
+    const handleSetPhase = capturedPhasesProps.handleSetPhase as (sessionId: string, phase: string) => void
+    handleSetPhase('s1', 'RUBATA')
+
+    await waitFor(() => {
+      expect(mockSetPhase).toHaveBeenCalledWith('s1', 'RUBATA')
+    })
+  })
+
+  it('shows roster incomplete modal when setPhase returns incomplete rosters error', async () => {
+    mockSetPhase.mockResolvedValue({
+      success: false,
+      message: 'Rose incomplete. Player1: mancano 3D',
+    })
+
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('phases-tab')).toBeInTheDocument()
+    })
+
+    const handleSetPhase = capturedPhasesProps.handleSetPhase as (sessionId: string, phase: string) => void
+    handleSetPhase('s1', 'RUBATA')
+
+    await waitFor(() => {
+      expect(screen.getByTestId('modal')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Rose Incomplete')).toBeInTheDocument()
+  })
+
+  it('handles handleSimulateAllConsolidation from phases tab', async () => {
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('phases-tab')).toBeInTheDocument()
+    })
+
+    const handleSimulateAllConsolidation = capturedPhasesProps.handleSimulateAllConsolidation as () => void
+    handleSimulateAllConsolidation()
+
+    await waitFor(() => {
+      expect(mockSimulateAllConsolidation).toHaveBeenCalledWith('league1')
+    })
+  })
+
+  it('handles handleCompleteWithTestUsers from members tab', async () => {
+    const user = userEvent.setup()
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Gestione Membri')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Gestione Membri'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('members-tab')).toBeInTheDocument()
+    })
+
+    const handleCompleteWithTestUsers = capturedMembersProps.handleCompleteWithTestUsers as () => void
+    handleCompleteWithTestUsers()
+
+    await waitFor(() => {
+      expect(mockCompleteWithTestUsers).toHaveBeenCalledWith('league1')
+    })
+  })
+
+  it('handles handleSimulateAppeal from members tab', async () => {
+    const user = userEvent.setup()
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Gestione Membri')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Gestione Membri'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('members-tab')).toBeInTheDocument()
+    })
+
+    const handleSimulateAppeal = capturedMembersProps.handleSimulateAppeal as () => void
+    handleSimulateAppeal()
+
+    await waitFor(() => {
+      expect(mockSimulateAppeal).toHaveBeenCalledWith('league1')
+    })
+  })
+
+  it('handles export tab props are passed correctly', async () => {
+    const user = userEvent.setup()
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Export Dati')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Export Dati'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('export-tab')).toBeInTheDocument()
+    })
+
+    expect(capturedExportProps.isSubmitting).toBe(false)
+    expect(typeof capturedExportProps.exportToExcel).toBe('function')
+    expect(typeof capturedExportProps.exportRostersToExcel).toBe('function')
+  })
+
+  it('calls exportToExcel and generates the Excel file', async () => {
+    const user = userEvent.setup()
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Export Dati')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Export Dati'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('export-tab')).toBeInTheDocument()
+    })
+
+    const exportToExcel = capturedExportProps.exportToExcel as () => void
+    exportToExcel()
+
+    expect(mockAoaToSheet).toHaveBeenCalled()
+    expect(mockBookNew).toHaveBeenCalled()
+    expect(mockBookAppendSheet).toHaveBeenCalled()
+    expect(mockWriteFile).toHaveBeenCalled()
+  })
+
+  it('calls exportRostersToExcel and calls the API', async () => {
+    const user = userEvent.setup()
+
+    mockExportRosters.mockResolvedValue({
+      success: true,
+      data: [
+        {
+          username: 'Player1',
+          teamName: 'FC Test',
+          budget: 300,
+          players: [
+            { name: 'Rossi', team: 'Juventus', position: 'A', quotation: 25, acquisitionPrice: 10, acquisitionType: 'ASTA', salary: 5, duration: 3, rescissionClause: 15 },
+          ],
+        },
+      ],
+    })
+
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Export Dati')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Export Dati'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('export-tab')).toBeInTheDocument()
+    })
+
+    const exportRostersToExcel = capturedExportProps.exportRostersToExcel as () => void
+    exportRostersToExcel()
+
+    await waitFor(() => {
+      expect(mockExportRosters).toHaveBeenCalledWith('league1')
+    })
+
+    await waitFor(() => {
+      expect(mockWriteFile).toHaveBeenCalled()
+    })
+  })
+
+  it('hides requests badge when there are no pending members or invites', async () => {
+    mockGetMembers.mockResolvedValue({
+      success: true,
+      data: { members: [sampleMembers[0], sampleMembers[1]] }, // all ACTIVE, no PENDING
+    })
+    mockGetPending.mockResolvedValue({
+      success: true,
+      data: [], // no invites
+    })
+
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Pannello Amministratore')).toBeInTheDocument()
+    })
+
+    // Requests tab button should not have an accent badge since requestsBadge = 0
+    const requestsTabButton = screen.getByText('Richieste').closest('button')
+    expect(requestsTabButton).toBeTruthy()
+    const accentBadge = requestsTabButton!.querySelector('span.bg-accent-500\\/20')
+    expect(accentBadge).toBeNull()
+  })
+
+  it('handles API failure gracefully — league fetch fails', async () => {
+    mockGetById.mockResolvedValue({
+      success: false,
+      message: 'Not found',
+    })
+
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    // Should finish loading and not crash. Since isAdmin stays false, it shows access denied.
+    await waitFor(() => {
+      expect(screen.getByText('Accesso non autorizzato')).toBeInTheDocument()
+    })
+  })
+
+  it('handles no sessions gracefully — no active session', async () => {
+    mockGetSessions.mockResolvedValue({
+      success: true,
+      data: [],
+    })
+
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('phases-tab')).toBeInTheDocument()
+    })
+
+    // activeSession should be undefined when no sessions
+    expect(capturedPhasesProps.activeSession).toBeUndefined()
   })
 })
