@@ -922,6 +922,23 @@ export function useRubataState(leagueId: string) {
     setIsSubmitting(false)
   }
 
+  async function handleBulkSetPreference(playerIds: string[], data: { isWatchlist?: boolean; isAutoPass?: boolean; maxBid?: number | null }) {
+    setError('')
+    setIsSubmitting(true)
+    let successCount = 0
+    for (const playerId of playerIds) {
+      const res = await rubataApi.setPreference(leagueId, playerId, data)
+      if (res.success) successCount++
+    }
+    if (successCount > 0) {
+      setSuccess(`Strategia applicata a ${successCount} giocatori`)
+      await loadPreviewBoard()
+    } else {
+      setError('Nessuna strategia applicata')
+    }
+    setIsSubmitting(false)
+  }
+
   // Load preferences whenever there's a board
   useEffect(() => {
     if (boardData?.isRubataPhase && boardData?.board && boardData.board.length > 0) {
@@ -1169,6 +1186,7 @@ export function useRubataState(leagueId: string) {
     // Preferences
     handleSavePreference,
     handleDeletePreference,
+    handleBulkSetPreference,
 
     // Retry / reload
     setError,

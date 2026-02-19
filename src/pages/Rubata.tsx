@@ -28,6 +28,7 @@ import { RubataActionBar } from '../components/rubata/RubataActionBar'
 import { RubataReadyBanner } from '../components/rubata/RubataReadyBanner'
 import { RubataBidPanel } from '../components/rubata/RubataBidPanel'
 import { RubataActivityFeed } from '../components/rubata/RubataActivityFeed'
+import { RubataStrategySummary } from '../components/rubata/RubataStrategySummary'
 import { BoardRow } from '../components/rubata/BoardRow'
 import { POSITION_COLORS } from '../types/rubata.types'
 import type { BoardPlayer } from '../types/rubata.types'
@@ -157,7 +158,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     // Simulation
     handleSimulateOffer, handleSimulateBid,
     // Preferences handlers
-    handleSavePreference, handleDeletePreference,
+    handleSavePreference, handleDeletePreference, handleBulkSetPreference,
     // Retry / reload
     setError, loadData,
   } = useRubataState(leagueId)
@@ -467,6 +468,18 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               {/* Activity Feed - stolen transactions */}
               <RubataActivityFeed board={board} />
 
+              {/* Strategy Summary */}
+              <RubataStrategySummary
+                board={board ?? null}
+                preferencesMap={preferencesMap}
+                myMemberId={myMemberId}
+                currentIndex={boardData?.currentIndex ?? null}
+                onOpenPrefsModal={openPrefsModal}
+                canEditPreferences={canEditPreferences}
+                onBulkSetPreference={handleBulkSetPreference}
+                isSubmitting={isSubmitting}
+              />
+
               {/* Admin-only panels */}
               {isAdmin && (<>
                 <GameFlowPanel
@@ -605,9 +618,19 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               </div>
             )}
 
-            {/* Mobile Activity Feed */}
-            <div className="lg:hidden">
+            {/* Mobile Activity Feed + Strategy Summary */}
+            <div className="lg:hidden space-y-3">
               <RubataActivityFeed board={board} />
+              <RubataStrategySummary
+                board={board ?? null}
+                preferencesMap={preferencesMap}
+                myMemberId={myMemberId}
+                currentIndex={boardData?.currentIndex ?? null}
+                onOpenPrefsModal={openPrefsModal}
+                canEditPreferences={canEditPreferences}
+                onBulkSetPreference={handleBulkSetPreference}
+                isSubmitting={isSubmitting}
+              />
             </div>
 
             {/* Onboarding tooltip — first visit only, shown during OFFERING */}
