@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { Button } from '../ui/Button'
+import { getPlayerPhotoUrl } from '../../utils/player-images'
 import { POSITION_COLORS } from '../../types/rubata.types'
 import type {
   BoardData,
@@ -111,6 +113,27 @@ export function RubataTimerPanel({
     ? (boardData?.auctionTimerSeconds ?? 15)
     : (boardData?.offerTimerSeconds ?? 30)
 
+  const [photoError, setPhotoError] = useState(false)
+  const photoUrl = currentPlayer?.playerApiFootballId ? getPlayerPhotoUrl(currentPlayer.playerApiFootballId) : ''
+
+  // Reset photo error when player changes
+  const currentPlayerId = currentPlayer?.playerId
+  const [prevPlayerId, setPrevPlayerId] = useState(currentPlayerId)
+  if (currentPlayerId !== prevPlayerId) {
+    setPrevPlayerId(currentPlayerId)
+    setPhotoError(false)
+  }
+
+  // Helper: rating color
+  const ratingColor = (r: number | null | undefined) => {
+    if (r == null) return 'text-gray-500'
+    if (r >= 6.5) return 'text-green-400'
+    if (r >= 6.0) return 'text-yellow-400'
+    return 'text-red-400'
+  }
+
+  const stats = currentPlayer?.playerComputedStats
+
   return (
     <div className="mb-6 bg-surface-200 rounded-2xl border-2 border-primary-500/50 overflow-hidden sticky top-16 z-20 lg:relative lg:top-0">
       {/* "PUOI RUBARE!" Banner — prominent call to action during OFFERING */}
@@ -130,12 +153,40 @@ export function RubataTimerPanel({
           <div className="flex items-center gap-4">
             {currentPlayer ? (
               <>
-                <div className={`w-12 h-12 rounded-full ${POSITION_COLORS[currentPlayer.playerPosition] ?? ''} border flex items-center justify-center font-bold text-lg`}>
-                  {currentPlayer.playerPosition}
-                </div>
+                {/* Player photo with fallback */}
+                {photoUrl && !photoError ? (
+                  <img
+                    src={photoUrl}
+                    alt={currentPlayer.playerName}
+                    className="w-14 h-14 rounded-full object-cover border-2 border-primary-500 bg-surface-300 flex-shrink-0"
+                    onError={() => { setPhotoError(true); }}
+                  />
+                ) : (
+                  <div className={`w-14 h-14 rounded-full ${POSITION_COLORS[currentPlayer.playerPosition] ?? ''} border-2 flex items-center justify-center font-bold text-lg flex-shrink-0`}>
+                    {currentPlayer.playerPosition}
+                  </div>
+                )}
                 <div>
                   <p className="text-xl font-bold text-white">{currentPlayer.playerName}</p>
                   <p className="text-gray-400">{currentPlayer.playerTeam} • {currentPlayer.ownerUsername}</p>
+                  {/* Compact stats row */}
+                  {stats && (
+                    <div className="flex items-center gap-2 mt-0.5 text-[11px]">
+                      <span className="text-gray-400" title="Presenze">{stats.appearances} pres</span>
+                      <span className="text-gray-600">|</span>
+                      <span className="text-gray-400" title="Gol">{stats.totalGoals} gol</span>
+                      <span className="text-gray-600">|</span>
+                      <span className="text-gray-400" title="Assist">{stats.totalAssists} ass</span>
+                      {stats.avgRating != null && (
+                        <>
+                          <span className="text-gray-600">|</span>
+                          <span className={`font-bold ${ratingColor(stats.avgRating)}`} title="Media voto">
+                            MV {stats.avgRating.toFixed(2)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="ml-4 text-right">
                   <p className="text-2xl font-bold text-primary-400">{currentPlayer.rubataPrice}M</p>

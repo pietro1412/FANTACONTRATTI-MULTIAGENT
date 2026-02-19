@@ -26,6 +26,7 @@ import {
 } from '../components/rubata/RubataAdminControls'
 import { RubataTimerPanel } from '../components/rubata/RubataTimerPanel'
 import { RubataBidPanel } from '../components/rubata/RubataBidPanel'
+import { RubataActivityFeed } from '../components/rubata/RubataActivityFeed'
 import { POSITION_COLORS } from '../types/rubata.types'
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
@@ -405,6 +406,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 <BudgetPanel memberBudgets={boardData.memberBudgets} />
               )}
 
+              {/* Activity Feed - stolen transactions */}
+              <RubataActivityFeed board={board} />
+
               {/* Admin-only panels */}
               {isAdmin && (<>
                 <TimerSettingsPanel
@@ -620,6 +624,10 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               />
             )}
 
+            {/* Mobile Activity Feed */}
+            <div className="lg:hidden">
+              <RubataActivityFeed board={board} />
+            </div>
 
             {/* Tabellone completo */}
             <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden flex flex-col" style={{ maxHeight: 'calc(100vh - 420px)', minHeight: '300px' }}>
@@ -704,18 +712,39 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             SUL PIATTO
                           </span>
                         )}
-                        {/* Desktop: owner + age inline */}
+                        {/* Desktop: owner inline */}
                         <span className="hidden md:inline text-xs text-gray-400 ml-1 truncate flex-shrink-0">
                           di <span className={isPassed && wasStolen ? 'line-through' : ''}>{player.ownerUsername}</span>
-                          {player.playerAge ? ` · ${player.playerAge}a` : ''}
                         </span>
+                        {/* Desktop: age badge */}
+                        {player.playerAge != null && (
+                          <span className={`hidden md:inline-flex text-[11px] font-bold px-1.5 py-0.5 rounded ml-1 flex-shrink-0 ${
+                            player.playerAge <= 23 ? 'bg-green-500/20 text-green-400' :
+                            player.playerAge <= 28 ? 'bg-surface-50/20 text-gray-300' :
+                            player.playerAge <= 31 ? 'bg-warning-500/20 text-warning-400' :
+                            'bg-danger-500/20 text-danger-400'
+                          }`}>
+                            {player.playerAge}a
+                          </span>
+                        )}
                       </div>
 
-                      {/* Mobile: Owner + Age */}
-                      <div className="md:hidden text-xs text-gray-500 mb-2 pl-6">
-                        di <span className={isPassed && wasStolen ? 'text-gray-500 line-through' : 'text-gray-400'}>{player.ownerUsername}</span>
-                        {player.ownerTeamName && <span className="text-gray-500"> ({player.ownerTeamName})</span>}
-                        {player.playerAge && <span className="text-gray-500"> · {player.playerAge}a</span>}
+                      {/* Mobile: Age badge + Owner */}
+                      <div className="md:hidden text-xs text-gray-500 mb-2 pl-6 flex items-center gap-1.5 flex-wrap">
+                        {player.playerAge != null && (
+                          <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
+                            player.playerAge <= 23 ? 'bg-green-500/20 text-green-400' :
+                            player.playerAge <= 28 ? 'bg-surface-50/20 text-gray-300' :
+                            player.playerAge <= 31 ? 'bg-warning-500/20 text-warning-400' :
+                            'bg-danger-500/20 text-danger-400'
+                          }`}>
+                            {player.playerAge}a
+                          </span>
+                        )}
+                        <span>
+                          di <span className={isPassed && wasStolen ? 'text-gray-500 line-through' : 'text-gray-400'}>{player.ownerUsername}</span>
+                          {player.ownerTeamName && <span className="text-gray-500"> ({player.ownerTeamName})</span>}
+                        </span>
                       </div>
 
                       {/* Stolen indicator */}
@@ -762,6 +791,33 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                           </div>
                         </div>
                       </div>
+
+                      {/* Inline stats - desktop only, non-passed players */}
+                      {!isPassed && player.playerComputedStats && (
+                        <div className="hidden md:flex items-center gap-1.5 text-[11px] md:flex-shrink-0">
+                          {player.playerComputedStats.avgRating != null && (
+                            <span className={`font-bold ${
+                              player.playerComputedStats.avgRating >= 6.5 ? 'text-green-400' :
+                              player.playerComputedStats.avgRating >= 6.0 ? 'text-yellow-400' :
+                              'text-red-400'
+                            }`} title="Media voto">
+                              MV {player.playerComputedStats.avgRating.toFixed(2)}
+                            </span>
+                          )}
+                          {(player.playerPosition === 'A') && player.playerComputedStats.totalGoals > 0 && (
+                            <>
+                              <span className="text-gray-600">|</span>
+                              <span className="text-gray-400">{player.playerComputedStats.totalGoals}G</span>
+                            </>
+                          )}
+                          {(player.playerPosition === 'C' || player.playerPosition === 'A') && player.playerComputedStats.totalAssists > 0 && (
+                            <>
+                              <span className="text-gray-600">|</span>
+                              <span className="text-gray-400">{player.playerComputedStats.totalAssists}A</span>
+                            </>
+                          )}
+                        </div>
+                      )}
 
                       {/* Passed + not stolen */}
                       {isPassed && !wasStolen && (
@@ -936,7 +992,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-r from-surface-200 via-surface-200 to-surface-200 border-t-2 border-primary-500/50 z-40 shadow-lg shadow-black/30">
           <div className="px-3 py-2">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[9px] text-gray-500 uppercase font-medium">Budget Residuo</span>
+              <span className="text-[9px] text-gray-500 uppercase font-medium">Bilancio</span>
               <button
                 type="button"
                 onClick={() => { setMobileBudgetExpanded(prev => !prev); }}

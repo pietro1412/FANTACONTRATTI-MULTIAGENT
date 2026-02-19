@@ -890,7 +890,7 @@ export function useRubataState(leagueId: string) {
 
     if (res.success) {
       setSuccess('Preferenza salvata!')
-      void loadPreviewBoard()
+      await loadPreviewBoard()
       closePrefsModal()
     } else {
       setError(res.message || 'Errore')
@@ -906,7 +906,7 @@ export function useRubataState(leagueId: string) {
     const res = await rubataApi.deletePreference(leagueId, selectedPlayerForPrefs.playerId)
     if (res.success) {
       setSuccess('Preferenza rimossa!')
-      void loadPreviewBoard()
+      await loadPreviewBoard()
       closePrefsModal()
     } else {
       setError(res.message || 'Errore')
