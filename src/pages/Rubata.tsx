@@ -30,6 +30,7 @@ import { RubataBidPanel } from '../components/rubata/RubataBidPanel'
 import { RubataActivityFeed } from '../components/rubata/RubataActivityFeed'
 import { RubataStrategySummary } from '../components/rubata/RubataStrategySummary'
 import { BoardRow } from '../components/rubata/BoardRow'
+import { PlayerCompareModal } from '../components/rubata/PlayerCompareModal'
 import { POSITION_COLORS } from '../types/rubata.types'
 import type { BoardPlayer } from '../types/rubata.types'
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -158,7 +159,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     // Simulation
     handleSimulateOffer, handleSimulateBid,
     // Preferences handlers
-    handleSavePreference, handleDeletePreference, handleBulkSetPreference,
+    handleSavePreference, handleDeletePreference, handleBulkSetPreference, handleImportPreferences,
+    // Watchlist alert (D4)
+    watchlistAlert, dismissWatchlistAlert,
     // Retry / reload
     setError, loadData,
   } = useRubataState(leagueId)
@@ -171,6 +174,10 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [positionFilter, setPositionFilter] = useState<string | null>(null)
   const [chipFilter, setChipFilter] = useState<'miei' | 'watchlist' | 'sul_piatto' | null>(null)
+  // D5: Compare mode
+  const [compareMode, setCompareMode] = useState(false)
+  const [comparePlayerIds, setComparePlayerIds] = useState<string[]>([])
+  const [showCompareModal, setShowCompareModal] = useState(false)
 
   // B4+B5: Filtered board
   const filteredBoard = useMemo(() => {
@@ -466,7 +473,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               )}
 
               {/* Activity Feed - stolen transactions */}
-              <RubataActivityFeed board={board} />
+              <RubataActivityFeed board={board ?? null} />
 
               {/* Strategy Summary */}
               <RubataStrategySummary
@@ -477,6 +484,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 onOpenPrefsModal={openPrefsModal}
                 canEditPreferences={canEditPreferences}
                 onBulkSetPreference={handleBulkSetPreference}
+                onImportPreferences={handleImportPreferences}
                 isSubmitting={isSubmitting}
               />
 
@@ -620,7 +628,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
             {/* Mobile Activity Feed + Strategy Summary */}
             <div className="lg:hidden space-y-3">
-              <RubataActivityFeed board={board} />
+              <RubataActivityFeed board={board ?? null} />
               <RubataStrategySummary
                 board={board ?? null}
                 preferencesMap={preferencesMap}
@@ -629,9 +637,27 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 onOpenPrefsModal={openPrefsModal}
                 canEditPreferences={canEditPreferences}
                 onBulkSetPreference={handleBulkSetPreference}
+                onImportPreferences={handleImportPreferences}
                 isSubmitting={isSubmitting}
               />
             </div>
+
+            {/* D4: Watchlist alert — shown when a watchlisted player is "sul piatto" */}
+            {watchlistAlert && rubataState === 'OFFERING' && (
+              <div className="mb-3 bg-indigo-500/20 border border-indigo-500/40 rounded-xl px-4 py-3 flex items-center gap-3 animate-[fadeIn_0.3s_ease-out]">
+                <span className="text-2xl animate-pulse">🔔</span>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-indigo-300">{watchlistAlert} è SUL PIATTO!</p>
+                  <p className="text-xs text-indigo-400/70">Questo giocatore è nella tua watchlist</p>
+                </div>
+                <button
+                  onClick={dismissWatchlistAlert}
+                  className="text-xs text-indigo-400 hover:text-white px-2 py-1 rounded bg-indigo-500/20 flex-shrink-0"
+                >
+                  OK
+                </button>
+              </div>
+            )}
 
             {/* Onboarding tooltip — first visit only, shown during OFFERING */}
             {showOnboarding && rubataState === 'OFFERING' && (
@@ -661,9 +687,22 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     <span className="text-xl">📋</span>
                     Tabellone Rubata
                   </h3>
-                  <span className="text-sm text-gray-400">
-                    {isFiltered ? `${filteredBoard?.length ?? 0} / ` : ''}{boardData?.totalPlayers} giocatori
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => { setCompareMode(prev => !prev); if (compareMode) setComparePlayerIds([]); }}
+                      className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                        compareMode
+                          ? 'bg-primary-500/20 text-primary-400 border border-primary-500/40'
+                          : 'text-gray-500 hover:text-gray-300'
+                      }`}
+                      title="Confronta giocatori"
+                    >
+                      ⚖️ Confronta
+                    </button>
+                    <span className="text-sm text-gray-400">
+                      {isFiltered ? `${filteredBoard?.length ?? 0} / ` : ''}{boardData?.totalPlayers} giocatori
+                    </span>
+                  </div>
                 </div>
 
                 {/* Search bar */}
@@ -772,6 +811,15 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             onOpenPrefsModal={openPrefsModal}
                             onPlayerStatsClick={handlePlayerStatsClick}
                             currentPlayerRef={isCurrent ? currentPlayerRef as React.RefObject<HTMLDivElement> : undefined}
+                            compareMode={compareMode}
+                            isCompareSelected={comparePlayerIds.includes(player.playerId)}
+                            onToggleCompare={() => {
+                              setComparePlayerIds(prev =>
+                                prev.includes(player.playerId)
+                                  ? prev.filter(id => id !== player.playerId)
+                                  : prev.length < 3 ? [...prev, player.playerId] : prev
+                              )
+                            }}
                           />
                         </div>
                       )
@@ -801,6 +849,15 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                           onOpenPrefsModal={openPrefsModal}
                           onPlayerStatsClick={handlePlayerStatsClick}
                           currentPlayerRef={isCurrent ? currentPlayerRef as React.RefObject<HTMLDivElement> : undefined}
+                          compareMode={compareMode}
+                          isCompareSelected={comparePlayerIds.includes(player.playerId)}
+                          onToggleCompare={() => {
+                            setComparePlayerIds(prev =>
+                              prev.includes(player.playerId)
+                                ? prev.filter(id => id !== player.playerId)
+                                : prev.length < 3 ? [...prev, player.playerId] : prev
+                            )
+                          }}
                         />
                       )
                     })}
@@ -812,6 +869,37 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
           </div>
         )}
 
+
+        {/* D5: Floating compare bar */}
+        {compareMode && comparePlayerIds.length > 0 && (
+          <div className="fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 z-50 bg-surface-200/95 backdrop-blur-sm border border-primary-500/40 rounded-full px-4 py-2 flex items-center gap-3 shadow-lg animate-[fadeIn_0.2s_ease-out]">
+            <span className="text-sm text-gray-300">
+              <span className="font-bold text-primary-400">{comparePlayerIds.length}</span>/3 selezionati
+            </span>
+            <button
+              onClick={() => { setShowCompareModal(true); }}
+              disabled={comparePlayerIds.length < 2}
+              className="px-3 py-1.5 rounded-full text-sm font-bold bg-primary-500 text-white hover:bg-primary-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              ⚖️ Confronta
+            </button>
+            <button
+              onClick={() => { setComparePlayerIds([]); }}
+              className="text-xs text-gray-400 hover:text-white px-2 py-1"
+            >
+              Azzera
+            </button>
+          </div>
+        )}
+
+        {/* D5: Compare modal */}
+        {showCompareModal && board && (
+          <PlayerCompareModal
+            isOpen={showCompareModal}
+            onClose={() => { setShowCompareModal(false); }}
+            players={board.filter(p => comparePlayerIds.includes(p.playerId))}
+          />
+        )}
 
         {/* Floating "Scroll to Current Player" Button - Bottom Left */}
         {isRubataPhase && isOrderSet && !isCurrentPlayerVisible && currentPlayer && (

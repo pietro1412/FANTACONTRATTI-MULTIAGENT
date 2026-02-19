@@ -44,6 +44,10 @@ export interface BoardRowProps {
   onOpenPrefsModal: (player: BoardPlayer & { preference: RubataPreference | null }) => void
   onPlayerStatsClick: (info: PlayerStatsInfo) => void
   currentPlayerRef?: React.RefObject<HTMLDivElement>
+  // D5: Compare mode
+  compareMode?: boolean
+  isCompareSelected?: boolean
+  onToggleCompare?: () => void
 }
 
 export const BoardRow = memo(function BoardRow({
@@ -61,6 +65,9 @@ export const BoardRow = memo(function BoardRow({
   onOpenPrefsModal,
   onPlayerStatsClick,
   currentPlayerRef,
+  compareMode,
+  isCompareSelected,
+  onToggleCompare,
 }: BoardRowProps) {
   const wasStolen = !!player.stolenByUsername
   const isMyPlayer = player.memberId === myMemberId
@@ -108,6 +115,25 @@ export const BoardRow = memo(function BoardRow({
     >
       {/* Player header */}
       <div className="flex items-center gap-2 mb-2 md:mb-0 md:flex-1 md:min-w-0">
+        {/* D5: Compare checkbox */}
+        {compareMode && !isPassed && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onToggleCompare?.(); }}
+            className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+              isCompareSelected
+                ? 'bg-primary-500 border-primary-500 text-white'
+                : 'border-gray-500 hover:border-primary-400'
+            }`}
+            aria-label={isCompareSelected ? 'Rimuovi dal confronto' : 'Aggiungi al confronto'}
+          >
+            {isCompareSelected && (
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </button>
+        )}
         {isCurrent ? (
           <span className="inline-flex items-center justify-center w-7 h-7 bg-primary-500 text-white rounded-full text-xs font-bold animate-pulse flex-shrink-0">
             {globalIndex + 1}

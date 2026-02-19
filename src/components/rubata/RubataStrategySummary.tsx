@@ -1,6 +1,22 @@
 import { useState, useMemo } from 'react'
 import type { BoardPlayer, RubataPreference } from '../../types/rubata.types'
 
+interface ExportedStrategy {
+  playerName: string
+  playerId: string
+  isWatchlist: boolean
+  isAutoPass: boolean
+  maxBid: number | null
+  priority: number | null
+  notes: string | null
+}
+
+interface ExportedStrategies {
+  version: 1
+  exportedAt: string
+  strategies: ExportedStrategy[]
+}
+
 interface RubataStrategySummaryProps {
   board: BoardPlayer[] | null
   preferencesMap: Map<string, RubataPreference>
@@ -9,6 +25,7 @@ interface RubataStrategySummaryProps {
   onOpenPrefsModal: (player: BoardPlayer & { preference: RubataPreference | null }) => void
   canEditPreferences: boolean
   onBulkSetPreference: (playerIds: string[], data: { isWatchlist?: boolean; isAutoPass?: boolean; maxBid?: number | null }) => Promise<void>
+  onImportPreferences: (strategies: Array<{ playerId: string; isWatchlist: boolean; isAutoPass: boolean; maxBid: number | null; priority: number | null; notes: string | null }>) => Promise<void>
   isSubmitting: boolean
 }
 
@@ -20,6 +37,7 @@ export function RubataStrategySummary({
   onOpenPrefsModal,
   canEditPreferences,
   onBulkSetPreference,
+  onImportPreferences,
   isSubmitting,
 }: RubataStrategySummaryProps) {
   const [expanded, setExpanded] = useState(false)
@@ -27,6 +45,7 @@ export function RubataStrategySummary({
   const [bulkMode, setBulkMode] = useState(false)
   const [bulkMaxBid, setBulkMaxBid] = useState('')
   const [bulkPosition, setBulkPosition] = useState<'P' | 'D' | 'C' | 'A' | null>(null)
+  const [ioMessage, setIoMessage] = useState<string | null>(null)
 
   const { configured, total, items, eligiblePlayers } = useMemo(() => {
     if (!board) return { configured: 0, total: 0, items: [], eligiblePlayers: [] }
@@ -60,6 +79,82 @@ export function RubataStrategySummary({
     eligiblePlayers
       .filter(p => p.playerPosition === pos && board!.indexOf(p) >= (currentIndex ?? 0))
       .map(p => p.playerId)
+
+  const handleExport = async () => {
+    const strategies: ExportedStrategy[] = []
+    for (const [playerId, pref] of preferencesMap) {
+      const hasAny = pref.isWatchlist || pref.isAutoPass || pref.maxBid || pref.priority || pref.notes
+      if (!hasAny) continue
+      const player = board?.find(p => p.playerId === playerId)
+      strategies.push({
+        playerName: player?.playerName ?? playerId,
+        playerId,
+        isWatchlist: pref.isWatchlist,
+        isAutoPass: pref.isAutoPass,
+        maxBid: pref.maxBid,
+        priority: pref.priority,
+        notes: pref.notes,
+      })
+    }
+    const exported: ExportedStrategies = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      strategies,
+    }
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(exported, null, 2))
+      setIoMessage(`Esportate ${strategies.length} strategie negli appunti`)
+    } catch {
+      setIoMessage('Errore: impossibile copiare negli appunti')
+    }
+    setTimeout(() => { setIoMessage(null) }, 3000)
+  }
+
+  const handleImport = async () => {
+    try {
+      const text = await navigator.clipboard.readText()
+      const parsed = JSON.parse(text) as ExportedStrategies
+      if (!parsed.version || !Array.isArray(parsed.strategies)) {
+        setIoMessage('Formato JSON non valido')
+        setTimeout(() => { setIoMessage(null) }, 3000)
+        return
+      }
+      // Match by playerId first, then by playerName
+      const matched: Array<{ playerId: string; isWatchlist: boolean; isAutoPass: boolean; maxBid: number | null; priority: number | null; notes: string | null }> = []
+      for (const s of parsed.strategies) {
+        let targetId = s.playerId
+        // Check if playerId exists in current board
+        const directMatch = board?.find(p => p.playerId === targetId)
+        if (!directMatch) {
+          // Fall back to name match
+          const nameMatch = board?.find(p => p.playerName === s.playerName)
+          if (nameMatch) {
+            targetId = nameMatch.playerId
+          } else {
+            continue // Skip unmatched
+          }
+        }
+        matched.push({
+          playerId: targetId,
+          isWatchlist: s.isWatchlist,
+          isAutoPass: s.isAutoPass,
+          maxBid: s.maxBid,
+          priority: s.priority,
+          notes: s.notes,
+        })
+      }
+      if (matched.length === 0) {
+        setIoMessage('Nessun giocatore corrispondente trovato')
+        setTimeout(() => { setIoMessage(null) }, 3000)
+        return
+      }
+      await onImportPreferences(matched)
+      setIoMessage(`Importate ${matched.length}/${parsed.strategies.length} strategie`)
+    } catch {
+      setIoMessage('Errore: contenuto appunti non valido')
+    }
+    setTimeout(() => { setIoMessage(null) }, 3000)
+  }
 
   if (!board || total === 0) return null
 
@@ -222,6 +317,29 @@ export function RubataStrategySummary({
                 </button>
               ))}
             </div>
+          )}
+
+          {/* D6: Import/Export buttons */}
+          <div className="mt-3 flex items-center gap-1.5">
+            <button
+              onClick={() => { void handleExport() }}
+              disabled={isSubmitting || configured === 0}
+              className="flex-1 px-2 py-1.5 rounded text-[11px] font-medium bg-surface-300/50 text-gray-400 hover:text-white hover:bg-surface-300 disabled:opacity-30 transition-all"
+              title="Esporta strategie negli appunti"
+            >
+              📤 Esporta
+            </button>
+            <button
+              onClick={() => { void handleImport() }}
+              disabled={isSubmitting || !canEditPreferences}
+              className="flex-1 px-2 py-1.5 rounded text-[11px] font-medium bg-surface-300/50 text-gray-400 hover:text-white hover:bg-surface-300 disabled:opacity-30 transition-all"
+              title="Importa strategie dagli appunti"
+            >
+              📥 Importa
+            </button>
+          </div>
+          {ioMessage && (
+            <p className="mt-1.5 text-[11px] text-center text-indigo-400 animate-[fadeIn_0.2s_ease-out]">{ioMessage}</p>
           )}
 
           {/* Progress bar */}

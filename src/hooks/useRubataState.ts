@@ -922,6 +922,29 @@ export function useRubataState(leagueId: string) {
     setIsSubmitting(false)
   }
 
+  async function handleImportPreferences(strategies: Array<{ playerId: string; isWatchlist: boolean; isAutoPass: boolean; maxBid: number | null; priority: number | null; notes: string | null }>) {
+    setError('')
+    setIsSubmitting(true)
+    let successCount = 0
+    for (const s of strategies) {
+      const res = await rubataApi.setPreference(leagueId, s.playerId, {
+        isWatchlist: s.isWatchlist,
+        isAutoPass: s.isAutoPass,
+        maxBid: s.maxBid,
+        priority: s.priority,
+        notes: s.notes,
+      })
+      if (res.success) successCount++
+    }
+    if (successCount > 0) {
+      setSuccess(`Importate ${successCount} strategie`)
+      await loadPreviewBoard()
+    } else {
+      setError('Nessuna strategia importata')
+    }
+    setIsSubmitting(false)
+  }
+
   async function handleBulkSetPreference(playerIds: string[], data: { isWatchlist?: boolean; isAutoPass?: boolean; maxBid?: number | null }) {
     setError('')
     setIsSubmitting(true)
@@ -1047,6 +1070,42 @@ export function useRubataState(leagueId: string) {
     rubataState === 'READY_CHECK' ||
     rubataState === 'PAUSED' ||
     rubataState === 'AUCTION_READY_CHECK'
+
+  // ========== D4: Watchlist alert when watchlisted player is "sul piatto" ==========
+  const [watchlistAlert, setWatchlistAlert] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (rubataState !== 'OFFERING' || !currentPlayer) {
+      setWatchlistAlert(null)
+      return
+    }
+    const pref = preferencesMap.get(currentPlayer.playerId)
+    if (!pref?.isWatchlist) {
+      setWatchlistAlert(null)
+      return
+    }
+
+    setWatchlistAlert(currentPlayer.playerName)
+    haptic.warning()
+
+    // Flash browser tab title for 10s
+    const originalTitle = document.title
+    let flash = true
+    const interval = setInterval(() => {
+      document.title = flash ? `\u{1F514} ${currentPlayer.playerName} SUL PIATTO!` : originalTitle
+      flash = !flash
+    }, 1000)
+    const timeout = setTimeout(() => {
+      clearInterval(interval)
+      document.title = originalTitle
+    }, 10000)
+
+    return () => {
+      clearInterval(interval)
+      clearTimeout(timeout)
+      document.title = originalTitle
+    }
+  }, [rubataState, currentPlayer?.playerId, preferencesMap])
 
   return {
     // Loading / meta state
@@ -1187,6 +1246,11 @@ export function useRubataState(leagueId: string) {
     handleSavePreference,
     handleDeletePreference,
     handleBulkSetPreference,
+    handleImportPreferences,
+
+    // Watchlist alert (D4)
+    watchlistAlert,
+    dismissWatchlistAlert: () => { setWatchlistAlert(null) },
 
     // Retry / reload
     setError,
