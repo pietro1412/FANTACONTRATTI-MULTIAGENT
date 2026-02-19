@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Button } from '../ui/Button'
 import type { ActiveAuction } from '../../types/rubata.types'
 
@@ -20,15 +21,33 @@ export function RubataBidPanel({
   onBid,
   myBudget,
 }: RubataBidPanelProps) {
+  const [highBidConfirmed, setHighBidConfirmed] = useState(false)
+
   const isUserWinning = activeAuction.bids.length > 0 && activeAuction.bids[0]?.bidderId === myMemberId
   const isSeller = activeAuction.sellerId === myMemberId
   const minBid = activeAuction.currentPrice + 1
   const budget = myBudget ?? Infinity
+  const isHighBid = myBudget != null && bidAmount >= budget * 0.75
 
   const quickBidAmounts = [1, 5, 10, 20] as const
 
+  // Reset confirmation when bid amount changes below threshold
+  const handleSetBidAmount = (v: number | ((prev: number) => number)) => {
+    setHighBidConfirmed(false)
+    setBidAmount(v)
+  }
+
+  const handleBidClick = () => {
+    if (isHighBid && !highBidConfirmed) {
+      setHighBidConfirmed(true)
+      return
+    }
+    setHighBidConfirmed(false)
+    onBid()
+  }
+
   return (
-    <div className="mb-6 bg-surface-200 rounded-2xl border-4 border-danger-500 overflow-hidden auction-highlight shadow-2xl">
+    <div className="mb-6 bg-surface-200 rounded-2xl border-4 border-danger-500 overflow-hidden auction-highlight shadow-2xl animate-[fadeIn_0.3s_ease-out]">
       {/* Header */}
       <div className="p-5 border-b border-surface-50/20 bg-gradient-to-r from-danger-600/30 via-danger-500/20 to-danger-600/30">
         <div className="flex items-center justify-center gap-3">
@@ -41,7 +60,7 @@ export function RubataBidPanel({
         </div>
         {/* Winning badge */}
         {isUserWinning && (
-          <div className="mt-3 flex justify-center">
+          <div className="mt-3 flex justify-center animate-[fadeIn_0.3s_ease-out]">
             <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-secondary-500/20 border border-secondary-500/40 text-secondary-400 font-bold text-sm animate-pulse">
               ✅ Stai vincendo!
             </span>
@@ -52,8 +71,12 @@ export function RubataBidPanel({
       <div className="p-5">
         <div className="grid md:grid-cols-2 gap-6">
           <div>
-            {/* Price display */}
-            <div className="bg-surface-300 p-4 rounded-xl border border-surface-50/20 mb-4">
+            {/* Price display — gradient + urgency */}
+            <div className={`bg-surface-300 p-4 rounded-xl border mb-4 transition-all ${
+              isUserWinning
+                ? 'border-secondary-500/40 bg-secondary-500/5'
+                : 'border-surface-50/20'
+            }`}>
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div>
                   <p className="text-sm text-gray-500">Base</p>
@@ -61,9 +84,19 @@ export function RubataBidPanel({
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Offerta attuale</p>
-                  <p className={`font-bold text-2xl font-mono ${isUserWinning ? 'text-secondary-400' : 'text-primary-400'}`}>
+                  <p className={`font-black font-mono transition-all ${
+                    isUserWinning
+                      ? 'text-3xl text-secondary-400'
+                      : 'text-3xl text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-accent-400 animate-pulse'
+                  }`}>
                     {activeAuction.currentPrice}M
                   </p>
+                  {/* Highest bidder label */}
+                  {activeAuction.bids.length > 0 && (
+                    <p className={`text-xs mt-1 ${isUserWinning ? 'text-secondary-400' : 'text-gray-500'}`}>
+                      {isUserWinning ? '👤 Tu' : `👤 ${activeAuction.bids[0]?.bidder ?? ''}`}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -76,7 +109,7 @@ export function RubataBidPanel({
                   {quickBidAmounts.map((increment) => (
                     <button
                       key={increment}
-                      onClick={() => { setBidAmount(activeAuction.currentPrice + increment); }}
+                      onClick={() => { handleSetBidAmount(activeAuction.currentPrice + increment); }}
                       disabled={isSubmitting || activeAuction.currentPrice + increment > budget}
                       className={`py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95 min-h-[44px] ${
                         increment === 20
@@ -88,7 +121,7 @@ export function RubataBidPanel({
                     </button>
                   ))}
                   <button
-                    onClick={() => { setBidAmount(Math.floor(budget)); }}
+                    onClick={() => { handleSetBidAmount(Math.floor(budget)); }}
                     disabled={isSubmitting || budget <= activeAuction.currentPrice}
                     className="py-2.5 rounded-lg text-sm font-bold bg-accent-500 text-dark-900 hover:bg-accent-400 transition-all active:scale-95 min-h-[44px] disabled:opacity-30 disabled:cursor-not-allowed"
                   >
@@ -99,7 +132,7 @@ export function RubataBidPanel({
                 {/* Manual input with +/- */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => { setBidAmount(prev => Math.max(minBid, prev - 1)); }}
+                    onClick={() => { handleSetBidAmount(prev => Math.max(minBid, prev - 1)); }}
                     disabled={bidAmount <= minBid}
                     className="w-12 h-12 rounded-xl bg-surface-300 border border-surface-50/30 text-white text-2xl font-bold hover:bg-surface-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
                   >
@@ -112,7 +145,7 @@ export function RubataBidPanel({
                       value={bidAmount}
                       onChange={(e) => {
                         const val = parseInt(e.target.value) || 0
-                        setBidAmount(Math.max(minBid, val))
+                        handleSetBidAmount(Math.max(minBid, val))
                       }}
                       className="w-full text-center text-3xl font-bold bg-transparent text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       min={minBid}
@@ -120,7 +153,7 @@ export function RubataBidPanel({
                     <p className="text-xs text-gray-500">Min: {minBid}M</p>
                   </div>
                   <button
-                    onClick={() => { setBidAmount(prev => prev + 1); }}
+                    onClick={() => { handleSetBidAmount(prev => prev + 1); }}
                     disabled={isSubmitting}
                     className="w-12 h-12 rounded-xl bg-surface-300 border border-surface-50/30 text-white text-2xl font-bold hover:bg-surface-200 transition-all active:scale-95"
                   >
@@ -128,13 +161,26 @@ export function RubataBidPanel({
                   </button>
                 </div>
 
+                {/* High bid warning */}
+                {isHighBid && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warning-500/20 border border-warning-500/40 animate-[fadeIn_0.2s_ease-out]">
+                    <span className="text-warning-400 text-lg">⚠️</span>
+                    <span className="text-warning-400 text-sm font-medium">
+                      Stai offrendo il {Math.round((bidAmount / budget) * 100)}% del tuo budget!
+                    </span>
+                  </div>
+                )}
+
                 {/* Submit button */}
                 <Button
-                  onClick={onBid}
+                  onClick={handleBidClick}
                   disabled={isSubmitting || bidAmount <= activeAuction.currentPrice || bidAmount > budget}
-                  className="w-full py-3 text-lg"
+                  className={`w-full py-3 text-lg transition-all active:scale-[0.98] ${
+                    highBidConfirmed ? 'animate-pulse' : ''
+                  }`}
+                  variant={highBidConfirmed ? 'danger' : undefined}
                 >
-                  RILANCIA {bidAmount}M
+                  {highBidConfirmed ? `⚠️ CONFERMA ${bidAmount}M` : `RILANCIA ${bidAmount}M`}
                 </Button>
 
                 {/* Budget reminder */}
@@ -150,9 +196,14 @@ export function RubataBidPanel({
             )}
           </div>
 
-          {/* Bid history */}
+          {/* Bid history — enhanced styling */}
           <div>
-            <h4 className="font-medium text-white mb-3">Ultime offerte</h4>
+            <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+              <span>📜</span> Ultime offerte
+              {activeAuction.bids.length > 0 && (
+                <span className="text-xs text-gray-500 font-normal">({activeAuction.bids.length})</span>
+              )}
+            </h4>
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {activeAuction.bids.length === 0 ? (
                 <p className="text-gray-500 text-sm">Nessuna offerta ancora</p>
@@ -160,7 +211,7 @@ export function RubataBidPanel({
                 activeAuction.bids.map((bid, i) => (
                   <div
                     key={i}
-                    className={`p-3 rounded-xl ${
+                    className={`p-3 rounded-xl transition-all animate-[fadeIn_0.2s_ease-out] ${
                       bid.isWinning
                         ? 'bg-secondary-500/20 border border-secondary-500/40'
                         : bid.bidderId === myMemberId
@@ -168,11 +219,27 @@ export function RubataBidPanel({
                         : 'bg-surface-300 border border-surface-50/20'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className={`font-medium ${bid.bidderId === myMemberId ? 'text-primary-400' : 'text-white'}`}>
-                        {bid.bidder}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {/* Winning star icon */}
+                        {bid.isWinning && (
+                          <span className="w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          </span>
+                        )}
+                        <span className={`font-medium truncate ${
+                          bid.bidderId === myMemberId ? 'text-primary-400' : 'text-white'
+                        }`}>
+                          {bid.bidderId === myMemberId ? `${bid.bidder} (Tu)` : bid.bidder}
+                        </span>
+                      </div>
+                      <span className={`font-mono font-bold flex-shrink-0 ${
+                        bid.isWinning ? 'text-secondary-400' : 'text-primary-400'
+                      }`}>
+                        {bid.amount}M
                       </span>
-                      <span className="font-mono font-bold text-primary-400">{bid.amount}M</span>
                     </div>
                     {bid.isWinning && (
                       <span className="text-secondary-400 text-sm font-medium">✓ Vincente</span>
