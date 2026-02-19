@@ -620,23 +620,22 @@ export async function closeRubataAuction(
 
     if (!rosterEntry) throw new Error('Roster entry not found')
 
-    // Calculate payment: winner pays currentPrice (clausola + ingaggio or higher)
+    // Decompose rubata price: PREZZO = OFFERTA + INGAGGIO (RUBATA.md §4.4)
+    // Only OFFERTA moves as budget; salary is captured in monte ingaggi via contract transfer.
     const payment = auction.currentPrice
-    // Seller receives only OFFERTA = currentPrice - salary.
-    // The salary saving happens automatically via monte ingaggi when contract transfers.
     const contractSalary = rosterEntry.contract?.salary ?? 0
-    const sellerPayment = payment - contractSalary
+    const offerta = payment - contractSalary
 
-    // Update winner budget (decrease)
+    // Update winner budget (decrease by OFFERTA only — salary is in monte ingaggi)
     await tx.leagueMember.update({
       where: { id: winningBid.bidderId },
-      data: { currentBudget: { decrement: payment } },
+      data: { currentBudget: { decrement: offerta } },
     })
 
-    // Update seller budget (increase by OFFERTA only, not full price)
+    // Update seller budget (increase by OFFERTA — salary freed from monte ingaggi)
     await tx.leagueMember.update({
       where: { id: auction.sellerId! },
-      data: { currentBudget: { increment: sellerPayment } },
+      data: { currentBudget: { increment: offerta } },
     })
 
     // Transfer roster to winner
@@ -1055,19 +1054,21 @@ export async function getRubataBoard(
 
             if (!rosterEntry) throw new Error('Roster entry not found')
 
+            // Decompose rubata price: PREZZO = OFFERTA + INGAGGIO (RUBATA.md §4.4)
             const payment = auctionToClose.currentPrice
-            // Seller receives only OFFERTA = currentPrice - salary
             const contractSalary = rosterEntry.contract?.salary ?? 0
-            const sellerPayment = payment - contractSalary
+            const offerta = payment - contractSalary
 
+            // Winner pays OFFERTA only (salary captured in monte ingaggi via contract transfer)
             await tx.leagueMember.update({
               where: { id: winningBid.bidderId },
-              data: { currentBudget: { decrement: payment } },
+              data: { currentBudget: { decrement: offerta } },
             })
 
+            // Seller receives OFFERTA (salary freed from monte ingaggi)
             await tx.leagueMember.update({
               where: { id: auctionToClose.sellerId! },
-              data: { currentBudget: { increment: sellerPayment } },
+              data: { currentBudget: { increment: offerta } },
             })
 
             await tx.playerRoster.update({
