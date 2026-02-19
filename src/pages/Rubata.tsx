@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Settings } from 'lucide-react'
 import { useRubataState } from '../hooks/useRubataState'
 import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
 import { BottomSheet } from '../components/ui/BottomSheet'
 import { Navigation } from '../components/Navigation'
 import { getPlayerPhotoUrl } from '../utils/player-images'
@@ -179,6 +180,37 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     <div className="min-h-screen">
       <Navigation currentPage="rubata" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
 
+      {/* Header — pattern Svincolati */}
+      {isRubataPhase && (
+        <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
+          <div className="max-w-full mx-auto px-4 py-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-5">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-danger-500 to-danger-700 flex items-center justify-center shadow-glow">
+                  <span className="text-2xl">⚔️</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Fase Rubata</h1>
+                    <span className={`w-2 h-2 rounded-full ${isPusherConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`} />
+                  </div>
+                  <p className="text-gray-400 text-sm">
+                    {rubataState === 'COMPLETED' ? 'Fase completata' :
+                     boardData?.currentIndex != null ? `Giocatore ${boardData.currentIndex + 1} di ${boardData.totalPlayers}` :
+                     !isOrderSet ? 'Configurazione ordine' : 'In attesa...'}
+                  </p>
+                </div>
+              </div>
+              {boardData && boardData.currentIndex != null && (
+                <div className="text-right bg-surface-200 rounded-xl px-5 py-3 border border-surface-50/20">
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">Progresso</p>
+                  <p className="text-3xl font-bold text-primary-400">{boardData.currentIndex + 1}<span className="text-lg text-gray-500">/{boardData.totalPlayers}</span></p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       {rubataState === 'PENDING_ACK' && pendingAck && (
@@ -246,12 +278,13 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
         {error && (
           <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-3 rounded-lg mb-4">
             <p>{error}</p>
-            <button
+            <Button
               onClick={() => { setError(''); void loadData(); }}
-              className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
+              size="sm"
+              className="mt-4"
             >
               Riprova
-            </button>
+            </Button>
           </div>
         )}
         {success && (
@@ -260,16 +293,11 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
         {/* Fase non RUBATA */}
         {!isRubataPhase && (
-          <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-8 text-center">
-            <div className="w-20 h-20 rounded-full bg-warning-500/20 flex items-center justify-center mx-auto mb-4">
-              <span className="text-5xl">🎯</span>
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-2">Fase RUBATA non attiva</h2>
-            <p className="text-gray-400 max-w-lg mx-auto">
-              La fase rubata inizierà dopo il consolidamento dei contratti.
-              Attendi che l'admin della lega passi alla fase RUBATA.
-            </p>
-          </div>
+          <EmptyState
+            icon="🎯"
+            title="Fase RUBATA non attiva"
+            description="La fase rubata inizierà dopo il consolidamento dei contratti. Attendi che l'admin della lega passi alla fase RUBATA."
+          />
         )}
 
         {/* Fase RUBATA - Setup ordine (Admin) */}
@@ -357,16 +385,11 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
         {/* Fase RUBATA ma ordine non impostato - Vista per non-admin */}
         {isRubataPhase && !isOrderSet && !isAdmin && (
-          <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-8 text-center">
-            <div className="w-20 h-20 rounded-full bg-primary-500/20 flex items-center justify-center mx-auto mb-4">
-              <span className="text-5xl animate-pulse">⏳</span>
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-2">In attesa dell'ordine rubata</h2>
-            <p className="text-gray-400 max-w-lg mx-auto">
-              L'admin della lega sta impostando l'ordine di rubata.
-              Una volta confermato, potrai vedere il tabellone e partecipare alle aste.
-            </p>
-          </div>
+          <EmptyState
+            icon="⏳"
+            title="In attesa dell'ordine rubata"
+            description="L'admin della lega sta impostando l'ordine di rubata. Una volta confermato, potrai vedere il tabellone e partecipare alle aste."
+          />
         )}
 
         {/* Tabellone e controlli - Board generato */}
@@ -604,196 +627,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 <p className="text-sm text-gray-400 mt-1">{boardData?.totalPlayers} giocatori in ordine di rubata</p>
               </div>
 
-              {/* Desktop: Table View - Scrollable */}
-              <div className="hidden md:block overflow-y-auto flex-1">
-                <table className="w-full text-sm table-fixed">
-                  <thead className="sticky top-0 z-10">
-                    <tr className="bg-surface-300 text-[11px] text-gray-400 uppercase tracking-wide">
-                      <th className="text-center py-2 w-[3%]">#</th>
-                      <th className="text-left pl-2 py-2 w-[18%]">Giocatore</th>
-                      <th className="text-center py-2 w-[5%]">Pos</th>
-                      <th className="text-center py-2 w-[5%]">Età</th>
-                      <th className="text-left px-2 py-2 w-[10%]">Propr.</th>
-                      <th className="text-center py-2 w-[5%]">Ing.</th>
-                      <th className="text-center py-2 w-[5%]">Dur.</th>
-                      <th className="text-center py-2 w-[6%]">Claus.</th>
-                      <th className="text-center py-2 w-[7%]">Rubata</th>
-                      <th className="text-center py-2 w-[13%]">Nuovo Prop.</th>
-                      <th className="text-center py-2 w-[11%]">Strategia</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {board?.map((player, globalIndex) => {
-                      const isCurrent = globalIndex === boardData?.currentIndex
-                      const isPassed = globalIndex < (boardData?.currentIndex ?? 0)
-                      const wasStolen = !!player.stolenByUsername
-
-                      return (
-                        <tr
-                          key={player.rosterId}
-                          ref={isCurrent ? currentPlayerRef as React.RefObject<HTMLTableRowElement> : null}
-                          className={`border-t border-surface-50/10 transition-all ${
-                            isCurrent
-                              ? 'bg-primary-500/30 ring-2 ring-inset ring-primary-400 shadow-lg'
-                              : isPassed
-                              ? wasStolen
-                                ? 'bg-danger-500/10'
-                                : 'bg-surface-50/5 opacity-60'
-                              : 'hover:bg-surface-300/30'
-                          }`}
-                        >
-                          <td className="text-center py-2 font-mono text-[11px]">
-                            {isCurrent ? (
-                              <span className="inline-flex items-center justify-center w-5 h-5 bg-primary-500 text-white rounded-full animate-pulse font-bold text-[10px]">
-                                {globalIndex + 1}
-                              </span>
-                            ) : (
-                              <span className={isPassed ? 'text-gray-500' : 'text-gray-500'}>{globalIndex + 1}</span>
-                            )}
-                          </td>
-                          <td className="pl-2 py-2">
-                            <div className="flex items-center gap-1.5">
-                              {player.playerApiFootballId ? (
-                                <img
-                                  src={getPlayerPhotoUrl(player.playerApiFootballId)}
-                                  alt={player.playerName}
-                                  className="w-7 h-7 rounded-full object-cover bg-surface-300 flex-shrink-0"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none'
-                                  }}
-                                />
-                              ) : (
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
-                                  {player.playerPosition}
-                                </div>
-                              )}
-                              <div className="w-5 h-5 bg-white rounded p-0.5 flex-shrink-0">
-                                <TeamLogo team={player.playerTeam} />
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => { setSelectedPlayerForStats({
-                                  name: player.playerName,
-                                  team: player.playerTeam,
-                                  position: player.playerPosition,
-                                  quotation: player.playerQuotation,
-                                  age: player.playerAge,
-                                  apiFootballId: player.playerApiFootballId,
-                                  computedStats: player.playerComputedStats,
-                                }); }}
-                                className={`font-medium truncate hover:underline cursor-pointer text-left ${isCurrent ? 'text-white font-bold' : isPassed ? 'text-gray-500' : 'text-gray-300 hover:text-white'}`}
-                                title="Clicca per vedere statistiche"
-                              >
-                                {player.playerName}
-                              </button>
-                            </div>
-                          </td>
-                          <td className="py-2 text-center">
-                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold ${isPassed ? 'opacity-40' : ''} ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
-                              {player.playerPosition}
-                            </span>
-                          </td>
-                          <td className="py-2 text-center">
-                            <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
-                              isPassed ? 'text-gray-500 bg-transparent' :
-                              (player.playerAge ?? 99) <= 23 ? 'text-green-400 bg-green-500/10' :
-                              (player.playerAge ?? 99) <= 27 ? 'text-blue-400 bg-blue-500/10' :
-                              (player.playerAge ?? 99) <= 30 ? 'text-yellow-400 bg-yellow-500/10' :
-                              'text-orange-400 bg-orange-500/10'
-                            }`}>
-                              {player.playerAge || '—'}
-                            </span>
-                          </td>
-                          <td className="px-2 py-2">
-                            <span className={`text-xs truncate block ${isPassed && wasStolen ? 'text-gray-500 line-through' : isPassed ? 'text-gray-500' : 'text-gray-400'}`}>
-                              {player.ownerUsername}
-                            </span>
-                          </td>
-                          <td className="py-2 text-center">
-                            <span className={`text-xs ${isCurrent ? 'text-accent-400' : isPassed ? 'text-gray-500' : 'text-accent-400'}`}>
-                              {player.contractSalary}
-                            </span>
-                          </td>
-                          <td className="py-2 text-center">
-                            <span className={`text-xs font-medium ${
-                              isPassed ? 'text-gray-500' :
-                              player.contractDuration === 1 ? 'text-danger-400' :
-                              player.contractDuration === 2 ? 'text-warning-400' :
-                              player.contractDuration === 3 ? 'text-blue-400' :
-                              'text-secondary-400'
-                            }`}>
-                              {player.contractDuration}
-                            </span>
-                          </td>
-                          <td className="py-2 text-center">
-                            <span className={`text-xs ${isPassed ? 'text-gray-500' : 'text-gray-400'}`}>
-                              {player.contractClause}
-                            </span>
-                          </td>
-                          <td className="py-2 text-center">
-                            <span className={`font-bold ${isCurrent ? 'text-primary-400 text-sm' : isPassed ? 'text-gray-500 text-xs' : 'text-warning-400 text-sm'}`}>
-                              {player.rubataPrice}M
-                            </span>
-                          </td>
-                          <td className="px-1 py-2 text-center">
-                            {wasStolen ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-danger-500/20 border border-danger-500/30 text-danger-400 font-bold text-xs truncate">
-                                🎯 {player.stolenByUsername}
-                              </span>
-                            ) : isPassed ? (
-                              <span className="text-secondary-500/60 text-xs">✓</span>
-                            ) : (
-                              <span className="text-gray-500 text-xs">—</span>
-                            )}
-                          </td>
-                          <td className="p-2 text-center">
-                            {(() => {
-                              const pref = preferencesMap.get(player.playerId)
-                              const isMyPlayer = player.memberId === myMemberId
-                              if (isMyPlayer) return <span className="text-gray-500 text-xs">Mio</span>
-                              const hasStrategy = pref?.priority || pref?.maxBid || pref?.notes
-                              return (
-                                <div className="flex items-center justify-center gap-1">
-                                  {/* Strategy indicators */}
-                                  {pref?.priority && (
-                                    <span className="text-purple-400 text-[10px]" title={`Priorità ${pref.priority}`}>
-                                      {'★'.repeat(pref.priority)}
-                                    </span>
-                                  )}
-                                  {pref?.maxBid && (
-                                    <span className="text-blue-400 text-[10px]" title={`Max ${pref.maxBid}M`}>
-                                      {pref.maxBid}M
-                                    </span>
-                                  )}
-                                  {pref?.notes && !pref.priority && !pref.maxBid && (
-                                    <span className="text-gray-400 text-xs" title={pref.notes}>📝</span>
-                                  )}
-                                  {/* Edit button */}
-                                  {canEditPreferences && (
-                                    <button
-                                      type="button"
-                                      onClick={() => { openPrefsModal({ ...player, preference: pref || null }); }}
-                                      className={`w-6 h-6 rounded flex items-center justify-center text-xs transition-all ${
-                                        hasStrategy ? 'bg-indigo-500/30 text-indigo-400' : 'bg-surface-50/20 text-gray-500 hover:bg-indigo-500/20'
-                                      }`}
-                                      title="Imposta strategia"
-                                    >
-                                      ⚙️
-                                    </button>
-                                  )}
-                                </div>
-                              )
-                            })()}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile: Card View - Scrollable */}
-              <div className="md:hidden p-4 pb-24 space-y-3 overflow-y-auto flex-1">
+              {/* Unified responsive card view */}
+              <div className="p-4 pb-24 md:pb-4 space-y-3 overflow-y-auto flex-1">
                 {board?.map((player, globalIndex) => {
                   const isCurrent = globalIndex === boardData?.currentIndex
                   const isPassed = globalIndex < (boardData?.currentIndex ?? 0)
@@ -811,20 +646,19 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             ? 'bg-danger-500/10 border-danger-500/30'
                             : 'bg-surface-50/5 border-surface-50/10 opacity-60'
                           : 'bg-surface-300 border-surface-50/20'
-                      }`}
+                      } md:flex md:items-center md:gap-4`}
                     >
-                      {/* Header: numero e giocatore */}
-                      <div className="flex items-center gap-2 mb-2">
+                      {/* Player header */}
+                      <div className="flex items-center gap-2 mb-2 md:mb-0 md:flex-1 md:min-w-0">
                         {isCurrent ? (
-                          <span className="inline-flex items-center justify-center w-6 h-6 bg-primary-500 text-white rounded-full text-xs font-bold animate-pulse">
+                          <span className="inline-flex items-center justify-center w-6 h-6 bg-primary-500 text-white rounded-full text-xs font-bold animate-pulse flex-shrink-0">
                             {globalIndex + 1}
                           </span>
                         ) : (
-                          <span className={`text-xs font-mono w-6 text-center ${isPassed ? 'text-gray-500' : 'text-gray-500'}`}>
+                          <span className="text-xs font-mono w-6 text-center text-gray-500 flex-shrink-0">
                             #{globalIndex + 1}
                           </span>
                         )}
-                        {/* Player photo */}
                         {player.playerApiFootballId ? (
                           <img
                             src={getPlayerPhotoUrl(player.playerApiFootballId)}
@@ -856,7 +690,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             apiFootballId: player.playerApiFootballId,
                             computedStats: player.playerComputedStats,
                           }); }}
-                          className={`font-medium flex-1 truncate text-left ${isCurrent ? 'text-white font-bold' : isPassed ? 'text-gray-500' : 'text-gray-300'}`}
+                          className={`font-medium truncate text-left ${isCurrent ? 'text-white font-bold' : isPassed ? 'text-gray-500' : 'text-gray-300 hover:text-white'}`}
+                          title="Clicca per vedere statistiche"
                         >
                           {player.playerName}
                         </button>
@@ -865,18 +700,23 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             SUL PIATTO
                           </span>
                         )}
+                        {/* Desktop: owner + age inline */}
+                        <span className="hidden md:inline text-xs text-gray-400 ml-1 truncate flex-shrink-0">
+                          di <span className={isPassed && wasStolen ? 'line-through' : ''}>{player.ownerUsername}</span>
+                          {player.playerAge ? ` · ${player.playerAge}a` : ''}
+                        </span>
                       </div>
 
-                      {/* Proprietario + Età */}
-                      <div className="text-xs text-gray-500 mb-2 pl-6">
+                      {/* Mobile: Owner + Age */}
+                      <div className="md:hidden text-xs text-gray-500 mb-2 pl-6">
                         di <span className={isPassed && wasStolen ? 'text-gray-500 line-through' : 'text-gray-400'}>{player.ownerUsername}</span>
                         {player.ownerTeamName && <span className="text-gray-500"> ({player.ownerTeamName})</span>}
                         {player.playerAge && <span className="text-gray-500"> · {player.playerAge}a</span>}
                       </div>
 
-                      {/* Nuovo proprietario se rubato */}
+                      {/* Stolen indicator */}
                       {wasStolen && (
-                        <div className="mb-2 ml-6 flex items-center gap-1 text-sm">
+                        <div className="mb-2 md:mb-0 ml-6 md:ml-0 flex items-center gap-1 text-sm flex-shrink-0">
                           <span className="text-danger-400">🎯</span>
                           <span className="text-danger-400 font-bold">{player.stolenByUsername}</span>
                           {player.stolenPrice && player.stolenPrice > player.rubataPrice && (
@@ -885,8 +725,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         </div>
                       )}
 
-                      {/* Dettagli contratto */}
-                      <div className={`grid grid-cols-4 gap-2 rounded p-2 ${isPassed ? 'bg-surface-50/5' : 'bg-surface-50/10'}`}>
+                      {/* Contract details grid */}
+                      <div className={`grid grid-cols-4 gap-2 rounded p-2 md:w-[280px] md:flex-shrink-0 ${isPassed ? 'bg-surface-50/5' : 'bg-surface-50/10'}`}>
                         <div className="text-center">
                           <div className="text-[10px] text-gray-500 uppercase">Ingaggio</div>
                           <div className={`font-medium text-sm ${isPassed ? 'text-gray-500' : 'text-accent-400'}`}>
@@ -919,27 +759,29 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         </div>
                       </div>
 
-                      {/* Stato per giocatori passati non rubati */}
+                      {/* Passed + not stolen */}
                       {isPassed && !wasStolen && (
-                        <div className="mt-2 text-center text-xs text-secondary-500">
+                        <div className="mt-2 md:mt-0 text-center text-xs text-secondary-500 md:flex-shrink-0">
                           ✓ Non rubato
                         </div>
                       )}
 
-                      {/* Strategia - Mobile */}
+                      {/* Strategy */}
                       {(() => {
                         const pref = preferencesMap.get(player.playerId)
                         const isMyPlayer = player.memberId === myMemberId
-                        if (isMyPlayer || isPassed) return null
+                        if (isMyPlayer) return <div className="mt-2 md:mt-0 md:ml-auto text-center text-gray-500 text-xs md:flex-shrink-0">Mio</div>
+                        if (isPassed) return null
+                        const hasStrategy = pref?.priority || pref?.maxBid || pref?.notes
                         return (
-                          <div className="mt-2 pt-2 border-t border-surface-50/20">
-                            <div className="flex items-center justify-between">
+                          <div className="mt-2 pt-2 border-t border-surface-50/20 md:mt-0 md:pt-0 md:border-t-0 md:ml-auto md:w-[120px] md:flex-shrink-0">
+                            <div className="flex items-center justify-between md:justify-end gap-2">
                               <div className="flex items-center gap-2">
                                 {pref?.priority && (
-                                  <span className="text-purple-400 text-xs">{'★'.repeat(pref.priority)}</span>
+                                  <span className="text-purple-400 text-xs" title={`Priorità ${pref.priority}`}>{'★'.repeat(pref.priority)}</span>
                                 )}
                                 {pref?.maxBid && (
-                                  <span className="text-blue-400 text-xs">Max: {pref.maxBid}M</span>
+                                  <span className="text-blue-400 text-xs" title={`Max ${pref.maxBid}M`}>Max: {pref.maxBid}M</span>
                                 )}
                                 {pref?.notes && (
                                   <span className="text-gray-400 text-xs" title={pref.notes}>📝</span>
@@ -953,8 +795,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                                   type="button"
                                   onClick={() => { openPrefsModal({ ...player, preference: pref || null }); }}
                                   className={`px-2 py-1 rounded text-xs transition-all ${
-                                    (pref?.priority || pref?.maxBid || pref?.notes) ? 'bg-indigo-500/30 text-indigo-400' : 'bg-surface-50/20 text-gray-500'
+                                    hasStrategy ? 'bg-indigo-500/30 text-indigo-400' : 'bg-surface-50/20 text-gray-500 hover:bg-indigo-500/20'
                                   }`}
+                                  title="Imposta strategia"
                                 >
                                   ⚙️ Strategia
                                 </button>

@@ -42,6 +42,17 @@ vi.mock('../components/ui/Button', () => ({
   ),
 }))
 
+// Mock EmptyState
+vi.mock('../components/ui/EmptyState', () => ({
+  EmptyState: ({ icon, title, description }: { icon?: string; title: string; description?: string }) => (
+    <div data-testid="empty-state">
+      {icon && <span>{icon}</span>}
+      <p>{title}</p>
+      {description && <p>{description}</p>}
+    </div>
+  ),
+}))
+
 // Mock BottomSheet
 vi.mock('../components/ui/BottomSheet', () => ({
   BottomSheet: ({ isOpen, children, title }: { isOpen: boolean; children: React.ReactNode; title: string }) => (
@@ -854,8 +865,8 @@ describe('Rubata', () => {
     expect(screen.getByTestId('rubata-bid-panel')).toBeInTheDocument()
   })
 
-  // ---- Board table with players (desktop) ----
-  it('renders board table with player rows including current, passed, and stolen players', () => {
+  // ---- Board cards with players ----
+  it('renders board cards with player entries including current, passed, and stolen players', () => {
     const players = [
       makeStolenPlayer(), // index 0 - passed+stolen
       makeBoardPlayer(), // index 1 - current
@@ -930,7 +941,7 @@ describe('Rubata', () => {
     // Priority stars: 3 stars
     expect(screen.getAllByText('★★★').length).toBeGreaterThanOrEqual(1)
     // Max bid
-    expect(screen.getAllByText('50M').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Max: 50M').length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Board: preference with only notes (no priority/maxBid) shows notebook icon ----
@@ -949,13 +960,13 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // Desktop strategy column shows notes emoji
+    // Strategy section shows notes emoji
     const noteIcons = document.querySelectorAll('[title="Interesting player"]')
     expect(noteIcons.length).toBeGreaterThanOrEqual(1)
   })
 
-  // ---- Board: "Nessuna strategia" label for no-pref player on mobile ----
-  it('shows "Nessuna strategia" in mobile card view for player without preference', () => {
+  // ---- Board: "Nessuna strategia" label for no-pref player ----
+  it('shows "Nessuna strategia" in card view for player without preference', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
@@ -1334,8 +1345,8 @@ describe('Rubata', () => {
     expect(screen.getByTestId('preference-modal')).toBeInTheDocument()
   })
 
-  // ---- Board: player age brackets render different colors ----
-  it('renders player age with correct age bracket styling in board', () => {
+  // ---- Board: player age brackets render in card view ----
+  it('renders player ages in card view for different age brackets', () => {
     const youngPlayer = makeBoardPlayer({ rosterId: 'ry', playerAge: 21, playerName: 'Young' })
     const midPlayer = makeBoardPlayer({ rosterId: 'rm', playerAge: 26, playerName: 'Mid', playerId: 'p-mid' })
     const seniorPlayer = makeBoardPlayer({ rosterId: 'rs', playerAge: 29, playerName: 'Senior', playerId: 'p-senior' })
@@ -1350,11 +1361,11 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // All ages appear
-    expect(screen.getAllByText('21').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('26').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('29').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('33').length).toBeGreaterThanOrEqual(1)
+    // All ages appear in card format (e.g. "21a", "26a")
+    expect(screen.getAllByText(/21a/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(/26a/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(/29a/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(/33a/).length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Board: owner team name shown in mobile view ----
@@ -1516,8 +1527,8 @@ describe('Rubata', () => {
     expect(screen.getAllByText(/Strategia/).length).toBeGreaterThanOrEqual(1)
   })
 
-  // ---- Board: player with no age shows dash ----
-  it('shows dash for player age when age is null or undefined', () => {
+  // ---- Board: player with no age omits age from card ----
+  it('omits age display when player age is null', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
@@ -1527,9 +1538,8 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // Desktop table shows "—" for missing age
-    const dashes = screen.getAllByText('—')
-    expect(dashes.length).toBeGreaterThanOrEqual(1)
+    // Card view omits age when null — no age suffix "a" should appear
+    expect(screen.queryByText(/\d+a/)).not.toBeInTheDocument()
   })
 
   // ---- PAUSED: no pausedRemainingSeconds hides timer info ----
