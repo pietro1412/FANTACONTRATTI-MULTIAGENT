@@ -115,6 +115,20 @@ vi.mock('../components/rubata/RubataBidPanel', () => ({
   RubataBidPanel: () => <div data-testid="rubata-bid-panel">BidPanel</div>,
 }))
 
+// Mock @tanstack/react-virtual
+vi.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: ({ count }: { count: number }) => ({
+    getTotalSize: () => count * 90,
+    getVirtualItems: () =>
+      Array.from({ length: count }, (_, i) => ({
+        index: i,
+        start: i * 90,
+        size: 90,
+        key: i,
+      })),
+  }),
+}))
+
 // Mock dnd-kit
 vi.mock('@dnd-kit/core', () => ({
   DndContext: ({ children }: { children: React.ReactNode }) => <div data-testid="dnd-context">{children}</div>,
@@ -292,6 +306,8 @@ vi.mock('../hooks/useRubataState', () => ({
 // Lucide icon mock
 vi.mock('lucide-react', () => ({
   Settings: () => <span data-testid="settings-icon">Settings</span>,
+  Search: () => <span data-testid="search-icon">Search</span>,
+  X: () => <span data-testid="x-icon">X</span>,
 }))
 
 import { Rubata } from '../pages/Rubata'
@@ -446,7 +462,7 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('42 giocatori in ordine di rubata')).toBeInTheDocument()
+    expect(screen.getByText(/42 giocatori/)).toBeInTheDocument()
   })
 
   // ---- Ready check panel ----
