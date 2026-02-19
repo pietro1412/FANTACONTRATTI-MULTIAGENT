@@ -19,7 +19,7 @@ export function BudgetPanel({ memberBudgets }: BudgetPanelProps) {
       <div className="p-3 border-b border-surface-50/20 bg-primary-500/10">
         <h3 className="font-bold text-primary-400 text-sm flex items-center gap-2">
           <span>💰</span>
-          Budget Residuo
+          Bilancio
         </h3>
       </div>
       <div className="p-2 space-y-1">
@@ -231,6 +231,82 @@ export function BotSimulationPanel({
             >
               💰 Simula Rilancio
             </Button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ============================================================
+// Game Flow Controls Panel (start, pause, resume, advance, goback, close)
+// ============================================================
+interface GameFlowPanelProps {
+  rubataState: RubataStateType
+  isSubmitting: boolean
+  currentIndex: number | null
+  onStartRubata: () => void
+  onPause: () => void
+  onResume: () => void
+  onAdvance: () => void
+  onGoBack: () => void
+  onCloseAuction: () => void
+}
+
+export function GameFlowPanel({
+  rubataState,
+  isSubmitting,
+  currentIndex,
+  onStartRubata,
+  onPause,
+  onResume,
+  onAdvance,
+  onGoBack,
+  onCloseAuction,
+}: GameFlowPanelProps) {
+  const showStart = rubataState === 'WAITING' || rubataState === 'PREVIEW'
+  const showResume = rubataState === 'PAUSED'
+  const showPlayControls = rubataState === 'OFFERING' || rubataState === 'AUCTION'
+
+  if (!showStart && !showResume && !showPlayControls) return null
+
+  return (
+    <div className="bg-surface-200 rounded-2xl border border-primary-500/50 overflow-hidden">
+      <div className="p-3 border-b border-surface-50/20 bg-primary-500/10">
+        <h3 className="font-bold text-primary-400 text-sm flex items-center gap-2">
+          <span>🎮</span>
+          Controlli Flusso
+        </h3>
+      </div>
+      <div className="p-3 flex flex-wrap gap-2">
+        {showStart && (
+          <Button onClick={onStartRubata} disabled={isSubmitting} size="sm" className="flex-1">
+            ▶️ Avvia Rubata
+          </Button>
+        )}
+        {showResume && (
+          <Button onClick={onResume} disabled={isSubmitting} size="sm" className="flex-1">
+            🔔 Richiedi Pronti
+          </Button>
+        )}
+        {showPlayControls && (
+          <>
+            <Button onClick={onPause} disabled={isSubmitting} variant="outline" size="sm">
+              ⏸️ Pausa
+            </Button>
+            <Button onClick={onGoBack} disabled={isSubmitting || currentIndex === 0} variant="outline" size="sm">
+              ⏮️ Indietro
+            </Button>
+            {rubataState === 'OFFERING' && (
+              <Button onClick={onAdvance} disabled={isSubmitting} variant="outline" size="sm">
+                ⏭️ Avanti
+              </Button>
+            )}
+            {rubataState === 'AUCTION' && (
+              <Button onClick={onCloseAuction} disabled={isSubmitting} size="sm">
+                ✅ Chiudi Asta
+              </Button>
+            )}
           </>
         )}
       </div>

@@ -187,7 +187,7 @@ export function RubataBidPanel({
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warning-500/20 border border-warning-500/40 animate-[fadeIn_0.2s_ease-out]">
                     <span className="text-warning-400 text-lg">⚠️</span>
                     <span className="text-warning-400 text-sm font-medium">
-                      Stai offrendo il {Math.round((bidAmount / budget) * 100)}% del tuo budget!
+                      Stai offrendo il {Math.round((bidAmount / budget) * 100)}% del tuo bilancio!
                     </span>
                   </div>
                 )}
@@ -207,7 +207,7 @@ export function RubataBidPanel({
                 {/* Budget reminder */}
                 {myBudget != null && (
                   <div className="flex items-center justify-between text-sm px-1">
-                    <span className="text-gray-500">Il tuo budget:</span>
+                    <span className="text-gray-500">Il tuo bilancio:</span>
                     <span className={`font-bold font-mono ${myBudget < 50 ? 'text-warning-400' : 'text-accent-400'}`}>
                       {myBudget}M
                     </span>

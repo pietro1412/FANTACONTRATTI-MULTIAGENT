@@ -22,9 +22,11 @@ import {
   BudgetPanel,
   TimerSettingsPanel,
   BotSimulationPanel,
+  GameFlowPanel,
   CompleteRubataPanel,
 } from '../components/rubata/RubataAdminControls'
-import { RubataTimerPanel } from '../components/rubata/RubataTimerPanel'
+import { RubataActionBar } from '../components/rubata/RubataActionBar'
+import { RubataReadyBanner } from '../components/rubata/RubataReadyBanner'
 import { RubataBidPanel } from '../components/rubata/RubataBidPanel'
 import { RubataActivityFeed } from '../components/rubata/RubataActivityFeed'
 import { POSITION_COLORS } from '../types/rubata.types'
@@ -127,7 +129,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     handleDndDragEnd, handleDndDragStart,
     // Preferences
     preferencesMap, selectedPlayerForPrefs, openPrefsModal, closePrefsModal,
-    currentPlayerPreference, canEditPreferences,
+    canEditPreferences,
     // Progress
     progressStats,
     // Scroll helpers
@@ -411,6 +413,17 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
               {/* Admin-only panels */}
               {isAdmin && (<>
+                <GameFlowPanel
+                  rubataState={rubataState ?? null}
+                  isSubmitting={isSubmitting}
+                  currentIndex={boardData?.currentIndex ?? null}
+                  onStartRubata={() => void handleStartRubata()}
+                  onPause={() => void handlePause()}
+                  onResume={() => void handleResume()}
+                  onAdvance={() => void handleAdvance()}
+                  onGoBack={() => void handleGoBack()}
+                  onCloseAuction={() => void handleCloseAuction()}
+                />
                 <TimerSettingsPanel
                   offerTimer={offerTimer}
                   setOfferTimer={setOfferTimer}
@@ -443,30 +456,47 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
             {/* Main Content */}
             <div className="lg:col-span-4">
-            {/* Stepper visivo flusso rubata */}
-            <RubataStepper currentState={rubataState ?? null} className="mb-4" />
-
-            {/* Timer e stato corrente */}
-            <RubataTimerPanel
+            {/* 1. Action Bar — compact sticky replacing TimerPanel */}
+            <RubataActionBar
               rubataState={rubataState ?? null}
-              currentPlayer={currentPlayer ?? null}
-              currentPlayerPreference={currentPlayerPreference}
-              myMemberId={myMemberId}
               timerDisplay={timerDisplay}
               isPusherConnected={isPusherConnected}
               progressStats={progressStats}
-              canMakeOffer={canMakeOffer}
-              isAdmin={isAdmin}
-              isSubmitting={isSubmitting}
               boardData={boardData}
-              onStartRubata={() => void handleStartRubata()}
-              onResume={() => void handleResume()}
-              onPause={() => void handlePause()}
-              onGoBack={() => void handleGoBack()}
-              onAdvance={() => void handleAdvance()}
-              onCloseAuction={() => void handleCloseAuction()}
+              canMakeOffer={canMakeOffer}
+              currentPlayer={currentPlayer ?? null}
+              isSubmitting={isSubmitting}
               onMakeOffer={() => void handleMakeOffer()}
             />
+
+            {/* 2. Ready Banner — compact, only during READY_CHECK or PAUSED */}
+            {rubataState === 'READY_CHECK' && readyStatus && (
+              <RubataReadyBanner
+                variant="ready"
+                readyStatus={readyStatus}
+                isAdmin={isAdmin}
+                isSubmitting={isSubmitting}
+                onSetReady={() => void handleSetReady()}
+                onForceAllReady={() => void handleForceAllReady()}
+              />
+            )}
+            {rubataState === 'PAUSED' && readyStatus && (
+              <RubataReadyBanner
+                variant="paused"
+                readyStatus={readyStatus}
+                isAdmin={isAdmin}
+                isSubmitting={isSubmitting}
+                pausedInfo={{
+                  remainingSeconds: boardData?.pausedRemainingSeconds ?? null,
+                  fromState: boardData?.pausedFromState ?? null,
+                }}
+                onSetReady={() => void handleSetReady()}
+                onForceAllReady={() => void handleForceAllReady()}
+              />
+            )}
+
+            {/* 3. Desktop-only full stepper */}
+            <RubataStepper currentState={rubataState ?? null} className="hidden lg:block mb-3" />
 
 
             {/* Preference Edit Modal - componente separato per evitare re-render */}
@@ -478,135 +508,6 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 onDelete={handleDeletePreference}
                 isSubmitting={isSubmitting}
               />
-            )}
-
-            {/* Ready Check Panel - With pending members list */}
-            {rubataState === 'READY_CHECK' && readyStatus && (
-              <div className="mb-4 bg-surface-200 rounded-xl border border-blue-500/50 p-4">
-                <div className="flex items-center justify-between gap-4 flex-wrap mb-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">🔔</span>
-                    <div>
-                      <span className="font-bold text-blue-400">Pronti?</span>
-                      <span className="text-gray-400 text-sm ml-2">{readyStatus.readyCount}/{readyStatus.totalMembers}</span>
-                    </div>
-                    <div className="w-24 h-2 bg-surface-300 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-500 transition-all"
-                        style={{ width: `${(readyStatus.readyCount / readyStatus.totalMembers) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    {!readyStatus.userIsReady ? (
-                      <Button onClick={() => void handleSetReady()} disabled={isSubmitting} size="sm">
-                        ✅ Sono Pronto
-                      </Button>
-                    ) : (
-                      <span className="px-3 py-1 bg-secondary-500/20 border border-secondary-500/40 rounded-lg text-secondary-400 text-sm">
-                        ✓ Pronto
-                      </span>
-                    )}
-                    {isAdmin && (
-                      <Button onClick={() => void handleForceAllReady()} disabled={isSubmitting} variant="outline" size="sm" className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
-                        🤖 Forza Tutti Pronti
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                {/* Pending members list */}
-                {readyStatus.pendingMembers.length > 0 && (
-                  <div className="flex items-center gap-2 flex-wrap text-sm">
-                    <span className="text-gray-500">In attesa:</span>
-                    {readyStatus.pendingMembers.map((member, _idx) => (
-                      <span key={member.id} className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-warning-500/20 text-warning-400 rounded text-xs">
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            member.isConnected === true ? 'bg-green-500' : member.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
-                          }`}
-                          title={member.isConnected ? 'Online' : 'Offline'}
-                        />
-                        {member.username}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* PAUSED State Panel - Ready check to resume */}
-            {rubataState === 'PAUSED' && readyStatus && (
-              <div className="mb-4 bg-surface-200 rounded-xl border border-gray-500/50 p-4">
-                <div className="flex items-center justify-between gap-4 flex-wrap mb-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">⏸️</span>
-                    <div>
-                      <span className="font-bold text-gray-300">IN PAUSA</span>
-                      {boardData?.pausedRemainingSeconds != null && (
-                        <span className="text-yellow-400 text-sm ml-2">
-                          ({boardData.pausedRemainingSeconds}s rimanenti - {boardData.pausedFromState === 'AUCTION' ? 'Asta' : 'Offerta'})
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Ready check for resume */}
-                <div className="bg-surface-300/50 rounded-lg p-3 mb-3">
-                  <div className="flex items-center justify-between gap-4 flex-wrap mb-2">
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg">🔔</span>
-                      <div>
-                        <span className="font-medium text-blue-400">Pronti a riprendere?</span>
-                        <span className="text-gray-400 text-sm ml-2">{readyStatus.readyCount}/{readyStatus.totalMembers}</span>
-                      </div>
-                      <div className="w-24 h-2 bg-surface-300 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-blue-500 transition-all"
-                          style={{ width: `${(readyStatus.readyCount / readyStatus.totalMembers) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      {!readyStatus.userIsReady ? (
-                        <Button onClick={() => void handleSetReady()} disabled={isSubmitting} size="sm">
-                          ✅ Sono Pronto
-                        </Button>
-                      ) : (
-                        <span className="px-3 py-1 bg-secondary-500/20 border border-secondary-500/40 rounded-lg text-secondary-400 text-sm">
-                          ✓ Pronto
-                        </span>
-                      )}
-                      {isAdmin && (
-                        <Button onClick={() => void handleForceAllReady()} disabled={isSubmitting} variant="outline" size="sm" className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
-                          🤖 Forza Tutti Pronti
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  {/* Pending members list */}
-                  {readyStatus.pendingMembers.length > 0 && (
-                    <div className="flex items-center gap-2 flex-wrap text-sm">
-                      <span className="text-gray-500">In attesa:</span>
-                      {readyStatus.pendingMembers.map((member, _idx) => (
-                        <span key={member.id} className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-warning-500/20 text-warning-400 rounded text-xs">
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              member.isConnected === true ? 'bg-green-500' : member.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
-                            }`}
-                            title={member.isConnected ? 'Online' : 'Offline'}
-                          />
-                          {member.username}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <p className="text-gray-400 text-xs text-center">
-                  L'admin ha messo in pausa la rubata. Tutti i manager devono confermare di essere pronti per riprendere.
-                </p>
-              </div>
             )}
 
             {/* Pending Acknowledgment is now a modal - see below */}
@@ -630,7 +531,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             </div>
 
             {/* Tabellone completo */}
-            <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden flex flex-col" style={{ maxHeight: 'calc(100vh - 420px)', minHeight: '300px' }}>
+            <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden flex flex-col" style={{ maxHeight: 'calc(100vh - 220px)', minHeight: '300px' }}>
               <div className="p-5 border-b border-surface-50/20 shrink-0">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <span className="text-xl">📋</span>
@@ -650,20 +551,21 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     <div
                       key={player.rosterId}
                       ref={isCurrent ? currentPlayerRef as React.RefObject<HTMLDivElement> : null}
-                      className={`p-3 rounded-lg border transition-all ${
+                      className={`${isCurrent ? 'p-4' : 'p-3'} rounded-lg border transition-all ${
                         isCurrent
-                          ? 'bg-primary-500/30 border-primary-400 ring-2 ring-primary-400/50 shadow-lg'
+                          ? 'bg-primary-500/30 border-primary-400 ring-2 ring-primary-400/50 shadow-lg animate-[pulse_2s_ease-in-out_infinite]'
                           : isPassed
                           ? wasStolen
                             ? 'bg-danger-500/10 border-danger-500/30'
                             : 'bg-surface-50/5 border-surface-50/10 opacity-60'
                           : 'bg-surface-300 border-surface-50/20'
                       } md:flex md:items-center md:gap-4`}
+                      style={isCurrent ? { animationDuration: '2s' } : undefined}
                     >
                       {/* Player header */}
                       <div className="flex items-center gap-2 mb-2 md:mb-0 md:flex-1 md:min-w-0">
                         {isCurrent ? (
-                          <span className="inline-flex items-center justify-center w-6 h-6 bg-primary-500 text-white rounded-full text-xs font-bold animate-pulse flex-shrink-0">
+                          <span className="inline-flex items-center justify-center w-7 h-7 bg-primary-500 text-white rounded-full text-xs font-bold animate-pulse flex-shrink-0">
                             {globalIndex + 1}
                           </span>
                         ) : (
@@ -675,13 +577,13 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                           <img
                             src={getPlayerPhotoUrl(player.playerApiFootballId)}
                             alt={player.playerName}
-                            className="w-8 h-8 rounded-full object-cover bg-surface-300 flex-shrink-0"
+                            className={`${isCurrent ? 'w-10 h-10 border-2 border-primary-500' : 'w-8 h-8'} rounded-full object-cover bg-surface-300 flex-shrink-0`}
                             onError={(e) => {
                               (e.target as HTMLImageElement).style.display = 'none'
                             }}
                           />
                         ) : (
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
+                          <div className={`${isCurrent ? 'w-10 h-10' : 'w-8 h-8'} rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
                             {player.playerPosition}
                           </div>
                         )}
@@ -702,7 +604,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             apiFootballId: player.playerApiFootballId,
                             computedStats: player.playerComputedStats,
                           }); }}
-                          className={`font-medium truncate text-left ${isCurrent ? 'text-white font-bold' : isPassed ? 'text-gray-500' : 'text-gray-300 hover:text-white'}`}
+                          className={`font-medium truncate text-left ${isCurrent ? 'text-white font-bold text-base' : isPassed ? 'text-gray-500' : 'text-gray-300 hover:text-white'}`}
                           title="Clicca per vedere statistiche"
                         >
                           {player.playerName}
@@ -786,11 +688,25 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         </div>
                         <div className="text-center">
                           <div className="text-[10px] text-gray-500 uppercase">Rubata</div>
-                          <div className={`font-bold text-sm ${isPassed ? 'text-gray-500' : isCurrent ? 'text-primary-400' : 'text-warning-400'}`}>
+                          <div className={`font-bold ${isCurrent ? 'text-lg text-primary-400' : isPassed ? 'text-sm text-gray-500' : 'text-sm text-warning-400'}`}>
                             {player.rubataPrice}M
                           </div>
                         </div>
                       </div>
+
+                      {/* Inline VOGLIO RUBARE button — only for current player during OFFERING */}
+                      {isCurrent && rubataState === 'OFFERING' && canMakeOffer && (
+                        <div className="mt-2 md:mt-0 md:flex-shrink-0">
+                          <Button
+                            onClick={() => void handleMakeOffer()}
+                            disabled={isSubmitting}
+                            variant="accent"
+                            className="w-full md:w-auto text-sm py-2 px-4 whitespace-nowrap"
+                          >
+                            🎯 VOGLIO RUBARE! ({player.rubataPrice}M)
+                          </Button>
+                        </div>
+                      )}
 
                       {/* Inline stats - desktop only, non-passed players */}
                       {!isPassed && player.playerComputedStats && (
@@ -921,6 +837,17 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
             {/* Admin-only panels */}
             {isAdmin && (<>
+              <GameFlowPanel
+                rubataState={rubataState ?? null}
+                isSubmitting={isSubmitting}
+                currentIndex={boardData?.currentIndex ?? null}
+                onStartRubata={() => void handleStartRubata()}
+                onPause={() => void handlePause()}
+                onResume={() => void handleResume()}
+                onAdvance={() => void handleAdvance()}
+                onGoBack={() => void handleGoBack()}
+                onCloseAuction={() => void handleCloseAuction()}
+              />
               <TimerSettingsPanel
                 offerTimer={offerTimer}
                 setOfferTimer={setOfferTimer}
