@@ -263,9 +263,10 @@ export function useRubataState(leagueId: string) {
     }
     if (membersRes.success && membersRes.data) {
       const data = membersRes.data as { members: LeagueMember[] }
-      setMembers(data.members || [])
+      const activeMembers = (data.members || []).filter(m => m.status === 'ACTIVE')
+      setMembers(activeMembers)
       if (orderDraft.length === 0) {
-        setOrderDraft(data.members?.map(m => m.id) || [])
+        setOrderDraft(activeMembers.map(m => m.id))
       }
     }
     if (leagueRes.success && leagueRes.data) {

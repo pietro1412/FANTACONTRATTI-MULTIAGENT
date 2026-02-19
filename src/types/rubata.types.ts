@@ -5,6 +5,7 @@ export interface LeagueMember {
   teamName?: string
   rubataOrder?: number
   currentBudget: number
+  status?: string
   user: {
     id: string
     username: string
