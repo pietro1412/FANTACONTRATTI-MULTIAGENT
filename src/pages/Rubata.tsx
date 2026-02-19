@@ -616,6 +616,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 setBidAmount={setBidAmount}
                 isSubmitting={isSubmitting}
                 onBid={() => void handleBid()}
+                myBudget={boardData?.memberBudgets?.find(mb => mb.memberId === myMemberId)?.residuo}
               />
             )}
 
@@ -897,8 +898,41 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
       </main>
 
+      {/* Mobile Auction Bottom Bar — fixed during AUCTION on mobile */}
+      {activeAuction && rubataState === 'AUCTION' && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-danger-900/95 via-surface-200/95 to-danger-900/95 backdrop-blur-sm border-t-2 border-danger-500 shadow-lg shadow-black/40">
+          <div className="px-3 py-2 flex items-center gap-3">
+            {/* Compact timer */}
+            {timerDisplay !== null && (
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-mono font-bold text-lg ${
+                timerDisplay > 10 ? 'bg-secondary-500/20 text-secondary-400' :
+                timerDisplay > 5 ? 'bg-warning-500/20 text-warning-400' :
+                'bg-danger-500/20 text-danger-400 animate-pulse'
+              }`}>
+                {timerDisplay}
+              </div>
+            )}
+            {/* Current price */}
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] text-gray-400 uppercase truncate">{activeAuction.player.name}</p>
+              <p className="text-lg font-bold font-mono text-primary-400">{activeAuction.currentPrice}M</p>
+            </div>
+            {/* Quick bid button */}
+            {activeAuction.sellerId !== myMemberId && (
+              <Button
+                onClick={() => void handleBid()}
+                disabled={isSubmitting || bidAmount <= activeAuction.currentPrice}
+                className="text-sm py-2 px-4 whitespace-nowrap"
+              >
+                RILANCIA {bidAmount}M
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Mobile Budget Footer - Fixed Bottom */}
-      {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && isRubataPhase && isOrderSet && (
+      {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && isRubataPhase && isOrderSet && rubataState !== 'AUCTION' && (
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-r from-surface-200 via-surface-200 to-surface-200 border-t-2 border-primary-500/50 z-40 shadow-lg shadow-black/30">
           <div className="px-3 py-2">
             <div className="flex items-center justify-between mb-1">

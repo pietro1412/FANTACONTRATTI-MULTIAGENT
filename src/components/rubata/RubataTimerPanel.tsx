@@ -31,6 +31,62 @@ interface RubataTimerPanelProps {
   onMakeOffer: () => void
 }
 
+// Circular SVG timer
+function CircularTimer({ seconds, totalSeconds, size = 96 }: { seconds: number; totalSeconds: number; size?: number }) {
+  const radius = (size - 12) / 2
+  const circumference = 2 * Math.PI * radius
+  const progress = totalSeconds > 0 ? Math.max(0, seconds / totalSeconds) : 0
+  const offset = circumference * (1 - progress)
+  const cx = size / 2
+  const cy = size / 2
+
+  const strokeColor = progress > 0.5 ? '#34d399' : progress > 0.2 ? '#fbbf24' : '#ef4444'
+  const textColor = progress > 0.5 ? '#34d399' : progress > 0.2 ? '#fbbf24' : '#ef4444'
+  const glowClass = seconds <= 5 ? 'animate-pulse' : ''
+
+  return (
+    <div className={`relative ${glowClass}`} style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {/* Background circle */}
+        <circle cx={cx} cy={cy} r={radius} fill="none" stroke="currentColor" strokeWidth="6" className="text-surface-300" />
+        {/* Progress arc */}
+        <circle
+          cx={cx} cy={cy} r={radius}
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth="6"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${cx} ${cy})`}
+          style={{ transition: 'stroke-dashoffset 0.5s ease-out, stroke 0.3s ease' }}
+        />
+        {/* Center text */}
+        <text
+          x={cx} y={cy}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill={textColor}
+          fontSize={size > 64 ? 28 : 20}
+          fontWeight="bold"
+          fontFamily="ui-monospace, monospace"
+          style={{ transition: 'fill 0.3s ease' }}
+        >
+          {seconds}
+        </text>
+      </svg>
+      {/* Urgency label under timer */}
+      {seconds <= 5 && seconds > 0 && (
+        <div className="absolute -bottom-5 left-0 right-0 text-center">
+          <span className="text-[10px] font-bold text-danger-400 uppercase tracking-wider animate-pulse">
+            ⚠️ Ultimi sec!
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function RubataTimerPanel({
   rubataState,
   currentPlayer,
@@ -51,8 +107,23 @@ export function RubataTimerPanel({
   onCloseAuction,
   onMakeOffer,
 }: RubataTimerPanelProps) {
+  const totalTimerSeconds = rubataState === 'AUCTION'
+    ? (boardData?.auctionTimerSeconds ?? 15)
+    : (boardData?.offerTimerSeconds ?? 30)
+
   return (
     <div className="mb-6 bg-surface-200 rounded-2xl border-2 border-primary-500/50 overflow-hidden sticky top-16 z-20 lg:relative lg:top-0">
+      {/* "PUOI RUBARE!" Banner — prominent call to action during OFFERING */}
+      {rubataState === 'OFFERING' && canMakeOffer && (
+        <div className="px-4 py-3 bg-accent-500/20 border-b border-accent-500/40">
+          <div className="flex items-center justify-center gap-3">
+            <span className="text-2xl">🎯</span>
+            <span className="text-lg font-bold text-accent-400">PUOI RUBARE QUESTO GIOCATORE!</span>
+            <span className="text-2xl">🎯</span>
+          </div>
+        </div>
+      )}
+
       <div className="p-5 bg-primary-500/10">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Current Player Info */}
@@ -95,7 +166,7 @@ export function RubataTimerPanel({
             )}
           </div>
 
-          {/* Timer */}
+          {/* Timer + State */}
           <div className="flex items-center gap-4">
             {/* Pusher Connection Indicator */}
             <div className="flex items-center gap-1" title={isPusherConnected ? 'Real-time connesso' : 'Real-time disconnesso'}>
@@ -104,11 +175,15 @@ export function RubataTimerPanel({
                 {isPusherConnected ? 'LIVE' : 'OFFLINE'}
               </span>
             </div>
-            {timerDisplay !== null && (
-              <div className={`text-4xl font-mono font-bold ${timerDisplay <= 5 ? 'text-danger-400 animate-pulse' : timerDisplay <= 10 ? 'text-warning-400' : 'text-white'}`}>
-                {timerDisplay}s
-              </div>
+
+            {/* Circular Timer */}
+            {timerDisplay !== null ? (
+              <CircularTimer seconds={timerDisplay} totalSeconds={totalTimerSeconds} size={96} />
+            ) : (
+              /* Fallback: no timer active */
+              null
             )}
+
             <div className="text-center">
               <span className={`px-4 py-2 rounded-full font-bold text-sm ${
                 rubataState === 'READY_CHECK' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' :
@@ -189,10 +264,10 @@ export function RubataTimerPanel({
           </div>
         )}
 
-        {/* Player Actions - tutti i manager possono fare offerte */}
+        {/* Player Actions - "VOGLIO RUBARE!" */}
         {rubataState === 'OFFERING' && canMakeOffer && (
           <div className="mt-4">
-            <Button onClick={onMakeOffer} disabled={isSubmitting} className="w-full md:w-auto">
+            <Button onClick={onMakeOffer} disabled={isSubmitting} className="w-full md:w-auto text-lg py-3" variant="accent">
               🎯 VOGLIO RUBARE! ({currentPlayer?.rubataPrice}M)
             </Button>
           </div>
