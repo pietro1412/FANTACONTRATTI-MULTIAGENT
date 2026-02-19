@@ -1,18 +1,18 @@
-# Audit Codebase — 2026-02-17 (aggiornamento #4 — page tests completati)
+# Audit Codebase — 2026-02-17 (aggiornamento #5 — deep coverage sprint)
 
-> Audit aggiornato dopo sprint test pages React.
+> Audit aggiornato dopo sprint approfondimento coverage pagine React.
 
 ## Scorecard
 
 | Area | Score | Dettagli |
 |------|-------|----------|
 | **Lint** | 10/10 | **0 errori** ESLint (1.436 warning intenzionali) |
-| **Test** | 10/10 | 1.857 passed, 0 failed, 108/108 test suite verdi |
+| **Test** | 10/10 | 2.068 passed, 0 failed, 108/108 test suite verdi |
 | **Types** | 10/10 | **0 errori** TypeScript strict mode |
 | **Convenzioni** | 9/10 | 0 console.log nei services, 0 deep imports, 0 `any` in production |
-| **Coverage** | 6/10 | 62.05% statements, 50.17% branches, 51.09% functions, 64.27% lines |
+| **Coverage** | 7/10 | 66.11% statements, 58.92% branches, 57.64% functions, 68.48% lines |
 
-**Score complessivo: 9.0/10** (era 8.8/10)
+**Score complessivo: 9.2/10** (era 9.0/10)
 
 ---
 
@@ -31,7 +31,7 @@ Tutti gli errori risolti in 8 commit progressivi:
 
 Warning residui: intenzionalmente downgraded (Prisma `any` flow, defensive guards, React 19 hints).
 
-### Test: 1.857 passed, 0 failed
+### Test: 2.068 passed, 0 failed
 
 **Tutti i 108 test file passano.** 33 pagine React + 13 service + 62 module/unit test suite.
 
@@ -66,22 +66,20 @@ Rimangono solo in file test con `eslint-disable` esplicito (standard practice pe
 
 ## Step 3 — Coverage
 
-| Metrica | Prima | Dopo Sprint Services | Dopo Sprint Pages |
+| Metrica | Prima | Dopo Sprint Services | Dopo Deep Coverage |
 |---------|-------|---------------------|-------------------|
-| Statements | 49.26% | 68.82% | **62.05%** |
-| Branches | 40.17% | 59.49% | **50.17%** |
-| Functions | 48.42% | 63.54% | **51.09%** |
-| Lines | 51.87% | 71.21% | **64.27%** |
+| Statements | 49.26% | 68.82% | **66.11%** |
+| Branches | 40.17% | 59.49% | **58.92%** |
+| Functions | 48.42% | 63.54% | **57.64%** |
+| Lines | 51.87% | 71.21% | **68.48%** |
 
-> **Nota**: i numeri "dopo sprint pages" sono piu' bassi perche' ora 33 pagine React vengono
-> strumentate dalla coverage (prima erano ~5). Le pagine React complesse (Rubata, Svincolati,
-> Contracts, SuperAdmin) hanno migliaia di righe di codice interattivo, che abbassa la media.
-> La coverage effettiva del codice testato e' migliorata significativamente.
+> **Nota**: i numeri complessivi includono ora 33 pagine React strumentate dalla coverage
+> (prima erano ~5). Le pagine React complesse hanno migliaia di righe interattive.
 
 **Services coverage: 19.68% → 75.11%** (+55 punti percentuali)
-**Pages coverage: ~5% → 56.20%** (+51 punti percentuali)
+**Pages coverage: ~5% → 65.68%** (+60 punti percentuali)
 
-108 test suite, 1.857 test totali (era 62 suite, 1.085 test).
+108 test suite, 2.068 test totali (era 62 suite, 1.085 test).
 
 **Coverage per area:**
 
@@ -90,11 +88,12 @@ Rimangono solo in file test con `eslint-disable` esplicito (standard practice pe
 | `src/services/` | 75.11% | Business logic backend ben coperta |
 | `src/shared/infrastructure/` | 86-100% | Cron, events, HTTP, result |
 | `src/modules/*/application/` | 80-100% | Use case DDD ben testati |
-| `src/pages/` | 56.20% | Tutte le 33 pagine testate |
+| `src/pages/` | 65.68% | Tutte le 33 pagine testate |
 | `src/pages/` top | 100% | Offline, PatchNotes, ResetPassword |
-| `src/pages/` bottom | 23-32% | Rubata, Svincolati, AdminPanel (file molto grandi) |
+| `src/pages/` mid | 54-87% | Rubata, Svincolati, History, AdminPanel, Trades |
+| `src/pages/` bottom | 38-54% | AuctionRoom, Dashboard, Profile |
 
-Target configurato: 95%. Il gap rimanente e' nelle pagine React complesse e nei componenti.
+Target configurato: 95%. Il gap rimanente e' nei componenti e nelle interazioni piu' profonde.
 
 ---
 
@@ -133,7 +132,7 @@ Target configurato: 95%. Il gap rimanente e' nelle pagine React complesse e nei 
 |---------|-----------------|-------------|--------------|--------------|
 | ESLint errori | 4.379 | 4.370 | **0** | **-4.379** |
 | ESLint warning | 570 | 573 | 1.436 | +866 (intenzionale) |
-| Test passed | 1.136 | 1.085 | **1.857** | **+721** |
+| Test passed | 1.136 | 1.085 | **2.068** | **+932** |
 | Test failed | 15 | **0** | **0** | **-15** |
 | Test suite verdi | 62/64 | 62/62 | **108/108** | **100%** |
 | TS errori (strict) | ~950 | ~764 | **0** | **-950** |
@@ -141,6 +140,6 @@ Target configurato: 95%. Il gap rimanente e' nelle pagine React complesse e nei 
 | console.log/error | 89 | 89 | **2** | **-87** |
 | Deep imports | 77 | 84 | **0** | **-77** |
 | `: any` (production) | 12 | 12 | **0** | **-12** |
-| Coverage (lines) | N/A | 51.87% | **64.27%** | **+12.4%** |
+| Coverage (lines) | N/A | 51.87% | **68.48%** | **+16.6%** |
 | Coverage (services) | N/A | 19.68% | **75.11%** | **+55.4%** |
-| Coverage (pages) | N/A | ~5% | **56.20%** | **+51%** |
+| Coverage (pages) | N/A | ~5% | **65.68%** | **+60%** |
