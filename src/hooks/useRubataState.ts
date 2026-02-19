@@ -4,6 +4,7 @@ import type { DragEndEvent } from '@dnd-kit/core'
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { rubataApi, leagueApi, auctionApi, contractApi } from '../services/api'
 import { usePusherAuction } from '../services/pusher.client'
+import haptic from '../utils/haptics'
 import type {
   LeagueMember,
   BoardData,
@@ -97,7 +98,10 @@ export function useRubataState(leagueId: string) {
       const interval = setInterval(() => {
         setTimerDisplay(prev => {
           if (prev === null || prev <= 0) return 0
-          return prev - 1
+          const next = prev - 1
+          if (next === 5) haptic.light()
+          if (next === 3) haptic.warning()
+          return next
         })
       }, 1000)
 
@@ -291,6 +295,11 @@ export function useRubataState(leagueId: string) {
     onRubataBidPlaced: (data) => {
       console.log('[Pusher] Rubata bid placed - instant update', data)
       if (data.bidderId !== boardData?.myMemberId) {
+        // Detect if I was outbid (I was winning and someone else bid)
+        const wasWinning = boardData?.activeAuction?.bids?.[0]?.bidderId === boardData?.myMemberId
+        if (wasWinning) {
+          haptic.outbid()
+        }
         setBoardData(prev => {
           if (!prev?.activeAuction) return prev
           const newBid = {
@@ -546,6 +555,7 @@ export function useRubataState(leagueId: string) {
 
     const res = await rubataApi.makeOffer(leagueId)
     if (res.success) {
+      haptic.send()
       void loadData()
     } else {
       setError(res.message || 'Errore')
@@ -590,6 +600,7 @@ export function useRubataState(leagueId: string) {
 
     const res = await rubataApi.bidOnAuction(leagueId, submittedAmount)
     if (res.success) {
+      haptic.bid()
       void loadBoardOnly()
     } else {
       setBoardData(previousBoardData)
@@ -876,16 +887,13 @@ export function useRubataState(leagueId: string) {
     setSelectedPlayerForPrefs(null)
   }
 
-  async function handleSavePreference(data: { maxBid: number | null; priority: number | null; notes: string | null }) {
+  async function handleSavePreference(data: { isWatchlist: boolean; isAutoPass: boolean; maxBid: number | null; priority: number | null; notes: string | null }) {
     if (!selectedPlayerForPrefs) return
     setError('')
     setIsSubmitting(true)
 
-    const hasStrategy = data.maxBid !== null || data.priority !== null || !!(data.notes && data.notes.trim() !== '')
     const res = await rubataApi.setPreference(leagueId, selectedPlayerForPrefs.playerId, {
       ...data,
-      isWatchlist: hasStrategy,
-      isAutoPass: false,
     })
 
     if (res.success) {

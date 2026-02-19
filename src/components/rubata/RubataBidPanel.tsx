@@ -13,6 +13,7 @@ interface RubataBidPanelProps {
   isSubmitting: boolean
   onBid: () => void
   myBudget?: number | null
+  myMaxBid?: number | null
 }
 
 export function RubataBidPanel({
@@ -23,6 +24,7 @@ export function RubataBidPanel({
   isSubmitting,
   onBid,
   myBudget,
+  myMaxBid,
 }: RubataBidPanelProps) {
   const [highBidConfirmed, setHighBidConfirmed] = useState(false)
 
@@ -188,6 +190,24 @@ export function RubataBidPanel({
                     <span className="text-warning-400 text-lg">⚠️</span>
                     <span className="text-warning-400 text-sm font-medium">
                       Stai offrendo il {Math.round((bidAmount / budget) * 100)}% del tuo bilancio!
+                    </span>
+                  </div>
+                )}
+
+                {/* maxBid strategy warning */}
+                {myMaxBid != null && activeAuction.currentPrice >= myMaxBid && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-danger-500/20 border border-danger-500/40 animate-[fadeIn_0.2s_ease-out]">
+                    <span className="text-danger-400 text-lg">🚫</span>
+                    <span className="text-danger-400 text-sm font-bold">
+                      OLTRE IL LIMITE — la tua strategia era max {myMaxBid}M
+                    </span>
+                  </div>
+                )}
+                {myMaxBid != null && activeAuction.currentPrice < myMaxBid && activeAuction.currentPrice >= myMaxBid * 0.8 && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/20 border border-orange-500/40 animate-[fadeIn_0.2s_ease-out]">
+                    <span className="text-orange-400 text-lg">⚡</span>
+                    <span className="text-orange-400 text-sm font-medium">
+                      Vicino al tuo limite strategia ({myMaxBid}M)
                     </span>
                   </div>
                 )}

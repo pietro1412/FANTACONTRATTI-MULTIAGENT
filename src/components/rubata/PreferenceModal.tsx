@@ -37,13 +37,15 @@ interface BoardPlayerBase {
 export interface PreferenceModalProps {
   player: BoardPlayerBase
   onClose: () => void
-  onSave: (data: { maxBid: number | null; priority: number | null; notes: string | null }) => Promise<void>
+  onSave: (data: { isWatchlist: boolean; isAutoPass: boolean; maxBid: number | null; priority: number | null; notes: string | null }) => Promise<void>
   onDelete: () => Promise<void>
   isSubmitting: boolean
 }
 
 export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmitting }: PreferenceModalProps) {
   const [formData, setFormData] = useState({
+    isWatchlist: player.preference?.isWatchlist ?? false,
+    isAutoPass: player.preference?.isAutoPass ?? false,
     maxBid: player.preference?.maxBid?.toString() || '',
     priority: player.preference?.priority?.toString() || '',
     notes: player.preference?.notes || '',
@@ -51,6 +53,8 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
 
   const handleSave = async () => {
     await onSave({
+      isWatchlist: formData.isWatchlist,
+      isAutoPass: formData.isAutoPass,
       maxBid: formData.maxBid ? parseInt(formData.maxBid) : null,
       priority: formData.priority ? parseInt(formData.priority) : null,
       notes: formData.notes || null,
@@ -74,6 +78,37 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
       <ModalBody>
         {/* Form */}
         <div className="space-y-4">
+          {/* Watchlist + AutoPass toggles */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => { setFormData(p => ({ ...p, isWatchlist: !p.isWatchlist, isAutoPass: !p.isWatchlist ? false : p.isAutoPass })); }}
+              className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 transition-all min-h-[44px] ${
+                formData.isWatchlist
+                  ? 'bg-indigo-500/20 border-indigo-500/60 text-indigo-400'
+                  : 'bg-surface-300/50 border-surface-50/20 text-gray-500 hover:border-surface-50/40'
+              }`}
+            >
+              <span className="text-lg">{formData.isWatchlist ? '👁️' : '👁️‍🗨️'}</span>
+              <span className="text-sm font-medium">Watchlist</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setFormData(p => ({ ...p, isAutoPass: !p.isAutoPass, isWatchlist: !p.isAutoPass ? false : p.isWatchlist })); }}
+              className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 transition-all min-h-[44px] ${
+                formData.isAutoPass
+                  ? 'bg-gray-500/20 border-gray-500/60 text-gray-300'
+                  : 'bg-surface-300/50 border-surface-50/20 text-gray-500 hover:border-surface-50/40'
+              }`}
+            >
+              <span className="text-lg">⏭️</span>
+              <span className="text-sm font-medium">Auto-skip</span>
+            </button>
+          </div>
+          {formData.isAutoPass && (
+            <p className="text-xs text-gray-500 text-center -mt-2">Non farai offerte per questo giocatore</p>
+          )}
+
           {/* Max bid with +/- buttons */}
           <div>
             <label className="block text-sm text-gray-400 mb-2">Budget massimo</label>

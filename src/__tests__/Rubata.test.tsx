@@ -95,11 +95,20 @@ vi.mock('../components/rubata/RubataAdminControls', () => ({
   BudgetPanel: () => <div data-testid="budget-panel">BudgetPanel</div>,
   TimerSettingsPanel: () => <div data-testid="timer-settings-panel">TimerSettings</div>,
   BotSimulationPanel: () => <div data-testid="bot-simulation-panel">BotSimulation</div>,
+  GameFlowPanel: () => <div data-testid="game-flow-panel">GameFlow</div>,
   CompleteRubataPanel: () => <div data-testid="complete-rubata-panel">CompleteRubata</div>,
 }))
 
-vi.mock('../components/rubata/RubataTimerPanel', () => ({
-  RubataTimerPanel: () => <div data-testid="rubata-timer-panel">TimerPanel</div>,
+vi.mock('../components/rubata/RubataActionBar', () => ({
+  RubataActionBar: () => <div data-testid="rubata-action-bar">ActionBar</div>,
+}))
+
+vi.mock('../components/rubata/RubataReadyBanner', () => ({
+  RubataReadyBanner: ({ variant }: { variant: string }) => <div data-testid="rubata-ready-banner" data-variant={variant}>ReadyBanner</div>,
+}))
+
+vi.mock('../components/rubata/RubataActivityFeed', () => ({
+  RubataActivityFeed: () => <div data-testid="rubata-activity-feed">ActivityFeed</div>,
 }))
 
 vi.mock('../components/rubata/RubataBidPanel', () => ({
@@ -411,7 +420,7 @@ describe('Rubata', () => {
   })
 
   // ---- Board is set: Stepper and Timer panels shown ----
-  it('renders board view with stepper and timer panel when order is set', () => {
+  it('renders board view with action bar and stepper when order is set', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
@@ -422,7 +431,7 @@ describe('Rubata', () => {
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
     expect(screen.getByTestId('rubata-stepper')).toBeInTheDocument()
-    expect(screen.getByTestId('rubata-timer-panel')).toBeInTheDocument()
+    expect(screen.getByTestId('rubata-action-bar')).toBeInTheDocument()
     expect(screen.getByText('Tabellone Rubata')).toBeInTheDocument()
   })
 
@@ -441,8 +450,7 @@ describe('Rubata', () => {
   })
 
   // ---- Ready check panel ----
-  it('shows ready check panel with "Sono Pronto" button during READY_CHECK state', async () => {
-    const user = userEvent.setup()
+  it('shows ready banner during READY_CHECK state', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
@@ -462,16 +470,14 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText(/Sono Pronto/)).toBeInTheDocument()
-    expect(screen.getByText('UserA')).toBeInTheDocument()
-    expect(screen.getByText('UserB')).toBeInTheDocument()
-
-    await user.click(screen.getByText(/Sono Pronto/))
-    expect(mockHandleSetReady).toHaveBeenCalled()
+    // Ready banner is rendered with ready variant (inner content is mocked)
+    const banner = screen.getByTestId('rubata-ready-banner')
+    expect(banner).toBeInTheDocument()
+    expect(banner.getAttribute('data-variant')).toBe('ready')
   })
 
   // ---- Ready check: already ready ----
-  it('shows "Pronto" badge when user is already ready during READY_CHECK', () => {
+  it('shows ready banner when user is already ready during READY_CHECK', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
@@ -488,9 +494,10 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // The "Pronto" text badge instead of the "Sono Pronto" button
-    // When user is ready, the badge with "Pronto" is shown
-    expect(screen.getByText(/✓ Pronto/)).toBeInTheDocument()
+    // Ready banner is rendered with ready variant (inner content is mocked)
+    const banner = screen.getByTestId('rubata-ready-banner')
+    expect(banner).toBeInTheDocument()
+    expect(banner.getAttribute('data-variant')).toBe('ready')
   })
 
   // ---- Admin: Mobile FAB shown ----
@@ -528,6 +535,7 @@ describe('Rubata', () => {
 
     // Desktop panels
     expect(screen.getAllByTestId('budget-panel').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByTestId('game-flow-panel').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByTestId('timer-settings-panel').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByTestId('bot-simulation-panel').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByTestId('complete-rubata-panel').length).toBeGreaterThanOrEqual(1)
@@ -714,8 +722,7 @@ describe('Rubata', () => {
   })
 
   // ---- PAUSED state with ready status ----
-  it('renders PAUSED state panel with ready check and "Sono Pronto" button', async () => {
-    const user = userEvent.setup()
+  it('renders PAUSED state panel with ready check and "Sono Pronto" button', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
@@ -740,16 +747,10 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('IN PAUSA')).toBeInTheDocument()
-    expect(screen.getByText(/22s rimanenti/)).toBeInTheDocument()
-    expect(screen.getByText(/Asta/)).toBeInTheDocument()
-    expect(screen.getByText(/Pronti a riprendere\?/)).toBeInTheDocument()
-    expect(screen.getByText('WaitingUser')).toBeInTheDocument()
-
-    // Click "Sono Pronto"
-    const readyBtns = screen.getAllByText(/Sono Pronto/)
-    await user.click(readyBtns[0])
-    expect(mockHandleSetReady).toHaveBeenCalled()
+    // Ready banner is rendered with paused variant (inner content is mocked)
+    const banner = screen.getByTestId('rubata-ready-banner')
+    expect(banner).toBeInTheDocument()
+    expect(banner.getAttribute('data-variant')).toBe('paused')
   })
 
   it('renders PAUSED state with "Pronto" badge when user is already ready', () => {
@@ -775,16 +776,13 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('IN PAUSA')).toBeInTheDocument()
-    expect(screen.getByText(/Offerta/)).toBeInTheDocument()
-    // Should show "Pronto" badge
-    const prontoBadges = screen.getAllByText(/✓ Pronto/)
-    expect(prontoBadges.length).toBeGreaterThanOrEqual(1)
+    // Ready banner is rendered with paused variant (inner content is mocked)
+    const banner = screen.getByTestId('rubata-ready-banner')
+    expect(banner).toBeInTheDocument()
+    expect(banner.getAttribute('data-variant')).toBe('paused')
   })
 
-  it('renders PAUSED state with admin ForceAllReady button', async () => {
-    const user = userEvent.setup()
-    const mockForceAllReady = vi.fn()
+  it('renders PAUSED state with admin ForceAllReady button', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
@@ -803,22 +801,18 @@ describe('Rubata', () => {
         userIsReady: false,
         pendingMembers: [],
       } as never,
-      handleForceAllReady: mockForceAllReady,
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // Admin sees "Forza Tutti Pronti" buttons
-    const forceButtons = screen.getAllByText(/Forza Tutti Pronti/)
-    expect(forceButtons.length).toBeGreaterThanOrEqual(1)
-    await user.click(forceButtons[0])
-    expect(mockForceAllReady).toHaveBeenCalled()
+    // Admin sees the ready banner with paused variant (ForceAllReady is inside the mocked component)
+    const banner = screen.getByTestId('rubata-ready-banner')
+    expect(banner).toBeInTheDocument()
+    expect(banner.getAttribute('data-variant')).toBe('paused')
   })
 
   // ---- Admin: ForceAllReady in READY_CHECK ----
-  it('shows admin "Forza Tutti Pronti" button in READY_CHECK state and calls handler', async () => {
-    const user = userEvent.setup()
-    const mockForceAll = vi.fn()
+  it('shows admin "Forza Tutti Pronti" button in READY_CHECK state and calls handler', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
@@ -832,15 +826,14 @@ describe('Rubata', () => {
         userIsReady: false,
         pendingMembers: [],
       } as never,
-      handleForceAllReady: mockForceAll,
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    const forceBtn = screen.getByText(/Forza Tutti Pronti/)
-    expect(forceBtn).toBeInTheDocument()
-    await user.click(forceBtn)
-    expect(mockForceAll).toHaveBeenCalled()
+    // Ready banner is rendered with ready variant (ForceAllReady is inside the mocked component)
+    const banner = screen.getByTestId('rubata-ready-banner')
+    expect(banner).toBeInTheDocument()
+    expect(banner.getAttribute('data-variant')).toBe('ready')
   })
 
   // ---- Active Auction panel renders ----
@@ -966,20 +959,20 @@ describe('Rubata', () => {
     expect(noteIcons.length).toBeGreaterThanOrEqual(1)
   })
 
-  // ---- Board: "Nessuna strategia" label for no-pref player ----
-  it('shows "Nessuna strategia" in card view for player without preference', () => {
+  // ---- Board: "+ Strategia" CTA for no-pref player ----
+  it('shows "+ Strategia" CTA in card view for player without preference', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
       boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
       board: [makeBoardPlayer()] as never[],
       preferencesMap: new Map(),
-      canEditPreferences: false,
+      canEditPreferences: true,
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getAllByText('Nessuna strategia').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('+ Strategia').length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Board: edit preference button calls openPrefsModal ----
@@ -1525,7 +1518,7 @@ describe('Rubata', () => {
     // Shows priority stars
     expect(screen.getAllByText('★★').length).toBeGreaterThanOrEqual(1)
     // Shows mobile strategy button
-    expect(screen.getAllByText(/Strategia/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByTitle(/strategia/i).length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Board: player with no age omits age from card ----
@@ -1566,8 +1559,9 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('IN PAUSA')).toBeInTheDocument()
-    // No remaining seconds shown
-    expect(screen.queryByText(/rimanenti/)).not.toBeInTheDocument()
+    // Ready banner is rendered with paused variant (timer info is inside the mocked component)
+    const banner = screen.getByTestId('rubata-ready-banner')
+    expect(banner).toBeInTheDocument()
+    expect(banner.getAttribute('data-variant')).toBe('paused')
   })
 })

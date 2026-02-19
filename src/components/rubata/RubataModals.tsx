@@ -1,8 +1,11 @@
+import { useEffect, useRef } from 'react'
 import { Modal, ModalBody } from '@/components/ui/Modal'
 import { Button } from '../ui/Button'
 import { TeamLogo } from './TeamLogo'
 import { POSITION_COLORS } from '../../types/rubata.types'
 import { getPlayerPhotoUrl } from '../../utils/player-images'
+import { celebrateWin, celebrateBigWin } from '../../utils/confetti'
+import haptic from '../../utils/haptics'
 import type {
   PendingAck,
   ReadyStatus,
@@ -48,6 +51,21 @@ export function PendingAckModal({
   onNavigate,
   leagueId,
 }: PendingAckModalProps) {
+  // Celebration: confetti + haptic when rubata is won
+  const celebratedRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!pendingAck?.winner || pendingAck.allAcknowledged) return
+    const ackKey = pendingAck.auctionId || pendingAck.player?.name
+    if (celebratedRef.current === ackKey) return
+    celebratedRef.current = ackKey
+    haptic.win()
+    if (pendingAck.finalPrice >= 100) {
+      celebrateBigWin()
+    } else {
+      celebrateWin()
+    }
+  }, [pendingAck?.winner, pendingAck?.auctionId, pendingAck?.player?.name, pendingAck?.allAcknowledged, pendingAck?.finalPrice])
+
   // Don't show if appeal is in certain states
   if (['APPEAL_REVIEW', 'AWAITING_APPEAL_ACK', 'AWAITING_RESUME'].includes(appealStatus?.auctionStatus || '')) {
     return null

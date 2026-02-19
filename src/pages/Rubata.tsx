@@ -498,6 +498,27 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             {/* 3. Desktop-only full stepper */}
             <RubataStepper currentState={rubataState ?? null} className="hidden lg:block mb-3" />
 
+            {/* 3b. Strategy preparation banner — WAITING/PREVIEW only */}
+            {(rubataState === 'WAITING' || rubataState === 'PREVIEW') && board && board.length > 0 && (() => {
+              const totalEligible = board.filter(p => p.memberId !== myMemberId).length
+              const configured = Array.from(preferencesMap.values()).filter(p => p.isWatchlist || p.isAutoPass || p.maxBid || p.priority || p.notes).length
+              const pct = totalEligible > 0 ? Math.round((configured / totalEligible) * 100) : 0
+              return (
+                <div className="mb-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl px-4 py-3 flex items-center gap-3 flex-wrap">
+                  <span className="text-lg">🎯</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-indigo-300">Prepara le tue strategie!</p>
+                    <p className="text-xs text-indigo-400/70">Imposta watchlist, budget max e priorita' prima che inizi la rubata</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 h-1.5 bg-surface-300 rounded-full overflow-hidden">
+                      <div className="h-full bg-indigo-500 transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-xs text-indigo-400 font-mono">{configured}/{totalEligible}</span>
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Preference Edit Modal - componente separato per evitare re-render */}
             {selectedPlayerForPrefs && (
@@ -522,6 +543,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 isSubmitting={isSubmitting}
                 onBid={() => void handleBid()}
                 myBudget={boardData?.memberBudgets?.find(mb => mb.memberId === myMemberId)?.residuo}
+                myMaxBid={preferencesMap.get(activeAuction.player.id)?.maxBid}
               />
             )}
 
@@ -546,6 +568,10 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   const isCurrent = globalIndex === boardData?.currentIndex
                   const isPassed = globalIndex < (boardData?.currentIndex ?? 0)
                   const wasStolen = !!player.stolenByUsername
+                  const pref = preferencesMap.get(player.playerId)
+                  const isMyPlayer = player.memberId === myMemberId
+                  const isWatchlisted = !isMyPlayer && !isPassed && pref?.isWatchlist
+                  const isAutoSkip = !isMyPlayer && !isPassed && pref?.isAutoPass
 
                   return (
                     <div
@@ -558,6 +584,10 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                           ? wasStolen
                             ? 'bg-danger-500/10 border-danger-500/30'
                             : 'bg-surface-50/5 border-surface-50/10 opacity-60'
+                          : isWatchlisted
+                          ? 'bg-indigo-500/10 border-indigo-500/30'
+                          : isAutoSkip
+                          ? 'bg-surface-300/50 border-surface-50/10 opacity-50'
                           : 'bg-surface-300 border-surface-50/20'
                       } md:flex md:items-center md:gap-4`}
                       style={isCurrent ? { animationDuration: '2s' } : undefined}
@@ -744,15 +774,19 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
                       {/* Strategy */}
                       {(() => {
-                        const pref = preferencesMap.get(player.playerId)
-                        const isMyPlayer = player.memberId === myMemberId
                         if (isMyPlayer) return <div className="mt-2 md:mt-0 md:ml-auto text-center text-gray-500 text-xs md:flex-shrink-0">Mio</div>
                         if (isPassed) return null
-                        const hasStrategy = pref?.priority || pref?.maxBid || pref?.notes
+                        const hasStrategy = pref?.priority || pref?.maxBid || pref?.notes || pref?.isWatchlist || pref?.isAutoPass
                         return (
-                          <div className="mt-2 pt-2 border-t border-surface-50/20 md:mt-0 md:pt-0 md:border-t-0 md:ml-auto md:w-[120px] md:flex-shrink-0">
+                          <div className="mt-2 pt-2 border-t border-surface-50/20 md:mt-0 md:pt-0 md:border-t-0 md:ml-auto md:w-[140px] md:flex-shrink-0">
                             <div className="flex items-center justify-between md:justify-end gap-2">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {pref?.isWatchlist && (
+                                  <span className="text-indigo-400 text-xs" title="In watchlist">👁️</span>
+                                )}
+                                {pref?.isAutoPass && (
+                                  <span className="text-gray-400 text-xs" title="Auto-skip">⏭️</span>
+                                )}
                                 {pref?.priority && (
                                   <span className="text-purple-400 text-xs" title={`Priorità ${pref.priority}`}>{'★'.repeat(pref.priority)}</span>
                                 )}
@@ -760,23 +794,29 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                                   <span className="text-blue-400 text-xs" title={`Max ${pref.maxBid}M`}>Max: {pref.maxBid}M</span>
                                 )}
                                 {pref?.notes && (
-                                  <span className="text-gray-400 text-xs" title={pref.notes}>📝</span>
-                                )}
-                                {!pref?.priority && !pref?.maxBid && !pref?.notes && (
-                                  <span className="text-gray-500 text-xs">Nessuna strategia</span>
+                                  <span className="text-gray-400 text-xs" title={pref.notes} aria-label="Note strategia impostate">📝</span>
                                 )}
                               </div>
                               {canEditPreferences && (
-                                <button
-                                  type="button"
-                                  onClick={() => { openPrefsModal({ ...player, preference: pref || null }); }}
-                                  className={`px-2 py-1 rounded text-xs transition-all ${
-                                    hasStrategy ? 'bg-indigo-500/30 text-indigo-400' : 'bg-surface-50/20 text-gray-500 hover:bg-indigo-500/20'
-                                  }`}
-                                  title="Imposta strategia"
-                                >
-                                  ⚙️ Strategia
-                                </button>
+                                hasStrategy ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => { openPrefsModal({ ...player, preference: pref || null }); }}
+                                    className="px-2 py-1 rounded text-xs transition-all bg-indigo-500/30 text-indigo-400"
+                                    title="Modifica strategia"
+                                  >
+                                    ⚙️
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => { openPrefsModal({ ...player, preference: pref || null }); }}
+                                    className="px-2 py-1 rounded text-xs transition-all bg-surface-50/20 text-indigo-400/70 hover:bg-indigo-500/20 hover:text-indigo-400"
+                                    title="Imposta strategia"
+                                  >
+                                    + Strategia
+                                  </button>
+                                )
                               )}
                             </div>
                           </div>
