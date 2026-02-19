@@ -16,6 +16,19 @@ interface PlayerStatsInfo {
   computedStats?: ComputedSeasonStats | null
 }
 
+function AgeBadge({ age, className = '' }: { age: number; className?: string }) {
+  const colors =
+    age <= 23 ? 'bg-green-500/20 text-green-400' :
+    age <= 28 ? 'bg-surface-50/20 text-gray-300' :
+    age <= 31 ? 'bg-warning-500/20 text-warning-400' :
+    'bg-danger-500/20 text-danger-400'
+  return (
+    <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${colors} ${className}`}>
+      {age}a
+    </span>
+  )
+}
+
 export interface BoardRowProps {
   player: BoardPlayer
   globalIndex: number
@@ -54,10 +67,31 @@ export const BoardRow = memo(function BoardRow({
   const isWatchlisted = !isMyPlayer && !isPassed && pref?.isWatchlist
   const isAutoSkip = !isMyPlayer && !isPassed && pref?.isAutoPass
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      onPlayerStatsClick({
+        name: player.playerName,
+        team: player.playerTeam,
+        position: player.playerPosition,
+        quotation: player.playerQuotation,
+        age: player.playerAge,
+        apiFootballId: player.playerApiFootballId,
+        computedStats: player.playerComputedStats,
+      })
+    } else if (e.key === ' ' && canEditPreferences && !isMyPlayer && !isPassed) {
+      e.preventDefault()
+      onOpenPrefsModal({ ...player, preference: pref || null })
+    }
+  }
+
   return (
     <div
       ref={isCurrent ? currentPlayerRef as React.RefObject<HTMLDivElement> : null}
-      className={`${isCurrent ? 'p-4' : 'p-3'} rounded-lg border transition-all ${
+      tabIndex={0}
+      role="listitem"
+      aria-label={`${player.playerName}, ${player.playerPosition}, ${player.playerTeam}${isCurrent ? ', sul piatto' : ''}${wasStolen ? `, rubato da ${player.stolenByUsername ?? ''}` : ''}`}
+      onKeyDown={handleKeyDown}
+      className={`${isCurrent ? 'p-4' : 'p-3'} rounded-lg border transition-all focus:outline-none focus:ring-2 focus:ring-primary-400/70 ${
         isCurrent
           ? 'bg-primary-500/30 border-primary-400 ring-2 ring-primary-400/50 shadow-lg animate-[pulse_2s_ease-in-out_infinite]'
           : isPassed
@@ -120,7 +154,7 @@ export const BoardRow = memo(function BoardRow({
           {player.playerName}
         </button>
         {isCurrent && (
-          <span className="text-[10px] bg-primary-500 text-white px-2 py-0.5 rounded-full shrink-0">
+          <span className="text-xs bg-primary-500 text-white px-2.5 py-0.5 rounded-full shrink-0 font-medium">
             SUL PIATTO
           </span>
         )}
@@ -130,28 +164,14 @@ export const BoardRow = memo(function BoardRow({
         </span>
         {/* Desktop: age badge */}
         {player.playerAge != null && (
-          <span className={`hidden md:inline-flex text-[11px] font-bold px-1.5 py-0.5 rounded ml-1 flex-shrink-0 ${
-            player.playerAge <= 23 ? 'bg-green-500/20 text-green-400' :
-            player.playerAge <= 28 ? 'bg-surface-50/20 text-gray-300' :
-            player.playerAge <= 31 ? 'bg-warning-500/20 text-warning-400' :
-            'bg-danger-500/20 text-danger-400'
-          }`}>
-            {player.playerAge}a
-          </span>
+          <AgeBadge age={player.playerAge} className="hidden md:inline-flex ml-1 flex-shrink-0" />
         )}
       </div>
 
       {/* Mobile: Age badge + Owner */}
       <div className="md:hidden text-xs text-gray-500 mb-2 pl-6 flex items-center gap-1.5 flex-wrap">
         {player.playerAge != null && (
-          <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
-            player.playerAge <= 23 ? 'bg-green-500/20 text-green-400' :
-            player.playerAge <= 28 ? 'bg-surface-50/20 text-gray-300' :
-            player.playerAge <= 31 ? 'bg-warning-500/20 text-warning-400' :
-            'bg-danger-500/20 text-danger-400'
-          }`}>
-            {player.playerAge}a
-          </span>
+          <AgeBadge age={player.playerAge} />
         )}
         <span>
           di <span className={isPassed && wasStolen ? 'text-gray-500 line-through' : 'text-gray-400'}>{player.ownerUsername}</span>
@@ -173,13 +193,13 @@ export const BoardRow = memo(function BoardRow({
       {/* Contract details grid */}
       <div className={`grid grid-cols-4 gap-2 rounded p-2 md:w-[280px] md:flex-shrink-0 ${isPassed ? 'bg-surface-50/5' : 'bg-surface-50/10'}`}>
         <div className="text-center">
-          <div className="text-[10px] text-gray-500 uppercase">Ingaggio</div>
+          <div className="text-[11px] text-gray-500 uppercase">Ingaggio</div>
           <div className={`font-medium text-sm ${isPassed ? 'text-gray-500' : 'text-accent-400'}`}>
             {player.contractSalary}M
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[10px] text-gray-500 uppercase">Durata</div>
+          <div className="text-[11px] text-gray-500 uppercase">Durata</div>
           <div className={`font-medium text-sm ${
             isPassed ? 'text-gray-500' :
             player.contractDuration === 1 ? 'text-danger-400' :
@@ -191,13 +211,13 @@ export const BoardRow = memo(function BoardRow({
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[10px] text-gray-500 uppercase">Clausola</div>
+          <div className="text-[11px] text-gray-500 uppercase">Clausola</div>
           <div className={`font-medium text-sm ${isPassed ? 'text-gray-500' : 'text-gray-400'}`}>
             {player.contractClause}M
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[10px] text-gray-500 uppercase">Rubata</div>
+          <div className="text-[11px] text-gray-500 uppercase">Rubata</div>
           <div className={`font-bold ${isCurrent ? 'text-lg text-primary-400' : isPassed ? 'text-sm text-gray-500' : 'text-sm text-warning-400'}`}>
             {player.rubataPrice}M
           </div>

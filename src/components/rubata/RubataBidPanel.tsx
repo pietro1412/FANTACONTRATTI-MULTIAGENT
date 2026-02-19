@@ -107,11 +107,15 @@ export function RubataBidPanel({
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Offerta attuale</p>
-                  <p className={`font-black font-mono transition-all ${
-                    isUserWinning
-                      ? 'text-3xl text-secondary-400'
-                      : 'text-3xl text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-accent-400 animate-pulse'
-                  }`}>
+                  <p
+                    className={`font-black font-mono transition-all ${
+                      isUserWinning
+                        ? 'text-3xl text-secondary-400'
+                        : 'text-3xl text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-accent-400 animate-pulse'
+                    }`}
+                    aria-live="polite"
+                    aria-label={`Offerta attuale: ${activeAuction.currentPrice} milioni`}
+                  >
                     {activeAuction.currentPrice}M
                   </p>
                   {/* Highest bidder label */}

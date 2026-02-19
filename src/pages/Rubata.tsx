@@ -164,6 +164,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
   const [adminSheetOpen, setAdminSheetOpen] = useState(false)
   const [bidSheetOpen, setBidSheetOpen] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    try { return !localStorage.getItem('rubata_onboarding_dismissed') } catch { return true }
+  })
   const [searchQuery, setSearchQuery] = useState('')
   const [positionFilter, setPositionFilter] = useState<string | null>(null)
   const [chipFilter, setChipFilter] = useState<'miei' | 'watchlist' | 'sul_piatto' | null>(null)
@@ -265,12 +268,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   </p>
                 </div>
               </div>
-              {boardData && boardData.currentIndex != null && (
-                <div className="text-right bg-surface-200 rounded-xl px-5 py-3 border border-surface-50/20">
-                  <p className="text-xs text-gray-400 uppercase tracking-wider">Progresso</p>
-                  <p className="text-3xl font-bold text-primary-400">{boardData.currentIndex + 1}<span className="text-lg text-gray-500">/{boardData.totalPlayers}</span></p>
-                </div>
-              )}
+              {/* Progress shown in ActionBar when board is active */}
             </div>
           </div>
         </div>
@@ -612,6 +610,25 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               <RubataActivityFeed board={board} />
             </div>
 
+            {/* Onboarding tooltip — first visit only, shown during OFFERING */}
+            {showOnboarding && rubataState === 'OFFERING' && (
+              <div className="mb-3 bg-primary-500/10 border border-primary-500/30 rounded-xl px-4 py-3 flex items-center gap-3 animate-[fadeIn_0.3s_ease-out]">
+                <span className="text-2xl flex-shrink-0">💡</span>
+                <p className="text-sm text-primary-300 flex-1">
+                  Quando un giocatore e' <strong>SUL PIATTO</strong>, clicca <strong>VOGLIO RUBARE</strong> per avviare un'asta. Puoi anche impostare strategie (watchlist, budget max) cliccando sul giocatore.
+                </p>
+                <button
+                  onClick={() => {
+                    setShowOnboarding(false)
+                    try { localStorage.setItem('rubata_onboarding_dismissed', '1') } catch { /* noop */ }
+                  }}
+                  className="text-xs text-primary-400 hover:text-white px-2 py-1 rounded bg-primary-500/20 flex-shrink-0"
+                >
+                  OK
+                </button>
+              </div>
+            )}
+
             {/* Tabellone completo */}
             <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden flex flex-col" style={{ maxHeight: 'calc(100vh - 220px)', minHeight: '300px' }}>
               {/* Board header with search + filters */}
@@ -698,7 +715,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               </div>
 
               {/* Board rows */}
-              <div ref={boardScrollRef} className="p-4 pb-24 md:pb-4 overflow-y-auto flex-1">
+              <div ref={boardScrollRef} className="p-4 pb-24 md:pb-4 overflow-y-auto flex-1" role="list" aria-label="Tabellone rubata">
                 {filteredBoard?.length === 0 && isFiltered && (
                   <p className="text-center text-gray-500 py-8 text-sm">Nessun giocatore corrisponde ai filtri</p>
                 )}

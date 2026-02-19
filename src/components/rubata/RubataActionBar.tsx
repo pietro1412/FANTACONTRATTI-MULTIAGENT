@@ -64,13 +64,22 @@ export function RubataActionBar({
         <div className="w-px h-5 bg-surface-50/20 hidden sm:block" />
 
         {/* State badge */}
-        <span className={`px-2.5 py-1 rounded-full font-bold text-xs border ${badge.classes}`}>
+        <span
+          className={`px-2.5 py-1 rounded-full font-bold text-xs border ${badge.classes}`}
+          role="status"
+          aria-label={`Stato rubata: ${badge.label}`}
+        >
           {badge.label}
         </span>
 
         {/* Timer */}
         {timerDisplay !== null && (
-          <span className={`font-mono font-bold text-lg tabular-nums ${getTimerColor(timerDisplay)} ${timerDisplay <= 5 ? 'animate-pulse' : ''}`}>
+          <span
+            className={`font-mono font-bold text-lg tabular-nums ${getTimerColor(timerDisplay)} ${timerDisplay <= 5 ? 'animate-pulse' : ''}`}
+            role="timer"
+            aria-live={timerDisplay <= 10 ? 'assertive' : 'off'}
+            aria-label={`${timerDisplay} secondi rimanenti`}
+          >
             {timerDisplay}s
           </span>
         )}
