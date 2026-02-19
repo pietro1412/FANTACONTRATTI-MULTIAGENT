@@ -42,6 +42,7 @@ export interface ActiveAuction {
     name: string
     team: string
     position: string
+    apiFootballId?: number | null
   }
   basePrice: number
   currentPrice: number
@@ -137,6 +138,7 @@ export interface PendingAck {
     name: string
     team: string
     position: string
+    apiFootballId?: number | null
   }
   winner: { id: string; username: string } | null
   seller: { id: string; username: string }

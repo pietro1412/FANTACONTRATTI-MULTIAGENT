@@ -2,6 +2,7 @@ import { Modal, ModalBody } from '@/components/ui/Modal'
 import { Button } from '../ui/Button'
 import { TeamLogo } from './TeamLogo'
 import { POSITION_COLORS } from '../../types/rubata.types'
+import { getPlayerPhotoUrl } from '../../utils/player-images'
 import type {
   PendingAck,
   ReadyStatus,
@@ -72,6 +73,14 @@ export function PendingAckModal({
         {/* Player Card */}
         <div className="bg-white/10 rounded-2xl p-4 mb-4">
           <div className="flex items-center justify-center gap-3 mb-3">
+            {pendingAck.player.apiFootballId && (
+              <img
+                src={getPlayerPhotoUrl(pendingAck.player.apiFootballId)}
+                alt={pendingAck.player.name}
+                className="w-14 h-14 rounded-full object-cover bg-surface-300 border-2 border-white/20"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+              />
+            )}
             <div className="w-10 h-10 bg-white rounded p-1">
               <TeamLogo team={pendingAck.player.team} />
             </div>
@@ -80,6 +89,7 @@ export function PendingAckModal({
             </div>
           </div>
           <p className="text-center text-2xl font-bold text-white">{pendingAck.player.name}</p>
+          <p className="text-center text-gray-400 text-sm">{pendingAck.player.team}</p>
         </div>
 
         {/* Transaction Details */}
@@ -581,6 +591,14 @@ export function AuctionReadyCheckModal({
         {/* Player Info */}
         <div className="bg-white/10 rounded-2xl p-4 mb-4">
           <div className="flex items-center justify-center gap-3 mb-2">
+            {boardData.currentPlayer?.playerApiFootballId && (
+              <img
+                src={getPlayerPhotoUrl(boardData.currentPlayer.playerApiFootballId)}
+                alt={boardData.auctionReadyInfo.playerName}
+                className="w-14 h-14 rounded-full object-cover bg-surface-300 border-2 border-white/20"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+              />
+            )}
             <div className="w-10 h-10 bg-white rounded p-1">
               <TeamLogo team={boardData.auctionReadyInfo.playerTeam} />
             </div>

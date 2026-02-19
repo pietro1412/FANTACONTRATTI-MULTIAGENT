@@ -2800,12 +2800,16 @@ export async function getRubataPendingAck(
         playerId: pendingAck.playerId,
         status: RosterStatus.ACTIVE,
       },
-      include: { contract: true },
+      include: { contract: true, player: true },
     })
     if (roster?.contract) {
       contractInfo = {
         contractId: roster.contract.id,
         rosterId: roster.id,
+        playerId: pendingAck.playerId,
+        playerName: pendingAck.playerName,
+        playerTeam: roster.player.team,
+        playerPosition: roster.player.position,
         salary: roster.contract.salary,
         duration: roster.contract.duration,
         initialSalary: roster.contract.initialSalary,
@@ -2813,6 +2817,12 @@ export async function getRubataPendingAck(
       }
     }
   }
+
+  // Fetch apiFootballId for the player
+  const playerRecord = await prisma.serieAPlayer.findUnique({
+    where: { id: pendingAck.playerId },
+    select: { apiFootballId: true },
+  })
 
   return {
     success: true,
@@ -2823,6 +2833,7 @@ export async function getRubataPendingAck(
         name: pendingAck.playerName,
         team: pendingAck.playerTeam,
         position: pendingAck.playerPosition,
+        apiFootballId: playerRecord?.apiFootballId ?? null,
       },
       winner: pendingAck.winnerId ? {
         id: pendingAck.winnerId,
@@ -2932,7 +2943,7 @@ export async function acknowledgeRubataTransaction(
         playerId: pendingAck.playerId,
         status: RosterStatus.ACTIVE,
       },
-      include: { contract: true },
+      include: { contract: true, player: true },
     })
     if (roster?.contract) {
       winnerContractInfo = {
@@ -2940,6 +2951,8 @@ export async function acknowledgeRubataTransaction(
         rosterId: roster.id,
         playerId: pendingAck.playerId,
         playerName: pendingAck.playerName,
+        playerTeam: roster.player.team,
+        playerPosition: roster.player.position,
         salary: roster.contract.salary,
         duration: roster.contract.duration,
         initialSalary: roster.contract.initialSalary,

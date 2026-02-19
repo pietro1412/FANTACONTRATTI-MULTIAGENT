@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { Button } from '../ui/Button'
+import { TeamLogo } from './TeamLogo'
+import { POSITION_COLORS } from '../../types/rubata.types'
+import { getPlayerPhotoUrl } from '../../utils/player-images'
 import type { ActiveAuction } from '../../types/rubata.types'
 
 interface RubataBidPanelProps {
@@ -48,16 +51,34 @@ export function RubataBidPanel({
 
   return (
     <div className="mb-6 bg-surface-200 rounded-2xl border-4 border-danger-500 overflow-hidden auction-highlight shadow-2xl animate-[fadeIn_0.3s_ease-out]">
-      {/* Header */}
+      {/* Header with player card */}
       <div className="p-5 border-b border-surface-50/20 bg-gradient-to-r from-danger-600/30 via-danger-500/20 to-danger-600/30">
-        <div className="flex items-center justify-center gap-3">
-          <span className="text-3xl animate-pulse">🔥</span>
-          <div className="text-center">
-            <h3 className="text-xl font-black text-danger-400 uppercase tracking-wide">ASTA IN CORSO</h3>
-            <p className="text-2xl font-bold text-white mt-1">{activeAuction.player.name}</p>
+        <h3 className="text-center text-xl font-black text-danger-400 uppercase tracking-wide mb-3">
+          <span className="inline-block animate-pulse">🔥</span> ASTA IN CORSO <span className="inline-block animate-pulse">🔥</span>
+        </h3>
+
+        {/* Player card — pattern Svincolati */}
+        <div className="text-center p-4 bg-surface-300/50 rounded-xl border border-surface-50/20">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            {activeAuction.player.apiFootballId && (
+              <img
+                src={getPlayerPhotoUrl(activeAuction.player.apiFootballId)}
+                alt={activeAuction.player.name}
+                className="w-16 h-16 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+              />
+            )}
+            <span className={`px-3 py-1 rounded-full text-sm font-bold border ${POSITION_COLORS[activeAuction.player.position] ?? ''}`}>
+              {activeAuction.player.position}
+            </span>
+            <div className="w-10 h-10 bg-white rounded-lg p-1">
+              <TeamLogo team={activeAuction.player.team} />
+            </div>
           </div>
-          <span className="text-3xl animate-pulse">🔥</span>
+          <h2 className="text-2xl font-bold text-white mb-1">{activeAuction.player.name}</h2>
+          <p className="text-gray-400">{activeAuction.player.team}</p>
         </div>
+
         {/* Winning badge */}
         {isUserWinning && (
           <div className="mt-3 flex justify-center animate-[fadeIn_0.3s_ease-out]">
