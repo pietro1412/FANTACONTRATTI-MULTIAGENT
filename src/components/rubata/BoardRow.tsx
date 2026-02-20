@@ -105,14 +105,14 @@ export const BoardRow = memo(function BoardRow({
     : player.ownerUsername
 
   return (
-    <>
+    <div>
       {/* Manager group separator */}
       {isNewOwnerGroup && (
         <>
           {/* Desktop banner */}
-          <div className="hidden md:flex items-center gap-2 bg-surface-50/10 border-t-2 border-primary-500/30 px-4 py-1.5 rounded-t-lg -mb-1">
-            <span className="text-xs">📋</span>
-            <span className="text-xs font-bold text-primary-300 tracking-wide">{ownerLabel}</span>
+          <div className="hidden md:flex items-center gap-3 px-3 pt-2 pb-1">
+            <span className="text-sm">📋</span>
+            <span className="text-sm font-bold text-primary-300">{ownerLabel}</span>
             <span className="flex-1 border-t border-surface-50/15" />
           </div>
           {/* Mobile thin divider */}
@@ -432,6 +432,6 @@ export const BoardRow = memo(function BoardRow({
         )
       })()}
     </div>
-    </>
+    </div>
   )
 })
