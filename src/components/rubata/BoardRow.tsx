@@ -160,7 +160,8 @@ export const BoardRow = memo(function BoardRow({
         <div className="hidden md:block w-6 h-6 bg-white rounded p-0.5 flex-shrink-0">
           <TeamLogo team={player.playerTeam} />
         </div>
-        <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[8px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
+        {/* Position badge: always on desktop; on mobile only when photo exists (fallback circle already shows position) */}
+        <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[8px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''} ${!player.playerApiFootballId ? 'hidden md:inline-flex' : ''}`}>
           {player.playerPosition}
         </span>
         <button
@@ -179,6 +180,13 @@ export const BoardRow = memo(function BoardRow({
         >
           {player.playerName}
         </button>
+        {/* Mobile inline indicators */}
+        {isPassed && !wasStolen && (
+          <span className="md:hidden text-[10px] text-secondary-500 flex-shrink-0">✓</span>
+        )}
+        {isMyPlayer && (
+          <span className="md:hidden text-[10px] text-gray-500 flex-shrink-0">Mio</span>
+        )}
         {isCurrent && (
           <span className="hidden sm:inline text-xs bg-primary-500 text-white px-2.5 py-0.5 rounded-full shrink-0 font-medium">
             SUL PIATTO
@@ -299,16 +307,16 @@ export const BoardRow = memo(function BoardRow({
         </div>
       )}
 
-      {/* Passed + not stolen */}
+      {/* Passed + not stolen — hidden on mobile (shown inline in header) */}
       {isPassed && !wasStolen && (
-        <div className="mt-1 md:mt-0 text-center text-[10px] md:text-xs text-secondary-500 md:flex-shrink-0">
+        <div className="hidden md:block md:mt-0 text-center text-xs text-secondary-500 md:flex-shrink-0">
           ✓ Non rubato
         </div>
       )}
 
       {/* Strategy */}
       {(() => {
-        if (isMyPlayer) return <div className="mt-1 md:mt-0 md:ml-auto text-center text-gray-500 text-[10px] md:text-xs md:flex-shrink-0">Mio</div>
+        if (isMyPlayer) return <div className="hidden md:block md:mt-0 md:ml-auto text-center text-gray-500 text-xs md:flex-shrink-0">Mio</div>
         if (isPassed) return null
         const hasStrategy = pref?.priority || pref?.maxBid || pref?.notes || pref?.isWatchlist || pref?.isAutoPass
         return (
