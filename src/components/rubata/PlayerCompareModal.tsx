@@ -22,10 +22,10 @@ function CompareStatRow({ label, values, format, higherIsBetter = true }: {
 
   return (
     <div
-      className="grid gap-2 py-1.5 border-b border-surface-50/10 last:border-0 items-center"
-      style={{ gridTemplateColumns: `100px repeat(${values.length}, 1fr)` }}
+      className="grid gap-1.5 md:gap-2 py-1.5 border-b border-surface-50/10 last:border-0 items-center"
+      style={{ gridTemplateColumns: `80px repeat(${values.length}, 1fr)` }}
     >
-      <span className="text-gray-400 text-xs">{label}</span>
+      <span className="text-gray-400 text-[11px] md:text-xs">{label}</span>
       {values.map((v, i) => {
         const isBest = v != null && bestVal != null && v === bestVal && numericVals.filter(x => x === bestVal).length === 1
         return (
@@ -46,7 +46,7 @@ function CompareStatRow({ label, values, format, higherIsBetter = true }: {
 export function PlayerCompareModal({ isOpen, onClose, players }: PlayerCompareModalProps) {
   if (players.length < 2) return null
 
-  const colTemplate = `100px repeat(${players.length}, 1fr)`
+  const colTemplate = `80px repeat(${players.length}, 1fr)`
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
@@ -65,15 +65,15 @@ export function PlayerCompareModal({ isOpen, onClose, players }: PlayerCompareMo
                 <img
                   src={getPlayerPhotoUrl(p.playerApiFootballId)}
                   alt={p.playerName}
-                  className="w-12 h-12 rounded-full object-cover bg-surface-300 mx-auto mb-1"
+                  className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover bg-surface-300 mx-auto mb-1"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                 />
               ) : (
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold mx-auto mb-1 ${POSITION_COLORS[p.playerPosition] ?? ''}`}>
+                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm font-bold mx-auto mb-1 ${POSITION_COLORS[p.playerPosition] ?? ''}`}>
                   {p.playerPosition}
                 </div>
               )}
-              <p className="text-sm font-bold text-white truncate">{p.playerName}</p>
+              <p className="text-xs md:text-sm font-bold text-white truncate">{p.playerName}</p>
               <div className="flex items-center justify-center gap-1 mt-0.5">
                 <span className={`text-[10px] font-bold px-1 rounded ${POSITION_COLORS[p.playerPosition] ?? ''}`}>
                   {p.playerPosition}

@@ -462,7 +462,7 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText(/42 giocatori/)).toBeInTheDocument()
+    expect(screen.getByText('42')).toBeInTheDocument()
   })
 
   // ---- Ready check panel ----

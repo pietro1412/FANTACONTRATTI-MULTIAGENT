@@ -98,7 +98,7 @@ export const BoardRow = memo(function BoardRow({
       role="listitem"
       aria-label={`${player.playerName}, ${player.playerPosition}, ${player.playerTeam}${isCurrent ? ', sul piatto' : ''}${wasStolen ? `, rubato da ${player.stolenByUsername ?? ''}` : ''}`}
       onKeyDown={handleKeyDown}
-      className={`${isCurrent ? 'p-4' : 'p-3'} rounded-lg border transition-all focus:outline-none focus:ring-2 focus:ring-primary-400/70 ${
+      className={`${isCurrent ? 'p-3 md:p-4' : 'p-2.5 md:p-3'} rounded-lg border transition-all focus:outline-none focus:ring-2 focus:ring-primary-400/70 ${
         isCurrent
           ? 'bg-primary-500/30 border-primary-400 ring-2 ring-primary-400/50 shadow-lg animate-[pulse_2s_ease-in-out_infinite]'
           : isPassed
@@ -114,7 +114,7 @@ export const BoardRow = memo(function BoardRow({
       style={isCurrent ? { animationDuration: '2s' } : undefined}
     >
       {/* Player header */}
-      <div className="flex items-center gap-2 mb-2 md:mb-0 md:flex-1 md:min-w-0">
+      <div className="flex items-center gap-1.5 md:gap-2 mb-1.5 md:mb-0 md:flex-1 md:min-w-0">
         {/* D5: Compare checkbox */}
         {compareMode && !isPassed && (
           <button
@@ -180,7 +180,7 @@ export const BoardRow = memo(function BoardRow({
           {player.playerName}
         </button>
         {isCurrent && (
-          <span className="text-xs bg-primary-500 text-white px-2.5 py-0.5 rounded-full shrink-0 font-medium">
+          <span className="hidden sm:inline text-xs bg-primary-500 text-white px-2.5 py-0.5 rounded-full shrink-0 font-medium">
             SUL PIATTO
           </span>
         )}
@@ -195,7 +195,7 @@ export const BoardRow = memo(function BoardRow({
       </div>
 
       {/* Mobile: Age badge + Owner */}
-      <div className="md:hidden text-xs text-gray-500 mb-2 pl-6 flex items-center gap-1.5 flex-wrap">
+      <div className="md:hidden text-xs text-gray-500 mb-1.5 pl-6 flex items-center gap-1 flex-wrap">
         {player.playerAge != null && (
           <AgeBadge age={player.playerAge} />
         )}
@@ -216,16 +216,16 @@ export const BoardRow = memo(function BoardRow({
         </div>
       )}
 
-      {/* Contract details grid */}
-      <div className={`grid grid-cols-4 gap-2 rounded p-2 md:w-[280px] md:flex-shrink-0 ${isPassed ? 'bg-surface-50/5' : 'bg-surface-50/10'}`}>
+      {/* Contract details grid — 2x2 on mobile, 4-col on desktop */}
+      <div className={`grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 md:gap-2 rounded p-2 md:w-[280px] md:flex-shrink-0 ${isPassed ? 'bg-surface-50/5' : 'bg-surface-50/10'}`}>
         <div className="text-center">
-          <div className="text-[11px] text-gray-500 uppercase">Ingaggio</div>
+          <div className="text-[10px] md:text-[11px] text-gray-500 uppercase">Ingaggio</div>
           <div className={`font-medium text-sm ${isPassed ? 'text-gray-500' : 'text-accent-400'}`}>
             {player.contractSalary}M
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[11px] text-gray-500 uppercase">Durata</div>
+          <div className="text-[10px] md:text-[11px] text-gray-500 uppercase">Durata</div>
           <div className={`font-medium text-sm ${
             isPassed ? 'text-gray-500' :
             player.contractDuration === 1 ? 'text-danger-400' :
@@ -237,13 +237,13 @@ export const BoardRow = memo(function BoardRow({
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[11px] text-gray-500 uppercase">Clausola</div>
+          <div className="text-[10px] md:text-[11px] text-gray-500 uppercase">Clausola</div>
           <div className={`font-medium text-sm ${isPassed ? 'text-gray-500' : 'text-gray-400'}`}>
             {player.contractClause}M
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[11px] text-gray-500 uppercase">Rubata</div>
+          <div className="text-[10px] md:text-[11px] text-gray-500 uppercase">Rubata</div>
           <div className={`font-bold ${isCurrent ? 'text-lg text-primary-400' : isPassed ? 'text-sm text-gray-500' : 'text-sm text-warning-400'}`}>
             {player.rubataPrice}M
           </div>

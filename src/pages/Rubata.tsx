@@ -260,9 +260,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
         <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
           <div className="max-w-full mx-auto px-4 py-4">
             <div className="flex justify-between items-center">
-              <div className="flex items-center gap-5">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-danger-500 to-danger-700 flex items-center justify-center shadow-glow">
-                  <span className="text-2xl">⚔️</span>
+              <div className="flex items-center gap-2.5 md:gap-5">
+                <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-danger-500 to-danger-700 flex items-center justify-center shadow-glow flex-shrink-0">
+                  <span className="text-xl md:text-2xl">⚔️</span>
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -679,41 +679,42 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             )}
 
             {/* Tabellone completo */}
-            <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden flex flex-col" style={{ maxHeight: 'calc(100vh - 220px)', minHeight: '300px' }}>
+            <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden flex flex-col" style={{ maxHeight: 'calc(100vh - 180px)', minHeight: '250px' }}>
               {/* Board header with search + filters */}
-              <div className="p-4 border-b border-surface-50/20 shrink-0 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <span className="text-xl">📋</span>
-                    Tabellone Rubata
+              <div className="p-3 md:p-4 border-b border-surface-50/20 shrink-0 space-y-2 md:space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-base md:text-lg font-bold text-white flex items-center gap-1.5 md:gap-2">
+                    <span className="text-lg md:text-xl">📋</span>
+                    <span className="hidden sm:inline">Tabellone Rubata</span>
+                    <span className="sm:hidden">Tabellone</span>
                   </h3>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 md:gap-2">
                     <button
                       onClick={() => { setCompareMode(prev => !prev); if (compareMode) setComparePlayerIds([]); }}
-                      className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                      className={`px-1.5 md:px-2 py-1 rounded text-xs font-medium transition-all ${
                         compareMode
                           ? 'bg-primary-500/20 text-primary-400 border border-primary-500/40'
                           : 'text-gray-500 hover:text-gray-300'
                       }`}
                       title="Confronta giocatori"
                     >
-                      ⚖️ Confronta
+                      ⚖️ <span className="hidden sm:inline">Confronta</span>
                     </button>
-                    <span className="text-sm text-gray-400">
-                      {isFiltered ? `${filteredBoard?.length ?? 0} / ` : ''}{boardData?.totalPlayers} giocatori
+                    <span className="text-xs md:text-sm text-gray-400 whitespace-nowrap">
+                      {isFiltered ? `${filteredBoard?.length ?? 0}/` : ''}{boardData?.totalPlayers}
                     </span>
                   </div>
                 </div>
 
                 {/* Search bar */}
                 <div className="relative">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <Search size={16} className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => { setSearchQuery(e.target.value); }}
-                    placeholder="Cerca giocatore, squadra o proprietario..."
-                    className="w-full pl-9 pr-8 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50 transition-colors"
+                    placeholder="Cerca giocatore..."
+                    className="w-full pl-8 md:pl-9 pr-7 md:pr-8 py-1.5 md:py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50 transition-colors"
                   />
                   {searchQuery && (
                     <button
@@ -726,7 +727,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 </div>
 
                 {/* Filter row: position pills + quick chips */}
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
                   {/* Position filters */}
                   {(['P', 'D', 'C', 'A'] as const).map(pos => (
                     <button
@@ -777,7 +778,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               </div>
 
               {/* Board rows */}
-              <div ref={boardScrollRef} className="p-4 pb-24 md:pb-4 overflow-y-auto flex-1" role="list" aria-label="Tabellone rubata">
+              <div ref={boardScrollRef} className="p-2 md:p-4 pb-24 md:pb-4 overflow-y-auto flex-1" role="list" aria-label="Tabellone rubata">
                 {filteredBoard?.length === 0 && isFiltered && (
                   <p className="text-center text-gray-500 py-8 text-sm">Nessun giocatore corrisponde ai filtri</p>
                 )}
@@ -872,22 +873,22 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
         {/* D5: Floating compare bar */}
         {compareMode && comparePlayerIds.length > 0 && (
-          <div className="fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 z-50 bg-surface-200/95 backdrop-blur-sm border border-primary-500/40 rounded-full px-4 py-2 flex items-center gap-3 shadow-lg animate-[fadeIn_0.2s_ease-out]">
-            <span className="text-sm text-gray-300">
-              <span className="font-bold text-primary-400">{comparePlayerIds.length}</span>/3 selezionati
+          <div className="fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 z-50 bg-surface-200/95 backdrop-blur-sm border border-primary-500/40 rounded-full px-3 py-1.5 md:px-4 md:py-2 flex items-center gap-2 md:gap-3 shadow-lg animate-[fadeIn_0.2s_ease-out]">
+            <span className="text-xs md:text-sm text-gray-300">
+              <span className="font-bold text-primary-400">{comparePlayerIds.length}</span>/3
             </span>
             <button
               onClick={() => { setShowCompareModal(true); }}
               disabled={comparePlayerIds.length < 2}
-              className="px-3 py-1.5 rounded-full text-sm font-bold bg-primary-500 text-white hover:bg-primary-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="px-2.5 py-1 md:px-3 md:py-1.5 rounded-full text-xs md:text-sm font-bold bg-primary-500 text-white hover:bg-primary-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
-              ⚖️ Confronta
+              ⚖️ <span className="hidden sm:inline">Confronta</span>
             </button>
             <button
               onClick={() => { setComparePlayerIds([]); }}
-              className="text-xs text-gray-400 hover:text-white px-2 py-1"
+              className="text-xs text-gray-400 hover:text-white px-1.5 py-0.5 md:px-2 md:py-1"
             >
-              Azzera
+              ✕
             </button>
           </div>
         )}

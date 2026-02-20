@@ -54,31 +54,31 @@ export function RubataBidPanel({
   return (
     <div className="mb-6 bg-surface-200 rounded-2xl border-4 border-danger-500 overflow-hidden auction-highlight shadow-2xl animate-[fadeIn_0.3s_ease-out]">
       {/* Header with player card */}
-      <div className="p-5 border-b border-surface-50/20 bg-gradient-to-r from-danger-600/30 via-danger-500/20 to-danger-600/30">
-        <h3 className="text-center text-xl font-black text-danger-400 uppercase tracking-wide mb-3">
+      <div className="p-3 md:p-5 border-b border-surface-50/20 bg-gradient-to-r from-danger-600/30 via-danger-500/20 to-danger-600/30">
+        <h3 className="text-center text-lg md:text-xl font-black text-danger-400 uppercase tracking-wide mb-2 md:mb-3">
           <span className="inline-block animate-pulse">🔥</span> ASTA IN CORSO <span className="inline-block animate-pulse">🔥</span>
         </h3>
 
         {/* Player card — pattern Svincolati */}
-        <div className="text-center p-4 bg-surface-300/50 rounded-xl border border-surface-50/20">
-          <div className="flex items-center justify-center gap-3 mb-3">
+        <div className="text-center p-3 md:p-4 bg-surface-300/50 rounded-xl border border-surface-50/20">
+          <div className="flex items-center justify-center gap-2 md:gap-3 mb-2 md:mb-3">
             {activeAuction.player.apiFootballId && (
               <img
                 src={getPlayerPhotoUrl(activeAuction.player.apiFootballId)}
                 alt={activeAuction.player.name}
-                className="w-16 h-16 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
+                className="w-12 h-12 md:w-16 md:h-16 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
               />
             )}
-            <span className={`px-3 py-1 rounded-full text-sm font-bold border ${POSITION_COLORS[activeAuction.player.position] ?? ''}`}>
+            <span className={`px-2 py-0.5 md:px-3 md:py-1 rounded-full text-xs md:text-sm font-bold border ${POSITION_COLORS[activeAuction.player.position] ?? ''}`}>
               {activeAuction.player.position}
             </span>
-            <div className="w-10 h-10 bg-white rounded-lg p-1">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-white rounded-lg p-0.5 md:p-1">
               <TeamLogo team={activeAuction.player.team} />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-1">{activeAuction.player.name}</h2>
-          <p className="text-gray-400">{activeAuction.player.team}</p>
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-0.5 md:mb-1 truncate">{activeAuction.player.name}</h2>
+          <p className="text-sm md:text-base text-gray-400">{activeAuction.player.team}</p>
         </div>
 
         {/* Winning badge */}
@@ -91,27 +91,27 @@ export function RubataBidPanel({
         )}
       </div>
 
-      <div className="p-5">
-        <div className="grid md:grid-cols-2 gap-6">
+      <div className="p-3 md:p-5">
+        <div className="grid md:grid-cols-2 gap-4 md:gap-6">
           <div>
             {/* Price display — gradient + urgency */}
-            <div className={`bg-surface-300 p-4 rounded-xl border mb-4 transition-all ${
+            <div className={`bg-surface-300 p-3 md:p-4 rounded-xl border mb-3 md:mb-4 transition-all ${
               isUserWinning
                 ? 'border-secondary-500/40 bg-secondary-500/5'
                 : 'border-surface-50/20'
             }`}>
-              <div className="grid grid-cols-2 gap-4 text-center">
+              <div className="grid grid-cols-2 gap-2 md:gap-4 text-center">
                 <div>
-                  <p className="text-sm text-gray-500">Base</p>
-                  <p className="font-bold text-white text-xl">{activeAuction.basePrice}M</p>
+                  <p className="text-xs md:text-sm text-gray-500">Base</p>
+                  <p className="font-bold text-white text-lg md:text-xl">{activeAuction.basePrice}M</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Offerta attuale</p>
+                  <p className="text-xs md:text-sm text-gray-500">Offerta attuale</p>
                   <p
                     className={`font-black font-mono transition-all ${
                       isUserWinning
-                        ? 'text-3xl text-secondary-400'
-                        : 'text-3xl text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-accent-400 animate-pulse'
+                        ? 'text-2xl md:text-3xl text-secondary-400'
+                        : 'text-2xl md:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-accent-400 animate-pulse'
                     }`}
                     aria-live="polite"
                     aria-label={`Offerta attuale: ${activeAuction.currentPrice} milioni`}
@@ -131,14 +131,14 @@ export function RubataBidPanel({
             {/* Bid Form - only if not the seller */}
             {!isSeller && (
               <div className="space-y-3">
-                {/* Quick bid buttons */}
-                <div className="grid grid-cols-5 gap-1.5">
+                {/* Quick bid buttons — 3 cols mobile, 5 cols desktop */}
+                <div className="grid grid-cols-3 md:grid-cols-5 gap-1.5">
                   {quickBidAmounts.map((increment) => (
                     <button
                       key={increment}
                       onClick={() => { handleSetBidAmount(activeAuction.currentPrice + increment); }}
                       disabled={isSubmitting || activeAuction.currentPrice + increment > budget}
-                      className={`py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95 min-h-[44px] ${
+                      className={`py-2 md:py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95 min-h-[44px] ${
                         increment === 20
                           ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-400 hover:to-orange-400 disabled:opacity-30 disabled:cursor-not-allowed'
                           : 'bg-sky-500/20 border border-sky-500/30 text-sky-400 hover:bg-sky-500/30 disabled:opacity-30 disabled:cursor-not-allowed'
@@ -150,22 +150,22 @@ export function RubataBidPanel({
                   <button
                     onClick={() => { handleSetBidAmount(Math.floor(budget)); }}
                     disabled={isSubmitting || budget <= activeAuction.currentPrice}
-                    className="py-2.5 rounded-lg text-sm font-bold bg-accent-500 text-dark-900 hover:bg-accent-400 transition-all active:scale-95 min-h-[44px] disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="py-2 md:py-2.5 rounded-lg text-sm font-bold bg-accent-500 text-dark-900 hover:bg-accent-400 transition-all active:scale-95 min-h-[44px] disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     MAX
                   </button>
                 </div>
 
                 {/* Manual input with +/- */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 md:gap-2">
                   <button
                     onClick={() => { handleSetBidAmount(prev => Math.max(minBid, prev - 1)); }}
                     disabled={bidAmount <= minBid}
-                    className="w-12 h-12 rounded-xl bg-surface-300 border border-surface-50/30 text-white text-2xl font-bold hover:bg-surface-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+                    className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-surface-300 border border-surface-50/30 text-white text-xl md:text-2xl font-bold hover:bg-surface-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 flex-shrink-0"
                   >
                     −
                   </button>
-                  <div className="flex-1 text-center">
+                  <div className="flex-1 text-center min-w-0">
                     <input
                       type="number"
                       inputMode="numeric"
@@ -174,7 +174,7 @@ export function RubataBidPanel({
                         const val = parseInt(e.target.value) || 0
                         handleSetBidAmount(Math.max(minBid, val))
                       }}
-                      className="w-full text-center text-3xl font-bold bg-transparent text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-full text-center text-2xl md:text-3xl font-bold bg-transparent text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       min={minBid}
                     />
                     <p className="text-xs text-gray-500">Min: {minBid}M</p>
@@ -182,7 +182,7 @@ export function RubataBidPanel({
                   <button
                     onClick={() => { handleSetBidAmount(prev => prev + 1); }}
                     disabled={isSubmitting}
-                    className="w-12 h-12 rounded-xl bg-surface-300 border border-surface-50/30 text-white text-2xl font-bold hover:bg-surface-200 transition-all active:scale-95"
+                    className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-surface-300 border border-surface-50/30 text-white text-xl md:text-2xl font-bold hover:bg-surface-200 transition-all active:scale-95 flex-shrink-0"
                   >
                     +
                   </button>
@@ -249,7 +249,7 @@ export function RubataBidPanel({
                 <span className="text-xs text-gray-500 font-normal">({activeAuction.bids.length})</span>
               )}
             </h4>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+            <div className="space-y-2 max-h-32 md:max-h-48 overflow-y-auto">
               {activeAuction.bids.length === 0 ? (
                 <p className="text-gray-500 text-sm">Nessuna offerta ancora</p>
               ) : (

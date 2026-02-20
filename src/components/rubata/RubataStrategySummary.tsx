@@ -164,7 +164,7 @@ export function RubataStrategySummary({
       <button
         type="button"
         onClick={() => { setExpanded(prev => !prev); }}
-        className="w-full p-4 flex items-center justify-between hover:bg-surface-300/30 transition-colors"
+        className="w-full p-3 md:p-4 flex items-center justify-between hover:bg-surface-300/30 transition-colors"
       >
         <div className="flex items-center gap-2">
           <span className="text-lg">🎯</span>
@@ -177,7 +177,7 @@ export function RubataStrategySummary({
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4">
+        <div className="px-3 pb-3 md:px-4 md:pb-4">
           {/* Filter tabs + bulk toggle */}
           <div className="flex items-center gap-1 mb-3">
             <div className="flex gap-1 overflow-x-auto flex-1">
@@ -289,7 +289,7 @@ export function RubataStrategySummary({
               {configured === 0 ? 'Nessuna strategia impostata' : 'Nessun risultato per questo filtro'}
             </p>
           ) : (
-            <div className="space-y-1.5 max-h-60 overflow-y-auto">
+            <div className="space-y-1.5 max-h-40 md:max-h-60 overflow-y-auto">
               {items.map(({ player, pref, isPassed }) => (
                 <button
                   key={player.playerId}

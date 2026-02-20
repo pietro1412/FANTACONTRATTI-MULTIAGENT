@@ -95,7 +95,7 @@ export function RubataActivityFeed({ board }: RubataActivityFeedProps) {
           </div>
 
           {/* Content */}
-          <div className="max-h-[300px] overflow-y-auto space-y-1.5">
+          <div className="max-h-[200px] md:max-h-[300px] overflow-y-auto space-y-1.5">
             {viewMode === 'feed' ? (
               stolenPlayers.map(p => (
                 <div key={p.rosterId} className="flex items-center gap-2 px-3 py-2 bg-surface-300/40 rounded-lg text-sm">
