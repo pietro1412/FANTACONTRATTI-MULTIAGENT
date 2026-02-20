@@ -114,7 +114,7 @@ export const BoardRow = memo(function BoardRow({
       style={isCurrent ? { animationDuration: '2s' } : undefined}
     >
       {/* Player header */}
-      <div className="flex items-center gap-1.5 md:gap-2 mb-1.5 md:mb-0 md:flex-1 md:min-w-0">
+      <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-0 md:flex-1 md:min-w-0">
         {/* D5: Compare checkbox */}
         {compareMode && !isPassed && (
           <button
@@ -157,7 +157,7 @@ export const BoardRow = memo(function BoardRow({
             {player.playerPosition}
           </div>
         )}
-        <div className="w-6 h-6 bg-white rounded p-0.5 flex-shrink-0">
+        <div className="hidden md:block w-6 h-6 bg-white rounded p-0.5 flex-shrink-0">
           <TeamLogo team={player.playerTeam} />
         </div>
         <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[8px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
@@ -195,7 +195,7 @@ export const BoardRow = memo(function BoardRow({
       </div>
 
       {/* Mobile: Age badge + Owner */}
-      <div className="md:hidden text-xs text-gray-500 mb-1.5 pl-6 flex items-center gap-1 flex-wrap">
+      <div className="md:hidden text-[11px] text-gray-500 mb-0.5 pl-6 flex items-center gap-1 flex-wrap">
         {player.playerAge != null && (
           <AgeBadge age={player.playerAge} />
         )}
@@ -216,17 +216,21 @@ export const BoardRow = memo(function BoardRow({
         </div>
       )}
 
-      {/* Contract details grid — 2x2 on mobile, 4-col on desktop */}
-      <div className={`grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 md:gap-2 rounded p-2 md:w-[280px] md:flex-shrink-0 ${isPassed ? 'bg-surface-50/5' : 'bg-surface-50/10'}`}>
+      {/* Contract details — single row on mobile, 4-col on desktop */}
+      <div className={`grid grid-cols-4 gap-x-1.5 md:gap-x-2 rounded p-1.5 md:p-2 mt-1 md:mt-0 md:w-[280px] md:flex-shrink-0 ${isPassed ? 'bg-surface-50/5' : 'bg-surface-50/10'}`}>
         <div className="text-center">
-          <div className="text-[10px] md:text-[11px] text-gray-500 uppercase">Ingaggio</div>
-          <div className={`font-medium text-sm ${isPassed ? 'text-gray-500' : 'text-accent-400'}`}>
+          <div className="text-[9px] md:text-[11px] text-gray-500 uppercase leading-tight">
+            <span className="md:hidden">Ing.</span><span className="hidden md:inline">Ingaggio</span>
+          </div>
+          <div className={`font-medium text-xs md:text-sm ${isPassed ? 'text-gray-500' : 'text-accent-400'}`}>
             {player.contractSalary}M
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[10px] md:text-[11px] text-gray-500 uppercase">Durata</div>
-          <div className={`font-medium text-sm ${
+          <div className="text-[9px] md:text-[11px] text-gray-500 uppercase leading-tight">
+            <span className="md:hidden">Dur.</span><span className="hidden md:inline">Durata</span>
+          </div>
+          <div className={`font-medium text-xs md:text-sm ${
             isPassed ? 'text-gray-500' :
             player.contractDuration === 1 ? 'text-danger-400' :
             player.contractDuration === 2 ? 'text-warning-400' :
@@ -237,14 +241,18 @@ export const BoardRow = memo(function BoardRow({
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[10px] md:text-[11px] text-gray-500 uppercase">Clausola</div>
-          <div className={`font-medium text-sm ${isPassed ? 'text-gray-500' : 'text-gray-400'}`}>
+          <div className="text-[9px] md:text-[11px] text-gray-500 uppercase leading-tight">
+            <span className="md:hidden">Claus.</span><span className="hidden md:inline">Clausola</span>
+          </div>
+          <div className={`font-medium text-xs md:text-sm ${isPassed ? 'text-gray-500' : 'text-gray-400'}`}>
             {player.contractClause}M
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[10px] md:text-[11px] text-gray-500 uppercase">Rubata</div>
-          <div className={`font-bold ${isCurrent ? 'text-lg text-primary-400' : isPassed ? 'text-sm text-gray-500' : 'text-sm text-warning-400'}`}>
+          <div className="text-[9px] md:text-[11px] text-gray-500 uppercase leading-tight">
+            <span className="md:hidden">Rub.</span><span className="hidden md:inline">Rubata</span>
+          </div>
+          <div className={`font-bold ${isCurrent ? 'text-base md:text-lg text-primary-400' : isPassed ? 'text-xs md:text-sm text-gray-500' : 'text-xs md:text-sm text-warning-400'}`}>
             {player.rubataPrice}M
           </div>
         </div>
@@ -293,18 +301,18 @@ export const BoardRow = memo(function BoardRow({
 
       {/* Passed + not stolen */}
       {isPassed && !wasStolen && (
-        <div className="mt-2 md:mt-0 text-center text-xs text-secondary-500 md:flex-shrink-0">
+        <div className="mt-1 md:mt-0 text-center text-[10px] md:text-xs text-secondary-500 md:flex-shrink-0">
           ✓ Non rubato
         </div>
       )}
 
       {/* Strategy */}
       {(() => {
-        if (isMyPlayer) return <div className="mt-2 md:mt-0 md:ml-auto text-center text-gray-500 text-xs md:flex-shrink-0">Mio</div>
+        if (isMyPlayer) return <div className="mt-1 md:mt-0 md:ml-auto text-center text-gray-500 text-[10px] md:text-xs md:flex-shrink-0">Mio</div>
         if (isPassed) return null
         const hasStrategy = pref?.priority || pref?.maxBid || pref?.notes || pref?.isWatchlist || pref?.isAutoPass
         return (
-          <div className="mt-2 pt-2 border-t border-surface-50/20 md:mt-0 md:pt-0 md:border-t-0 md:ml-auto md:w-[140px] md:flex-shrink-0">
+          <div className="mt-1 pt-1 border-t border-surface-50/20 md:mt-0 md:pt-0 md:border-t-0 md:ml-auto md:w-[140px] md:flex-shrink-0">
             <div className="flex items-center justify-between md:justify-end gap-2">
               <div className="flex items-center gap-1.5 flex-wrap">
                 {pref?.isWatchlist && (
