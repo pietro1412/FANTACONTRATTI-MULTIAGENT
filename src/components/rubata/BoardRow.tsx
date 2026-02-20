@@ -217,7 +217,7 @@ export const BoardRow = memo(function BoardRow({
       {/* Mobile: compact info — owner + age + contract inline */}
       <div className="md:hidden flex items-center gap-1 text-[11px] mt-0.5 ml-8 flex-wrap">
         <span className="text-gray-500">
-          di <span className={isPassed && wasStolen ? 'line-through text-gray-500' : 'text-gray-300'}>{player.ownerUsername}</span>
+          di <span className={isPassed && wasStolen ? 'line-through text-gray-500' : 'text-gray-400'}>{player.ownerUsername}</span>
         </span>
         {player.playerAge != null && (
           <>
@@ -226,11 +226,11 @@ export const BoardRow = memo(function BoardRow({
           </>
         )}
         <span className="text-gray-600">·</span>
-        <span className={isPassed ? 'text-gray-500' : 'text-accent-400'}>{player.contractSalary}M</span>
-        <span className="text-gray-600">/</span>
-        <span className={isPassed ? 'text-gray-500' : durationColor}>{player.contractDuration}s</span>
-        <span className="text-gray-600">/</span>
-        <span className={isPassed ? 'text-gray-500' : 'text-purple-400'}>{player.contractClause}M</span>
+        <span className={`font-bold ${isPassed ? 'text-gray-500' : 'text-accent-400'}`}>{player.contractSalary}M</span>
+        <span className="text-gray-600">·</span>
+        <span className={`font-bold ${isPassed ? 'text-gray-500' : durationColor}`}>{player.contractDuration}s</span>
+        <span className="text-gray-600">·</span>
+        <span className={`font-bold ${isPassed ? 'text-gray-500' : 'text-purple-400'}`}>{player.contractClause}M</span>
       </div>
 
       {/* Stolen indicator */}
