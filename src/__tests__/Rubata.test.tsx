@@ -1378,18 +1378,18 @@ describe('Rubata', () => {
     expect(screen.getAllByText(/33a/).length).toBeGreaterThanOrEqual(1)
   })
 
-  // ---- Board: owner team name shown in mobile view ----
-  it('shows owner team name in mobile card view', () => {
+  // ---- Board: owner username shown in mobile compact info line ----
+  it('shows owner username in mobile compact info line', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
       boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
-      board: [makeBoardPlayer({ ownerTeamName: 'FC Fantastica' })] as never[],
+      board: [makeBoardPlayer({ ownerUsername: 'Neo', ownerTeamName: 'FC Fantastica' })] as never[],
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getAllByText('(FC Fantastica)').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Neo').length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Board: contract duration color coding ----

@@ -91,6 +91,12 @@ export const BoardRow = memo(function BoardRow({
     }
   }
 
+  const durationColor =
+    player.contractDuration === 1 ? 'text-danger-400' :
+    player.contractDuration === 2 ? 'text-warning-400' :
+    player.contractDuration === 3 ? 'text-blue-400' :
+    'text-secondary-400'
+
   return (
     <div
       ref={isCurrent ? currentPlayerRef as React.RefObject<HTMLDivElement> : null}
@@ -187,6 +193,12 @@ export const BoardRow = memo(function BoardRow({
         {isMyPlayer && (
           <span className="md:hidden text-[10px] text-gray-500 flex-shrink-0">Mio</span>
         )}
+        {/* Mobile: rubata price right-aligned */}
+        <span className={`md:hidden ml-auto font-black text-base flex-shrink-0 ${
+          isCurrent ? 'text-primary-400' : isPassed ? 'text-gray-500' : 'text-warning-400'
+        }`}>
+          {player.rubataPrice}M
+        </span>
         {isCurrent && (
           <span className="hidden sm:inline text-xs bg-primary-500 text-white px-2.5 py-0.5 rounded-full shrink-0 font-medium">
             SUL PIATTO
@@ -202,20 +214,28 @@ export const BoardRow = memo(function BoardRow({
         )}
       </div>
 
-      {/* Mobile: Age badge + Owner */}
-      <div className="md:hidden text-[11px] text-gray-500 mb-0.5 pl-6 flex items-center gap-1 flex-wrap">
-        {player.playerAge != null && (
-          <AgeBadge age={player.playerAge} />
-        )}
-        <span>
-          di <span className={isPassed && wasStolen ? 'text-gray-500 line-through' : 'text-gray-400'}>{player.ownerUsername}</span>
-          {player.ownerTeamName && <span className="text-gray-500"> ({player.ownerTeamName})</span>}
+      {/* Mobile: compact info — owner + age + contract inline */}
+      <div className="md:hidden flex items-center gap-1 text-[11px] mt-0.5 ml-8 flex-wrap">
+        <span className="text-gray-500">
+          di <span className={isPassed && wasStolen ? 'line-through text-gray-500' : 'text-gray-300'}>{player.ownerUsername}</span>
         </span>
+        {player.playerAge != null && (
+          <>
+            <span className="text-gray-600">·</span>
+            <AgeBadge age={player.playerAge} />
+          </>
+        )}
+        <span className="text-gray-600">·</span>
+        <span className={isPassed ? 'text-gray-500' : 'text-accent-400'}>{player.contractSalary}M</span>
+        <span className="text-gray-600">/</span>
+        <span className={isPassed ? 'text-gray-500' : durationColor}>{player.contractDuration}s</span>
+        <span className="text-gray-600">/</span>
+        <span className={isPassed ? 'text-gray-500' : 'text-purple-400'}>{player.contractClause}M</span>
       </div>
 
       {/* Stolen indicator */}
       {wasStolen && (
-        <div className="mb-2 md:mb-0 ml-6 md:ml-0 flex items-center gap-1 text-sm flex-shrink-0">
+        <div className="mb-1 md:mb-0 ml-8 md:ml-0 flex items-center gap-1 text-sm flex-shrink-0">
           <span className="text-danger-400">🎯</span>
           <span className="text-danger-400 font-bold">{player.stolenByUsername}</span>
           {player.stolenPrice && player.stolenPrice > player.rubataPrice && (
@@ -225,7 +245,7 @@ export const BoardRow = memo(function BoardRow({
       )}
 
       {/* Contract details — single row, 4-col */}
-      <div className={`grid grid-cols-4 gap-x-1 md:gap-x-2 rounded-lg p-1.5 md:p-2 mt-1.5 md:mt-0 md:w-[280px] md:flex-shrink-0 ${isPassed ? 'bg-surface-50/5' : 'bg-surface-300/40'}`}>
+      <div className={`hidden md:grid grid-cols-4 gap-x-2 rounded-lg p-2 w-[280px] flex-shrink-0 ${isPassed ? 'bg-surface-50/5' : 'bg-surface-300/40'}`}>
         <div className="text-center">
           <div className="text-[8px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
             <span className="md:hidden">Ing.</span><span className="hidden md:inline">Ingaggio</span>
@@ -268,7 +288,7 @@ export const BoardRow = memo(function BoardRow({
 
       {/* Inline VOGLIO RUBARE button — only for current player during OFFERING */}
       {isCurrent && rubataState === 'OFFERING' && canMakeOffer && (
-        <div className="mt-2 md:mt-0 md:flex-shrink-0">
+        <div className="mt-1 md:mt-0 md:flex-shrink-0">
           <Button
             onClick={onMakeOffer}
             disabled={isSubmitting}
@@ -320,7 +340,7 @@ export const BoardRow = memo(function BoardRow({
         if (isPassed) return null
         const hasStrategy = pref?.priority || pref?.maxBid || pref?.notes || pref?.isWatchlist || pref?.isAutoPass
         return (
-          <div className="mt-1 pt-1 border-t border-surface-50/20 md:mt-0 md:pt-0 md:border-t-0 md:ml-auto md:w-[140px] md:flex-shrink-0">
+          <div className={`${hasStrategy ? 'mt-0.5' : 'hidden md:block'} md:mt-0 md:ml-auto md:w-[140px] md:flex-shrink-0`}>
             <div className="flex items-center justify-between md:justify-end gap-2">
               <div className="flex items-center gap-1.5 flex-wrap">
                 {pref?.isWatchlist && (
