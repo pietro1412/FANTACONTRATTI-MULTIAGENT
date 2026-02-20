@@ -104,7 +104,7 @@ export const BoardRow = memo(function BoardRow({
       role="listitem"
       aria-label={`${player.playerName}, ${player.playerPosition}, ${player.playerTeam}${isCurrent ? ', sul piatto' : ''}${wasStolen ? `, rubato da ${player.stolenByUsername ?? ''}` : ''}`}
       onKeyDown={handleKeyDown}
-      className={`${isCurrent ? 'p-3 md:p-4' : 'px-2.5 py-3 md:p-3'} rounded-lg border border-surface-50/10 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400/70 ${
+      className={`${isCurrent ? 'p-3 md:p-4' : 'px-2.5 py-2 md:p-3'} rounded-lg border border-transparent md:border-surface-50/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/70 ${
         isCurrent
           ? 'bg-primary-500/20 md:bg-primary-500/30 md:border-primary-400 md:ring-2 md:ring-primary-400/50 md:shadow-lg'
           : isPassed

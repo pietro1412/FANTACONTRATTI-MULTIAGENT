@@ -795,7 +795,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         <div
                           key={player.rosterId}
                           style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)` }}
-                          className="pb-3"
+                          className="pb-1.5 md:pb-3"
                         >
                           <BoardRow
                             player={player}
@@ -828,7 +828,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   </div>
                 ) : (
                   /* Standard mode for <50 rows */
-                  <div className="space-y-3">
+                  <div className="space-y-1.5 md:space-y-3">
                     {filteredBoard?.map((player) => {
                       const globalIndex = player.originalIndex
                       const isCurrent = globalIndex === boardData?.currentIndex
