@@ -73,6 +73,9 @@ export function useRubataState(leagueId: string) {
   const [previewBoard, setPreviewBoard] = useState<PreviewBoardData | null>(null)
   const [selectedPlayerForPrefs, setSelectedPlayerForPrefs] = useState<BoardPlayerWithPreference | null>(null)
 
+  // Independent preferences state (loaded from lenient /rubata/preferences endpoint)
+  const [rawPreferences, setRawPreferences] = useState<RubataPreference[]>([])
+
   // Contract modification after rubata win
   const [pendingContractModification, setPendingContractModification] = useState<ContractForModification | null>(null)
 
@@ -864,6 +867,16 @@ export function useRubataState(leagueId: string) {
     }
   }
 
+  // Load preferences from the lenient /rubata/preferences endpoint
+  // (uses same session-finding logic as setPreference — more reliable than previewBoard)
+  async function loadPreferences() {
+    const res = await rubataApi.getPreferences(leagueId)
+    if (res.success && res.data) {
+      const data = res.data as { preferences: RubataPreference[] }
+      setRawPreferences(data.preferences ?? [])
+    }
+  }
+
   async function handleSetToPreview() {
     setError('')
     setIsSubmitting(true)
@@ -873,6 +886,7 @@ export function useRubataState(leagueId: string) {
       setSuccess('Tabellone in modalità preview!')
       void loadData()
       void loadPreviewBoard()
+      void loadPreferences()
     } else {
       setError(res.message || 'Errore')
     }
@@ -898,7 +912,7 @@ export function useRubataState(leagueId: string) {
 
     if (res.success) {
       setSuccess('Preferenza salvata!')
-      await loadPreviewBoard()
+      await loadPreferences()
       closePrefsModal()
     } else {
       setError(res.message || 'Errore')
@@ -914,7 +928,7 @@ export function useRubataState(leagueId: string) {
     const res = await rubataApi.deletePreference(leagueId, selectedPlayerForPrefs.playerId)
     if (res.success) {
       setSuccess('Preferenza rimossa!')
-      await loadPreviewBoard()
+      await loadPreferences()
       closePrefsModal()
     } else {
       setError(res.message || 'Errore')
@@ -938,7 +952,7 @@ export function useRubataState(leagueId: string) {
     }
     if (successCount > 0) {
       setSuccess(`Importate ${successCount} strategie`)
-      await loadPreviewBoard()
+      await loadPreferences()
     } else {
       setError('Nessuna strategia importata')
     }
@@ -955,24 +969,36 @@ export function useRubataState(leagueId: string) {
     }
     if (successCount > 0) {
       setSuccess(`Strategia applicata a ${successCount} giocatori`)
-      await loadPreviewBoard()
+      await loadPreferences()
     } else {
       setError('Nessuna strategia applicata')
     }
     setIsSubmitting(false)
   }
 
-  // Load preferences whenever there's a board
+  // Load preview board and preferences whenever there's a board
   useEffect(() => {
-    if (boardData?.isRubataPhase && boardData?.board && boardData.board.length > 0) {
-      void loadPreviewBoard()
+    if (boardData?.board && boardData.board.length > 0) {
+      // Always load preferences (lenient endpoint, works in any phase)
+      void loadPreferences()
+      // Also load preview board if in RUBATA phase (for enriched stats)
+      if (boardData.isRubataPhase) {
+        void loadPreviewBoard()
+      }
     }
   }, [boardData?.isRubataPhase, boardData?.board?.length])
 
-  // Preferences map
+  // Preferences map — built from independent preferences endpoint (primary source)
+  // Falls back to previewBoard preferences if rawPreferences is empty
   const preferencesMap = useMemo(() => {
     const map = new Map<string, RubataPreference>()
-    if (previewBoard?.board) {
+    if (rawPreferences.length > 0) {
+      // Primary source: the lenient /rubata/preferences endpoint
+      rawPreferences.forEach(p => {
+        map.set(p.playerId, p)
+      })
+    } else if (previewBoard?.board) {
+      // Fallback: extract from preview board (requires RUBATA phase)
       previewBoard.board.forEach(p => {
         if (p.preference) {
           map.set(p.playerId, p.preference)
@@ -980,7 +1006,7 @@ export function useRubataState(leagueId: string) {
       })
     }
     return map
-  }, [previewBoard])
+  }, [rawPreferences, previewBoard])
 
   // Progress stats
   const progressStats = useMemo<ProgressStats | null>(() => {
