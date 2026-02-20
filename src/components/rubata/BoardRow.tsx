@@ -98,7 +98,7 @@ export const BoardRow = memo(function BoardRow({
       role="listitem"
       aria-label={`${player.playerName}, ${player.playerPosition}, ${player.playerTeam}${isCurrent ? ', sul piatto' : ''}${wasStolen ? `, rubato da ${player.stolenByUsername ?? ''}` : ''}`}
       onKeyDown={handleKeyDown}
-      className={`${isCurrent ? 'p-3 md:p-4' : 'p-2.5 md:p-3'} rounded-lg border transition-all focus:outline-none focus:ring-2 focus:ring-primary-400/70 ${
+      className={`${isCurrent ? 'p-3 md:p-4' : 'px-2.5 py-3 md:p-3'} rounded-lg border transition-all focus:outline-none focus:ring-2 focus:ring-primary-400/70 ${
         isCurrent
           ? 'bg-primary-500/30 border-primary-400 ring-2 ring-primary-400/50 shadow-lg animate-[pulse_2s_ease-in-out_infinite]'
           : isPassed
@@ -175,7 +175,7 @@ export const BoardRow = memo(function BoardRow({
             apiFootballId: player.playerApiFootballId,
             computedStats: player.playerComputedStats,
           }); }}
-          className={`font-medium truncate text-left ${isCurrent ? 'text-white font-bold text-base' : isPassed ? 'text-gray-500' : 'text-gray-300 hover:text-white'}`}
+          className={`font-semibold truncate text-left ${isCurrent ? 'text-white font-bold text-base' : isPassed ? 'text-gray-500' : 'text-white hover:text-primary-300'}`}
           title="Clicca per vedere statistiche"
         >
           {player.playerName}
@@ -224,21 +224,21 @@ export const BoardRow = memo(function BoardRow({
         </div>
       )}
 
-      {/* Contract details — single row on mobile, 4-col on desktop */}
-      <div className={`grid grid-cols-4 gap-x-1.5 md:gap-x-2 rounded p-1.5 md:p-2 mt-1 md:mt-0 md:w-[280px] md:flex-shrink-0 ${isPassed ? 'bg-surface-50/5' : 'bg-surface-50/10'}`}>
+      {/* Contract details — single row, 4-col */}
+      <div className={`grid grid-cols-4 gap-x-1 md:gap-x-2 rounded-lg p-1.5 md:p-2 mt-1.5 md:mt-0 md:w-[280px] md:flex-shrink-0 ${isPassed ? 'bg-surface-50/5' : 'bg-surface-300/40'}`}>
         <div className="text-center">
-          <div className="text-[9px] md:text-[11px] text-gray-500 uppercase leading-tight">
+          <div className="text-[8px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
             <span className="md:hidden">Ing.</span><span className="hidden md:inline">Ingaggio</span>
           </div>
-          <div className={`font-medium text-xs md:text-sm ${isPassed ? 'text-gray-500' : 'text-accent-400'}`}>
+          <div className={`font-bold text-sm md:text-sm ${isPassed ? 'text-gray-500' : 'text-accent-400'}`}>
             {player.contractSalary}M
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[9px] md:text-[11px] text-gray-500 uppercase leading-tight">
+          <div className="text-[8px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
             <span className="md:hidden">Dur.</span><span className="hidden md:inline">Durata</span>
           </div>
-          <div className={`font-medium text-xs md:text-sm ${
+          <div className={`font-bold text-sm md:text-sm ${
             isPassed ? 'text-gray-500' :
             player.contractDuration === 1 ? 'text-danger-400' :
             player.contractDuration === 2 ? 'text-warning-400' :
@@ -249,18 +249,18 @@ export const BoardRow = memo(function BoardRow({
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[9px] md:text-[11px] text-gray-500 uppercase leading-tight">
+          <div className="text-[8px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
             <span className="md:hidden">Claus.</span><span className="hidden md:inline">Clausola</span>
           </div>
-          <div className={`font-medium text-xs md:text-sm ${isPassed ? 'text-gray-500' : 'text-gray-400'}`}>
+          <div className={`font-bold text-sm md:text-sm ${isPassed ? 'text-gray-500' : 'text-purple-400'}`}>
             {player.contractClause}M
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[9px] md:text-[11px] text-gray-500 uppercase leading-tight">
+          <div className="text-[8px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
             <span className="md:hidden">Rub.</span><span className="hidden md:inline">Rubata</span>
           </div>
-          <div className={`font-bold ${isCurrent ? 'text-base md:text-lg text-primary-400' : isPassed ? 'text-xs md:text-sm text-gray-500' : 'text-xs md:text-sm text-warning-400'}`}>
+          <div className={`font-black ${isCurrent ? 'text-base md:text-lg text-primary-400' : isPassed ? 'text-sm text-gray-500' : 'text-sm text-warning-400'}`}>
             {player.rubataPrice}M
           </div>
         </div>
