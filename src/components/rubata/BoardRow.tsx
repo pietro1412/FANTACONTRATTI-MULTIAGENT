@@ -110,13 +110,13 @@ export const BoardRow = memo(function BoardRow({
       {isNewOwnerGroup && (
         <>
           {/* Desktop banner */}
-          <div className="hidden md:flex items-center gap-3 px-3 pt-2 pb-1">
+          <div className="hidden md:flex items-center gap-3 px-3 pb-1">
             <span className="text-sm">📋</span>
             <span className="text-sm font-bold text-primary-300">{ownerLabel}</span>
             <span className="flex-1 border-t border-surface-50/15" />
           </div>
           {/* Mobile thin divider */}
-          <div className="md:hidden flex items-center gap-1.5 border-t border-primary-500/20 pt-2 pb-0.5 px-3">
+          <div className="md:hidden flex items-center gap-1.5 border-t border-primary-500/20 pb-0.5 px-3">
             <span className="text-[10px] font-bold text-primary-400/70 truncate">{ownerLabel}</span>
             <span className="flex-1 border-t border-surface-50/10" />
           </div>
