@@ -48,6 +48,8 @@ export interface BoardRowProps {
   compareMode?: boolean
   isCompareSelected?: boolean
   onToggleCompare?: () => void
+  // Manager group separator
+  isNewOwnerGroup?: boolean
 }
 
 export const BoardRow = memo(function BoardRow({
@@ -68,6 +70,7 @@ export const BoardRow = memo(function BoardRow({
   compareMode,
   isCompareSelected,
   onToggleCompare,
+  isNewOwnerGroup,
 }: BoardRowProps) {
   const wasStolen = !!player.stolenByUsername
   const isMyPlayer = player.memberId === myMemberId
@@ -97,7 +100,28 @@ export const BoardRow = memo(function BoardRow({
     player.contractDuration === 3 ? 'text-blue-400' :
     'text-secondary-400'
 
+  const ownerLabel = player.ownerTeamName
+    ? `${player.ownerTeamName} (${player.ownerUsername})`
+    : player.ownerUsername
+
   return (
+    <>
+      {/* Manager group separator */}
+      {isNewOwnerGroup && (
+        <>
+          {/* Desktop banner */}
+          <div className="hidden md:flex items-center gap-2 bg-surface-50/10 border-t-2 border-primary-500/30 px-4 py-1.5 rounded-t-lg -mb-1">
+            <span className="text-xs">📋</span>
+            <span className="text-xs font-bold text-primary-300 tracking-wide">{ownerLabel}</span>
+            <span className="flex-1 border-t border-surface-50/15" />
+          </div>
+          {/* Mobile thin divider */}
+          <div className="md:hidden flex items-center gap-1.5 border-t border-primary-500/20 pt-2 pb-0.5 px-3">
+            <span className="text-[10px] font-bold text-primary-400/70 truncate">{ownerLabel}</span>
+            <span className="flex-1 border-t border-surface-50/10" />
+          </div>
+        </>
+      )}
     <div
       ref={isCurrent ? currentPlayerRef as React.RefObject<HTMLDivElement> : null}
       tabIndex={0}
@@ -195,7 +219,7 @@ export const BoardRow = memo(function BoardRow({
         {/* Mobile: stolen indicator inline */}
         {wasStolen && (
           <span className="md:hidden text-danger-400 text-[10px] font-bold flex-shrink-0">
-            🎯 {player.stolenByUsername}{player.stolenPrice != null && player.stolenPrice > player.rubataPrice ? ` (${player.stolenPrice}M)` : ''}
+            <span className="animate-pulse inline-block">🎯</span> {player.stolenByUsername}{player.stolenPrice != null && player.stolenPrice > player.rubataPrice ? ` (+${player.stolenPrice - player.rubataPrice}M)` : ''}
           </span>
         )}
         {/* Mobile: rubata price right-aligned */}
@@ -211,7 +235,7 @@ export const BoardRow = memo(function BoardRow({
         )}
         {/* Desktop: owner inline */}
         <span className="hidden md:inline text-xs text-gray-400 ml-1 truncate flex-shrink-0">
-          di <span className={isPassed && wasStolen ? 'line-through' : ''}>{player.ownerUsername}</span>
+          di <span className={isPassed && wasStolen ? 'line-through' : ''}>{player.ownerTeamName ? `${player.ownerTeamName}` : player.ownerUsername}</span>
         </span>
         {/* Desktop: age badge */}
         {player.playerAge != null && (
@@ -238,14 +262,17 @@ export const BoardRow = memo(function BoardRow({
         <span className={`font-bold ${isPassed ? 'text-gray-500' : 'text-purple-400'}`}>{player.contractClause}M</span>
       </div>
 
-      {/* Stolen indicator — desktop only (mobile is inline in header) */}
+      {/* Stolen indicator — desktop badge */}
       {wasStolen && (
-        <div className="hidden md:flex items-center gap-1 text-sm flex-shrink-0">
-          <span className="text-danger-400">🎯</span>
-          <span className="text-danger-400 font-bold">{player.stolenByUsername}</span>
-          {player.stolenPrice && player.stolenPrice > player.rubataPrice && (
-            <span className="text-danger-500 text-xs">({player.stolenPrice}M)</span>
-          )}
+        <div className="hidden md:flex flex-col items-start bg-danger-500/15 border border-danger-500/30 rounded-lg px-3 py-1.5 min-w-[140px] flex-shrink-0">
+          <span className="text-[8px] text-danger-300 uppercase font-medium tracking-wide">Rubato da</span>
+          <div className="flex items-center gap-1.5">
+            <span>🎯</span>
+            <span className="text-sm font-bold text-danger-400">{player.stolenByUsername}</span>
+            {player.stolenPrice != null && player.stolenPrice > player.rubataPrice && (
+              <span className="text-xs text-danger-500 font-medium">(+{player.stolenPrice - player.rubataPrice}M)</span>
+            )}
+          </div>
         </div>
       )}
 
@@ -305,32 +332,47 @@ export const BoardRow = memo(function BoardRow({
         </div>
       )}
 
-      {/* Inline stats - desktop only, non-passed players */}
-      {!isPassed && player.playerComputedStats && (
-        <div className="hidden md:flex items-center gap-1.5 text-[11px] md:flex-shrink-0">
-          {player.playerComputedStats.avgRating != null && (
-            <span className={`font-bold ${
+      {/* Stats grid — desktop only, always visible */}
+      <div className={`hidden md:grid grid-cols-3 w-[120px] flex-shrink-0 text-center ${isPassed ? 'opacity-60' : ''}`}>
+        {/* MV */}
+        <div>
+          <div className="text-[8px] uppercase text-gray-600 leading-tight">MV</div>
+          {player.playerComputedStats?.avgRating != null ? (
+            <div className={`text-xs font-bold ${
+              isPassed ? 'text-gray-500' :
               player.playerComputedStats.avgRating >= 6.5 ? 'text-green-400' :
               player.playerComputedStats.avgRating >= 6.0 ? 'text-yellow-400' :
               'text-red-400'
-            }`} title="Media voto">
-              MV {player.playerComputedStats.avgRating.toFixed(2)}
-            </span>
-          )}
-          {(player.playerPosition === 'A') && player.playerComputedStats.totalGoals > 0 && (
-            <>
-              <span className="text-gray-600">|</span>
-              <span className="text-gray-400">{player.playerComputedStats.totalGoals}G</span>
-            </>
-          )}
-          {(player.playerPosition === 'C' || player.playerPosition === 'A') && player.playerComputedStats.totalAssists > 0 && (
-            <>
-              <span className="text-gray-600">|</span>
-              <span className="text-gray-400">{player.playerComputedStats.totalAssists}A</span>
-            </>
+            }`}>
+              {player.playerComputedStats.avgRating.toFixed(2)}
+            </div>
+          ) : (
+            <div className="text-xs font-bold text-gray-600">-</div>
           )}
         </div>
-      )}
+        {/* GOL */}
+        <div>
+          <div className="text-[8px] uppercase text-gray-600 leading-tight">GOL</div>
+          {player.playerPosition === 'A' && player.playerComputedStats?.totalGoals != null ? (
+            <div className={`text-xs font-bold ${isPassed ? 'text-gray-500' : 'text-gray-300'}`}>
+              {player.playerComputedStats.totalGoals}
+            </div>
+          ) : (
+            <div className="text-xs font-bold text-gray-600">-</div>
+          )}
+        </div>
+        {/* ASS */}
+        <div>
+          <div className="text-[8px] uppercase text-gray-600 leading-tight">ASS</div>
+          {(player.playerPosition === 'C' || player.playerPosition === 'A') && player.playerComputedStats?.totalAssists != null ? (
+            <div className={`text-xs font-bold ${isPassed ? 'text-gray-500' : 'text-gray-300'}`}>
+              {player.playerComputedStats.totalAssists}
+            </div>
+          ) : (
+            <div className="text-xs font-bold text-gray-600">-</div>
+          )}
+        </div>
+      </div>
 
       {/* Passed + not stolen — hidden on mobile (shown inline in header) */}
       {isPassed && !wasStolen && (
@@ -390,5 +432,6 @@ export const BoardRow = memo(function BoardRow({
         )
       })()}
     </div>
+    </>
   )
 })

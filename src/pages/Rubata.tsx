@@ -216,6 +216,18 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
   const isFiltered = !!(searchQuery.trim() || positionFilter || chipFilter)
 
+  // Pre-compute indices where owner changes (for manager group separators)
+  const ownerGroupStartIndices = useMemo(() => {
+    if (!filteredBoard) return new Set<number>()
+    const set = new Set<number>()
+    for (let i = 0; i < filteredBoard.length; i++) {
+      if (i === 0 || filteredBoard[i]?.memberId !== filteredBoard[i - 1]?.memberId) {
+        set.add(i)
+      }
+    }
+    return set
+  }, [filteredBoard])
+
   // Virtualization for large boards (50+ items)
   const boardScrollRef = useRef<HTMLDivElement>(null)
   const rowCount = filteredBoard?.length ?? 0
@@ -802,6 +814,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             globalIndex={globalIndex}
                             isCurrent={isCurrent}
                             isPassed={isPassed}
+                            isNewOwnerGroup={ownerGroupStartIndices.has(virtualRow.index)}
                             rubataState={rubataState ?? null}
                             canMakeOffer={!!canMakeOffer}
                             isSubmitting={isSubmitting}
@@ -829,10 +842,11 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 ) : (
                   /* Standard mode for <50 rows */
                   <div className="md:space-y-3">
-                    {filteredBoard?.map((player) => {
+                    {filteredBoard?.map((player, idx) => {
                       const globalIndex = player.originalIndex
                       const isCurrent = globalIndex === boardData?.currentIndex
                       const isPassed = globalIndex < (boardData?.currentIndex ?? 0)
+                      const isNewOwnerGroup = idx === 0 || player.memberId !== filteredBoard[idx - 1]?.memberId
                       return (
                         <BoardRow
                           key={player.rosterId}
@@ -840,6 +854,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                           globalIndex={globalIndex}
                           isCurrent={isCurrent}
                           isPassed={isPassed}
+                          isNewOwnerGroup={isNewOwnerGroup}
                           rubataState={rubataState ?? null}
                           canMakeOffer={!!canMakeOffer}
                           isSubmitting={isSubmitting}

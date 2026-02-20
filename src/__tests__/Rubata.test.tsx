@@ -1050,8 +1050,8 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // Shows "(20M)" next to stolen player
-    expect(screen.getAllByText('(20M)').length).toBeGreaterThanOrEqual(1)
+    // Shows delta price "(+12M)" next to stolen player (stolenPrice 20 - rubataPrice 8 = 12)
+    expect(screen.getAllByText('(+12M)').length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Scroll to current player button ----
