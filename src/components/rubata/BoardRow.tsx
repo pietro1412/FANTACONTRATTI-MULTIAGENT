@@ -104,20 +104,19 @@ export const BoardRow = memo(function BoardRow({
       role="listitem"
       aria-label={`${player.playerName}, ${player.playerPosition}, ${player.playerTeam}${isCurrent ? ', sul piatto' : ''}${wasStolen ? `, rubato da ${player.stolenByUsername ?? ''}` : ''}`}
       onKeyDown={handleKeyDown}
-      className={`${isCurrent ? 'p-3 md:p-4' : 'px-2.5 py-3 md:p-3'} rounded-lg border transition-all focus:outline-none focus:ring-2 focus:ring-primary-400/70 ${
+      className={`${isCurrent ? 'p-3 md:p-4' : 'px-2.5 py-3 md:p-3'} rounded-lg border border-surface-50/10 transition-all focus:outline-none focus:ring-2 focus:ring-primary-400/70 ${
         isCurrent
-          ? 'bg-primary-500/30 border-primary-400 ring-2 ring-primary-400/50 shadow-lg animate-[pulse_2s_ease-in-out_infinite]'
+          ? 'bg-primary-500/20 md:bg-primary-500/30 md:border-primary-400 md:ring-2 md:ring-primary-400/50 md:shadow-lg'
           : isPassed
           ? wasStolen
-            ? 'bg-danger-500/10 border-danger-500/30'
-            : 'bg-surface-50/5 border-surface-50/10 opacity-60'
+            ? 'bg-danger-500/10 md:border-danger-500/30'
+            : 'bg-surface-50/5 opacity-60'
           : isWatchlisted
-          ? 'bg-indigo-500/10 border-indigo-500/30'
+          ? 'bg-indigo-500/10 md:border-indigo-500/30'
           : isAutoSkip
-          ? 'bg-surface-300/50 border-surface-50/10 opacity-50'
-          : 'bg-surface-300 border-surface-50/20'
+          ? 'bg-surface-300/50 opacity-50'
+          : 'bg-surface-300 md:border-surface-50/20'
       } md:flex md:items-center md:gap-4`}
-      style={isCurrent ? { animationDuration: '2s' } : undefined}
     >
       {/* Player header */}
       <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-0 md:flex-1 md:min-w-0">
