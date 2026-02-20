@@ -104,18 +104,18 @@ export const BoardRow = memo(function BoardRow({
       role="listitem"
       aria-label={`${player.playerName}, ${player.playerPosition}, ${player.playerTeam}${isCurrent ? ', sul piatto' : ''}${wasStolen ? `, rubato da ${player.stolenByUsername ?? ''}` : ''}`}
       onKeyDown={handleKeyDown}
-      className={`${isCurrent ? 'p-3 md:p-4' : 'px-2.5 py-2 md:p-3'} rounded-lg border border-transparent md:border-surface-50/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/70 ${
+      className={`${isCurrent ? 'px-3 py-2.5 md:p-4' : 'px-3 py-2 md:p-3'} rounded-none md:rounded-lg border-0 border-b border-surface-50/15 md:border md:border-surface-50/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/70 ${
         isCurrent
-          ? 'bg-primary-500/20 md:bg-primary-500/30 md:border-primary-400 md:ring-2 md:ring-primary-400/50 md:shadow-lg'
+          ? 'bg-primary-500/15 md:bg-primary-500/30 md:border-primary-400 md:ring-2 md:ring-primary-400/50 md:shadow-lg'
           : isPassed
           ? wasStolen
             ? 'bg-danger-500/10 md:border-danger-500/30'
-            : 'bg-surface-50/5 opacity-60'
+            : 'opacity-50'
           : isWatchlisted
           ? 'bg-indigo-500/10 md:border-indigo-500/30'
           : isAutoSkip
-          ? 'bg-surface-300/50 opacity-50'
-          : 'bg-surface-300 md:border-surface-50/20'
+          ? 'opacity-40'
+          : 'md:bg-surface-300 md:border-surface-50/20'
       } md:flex md:items-center md:gap-4`}
     >
       {/* Player header */}
@@ -192,6 +192,12 @@ export const BoardRow = memo(function BoardRow({
         {isMyPlayer && (
           <span className="md:hidden text-[10px] text-gray-500 flex-shrink-0">Mio</span>
         )}
+        {/* Mobile: stolen indicator inline */}
+        {wasStolen && (
+          <span className="md:hidden text-danger-400 text-[10px] font-bold flex-shrink-0">
+            🎯 {player.stolenByUsername}{player.stolenPrice != null && player.stolenPrice > player.rubataPrice ? ` (${player.stolenPrice}M)` : ''}
+          </span>
+        )}
         {/* Mobile: rubata price right-aligned */}
         <span className={`md:hidden ml-auto font-black text-base flex-shrink-0 ${
           isCurrent ? 'text-primary-400' : isPassed ? 'text-gray-500' : 'text-warning-400'
@@ -232,9 +238,9 @@ export const BoardRow = memo(function BoardRow({
         <span className={`font-bold ${isPassed ? 'text-gray-500' : 'text-purple-400'}`}>{player.contractClause}M</span>
       </div>
 
-      {/* Stolen indicator */}
+      {/* Stolen indicator — desktop only (mobile is inline in header) */}
       {wasStolen && (
-        <div className="mb-1 md:mb-0 ml-8 md:ml-0 flex items-center gap-1 text-sm flex-shrink-0">
+        <div className="hidden md:flex items-center gap-1 text-sm flex-shrink-0">
           <span className="text-danger-400">🎯</span>
           <span className="text-danger-400 font-bold">{player.stolenByUsername}</span>
           {player.stolenPrice && player.stolenPrice > player.rubataPrice && (
