@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { Settings, Search, X } from 'lucide-react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useRubataState } from '../hooks/useRubataState'
@@ -179,6 +179,18 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   const [comparePlayerIds, setComparePlayerIds] = useState<string[]>([])
   const [showCompareModal, setShowCompareModal] = useState(false)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+
+  // Auto-set "Rimanenti" filter when rubata starts actively running
+  const prevRubataStateRef = useRef(rubataState)
+  useEffect(() => {
+    const prev = prevRubataStateRef.current
+    prevRubataStateRef.current = rubataState
+    const isActive = rubataState === 'OFFERING' || rubataState === 'AUCTION'
+    const wasActive = prev === 'OFFERING' || prev === 'AUCTION'
+    if (isActive && !wasActive && !chipFilter) {
+      setChipFilter('sul_piatto')
+    }
+  }, [rubataState, chipFilter])
 
   // B4+B5: Filtered board
   const filteredBoard = useMemo(() => {
@@ -477,7 +489,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
         {/* Tabellone e controlli - Board generato */}
         {isRubataPhase && isOrderSet && (
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Left Sidebar - Budget + Admin controls */}
             <div className="hidden lg:block lg:col-span-1 space-y-4">
               {/* Budget Residuo Panel - visible to all */}
@@ -545,7 +557,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             </div>
 
             {/* Main Content */}
-            <div className="lg:col-span-4">
+            <div className="lg:col-span-3">
             {/* 1. Action Bar — compact sticky replacing TimerPanel */}
             <RubataActionBar
               rubataState={rubataState ?? null}

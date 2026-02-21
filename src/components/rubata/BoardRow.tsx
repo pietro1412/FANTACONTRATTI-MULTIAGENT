@@ -189,8 +189,8 @@ export const BoardRow = memo(function BoardRow({
         <div className="hidden md:block w-6 h-6 bg-white rounded p-0.5 flex-shrink-0">
           <TeamLogo team={player.playerTeam} />
         </div>
-        {/* Position badge: always on desktop; on mobile only when photo exists (fallback circle already shows position) */}
-        <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[8px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''} ${!player.playerApiFootballId ? 'hidden md:inline-flex' : ''}`}>
+        {/* Position badge: desktop only (mobile shows position in fallback circle or is redundant next to photo) */}
+        <span className={`hidden md:inline-flex items-center justify-center w-5 h-5 rounded text-[8px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
           {player.playerPosition}
         </span>
         <button
@@ -319,14 +319,14 @@ export const BoardRow = memo(function BoardRow({
         </div>
       </div>
 
-      {/* Inline VOGLIO RUBARE button — only for current player during OFFERING */}
+      {/* Inline VOGLIO RUBARE button — desktop only (mobile uses ActionBar) */}
       {isCurrent && rubataState === 'OFFERING' && canMakeOffer && (
-        <div className="mt-1 md:mt-0 md:flex-shrink-0">
+        <div className="hidden md:block md:flex-shrink-0">
           <Button
             onClick={onMakeOffer}
             disabled={isSubmitting}
             variant="accent"
-            className="w-full md:w-auto text-sm py-2 px-4 whitespace-nowrap"
+            className="text-sm py-2 px-4 whitespace-nowrap"
           >
             🎯 VOGLIO RUBARE! ({player.rubataPrice}M)
           </Button>
