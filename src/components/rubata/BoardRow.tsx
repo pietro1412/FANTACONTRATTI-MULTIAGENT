@@ -140,10 +140,10 @@ export const BoardRow = memo(function BoardRow({
           : isAutoSkip
           ? 'opacity-40'
           : 'md:bg-surface-300 md:border-surface-50/20'
-      } md:flex md:items-center md:gap-4`}
+      } ${isCurrent ? 'md:flex md:flex-wrap md:items-center md:gap-x-4 md:gap-y-2' : 'md:flex md:items-center md:gap-4'}`}
     >
       {/* Player header */}
-      <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-0 md:flex-1 md:min-w-0">
+      <div className={`flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-0 ${isCurrent ? 'md:w-full' : 'md:flex-1 md:min-w-0'}`}>
         {/* D5: Compare checkbox */}
         {compareMode && !isPassed && (
           <button
