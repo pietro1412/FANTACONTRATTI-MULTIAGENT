@@ -1,9 +1,8 @@
-import type { Position} from '@prisma/client';
-import { PrismaClient, MemberStatus, AuctionStatus, AuctionType } from '@prisma/client'
+import type { Position } from '@prisma/client';
+import { MemberStatus, AuctionStatus, AuctionType } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { placeBid } from './auction.service'
 import type { ServiceResult } from '@/shared/types/service-result'
-
-const prisma = new PrismaClient()
 
 // ==================== BOT NOMINATION FOR FIRST MARKET ====================
 

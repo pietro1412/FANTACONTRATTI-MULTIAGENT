@@ -1,10 +1,9 @@
-import { PrismaClient, MemberRole, MemberStatus, JoinType, TradeStatus } from '@prisma/client'
+import { MemberRole, MemberStatus, JoinType, TradeStatus } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import type { CreateLeagueInput, UpdateLeagueInput } from '../utils/validation'
 import type { IEmailService } from '../modules/identity/domain/services/email.service.interface'
 import { computeSeasonStatsBatch } from './player-stats.service'
 import type { ServiceResult } from '@/shared/types/service-result'
-
-const prisma = new PrismaClient()
 
 // Lazy-loaded email service to avoid initialization errors
 let emailService: IEmailService | null = null

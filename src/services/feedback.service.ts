@@ -1,7 +1,6 @@
-import { PrismaClient, FeedbackStatus, FeedbackCategory } from '@prisma/client'
+import { FeedbackStatus, FeedbackCategory } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import type { ServiceResult } from '@/shared/types/service-result'
-
-const prisma = new PrismaClient()
 
 // ==================== SUBMIT FEEDBACK ====================
 

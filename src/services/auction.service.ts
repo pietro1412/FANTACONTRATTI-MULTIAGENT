@@ -1,4 +1,5 @@
-import { PrismaClient, AuctionStatus, AuctionType, MemberRole, MemberStatus, AcquisitionType, RosterStatus, Position, Prisma } from '@prisma/client'
+import { AuctionStatus, AuctionType, MemberRole, MemberStatus, AcquisitionType, RosterStatus, Position, Prisma } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { calculateRescissionClause, calculateDefaultSalary, canAdvanceFromContratti } from './contract.service'
 import { autoReleaseRitiratiPlayers } from './indemnity-phase.service'
 import { recordMovement } from './movement.service'
@@ -21,7 +22,6 @@ import { notifyAuctionStart, notifyPhaseChange } from './notification.service'
 
 import type { ServiceResult } from '@/shared/types/service-result'
 
-const prisma = new PrismaClient()
 
 // ==================== PLAYER STATS ENRICHMENT ====================
 

@@ -3,7 +3,7 @@ import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { pusher } from '../services/pusher.service'
 
 import authRoutes from './routes/auth'
@@ -105,7 +105,6 @@ app.get('/api/health', (_req, res) => {
 })
 
 // Diagnostic endpoint for debugging latency issues
-const diagPrisma = new PrismaClient()
 app.get('/api/debug/timing', async (_req, res) => {
   const results: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
@@ -125,7 +124,7 @@ app.get('/api/debug/timing', async (_req, res) => {
   // 2. Test database connection
   const dbStart = Date.now()
   try {
-    await diagPrisma.$queryRaw`SELECT 1`
+    await prisma.$queryRaw`SELECT 1`
     results.dbLatency = `${Date.now() - dbStart}ms`
     results.dbStatus = '✓ connected'
   } catch (err) {

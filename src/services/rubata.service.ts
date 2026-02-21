@@ -1,11 +1,11 @@
 import type { Position } from '@prisma/client';
-import { PrismaClient, MemberStatus, RosterStatus, AuctionStatus, Prisma } from '@prisma/client'
+import { MemberStatus, RosterStatus, AuctionStatus, Prisma } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { recordMovement } from './movement.service'
 import { triggerRubataBidPlaced, triggerRubataStealDeclared, triggerRubataReadyChanged, triggerAuctionClosed } from './pusher.service'
 import { computeSeasonStatsBatch, computeAutoTagsBatch, type ComputedSeasonStats, type AutoTagId } from './player-stats.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
-const prisma = new PrismaClient()
 
 // Type for rubata board items stored in session JSON
 interface RubataBoardItem {

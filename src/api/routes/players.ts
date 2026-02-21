@@ -1,12 +1,12 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
 import type { Position } from '@prisma/client';
-import { Prisma, PrismaClient } from '@prisma/client'
+import { Prisma } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { getPlayers, getPlayerById, getTeams } from '../../services/player.service'
 import { authMiddleware } from '../middleware/auth'
 
 const router = Router()
-const prisma = new PrismaClient()
 
 // GET /api/players - List all players with filters
 router.get('/', authMiddleware, async (req: Request, res: Response) => {

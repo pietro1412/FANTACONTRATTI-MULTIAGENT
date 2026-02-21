@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { hashPassword, verifyPassword } from '../utils/password'
 import type { UpdateProfileInput, ChangePasswordInput } from '../utils/validation'
 import type { ServiceResult } from '@/shared/types/service-result'
-
-const prisma = new PrismaClient()
 
 export async function getProfile(userId: string) {
   const user = await prisma.user.findUnique({

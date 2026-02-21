@@ -1,5 +1,6 @@
 import type { TradeStatus, SerieAPlayer, LeagueMember, AuctionBid } from '@prisma/client';
-import { PrismaClient, MemberStatus } from '@prisma/client'
+import { MemberStatus } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import type { ServiceResult } from '@/shared/types/service-result'
 
 // Extended types for Prisma queries with included relations
@@ -26,8 +27,6 @@ type MovementWithPlayer = {
   toMemberId: string | null
   price: number | null
 }
-
-const prisma = new PrismaClient()
 
 // ==================== SESSIONI OVERVIEW ====================
 

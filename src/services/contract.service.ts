@@ -1,5 +1,6 @@
-import { PrismaClient, MemberStatus, RosterStatus, AcquisitionType, MovementType } from '@prisma/client'
+import { MemberStatus, RosterStatus, AcquisitionType, MovementType } from '@prisma/client'
 import type { Prisma } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { recordMovement } from './movement.service'
 import {
   createContractHistoryEntries,
@@ -8,8 +9,6 @@ import {
 import type { CreateContractHistoryInput, ContractEventType } from '../types/contract-history'
 import { computeSeasonStatsBatch } from './player-stats.service'
 import type { ServiceResult } from '@/shared/types/service-result'
-
-const prisma = new PrismaClient()
 
 // Moltiplicatori per calcolo clausola rescissione (da specifica)
 const DURATION_MULTIPLIERS: Record<number, number> = {

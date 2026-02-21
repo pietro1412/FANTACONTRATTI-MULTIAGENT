@@ -8,10 +8,9 @@
  */
 
 import type { ObjectiveStatus } from '@prisma/client';
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import type { ServiceResult } from '@/shared/types/service-result'
 
-const prisma = new PrismaClient()
 
 export interface CreateObjectiveInput {
   sessionId: string

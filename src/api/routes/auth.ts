@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { registerSchema, loginSchema } from '../../utils/validation'
 import { registerUser, loginUser, getUserById } from '../../services/auth.service'
 import { generateTokens, verifyRefreshToken, hashToken } from '../../utils/jwt'
@@ -14,7 +14,6 @@ import { createEmailService } from '../../modules/identity/infrastructure/servic
 import { verifyTurnstile } from '../middleware/turnstile'
 
 const router = Router()
-const prisma = new PrismaClient()
 
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
