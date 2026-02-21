@@ -178,6 +178,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   const [compareMode, setCompareMode] = useState(false)
   const [comparePlayerIds, setComparePlayerIds] = useState<string[]>([])
   const [showCompareModal, setShowCompareModal] = useState(false)
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
 
   // B4+B5: Filtered board
   const filteredBoard = useMemo(() => {
@@ -267,9 +268,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     <div className="min-h-screen">
       <Navigation currentPage="rubata" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
 
-      {/* Header — pattern Svincolati */}
+      {/* Header — pattern Svincolati (hidden on mobile, ActionBar shows same info) */}
       {isRubataPhase && (
-        <div className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
+        <div className="hidden md:block bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
           <div className="max-w-full mx-auto px-4 py-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2.5 md:gap-5">
@@ -356,7 +357,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
       )}
 
 
-      <main className="max-w-[1600px] mx-auto px-4 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 py-3 md:py-8">
         {error && (
           <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-3 rounded-lg mb-4">
             <p>{error}</p>
@@ -638,22 +639,6 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               </div>
             )}
 
-            {/* Mobile Activity Feed + Strategy Summary */}
-            <div className="lg:hidden space-y-3">
-              <RubataActivityFeed board={board ?? null} />
-              <RubataStrategySummary
-                board={board ?? null}
-                preferencesMap={preferencesMap}
-                myMemberId={myMemberId}
-                currentIndex={boardData?.currentIndex ?? null}
-                onOpenPrefsModal={openPrefsModal}
-                canEditPreferences={canEditPreferences}
-                onBulkSetPreference={handleBulkSetPreference}
-                onImportPreferences={handleImportPreferences}
-                isSubmitting={isSubmitting}
-              />
-            </div>
-
             {/* D4: Watchlist alert — shown when a watchlisted player is "sul piatto" */}
             {watchlistAlert && rubataState === 'OFFERING' && (
               <div className="mb-3 bg-indigo-500/20 border border-indigo-500/40 rounded-xl px-4 py-3 flex items-center gap-3 animate-[fadeIn_0.3s_ease-out]">
@@ -701,6 +686,18 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     <span className="sm:hidden">Tabellone</span>
                   </h3>
                   <div className="flex items-center gap-1.5 md:gap-2">
+                    {/* Mobile search/filter toggle */}
+                    <button
+                      onClick={() => { setMobileFiltersOpen(prev => !prev); }}
+                      className={`md:hidden p-1 rounded transition-all ${
+                        mobileFiltersOpen || isFiltered
+                          ? 'text-primary-400 bg-primary-500/20'
+                          : 'text-gray-500 hover:text-gray-300'
+                      }`}
+                      title="Cerca e filtra"
+                    >
+                      <Search size={16} />
+                    </button>
                     <button
                       onClick={() => { setCompareMode(prev => !prev); if (compareMode) setComparePlayerIds([]); }}
                       className={`px-1.5 md:px-2 py-1 rounded text-xs font-medium transition-all ${
@@ -718,7 +715,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   </div>
                 </div>
 
-                {/* Search bar */}
+                {/* Search bar + filters — always visible on desktop, toggled on mobile */}
+                <div className={`${mobileFiltersOpen ? 'block' : 'hidden'} md:block space-y-2 md:space-y-3`}>
                 <div className="relative">
                   <Search size={16} className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                   <input
@@ -787,10 +785,11 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     </button>
                   )}
                 </div>
+                </div>
               </div>
 
               {/* Board rows */}
-              <div ref={boardScrollRef} className="p-2 md:p-4 pb-24 md:pb-4 overflow-y-auto flex-1" role="list" aria-label="Tabellone rubata">
+              <div ref={boardScrollRef} className="p-2 md:p-4 pb-16 md:pb-4 overflow-y-auto flex-1" role="list" aria-label="Tabellone rubata">
                 {filteredBoard?.length === 0 && isFiltered && (
                   <p className="text-center text-gray-500 py-8 text-sm">Nessun giocatore corrisponde ai filtri</p>
                 )}
@@ -880,6 +879,22 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Mobile Activity Feed + Strategy Summary — after board so player list is primary */}
+            <div className="lg:hidden space-y-3 mt-3">
+              <RubataActivityFeed board={board ?? null} />
+              <RubataStrategySummary
+                board={board ?? null}
+                preferencesMap={preferencesMap}
+                myMemberId={myMemberId}
+                currentIndex={boardData?.currentIndex ?? null}
+                onOpenPrefsModal={openPrefsModal}
+                canEditPreferences={canEditPreferences}
+                onBulkSetPreference={handleBulkSetPreference}
+                onImportPreferences={handleImportPreferences}
+                isSubmitting={isSubmitting}
+              />
             </div>
             </div>
           </div>
@@ -1066,45 +1081,65 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
         </BottomSheet>
       )}
 
-      {/* Mobile Budget Footer - Fixed Bottom */}
-      {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && isRubataPhase && isOrderSet && rubataState !== 'AUCTION' && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-r from-surface-200 via-surface-200 to-surface-200 border-t-2 border-primary-500/50 z-40 shadow-lg shadow-black/30">
-          <div className="px-3 py-2">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[9px] text-gray-500 uppercase font-medium">Bilancio</span>
+      {/* Mobile Budget Footer - Fixed Bottom (compact: own budget only, expandable) */}
+      {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && isRubataPhase && isOrderSet && rubataState !== 'AUCTION' && (() => {
+        const myBudget = boardData.memberBudgets.find(mb => mb.memberId === myMemberId)
+        return (
+          <div className="md:hidden fixed bottom-0 left-0 right-0 bg-surface-200/95 backdrop-blur-sm border-t border-surface-50/30 z-40 shadow-lg shadow-black/30">
+            {!mobileBudgetExpanded ? (
+              /* Compact: single row with own budget */
               <button
                 type="button"
-                onClick={() => { setMobileBudgetExpanded(prev => !prev); }}
-                className="text-[9px] text-gray-400 px-2 py-0.5 rounded bg-surface-300/50"
+                onClick={() => { setMobileBudgetExpanded(true); }}
+                className="w-full px-3 py-1.5 flex items-center justify-between"
               >
-                {mobileBudgetExpanded ? '▼ Chiudi' : '▲ Espandi'}
-              </button>
-            </div>
-            <div className={`grid gap-1.5 ${mobileBudgetExpanded ? 'grid-cols-2' : 'grid-cols-4'}`}>
-              {(mobileBudgetExpanded ? boardData.memberBudgets : boardData.memberBudgets.slice(0, 4)).map(mb => (
-                <div
-                  key={mb.memberId}
-                  className={`rounded p-1 text-center ${
-                    mb.residuo < 0 ? 'bg-danger-500/20' : 'bg-surface-300/50'
-                  }`}
-                >
-                  <div className="text-[8px] text-gray-500 truncate">{mb.teamName}</div>
-                  <div className={`font-bold text-xs ${
-                    mb.residuo < 0 ? 'text-danger-400' : mb.residuo < 50 ? 'text-warning-400' : 'text-accent-400'
-                  }`}>
-                    {mb.residuo}M
-                  </div>
-                  {mobileBudgetExpanded && (
-                    <div className="text-[7px] text-gray-500">
-                      {mb.currentBudget}M - {mb.totalSalaries}M
-                    </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] text-gray-500 uppercase font-medium">Budget</span>
+                  {myBudget && (
+                    <span className={`font-bold text-sm ${
+                      myBudget.residuo < 0 ? 'text-danger-400' : myBudget.residuo < 50 ? 'text-warning-400' : 'text-accent-400'
+                    }`}>
+                      {myBudget.residuo}M
+                    </span>
                   )}
                 </div>
-              ))}
-            </div>
+                <span className="text-[9px] text-gray-500">▲ Tutti</span>
+              </button>
+            ) : (
+              /* Expanded: full grid */
+              <div className="px-3 py-2">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[9px] text-gray-500 uppercase font-medium">Bilancio</span>
+                  <button
+                    type="button"
+                    onClick={() => { setMobileBudgetExpanded(false); }}
+                    className="text-[9px] text-gray-400 px-2 py-0.5 rounded bg-surface-300/50"
+                  >
+                    ▼ Chiudi
+                  </button>
+                </div>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {boardData.memberBudgets.map(mb => (
+                    <div
+                      key={mb.memberId}
+                      className={`rounded p-1 text-center ${
+                        mb.memberId === myMemberId ? 'ring-1 ring-primary-500/50' : ''
+                      } ${mb.residuo < 0 ? 'bg-danger-500/20' : 'bg-surface-300/50'}`}
+                    >
+                      <div className="text-[8px] text-gray-500 truncate">{mb.teamName}</div>
+                      <div className={`font-bold text-xs ${
+                        mb.residuo < 0 ? 'text-danger-400' : mb.residuo < 50 ? 'text-warning-400' : 'text-accent-400'
+                      }`}>
+                        {mb.residuo}M
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Contract Modification Modal after Rubata Win */}
       {pendingContractModification && (

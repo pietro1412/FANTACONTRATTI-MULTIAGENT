@@ -1145,13 +1145,9 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // Budget footer shows team names (first 4 when collapsed)
-    expect(screen.getAllByText('Team1').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Team2').length).toBeGreaterThanOrEqual(1)
-    // Shows residuo values
-    expect(screen.getAllByText('100M').length).toBeGreaterThanOrEqual(1)
-    // Shows expand button
-    expect(screen.getAllByText(/Espandi/).length).toBeGreaterThanOrEqual(1)
+    // Compact budget footer shows "Budget" label and expand trigger
+    expect(screen.getAllByText('Budget').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(/Tutti/).length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Contract Modification Modal ----
@@ -1509,8 +1505,9 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // When expanded, shows detail line like "200M - 150M"
-    expect(screen.getAllByText('200M - 150M').length).toBeGreaterThanOrEqual(1)
+    // When expanded, shows team name and residuo
+    expect(screen.getAllByText('TeamX').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('50M').length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Mobile: preference with priority + maxBid shown in card view ----

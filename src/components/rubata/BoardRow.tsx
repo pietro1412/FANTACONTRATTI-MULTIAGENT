@@ -130,7 +130,7 @@ export const BoardRow = memo(function BoardRow({
       onKeyDown={handleKeyDown}
       className={`${isCurrent ? 'px-3 py-2.5 md:p-4' : 'px-3 py-2 md:p-3'} rounded-none md:rounded-lg border-0 border-b border-surface-50/15 md:border md:border-surface-50/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/70 ${
         isCurrent
-          ? 'bg-primary-500/15 md:bg-primary-500/30 md:border-primary-400 md:ring-2 md:ring-primary-400/50 md:shadow-lg'
+          ? 'bg-primary-500/25 border-l-4 !border-l-primary-500 md:bg-primary-500/30 md:border-primary-400 md:ring-2 md:ring-primary-400/50 md:shadow-lg'
           : isPassed
           ? wasStolen
             ? 'bg-danger-500/10 md:border-danger-500/30'
@@ -229,8 +229,9 @@ export const BoardRow = memo(function BoardRow({
           {player.rubataPrice}M
         </span>
         {isCurrent && (
-          <span className="hidden sm:inline text-xs bg-primary-500 text-white px-2.5 py-0.5 rounded-full shrink-0 font-medium">
-            SUL PIATTO
+          <span className="inline text-[10px] sm:text-xs bg-primary-500 text-white px-1.5 sm:px-2.5 py-0.5 rounded-full shrink-0 font-medium">
+            <span className="sm:hidden">⚔️</span>
+            <span className="hidden sm:inline">SUL PIATTO</span>
           </span>
         )}
         {/* Desktop: owner inline */}
