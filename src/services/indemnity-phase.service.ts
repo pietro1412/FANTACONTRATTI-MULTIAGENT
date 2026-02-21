@@ -1,10 +1,10 @@
 import type { PlayerExitReason, Prisma } from '@prisma/client';
-import { PrismaClient, MemberStatus, RosterStatus } from '@prisma/client'
+import { MemberStatus, RosterStatus } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { recordMovement } from './movement.service'
 import { triggerIndemnityDecisionSubmitted, triggerIndemnityAllDecided } from './pusher.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
-const prisma = new PrismaClient()
 
 // Interface for players affected by exit classification in a specific league
 export interface AffectedPlayer {

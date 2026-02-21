@@ -1,4 +1,5 @@
-import { PrismaClient, MemberStatus, RosterStatus } from '@prisma/client'
+import { MemberStatus, RosterStatus } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import type {
   ContractEventType,
   CreateContractHistoryInput,
@@ -11,8 +12,6 @@ import type {
 } from '../types/contract-history'
 import { calculateReleaseCost } from './contract.service'
 import type { ServiceResult } from '@/shared/types/service-result'
-
-const prisma = new PrismaClient()
 
 // ==================== CREATE CONTRACT HISTORY ENTRY ====================
 

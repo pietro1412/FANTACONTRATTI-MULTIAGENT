@@ -1,8 +1,7 @@
 import type { MovementType} from '@prisma/client';
-import { PrismaClient, MemberStatus, ProphecyRole } from '@prisma/client'
+import { MemberStatus, ProphecyRole } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import type { ServiceResult } from '@/shared/types/service-result'
-
-const prisma = new PrismaClient()
 
 // ==================== REGISTRA MOVIMENTO ====================
 

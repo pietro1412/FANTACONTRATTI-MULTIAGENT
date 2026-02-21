@@ -22,9 +22,7 @@ import { generateRenewalReceipt } from '../../services/pdf.service'
 import type { ContractExportData } from '../../services/excel.service';
 import { generateContractsExcel } from '../../services/excel.service'
 import { createEmailService } from '../../modules/identity/infrastructure/services/email.factory'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 const router = Router()
 

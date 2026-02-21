@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 
-const prisma = new PrismaClient()
 
 const DAILY_QUOTA_LIMIT = parseInt(process.env.API_FOOTBALL_DAILY_LIMIT || '100', 10)
 

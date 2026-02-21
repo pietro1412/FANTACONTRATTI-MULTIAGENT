@@ -1,11 +1,11 @@
 import type { Position } from '@prisma/client';
-import { PrismaClient, MemberStatus, AuctionStatus, Prisma, RosterStatus } from '@prisma/client'
+import { MemberStatus, AuctionStatus, Prisma, RosterStatus } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { recordMovement } from './movement.service'
 import { calculateDefaultSalary, calculateRescissionClause } from './contract.service'
 import { logAction } from './admin.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
-const prisma = new PrismaClient()
 
 // ==================== HEARTBEAT / CONNECTION STATUS ====================
 

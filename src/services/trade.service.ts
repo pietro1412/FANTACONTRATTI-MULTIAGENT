@@ -1,11 +1,10 @@
-import { PrismaClient, MemberStatus, RosterStatus, TradeStatus } from '@prisma/client'
+import { MemberStatus, RosterStatus, TradeStatus } from '@prisma/client'
 import type { Prisma } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { recordMovement } from './movement.service'
 import { notifyTradeOffer, notifyTradeInvalidated } from './notification.service'
 import { triggerTradeOfferReceived, triggerTradeUpdated } from './pusher.service'
 import type { ServiceResult } from '@/shared/types/service-result'
-
-const prisma = new PrismaClient()
 
 // ==================== PHASE CHECK ====================
 

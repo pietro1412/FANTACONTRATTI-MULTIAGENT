@@ -1,9 +1,7 @@
 import type { Position, Prisma, PlayerExitReason } from '@prisma/client';
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import * as XLSX from 'xlsx'
 import type { ServiceResult } from '@/shared/types/service-result'
-
-const prisma = new PrismaClient()
 
 // ==================== TYPES ====================
 

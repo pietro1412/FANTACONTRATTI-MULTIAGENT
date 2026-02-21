@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { hashPassword, verifyPassword } from '../utils/password'
 import { generateTokens, type TokenPayload } from '../utils/jwt'
 import type { RegisterInput, LoginInput } from '../utils/validation'
-
-const prisma = new PrismaClient()
 
 export interface AuthResult {
   success: boolean

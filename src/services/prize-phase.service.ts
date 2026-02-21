@@ -1,7 +1,7 @@
-import { PrismaClient, MemberStatus } from '@prisma/client'
+import { MemberStatus } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import type { ServiceResult } from '@/shared/types/service-result'
 
-const prisma = new PrismaClient()
 
 // ==================== INIZIALIZZAZIONE FASE PREMI ====================
 

@@ -1,8 +1,7 @@
-import { PrismaClient, MemberStatus, ProphecyRole, Prisma } from '@prisma/client'
+import { MemberStatus, ProphecyRole, Prisma } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import type { ServiceResult } from '@/shared/types/service-result'
-
-const prisma = new PrismaClient()
 
 // ==================== EXPORT ALL ROSTERS ====================
 
