@@ -5,4 +5,4 @@
  */
 
 // Re-export from existing locations
-export { default as Rubata } from '@/pages/Rubata'
+export { Rubata } from '@/pages/Rubata'

@@ -2,11 +2,56 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
-import { POSITION_NAMES } from '../components/ui/PositionBadge'
+
 import { ContractModifierModal } from '../components/ContractModifier'
 import { useSvincolatiState } from '../hooks/useSvincolatiState'
 import { POSITION_COLORS, POSITION_BG, SERIE_A_TEAMS } from '../types/svincolati.types'
-import type { SvincolatiProps } from '../types/svincolati.types'
+import type { SvincolatiProps, TurnMember } from '../types/svincolati.types'
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+
+interface SortableTurnItemProps {
+  member: TurnMember
+  index: number
+}
+
+function SortableTurnItem({ member, index }: SortableTurnItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: member.id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-4 p-4 rounded-lg border transition-all ${
+        isDragging
+          ? 'bg-primary-900/50 border-primary-500 shadow-glow scale-105 opacity-50'
+          : 'bg-surface-300 border-surface-50/20 hover:border-primary-500/40'
+      }`}
+    >
+      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-lg">
+        {index + 1}
+      </div>
+      <div className="flex-1">
+        <p className="font-semibold text-gray-100">{member.username}</p>
+      </div>
+      <span className="font-mono text-accent-400">{member.budget}</span>
+      <span
+        className="cursor-grab active:cursor-grabbing text-gray-500"
+        {...attributes}
+        {...listeners}
+      >
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+        </svg>
+      </span>
+    </div>
+  )
+}
 
 export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
   const {
@@ -17,7 +62,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     selectedTeam, setSelectedTeam,
     teamDropdownOpen, setTeamDropdownOpen,
     teamDropdownRef,
-    turnOrderDraft, draggedIndex,
+    turnOrderDraft,
     bidAmount, setBidAmount,
     timerRemaining,
     error, success, isSubmitting,
@@ -31,10 +76,10 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     isPusherConnected,
     isTimerExpired, currentUsername, isUserWinning,
     getTimerClass,
-    handleDragStart, handleDragOver, handleDragEnd, handleSetTurnOrder,
+    handleDndDragEnd, handleDndDragStart, handleSetTurnOrder,
     handleViewManagerRoster,
     handleNominate, handleConfirmNomination, handleCancelNomination, handlePassTurn,
-    handleDeclareFinished, confirmDeclareFinished, handleUndoFinished, handleForceAllFinished,
+    handleDeclareFinished, confirmDeclareFinished, handleForceAllFinished,
     handleMarkReady, handleForceReady,
     handleBid, handleCloseAuction,
     handleAcknowledge, handleForceAck,
@@ -45,7 +90,13 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     handleSetTimer,
     handleCompletePhase,
     handleBotNominate, handleBotConfirmNomination, handleBotBid,
+    setError, loadBoard,
   } = useSvincolatiState(leagueId)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
 
   if (isLoading) {
     return (
@@ -67,7 +118,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
       <div className="min-h-screen">
         <header className="py-6 border-b border-surface-50/20 bg-surface-200">
           <div className="max-w-2xl mx-auto px-4">
-            <button onClick={() => onNavigate('leagueDetail', { leagueId })} className="text-primary-400 hover:text-primary-300 text-sm mb-2 flex items-center gap-1">
+            <button onClick={() => { onNavigate('leagueDetail', { leagueId }); }} className="text-primary-400 hover:text-primary-300 text-sm mb-2 flex items-center gap-1">
               <span>←</span> Torna alla lega
             </button>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Asta Svincolati - Ordine Turni</h1>
@@ -76,7 +127,17 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
         </header>
 
         <main className="max-w-2xl mx-auto px-4 py-8">
-          {error && <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-lg mb-6">{error}</div>}
+          {error && (
+            <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-lg mb-6">
+              <p>{error}</p>
+              <button
+                onClick={() => { setError(''); void loadBoard(); }}
+                className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
+              >
+                Riprova
+              </button>
+            </div>
+          )}
           {success && <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-4 rounded-lg mb-6">{success}</div>}
 
           {/* Timer Setting */}
@@ -85,7 +146,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setTimerInput(Math.max(10, timerInput - 5))}
+                onClick={() => { setTimerInput(Math.max(10, timerInput - 5)); }}
                 className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-xl font-bold"
               >
                 −
@@ -96,13 +157,13 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               </div>
               <button
                 type="button"
-                onClick={() => setTimerInput(Math.min(300, timerInput + 5))}
+                onClick={() => { setTimerInput(Math.min(300, timerInput + 5)); }}
                 className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-xl font-bold"
               >
                 +
               </button>
             </div>
-            <Button size="sm" onClick={handleSetTimer} disabled={isSubmitting} className="w-full mt-3">
+            <Button size="sm" onClick={() => void handleSetTimer()} disabled={isSubmitting} className="w-full mt-3">
               Imposta Timer
             </Button>
           </div>
@@ -121,37 +182,19 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
             {turnOrderDraft.length === 0 ? (
               <div className="p-8 text-center text-warning-400">Nessun manager trovato</div>
             ) : (
-              <div className="p-4 space-y-2">
-                {turnOrderDraft.map((member, index) => (
-                  <div
-                    key={member.id}
-                    draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDragEnd={handleDragEnd}
-                    className={`flex items-center gap-4 p-4 rounded-lg border transition-all cursor-grab active:cursor-grabbing ${
-                      draggedIndex === index
-                        ? 'bg-primary-900/50 border-primary-500 shadow-glow scale-105'
-                        : 'bg-surface-300 border-surface-50/20 hover:border-primary-500/40'
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-lg">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-100">{member.username}</p>
-                    </div>
-                    <span className="font-mono text-accent-400">{member.budget}</span>
-                    <svg className="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-                    </svg>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDndDragEnd} onDragStart={handleDndDragStart}>
+                <SortableContext items={turnOrderDraft.map(m => m.id)} strategy={verticalListSortingStrategy}>
+                  <div className="p-4 space-y-2">
+                    {turnOrderDraft.map((member, index) => (
+                      <SortableTurnItem key={member.id} member={member} index={index} />
+                    ))}
                   </div>
-                ))}
-              </div>
+                </SortableContext>
+              </DndContext>
             )}
 
             <div className="p-4 border-t border-surface-50/20">
-              <Button onClick={handleSetTurnOrder} disabled={isSubmitting || turnOrderDraft.length === 0} className="w-full py-3 text-lg font-bold">
+              <Button onClick={() => void handleSetTurnOrder()} disabled={isSubmitting || turnOrderDraft.length === 0} className="w-full py-3 text-lg font-bold">
                 Conferma e Inizia Aste
               </Button>
             </div>
@@ -200,12 +243,12 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                 type="text"
                 placeholder="Cerca giocatore..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => { setSearchQuery(e.target.value); }}
                 className="flex-1 min-w-[200px]"
               />
               <select
                 value={selectedPosition}
-                onChange={(e) => setSelectedPosition(e.target.value)}
+                onChange={(e) => { setSelectedPosition(e.target.value); }}
                 className="bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm"
               >
                 <option value="">Tutti i ruoli</option>
@@ -217,7 +260,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               <div className="relative" ref={teamDropdownRef}>
                 <button
                   type="button"
-                  onClick={() => setTeamDropdownOpen(!teamDropdownOpen)}
+                  onClick={() => { setTeamDropdownOpen(!teamDropdownOpen); }}
                   className="bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm flex items-center gap-2 min-w-[150px]"
                 >
                   {selectedTeam ? (
@@ -263,14 +306,14 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
           </div>
 
           {/* Position Counters */}
-          <div className="grid grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             {(['P', 'D', 'C', 'A'] as const).map(pos => {
               const count = freeAgents.filter(p => p.position === pos).length
               const posNames: Record<string, string> = { P: 'Portieri', D: 'Difensori', C: 'Centrocampisti', A: 'Attaccanti' }
               return (
                 <div
                   key={pos}
-                  className={`bg-gradient-to-br ${POSITION_COLORS[pos]} rounded-xl p-3 text-center`}
+                  className={`bg-gradient-to-br ${POSITION_COLORS[pos] ?? ''} rounded-xl p-3 text-center`}
                 >
                   <div className="text-2xl font-bold text-white">{count}</div>
                   <div className="text-xs text-white/80">{posNames[pos]}</div>
@@ -304,7 +347,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     freeAgents.map(player => (
                       <tr key={player.id} className="border-b border-surface-50/10 hover:bg-surface-300/30">
                         <td className="py-2 px-4">
-                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-xs font-bold text-white`}>
+                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position] ?? ''} flex items-center justify-center text-xs font-bold text-white`}>
                             {player.position}
                           </span>
                         </td>
@@ -387,7 +430,17 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
       <main className="max-w-full mx-auto px-4 py-4 lg:py-6">
         {/* Error/Success Messages */}
         <div className="space-y-2 mb-4">
-          {error && <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg text-sm">{error}</div>}
+          {error && (
+            <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg text-sm">
+              <p>{error}</p>
+              <button
+                onClick={() => { setError(''); void loadBoard(); }}
+                className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
+              >
+                Riprova
+              </button>
+            </div>
+          )}
           {success && <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-3 rounded-lg text-sm">{success}</div>}
         </div>
 
@@ -409,7 +462,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       {[10, 15, 20, 30, 45, 60].map(sec => (
                         <button
                           key={sec}
-                          onClick={() => { setTimerInput(sec); handleSetTimer() }}
+                          onClick={() => { setTimerInput(sec); void handleSetTimer() }}
                           className={`px-2 py-1 rounded text-xs font-medium transition-all ${
                             timerInput === sec
                               ? 'bg-primary-500 text-white'
@@ -428,7 +481,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={handlePause}
+                        onClick={() => void handlePause()}
                         disabled={isSubmitting}
                         className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10"
                       >
@@ -441,7 +494,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={handleResume}
+                        onClick={() => void handleResume()}
                         disabled={isSubmitting}
                         className="w-full text-xs border-secondary-500/50 text-secondary-400 hover:bg-secondary-500/10"
                       >
@@ -456,7 +509,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={handleBotNominate}
+                      onClick={() => void handleBotNominate()}
                       disabled={isSubmitting || state !== 'READY_CHECK'}
                       className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10"
                     >
@@ -465,7 +518,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={handleBotConfirmNomination}
+                      onClick={() => void handleBotConfirmNomination()}
                       disabled={isSubmitting || state !== 'NOMINATION' || board?.nominatorConfirmed}
                       className="w-full text-xs border-warning-500/50 text-warning-400 hover:bg-warning-500/10"
                     >
@@ -475,7 +528,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={handleBotBid}
+                        onClick={() => void handleBotBid()}
                         disabled={isSubmitting}
                         className="w-full text-xs border-primary-500/50 text-primary-400 hover:bg-primary-500/10"
                       >
@@ -485,7 +538,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={handleForceReady}
+                      onClick={() => void handleForceReady()}
                       disabled={isSubmitting || state !== 'NOMINATION' || !board?.nominatorConfirmed}
                       className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
                     >
@@ -494,7 +547,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={handleForceAck}
+                      onClick={() => void handleForceAck()}
                       disabled={isSubmitting || state !== 'PENDING_ACK'}
                       className="w-full text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
                     >
@@ -503,7 +556,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <Button
                       size="sm"
                       variant="danger"
-                      onClick={handleCompletePhase}
+                      onClick={() => void handleCompletePhase()}
                       disabled={isSubmitting}
                       className="w-full text-xs"
                     >
@@ -531,7 +584,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   <Input
                     placeholder="Cerca giocatore..."
                     value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
+                    onChange={e => { setSearchQuery(e.target.value); }}
                     className="mb-3 bg-surface-300 border-surface-50/30 text-white placeholder-gray-500"
                   />
 
@@ -539,7 +592,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   <div className="flex gap-2 mb-3">
                     <select
                       value={selectedPosition}
-                      onChange={(e) => setSelectedPosition(e.target.value)}
+                      onChange={(e) => { setSelectedPosition(e.target.value); }}
                       className="flex-1 bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm"
                     >
                       <option value="">Tutti i ruoli</option>
@@ -553,7 +606,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <div className="relative flex-1" ref={teamDropdownRef}>
                       <button
                         type="button"
-                        onClick={() => setTeamDropdownOpen(!teamDropdownOpen)}
+                        onClick={() => { setTeamDropdownOpen(!teamDropdownOpen); }}
                         className="w-full bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm flex items-center justify-between"
                       >
                         <div className="flex items-center gap-2">
@@ -608,12 +661,12 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     freeAgents.slice(0, 50).map(player => (
                       <button
                         key={player.id}
-                        onClick={() => handleNominate(player.id)}
+                        onClick={() => { void handleNominate(player.id) }}
                         disabled={isSubmitting}
                         className="w-full flex items-center p-3 rounded-lg bg-surface-300 hover:bg-primary-500/10 border border-transparent hover:border-primary-500/30 transition-all text-left"
                       >
                         <div className="flex items-center gap-3 flex-1">
-                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>
+                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position] ?? ''} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>
                             {player.position}
                           </span>
                           <div className="w-7 h-7 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
@@ -633,7 +686,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                 <div className="p-4 border-t border-surface-50/20">
                   <Button
                     variant="outline"
-                    onClick={handlePassTurn}
+                    onClick={() => void handlePassTurn()}
                     disabled={isSubmitting}
                     className="w-full border-warning-500/30 text-warning-400 hover:bg-warning-500/10"
                   >
@@ -668,12 +721,12 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   <h2 className="text-xl font-bold text-white mb-2">
                     {board.pendingNominatorId === board.myMemberId && !board.nominatorConfirmed
                       ? 'Conferma la tua scelta'
-                      : `${board.nominatorUsername} ha chiamato`}
+                      : `${board.nominatorUsername ?? ''} ha chiamato`}
                   </h2>
 
                   {/* Player Card */}
                   <div className="inline-flex items-center gap-3 bg-surface-300 rounded-lg p-4 mb-4">
-                    <span className={`w-12 h-12 rounded-full bg-gradient-to-br ${POSITION_COLORS[board.pendingPlayer.position]} flex items-center justify-center text-white font-bold text-lg`}>
+                    <span className={`w-12 h-12 rounded-full bg-gradient-to-br ${POSITION_COLORS[board.pendingPlayer.position] ?? ''} flex items-center justify-center text-white font-bold text-lg`}>
                       {board.pendingPlayer.position}
                     </span>
                     <div className="w-10 h-10 bg-white/90 rounded flex items-center justify-center p-0.5">
@@ -689,10 +742,10 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   {board.pendingNominatorId === board.myMemberId && !board.nominatorConfirmed && (
                     <div className="space-y-3">
                       <div className="flex gap-3 justify-center">
-                        <Button onClick={handleConfirmNomination} disabled={isSubmitting} className="px-8 py-3 text-lg font-bold">
+                        <Button onClick={() => void handleConfirmNomination()} disabled={isSubmitting} className="px-8 py-3 text-lg font-bold">
                           {isSubmitting ? 'Attendi...' : '✓ CONFERMA'}
                         </Button>
-                        <Button onClick={handleCancelNomination} variant="outline" className="border-gray-500 text-gray-300 px-6 py-3">
+                        <Button onClick={() => void handleCancelNomination()} variant="outline" className="border-gray-500 text-gray-300 px-6 py-3">
                           Cambia
                         </Button>
                       </div>
@@ -734,7 +787,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       {/* Non-nominator: SONO PRONTO button */}
                       {board.pendingNominatorId !== board.myMemberId && (
                         !board.readyMembers.includes(board.myMemberId) ? (
-                          <Button onClick={handleMarkReady} disabled={isSubmitting} className="px-12 py-3 text-lg font-bold">
+                          <Button onClick={() => void handleMarkReady()} disabled={isSubmitting} className="px-12 py-3 text-lg font-bold">
                             {isSubmitting ? 'Attendi...' : 'SONO PRONTO'}
                           </Button>
                         ) : (
@@ -786,7 +839,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   {/* Player Display */}
                   <div className="text-center p-5 bg-gradient-to-br from-surface-300 to-surface-200 rounded-xl border border-surface-50/20">
                     <div className="flex items-center justify-center gap-4 mb-3">
-                      <span className={`px-4 py-1.5 rounded-full text-sm font-bold border ${POSITION_BG[board.activeAuction.player.position]}`}>
+                      <span className={`px-4 py-1.5 rounded-full text-sm font-bold border ${POSITION_BG[board.activeAuction.player.position] ?? ''}`}>
                         {board.activeAuction.player.position}
                       </span>
                       <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1 shadow-lg">
@@ -824,7 +877,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     )}
 
                     {/* Quick Bid Buttons */}
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[2, 5, 10, 20].map(n => {
                         const newBid = parseInt(bidAmount || '0') + n
                         return (
@@ -832,7 +885,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                             key={n}
                             size="sm"
                             variant="outline"
-                            onClick={() => setBidAmount(String(newBid))}
+                            onClick={() => { setBidAmount(String(newBid)); }}
                             disabled={isTimerExpired || newBid > board.myBudget || board.isFinished}
                             className="border-surface-50/30 text-gray-300 hover:border-primary-500/50 hover:bg-primary-500/10 font-mono"
                           >
@@ -846,8 +899,8 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => setBidAmount(String(Math.max(board.activeAuction!.currentPrice + 1, parseInt(bidAmount || '0') - 1)))}
-                        disabled={isTimerExpired || parseInt(bidAmount || '0') <= board.activeAuction!.currentPrice + 1 || board.isFinished}
+                        onClick={() => { setBidAmount(String(Math.max(board.activeAuction!.currentPrice + 1, parseInt(bidAmount || '0') - 1))); }}
+                        disabled={isTimerExpired || parseInt(bidAmount || '0') <= board.activeAuction.currentPrice + 1 || board.isFinished}
                         className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         −
@@ -855,21 +908,21 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       <Input
                         type="number"
                         value={bidAmount}
-                        onChange={e => setBidAmount(e.target.value)}
+                        onChange={e => { setBidAmount(e.target.value); }}
                         disabled={isTimerExpired || board.isFinished}
                         className="flex-1 text-xl text-center bg-surface-300 border-surface-50/30 text-white font-mono"
                         placeholder="Importo..."
                       />
                       <button
                         type="button"
-                        onClick={() => setBidAmount(String(parseInt(bidAmount || '0') + 1))}
+                        onClick={() => { setBidAmount(String(parseInt(bidAmount || '0') + 1)); }}
                         disabled={isTimerExpired || parseInt(bidAmount || '0') + 1 > board.myBudget || board.isFinished}
                         className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-surface-300 text-white hover:bg-surface-300/70 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         +
                       </button>
                       <Button
-                        onClick={handleBid}
+                        onClick={() => void handleBid()}
                         disabled={isTimerExpired || !bidAmount || parseInt(bidAmount) > board.myBudget || board.isFinished}
                         className="px-6 lg:px-8 font-bold"
                       >
@@ -884,7 +937,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     </div>
 
                     {isAdmin && (
-                      <Button variant="secondary" onClick={handleCloseAuction} className="w-full mt-2">
+                      <Button variant="secondary" onClick={() => void handleCloseAuction()} className="w-full mt-2">
                         Chiudi Asta Manualmente
                       </Button>
                     )}
@@ -998,7 +1051,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <button
-                            onClick={() => handleViewManagerRoster(member)}
+                            onClick={() => { void handleViewManagerRoster(member) }}
                             className={`font-medium truncate hover:underline cursor-pointer text-left ${isCurrent ? 'text-white' : 'text-gray-300'}`}
                             title="Clicca per vedere la rosa"
                           >
@@ -1050,7 +1103,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={handleForceAllFinished}
+                      onClick={() => void handleForceAllFinished()}
                       disabled={isSubmitting}
                       className="w-full mt-2"
                     >
@@ -1063,7 +1116,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={handleCompletePhase}
+                      onClick={() => void handleCompletePhase()}
                       disabled={isSubmitting}
                       className="w-full mt-2"
                     >
@@ -1105,14 +1158,14 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               <div className="flex gap-3">
                 <Button
                   variant="outline"
-                  onClick={() => setShowFinishConfirmModal(false)}
+                  onClick={() => { setShowFinishConfirmModal(false); }}
                   className="flex-1"
                 >
                   Annulla
                 </Button>
                 <Button
                   variant="primary"
-                  onClick={confirmDeclareFinished}
+                  onClick={() => void confirmDeclareFinished()}
                   disabled={isSubmitting}
                   className="flex-1"
                 >
@@ -1168,11 +1221,11 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               {/* Appeal mode toggle */}
               {!isAppealMode ? (
                 <div className="space-y-3">
-                  <Button onClick={() => handleAcknowledge(false)} disabled={ackSubmitting} className="w-full py-3 font-bold">
+                  <Button onClick={() => { void handleAcknowledge(false) }} disabled={ackSubmitting} className="w-full py-3 font-bold">
                     {ackSubmitting ? 'Conferma...' : 'Ho Visto, Conferma'}
                   </Button>
                   <button
-                    onClick={() => setIsAppealMode(true)}
+                    onClick={() => { setIsAppealMode(true); }}
                     className="w-full text-sm text-danger-400 hover:text-danger-300 transition-colors"
                   >
                     Contesta questa transazione (Ricorso)
@@ -1185,7 +1238,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   </p>
                   <textarea
                     value={appealContent}
-                    onChange={e => setAppealContent(e.target.value)}
+                    onChange={e => { setAppealContent(e.target.value); }}
                     className="w-full bg-surface-300 border border-danger-500/50 rounded-lg p-3 text-white placeholder-gray-500"
                     rows={3}
                     placeholder="Descrivi il motivo del ricorso..."
@@ -1200,7 +1253,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                       Annulla
                     </Button>
                     <Button
-                      onClick={() => handleAcknowledge(true)}
+                      onClick={() => { void handleAcknowledge(true) }}
                       disabled={ackSubmitting || !appealContent.trim()}
                       className="flex-1 bg-danger-500 hover:bg-danger-600 text-white"
                     >
@@ -1213,7 +1266,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               {/* Admin: Test button */}
               {isAdmin && !isAppealMode && (
                 <Button
-                  onClick={handleSimulateAppeal}
+                  onClick={() => void handleSimulateAppeal()}
                   variant="outline"
                   className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
                 >
@@ -1239,7 +1292,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               Mancano: {board.turnOrder.filter(m => !board.pendingAck!.acknowledgedMembers.includes(m.id)).map(m => m.username).join(', ')}
             </p>
             {isAdmin && (
-              <Button size="sm" variant="outline" onClick={handleForceAck} className="border-accent-500/50 text-accent-400">
+              <Button size="sm" variant="outline" onClick={() => void handleForceAck()} className="border-accent-500/50 text-accent-400">
                 [TEST] Forza Conferme
               </Button>
             )}
@@ -1291,7 +1344,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
               {isAdmin && (
                 <Button
-                  onClick={() => onNavigate('admin', { leagueId, tab: 'appeals' })}
+                  onClick={() => { onNavigate('admin', { leagueId, tab: 'appeals' }); }}
                   className="w-full mt-4 bg-danger-500 hover:bg-danger-600 text-white font-bold py-3"
                 >
                   Gestisci Ricorso
@@ -1355,7 +1408,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
               {!appealStatus.userHasAcked ? (
                 <Button
-                  onClick={handleAcknowledgeAppealDecision}
+                  onClick={() => void handleAcknowledgeAppealDecision()}
                   disabled={ackSubmitting}
                   className="w-full py-3 font-bold"
                 >
@@ -1369,7 +1422,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
               {isAdmin && (
                 <Button
-                  onClick={handleForceAllAppealAcks}
+                  onClick={() => void handleForceAllAppealAcks()}
                   variant="outline"
                   className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
                 >
@@ -1427,7 +1480,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
               {!appealStatus.userIsReady ? (
                 <Button
-                  onClick={handleReadyToResume}
+                  onClick={() => void handleReadyToResume()}
                   disabled={ackSubmitting}
                   className="w-full py-3 font-bold bg-accent-500 hover:bg-accent-600"
                 >
@@ -1441,7 +1494,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
               {isAdmin && (
                 <Button
-                  onClick={handleForceAllReadyResume}
+                  onClick={() => void handleForceAllReadyResume()}
                   variant="outline"
                   className="w-full mt-3 text-xs border-accent-500/50 text-accent-400 hover:bg-accent-500/10"
                 >
@@ -1479,8 +1532,8 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
 
       {/* Manager Roster Modal */}
       {(selectedManager || loadingManager) && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setSelectedManager(null)}>
-          <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => { setSelectedManager(null); }}>
+          <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20" onClick={e => { e.stopPropagation(); }}>
             {loadingManager ? (
               <div className="p-6 flex items-center justify-center">
                 <div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full" />
@@ -1492,7 +1545,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <h2 className="text-xl font-bold text-white">{selectedManager.username}</h2>
                     {selectedManager.teamName && <p className="text-gray-400">{selectedManager.teamName}</p>}
                   </div>
-                  <button onClick={() => setSelectedManager(null)} className="text-gray-400 hover:text-white text-2xl">×</button>
+                  <button onClick={() => { setSelectedManager(null); }} className="text-gray-400 hover:text-white text-2xl">×</button>
                 </div>
                 <div className="flex gap-4 mb-6">
                   <div className="bg-surface-300 rounded-lg px-4 py-3 flex-1 text-center">
@@ -1512,7 +1565,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                     <div key={pos} className="mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${POSITION_COLORS[pos]}`}>{pos}</span>
+                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${POSITION_COLORS[pos] ?? ''}`}>{pos}</span>
                           <span className="text-gray-300">{POSITION_NAMES[pos]}</span>
                         </div>
                         <span className={`text-sm font-bold ${slot.filled >= slot.total ? 'text-secondary-400' : 'text-gray-500'}`}>{slot.filled}/{slot.total}</span>
@@ -1548,7 +1601,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                           </tbody>
                         </table>
                       ) : (
-                        <p className="text-gray-600 italic text-sm ml-8">Nessuno</p>
+                        <p className="text-gray-400 italic text-sm ml-8">Nessuno</p>
                       )}
                     </div>
                   )

@@ -58,7 +58,7 @@ export function FeedbackForm({ leagueId, pageContext, onSuccess, onCancel }: Fee
       } else {
         setError(res.message || 'Errore nell\'invio della segnalazione')
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Errore di connessione')
     }
 
@@ -80,7 +80,7 @@ export function FeedbackForm({ leagueId, pageContext, onSuccess, onCancel }: Fee
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={(e) => { void handleSubmit(e) }} className="space-y-6">
       {/* Category Selection */}
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-3">Tipo di segnalazione</label>
@@ -89,7 +89,7 @@ export function FeedbackForm({ leagueId, pageContext, onSuccess, onCancel }: Fee
             <button
               key={opt.value}
               type="button"
-              onClick={() => setCategory(opt.value)}
+              onClick={() => { setCategory(opt.value); }}
               className={`p-3 rounded-xl border-2 transition-all text-left ${
                 category === opt.value
                   ? 'border-purple-500 bg-purple-500/10'
@@ -119,7 +119,7 @@ export function FeedbackForm({ leagueId, pageContext, onSuccess, onCancel }: Fee
           type="text"
           id="feedback-title"
           value={title}
-          onChange={e => setTitle(e.target.value)}
+          onChange={e => { setTitle(e.target.value); }}
           placeholder="Descrivi brevemente il problema o suggerimento"
           maxLength={200}
           className="w-full px-4 py-3 bg-surface-300/50 border border-surface-50/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
@@ -135,7 +135,7 @@ export function FeedbackForm({ leagueId, pageContext, onSuccess, onCancel }: Fee
         <textarea
           id="feedback-description"
           value={description}
-          onChange={e => setDescription(e.target.value)}
+          onChange={e => { setDescription(e.target.value); }}
           placeholder="Fornisci tutti i dettagli utili: cosa stavi facendo, cosa ti aspettavi, cosa e' successo invece..."
           maxLength={5000}
           rows={6}

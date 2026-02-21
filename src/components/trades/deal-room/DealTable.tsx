@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { getPlayerPhotoUrl } from '../../../utils/player-images'
-import { getTeamLogo } from '../../../utils/teamLogos'
+import { getPlayerPhotoUrl } from '@/utils/player-images'
+import { getTeamLogo } from '@/utils/teamLogos'
 import { POSITION_GRADIENTS } from '../../ui/PositionBadge'
 import { getRoleStyle } from '../utils'
 import type { RosterEntry, LeagueMember } from '../types'
@@ -65,7 +65,7 @@ const CHIP_STYLES = {
 
 function PlayerChip({ entry, onRemove, accent, onViewStats }: { entry: RosterEntry; onRemove: () => void; accent: 'danger' | 'primary'; onViewStats?: (entry: RosterEntry) => void }) {
   const p = entry.player
-  const gradient = POSITION_GRADIENTS[p.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
+  const gradient = POSITION_GRADIENTS[p.position] || 'from-gray-500 to-gray-600'
   const roleStyle = getRoleStyle(p.position)
   const cs = CHIP_STYLES[accent]
 
@@ -180,8 +180,8 @@ function BudgetStepper({ value, onChange, max, accent, shortcuts }: {
   const [editValue, setEditValue] = useState('')
   const colors = STEPPER_COLORS[accent]
 
-  const decrement = useCallback(() => onChange(Math.max(0, value - 1)), [onChange, value])
-  const increment = useCallback(() => onChange(max != null ? Math.min(max, value + 1) : value + 1), [onChange, value, max])
+  const decrement = useCallback(() => { onChange(Math.max(0, value - 1)); }, [onChange, value])
+  const increment = useCallback(() => { onChange(max != null ? Math.min(max, value + 1) : value + 1); }, [onChange, value, max])
   const longPressDown = useLongPress(decrement)
   const longPressUp = useLongPress(increment)
 
@@ -209,7 +209,7 @@ function BudgetStepper({ value, onChange, max, accent, shortcuts }: {
             type="number"
             autoFocus
             value={editValue}
-            onChange={e => setEditValue(e.target.value)}
+            onChange={e => { setEditValue(e.target.value); }}
             onBlur={commitEdit}
             onKeyDown={e => { if (e.key === 'Enter') commitEdit() }}
             className={`w-16 h-11 lg:h-10 bg-surface-300 border-y ${colors.border} text-center font-mono font-bold text-base text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
@@ -237,7 +237,7 @@ function BudgetStepper({ value, onChange, max, accent, shortcuts }: {
             <button
               key={n}
               type="button"
-              onClick={() => onChange(max != null ? Math.min(max, value + n) : value + n)}
+              onClick={() => { onChange(max != null ? Math.min(max, value + n) : value + n); }}
               disabled={max != null && value >= max}
               className={`px-2 py-1 rounded text-xs font-medium border ${colors.border} text-gray-400 hover:text-white hover:bg-surface-300/80 disabled:opacity-30 transition-colors`}
             >+{n}</button>
@@ -281,6 +281,11 @@ export function DealTable(props: DealTableProps) {
   const requestedEntries = selectedRequestedPlayers.map(id => allOtherPlayers.find(r => r.id === id)).filter(Boolean) as RosterEntry[]
 
   const durationIndex = DURATIONS.indexOf(offerDuration)
+  const [expiryLabel, setExpiryLabel] = useState('')
+  useEffect(() => {
+    if (offerDuration <= 0) { setExpiryLabel(''); return }
+    setExpiryLabel(new Date(Date.now() + offerDuration * 3600000).toLocaleString('it-IT', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }))
+  }, [offerDuration])
 
   // Build deal summary text
   const summaryParts: string[] = []
@@ -301,7 +306,7 @@ export function DealTable(props: DealTableProps) {
             <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1.5 block">Destinatario</label>
             <select
               value={selectedMemberId}
-              onChange={e => onMemberChange(e.target.value)}
+              onChange={e => { onMemberChange(e.target.value); }}
               className="w-full px-3 py-2.5 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none"
             >
               <option value="">Seleziona DG target...</option>
@@ -342,7 +347,7 @@ export function DealTable(props: DealTableProps) {
         {offeredEntries.length > 0 ? (
           <div className="space-y-2">
             {offeredEntries.map(entry => (
-              <PlayerChip key={entry.id} entry={entry} onRemove={() => onRemoveOffered(entry.id)} accent="danger" onViewStats={onViewStats} />
+              <PlayerChip key={entry.id} entry={entry} onRemove={() => { onRemoveOffered(entry.id); }} accent="danger" onViewStats={onViewStats} />
             ))}
           </div>
         ) : (
@@ -412,7 +417,7 @@ export function DealTable(props: DealTableProps) {
         {requestedEntries.length > 0 ? (
           <div className="space-y-2">
             {requestedEntries.map(entry => (
-              <PlayerChip key={entry.id} entry={entry} onRemove={() => onRemoveRequested(entry.id)} accent="primary" onViewStats={onViewStats} />
+              <PlayerChip key={entry.id} entry={entry} onRemove={() => { onRemoveRequested(entry.id); }} accent="primary" onViewStats={onViewStats} />
             ))}
           </div>
         ) : (
@@ -480,7 +485,7 @@ export function DealTable(props: DealTableProps) {
             <div className="mt-2 flex items-center gap-1.5 text-xs">
               <span className="text-gray-500">Scade:</span>
               <span className={`font-medium ${offerDuration <= 6 ? 'text-warning-400' : 'text-gray-300'}`}>
-                {new Date(Date.now() + offerDuration * 3600000).toLocaleString('it-IT', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                {expiryLabel}
               </span>
             </div>
           )}
@@ -492,7 +497,7 @@ export function DealTable(props: DealTableProps) {
         <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1.5 block">Messaggio (opzionale)</label>
         <textarea
           value={message}
-          onChange={e => onMessageChange(e.target.value)}
+          onChange={e => { onMessageChange(e.target.value); }}
           rows={3}
           className="w-full px-3 py-2.5 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none placeholder:text-gray-500 resize-none"
           placeholder="Aggiungi un messaggio..."
@@ -505,14 +510,14 @@ export function DealTable(props: DealTableProps) {
         {(offerSummary || requestSummary) && (
           <div className="flex items-center justify-center gap-2 text-xs text-gray-400 mb-3">
             <span className="text-danger-400">{offerSummary || 'nulla'}</span>
-            <svg className="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
             </svg>
             <span className="text-primary-400">{requestSummary || 'nulla'}</span>
           </div>
         )}
         {!canSubmit && !isSubmitting && (
-          <p className="text-xs text-gray-600 text-center mb-2">Seleziona un destinatario e almeno un elemento da scambiare</p>
+          <p className="text-xs text-gray-400 text-center mb-2">Seleziona un destinatario e almeno un elemento da scambiare</p>
         )}
         <button
           type="submit"

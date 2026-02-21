@@ -140,6 +140,7 @@ describe('LeaguePrismaRepository', () => {
     it('should return all leagues user is member of', async () => {
       vi.mocked(prisma.leagueMember.findMany).mockResolvedValue([
         { ...mockPrismaMember, league: mockPrismaLeague }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
       ] as any)
 
       const result = await repository.findByUserId('user-123')
@@ -149,7 +150,7 @@ describe('LeaguePrismaRepository', () => {
         include: { league: true }
       })
       expect(result).toHaveLength(1)
-      expect(result[0].id).toBe('league-123')
+      expect(result[0]!.id).toBe('league-123')
     })
 
     it('should return empty array when user has no memberships', async () => {
@@ -292,6 +293,7 @@ describe('LeaguePrismaRepository', () => {
     it('should return all members with user info', async () => {
       vi.mocked(prisma.leagueMember.findMany).mockResolvedValue([
         { ...mockPrismaMember, user: mockPrismaUser }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
       ] as any)
 
       const result = await repository.getMembers('league-123')
@@ -301,7 +303,7 @@ describe('LeaguePrismaRepository', () => {
         include: { user: true }
       })
       expect(result).toHaveLength(1)
-      expect(result[0].user.username).toBe('testuser')
+      expect(result[0]!.user.username).toBe('testuser')
     })
   })
 

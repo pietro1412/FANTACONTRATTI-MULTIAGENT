@@ -6,5 +6,5 @@
  */
 
 // Re-export from existing locations
-export { default as Login } from '@/pages/Login'
-export { default as Register } from '@/pages/Register'
+export { Login } from '@/pages/Login'
+export { Register } from '@/pages/Register'

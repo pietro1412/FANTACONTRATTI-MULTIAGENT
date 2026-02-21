@@ -5,14 +5,15 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { Navigation } from '../components/Navigation'
 import { PullToRefresh } from '../components/PullToRefresh'
 import { useSwipeGesture } from '../hooks/useSwipeGesture'
+import type {
+  DragEndEvent} from '@dnd-kit/core';
 import {
   DndContext,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
-  useSensors,
-  DragEndEvent,
+  useSensors
 } from '@dnd-kit/core'
 import {
   arrayMove,
@@ -110,7 +111,7 @@ function SortableWidget({ id, children }: { id: string; children: React.ReactNod
       <button
         {...attributes}
         {...listeners}
-        className="absolute -left-1 top-3 z-10 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 hover:text-gray-300 cursor-grab active:cursor-grabbing hidden md:block"
+        className="absolute -left-1 top-3 z-10 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-300 cursor-grab active:cursor-grabbing hidden md:block"
         title="Trascina per riordinare"
       >
         <GripVertical size={16} />
@@ -142,7 +143,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
         try {
           const parsed = JSON.parse(saved)
           if (Array.isArray(parsed) && parsed.length > 0) return parsed
-        } catch {}
+        } catch { /* ignore invalid JSON */ }
       }
     }
     return DEFAULT_WIDGET_ORDER
@@ -176,12 +177,12 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
 
   const swipeToNextTab = useCallback(() => {
     const idx = DASHBOARD_TABS.indexOf(activeTab)
-    if (idx < DASHBOARD_TABS.length - 1) setActiveTab(DASHBOARD_TABS[idx + 1])
+    if (idx < DASHBOARD_TABS.length - 1) setActiveTab(DASHBOARD_TABS[idx + 1]!)
   }, [activeTab])
 
   const swipeToPrevTab = useCallback(() => {
     const idx = DASHBOARD_TABS.indexOf(activeTab)
-    if (idx > 0) setActiveTab(DASHBOARD_TABS[idx - 1])
+    if (idx > 0) setActiveTab(DASHBOARD_TABS[idx - 1]!)
   }, [activeTab])
 
   const { handlers: swipeHandlers } = useSwipeGesture({
@@ -193,7 +194,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [leagueId])
 
   async function loadData() {
@@ -284,6 +285,23 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
     setIsLoading(false)
   }
 
+  // Must be before early returns to satisfy rules-of-hooks
+  const activeAlerts = useMemo(() => {
+    if (!member) return []
+    const totalSlotsCalc = slots.P + slots.D + slots.C + slots.A
+    const allPlayersCalc = [...(roster.P ?? []), ...(roster.D ?? []), ...(roster.C ?? []), ...(roster.A ?? [])]
+    const expiringCount = allPlayersCalc.filter(e => e.contract && e.contract.duration <= 1).length
+    const totalSalariesCalc = allPlayersCalc.reduce((sum, e) => sum + (e.contract?.salary || 0), 0)
+    return evaluateAlerts(alertConfig, {
+      budget: member.currentBudget,
+      totalSalaries: totalSalariesCalc,
+      initialBudget: member.league.initialBudget,
+      expiringCount,
+      totalSlots: totalSlotsCalc,
+      filledSlots: totals.total,
+    })
+  }, [alertConfig, member, slots, roster, totals.total])
+
   if (isLoading) {
     return (
       <div className="min-h-screen">
@@ -312,15 +330,6 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
   const totalSalaries = allPlayers.reduce((sum, e) => sum + (e.contract?.salary || 0), 0)
   const totalClausole = allPlayers.reduce((sum, e) => sum + (e.contract?.rescissionClause || 0), 0)
 
-  const activeAlerts = useMemo(() => evaluateAlerts(alertConfig, {
-    budget: member.currentBudget,
-    totalSalaries,
-    initialBudget: member.league.initialBudget,
-    expiringCount: expiringContracts.length,
-    totalSlots,
-    filledSlots: totals.total,
-  }), [alertConfig, member, totalSalaries, expiringContracts.length, totalSlots, totals.total])
-
   return (
     <div className="min-h-screen">
       <Navigation currentPage="managerDashboard" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
@@ -331,25 +340,25 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
         <div className="flex gap-2 mb-6 flex-wrap">
           <Button
             variant={activeTab === 'overview' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('overview')}
+            onClick={() => { setActiveTab('overview'); }}
           >
             Panoramica
           </Button>
           <Button
             variant={activeTab === 'roster' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('roster')}
+            onClick={() => { setActiveTab('roster'); }}
           >
             Rosa Completa
           </Button>
           <Button
             variant={activeTab === 'contracts' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('contracts')}
+            onClick={() => { setActiveTab('contracts'); }}
           >
             Contratti
           </Button>
           <Button
             variant={activeTab === 'budget' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('budget')}
+            onClick={() => { setActiveTab('budget'); }}
           >
             Budget
           </Button>
@@ -362,7 +371,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
             {/* Edit layout toggle */}
             <div className="flex justify-end">
               <button
-                onClick={() => setIsEditingLayout(prev => !prev)}
+                onClick={() => { setIsEditingLayout(prev => !prev); }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${
                   isEditingLayout
                     ? 'bg-primary-500/20 text-primary-400 border border-primary-500/40'
@@ -391,7 +400,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                       {showAlertSettings ? (
                         <Card>
                           <CardContent className="py-4">
-                            <AlertSettings onClose={() => setShowAlertSettings(false)} />
+                            <AlertSettings onClose={() => { setShowAlertSettings(false); }} />
                           </CardContent>
                         </Card>
                       ) : activeAlerts.length > 0 ? (
@@ -402,8 +411,8 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                               <span>{activeAlerts.length} alert attiv{activeAlerts.length === 1 ? 'o' : 'i'}</span>
                             </div>
                             <button
-                              onClick={() => setShowAlertSettings(true)}
-                              className="p-1 text-gray-600 hover:text-gray-300 transition-colors"
+                              onClick={() => { setShowAlertSettings(true); }}
+                              className="p-1 text-gray-400 hover:text-gray-300 transition-colors"
                               title="Configura alert"
                             >
                               <Settings size={14} />
@@ -432,8 +441,8 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                             <span>Nessun alert attivo</span>
                           </div>
                           <button
-                            onClick={() => setShowAlertSettings(true)}
-                            className="p-1 text-gray-600 hover:text-gray-300 transition-colors"
+                            onClick={() => { setShowAlertSettings(true); }}
+                            className="p-1 text-gray-400 hover:text-gray-300 transition-colors"
                             title="Configura alert"
                           >
                             <Settings size={14} />
@@ -518,7 +527,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => onNavigate('prizes', { leagueId })}
+                              onClick={() => { onNavigate('prizes', { leagueId }); }}
                             >
                               Vedi Dettagli
                             </Button>
@@ -595,7 +604,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
                           <Button
                             variant="outline"
                             className="mt-4"
-                            onClick={() => onNavigate('contracts', { leagueId })}
+                            onClick={() => { onNavigate('contracts', { leagueId }); }}
                           >
                             Gestisci Contratti
                           </Button>
@@ -789,7 +798,7 @@ export function ManagerDashboard({ leagueId, onNavigate }: ManagerDashboardProps
             <div className="grid md:grid-cols-3 gap-4">
               <Card>
                 <CardContent className="py-4 text-center">
-                  <p className="text-2xl font-bold text-gray-600">{member.league.initialBudget}</p>
+                  <p className="text-2xl font-bold text-gray-400">{member.league.initialBudget}</p>
                   <p className="text-sm text-gray-500">Budget iniziale</p>
                 </CardContent>
               </Card>

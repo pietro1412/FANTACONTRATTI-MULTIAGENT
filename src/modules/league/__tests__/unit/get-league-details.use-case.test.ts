@@ -103,7 +103,7 @@ describe('GetLeagueDetailsUseCase', () => {
 
       vi.mocked(mockRepository.findById).mockResolvedValue(mockLeague)
       vi.mocked(mockRepository.getMembers).mockResolvedValue(mockMembers)
-      vi.mocked(mockRepository.getMember).mockResolvedValue(mockMembers[1])
+      vi.mocked(mockRepository.getMember).mockResolvedValue(mockMembers[1]!)
 
       // Act
       const result = await useCase.execute(input)
@@ -113,7 +113,7 @@ describe('GetLeagueDetailsUseCase', () => {
       if (result.isSuccess) {
         expect(result.value.league).toEqual(mockLeague)
         expect(result.value.members).toHaveLength(3)
-        expect(result.value.members[0].user.username).toBe('admin')
+        expect(result.value.members[0]!.user.username).toBe('admin')
       }
     })
 

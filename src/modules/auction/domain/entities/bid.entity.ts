@@ -4,7 +4,7 @@
  * Represents a bid placed on an auction by a league member.
  */
 
-import { ValidationError } from '../../../../shared/infrastructure/http/errors'
+import { ValidationError } from '@/shared/infrastructure/http/errors'
 
 /**
  * Core bid entity representing a bid on an auction

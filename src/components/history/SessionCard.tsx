@@ -38,8 +38,8 @@ export function SessionCard({
   session,
   isExpanded,
   onToggle,
-  formatSessionType,
-  formatSemester,
+  formatSessionType: _formatSessionType,
+  formatSemester: _formatSemester,
   formatSessionTitle,
 }: SessionCardProps) {
   const [activeTab, setActiveTab] = useState<TabType>('overview')
@@ -57,7 +57,7 @@ export function SessionCard({
 
   useEffect(() => {
     if (isExpanded && !tabData[activeTab]) {
-      loadTabData(activeTab)
+      void loadTabData(activeTab)
     }
   }, [isExpanded, activeTab])
 
@@ -167,25 +167,25 @@ export function SessionCard({
           <div className="flex overflow-x-auto border-b border-surface-50/20">
             <TabButton
               active={activeTab === 'overview'}
-              onClick={() => setActiveTab('overview')}
+              onClick={() => { setActiveTab('overview'); }}
               label="Riepilogo"
             />
             {isPrimoMercato && (
               <TabButton
                 active={activeTab === 'firstMarket'}
-                onClick={() => setActiveTab('firstMarket')}
+                onClick={() => { setActiveTab('firstMarket'); }}
                 label="Aste"
               />
             )}
             <TabButton
               active={activeTab === 'trades'}
-              onClick={() => setActiveTab('trades')}
+              onClick={() => { setActiveTab('trades'); }}
               label="Scambi"
               count={session.counts.trades}
             />
             <TabButton
               active={activeTab === 'prizes'}
-              onClick={() => setActiveTab('prizes')}
+              onClick={() => { setActiveTab('prizes'); }}
               label="Premi"
               disabled={!session.prizesFinalized}
             />
@@ -193,12 +193,12 @@ export function SessionCard({
               <>
                 <TabButton
                   active={activeTab === 'rubata'}
-                  onClick={() => setActiveTab('rubata')}
+                  onClick={() => { setActiveTab('rubata'); }}
                   label="Rubata"
                 />
                 <TabButton
                   active={activeTab === 'svincolati'}
-                  onClick={() => setActiveTab('svincolati')}
+                  onClick={() => { setActiveTab('svincolati'); }}
                   label="Svincolati"
                 />
               </>
@@ -249,7 +249,7 @@ function TabButton({
         active
           ? 'text-primary-400 border-b-2 border-primary-400'
           : disabled
-          ? 'text-gray-600 cursor-not-allowed'
+          ? 'text-gray-500 cursor-not-allowed'
           : 'text-gray-400 hover:text-white'
       }`}
     >
@@ -428,9 +428,9 @@ function FirstMarketTab({ data }: { data: unknown }) {
                   <tr
                     key={auction.id}
                     className={`border-b border-surface-50/10 hover:bg-surface-300/20 ${hasProphecies ? 'cursor-pointer' : ''}`}
-                    onClick={() => hasProphecies && setExpandedAuction(isExpanded ? null : auction.id)}
+                    onClick={() => { if (hasProphecies) setExpandedAuction(isExpanded ? null : auction.id); }}
                   >
-                    <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position]}`}>
+                    <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position] ?? ''}`}>
                       {auction.player.position}
                     </td>
                     <td className="py-1.5 px-2 text-white">{auction.player.name}</td>
@@ -820,7 +820,7 @@ function RubataTab({ data }: { data: unknown }) {
                     <span className="text-green-400 font-bold" title="Trattenuto">✓</span>
                   )}
                 </td>
-                <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position]}`}>
+                <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position] ?? ''}`}>
                   {auction.player.position}
                 </td>
                 <td className="py-1.5 px-2 text-white">{auction.player.name}</td>
@@ -894,7 +894,7 @@ function SvincolatiTab({ data }: { data: unknown }) {
           <tbody>
             {auctions.map(auction => (
               <tr key={auction.id} className="border-b border-surface-50/10 hover:bg-surface-300/20">
-                <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position]}`}>
+                <td className={`py-1.5 px-2 font-bold ${positionColors[auction.player.position] ?? ''}`}>
                   {auction.player.position}
                 </td>
                 <td className="py-1.5 px-2 text-white">{auction.player.name}</td>

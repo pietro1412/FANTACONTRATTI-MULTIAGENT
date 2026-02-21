@@ -263,7 +263,7 @@ export class AdminPrismaRepository implements IAdminRepository {
           imported++
         }
       } catch (error) {
-        errors.push(`Failed to import player ${player.name}: ${error}`)
+        errors.push(`Failed to import player ${player.name}: ${error instanceof Error ? error.message : String(error)}`)
       }
     }
 
@@ -310,8 +310,8 @@ export class AuditLogPrismaRepository implements IAuditLogRepository {
         action: data.action,
         entityType: data.entityType,
         entityId: data.entityId,
-        oldValues: data.oldValues ? data.oldValues : undefined,
-        newValues: data.newValues ? data.newValues : undefined,
+        oldValues: data.oldValues ? (data.oldValues as Record<string, string | number | boolean | null>) : undefined,
+        newValues: data.newValues ? (data.newValues as Record<string, string | number | boolean | null>) : undefined,
         ipAddress: data.ipAddress,
         userAgent: data.userAgent,
       },

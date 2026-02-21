@@ -786,7 +786,7 @@ router.get('/leagues/:leagueId/rubata/svincolati-strategies', authMiddleware, as
 // ==================== HEARTBEAT / CONNECTION STATUS ====================
 
 // POST /api/leagues/:leagueId/rubata/heartbeat - Register heartbeat for connection tracking
-router.post('/leagues/:leagueId/rubata/heartbeat', authMiddleware, async (req: Request, res: Response) => {
+router.post('/leagues/:leagueId/rubata/heartbeat', authMiddleware, (req: Request, res: Response) => {
   try {
     const leagueId = req.params.leagueId as string
     const { memberId } = req.body as { memberId?: string }

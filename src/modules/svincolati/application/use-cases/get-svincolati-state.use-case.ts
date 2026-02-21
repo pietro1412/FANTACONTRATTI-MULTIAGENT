@@ -5,8 +5,9 @@
  * Includes turn order, nominations, available players, and member status.
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { NotFoundError, ForbiddenError } from '../../../../shared/infrastructure/http/errors'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import { NotFoundError, ForbiddenError } from '@/shared/infrastructure/http/errors'
 import type { ISvincolatiRepository } from '../../domain/repositories/svincolati.repository.interface'
 import type {
   GetSvincolatiStateDto,

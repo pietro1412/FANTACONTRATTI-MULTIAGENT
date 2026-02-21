@@ -1,9 +1,8 @@
-import { PrismaClient, AuctionStatus, AuctionType, MemberRole, MemberStatus, AcquisitionType, RosterStatus, Position, SessionStatus, Prisma } from '@prisma/client'
+import { PrismaClient, AuctionStatus, AuctionType, MemberRole, MemberStatus, AcquisitionType, RosterStatus, Position, Prisma } from '@prisma/client'
 import { calculateRescissionClause, calculateDefaultSalary, canAdvanceFromContratti } from './contract.service'
 import { autoReleaseRitiratiPlayers } from './indemnity-phase.service'
 import { recordMovement } from './movement.service'
 import {
-  createContractHistoryEntry,
   createContractHistoryEntries,
   createSessionStartSnapshots,
 } from './contract-history.service'
@@ -127,7 +126,7 @@ export async function canAdvanceFromAstaLibera(leagueId: string): Promise<{
     for (const entry of member.roster) {
       const pos = entry.player.position
       if (pos in positionCounts) {
-        positionCounts[pos]++
+        positionCounts[pos] = (positionCounts[pos] ?? 0) + 1
       }
     }
 
@@ -137,7 +136,7 @@ export async function canAdvanceFromAstaLibera(leagueId: string): Promise<{
       const current = positionCounts[pos] || 0
       if (current < required) {
         const positionNames: Record<string, string> = { P: 'Portieri', D: 'Difensori', C: 'Centrocampisti', A: 'Attaccanti' }
-        missing.push({ position: positionNames[pos], count: required - current })
+        missing.push({ position: positionNames[pos] ?? pos, count: required - current })
       }
     }
 
@@ -395,7 +394,7 @@ export async function createAuctionSession(
       const session = await tx.marketSession.create({
         data: {
           leagueId,
-          type: marketType as 'PRIMO_MERCATO' | 'MERCATO_RICORRENTE',
+          type: marketType,
           season: league.currentSeason,
           semester,
           status: 'ACTIVE',
@@ -423,10 +422,9 @@ export async function createAuctionSession(
 
       // Create SESSION_START snapshots for all managers (after duration decrement)
       try {
-        const snapshotResult = await createSessionStartSnapshots(result.session.id, leagueId)
-        console.log(`Created SESSION_START snapshots: ${snapshotResult.created} success, ${snapshotResult.failed} failed`)
-      } catch (error) {
-        console.error('Error creating session start snapshots:', error)
+        await createSessionStartSnapshots(result.session.id, leagueId)
+      } catch {
+        // Error intentionally silenced
       }
     }
 
@@ -435,8 +433,8 @@ export async function createAuctionSession(
     if (isEffectivelyRegularMarket) {
       try {
         ritiratiResult = await autoReleaseRitiratiPlayers(leagueId, result.session.id)
-      } catch (error) {
-        console.error('Error auto-releasing ritirato players:', error)
+      } catch {
+        // Error intentionally silenced
       }
     }
 
@@ -445,7 +443,7 @@ export async function createAuctionSession(
       : 'Sessione PRIMO MERCATO creata'
 
     // Push notification: auction started (fire-and-forget)
-    notifyAuctionStart(leagueId, result.marketType).catch(() => {})
+    notifyAuctionStart(leagueId, result.marketType!).catch(() => {})
 
     return {
       success: true,
@@ -859,7 +857,7 @@ export async function nominatePlayer(
       const roleNames: Record<string, string> = { P: 'Portieri', D: 'Difensori', C: 'Centrocampisti', A: 'Attaccanti' }
       return {
         success: false,
-        message: `Fase ${roleNames[currentRole]}: puoi nominare solo giocatori di ruolo ${currentRole}`
+        message: `Fase ${roleNames[currentRole] ?? currentRole}: puoi nominare solo giocatori di ruolo ${currentRole}`
       }
     }
 
@@ -1234,10 +1232,6 @@ export async function placeBid(
   userId: string,
   amount: number
 ): Promise<ServiceResult> {
-  const startTime = Date.now()
-  console.log(`[PLACEBID-TIMING] === Start placeBid ===`)
-
-  const t1 = Date.now()
   const auction = await prisma.auction.findUnique({
     where: { id: auctionId },
     include: {
@@ -1246,7 +1240,6 @@ export async function placeBid(
       marketSession: true,
     },
   })
-  console.log(`[PLACEBID-TIMING] Query auction: ${Date.now() - t1}ms`)
 
   if (!auction) {
     return { success: false, message: 'Asta non trovata' }
@@ -1259,7 +1252,6 @@ export async function placeBid(
   // Verifica timer non scaduto (controllo server-side autoritativo)
   const serverNow = new Date()
   if (auction.timerExpiresAt && serverNow > auction.timerExpiresAt) {
-    console.log(`[PLACEBID] Bid rifiutata: timer scaduto. Server: ${serverNow.toISOString()}, Expiry: ${auction.timerExpiresAt.toISOString()}`)
     return {
       success: false,
       message: 'Tempo scaduto - asta chiusa',
@@ -1268,7 +1260,6 @@ export async function placeBid(
   }
 
   // Get member
-  const t2 = Date.now()
   const member = await prisma.leagueMember.findFirst({
     where: {
       leagueId: auction.leagueId,
@@ -1276,7 +1267,6 @@ export async function placeBid(
       status: MemberStatus.ACTIVE,
     },
   })
-  console.log(`[PLACEBID-TIMING] Query member: ${Date.now() - t2}ms`)
 
   if (!member) {
     return { success: false, message: 'Non sei membro di questa lega' }
@@ -1387,9 +1377,8 @@ export async function placeBid(
   })
 
   // Trigger Pusher event for bid placed (fire and forget)
-  const tPusher = Date.now()
   if (auction.marketSessionId) {
-    triggerBidPlaced(auction.marketSessionId, {
+    void triggerBidPlaced(auction.marketSessionId, {
       auctionId: auction.id,
       memberId: member.id,
       memberName: bid.bidder.user.username,
@@ -1401,8 +1390,6 @@ export async function placeBid(
       timerSeconds: timerSeconds,
     })
   }
-  console.log(`[PLACEBID-TIMING] Pusher trigger (fire&forget): ${Date.now() - tPusher}ms`)
-  console.log(`[PLACEBID-TIMING] === TOTAL: ${Date.now() - startTime}ms ===`)
 
   return {
     success: true,
@@ -1475,7 +1462,7 @@ export async function closeAuction(
 
     // Trigger Pusher event for auction closed (fire and forget)
     if (auction.marketSessionId) {
-      triggerAuctionClosed(auction.marketSessionId, {
+      void triggerAuctionClosed(auction.marketSessionId, {
         auctionId: auction.id,
         playerId: auction.playerId,
         playerName: auction.player.name,
@@ -1565,7 +1552,7 @@ export async function closeAuction(
 
   // Trigger Pusher event for auction closed (fire and forget)
   if (auction.marketSessionId) {
-    triggerAuctionClosed(auction.marketSessionId, {
+    void triggerAuctionClosed(auction.marketSessionId, {
       auctionId: auction.id,
       playerId: auction.playerId,
       playerName: auction.player.name,
@@ -1902,7 +1889,7 @@ export async function getFirstMarketStatus(
   // Find current nominator (skip those with complete current role OR insufficient budget)
   let currentNominator = null
   if (turnOrder && turnOrder.length > 0) {
-    let searchIndex = currentTurnIndex
+    const searchIndex = currentTurnIndex
     for (let i = 0; i < turnOrder.length; i++) {
       const idx = (searchIndex + i) % turnOrder.length
       const memberId = turnOrder[idx]
@@ -1981,7 +1968,7 @@ export async function advanceToNextRole(
 
   return {
     success: true,
-    message: `Passato al ruolo ${nextRole}`,
+    message: `Passato al ruolo ${nextRole ?? ''}`,
     data: { previousRole: currentRole, currentRole: nextRole },
   }
 }
@@ -2093,7 +2080,7 @@ export async function requestPause(
   }
 
   // Send Pusher notification to all (admin will see the request)
-  triggerPauseRequested(sessionId, {
+  void triggerPauseRequested(sessionId, {
     memberId: member.id,
     username: member.user.username,
     type: pauseType,
@@ -2200,7 +2187,7 @@ export async function resumeAuction(
     data: {
       status: AuctionStatus.ACTIVE,
       timerExpiresAt: new Date(Date.now() + remainingSeconds * 1000),
-      resumeReadyMembers: null,
+      resumeReadyMembers: Prisma.DbNull,
     },
   })
 
@@ -3332,7 +3319,7 @@ export async function setPendingNomination(
   })
 
   // Trigger Pusher event for nomination pending (fire and forget)
-  triggerNominationPending(sessionId, {
+  void triggerNominationPending(sessionId, {
     auctionId: '', // no auction yet
     nominatorId: member.id,
     nominatorName: member.user.username,
@@ -3411,13 +3398,13 @@ export async function confirmNomination(
   })
 
   // Trigger Pusher event for nomination confirmed (fire and forget)
-  triggerNominationConfirmed(sessionId, {
+  void triggerNominationConfirmed(sessionId, {
     auctionId: '',
     playerId: session.pendingNominationPlayer!.id,
     playerName: session.pendingNominationPlayer!.name,
     playerRole: session.pendingNominationPlayer!.position,
     startingPrice: 1,
-    nominatorId: session.pendingNominatorId!,
+    nominatorId: session.pendingNominatorId,
     nominatorName: member.user.username,
     timerDuration: session.auctionTimerSeconds,
     timestamp: new Date().toISOString(),
@@ -3592,7 +3579,7 @@ export async function markReady(
     .map(m => ({ id: m.id, username: m.user.username }))
 
   // Trigger Pusher event for member ready (fire and forget)
-  triggerMemberReady(sessionId, {
+  void triggerMemberReady(sessionId, {
     memberId: member.id,
     memberName: member.user.username,
     isReady: true,
@@ -3689,7 +3676,7 @@ async function startPendingAuction(sessionId: string): Promise<ServiceResult> {
   })
 
   // Trigger Pusher event for auction started (fire and forget)
-  triggerAuctionStarted(sessionId, {
+  void triggerAuctionStarted(sessionId, {
     sessionId,
     auctionType: session.type,
     nominatorId: nominator!.id,
@@ -4368,7 +4355,7 @@ export async function resolveAppeal(
         data: {
           svincolatiState: 'AWAITING_RESUME',
           svincolatiTimerStartedAt: null,
-          svincolatiPendingAck: null, // Pulisci il pending ack precedente
+          svincolatiPendingAck: Prisma.DbNull, // Pulisci il pending ack precedente
         },
       })
     }
@@ -4412,7 +4399,6 @@ export async function resolveAppeal(
       },
     }
     } catch (error) {
-      console.error('[resolveAppeal] Error accepting appeal:', error)
       return {
         success: false,
         message: `Errore nell'accettare il ricorso: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`,
@@ -4539,7 +4525,7 @@ export async function acknowledgeAppealDecision(
         // Find next member who hasn't passed
         let nextIndex = (currentTurnIndex + 1) % turnOrder.length
         let searchCount = 0
-        while (newPassedMembers.includes(turnOrder[nextIndex]) && searchCount < turnOrder.length) {
+        while (newPassedMembers.includes(turnOrder[nextIndex]!) && searchCount < turnOrder.length) {
           nextIndex = (nextIndex + 1) % turnOrder.length
           searchCount++
         }
@@ -4555,7 +4541,7 @@ export async function acknowledgeAppealDecision(
               svincolatiPendingPlayerId: null,
               svincolatiPendingNominatorId: null,
               svincolatiNominatorConfirmed: false,
-              svincolatiPendingAck: null,
+              svincolatiPendingAck: Prisma.DbNull,
               svincolatiReadyMembers: [],
             },
           })
@@ -4569,7 +4555,7 @@ export async function acknowledgeAppealDecision(
               svincolatiPendingPlayerId: null,
               svincolatiPendingNominatorId: null,
               svincolatiNominatorConfirmed: false,
-              svincolatiPendingAck: null,
+              svincolatiPendingAck: Prisma.DbNull,
               svincolatiReadyMembers: [],
               svincolatiPassedMembers: newPassedMembers,
             },
@@ -4831,7 +4817,7 @@ export async function forceAllAppealDecisionAcks(
       // Find next member who hasn't passed
       let nextIndex = (currentTurnIndex + 1) % turnOrder.length
       let searchCount = 0
-      while (newPassedMembers.includes(turnOrder[nextIndex]) && searchCount < turnOrder.length) {
+      while (newPassedMembers.includes(turnOrder[nextIndex]!) && searchCount < turnOrder.length) {
         nextIndex = (nextIndex + 1) % turnOrder.length
         searchCount++
       }
@@ -4847,7 +4833,7 @@ export async function forceAllAppealDecisionAcks(
             svincolatiPendingPlayerId: null,
             svincolatiPendingNominatorId: null,
             svincolatiNominatorConfirmed: false,
-            svincolatiPendingAck: null,
+            svincolatiPendingAck: Prisma.DbNull,
             svincolatiReadyMembers: [],
           },
         })
@@ -4861,7 +4847,7 @@ export async function forceAllAppealDecisionAcks(
             svincolatiPendingPlayerId: null,
             svincolatiPendingNominatorId: null,
             svincolatiNominatorConfirmed: false,
-            svincolatiPendingAck: null,
+            svincolatiPendingAck: Prisma.DbNull,
             svincolatiReadyMembers: [],
             svincolatiPassedMembers: newPassedMembers,
           },

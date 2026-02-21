@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer'
 import type { Transporter } from 'nodemailer'
-import { IEmailService } from '../../domain/services/email.service.interface'
+import type { IEmailService } from '../../domain/services/email.service.interface'
 
 /**
  * Gmail Email Service Implementation
@@ -668,7 +668,7 @@ export class GmailEmailService implements IEmailService {
     renewalCount: number,
     excelBuffer?: Buffer
   ): Promise<void> {
-    const dateStr = new Date().toISOString().split('T')[0]
+    const dateStr = new Date().toISOString().split('T')[0] ?? ''
     const safeTeamName = teamName.replace(/\s+/g, '_')
     const pdfFilename = `Ricevuta_Rinnovi_${safeTeamName}_${dateStr}.pdf`
     const excelFilename = `Contratti_${safeTeamName}_${dateStr}.xlsx`

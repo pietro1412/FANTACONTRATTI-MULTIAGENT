@@ -200,7 +200,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   const [teamFilter, setTeamFilter] = useState<string>('ALL')
 
   // Sort state
-  const [sortMode, setSortMode] = useState<SortMode>('role')
+  const [sortMode] = useState<SortMode>('role')
   const [sortField, setSortField] = useState<SortField>('position')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
 
@@ -254,7 +254,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
           samplePrefs: withPrefs.slice(0, 3).map(p => ({ name: p.playerName, pref: p.preference }))
         })
 
-        setStrategiesData(ownedRes.data)
+        setStrategiesData(ownedRes.data as StrategiesData)
         ownedRes.data.players.forEach(p => {
           if (p.preference) {
             locals[p.playerId] = {
@@ -270,7 +270,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       }
 
       if (svincolatiRes.success && svincolatiRes.data) {
-        setSvincolatiData(svincolatiRes.data)
+        setSvincolatiData(svincolatiRes.data as SvincolatiData)
         svincolatiRes.data.players.forEach(p => {
           if (p.preference) {
             locals[p.playerId] = {
@@ -284,7 +284,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       }
 
       setLocalStrategies(locals)
-    } catch (err) {
+    } catch (_err) {
       setError('Errore nel caricamento')
     } finally {
       setLoading(false)
@@ -292,28 +292,28 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   }, [leagueId])
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [loadData])
 
   // Cleanup debounce timers
   useEffect(() => {
     return () => {
-      Object.values(debounceTimers.current).forEach(timer => clearTimeout(timer))
+      Object.values(debounceTimers.current).forEach(timer => { clearTimeout(timer); })
     }
   }, [])
 
   // Clear messages
   useEffect(() => {
     if (success) {
-      const timer = setTimeout(() => setSuccess(''), 2000)
-      return () => clearTimeout(timer)
+      const timer = setTimeout(() => { setSuccess(''); }, 2000)
+      return () => { clearTimeout(timer); }
     }
   }, [success])
 
   useEffect(() => {
     if (error) {
-      const timer = setTimeout(() => setError(''), 4000)
-      return () => clearTimeout(timer)
+      const timer = setTimeout(() => { setError(''); }, 4000)
+      return () => { clearTimeout(timer); }
     }
   }, [error])
 
@@ -379,13 +379,17 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
       if (res.success) {
         // Mark as not dirty
-        setLocalStrategies(prev => ({
-          ...prev,
-          [playerId]: {
-            ...prev[playerId],
-            isDirty: false,
+        setLocalStrategies(prev => {
+          const existing = prev[playerId]
+          if (!existing) return prev
+          return {
+            ...prev,
+            [playerId]: {
+              ...existing,
+              isDirty: false,
+            }
           }
-        }))
+        })
 
         // Update server data optimistically
         setStrategiesData(prev => {
@@ -436,25 +440,25 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         isWatchlist: category !== null,
       })
       // Optimistic update for both datasets
-      const updatePlayer = (p: StrategyPlayerWithPreference | SvincolatoPlayerWithPreference) => {
-        if (p.playerId !== playerId) return p
-        return {
-          ...p,
-          preference: {
-            id: p.preference?.id || 'temp',
-            playerId,
-            memberId: strategiesData?.myMemberId || '',
-            maxBid: p.preference?.maxBid ?? null,
-            priority: p.preference?.priority ?? null,
-            notes: p.preference?.notes ?? null,
-            isWatchlist: category !== null,
-            isAutoPass: p.preference?.isAutoPass ?? false,
-            watchlistCategory: category,
-          }
-        }
-      }
-      setStrategiesData(prev => prev ? { ...prev, players: prev.players.map(updatePlayer) } : prev)
-      setSvincolatiData(prev => prev ? { ...prev, players: prev.players.map(updatePlayer) } : prev)
+      const buildPref = (p: { preference?: RubataPreference | null }): RubataPreference => ({
+        id: p.preference?.id || 'temp',
+        playerId,
+        memberId: strategiesData?.myMemberId || '',
+        maxBid: p.preference?.maxBid ?? null,
+        priority: p.preference?.priority ?? null,
+        notes: p.preference?.notes ?? null,
+        isWatchlist: category !== null,
+        isAutoPass: p.preference?.isAutoPass ?? false,
+        watchlistCategory: category,
+      })
+      setStrategiesData(prev => prev ? {
+        ...prev,
+        players: prev.players.map(p => p.playerId !== playerId ? p : { ...p, preference: buildPref(p) })
+      } : prev)
+      setSvincolatiData(prev => prev ? {
+        ...prev,
+        players: prev.players.map(p => p.playerId !== playerId ? p : { ...p, preference: buildPref(p) })
+      } : prev)
     } catch {
       console.error('Error setting watchlist category for', playerId)
     } finally {
@@ -489,7 +493,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
     // Set new debounce timer (2 seconds)
     debounceTimers.current[playerId] = setTimeout(() => {
       console.log('[Strategie DEBOUNCE fired]', playerId)
-      saveStrategy(playerId)
+      void saveStrategy(playerId)
     }, 2000)
   }, [saveStrategy])
 
@@ -527,7 +531,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
     // Position order: P (0) > D (1) > C (2) > A (3)
     const getPositionOrder = (pos: string): number => {
-      const normalized = (pos || '').toString().trim().toUpperCase()
+      const normalized = (pos || '').trim().toUpperCase()
       const order: Record<string, number> = { P: 0, D: 1, C: 2, A: 3 }
       return order[normalized] ?? 99
     }
@@ -719,7 +723,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
   const SortableHeader = ({ field, label, className = '' }: { field: SortField; label: string; className?: string }) => (
     <th
       className={`cursor-pointer hover:bg-surface-50/10 transition-colors select-none ${className}`}
-      onClick={() => handleSort(field)}
+      onClick={() => { handleSort(field); }}
     >
       <div className="flex items-center justify-center gap-1">
         {label}
@@ -784,7 +788,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex gap-1 bg-surface-400/50 rounded-lg p-0.5">
                     <button
-                      onClick={() => setDataViewMode('contracts')}
+                      onClick={() => { setDataViewMode('contracts'); }}
                       className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                         dataViewMode === 'contracts'
                           ? 'bg-accent-500 text-white shadow-md'
@@ -795,7 +799,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       📋 Contratti
                     </button>
                     <button
-                      onClick={() => setDataViewMode('stats')}
+                      onClick={() => { setDataViewMode('stats'); }}
                       className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                         dataViewMode === 'stats'
                           ? 'bg-cyan-500 text-white shadow-md'
@@ -806,7 +810,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       📊 Stats
                     </button>
                     <button
-                      onClick={() => setDataViewMode('merge')}
+                      onClick={() => { setDataViewMode('merge'); }}
                       className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                         dataViewMode === 'merge'
                           ? 'bg-violet-500 text-white shadow-md'
@@ -915,7 +919,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       return (
                         <button
                           key={pos}
-                          onClick={() => setPositionFilter(pos)}
+                          onClick={() => { setPositionFilter(pos); }}
                           className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                             positionFilter === pos
                               ? pos === 'ALL'
@@ -934,7 +938,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   {(viewMode === 'owned' || viewMode === 'all') && (
                     <select
                       value={ownerFilter}
-                      onChange={(e) => setOwnerFilter(e.target.value)}
+                      onChange={(e) => { setOwnerFilter(e.target.value); }}
                       className="px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
                     >
                       <option value="ALL">Manager</option>
@@ -947,7 +951,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   {/* Team Filter */}
                   <select
                     value={teamFilter}
-                    onChange={(e) => setTeamFilter(e.target.value)}
+                    onChange={(e) => { setTeamFilter(e.target.value); }}
                     className="px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
                   >
                     <option value="ALL">Squadra</option>
@@ -964,7 +968,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     <input
                       type="text"
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => { setSearchQuery(e.target.value); }}
                       placeholder="🔍 Cerca giocatore..."
                       className="w-full px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
                     />
@@ -975,7 +979,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     <input
                       type="checkbox"
                       checked={showOnlyWithStrategy}
-                      onChange={(e) => setShowOnlyWithStrategy(e.target.checked)}
+                      onChange={(e) => { setShowOnlyWithStrategy(e.target.checked); }}
                       className="w-4 h-4 rounded bg-surface-300 border-indigo-500/50 text-indigo-500 focus:ring-indigo-500"
                     />
                     <span className="text-xs text-indigo-300 whitespace-nowrap font-medium">⭐ Strategia</span>
@@ -985,7 +989,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   {selectedForCompare.size > 0 && (
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <button
-                        onClick={() => setShowCompareModal(true)}
+                        onClick={() => { setShowCompareModal(true); }}
                         disabled={selectedForCompare.size < 2}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           selectedForCompare.size >= 2
@@ -1154,7 +1158,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         <input
                           type="checkbox"
                           checked={selectedForCompare.has(player.playerId)}
-                          onChange={() => togglePlayerForCompare(player.playerId)}
+                          onChange={() => { togglePlayerForCompare(player.playerId); }}
                           className="w-5 h-5 rounded bg-surface-300 border-cyan-500/50 text-cyan-500 focus:ring-cyan-500 flex-shrink-0"
                         />
                         {/* Player Photo with Team Logo Badge - increased size #186 */}
@@ -1186,7 +1190,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         </div>
                         <div className="flex-1 min-w-0">
                           <button
-                            onClick={() => setSelectedPlayerStats({
+                            onClick={() => { setSelectedPlayerStats({
                               name: player.playerName,
                               team: player.playerTeam,
                               position: player.playerPosition,
@@ -1194,7 +1198,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               age: player.playerAge,
                               apiFootballId: player.playerApiFootballId,
                               computedStats: player.playerComputedStats,
-                            })}
+                            }); }}
                             className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
                           >
                             {player.playerName}
@@ -1227,7 +1231,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         </div>
                         <div>
                           <span className="text-gray-500">Età: </span>
-                          <span className={`${getAgeColor(player.playerAge)}`}>
+                          <span className={getAgeColor(player.playerAge)}>
                             {player.playerAge != null ? `${player.playerAge} anni` : '-'}
                           </span>
                         </div>
@@ -1287,19 +1291,19 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           {/* Max Bid */}
                           <div className="flex items-center gap-1">
                             <span className="text-[10px] text-gray-500 uppercase">Max:</span>
-                            <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, (parseInt(local.maxBid) || 0) - 1).toString())} className="w-6 h-6 min-h-[44px] min-w-[44px] rounded bg-surface-300/70 text-gray-400 text-sm font-bold flex items-center justify-center">−</button>
-                            <input type="number" inputMode="decimal" value={local.maxBid} onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)} placeholder="-" className="w-12 px-1 py-1 min-h-[44px] bg-surface-300/50 border border-surface-50/30 rounded text-white text-center text-sm" />
-                            <button onClick={() => updateLocalStrategy(player.playerId, 'maxBid', ((parseInt(local.maxBid) || 0) + 1).toString())} className="w-6 h-6 min-h-[44px] min-w-[44px] rounded bg-surface-300/70 text-gray-400 text-sm font-bold flex items-center justify-center">+</button>
+                            <button onClick={() => { updateLocalStrategy(player.playerId, 'maxBid', Math.max(0, (parseInt(local.maxBid) || 0) - 1).toString()); }} className="w-6 h-6 min-h-[44px] min-w-[44px] rounded bg-surface-300/70 text-gray-400 text-sm font-bold flex items-center justify-center">−</button>
+                            <input type="number" inputMode="decimal" value={local.maxBid} onChange={(e) => { updateLocalStrategy(player.playerId, 'maxBid', e.target.value); }} placeholder="-" className="w-12 px-1 py-1 min-h-[44px] bg-surface-300/50 border border-surface-50/30 rounded text-white text-center text-sm" />
+                            <button onClick={() => { updateLocalStrategy(player.playerId, 'maxBid', ((parseInt(local.maxBid) || 0) + 1).toString()); }} className="w-6 h-6 min-h-[44px] min-w-[44px] rounded bg-surface-300/70 text-gray-400 text-sm font-bold flex items-center justify-center">+</button>
                           </div>
                           {/* Priority - increased size #186 */}
                           <div className="flex items-center gap-0.5 ml-auto">
                             {[1, 2, 3, 4, 5].map(star => (
-                              <button key={star} onClick={() => updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star)} className={`w-8 h-8 min-h-[44px] min-w-[44px] text-xl flex items-center justify-center ${local.priority >= star ? 'text-purple-400' : 'text-gray-600'}`}>★</button>
+                              <button key={star} onClick={() => { updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star); }} className={`w-8 h-8 min-h-[44px] min-w-[44px] text-xl flex items-center justify-center ${local.priority >= star ? 'text-purple-400' : 'text-gray-500'}`}>★</button>
                             ))}
                           </div>
                         </div>
                         {/* Notes */}
-                        <input type="text" value={local.notes} onChange={(e) => updateLocalStrategy(player.playerId, 'notes', e.target.value)} placeholder="Note..." className="w-full px-2 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-sm" />
+                        <input type="text" value={local.notes} onChange={(e) => { updateLocalStrategy(player.playerId, 'notes', e.target.value); }} placeholder="Note..." className="w-full px-2 py-1 bg-surface-300/50 border border-surface-50/30 rounded text-white text-sm" />
                         {/* Watchlist Category #219 */}
                         <div className="flex flex-wrap gap-1 mt-2">
                           {(Object.entries(WATCHLIST_CATEGORIES) as [WatchlistCategoryId, typeof WATCHLIST_CATEGORIES[WatchlistCategoryId]][]).map(([catId, cat]) => {
@@ -1307,7 +1311,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             return (
                               <button
                                 key={catId}
-                                onClick={() => setWatchlistCategory(player.playerId, isActive ? null : catId)}
+                                onClick={() => { void setWatchlistCategory(player.playerId, isActive ? null : catId) }}
                                 className={`px-2 py-1 rounded-full text-[10px] font-medium border transition-all ${isActive ? cat.color : 'bg-surface-300/50 text-gray-500 border-surface-50/20 hover:text-gray-300'}`}
                               >
                                 {cat.icon} {cat.label}
@@ -1358,7 +1362,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         <input
                           type="checkbox"
                           checked={selectedForCompare.size > 0}
-                          onChange={() => selectedForCompare.size > 0 ? clearComparison() : null}
+                          onChange={() => { if (selectedForCompare.size > 0) clearComparison(); }}
                           className="w-4 h-4 rounded bg-surface-300 border-cyan-500/50 text-cyan-500 focus:ring-cyan-500"
                         />
                       </th>
@@ -1419,7 +1423,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             <input
                               type="checkbox"
                               checked={selectedForCompare.has(player.playerId)}
-                              onChange={() => togglePlayerForCompare(player.playerId)}
+                              onChange={() => { togglePlayerForCompare(player.playerId); }}
                               className="w-4 h-4 rounded bg-surface-300 border-cyan-500/50 text-cyan-500 focus:ring-cyan-500"
                             />
                           </td>
@@ -1459,7 +1463,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               </div>
                               <div className="min-w-0">
                                 <button
-                                  onClick={() => setSelectedPlayerStats({
+                                  onClick={() => { setSelectedPlayerStats({
                                     name: player.playerName,
                                     team: player.playerTeam,
                                     position: player.playerPosition,
@@ -1467,7 +1471,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                     age: player.playerAge,
                                     apiFootballId: player.playerApiFootballId,
                                     computedStats: player.playerComputedStats,
-                                  })}
+                                  }); }}
                                   className="font-medium text-white text-base truncate hover:text-primary-400 transition-colors text-left"
                                 >
                                   {player.playerName}
@@ -1535,7 +1539,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               {/* Ingaggio */}
                               <td className="p-2 text-center border-l border-surface-50/10">
                                 {isSvincolato ? (
-                                  <span className="text-gray-600">-</span>
+                                  <span className="text-gray-400">-</span>
                                 ) : (
                                   <span className="text-accent-400 font-medium text-xs">{player.contractSalary}M</span>
                                 )}
@@ -1544,7 +1548,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               {/* Durata */}
                               <td className="p-2 text-center">
                                 {isSvincolato ? (
-                                  <span className="text-gray-600">-</span>
+                                  <span className="text-gray-400">-</span>
                                 ) : (
                                   <span className="text-white text-xs">{player.contractDuration}</span>
                                 )}
@@ -1553,7 +1557,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               {/* Clausola */}
                               <td className="p-2 text-center">
                                 {isSvincolato ? (
-                                  <span className="text-gray-600">-</span>
+                                  <span className="text-gray-400">-</span>
                                 ) : (
                                   <span className="text-orange-400 font-medium">{player.contractClause}M</span>
                                 )}
@@ -1562,7 +1566,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                               {/* Rubata Price */}
                               <td className="p-2 text-center">
                                 {isSvincolato ? (
-                                  <span className="text-gray-600">-</span>
+                                  <span className="text-gray-400">-</span>
                                 ) : (
                                   <span className="text-warning-400 font-bold">{player.rubataPrice}M</span>
                                 )}
@@ -1634,9 +1638,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                 type="number"
                                 inputMode="decimal"
                                 value={local.maxBid}
-                                onChange={(e) => updateLocalStrategy(player.playerId, 'maxBid', e.target.value)}
+                                onChange={(e) => { updateLocalStrategy(player.playerId, 'maxBid', e.target.value); }}
                                 placeholder="-"
-                                className={`w-10 px-1 py-0.5 bg-surface-300/50 border rounded text-white text-center text-xs font-medium focus:border-blue-500 focus:outline-none placeholder:text-gray-600 ${
+                                className={`w-10 px-1 py-0.5 bg-surface-300/50 border rounded text-white text-center text-xs font-medium focus:border-blue-500 focus:outline-none placeholder:text-gray-500 ${
                                   isSaving ? 'border-blue-500/50' : local.isDirty ? 'border-yellow-500/50' : 'border-surface-50/30'
                                 }`}
                               />
@@ -1667,7 +1671,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                   className={`w-5 h-5 text-sm transition-colors ${
                                     local.priority >= star
                                       ? 'text-purple-400 hover:text-purple-300'
-                                      : 'text-gray-600 hover:text-gray-400'
+                                      : 'text-gray-500 hover:text-gray-300'
                                   }`}
                                 >
                                   ★
@@ -1681,9 +1685,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                             <input
                               type="text"
                               value={local.notes}
-                              onChange={(e) => updateLocalStrategy(player.playerId, 'notes', e.target.value)}
+                              onChange={(e) => { updateLocalStrategy(player.playerId, 'notes', e.target.value); }}
                               placeholder="Note..."
-                              className={`w-full min-w-[60px] px-1 py-0.5 bg-surface-300/50 border rounded text-white text-xs focus:border-blue-500 focus:outline-none placeholder:text-gray-600 ${
+                              className={`w-full min-w-[60px] px-1 py-0.5 bg-surface-300/50 border rounded text-white text-xs focus:border-blue-500 focus:outline-none placeholder:text-gray-500 ${
                                 isSaving ? 'border-blue-500/50' : local.isDirty ? 'border-yellow-500/50' : 'border-surface-50/30'
                               }`}
                             />
@@ -1693,7 +1697,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           <td className="p-2 bg-indigo-500/5">
                             <select
                               value={player.preference?.watchlistCategory || ''}
-                              onChange={(e) => setWatchlistCategory(player.playerId, e.target.value || null)}
+                              onChange={(e) => { void setWatchlistCategory(player.playerId, e.target.value || null) }}
                               className="w-full min-w-[80px] px-1 py-0.5 bg-surface-300/50 border border-surface-50/30 rounded text-xs focus:border-blue-500 focus:outline-none text-white"
                             >
                               <option value="">-</option>
@@ -1748,7 +1752,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
       {/* Player Stats Modal */}
       <PlayerStatsModal
         isOpen={!!selectedPlayerStats}
-        onClose={() => setSelectedPlayerStats(null)}
+        onClose={() => { setSelectedPlayerStats(null); }}
         player={selectedPlayerStats}
       />
 
@@ -1761,7 +1765,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-white">Confronto Giocatori</h2>
                 <button
-                  onClick={() => setShowCompareModal(false)}
+                  onClick={() => { setShowCompareModal(false); }}
                   className="w-10 h-10 rounded-lg bg-surface-300 hover:bg-surface-50/20 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
                 >
                   ✕
@@ -1843,7 +1847,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           size={280}
                           players={playersToCompare.map((p, i) => ({
                             name: p.playerName,
-                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#6b7280'
                           }))}
                           data={[
                             { label: 'Parate', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.saves ?? 0) },
@@ -1863,7 +1867,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           size={280}
                           players={playersToCompare.map((p, i) => ({
                             name: p.playerName,
-                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                            color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#6b7280'
                           }))}
                           data={[
                             { label: 'Gol Subiti', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.conceded ?? 0) },
@@ -1892,7 +1896,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         size={280}
                         players={playersToCompare.map((p, i) => ({
                           name: p.playerName,
-                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#6b7280'
                         }))}
                         data={[
                           { label: 'Gol', values: playersToCompare.map(p => p.playerApiFootballStats?.goals?.total ?? 0) },
@@ -1912,7 +1916,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         size={280}
                         players={playersToCompare.map((p, i) => ({
                           name: p.playerName,
-                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length]
+                          color: PLAYER_CHART_COLORS[i % PLAYER_CHART_COLORS.length] ?? '#6b7280'
                         }))}
                         data={[
                           { label: 'Contrasti', values: playersToCompare.map(p => p.playerApiFootballStats?.tackles?.total ?? 0) },
@@ -2023,7 +2027,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       {[
                         { label: 'Presenze', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.appearences },
                         { label: 'Minuti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.minutes },
-                        { label: 'Rating', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.rating, format: (v: number | null) => v != null ? Number(v).toFixed(2) : '-' },
+                        { label: 'Rating', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.rating, format: (v: number | null) => v != null ? v.toFixed(2) : '-' },
                         // Goalkeeper-specific stats
                         { label: '🧤 Parate', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.goals?.saves : null, colorClass: 'text-yellow-400', goalkeeperOnly: true },
                         { label: '🧤 Gol Subiti', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.goals?.conceded : null, colorClass: 'text-yellow-400', goalkeeperOnly: true, lowerIsBetter: true },
@@ -2049,7 +2053,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       }).map(row => {
                         const values = playersToCompare.map(p => {
                           const val = row.getValue(p)
-                          return val != null ? Number(val) : 0
+                          return val != null ? val : 0
                         })
                         const maxVal = Math.max(...values.filter(v => v > 0))
 

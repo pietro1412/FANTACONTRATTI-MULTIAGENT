@@ -8,8 +8,8 @@ interface WaitingPanelProps {
 
 export function WaitingPanel({ currentTurnManager, marketProgress }: WaitingPanelProps) {
   const currentRole = marketProgress?.currentRole || ''
-  const posGradient = POSITION_GRADIENTS[currentRole as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
-  const posName = POSITION_NAMES[currentRole as keyof typeof POSITION_NAMES] || currentRole
+  const posGradient = POSITION_GRADIENTS[currentRole] || 'from-gray-500 to-gray-600'
+  const posName = POSITION_NAMES[currentRole] || currentRole
 
   return (
     <div className="mb-6">

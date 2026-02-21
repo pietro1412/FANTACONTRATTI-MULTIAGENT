@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 
 // Use vi.hoisted to define mocks that are hoisted with vi.mock
@@ -11,7 +11,6 @@ const {
   mockConnect,
   mockDisconnect,
   mockConnectionBind,
-  mockConnectionUnbind,
   mockChannel,
   MockPusherClient,
 } = vi.hoisted(() => {
@@ -43,7 +42,6 @@ const {
       state: 'connected',
     }
     static logToConsole = false
-    constructor() {}
   }
 
   return {
@@ -69,7 +67,6 @@ vi.mock('pusher-js', () => {
 })
 
 import {
-  pusherClient,
   subscribeToAuction,
   unsubscribeFromAuction,
   unbindAuctionHandlers,
@@ -260,7 +257,7 @@ describe('pusher.client', () => {
       expect(bindings.length).toBeGreaterThanOrEqual(7)
 
       // Find and invoke each handler
-      bindings.forEach(([eventName, handler]: [string, (data: unknown) => void]) => {
+      ;(bindings as [string, (data: unknown) => void][]).forEach(([_eventName, handler]) => {
         const testData = { test: 'data' }
         handler(testData)
       })
@@ -281,9 +278,9 @@ describe('pusher.client', () => {
       )
 
       // Find the state_change handler that was bound
-      const connectionBindCalls = mockConnectionBind.mock.calls
+      const connectionBindCalls = mockConnectionBind.mock.calls as [string, (...args: unknown[]) => void][]
       const stateChangeBinding = connectionBindCalls.find(
-        ([event]: [string]) => event === 'state_change'
+        ([event]) => event === 'state_change'
       )
 
       expect(stateChangeBinding).toBeDefined()

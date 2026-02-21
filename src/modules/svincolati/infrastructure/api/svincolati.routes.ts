@@ -41,6 +41,9 @@ const router = Router()
 
 // ==================== TYPES ====================
 
+// Type helper for accessing dynamic properties on service result data
+type ResultData = Record<string, unknown>
+
 interface NominateBody {
   playerId: string
 }
@@ -94,7 +97,7 @@ router.get(
   '/:sessionId',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await getSvincolatiBoard(sessionId, userId)
@@ -119,7 +122,7 @@ router.get(
   '/:sessionId/available',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
     const {
       position,
@@ -165,7 +168,7 @@ router.post(
   '/:sessionId/nominate',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const { playerId } = req.body as NominateBody
     const userId = req.user!.userId
 
@@ -207,7 +210,7 @@ router.put(
   '/:sessionId/confirm',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await confirmSvincolatiNomination(sessionId, userId)
@@ -223,7 +226,7 @@ router.put(
       BATCHED_PUSHER_EVENTS.SVINCOLATI_NOMINATION,
       {
         action: 'confirmed',
-        auctionId: result.data?.auctionId,
+        auctionId: (result.data as ResultData | undefined)?.auctionId,
         timestamp: Date.now(),
       }
     )
@@ -242,7 +245,7 @@ router.delete(
   '/:sessionId/nomination',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await cancelSvincolatiNomination(sessionId, userId)
@@ -278,7 +281,7 @@ router.post(
   '/:sessionId/pass',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await passSvincolatiTurn(sessionId, userId)
@@ -295,7 +298,7 @@ router.post(
       {
         action: 'turn-passed',
         memberId: userId,
-        nextMemberId: result.data?.nextMemberId,
+        nextMemberId: (result.data as ResultData | undefined)?.nextMemberId,
         timestamp: Date.now(),
       }
     )
@@ -316,7 +319,7 @@ router.post(
   '/:sessionId/ready',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await markReadyForSvincolati(sessionId, userId)
@@ -326,6 +329,8 @@ router.post(
       return
     }
 
+    const data = result.data as ResultData | undefined
+
     // Queue real-time event
     batchedPusherService.queueEvent(
       getSvincolatiChannel(sessionId),
@@ -333,8 +338,8 @@ router.post(
       {
         memberId: userId,
         isReady: true,
-        readyCount: result.data?.readyCount,
-        totalCount: result.data?.totalCount,
+        readyCount: data?.readyCount,
+        totalCount: data?.totalCount,
         timestamp: Date.now(),
       }
     )
@@ -353,7 +358,7 @@ router.post(
   '/:sessionId/force-ready',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await forceAllReadyForSvincolati(sessionId, userId)
@@ -391,7 +396,7 @@ router.post(
   '/:sessionId/bid',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const { amount } = req.body as PlaceBidBody
     const userId = req.user!.userId
 
@@ -402,7 +407,8 @@ router.post(
 
     // Get the active auction ID from the board state
     const boardResult = await getSvincolatiBoard(sessionId, userId)
-    const auctionId = boardResult.data?.activeAuctionId
+    const boardData = boardResult.data as ResultData | undefined
+    const auctionId = boardData?.activeAuctionId as string | undefined
 
     if (!auctionId) {
       res.status(400).json({ success: false, message: 'Nessuna asta attiva' })
@@ -423,7 +429,7 @@ router.post(
       {
         bidderId: userId,
         amount,
-        timerExpiresAt: result.data?.timerExpiresAt,
+        timerExpiresAt: (result.data as ResultData | undefined)?.timerExpiresAt,
         timestamp: Date.now(),
       }
     )
@@ -444,7 +450,7 @@ router.post(
   '/:sessionId/acknowledge',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await acknowledgeSvincolatiAuction(sessionId, userId)
@@ -479,7 +485,7 @@ router.post(
   '/:sessionId/force-ack',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await forceAllSvincolatiAck(sessionId, userId)
@@ -516,12 +522,13 @@ router.post(
   '/:sessionId/close-auction',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     // Get the active auction ID from the board state
     const boardResult = await getSvincolatiBoard(sessionId, userId)
-    const auctionId = boardResult.data?.activeAuctionId
+    const boardData = boardResult.data as ResultData | undefined
+    const auctionId = boardData?.activeAuctionId as string | undefined
 
     if (!auctionId) {
       res.status(400).json({ success: false, message: 'Nessuna asta attiva' })
@@ -536,14 +543,16 @@ router.post(
       return
     }
 
+    const data = result.data as ResultData | undefined
+
     // Queue real-time event
     batchedPusherService.queueEvent(
       getSvincolatiChannel(sessionId),
       BATCHED_PUSHER_EVENTS.SVINCOLATI_STATE_CHANGED,
       {
         action: 'auction-closed',
-        winnerId: result.data?.winnerId,
-        winningBid: result.data?.winningBid,
+        winnerId: data?.winnerId,
+        winningBid: data?.winningBid,
         timestamp: Date.now(),
       }
     )
@@ -565,7 +574,7 @@ router.put(
   '/:sessionId/timer',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const { timerSeconds } = req.body as SetTimerBody
     const userId = req.user!.userId
 
@@ -598,7 +607,7 @@ router.post(
   '/:sessionId/finished',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await declareSvincolatiFinished(sessionId, userId)
@@ -633,7 +642,7 @@ router.delete(
   '/:sessionId/finished',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await undoSvincolatiFinished(sessionId, userId)
@@ -668,7 +677,7 @@ router.post(
   '/:sessionId/force-all-finished',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await forceAllSvincolatiFinished(sessionId, userId)

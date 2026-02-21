@@ -336,9 +336,14 @@ Il vincitore della rubata può **opzionalmente** modificare il contratto del gio
 | Aumento durata | Richiede **prima** un aumento di ingaggio |
 | Durata massima | 4 semestri |
 
+**Impatto finanziario della modifica:**
+- Se il manager **conferma senza modificare** → nessun costo aggiuntivo (il prezzo rubata già include l'ingaggio originale, vedi §3.6)
+- Se il manager **aumenta l'ingaggio** → il costo aggiuntivo è solo il **delta** (nuovo ingaggio − ingaggio originale), riflesso automaticamente nel monte ingaggi
+- Se il manager **salta la modifica** ("Mantieni contratto") → nessun costo aggiuntivo
+
 **Validazione frontend:** `src/components/ContractModifier.tsx:38-48` (increaseOnly mode)
 
-**Validazione backend:** `src/services/contract.service.ts:1915-1927`
+**Validazione backend:** `src/services/contract.service.ts:1990-2002`
 ```typescript
 // Post-acquisition: only increase allowed (no spalma, no taglio)
 if (newSalary < contract.salary) → errore

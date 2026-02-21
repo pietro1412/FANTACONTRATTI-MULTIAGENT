@@ -42,7 +42,7 @@ export function DurationSlider({
   const fillPercentage = ((value - min) / (max - min)) * 100
 
   return (
-    <div className={`${className}`} {...props}>
+    <div className={className} {...props}>
       {/* Slider track */}
       <div className="relative pt-2 pb-4">
         <input
@@ -50,7 +50,7 @@ export function DurationSlider({
           min={min}
           max={max}
           value={value}
-          onChange={(e) => handleChange(parseInt(e.target.value))}
+          onChange={(e) => { handleChange(parseInt(e.target.value)); }}
           disabled={disabled}
           className="w-full h-2 bg-surface-300 rounded-full appearance-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 accent-primary-500"
           style={{
@@ -66,7 +66,7 @@ export function DurationSlider({
             {marks.map((mark) => (
               <button
                 key={mark}
-                onClick={() => handleChange(mark)}
+                onClick={() => { handleChange(mark); }}
                 disabled={disabled}
                 className={`text-xs font-medium transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${
                   value === mark
@@ -122,7 +122,7 @@ export function DurationSliderCompact({
   return (
     <div className="flex items-center gap-1">
       <button
-        onClick={() => handleChange(value - 1)}
+        onClick={() => { handleChange(value - 1); }}
         disabled={disabled || value <= min || (!canDecrease && value <= min)}
         className="w-8 h-8 flex items-center justify-center rounded bg-surface-300 text-white font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-surface-100 transition-colors min-h-[44px] min-w-[44px]"
         aria-label="Riduci durata"
@@ -133,7 +133,7 @@ export function DurationSliderCompact({
         {value}s
       </div>
       <button
-        onClick={() => handleChange(value + 1)}
+        onClick={() => { handleChange(value + 1); }}
         disabled={disabled || value >= max}
         className="w-8 h-8 flex items-center justify-center rounded bg-surface-300 text-white font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-surface-100 transition-colors min-h-[44px] min-w-[44px]"
         aria-label="Aumenta durata"

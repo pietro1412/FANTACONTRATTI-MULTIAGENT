@@ -6,4 +6,4 @@
  */
 
 // Re-export from existing locations
-export { default as AuctionRoom } from '@/pages/AuctionRoom'
+export { AuctionRoom } from '@/pages/AuctionRoom'

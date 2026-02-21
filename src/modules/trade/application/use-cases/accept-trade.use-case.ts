@@ -5,10 +5,10 @@
 
 import type { ITradeRepository } from '../../domain/repositories/trade.repository.interface'
 import type { ITradeValidator } from '../../domain/services/trade-validator.service'
-import type { TradeOffer } from '../../domain/entities/trade-offer.entity'
 import { canRespondToTrade, isTradeExpired } from '../../domain/entities/trade-offer.entity'
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { ValidationError, NotFoundError, InternalError, ForbiddenError } from '../../../../shared/infrastructure/http/errors'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import { ValidationError, NotFoundError, InternalError, ForbiddenError } from '@/shared/infrastructure/http/errors'
 
 /**
  * Input for accepting a trade offer
@@ -113,7 +113,7 @@ export class AcceptTradeUseCase {
       // This ensures nothing has changed since the offer was created
       const assetValidation = await this.tradeValidator.validateAssets(trade)
       if (!assetValidation.isValid) {
-        return fail(new ValidationError(assetValidation.errors[0]))
+        return fail(new ValidationError(assetValidation.errors[0] ?? 'Validazione asset fallita'))
       }
 
       // Execute the trade (swap players and budgets)

@@ -1,13 +1,12 @@
-import { PrismaClient, MemberStatus, RosterStatus, AcquisitionType } from '@prisma/client'
+import { PrismaClient, MemberStatus, RosterStatus, AcquisitionType, MovementType } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 import { recordMovement } from './movement.service'
 import {
-  createContractHistoryEntry,
   createContractHistoryEntries,
-  createPhaseStartSnapshot,
   createPhaseEndSnapshot,
 } from './contract-history.service'
 import type { CreateContractHistoryInput, ContractEventType } from '../types/contract-history'
-import { computeSeasonStatsBatch, type ComputedSeasonStats } from './player-stats.service'
+import { computeSeasonStatsBatch } from './player-stats.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
 const prisma = new PrismaClient()
@@ -231,7 +230,7 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
 
   // If consolidated, fetch renewal history to show what changed
   // This map contains ONLY contracts that were actually modified (RENEWAL or SPALMA)
-  let modifiedContractsMap: Map<string, { newSalary: number; newDuration: number; previousSalary: number; previousDuration: number }> = new Map()
+  const modifiedContractsMap: Map<string, { newSalary: number; newDuration: number; previousSalary: number; previousDuration: number }> = new Map()
   if (isConsolidated && activeSession) {
     const renewalHistory = await prisma.contractHistory.findMany({
       where: {
@@ -874,7 +873,7 @@ export async function releasePlayer(
   })
 
   const releaseMessage = isExitedPlayer
-    ? `${playerName} svincolato gratuitamente (${player.exitReason}).`
+    ? `${playerName} svincolato gratuitamente (${player.exitReason ?? 'sconosciuto'}).`
     : `${playerName} svincolato. Costo taglio: ${releaseCost}M (${contract.salary}×${contract.duration}/2)`
 
   return {
@@ -1146,7 +1145,7 @@ export async function consolidateContracts(
           const renewalCost = salaryDiff > 0 ? salaryDiff : 0
 
           // Calculate new rescission clause
-          const multiplier = DURATION_MULTIPLIERS[renewal.duration as keyof typeof DURATION_MULTIPLIERS] || 7
+          const multiplier = DURATION_MULTIPLIERS[renewal.duration] || 7
           const newRescissionClause = renewal.salary * multiplier
 
           // Determine if this is a renewal (increase) or spalma (decrease salary with duration > 1)
@@ -1209,13 +1208,14 @@ export async function consolidateContracts(
           }
 
           // Calculate rescission clause
-          const multiplier = DURATION_MULTIPLIERS[nc.duration as keyof typeof DURATION_MULTIPLIERS] || 7
+          const multiplier = DURATION_MULTIPLIERS[nc.duration] || 7
           const rescissionClause = nc.salary * multiplier
 
           // Create contract
           await tx.playerContract.create({
             data: {
               rosterId: nc.rosterId,
+              leagueMemberId: member.id,
               salary: nc.salary,
               duration: nc.duration,
               initialSalary: nc.salary,
@@ -1435,8 +1435,8 @@ export async function consolidateContracts(
       })
 
       for (const contract of keptExitedPlayers) {
-        const movementType = contract.roster.player.exitReason === 'ESTERO'
-          ? 'ABROAD_KEEP' : 'RELEGATION_KEEP'
+        const movementType: MovementType = contract.roster.player.exitReason === 'ESTERO'
+          ? MovementType.ABROAD_KEEP : MovementType.RELEGATION_KEEP
         const eventType: ContractEventType = contract.roster.player.exitReason === 'ESTERO'
           ? 'KEEP_ESTERO' : 'KEEP_RETROCESSO'
 
@@ -1453,7 +1453,7 @@ export async function consolidateContracts(
           newSalary: contract.salary,
           newDuration: contract.duration,
           newClause: contract.rescissionClause,
-          notes: `Mantenuto ${contract.roster.player.name} (${contract.roster.player.exitReason})`,
+          notes: `Mantenuto ${contract.roster.player.name} (${contract.roster.player.exitReason ?? 'sconosciuto'})`,
         })
 
         await recordMovement({
@@ -1462,7 +1462,7 @@ export async function consolidateContracts(
           playerId: contract.roster.player.id,
           fromMemberId: null,
           toMemberId: member.id,
-          movementType: movementType as any,
+          movementType,
           price: 0,
         })
       }
@@ -1518,10 +1518,8 @@ export async function consolidateContracts(
     // After successful consolidation, batch create contract history entries
     if (historyEntries.length > 0) {
       try {
-        const createdCount = await createContractHistoryEntries(historyEntries)
-        console.log(`Created ${createdCount} contract history entries for member ${member.id}`)
-      } catch (error) {
-        console.error('Error creating contract history entries:', error)
+        await createContractHistoryEntries(historyEntries)
+      } catch {
         // Don't fail the consolidation if history creation fails
       }
     }
@@ -1529,8 +1527,7 @@ export async function consolidateContracts(
     // After successful consolidation, create PHASE_END snapshot
     try {
       await createPhaseEndSnapshot(activeSession.id, member.id)
-    } catch (error) {
-      console.error('Error creating phase end snapshot:', error)
+    } catch {
       // Don't fail the consolidation if snapshot fails
     }
 
@@ -2022,7 +2019,7 @@ export async function modifyContractPostAcquisition(
   }
 
   // Get existing renewal history or initialize empty array
-  const renewalHistory = (contract.renewalHistory as unknown[] || []) as unknown[]
+  const renewalHistory = (contract.renewalHistory as Record<string, unknown>[] || [])
 
   // Update contract
   const updatedContract = await prisma.playerContract.update({
@@ -2031,7 +2028,7 @@ export async function modifyContractPostAcquisition(
       salary: newSalary,
       duration: newDuration,
       rescissionClause: newRescissionClause,
-      renewalHistory: [...renewalHistory, oldValues],
+      renewalHistory: [...renewalHistory, oldValues] as unknown as Prisma.InputJsonValue,
     },
     include: {
       roster: {
@@ -2042,9 +2039,13 @@ export async function modifyContractPostAcquisition(
     },
   })
 
+  const contractWithRoster = updatedContract as typeof updatedContract & {
+    roster: { player: { name: string; id: string; position: string; team: string } }
+  }
+
   return {
     success: true,
-    message: `Contratto di ${updatedContract.roster.player.name} modificato con successo`,
+    message: `Contratto di ${contractWithRoster.roster.player.name} modificato con successo`,
     data: {
       contract: {
         id: updatedContract.id,
@@ -2054,7 +2055,7 @@ export async function modifyContractPostAcquisition(
         initialSalary: updatedContract.initialSalary,
         initialDuration: updatedContract.initialDuration,
       },
-      player: updatedContract.roster.player,
+      player: contractWithRoster.roster.player,
     },
   }
 }

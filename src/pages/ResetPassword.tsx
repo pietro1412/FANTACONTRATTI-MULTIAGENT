@@ -61,7 +61,7 @@ export function ResetPassword() {
       if (data.success) {
         setSuccess(true)
         // Redirect to login after 3 seconds
-        setTimeout(() => navigate('/login'), 3000)
+        setTimeout(() => { void navigate('/login') }, 3000)
       } else {
         setError(data.error || 'Errore durante il reset della password')
       }
@@ -130,7 +130,7 @@ export function ResetPassword() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={(e) => { void handleSubmit(e) }} className="space-y-6">
           {error && (
             <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-3 rounded-lg text-sm">
               {error}
@@ -145,7 +145,7 @@ export function ResetPassword() {
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); }}
               placeholder="Almeno 8 caratteri"
               required
               autoComplete="new-password"
@@ -163,7 +163,7 @@ export function ResetPassword() {
               id="confirmPassword"
               type="password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => { setConfirmPassword(e.target.value); }}
               placeholder="Ripeti la password"
               required
               autoComplete="new-password"

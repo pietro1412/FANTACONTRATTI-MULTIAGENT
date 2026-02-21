@@ -1,4 +1,5 @@
 import { PrismaClient, MemberStatus, RosterStatus, TradeStatus } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 import { recordMovement } from './movement.service'
 import { notifyTradeOffer, notifyTradeInvalidated } from './notification.service'
 import { triggerTradeOfferReceived, triggerTradeUpdated } from './pusher.service'
@@ -176,7 +177,7 @@ export async function createTradeOffer(
       message,
       status: TradeStatus.PENDING,
       expiresAt: expiresAt,
-    } as any, // Type assertion until Prisma client is regenerated
+    } as Prisma.TradeOfferUncheckedCreateInput, // Type assertion until Prisma client is regenerated
     include: {
       sender: { select: { id: true, username: true } },
       receiver: { select: { id: true, username: true } },

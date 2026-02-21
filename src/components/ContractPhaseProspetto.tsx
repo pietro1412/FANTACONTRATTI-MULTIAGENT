@@ -76,7 +76,7 @@ export function ContractPhaseProspetto({ leagueId, isConsolidated }: Props) {
       }
     }
 
-    fetchProspetto()
+    void fetchProspetto()
   }, [leagueId])
 
   if (loading) {
@@ -125,7 +125,7 @@ export function ContractPhaseProspetto({ leagueId, isConsolidated }: Props) {
           )}
         </h3>
         <button
-          onClick={() => setShowDetails(!showDetails)}
+          onClick={() => { setShowDetails(!showDetails); }}
           className="text-sm text-blue-400 hover:text-blue-300"
         >
           {showDetails ? 'Nascondi dettagli' : 'Mostra dettagli'}

@@ -1,8 +1,9 @@
 import { randomBytes } from 'crypto'
-import { IUserRepository } from '../../domain/repositories/user.repository.interface'
-import { IEmailService } from '../../domain/services/email.service.interface'
-import { ForgotPasswordDto, ForgotPasswordResultDto } from '../dto/password-reset.dto'
-import { Result, ok } from '../../../../shared/infrastructure/http/result'
+import type { IUserRepository } from '../../domain/repositories/user.repository.interface'
+import type { IEmailService } from '../../domain/services/email.service.interface'
+import type { ForgotPasswordDto, ForgotPasswordResultDto } from '../dto/password-reset.dto'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok } from '@/shared/infrastructure/http/result'
 
 /**
  * Use case for initiating password reset

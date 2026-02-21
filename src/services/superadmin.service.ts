@@ -1,4 +1,5 @@
-import { PrismaClient, Position, Prisma, PlayerExitReason } from '@prisma/client'
+import type { Position, Prisma, PlayerExitReason } from '@prisma/client';
+import { PrismaClient } from '@prisma/client'
 import * as XLSX from 'xlsx'
 import type { ServiceResult } from '@/shared/types/service-result'
 
@@ -70,10 +71,10 @@ function parsePosition(value: string | undefined): Position | null {
   return null
 }
 
-function getField<T>(row: PlayerRow, ...keys: string[]): T | undefined {
+function getField(row: PlayerRow, ...keys: string[]): unknown {
   for (const key of keys) {
     if ((row as Record<string, unknown>)[key] !== undefined) {
-      return (row as Record<string, unknown>)[key] as T
+      return (row as Record<string, unknown>)[key]
     }
   }
   return undefined
@@ -161,11 +162,12 @@ export async function importQuotazioni(
     }
 
     for (const row of rows) {
-      const externalId = String(getField<string | number>(row, 'Id', 'id', 'ID', 'Cod', 'cod') || '').trim()
-      const name = getField<string>(row, 'Nome', 'nome', 'Name', 'name')?.trim()
-      const team = getField<string>(row, 'Squadra', 'squadra', 'Team', 'team')?.trim()
-      const positionStr = getField<string>(row, 'R', 'r', 'Ruolo', 'ruolo', 'Role', 'role')
-      const quotation = getField<number>(row, 'Qt.A', 'Qt.I', 'Quotazione', 'quotazione', 'Quot') || 1
+      const rawId = getField(row, 'Id', 'id', 'ID', 'Cod', 'cod')
+      const externalId = String((rawId as string | number | undefined) ?? '').trim()
+      const name = (getField(row, 'Nome', 'nome', 'Name', 'name') as string | undefined)?.trim()
+      const team = (getField(row, 'Squadra', 'squadra', 'Team', 'team') as string | undefined)?.trim()
+      const positionStr = getField(row, 'R', 'r', 'Ruolo', 'ruolo', 'Role', 'role') as string | undefined
+      const quotation = (getField(row, 'Qt.A', 'Qt.I', 'Quotazione', 'quotazione', 'Quot') as number | undefined) || 1
 
       if (!name) {
         stats.errors.push(`Riga senza nome`)
@@ -174,7 +176,7 @@ export async function importQuotazioni(
 
       const position = parsePosition(positionStr)
       if (!position) {
-        stats.errors.push(`Ruolo non valido per ${name}: ${positionStr}`)
+        stats.errors.push(`Ruolo non valido per ${name}: ${positionStr ?? ''}`)
         continue
       }
 
@@ -332,7 +334,6 @@ export async function importQuotazioni(
       },
     }
   } catch (error) {
-    console.error('Import error:', error)
     return {
       success: false,
       message: `Errore durante l'import: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`,
@@ -437,7 +438,6 @@ export async function classifyExitedPlayers(
       data: { classified: classifications.length },
     }
   } catch (error) {
-    console.error('Classification error:', error)
     return {
       success: false,
       message: `Errore durante la classificazione: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`,

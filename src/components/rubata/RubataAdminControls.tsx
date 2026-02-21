@@ -1,6 +1,5 @@
 import { Button } from '../ui/Button'
 import type {
-  BoardData,
   LeagueMember,
   ActiveAuction,
   MemberBudgetInfo,
@@ -20,7 +19,7 @@ export function BudgetPanel({ memberBudgets }: BudgetPanelProps) {
       <div className="p-3 border-b border-surface-50/20 bg-primary-500/10">
         <h3 className="font-bold text-primary-400 text-sm flex items-center gap-2">
           <span>💰</span>
-          Budget Residuo
+          Bilancio
         </h3>
       </div>
       <div className="p-2 space-y-1">
@@ -82,17 +81,17 @@ export function TimerSettingsPanel({
           <label className="block text-xs text-gray-400 uppercase mb-1">Offerta (sec)</label>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setOfferTimer(prev => Math.max(5, prev - 5))}
+              onClick={() => { setOfferTimer(prev => Math.max(5, prev - 5)); }}
               className="w-10 h-10 shrink-0 rounded-lg bg-surface-300 text-white hover:bg-surface-100 text-xl font-bold flex items-center justify-center"
             >−</button>
             <input
               type="number"
               value={offerTimer}
-              onChange={(e) => setOfferTimer(Math.max(5, parseInt(e.target.value) || 5))}
+              onChange={(e) => { setOfferTimer(Math.max(5, parseInt(e.target.value) || 5)); }}
               className="w-full min-w-0 text-center bg-surface-300 border border-surface-50/30 rounded-lg py-2 text-white text-lg font-bold"
             />
             <button
-              onClick={() => setOfferTimer(prev => prev + 5)}
+              onClick={() => { setOfferTimer(prev => prev + 5); }}
               className="w-10 h-10 shrink-0 rounded-lg bg-surface-300 text-white hover:bg-surface-100 text-xl font-bold flex items-center justify-center"
             >+</button>
           </div>
@@ -101,17 +100,17 @@ export function TimerSettingsPanel({
           <label className="block text-xs text-gray-400 uppercase mb-1">Asta (sec)</label>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setAuctionTimer(prev => Math.max(5, prev - 5))}
+              onClick={() => { setAuctionTimer(prev => Math.max(5, prev - 5)); }}
               className="w-10 h-10 shrink-0 rounded-lg bg-surface-300 text-white hover:bg-surface-100 text-xl font-bold flex items-center justify-center"
             >−</button>
             <input
               type="number"
               value={auctionTimer}
-              onChange={(e) => setAuctionTimer(Math.max(5, parseInt(e.target.value) || 5))}
+              onChange={(e) => { setAuctionTimer(Math.max(5, parseInt(e.target.value) || 5)); }}
               className="w-full min-w-0 text-center bg-surface-300 border border-surface-50/30 rounded-lg py-2 text-white text-lg font-bold"
             />
             <button
-              onClick={() => setAuctionTimer(prev => prev + 5)}
+              onClick={() => { setAuctionTimer(prev => prev + 5); }}
               className="w-10 h-10 shrink-0 rounded-lg bg-surface-300 text-white hover:bg-surface-100 text-xl font-bold flex items-center justify-center"
             >+</button>
           </div>
@@ -176,7 +175,7 @@ export function BotSimulationPanel({
           <label className="block text-xs text-gray-400 uppercase mb-1">Manager</label>
           <select
             value={simulateMemberId}
-            onChange={(e) => setSimulateMemberId(e.target.value)}
+            onChange={(e) => { setSimulateMemberId(e.target.value); }}
             className="w-full px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm"
           >
             <option value="">-- Seleziona --</option>
@@ -208,17 +207,17 @@ export function BotSimulationPanel({
               <label className="block text-xs text-gray-400 uppercase mb-1">Importo</label>
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setSimulateBidAmount(prev => Math.max(activeAuction.currentPrice + 1, prev - 1))}
+                  onClick={() => { setSimulateBidAmount(prev => Math.max(activeAuction.currentPrice + 1, prev - 1)); }}
                   className="w-8 h-8 rounded-lg bg-surface-300 text-white text-sm"
                 >−</button>
                 <input
                   type="number"
                   value={simulateBidAmount}
-                  onChange={(e) => setSimulateBidAmount(Math.max(activeAuction.currentPrice + 1, parseInt(e.target.value) || 0))}
+                  onChange={(e) => { setSimulateBidAmount(Math.max(activeAuction.currentPrice + 1, parseInt(e.target.value) || 0)); }}
                   className="flex-1 text-center bg-surface-300 border border-surface-50/30 rounded-lg py-1 text-white text-sm"
                 />
                 <button
-                  onClick={() => setSimulateBidAmount(prev => prev + 1)}
+                  onClick={() => { setSimulateBidAmount(prev => prev + 1); }}
                   className="w-8 h-8 rounded-lg bg-surface-300 text-white text-sm"
                 >+</button>
               </div>
@@ -232,6 +231,82 @@ export function BotSimulationPanel({
             >
               💰 Simula Rilancio
             </Button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ============================================================
+// Game Flow Controls Panel (start, pause, resume, advance, goback, close)
+// ============================================================
+interface GameFlowPanelProps {
+  rubataState: RubataStateType
+  isSubmitting: boolean
+  currentIndex: number | null
+  onStartRubata: () => void
+  onPause: () => void
+  onResume: () => void
+  onAdvance: () => void
+  onGoBack: () => void
+  onCloseAuction: () => void
+}
+
+export function GameFlowPanel({
+  rubataState,
+  isSubmitting,
+  currentIndex,
+  onStartRubata,
+  onPause,
+  onResume,
+  onAdvance,
+  onGoBack,
+  onCloseAuction,
+}: GameFlowPanelProps) {
+  const showStart = rubataState === 'WAITING' || rubataState === 'PREVIEW'
+  const showResume = rubataState === 'PAUSED'
+  const showPlayControls = rubataState === 'OFFERING' || rubataState === 'AUCTION'
+
+  if (!showStart && !showResume && !showPlayControls) return null
+
+  return (
+    <div className="bg-surface-200 rounded-2xl border border-primary-500/50 overflow-hidden">
+      <div className="p-3 border-b border-surface-50/20 bg-primary-500/10">
+        <h3 className="font-bold text-primary-400 text-sm flex items-center gap-2">
+          <span>🎮</span>
+          Controlli Flusso
+        </h3>
+      </div>
+      <div className="p-3 flex flex-wrap gap-2">
+        {showStart && (
+          <Button onClick={onStartRubata} disabled={isSubmitting} size="sm" className="flex-1">
+            ▶️ Avvia Rubata
+          </Button>
+        )}
+        {showResume && (
+          <Button onClick={onResume} disabled={isSubmitting} size="sm" className="flex-1">
+            🔔 Richiedi Pronti
+          </Button>
+        )}
+        {showPlayControls && (
+          <>
+            <Button onClick={onPause} disabled={isSubmitting} variant="outline" size="sm">
+              ⏸️ Pausa
+            </Button>
+            <Button onClick={onGoBack} disabled={isSubmitting || currentIndex === 0} variant="outline" size="sm">
+              ⏮️ Indietro
+            </Button>
+            {rubataState === 'OFFERING' && (
+              <Button onClick={onAdvance} disabled={isSubmitting} variant="outline" size="sm">
+                ⏭️ Avanti
+              </Button>
+            )}
+            {rubataState === 'AUCTION' && (
+              <Button onClick={onCloseAuction} disabled={isSubmitting} size="sm">
+                ✅ Chiudi Asta
+              </Button>
+            )}
           </>
         )}
       </div>

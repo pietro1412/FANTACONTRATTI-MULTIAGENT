@@ -58,9 +58,9 @@ export function useAuctionSession(leagueId: string | undefined): UseAuctionSessi
       } else {
         setError(response.message || 'Failed to load sessions')
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to load sessions')
-      console.error('useAuctionSession error:', err)
+      console.error('useAuctionSession error:', _err)
     } finally {
       setIsLoading(false)
     }
@@ -68,14 +68,14 @@ export function useAuctionSession(leagueId: string | undefined): UseAuctionSessi
 
   // Initial fetch
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   // Find active session
   const activeSession = sessions.find((s) => s.status === 'ACTIVE') || null
 
   const createSession = useCallback(
-    async (isRegularMarket = false) => {
+    async (isRegularMarket?: boolean) => {
       if (!leagueId) {
         return { success: false, message: 'No league ID' }
       }
@@ -92,7 +92,7 @@ export function useAuctionSession(leagueId: string | undefined): UseAuctionSessi
         }
 
         return { success: false, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to create session' }
       }
     },
@@ -113,7 +113,7 @@ export function useAuctionSession(leagueId: string | undefined): UseAuctionSessi
       }
 
       return { success: false, message: response.message }
-    } catch (err) {
+    } catch (_err) {
       return { success: false, message: 'Failed to close session' }
     }
   }, [activeSession, refresh])
@@ -133,7 +133,7 @@ export function useAuctionSession(leagueId: string | undefined): UseAuctionSessi
         }
 
         return { success: false, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to set phase' }
       }
     },
@@ -155,7 +155,7 @@ export function useAuctionSession(leagueId: string | undefined): UseAuctionSessi
         }
 
         return { success: false, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to update timer' }
       }
     },

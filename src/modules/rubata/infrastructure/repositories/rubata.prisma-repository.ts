@@ -9,12 +9,12 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import type {
   IRubataRepository,
   AddToBoardData,
   PlaceOfferData,
   PlaceOfferResult,
-  BoardEntriesFilter,
 } from '../../domain/repositories/rubata.repository.interface'
 import type { RubataSession, RubataStatus, RubataPhase } from '../../domain/entities/rubata-session.entity'
 import type { RubataBoardEntry, RubataBoardEntryWithDetails, RubataBoardStatus } from '../../domain/entities/rubata-board.entity'
@@ -35,15 +35,6 @@ interface RubataBoardEntryJson {
   currentOffer?: number
   highestOfferId?: string
   offeredById?: string
-}
-
-interface RubataOfferJson {
-  id: string
-  boardEntryId: string
-  offeredByMemberId: string
-  amount: number
-  status: 'PENDING' | 'ACCEPTED' | 'OUTBID' | 'CANCELLED'
-  placedAt: string
 }
 
 // =============================================================================
@@ -113,7 +104,7 @@ export class RubataPrismaRepository implements IRubataRepository {
 
     if (!session?.rubataBoard) return []
 
-    const board = session.rubataBoard as RubataBoardEntryJson[]
+    const board = session.rubataBoard as unknown as RubataBoardEntryJson[]
     return board.map((entry) => this.mapJsonToBoardEntry(entry, sessionId))
   }
 
@@ -125,7 +116,7 @@ export class RubataPrismaRepository implements IRubataRepository {
 
     if (!session?.rubataBoard) return []
 
-    const board = session.rubataBoard as RubataBoardEntryJson[]
+    const board = session.rubataBoard as unknown as RubataBoardEntryJson[]
     const playerIds = board.map((e) => e.playerId)
     const memberIds = board.map((e) => e.memberId)
     const rosterIds = board.map((e) => e.rosterId)
@@ -180,13 +171,13 @@ export class RubataPrismaRepository implements IRubataRepository {
     const sessions = await prisma.marketSession.findMany({
       where: {
         currentPhase: 'RUBATA',
-        rubataBoard: { not: null },
+        rubataBoard: { not: Prisma.DbNull },
       },
       select: { id: true, rubataBoard: true },
     })
 
     for (const session of sessions) {
-      const board = session.rubataBoard as RubataBoardEntryJson[]
+      const board = session.rubataBoard as unknown as RubataBoardEntryJson[]
       const entry = board.find((e) => e.id === entryId)
       if (entry) {
         return this.mapJsonToBoardEntry(entry, session.id)
@@ -204,7 +195,7 @@ export class RubataPrismaRepository implements IRubataRepository {
 
     if (!session?.rubataBoard) return null
 
-    const board = session.rubataBoard as RubataBoardEntryJson[]
+    const board = session.rubataBoard as unknown as RubataBoardEntryJson[]
     const currentIndex = session.rubataBoardIndex ?? 0
 
     if (currentIndex >= board.length) return null
@@ -220,7 +211,7 @@ export class RubataPrismaRepository implements IRubataRepository {
         select: { rubataBoard: true },
       })
 
-      const board = (session?.rubataBoard as RubataBoardEntryJson[]) || []
+      const board = (session?.rubataBoard as unknown as RubataBoardEntryJson[]) || []
 
       // Generate unique ID for the entry
       const newEntry: RubataBoardEntryJson = {
@@ -234,7 +225,7 @@ export class RubataPrismaRepository implements IRubataRepository {
 
       await tx.marketSession.update({
         where: { id: data.sessionId },
-        data: { rubataBoard: [...board, newEntry] },
+        data: { rubataBoard: [...board, newEntry] as unknown as Prisma.InputJsonValue },
       })
 
       return this.mapJsonToBoardEntry(newEntry, data.sessionId)
@@ -246,19 +237,19 @@ export class RubataPrismaRepository implements IRubataRepository {
       const sessions = await tx.marketSession.findMany({
         where: {
           currentPhase: 'RUBATA',
-          rubataBoard: { not: null },
+          rubataBoard: { not: Prisma.DbNull },
         },
         select: { id: true, rubataBoard: true },
       })
 
       for (const session of sessions) {
-        const board = session.rubataBoard as RubataBoardEntryJson[]
+        const board = session.rubataBoard as unknown as RubataBoardEntryJson[]
         const filteredBoard = board.filter((e) => e.id !== entryId)
 
         if (filteredBoard.length !== board.length) {
           await tx.marketSession.update({
             where: { id: session.id },
-            data: { rubataBoard: filteredBoard },
+            data: { rubataBoard: filteredBoard as unknown as Prisma.InputJsonValue },
           })
           break
         }
@@ -271,13 +262,13 @@ export class RubataPrismaRepository implements IRubataRepository {
       const sessions = await tx.marketSession.findMany({
         where: {
           currentPhase: 'RUBATA',
-          rubataBoard: { not: null },
+          rubataBoard: { not: Prisma.DbNull },
         },
         select: { id: true, rubataBoard: true },
       })
 
       for (const session of sessions) {
-        const board = session.rubataBoard as RubataBoardEntryJson[]
+        const board = session.rubataBoard as unknown as RubataBoardEntryJson[]
         const entryIndex = board.findIndex((e) => e.id === entryId)
 
         if (entryIndex !== -1) {
@@ -286,7 +277,7 @@ export class RubataPrismaRepository implements IRubataRepository {
 
           await tx.marketSession.update({
             where: { id: session.id },
-            data: { rubataBoard: updatedBoard },
+            data: { rubataBoard: updatedBoard as unknown as Prisma.InputJsonValue },
           })
           break
         }
@@ -302,7 +293,7 @@ export class RubataPrismaRepository implements IRubataRepository {
 
     if (!session?.rubataBoard) return 0
 
-    const board = session.rubataBoard as RubataBoardEntryJson[]
+    const board = session.rubataBoard as unknown as RubataBoardEntryJson[]
     return board.filter((e) => e.memberId === memberId).length
   }
 
@@ -313,7 +304,6 @@ export class RubataPrismaRepository implements IRubataRepository {
   async getReadyStatus(sessionId: string): Promise<RubataReadyStatus[]> {
     const session = await prisma.marketSession.findUnique({
       where: { id: sessionId },
-      select: { rubataReadyMembers: true },
       include: {
         league: {
           include: {
@@ -365,7 +355,7 @@ export class RubataPrismaRepository implements IRubataRepository {
     })
   }
 
-  async initializeReadyStatuses(sessionId: string, memberIds: string[]): Promise<void> {
+  async initializeReadyStatuses(sessionId: string, _memberIds: string[]): Promise<void> {
     // Initialize with empty ready list - all members start as not ready
     await prisma.marketSession.update({
       where: { id: sessionId },
@@ -383,7 +373,7 @@ export class RubataPrismaRepository implements IRubataRepository {
       const sessions = await tx.marketSession.findMany({
         where: {
           currentPhase: 'RUBATA',
-          rubataBoard: { not: null },
+          rubataBoard: { not: Prisma.DbNull },
         },
         select: {
           id: true,
@@ -396,7 +386,7 @@ export class RubataPrismaRepository implements IRubataRepository {
       let boardEntry: RubataBoardEntryJson | undefined
 
       for (const session of sessions) {
-        const board = session.rubataBoard as RubataBoardEntryJson[]
+        const board = session.rubataBoard as unknown as RubataBoardEntryJson[]
         boardEntry = board.find((e) => e.id === data.boardEntryId)
         if (boardEntry) {
           targetSession = session
@@ -435,7 +425,7 @@ export class RubataPrismaRepository implements IRubataRepository {
       }
 
       // Update the board entry with the new offer
-      const board = targetSession.rubataBoard as RubataBoardEntryJson[]
+      const board = targetSession.rubataBoard as unknown as RubataBoardEntryJson[]
       const updatedBoard = board.map((e) => {
         if (e.id === data.boardEntryId) {
           return {
@@ -449,7 +439,7 @@ export class RubataPrismaRepository implements IRubataRepository {
 
       await tx.marketSession.update({
         where: { id: targetSession.id },
-        data: { rubataBoard: updatedBoard },
+        data: { rubataBoard: updatedBoard as unknown as Prisma.InputJsonValue },
       })
 
       // Create offer record
@@ -482,13 +472,13 @@ export class RubataPrismaRepository implements IRubataRepository {
     const sessions = await prisma.marketSession.findMany({
       where: {
         currentPhase: 'RUBATA',
-        rubataBoard: { not: null },
+        rubataBoard: { not: Prisma.DbNull },
       },
       select: { rubataBoard: true },
     })
 
     for (const session of sessions) {
-      const board = session.rubataBoard as RubataBoardEntryJson[]
+      const board = session.rubataBoard as unknown as RubataBoardEntryJson[]
       const jsonEntry = board.find((e) => e.id === boardEntryId)
 
       if (jsonEntry && jsonEntry.currentOffer && jsonEntry.offeredById) {
@@ -523,13 +513,13 @@ export class RubataPrismaRepository implements IRubataRepository {
       const sessions = await tx.marketSession.findMany({
         where: {
           currentPhase: 'RUBATA',
-          rubataBoard: { not: null },
+          rubataBoard: { not: Prisma.DbNull },
         },
         select: { id: true, rubataBoard: true },
       })
 
       for (const session of sessions) {
-        const board = session.rubataBoard as RubataBoardEntryJson[]
+        const board = session.rubataBoard as unknown as RubataBoardEntryJson[]
         const entryIndex = board.findIndex((e) => e.id === boardEntryId)
 
         if (entryIndex !== -1) {
@@ -544,7 +534,7 @@ export class RubataPrismaRepository implements IRubataRepository {
 
           await tx.marketSession.update({
             where: { id: session.id },
-            data: { rubataBoard: updatedBoard },
+            data: { rubataBoard: updatedBoard as unknown as Prisma.InputJsonValue },
           })
           break
         }

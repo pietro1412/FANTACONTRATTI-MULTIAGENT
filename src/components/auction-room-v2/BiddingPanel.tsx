@@ -26,7 +26,7 @@ export function BiddingPanel({
   timeLeft,
   timerSetting,
   isTimerExpired,
-  isUserWinning,
+  isUserWinning: _isUserWinning,
   currentUsername,
   membership,
   bidAmount,
@@ -179,7 +179,7 @@ export function BiddingPanel({
                   <span className={`font-mono font-bold ${i === 0 ? 'text-sky-400' : 'text-white'}`}>
                     {bid.amount}
                   </span>
-                  <span className="text-sm text-gray-600 font-mono">
+                  <span className="text-sm text-gray-400 font-mono">
                     {new Date(bid.placedAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
                 </div>

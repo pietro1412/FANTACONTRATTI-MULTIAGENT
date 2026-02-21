@@ -1,11 +1,12 @@
+import { useState } from 'react'
 import { Button } from '../ui/Button'
+import { getPlayerPhotoUrl } from '../../utils/player-images'
 import { POSITION_COLORS } from '../../types/rubata.types'
 import type {
   BoardData,
   BoardPlayer,
   RubataPreference,
   RubataStateType,
-  ReadyStatus,
   ProgressStats,
 } from '../../types/rubata.types'
 
@@ -32,6 +33,62 @@ interface RubataTimerPanelProps {
   onMakeOffer: () => void
 }
 
+// Circular SVG timer
+function CircularTimer({ seconds, totalSeconds, size = 96 }: { seconds: number; totalSeconds: number; size?: number }) {
+  const radius = (size - 12) / 2
+  const circumference = 2 * Math.PI * radius
+  const progress = totalSeconds > 0 ? Math.max(0, seconds / totalSeconds) : 0
+  const offset = circumference * (1 - progress)
+  const cx = size / 2
+  const cy = size / 2
+
+  const strokeColor = progress > 0.5 ? '#34d399' : progress > 0.2 ? '#fbbf24' : '#ef4444'
+  const textColor = progress > 0.5 ? '#34d399' : progress > 0.2 ? '#fbbf24' : '#ef4444'
+  const glowClass = seconds <= 5 ? 'animate-pulse' : ''
+
+  return (
+    <div className={`relative ${glowClass}`} style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {/* Background circle */}
+        <circle cx={cx} cy={cy} r={radius} fill="none" stroke="currentColor" strokeWidth="6" className="text-surface-300" />
+        {/* Progress arc */}
+        <circle
+          cx={cx} cy={cy} r={radius}
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth="6"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${cx} ${cy})`}
+          style={{ transition: 'stroke-dashoffset 0.5s ease-out, stroke 0.3s ease' }}
+        />
+        {/* Center text */}
+        <text
+          x={cx} y={cy}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill={textColor}
+          fontSize={size > 64 ? 28 : 20}
+          fontWeight="bold"
+          fontFamily="ui-monospace, monospace"
+          style={{ transition: 'fill 0.3s ease' }}
+        >
+          {seconds}
+        </text>
+      </svg>
+      {/* Urgency label under timer */}
+      {seconds <= 5 && seconds > 0 && (
+        <div className="absolute -bottom-5 left-0 right-0 text-center">
+          <span className="text-[10px] font-bold text-danger-400 uppercase tracking-wider animate-pulse">
+            ⚠️ Ultimi sec!
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function RubataTimerPanel({
   rubataState,
   currentPlayer,
@@ -52,20 +109,84 @@ export function RubataTimerPanel({
   onCloseAuction,
   onMakeOffer,
 }: RubataTimerPanelProps) {
+  const totalTimerSeconds = rubataState === 'AUCTION'
+    ? (boardData?.auctionTimerSeconds ?? 15)
+    : (boardData?.offerTimerSeconds ?? 30)
+
+  const [photoError, setPhotoError] = useState(false)
+  const photoUrl = currentPlayer?.playerApiFootballId ? getPlayerPhotoUrl(currentPlayer.playerApiFootballId) : ''
+
+  // Reset photo error when player changes
+  const currentPlayerId = currentPlayer?.playerId
+  const [prevPlayerId, setPrevPlayerId] = useState(currentPlayerId)
+  if (currentPlayerId !== prevPlayerId) {
+    setPrevPlayerId(currentPlayerId)
+    setPhotoError(false)
+  }
+
+  // Helper: rating color
+  const ratingColor = (r: number | null | undefined) => {
+    if (r == null) return 'text-gray-500'
+    if (r >= 6.5) return 'text-green-400'
+    if (r >= 6.0) return 'text-yellow-400'
+    return 'text-red-400'
+  }
+
+  const stats = currentPlayer?.playerComputedStats
+
   return (
     <div className="mb-6 bg-surface-200 rounded-2xl border-2 border-primary-500/50 overflow-hidden sticky top-16 z-20 lg:relative lg:top-0">
+      {/* "PUOI RUBARE!" Banner — prominent call to action during OFFERING */}
+      {rubataState === 'OFFERING' && canMakeOffer && (
+        <div className="px-4 py-3 bg-accent-500/20 border-b border-accent-500/40">
+          <div className="flex items-center justify-center gap-3">
+            <span className="text-2xl">🎯</span>
+            <span className="text-lg font-bold text-accent-400">PUOI RUBARE QUESTO GIOCATORE!</span>
+            <span className="text-2xl">🎯</span>
+          </div>
+        </div>
+      )}
+
       <div className="p-5 bg-primary-500/10">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Current Player Info */}
           <div className="flex items-center gap-4">
             {currentPlayer ? (
               <>
-                <div className={`w-12 h-12 rounded-full ${POSITION_COLORS[currentPlayer.playerPosition]} border flex items-center justify-center font-bold text-lg`}>
-                  {currentPlayer.playerPosition}
-                </div>
+                {/* Player photo with fallback */}
+                {photoUrl && !photoError ? (
+                  <img
+                    src={photoUrl}
+                    alt={currentPlayer.playerName}
+                    className="w-14 h-14 rounded-full object-cover border-2 border-primary-500 bg-surface-300 flex-shrink-0"
+                    onError={() => { setPhotoError(true); }}
+                  />
+                ) : (
+                  <div className={`w-14 h-14 rounded-full ${POSITION_COLORS[currentPlayer.playerPosition] ?? ''} border-2 flex items-center justify-center font-bold text-lg flex-shrink-0`}>
+                    {currentPlayer.playerPosition}
+                  </div>
+                )}
                 <div>
                   <p className="text-xl font-bold text-white">{currentPlayer.playerName}</p>
                   <p className="text-gray-400">{currentPlayer.playerTeam} • {currentPlayer.ownerUsername}</p>
+                  {/* Compact stats row */}
+                  {stats && (
+                    <div className="flex items-center gap-2 mt-0.5 text-[11px]">
+                      <span className="text-gray-400" title="Presenze">{stats.appearances} pres</span>
+                      <span className="text-gray-600">|</span>
+                      <span className="text-gray-400" title="Gol">{stats.totalGoals} gol</span>
+                      <span className="text-gray-600">|</span>
+                      <span className="text-gray-400" title="Assist">{stats.totalAssists} ass</span>
+                      {stats.avgRating != null && (
+                        <>
+                          <span className="text-gray-600">|</span>
+                          <span className={`font-bold ${ratingColor(stats.avgRating)}`} title="Media voto">
+                            MV {stats.avgRating.toFixed(2)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="ml-4 text-right">
                   <p className="text-2xl font-bold text-primary-400">{currentPlayer.rubataPrice}M</p>
@@ -96,7 +217,7 @@ export function RubataTimerPanel({
             )}
           </div>
 
-          {/* Timer */}
+          {/* Timer + State */}
           <div className="flex items-center gap-4">
             {/* Pusher Connection Indicator */}
             <div className="flex items-center gap-1" title={isPusherConnected ? 'Real-time connesso' : 'Real-time disconnesso'}>
@@ -105,11 +226,15 @@ export function RubataTimerPanel({
                 {isPusherConnected ? 'LIVE' : 'OFFLINE'}
               </span>
             </div>
-            {timerDisplay !== null && (
-              <div className={`text-4xl font-mono font-bold ${timerDisplay <= 5 ? 'text-danger-400 animate-pulse' : timerDisplay <= 10 ? 'text-warning-400' : 'text-white'}`}>
-                {timerDisplay}s
-              </div>
+
+            {/* Circular Timer */}
+            {timerDisplay !== null ? (
+              <CircularTimer seconds={timerDisplay} totalSeconds={totalTimerSeconds} size={96} />
+            ) : (
+              /* Fallback: no timer active */
+              null
             )}
+
             <div className="text-center">
               <span className={`px-4 py-2 rounded-full font-bold text-sm ${
                 rubataState === 'READY_CHECK' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' :
@@ -190,10 +315,10 @@ export function RubataTimerPanel({
           </div>
         )}
 
-        {/* Player Actions - tutti i manager possono fare offerte */}
+        {/* Player Actions - "VOGLIO RUBARE!" */}
         {rubataState === 'OFFERING' && canMakeOffer && (
           <div className="mt-4">
-            <Button onClick={onMakeOffer} disabled={isSubmitting} className="w-full md:w-auto">
+            <Button onClick={onMakeOffer} disabled={isSubmitting} className="w-full md:w-auto text-lg py-3" variant="accent">
               🎯 VOGLIO RUBARE! ({currentPlayer?.rubataPrice}M)
             </Button>
           </div>

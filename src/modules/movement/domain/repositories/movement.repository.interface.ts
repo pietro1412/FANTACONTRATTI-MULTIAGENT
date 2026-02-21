@@ -6,9 +6,7 @@
  */
 
 import type {
-  PlayerMovement,
   PlayerMovementWithDetails,
-  Prophecy,
   ProphecyWithDetails,
   CreateMovementData,
   CreateProphecyData,

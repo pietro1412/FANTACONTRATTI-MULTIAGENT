@@ -1,4 +1,5 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
 import { type TeamData } from './types'
 
 interface WaterfallChartProps {
@@ -171,15 +172,11 @@ export function WaterfallChart({ team }: WaterfallChartProps) {
               formatter={((_value: number, _name: string, props: { payload: { displayValue: number } }) => {
                 const dv = props.payload.displayValue
                 return [`${dv >= 0 ? '+' : ''}${dv}M`, '']
-              }) as any}
+              }) as Formatter<number, string>}
             />
             <ReferenceLine y={0} stroke="#6b7280" />
             <Bar dataKey="base" stackId="a" fill="transparent" />
-            <Bar dataKey="value" stackId="a" radius={[3, 3, 0, 0]}>
-              {chartData.map((entry, i) => (
-                <Cell key={i} fill={entry.fill} />
-              ))}
-            </Bar>
+            <Bar dataKey="value" stackId="a" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -196,7 +193,7 @@ export function WaterfallChart({ team }: WaterfallChartProps) {
               ) : (
                 <span className="text-danger-400">-</span>
               )}
-              <span className={`${item.isTotal ? 'text-white font-medium' : 'text-gray-400'}`}>
+              <span className={item.isTotal ? 'text-white font-medium' : 'text-gray-400'}>
                 {item.name}
               </span>
             </div>

@@ -7,7 +7,8 @@
  * Creato il: 25/01/2026
  */
 
-import { PrismaClient, ObjectiveStatus } from '@prisma/client'
+import type { ObjectiveStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client'
 import type { ServiceResult } from '@/shared/types/service-result'
 
 const prisma = new PrismaClient()

@@ -56,7 +56,7 @@ export function generateRenewalReceipt(data: RenewalReceiptData): Promise<Buffer
 
       const chunks: Buffer[] = []
       doc.on('data', (chunk) => chunks.push(chunk))
-      doc.on('end', () => resolve(Buffer.concat(chunks)))
+      doc.on('end', () => { resolve(Buffer.concat(chunks)); })
       doc.on('error', reject)
 
       // Background color (simulate dark theme)
@@ -86,7 +86,7 @@ export function generateRenewalReceipt(data: RenewalReceiptData): Promise<Buffer
 
       doc.end()
     } catch (error) {
-      reject(error)
+      reject(error instanceof Error ? error : new Error(String(error)))
     }
   })
 }

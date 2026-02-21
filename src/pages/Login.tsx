@@ -87,7 +87,7 @@ export function Login({ onNavigate }: LoginProps) {
         <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-4 sm:p-8 shadow-2xl">
           <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white text-center mb-8">Accedi al tuo account</h2>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={(e) => { void handleSubmit(e) }} className="space-y-6">
             <div className={`min-h-[56px] transition-all duration-200 ${error ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
               {error && (
                 <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-lg text-base">
@@ -103,7 +103,7 @@ export function Login({ onNavigate }: LoginProps) {
               autoComplete="email"
               value={emailOrUsername}
               onChange={e => { setEmailOrUsername(e.target.value); if (fieldErrors.emailOrUsername) setFieldErrors(prev => ({ ...prev, emailOrUsername: undefined })) }}
-              onBlur={() => validateField('emailOrUsername')}
+              onBlur={() => { validateField('emailOrUsername'); }}
               placeholder="mario@email.com"
               required
               error={fieldErrors.emailOrUsername}
@@ -114,7 +114,7 @@ export function Login({ onNavigate }: LoginProps) {
               type="password"
               value={password}
               onChange={e => { setPassword(e.target.value); if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: undefined })) }}
-              onBlur={() => validateField('password')}
+              onBlur={() => { validateField('password'); }}
               placeholder="••••••••"
               required
               error={fieldErrors.password}
@@ -123,7 +123,7 @@ export function Login({ onNavigate }: LoginProps) {
             <div className="text-right">
               <button
                 type="button"
-                onClick={() => onNavigate('forgot-password')}
+                onClick={() => { onNavigate('forgot-password'); }}
                 className="text-sm text-gray-400 hover:text-primary-400 transition-colors"
               >
                 Password dimenticata?
@@ -140,7 +140,7 @@ export function Login({ onNavigate }: LoginProps) {
               Non hai un account?{' '}
               <button
                 type="button"
-                onClick={() => onNavigate('register')}
+                onClick={() => { onNavigate('register'); }}
                 className="text-primary-400 hover:text-primary-300 font-semibold transition-colors"
               >
                 Registrati ora
@@ -153,7 +153,7 @@ export function Login({ onNavigate }: LoginProps) {
         <div className="text-center mt-6">
           <button
             type="button"
-            onClick={() => onNavigate('rules')}
+            onClick={() => { onNavigate('rules'); }}
             className="text-sm text-gray-400 hover:text-primary-400 transition-colors inline-flex items-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

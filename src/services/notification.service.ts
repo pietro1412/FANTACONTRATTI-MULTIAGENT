@@ -13,13 +13,12 @@ export function initWebPush(): void {
   const email = process.env.VAPID_EMAIL || 'mailto:admin@fantacontratti.it'
 
   if (!publicKey || !privateKey) {
-    console.warn('⚠️  VAPID keys not set – push notifications disabled')
+    // VAPID keys not set — push notifications disabled
     return
   }
 
   webpush.setVapidDetails(email, publicKey, privateKey)
   vapidConfigured = true
-  console.log('✅ Web Push configured with VAPID keys')
 }
 
 export function getVapidPublicKey(): string | null {
@@ -161,7 +160,7 @@ export async function notifyTradeOffer(
 
   await sendPushToUser(receiverUserId, {
     title: 'Nuova offerta di scambio',
-    body: `${senderName} ti ha inviato un\'offerta in ${leagueName}`,
+    body: `${senderName} ti ha inviato un'offerta in ${leagueName}`,
     tag: 'trade-offer',
     data: { type: 'trade-offer' },
   })

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Button } from './ui/Button'
 import { prizePhaseApi } from '../services/api'
 import { getTeamLogo } from '../utils/teamLogos'
@@ -86,6 +87,7 @@ interface PrizePhaseManagerProps {
 }
 
 export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseManagerProps) {
+  const { confirm: confirmDialog } = useConfirmDialog()
   const [data, setData] = useState<PrizePhaseData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -147,7 +149,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       } else {
         setError(result.message || 'Errore caricamento dati')
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Errore di connessione')
     } finally {
       setLoading(false)
@@ -155,7 +157,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
   }, [sessionId, isAdmin])
 
   useEffect(() => {
-    fetchData()
+    void fetchData()
   }, [fetchData])
 
   const handleUpdateBaseReincrement = async () => {
@@ -164,7 +166,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       const result = await prizePhaseApi.updateBaseReincrement(sessionId, baseReincrementValue)
       if (result.success) {
         setEditingBaseReincrement(false)
-        fetchData()
+        void fetchData()
         onUpdate?.()
       } else {
         setError(result.message || 'Errore aggiornamento')
@@ -181,7 +183,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       const result = await prizePhaseApi.createCategory(sessionId, newCategoryName.trim())
       if (result.success) {
         setNewCategoryName('')
-        fetchData()
+        void fetchData()
         onUpdate?.()
       } else {
         setError(result.message || 'Errore creazione categoria')
@@ -192,12 +194,18 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
   }
 
   const handleDeleteCategory = async (categoryId: string) => {
-    if (!confirm('Sei sicuro di voler eliminare questa categoria?')) return
+    const ok = await confirmDialog({
+      title: 'Elimina categoria',
+      message: 'Sei sicuro di voler eliminare questa categoria?',
+      confirmLabel: 'Elimina',
+      variant: 'danger'
+    })
+    if (!ok) return
     setIsSubmitting(true)
     try {
       const result = await prizePhaseApi.deleteCategory(categoryId)
       if (result.success) {
-        fetchData()
+        void fetchData()
         onUpdate?.()
       } else {
         setError(result.message || 'Errore eliminazione')
@@ -257,10 +265,12 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
     setEditingPrizes(prev => {
       const newState = { ...prev }
       if (newState[categoryId]) {
-        delete newState[categoryId][memberId]
-        if (Object.keys(newState[categoryId]).length === 0) {
-          delete newState[categoryId]
+        const { [memberId]: _, ...restMembers } = newState[categoryId]
+        if (Object.keys(restMembers).length === 0) {
+          const { [categoryId]: __, ...restCategories } = newState
+          return restCategories
         }
+        return { ...newState, [categoryId]: restMembers }
       }
       return newState
     })
@@ -271,11 +281,11 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       if (!result.success) {
         setError(result.message || 'Errore salvataggio')
         // Revert on error by fetching fresh data
-        fetchData()
+        void fetchData()
       }
     } catch {
       setError('Errore di connessione')
-      fetchData()
+      void fetchData()
     }
   }
 
@@ -285,7 +295,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
       const result = await prizePhaseApi.finalize(sessionId)
       if (result.success) {
         setShowFinalizeConfirm(false)
-        fetchData()
+        void fetchData()
         onUpdate?.()
       } else {
         setError(result.message || 'Errore finalizzazione')
@@ -327,13 +337,19 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
 
   // Handle consolidate indemnities
   const handleConsolidateIndemnities = async () => {
-    if (!confirm('Sei sicuro di voler consolidare gli indennizzi? Una volta consolidati, gli importi verranno mostrati nella tabella premi e non potranno essere modificati.')) return
+    const ok = await confirmDialog({
+      title: 'Consolida indennizzi',
+      message: 'Sei sicuro di voler consolidare gli indennizzi? Una volta consolidati, gli importi verranno mostrati nella tabella premi e non potranno essere modificati.',
+      confirmLabel: 'Consolida',
+      variant: 'warning'
+    })
+    if (!ok) return
 
     setConsolidatingIndemnities(true)
     try {
       const result = await prizePhaseApi.consolidateIndemnities(sessionId)
       if (result.success) {
-        fetchData()
+        void fetchData()
         onUpdate?.()
       } else {
         setError(result.message || 'Errore consolidamento indennizzi')
@@ -358,7 +374,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
     return (
       <div className="bg-danger-500/20 border border-danger-500/30 rounded-xl p-6">
         <p className="text-danger-400 mb-4">{error}</p>
-        <Button variant="outline" onClick={fetchData}>Riprova</Button>
+        <Button variant="outline" onClick={() => void fetchData()}>Riprova</Button>
       </div>
     )
   }
@@ -446,7 +462,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
             <Button
               size="sm"
               variant="outline"
-              onClick={() => setEditingBaseReincrement(true)}
+              onClick={() => { setEditingBaseReincrement(true); }}
             >
               Modifica
             </Button>
@@ -456,7 +472,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
         {editingBaseReincrement ? (
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setBaseReincrementValue(Math.max(0, baseReincrementValue - 10))}
+              onClick={() => { setBaseReincrementValue(Math.max(0, baseReincrementValue - 10)); }}
               className="w-10 h-10 bg-surface-400 hover:bg-surface-500 text-white rounded-lg text-xl font-bold flex items-center justify-center"
               disabled={baseReincrementValue === 0}
             >
@@ -466,13 +482,13 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
               type="number"
               inputMode="decimal"
               value={baseReincrementValue}
-              onChange={(e) => setBaseReincrementValue(Number(e.target.value))}
-              onFocus={(e) => e.target.select()}
+              onChange={(e) => { setBaseReincrementValue(Number(e.target.value)); }}
+              onFocus={(e) => { e.target.select(); }}
               className="w-24 px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white text-center text-xl font-bold"
               min={0}
             />
             <button
-              onClick={() => setBaseReincrementValue(baseReincrementValue + 10)}
+              onClick={() => { setBaseReincrementValue(baseReincrementValue + 10); }}
               className="w-10 h-10 bg-surface-400 hover:bg-surface-500 text-white rounded-lg text-xl font-bold flex items-center justify-center"
             >
               +
@@ -480,7 +496,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
             <span className="text-gray-400 text-lg">M</span>
             <Button
               size="sm"
-              onClick={handleUpdateBaseReincrement}
+              onClick={() => void handleUpdateBaseReincrement()}
               disabled={isSubmitting}
             >
               Salva
@@ -572,7 +588,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                       ESTERO: { bg: 'bg-cyan-500/10', text: 'text-cyan-400', label: 'Estero', indemnity: '50M' },
                     }
                     const posColors = posColorMap[player.position] || { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white' }
-                    const cfg = exitConfig[player.exitReason]
+                    const cfg = exitConfig[player.exitReason]!
                     const isFirstOfMember = idx === 0
                     const memberRowSpan = member.indemnityPlayers.length
 
@@ -625,7 +641,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                                 <button
                                   type="button"
                                   className="w-6 h-6 bg-surface-400 hover:bg-surface-500 text-white rounded text-sm font-bold flex items-center justify-center transition-colors disabled:opacity-50"
-                                  onClick={() => handleIndemnityChange(player.playerId, -1)}
+                                  onClick={() => { void handleIndemnityChange(player.playerId, -1) }}
                                   disabled={savingIndemnity === player.playerId || getIndemnityAmount(player.playerId) <= 0}
                                 >
                                   −
@@ -636,7 +652,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                                 <button
                                   type="button"
                                   className="w-6 h-6 bg-surface-400 hover:bg-surface-500 text-white rounded text-sm font-bold flex items-center justify-center transition-colors disabled:opacity-50"
-                                  onClick={() => handleIndemnityChange(player.playerId, 1)}
+                                  onClick={() => { void handleIndemnityChange(player.playerId, 1) }}
                                   disabled={savingIndemnity === player.playerId}
                                 >
                                   +
@@ -686,7 +702,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                   </div>
                 </div>
                 <Button
-                  onClick={handleConsolidateIndemnities}
+                  onClick={() => void handleConsolidateIndemnities()}
                   disabled={consolidatingIndemnities}
                   className="bg-cyan-600 hover:bg-cyan-500"
                 >
@@ -754,7 +770,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                         <span className="truncate">{cat.name}</span>
                         {!cat.isSystemPrize && !config.isFinalized && (
                           <button
-                            onClick={() => handleDeleteCategory(cat.id)}
+                            onClick={() => { void handleDeleteCategory(cat.id) }}
                             className="text-danger-400 hover:text-danger-300 text-sm"
                             title="Elimina categoria"
                           >
@@ -811,7 +827,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                           const newValue = parseInt(inputDisplayValue, 10)
                           if (!isNaN(newValue) && newValue >= 0) {
                             handlePrizeChange(cat.id, member.id, newValue)
-                            handleSavePrize(cat.id, member.id, newValue)
+                            void handleSavePrize(cat.id, member.id, newValue)
                           }
                           setFocusedInput(null)
                           setInputDisplayValue('')
@@ -827,13 +843,13 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                       const handleIncrement = () => {
                         const newValue = savedValue + 1
                         handlePrizeChange(cat.id, member.id, newValue)
-                        handleSavePrize(cat.id, member.id, newValue)
+                        void handleSavePrize(cat.id, member.id, newValue)
                       }
 
                       const handleDecrement = () => {
                         const newValue = Math.max(0, savedValue - 1)
                         handlePrizeChange(cat.id, member.id, newValue)
-                        handleSavePrize(cat.id, member.id, newValue)
+                        void handleSavePrize(cat.id, member.id, newValue)
                       }
 
                       return (
@@ -942,7 +958,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                               onClick={() => {
                                 const newValue = Math.max(0, savedValue - 1)
                                 handlePrizeChange(cat.id, member.id, newValue)
-                                handleSavePrize(cat.id, member.id, newValue)
+                                void handleSavePrize(cat.id, member.id, newValue)
                               }}
                               className="w-8 h-8 bg-surface-400 text-white rounded font-bold"
                               disabled={isSubmitting || savedValue === 0}
@@ -952,7 +968,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                               onClick={() => {
                                 const newValue = savedValue + 1
                                 handlePrizeChange(cat.id, member.id, newValue)
-                                handleSavePrize(cat.id, member.id, newValue)
+                                void handleSavePrize(cat.id, member.id, newValue)
                               }}
                               className="w-8 h-8 bg-surface-400 text-white rounded font-bold"
                               disabled={isSubmitting}
@@ -981,12 +997,12 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
                 <input
                   type="text"
                   value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onChange={(e) => { setNewCategoryName(e.target.value); }}
                   placeholder="Nome nuova categoria (es. Classifica Portieri)"
                   className="flex-1 px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white placeholder-gray-500"
                 />
                 <Button
-                  onClick={handleCreateCategory}
+                  onClick={() => void handleCreateCategory()}
                   disabled={!newCategoryName.trim() || isSubmitting}
                 >
                   Aggiungi Categoria
@@ -1075,7 +1091,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
 
           {!showFinalizeConfirm ? (
             <Button
-              onClick={() => setShowFinalizeConfirm(true)}
+              onClick={() => { setShowFinalizeConfirm(true); }}
               disabled={isSubmitting}
             >
               Finalizza Premi
@@ -1085,7 +1101,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
               <span className="text-warning-400">Confermi la finalizzazione dei premi?</span>
               <Button
                 size="sm"
-                onClick={handleFinalize}
+                onClick={() => void handleFinalize()}
                 disabled={isSubmitting}
               >
                 Conferma
@@ -1093,7 +1109,7 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setShowFinalizeConfirm(false)}
+                onClick={() => { setShowFinalizeConfirm(false); }}
               >
                 Annulla
               </Button>

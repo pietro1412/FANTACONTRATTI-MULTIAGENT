@@ -6,13 +6,14 @@
 import type { IPrizeRepository } from '../../domain/repositories/prize.repository.interface'
 import type { FinalizePrizesDto, FinalizePrizesResultDto } from '../dto/prize.dto'
 import { calculateMemberTotalPrize } from '../../domain/entities/prize.entity'
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
 import {
   ForbiddenError,
   NotFoundError,
   ConflictError,
   InternalError,
-} from '../../../../shared/infrastructure/http/errors'
+} from '@/shared/infrastructure/http/errors'
 
 /**
  * Error type union for this use case

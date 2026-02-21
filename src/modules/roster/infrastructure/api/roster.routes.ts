@@ -53,7 +53,7 @@ router.get(
     const { leagueId } = req.params
     const userId = req.user!.userId
 
-    const result = await getContracts(leagueId, userId)
+    const result = await getContracts(leagueId as string, userId)
 
     if (!result.success) {
       res.status(400).json(result)
@@ -77,7 +77,7 @@ router.get(
     const { leagueId } = req.params
     const userId = req.user!.userId
 
-    const result = await getAllRosters(leagueId, userId)
+    const result = await getAllRosters(leagueId as string, userId)
 
     if (!result.success) {
       const status = result.message === 'Non autorizzato' ? 403 : 400
@@ -122,7 +122,7 @@ router.post(
       return
     }
 
-    const result = await renewContract(contractId, userId, newSalary, newDuration)
+    const result = await renewContract(contractId as string, userId, newSalary, newDuration)
 
     if (!result.success) {
       res.status(400).json(result)
@@ -147,7 +147,7 @@ router.get(
     const userId = req.user!.userId
 
     // First get the contract to calculate rescission
-    const contractResult = await getContractById(contractId, userId)
+    const contractResult = await getContractById(contractId as string, userId)
 
     if (!contractResult.success) {
       const status = contractResult.message === 'Non sei il proprietario di questo contratto' ? 403 : 404
@@ -155,8 +155,10 @@ router.get(
       return
     }
 
-    const contract = contractResult.data
-    const rescissionCost = calculateRescissionClause(contract.salary, contract.duration)
+    const contract = contractResult.data as Record<string, unknown>
+    const rescissionCost = calculateRescissionClause(contract.salary as number, contract.duration as number)
+    const roster = contract.roster as Record<string, unknown> | undefined
+    const player = roster?.player as Record<string, unknown> | undefined
 
     res.json({
       success: true,
@@ -166,7 +168,7 @@ router.get(
           id: contract.id,
           salary: contract.salary,
           duration: contract.duration,
-          playerName: contract.roster?.player?.name,
+          playerName: player?.name,
         },
       },
     })

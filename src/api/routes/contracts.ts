@@ -19,7 +19,8 @@ import {
 } from '../../services/contract.service'
 import { authMiddleware } from '../middleware/auth'
 import { generateRenewalReceipt } from '../../services/pdf.service'
-import { generateContractsExcel, ContractExportData } from '../../services/excel.service'
+import type { ContractExportData } from '../../services/excel.service';
+import { generateContractsExcel } from '../../services/excel.service'
 import { createEmailService } from '../../modules/identity/infrastructure/services/email.factory'
 import { PrismaClient } from '@prisma/client'
 
@@ -298,7 +299,7 @@ router.post('/leagues/:leagueId/contracts/consolidate', authMiddleware, async (r
 
     if (member) {
       // Generate PDF receipt and send email (async, don't block response)
-      generateAndSendReceipt(leagueId, member.id).catch(err => {
+      generateAndSendReceipt(leagueId, member.id).catch((err: unknown) => {
         console.error('Error generating/sending receipt:', err)
       })
     }
@@ -491,11 +492,13 @@ router.get('/leagues/:leagueId/contracts/export-excel', authMiddleware, async (r
     }
 
     // Transform data for Excel export
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = result.data as { contracts: any[]; pendingContracts: any[]; memberBudget: number }
     const excelData: ContractExportData = {
       teamName: member.teamName || member.user.username,
       leagueName: member.league.name,
       exportDate: new Date(),
-      contracts: result.data.contracts.map((c: {
+      contracts: data.contracts.map((c: {
         roster: { player: { name: string; position: string; team: string } }
         salary: number
         duration: number
@@ -532,7 +535,7 @@ router.get('/leagues/:leagueId/contracts/export-excel', authMiddleware, async (r
           indemnityAmount: c.indemnityCompensation,
         }
       }),
-      pendingContracts: result.data.pendingContracts.map((p: {
+      pendingContracts: data.pendingContracts.map((p: {
         player: { name: string; position: string; team: string }
         acquisitionPrice: number
         acquisitionType: string
@@ -549,14 +552,14 @@ router.get('/leagues/:leagueId/contracts/export-excel', authMiddleware, async (r
         draftSalary: p.draftSalary,
         draftDuration: p.draftDuration,
       })),
-      budget: result.data.memberBudget,
+      budget: data.memberBudget,
     }
 
     // Generate Excel
     const excelBuffer = generateContractsExcel(excelData)
 
     // Send file as binary
-    const filename = `Contratti_${excelData.teamName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`
+    const filename = `Contratti_${(excelData.teamName ?? '').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0] ?? ''}.xlsx`
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
     res.setHeader('Content-Length', excelBuffer.length)

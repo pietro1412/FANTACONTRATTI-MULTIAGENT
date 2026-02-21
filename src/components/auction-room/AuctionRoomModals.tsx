@@ -71,7 +71,7 @@ export function ManagerDetailModal({ selectedManager, onClose }: ManagerDetailMo
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20" onClick={e => e.stopPropagation()}>
+      <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20" onClick={e => { e.stopPropagation(); }}>
         <div className="p-6">
           <div className="flex justify-between items-start mb-4">
             <div>
@@ -97,7 +97,7 @@ export function ManagerDetailModal({ selectedManager, onClose }: ManagerDetailMo
               <div key={pos} className="mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className={`w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos]} flex items-center justify-center text-xs font-bold text-white`}>{pos}</span>
+                    <span className={`w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos] ?? ''} flex items-center justify-center text-xs font-bold text-white`}>{pos}</span>
                     <span className="text-gray-300">{POSITION_NAMES[pos]}</span>
                   </div>
                   <span className={`text-sm font-bold ${slot.filled >= slot.total ? 'text-secondary-400' : 'text-gray-500'}`}>{slot.filled}/{slot.total}</span>
@@ -133,7 +133,7 @@ export function ManagerDetailModal({ selectedManager, onClose }: ManagerDetailMo
                     </tbody>
                   </table>
                 ) : (
-                  <p className="text-gray-600 italic text-sm ml-8">Nessuno</p>
+                  <p className="text-gray-400 italic text-sm ml-8">Nessuno</p>
                 )}
               </div>
             )
@@ -202,7 +202,7 @@ export function AcknowledgmentModal({
             <h2 className="text-2xl font-bold text-white">{pendingAck.winner ? 'Transazione Completata' : 'Asta Conclusa'}</h2>
           </div>
           <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-            <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[pendingAck.player.position]} flex items-center justify-center text-white font-bold flex-shrink-0`}>{pendingAck.player.position}</span>
+            <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[pendingAck.player.position] ?? ''} flex items-center justify-center text-white font-bold flex-shrink-0`}>{pendingAck.player.position}</span>
             <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
               <img
                 src={getTeamLogo(pendingAck.player.team)}
@@ -255,7 +255,7 @@ export function AcknowledgmentModal({
           {/* Profezia opzionale */}
           <textarea
             value={prophecyContent}
-            onChange={e => setProphecyContent(e.target.value)}
+            onChange={e => { setProphecyContent(e.target.value); }}
             className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-3 text-white placeholder-gray-500 mb-4"
             rows={2}
             placeholder="Profezia (opzionale)..."
@@ -270,7 +270,7 @@ export function AcknowledgmentModal({
               </p>
               <textarea
                 value={appealContent}
-                onChange={e => setAppealContent(e.target.value)}
+                onChange={e => { setAppealContent(e.target.value); }}
                 className="w-full bg-surface-300 border border-danger-500/50 rounded-lg p-3 text-white placeholder-gray-500"
                 rows={3}
                 placeholder="Descrivi il motivo del ricorso..."
@@ -282,7 +282,7 @@ export function AcknowledgmentModal({
           {/* Bottoni Azione */}
           <div className="flex gap-3">
             <Button
-              onClick={() => onAcknowledge(!!prophecyContent.trim())}
+              onClick={() => { onAcknowledge(!!prophecyContent.trim()); }}
               disabled={ackSubmitting}
               className="flex-1 bg-secondary-500 hover:bg-secondary-600 text-white font-bold py-3"
             >
@@ -290,7 +290,7 @@ export function AcknowledgmentModal({
             </Button>
             {!isAppealMode ? (
               <Button
-                onClick={() => setIsAppealMode(true)}
+                onClick={() => { setIsAppealMode(true); }}
                 disabled={ackSubmitting}
                 variant="outline"
                 className="flex-1 border-danger-500 text-danger-400 hover:bg-danger-500/10 py-3"
@@ -299,7 +299,7 @@ export function AcknowledgmentModal({
               </Button>
             ) : (
               <Button
-                onClick={() => onAcknowledge(false, true)}
+                onClick={() => { onAcknowledge(false, true); }}
                 disabled={ackSubmitting || !appealContent.trim()}
                 className="flex-1 bg-danger-500 hover:bg-danger-600 text-white py-3"
               >
@@ -316,7 +316,7 @@ export function AcknowledgmentModal({
                   {error}
                   {error.includes('PENDING') && (
                     <Button
-                      onClick={() => onNavigate('admin', { leagueId, tab: 'appeals' })}
+                      onClick={() => { onNavigate('admin', { leagueId, tab: 'appeals' }); }}
                       size="sm"
                       className="w-full mt-2 bg-danger-500 hover:bg-danger-600 text-white text-xs"
                     >
@@ -396,7 +396,7 @@ export function AppealReviewModal({
           {/* Player info */}
           {(appealStatus?.player || pendingAck?.player) && (
             <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-              <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}>
+              <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P'] ?? ''} flex items-center justify-center text-white font-bold flex-shrink-0`}>
                 {(appealStatus?.player || pendingAck?.player)?.position}
               </span>
               <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
@@ -439,7 +439,7 @@ export function AppealReviewModal({
           {/* Admin button */}
           {isAdmin && (
             <Button
-              onClick={() => onNavigate('admin', { leagueId, tab: 'appeals' })}
+              onClick={() => { onNavigate('admin', { leagueId, tab: 'appeals' }); }}
               className="w-full bg-danger-500 hover:bg-danger-600 text-white font-bold py-3"
             >
               Gestisci Ricorso
@@ -463,21 +463,28 @@ export function AppealAckModal({
 }: AppealAckModalProps) {
   const autoAckedRef = useRef(false)
 
+  const isVisible = appealStatus?.auctionStatus === 'AWAITING_APPEAL_ACK' || pendingAck?.status === 'AWAITING_APPEAL_ACK'
+
+  // Reset auto-ack flag when modal becomes invisible
+  useEffect(() => {
+    if (!isVisible) {
+      autoAckedRef.current = false
+    }
+  }, [isVisible])
+
   // Admin auto-ack: automatically acknowledge and force all when modal opens
   useEffect(() => {
     if (!isAdmin || autoAckedRef.current) return
-    const isVisible = appealStatus?.auctionStatus === 'AWAITING_APPEAL_ACK' || pendingAck?.status === 'AWAITING_APPEAL_ACK'
     if (!isVisible) return
     autoAckedRef.current = true
     // Auto-ack own, then force all
     if (!appealStatus?.userHasAcked) {
       onAcknowledgeAppealDecision()
     }
-    setTimeout(() => onForceAllAppealAcks(), 500)
-  }, [isAdmin, appealStatus?.auctionStatus, pendingAck?.status, appealStatus?.userHasAcked, onAcknowledgeAppealDecision, onForceAllAppealAcks])
+    setTimeout(() => { onForceAllAppealAcks(); }, 500)
+  }, [isAdmin, isVisible, appealStatus?.userHasAcked, onAcknowledgeAppealDecision, onForceAllAppealAcks])
 
-  if (!(appealStatus?.auctionStatus === 'AWAITING_APPEAL_ACK' || pendingAck?.status === 'AWAITING_APPEAL_ACK')) {
-    autoAckedRef.current = false
+  if (!isVisible) {
     return null
   }
 
@@ -502,7 +509,7 @@ export function AppealAckModal({
           {/* Player info */}
           {(appealStatus?.player || pendingAck?.player) && (
             <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-              <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}>
+              <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P'] ?? ''} flex items-center justify-center text-white font-bold flex-shrink-0`}>
                 {(appealStatus?.player || pendingAck?.player)?.position}
               </span>
               <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">
@@ -589,22 +596,28 @@ export function AwaitingResumeModal({
   onForceAllReadyResume,
 }: AwaitingResumeModalProps) {
   const autoReadyRef = useRef(false)
+  const isVisible = appealStatus?.auctionStatus === 'AWAITING_RESUME' || pendingAck?.status === 'AWAITING_RESUME'
+
+  // Reset auto-ready flag when modal becomes invisible
+  useEffect(() => {
+    if (!isVisible) {
+      autoReadyRef.current = false
+    }
+  }, [isVisible])
 
   // Admin auto-ready: automatically mark ready and force all when modal opens
   useEffect(() => {
     if (!isAdmin || autoReadyRef.current) return
-    const isVisible = appealStatus?.auctionStatus === 'AWAITING_RESUME' || pendingAck?.status === 'AWAITING_RESUME'
     if (!isVisible) return
     autoReadyRef.current = true
     // Auto-ready own, then force all
     if (!appealStatus?.userIsReady) {
       onReadyToResume()
     }
-    setTimeout(() => onForceAllReadyResume(), 500)
-  }, [isAdmin, appealStatus?.auctionStatus, pendingAck?.status, appealStatus?.userIsReady, onReadyToResume, onForceAllReadyResume])
+    setTimeout(() => { onForceAllReadyResume(); }, 500)
+  }, [isAdmin, isVisible, appealStatus?.userIsReady, onReadyToResume, onForceAllReadyResume])
 
-  if (!(appealStatus?.auctionStatus === 'AWAITING_RESUME' || pendingAck?.status === 'AWAITING_RESUME')) {
-    autoReadyRef.current = false
+  if (!isVisible) {
     return null
   }
 
@@ -623,7 +636,7 @@ export function AwaitingResumeModal({
           {/* Player info */}
           {(appealStatus?.player || pendingAck?.player) && (
             <div className="bg-surface-300 rounded-lg p-4 mb-4 flex items-center gap-3">
-              <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P']} flex items-center justify-center text-white font-bold flex-shrink-0`}>
+              <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[(appealStatus?.player || pendingAck?.player)?.position || 'P'] ?? ''} flex items-center justify-center text-white font-bold flex-shrink-0`}>
                 {(appealStatus?.player || pendingAck?.player)?.position}
               </span>
               <div className="w-8 h-8 bg-white/90 rounded flex items-center justify-center p-0.5 flex-shrink-0">

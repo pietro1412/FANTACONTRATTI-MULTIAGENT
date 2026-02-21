@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- vi.mocked partial mocks require any for Prisma model types */
 /**
  * RubataPrismaRepository Tests
  *
@@ -7,8 +8,6 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { RubataPrismaRepository } from '../rubata.prisma-repository'
-import type { RubataSession } from '../../../domain/entities/rubata-session.entity'
-import type { PlaceOfferData, PlaceOfferResult } from '../../../domain/repositories/rubata.repository.interface'
 
 // Mock the prisma client
 vi.mock('@/lib/prisma', () => ({

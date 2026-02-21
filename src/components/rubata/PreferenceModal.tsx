@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/Modal'
 import { Button } from '../ui/Button'
 import { getTeamLogo } from '../../utils/teamLogos'
 
@@ -36,13 +37,15 @@ interface BoardPlayerBase {
 export interface PreferenceModalProps {
   player: BoardPlayerBase
   onClose: () => void
-  onSave: (data: { maxBid: number | null; priority: number | null; notes: string | null }) => Promise<void>
+  onSave: (data: { isWatchlist: boolean; isAutoPass: boolean; maxBid: number | null; priority: number | null; notes: string | null }) => Promise<void>
   onDelete: () => Promise<void>
   isSubmitting: boolean
 }
 
 export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmitting }: PreferenceModalProps) {
   const [formData, setFormData] = useState({
+    isWatchlist: player.preference?.isWatchlist ?? false,
+    isAutoPass: player.preference?.isAutoPass ?? false,
     maxBid: player.preference?.maxBid?.toString() || '',
     priority: player.preference?.priority?.toString() || '',
     notes: player.preference?.notes || '',
@@ -50,6 +53,8 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
 
   const handleSave = async () => {
     await onSave({
+      isWatchlist: formData.isWatchlist,
+      isAutoPass: formData.isAutoPass,
       maxBid: formData.maxBid ? parseInt(formData.maxBid) : null,
       priority: formData.priority ? parseInt(formData.priority) : null,
       notes: formData.notes || null,
@@ -57,10 +62,9 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-surface-200 rounded-2xl p-6 max-w-md w-full shadow-2xl border border-indigo-500/50">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-4">
+    <Modal isOpen={true} onClose={onClose} size="md" showCloseButton={false} className="border-indigo-500/50">
+      <ModalHeader>
+        <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white rounded p-1">
             <TeamLogo team={player.playerTeam} />
           </div>
@@ -68,27 +72,53 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
             <h3 className="font-bold text-white">{player.playerName}</h3>
             <p className="text-sm text-gray-400">{player.playerTeam} • {player.rubataPrice}M</p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="ml-auto w-8 h-8 min-h-[44px] min-w-[44px] rounded-full bg-surface-300 text-gray-400 hover:bg-surface-50/20 flex items-center justify-center"
-          >
-            ✕
-          </button>
         </div>
+      </ModalHeader>
 
+      <ModalBody>
         {/* Form */}
         <div className="space-y-4">
+          {/* Watchlist + AutoPass toggles */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => { setFormData(p => ({ ...p, isWatchlist: !p.isWatchlist, isAutoPass: !p.isWatchlist ? false : p.isAutoPass })); }}
+              className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 transition-all min-h-[44px] ${
+                formData.isWatchlist
+                  ? 'bg-indigo-500/20 border-indigo-500/60 text-indigo-400'
+                  : 'bg-surface-300/50 border-surface-50/20 text-gray-500 hover:border-surface-50/40'
+              }`}
+            >
+              <span className="text-lg">{formData.isWatchlist ? '👁️' : '👁️‍🗨️'}</span>
+              <span className="text-sm font-medium">Watchlist</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setFormData(p => ({ ...p, isAutoPass: !p.isAutoPass, isWatchlist: !p.isAutoPass ? false : p.isWatchlist })); }}
+              className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 transition-all min-h-[44px] ${
+                formData.isAutoPass
+                  ? 'bg-gray-500/20 border-gray-500/60 text-gray-300'
+                  : 'bg-surface-300/50 border-surface-50/20 text-gray-500 hover:border-surface-50/40'
+              }`}
+            >
+              <span className="text-lg">⏭️</span>
+              <span className="text-sm font-medium">Auto-skip</span>
+            </button>
+          </div>
+          {formData.isAutoPass && (
+            <p className="text-xs text-gray-500 text-center -mt-2">Non farai offerte per questo giocatore</p>
+          )}
+
           {/* Max bid with +/- buttons */}
           <div>
             <label className="block text-sm text-gray-400 mb-2">Budget massimo</label>
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setFormData(p => ({
+                onClick={() => { setFormData(p => ({
                   ...p,
                   maxBid: String(Math.max(0, (parseInt(p.maxBid) || 0) - 5))
-                }))}
+                })); }}
                 disabled={!formData.maxBid || parseInt(formData.maxBid) <= 0}
                 className="w-10 h-10 min-h-[44px] min-w-[44px] rounded-lg bg-surface-300 border border-surface-50/30 text-white text-xl font-bold hover:bg-surface-50/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               >
@@ -99,7 +129,7 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
                   type="number"
                   inputMode="decimal"
                   value={formData.maxBid}
-                  onChange={e => setFormData(p => ({ ...p, maxBid: e.target.value }))}
+                  onChange={e => { setFormData(p => ({ ...p, maxBid: e.target.value })); }}
                   placeholder="—"
                   className="w-full text-center text-2xl font-bold bg-transparent text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
@@ -107,10 +137,10 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
               </div>
               <button
                 type="button"
-                onClick={() => setFormData(p => ({
+                onClick={() => { setFormData(p => ({
                   ...p,
                   maxBid: String((parseInt(p.maxBid) || 0) + 5)
-                }))}
+                })); }}
                 className="w-10 h-10 min-h-[44px] min-w-[44px] rounded-lg bg-surface-300 border border-surface-50/30 text-white text-xl font-bold hover:bg-surface-50/20 transition-all"
               >
                 +
@@ -119,7 +149,7 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
             {formData.maxBid && (
               <button
                 type="button"
-                onClick={() => setFormData(p => ({ ...p, maxBid: '' }))}
+                onClick={() => { setFormData(p => ({ ...p, maxBid: '' })); }}
                 className="mt-1 text-xs text-gray-500 hover:text-gray-400"
               >
                 Rimuovi limite
@@ -138,12 +168,12 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
                   <button
                     type="button"
                     key={star}
-                    onClick={() => setFormData(p => ({
+                    onClick={() => { setFormData(p => ({
                       ...p,
                       priority: p.priority === String(star) ? '' : String(star)
-                    }))}
+                    })); }}
                     className={`w-10 h-10 min-h-[44px] min-w-[44px] text-2xl transition-all transform hover:scale-110 ${
-                      isActive ? 'text-purple-400' : 'text-gray-600 hover:text-purple-400/50'
+                      isActive ? 'text-purple-400' : 'text-gray-500 hover:text-purple-400/50'
                     }`}
                     title={`Priorità ${star}`}
                   >
@@ -162,35 +192,34 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
             <label className="block text-sm text-gray-400 mb-1">Note private</label>
             <textarea
               value={formData.notes}
-              onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))}
+              onChange={e => { setFormData(p => ({ ...p, notes: e.target.value })); }}
               placeholder="Appunti personali..."
               rows={3}
               className="w-full px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white placeholder-gray-500 focus:border-indigo-500/50 focus:outline-none resize-none"
             />
           </div>
         </div>
+      </ModalBody>
 
-        {/* Actions */}
-        <div className="flex gap-2 mt-6">
-          {player.preference && (
-            <Button
-              onClick={onDelete}
-              disabled={isSubmitting}
-              variant="outline"
-              className="border-danger-500/50 text-danger-400 hover:bg-danger-500/10"
-            >
-              Rimuovi
-            </Button>
-          )}
-          <Button onClick={onClose} variant="outline" className="flex-1">
-            Annulla
+      <ModalFooter>
+        {player.preference && (
+          <Button
+            onClick={() => void onDelete()}
+            disabled={isSubmitting}
+            variant="outline"
+            className="border-danger-500/50 text-danger-400 hover:bg-danger-500/10"
+          >
+            Rimuovi
           </Button>
-          <Button onClick={handleSave} disabled={isSubmitting} className="flex-1">
-            Salva
-          </Button>
-        </div>
-      </div>
-    </div>
+        )}
+        <Button onClick={onClose} variant="outline" className="flex-1">
+          Annulla
+        </Button>
+        <Button onClick={() => void handleSave()} disabled={isSubmitting} className="flex-1">
+          Salva
+        </Button>
+      </ModalFooter>
+    </Modal>
   )
 }
 

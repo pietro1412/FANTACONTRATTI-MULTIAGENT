@@ -5,13 +5,14 @@
 
 import type { IPrizeRepository } from '../../domain/repositories/prize.repository.interface'
 import type { SetupPrizesDto, SetupPrizesResultDto } from '../dto/prize.dto'
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
 import {
   ForbiddenError,
   NotFoundError,
   ConflictError,
   InternalError,
-} from '../../../../shared/infrastructure/http/errors'
+} from '@/shared/infrastructure/http/errors'
 
 /**
  * Default base reincrement value (100M)
@@ -96,7 +97,7 @@ export class SetupPrizesUseCase {
       })
 
       // 7. Initialize default prizes for all members in Indennizzo category
-      let categoriesCreated = 1
+      const categoriesCreated = 1
       for (const m of members) {
         await this.prizeRepository.assignPrize({
           categoryId: indennizzoCategory.id,

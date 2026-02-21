@@ -18,7 +18,7 @@ interface DealFinanceBarProps {
 export function DealFinanceBar({
   isInTradePhase,
   currentPhase,
-  pusherConnected,
+  pusherConnected: _pusherConnected,
   myTeam,
   hasFinancialDetails,
   postTradeImpact,

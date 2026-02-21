@@ -3,6 +3,7 @@ type RubataState = 'WAITING' | 'PREVIEW' | 'READY_CHECK' | 'OFFERING' | 'AUCTION
 interface RubataStepperProps {
   currentState: RubataState
   className?: string
+  compact?: boolean
 }
 
 const STEPS = [
@@ -36,7 +37,37 @@ const COLOR_MAP: Record<string, { bg: string; border: string; text: string; dot:
   purple: { bg: 'bg-purple-500/20', border: 'border-purple-500', text: 'text-purple-400', dot: 'bg-purple-500' },
 }
 
-export function RubataStepper({ currentState, className = '' }: RubataStepperProps) {
+export function RubataStepper({ currentState, className = '', compact = false }: RubataStepperProps) {
+  const activeIndex = getStepIndex(currentState)
+
+  // Compact mode: inline dots only (for ActionBar integration)
+  if (compact) {
+    if (currentState === 'COMPLETED') {
+      return <span className={`text-secondary-400 font-bold text-xs ${className}`}>✅</span>
+    }
+    return (
+      <div className={`flex items-center gap-1 ${className}`}>
+        {STEPS.map((step, i) => {
+          const isActive = i === activeIndex
+          const isCompleted = i < activeIndex
+          const colors = COLOR_MAP[step.color]!
+          return (
+            <div
+              key={step.key}
+              className={`rounded-full transition-all ${
+                isActive
+                  ? `w-2.5 h-2.5 ${colors.dot} shadow-lg animate-pulse`
+                  : isCompleted
+                    ? 'w-1.5 h-1.5 bg-gray-500'
+                    : 'w-1.5 h-1.5 bg-surface-300'
+              }`}
+            />
+          )
+        })}
+      </div>
+    )
+  }
+
   if (currentState === 'COMPLETED') {
     return (
       <div className={`flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-secondary-500/20 border border-secondary-500/40 ${className}`}>
@@ -46,16 +77,14 @@ export function RubataStepper({ currentState, className = '' }: RubataStepperPro
     )
   }
 
-  const activeIndex = getStepIndex(currentState)
-
   return (
-    <div className={`${className}`}>
+    <div className={className}>
       {/* Desktop: full stepper */}
       <div className="hidden md:flex items-center gap-1">
         {STEPS.map((step, i) => {
           const isActive = i === activeIndex
           const isCompleted = i < activeIndex
-          const colors = COLOR_MAP[step.color]
+          const colors = COLOR_MAP[step.color]!
 
           return (
             <div key={step.key} className="flex items-center">
@@ -65,7 +94,7 @@ export function RubataStepper({ currentState, className = '' }: RubataStepperPro
                   ? `${colors.bg} ${colors.text} border ${colors.border}/40 shadow-sm`
                   : isCompleted
                     ? 'bg-surface-300/50 text-gray-500 line-through'
-                    : 'bg-surface-300/30 text-gray-600'
+                    : 'bg-surface-300/30 text-gray-400'
               }`}>
                 <span className="text-sm">{isActive ? step.icon : isCompleted ? '✓' : '○'}</span>
                 <span>{step.label}</span>
@@ -87,7 +116,7 @@ export function RubataStepper({ currentState, className = '' }: RubataStepperPro
           {STEPS.map((step, i) => {
             const isActive = i === activeIndex
             const isCompleted = i < activeIndex
-            const colors = COLOR_MAP[step.color]
+            const colors = COLOR_MAP[step.color]!
 
             return (
               <div
@@ -105,10 +134,10 @@ export function RubataStepper({ currentState, className = '' }: RubataStepperPro
         </div>
         <div className="flex items-center gap-1.5 text-sm">
           <span>{STEPS[activeIndex]?.icon}</span>
-          <span className={`font-bold ${COLOR_MAP[STEPS[activeIndex]?.color]?.text || 'text-gray-400'}`}>
+          <span className={`font-bold ${(STEPS[activeIndex] ? COLOR_MAP[STEPS[activeIndex].color]?.text : undefined) || 'text-gray-400'}`}>
             {STEPS[activeIndex]?.label || currentState}
           </span>
-          <span className="text-gray-600 text-xs">({activeIndex + 1}/{STEPS.length})</span>
+          <span className="text-gray-400 text-xs">({activeIndex + 1}/{STEPS.length})</span>
         </div>
       </div>
     </div>

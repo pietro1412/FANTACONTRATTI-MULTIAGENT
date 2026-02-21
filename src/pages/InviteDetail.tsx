@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useToast } from '@/components/ui/Toast'
 import { inviteApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -78,6 +79,7 @@ function getTimeRemaining(expiresAt: string): { text: string; isUrgent: boolean;
 }
 
 export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
+  const { toast } = useToast()
   const [invite, setInvite] = useState<InviteData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -86,7 +88,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
   const [teamNameError, setTeamNameError] = useState<string | null>(null)
 
   useEffect(() => {
-    loadInvite()
+    void loadInvite()
   }, [token])
 
   async function loadInvite() {
@@ -120,7 +122,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
     if (res.success) {
       onNavigate('leagueDetail', { leagueId: invite.league.id })
     } else {
-      alert(res.message || 'Errore nell\'accettare l\'invito')
+      toast.error(res.message || 'Errore nell\'accettare l\'invito')
     }
 
     setActionLoading(null)
@@ -135,7 +137,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
     if (res.success) {
       onNavigate('dashboard')
     } else {
-      alert(res.message || 'Errore nel rifiutare l\'invito')
+      toast.error(res.message || 'Errore nel rifiutare l\'invito')
     }
 
     setActionLoading(null)
@@ -168,7 +170,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
             </div>
             <h2 className="text-xl font-bold text-white mb-2">Invito non valido</h2>
             <p className="text-gray-400 mb-6">{error}</p>
-            <Button onClick={() => onNavigate('dashboard')}>
+            <Button onClick={() => { onNavigate('dashboard'); }}>
               Torna alla Dashboard
             </Button>
           </div>
@@ -178,7 +180,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
   }
 
   const timeRemaining = getTimeRemaining(invite.expiresAt)
-  const status = STATUS_LABELS[invite.league.status] || STATUS_LABELS.DRAFT
+  const status = (STATUS_LABELS[invite.league.status] || STATUS_LABELS.DRAFT)!
   const totalSlots = invite.league.config.slots.goalkeeper + invite.league.config.slots.defender +
     invite.league.config.slots.midfielder + invite.league.config.slots.forward
 
@@ -190,7 +192,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => onNavigate('dashboard')}
+            onClick={() => { onNavigate('dashboard'); }}
             className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -297,7 +299,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
-                          {member.username[0].toUpperCase()}
+                          {member.username[0]?.toUpperCase()}
                         </div>
                       )}
                       {member.role === 'ADMIN' && (
@@ -339,7 +341,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
                   />
                 ) : (
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-secondary-400 to-secondary-600 flex items-center justify-center text-white font-bold text-lg">
-                    {invite.inviter.username[0].toUpperCase()}
+                    {invite.inviter.username[0]?.toUpperCase()}
                   </div>
                 )}
                 <div>
@@ -404,7 +406,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
                 <Button
                   size="lg"
                   className="w-full"
-                  onClick={handleAccept}
+                  onClick={() => void handleAccept()}
                   disabled={actionLoading !== null || teamName.trim().length < 2}
                 >
                   {actionLoading === 'accept' ? (
@@ -425,7 +427,7 @@ export function InviteDetail({ token, onNavigate }: InviteDetailProps) {
                   variant="outline"
                   size="lg"
                   className="w-full"
-                  onClick={handleReject}
+                  onClick={() => void handleReject()}
                   disabled={actionLoading !== null}
                 >
                   {actionLoading === 'reject' ? (

@@ -4,7 +4,6 @@
  */
 
 import type {
-  Prize,
   PrizeCategory,
   PrizePhaseConfig,
   SessionPrize,

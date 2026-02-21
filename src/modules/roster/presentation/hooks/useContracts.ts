@@ -7,7 +7,11 @@
 
 import { useCallback, useState, useEffect } from 'react'
 import { contractApi } from '@/services/api'
-import { calculateRescissionClause, calculateReleaseCost } from '../../domain/services/contract-calculator.service'
+import { ContractCalculator } from '../../domain/services/contract-calculator.service'
+
+const _calculator = new ContractCalculator()
+const calculateRescissionClause = (salary: number, duration: number): number => _calculator.calculateRescission(salary, duration)
+const calculateReleaseCost = (salary: number, duration: number): number => _calculator.calculateReleaseCost(salary, duration)
 
 export interface ContractPlayer {
   id: string
@@ -123,9 +127,9 @@ export function useContracts(leagueId: string | undefined): UseContractsResult {
       } else {
         setError(response.message || 'Failed to load contracts')
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to load contracts')
-      console.error('useContracts error:', err)
+      console.error('useContracts error:', _err)
     } finally {
       setIsLoading(false)
     }
@@ -133,7 +137,7 @@ export function useContracts(leagueId: string | undefined): UseContractsResult {
 
   // Initial fetch
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   const createContract = useCallback(
@@ -147,7 +151,7 @@ export function useContracts(leagueId: string | undefined): UseContractsResult {
         }
 
         return { success: false, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to create contract' }
       }
     },
@@ -165,7 +169,7 @@ export function useContracts(leagueId: string | undefined): UseContractsResult {
         }
 
         return { success: false, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to renew contract' }
       }
     },
@@ -183,7 +187,7 @@ export function useContracts(leagueId: string | undefined): UseContractsResult {
         }
 
         return { success: false, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to release player' }
       }
     },
@@ -209,7 +213,7 @@ export function useContracts(leagueId: string | undefined): UseContractsResult {
         }
 
         return { success: false, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to save drafts' }
       }
     },
@@ -234,7 +238,7 @@ export function useContracts(leagueId: string | undefined): UseContractsResult {
         }
 
         return { success: false, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to consolidate contracts' }
       }
     },
@@ -298,9 +302,9 @@ export function useConsolidationStatus(leagueId: string | undefined) {
       } else {
         setError(response.message || 'Failed to load consolidation status')
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to load consolidation status')
-      console.error('useConsolidationStatus error:', err)
+      console.error('useConsolidationStatus error:', _err)
     } finally {
       setIsLoading(false)
     }
@@ -308,7 +312,7 @@ export function useConsolidationStatus(leagueId: string | undefined) {
 
   // Initial fetch
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   return { status, isLoading, error, refresh }

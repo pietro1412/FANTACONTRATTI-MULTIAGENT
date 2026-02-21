@@ -55,14 +55,39 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
   ) => {
     // Swipe-to-dismiss state (mobile)
     const [dragOffset, setDragOffset] = useState(0)
+    const [isDraggingState, setIsDraggingState] = useState(false)
     const isDragging = useRef(false)
     const startY = useRef(0)
 
-    // Handle escape key press
-    const handleEscapeKey = useCallback(
+    const containerRef = useRef<HTMLDivElement>(null)
+
+    // Handle keyboard: escape + focus trap (Tab cycling)
+    const handleKeyDown = useCallback(
       (event: KeyboardEvent) => {
         if (event.key === 'Escape' && closeOnEscape) {
           onClose()
+          return
+        }
+        if (event.key === 'Tab') {
+          const container = containerRef.current
+          if (!container) return
+          const focusable = container.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+          if (focusable.length === 0) return
+          const first = focusable[0]!
+          const last = focusable[focusable.length - 1]!
+          if (event.shiftKey) {
+            if (document.activeElement === first) {
+              event.preventDefault()
+              last.focus()
+            }
+          } else {
+            if (document.activeElement === last) {
+              event.preventDefault()
+              first.focus()
+            }
+          }
         }
       },
       [closeOnEscape, onClose]
@@ -81,6 +106,7 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
       if (touch) {
         startY.current = touch.clientY
         isDragging.current = true
+        setIsDraggingState(true)
       }
     }
 
@@ -96,24 +122,34 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
 
     const handleTouchEnd = () => {
       isDragging.current = false
+      setIsDraggingState(false)
       if (dragOffset > 100) {
         onClose()
       }
       setDragOffset(0)
     }
 
-    // Add/remove event listeners and manage body scroll
+    // Add/remove event listeners, manage body scroll, and set initial focus
     useEffect(() => {
       if (isOpen) {
-        document.addEventListener('keydown', handleEscapeKey)
+        document.addEventListener('keydown', handleKeyDown)
         document.body.style.overflow = 'hidden'
+        // Focus first focusable element after render
+        setTimeout(() => {
+          const container = containerRef.current
+          if (!container) return
+          const firstFocusable = container.querySelector<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+          firstFocusable?.focus()
+        }, 50)
       }
 
       return () => {
-        document.removeEventListener('keydown', handleEscapeKey)
+        document.removeEventListener('keydown', handleKeyDown)
         document.body.style.overflow = ''
       }
-    }, [isOpen, handleEscapeKey])
+    }, [isOpen, handleKeyDown])
 
     // Size styles for the modal container
     const sizeStyles: Record<ModalSize, string> = {
@@ -145,7 +181,12 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
 
         {/* Modal container */}
         <div
-          ref={ref}
+          ref={(node) => {
+            // Assign to both the forwarded ref and our internal ref
+            containerRef.current = node
+            if (typeof ref === 'function') ref(node)
+            else if (ref) ref.current = node
+          }}
           className={`
             relative ${sizeStyles[size]}
             bg-surface-200 border border-surface-50/20
@@ -156,7 +197,7 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
           style={dragOffset > 0 ? {
             transform: `translateY(${dragOffset}px)`,
             opacity: Math.max(0.5, 1 - dragOffset / 300),
-            transition: isDragging.current ? 'none' : 'transform 0.3s ease, opacity 0.3s ease',
+            transition: isDraggingState ? 'none' : 'transform 0.3s ease, opacity 0.3s ease',
           } : undefined}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}

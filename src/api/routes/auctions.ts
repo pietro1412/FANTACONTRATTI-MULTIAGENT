@@ -629,7 +629,7 @@ router.get('/auctions/sessions/:sessionId/managers-status', authMiddleware, asyn
 // ==================== HEARTBEAT / CONNECTION STATUS ====================
 
 // POST /api/auctions/sessions/:sessionId/heartbeat - Register heartbeat for connection tracking
-router.post('/auctions/sessions/:sessionId/heartbeat', authMiddleware, async (req: Request, res: Response) => {
+router.post('/auctions/sessions/:sessionId/heartbeat', authMiddleware, (req: Request, res: Response) => {
   try {
     const sessionId = req.params.sessionId as string
     const { memberId } = req.body as { memberId?: string }
@@ -963,7 +963,7 @@ router.post('/auctions/sessions/:sessionId/request-pause', authMiddleware, async
   try {
     const { sessionId } = req.params
     const { type } = req.body as { type: 'nomination' | 'auction' }
-    const result = await requestPause(sessionId, req.user!.userId, type || 'auction')
+    const result = await requestPause(sessionId!, req.user!.userId, type || 'auction')
 
     if (!result.success) {
       res.status(400).json(result)
@@ -982,7 +982,7 @@ router.post('/auctions/sessions/:sessionId/request-pause', authMiddleware, async
 router.post('/:leagueId/auctions/pause', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { leagueId } = req.params
-    const result = await pauseAuction(leagueId, req.user!.userId)
+    const result = await pauseAuction(leagueId!, req.user!.userId)
 
     if (!result.success) {
       res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
@@ -999,7 +999,7 @@ router.post('/:leagueId/auctions/pause', authMiddleware, async (req: Request, re
 router.post('/:leagueId/auctions/resume', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { leagueId } = req.params
-    const result = await resumeAuction(leagueId, req.user!.userId)
+    const result = await resumeAuction(leagueId!, req.user!.userId)
 
     if (!result.success) {
       res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
@@ -1017,9 +1017,8 @@ router.post('/:leagueId/auctions/resume', authMiddleware, async (req: Request, r
 
 router.post('/:leagueId/auctions/cancel', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { leagueId } = req.params
     const { auctionId } = req.body as { auctionId: string }
-    const result = await cancelActiveAuction(leagueId, req.user!.userId, auctionId)
+    const result = await cancelActiveAuction(auctionId, req.user!.userId, 'Admin cancellation')
 
     if (!result.success) {
       res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
@@ -1035,13 +1034,12 @@ router.post('/:leagueId/auctions/cancel', authMiddleware, async (req: Request, r
 
 router.post('/:leagueId/auctions/rectify', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { leagueId } = req.params
-    const { auctionId, newWinnerId, newPrice } = req.body as {
+    const { auctionId } = req.body as {
       auctionId: string
       newWinnerId?: string
       newPrice?: number
     }
-    const result = await rectifyTransaction(leagueId, req.user!.userId, auctionId, newWinnerId, newPrice)
+    const result = await rectifyTransaction(auctionId, req.user!.userId, 'Admin rectification')
 
     if (!result.success) {
       res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)

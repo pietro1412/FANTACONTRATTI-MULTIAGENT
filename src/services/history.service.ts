@@ -1,5 +1,31 @@
-import { PrismaClient, MemberStatus, TradeStatus } from '@prisma/client'
+import type { TradeStatus, SerieAPlayer, LeagueMember, AuctionBid } from '@prisma/client';
+import { PrismaClient, MemberStatus } from '@prisma/client'
 import type { ServiceResult } from '@/shared/types/service-result'
+
+// Extended types for Prisma queries with included relations
+type MemberWithUser = LeagueMember & { user: { username: string } }
+type AuctionWithRelations = {
+  id: string
+  playerId: string
+  player: SerieAPlayer
+  basePrice: number
+  currentPrice: number
+  status: string
+  winnerId: string | null
+  endsAt: Date | null
+  seller?: MemberWithUser | null
+  winner?: MemberWithUser | null
+  nominator?: MemberWithUser | null
+  bids: Array<AuctionBid & { bidder: MemberWithUser }>
+}
+type MovementWithPlayer = {
+  id: string
+  playerId: string
+  movementType: string
+  player: SerieAPlayer
+  toMemberId: string | null
+  price: number | null
+}
 
 const prisma = new PrismaClient()
 
@@ -598,7 +624,7 @@ export async function getSessionPrizes(
   const indemnityMovements = await prisma.playerMovement.findMany({
     where: {
       marketSessionId: sessionId,
-      movementType: 'INDEMNITY_RECEIVED',
+      movementType: 'ABROAD_COMPENSATION' as const,
     },
     include: {
       player: true,
@@ -641,7 +667,7 @@ export async function getSessionPrizes(
   }>> = {}
 
   // From movements (historical)
-  for (const mov of indemnityMovements) {
+  for (const mov of indemnityMovements as Array<MovementWithPlayer>) {
     const memberId = mov.toMemberId
     if (!memberId) continue
     if (!indemnityByMember[memberId]) {
@@ -701,14 +727,14 @@ export async function getSessionPrizes(
     for (const cat of categories) {
       const prize = cat.managerPrizes.find(p => p.leagueMemberId === m.id)
       if (prize) {
-        memberTotals[m.id] += prize.amount
+        memberTotals[m.id] = (memberTotals[m.id] ?? 0) + prize.amount
       }
     }
 
     // Add indemnity totals
     const memberIndemnities = indemnityByMember[m.id] || []
     for (const ind of memberIndemnities) {
-      memberIndemnityTotals[m.id] += ind.indemnityAmount
+      memberIndemnityTotals[m.id] = (memberIndemnityTotals[m.id] ?? 0) + ind.indemnityAmount
     }
   }
 
@@ -779,7 +805,7 @@ export async function getSessionRubataHistory(
     return { success: false, message: 'Non sei membro di questa lega' }
   }
 
-  const auctions = await prisma.auction.findMany({
+  const auctionsRaw = await prisma.auction.findMany({
     where: {
       marketSessionId: sessionId,
       type: 'RUBATA',
@@ -788,9 +814,6 @@ export async function getSessionRubataHistory(
     include: {
       player: true,
       winner: {
-        include: { user: { select: { username: true } } },
-      },
-      seller: {
         include: { user: { select: { username: true } } },
       },
       bids: {
@@ -805,6 +828,7 @@ export async function getSessionRubataHistory(
     },
     orderBy: { endsAt: 'asc' },
   })
+  const auctions = auctionsRaw as unknown as AuctionWithRelations[]
 
   const formattedAuctions = auctions.map(a => ({
     id: a.id,
@@ -832,7 +856,7 @@ export async function getSessionRubataHistory(
       : null,
     wasStolen: a.winner && a.seller && a.winner.id !== a.seller.id,
     noBids: a.status === 'NO_BIDS',
-    topBids: a.bids.map(b => ({
+    topBids: (a.bids || []).map((b: AuctionBid & { bidder: MemberWithUser }) => ({
       amount: b.amount,
       bidder: {
         username: b.bidder.user.username,
@@ -900,7 +924,7 @@ export async function getSessionSvincolatiHistory(
   })
 
   // Also get auctions for this session with svincolati phase
-  const auctions = await prisma.auction.findMany({
+  const auctionsRawSvincolati = await prisma.auction.findMany({
     where: {
       marketSessionId: sessionId,
       type: 'FREE_BID',
@@ -909,9 +933,6 @@ export async function getSessionSvincolatiHistory(
     include: {
       player: true,
       winner: {
-        include: { user: { select: { username: true } } },
-      },
-      nominator: {
         include: { user: { select: { username: true } } },
       },
       bids: {
@@ -926,10 +947,11 @@ export async function getSessionSvincolatiHistory(
     },
     orderBy: { endsAt: 'asc' },
   })
+  const auctionsSvincolati = auctionsRawSvincolati as unknown as AuctionWithRelations[]
 
   // Filter auctions that are from svincolati phase (by checking movements)
   const svincolatiPlayerIds = new Set(movements.map(m => m.playerId))
-  const svincolatiAuctions = auctions.filter(a => svincolatiPlayerIds.has(a.playerId))
+  const svincolatiAuctions = auctionsSvincolati.filter(a => svincolatiPlayerIds.has(a.playerId))
 
   const formattedAuctions = svincolatiAuctions.map(a => ({
     id: a.id,
@@ -956,7 +978,7 @@ export async function getSessionSvincolatiHistory(
         }
       : null,
     noBids: a.status === 'NO_BIDS',
-    topBids: a.bids.map(b => ({
+    topBids: (a.bids || []).map((b: AuctionBid & { bidder: MemberWithUser }) => ({
       amount: b.amount,
       bidder: {
         username: b.bidder.user.username,
@@ -973,8 +995,8 @@ export async function getSessionSvincolatiHistory(
       if (!memberStats[a.winner.id]) {
         memberStats[a.winner.id] = { acquired: 0, spent: 0 }
       }
-      memberStats[a.winner.id].acquired++
-      memberStats[a.winner.id].spent += a.currentPrice
+      memberStats[a.winner.id]!.acquired++
+      memberStats[a.winner.id]!.spent += a.currentPrice
     }
   }
 
@@ -1031,8 +1053,7 @@ export async function getTimelineEvents(
   const offset = options?.offset ?? 0
 
   // Build where conditions for movements
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const movementWhere: any = { leagueId }
+  const movementWhere: Record<string, unknown> = { leagueId }
   if (options?.sessionId) {
     movementWhere.marketSessionId = options.sessionId
   }
@@ -1040,9 +1061,10 @@ export async function getTimelineEvents(
     movementWhere.playerId = options.playerId
   }
   if (options?.startDate || options?.endDate) {
-    movementWhere.createdAt = {}
-    if (options.startDate) movementWhere.createdAt.gte = options.startDate
-    if (options.endDate) movementWhere.createdAt.lte = options.endDate
+    const dateFilter: { gte?: Date; lte?: Date } = {}
+    if (options.startDate) dateFilter.gte = options.startDate
+    if (options.endDate) dateFilter.lte = options.endDate
+    movementWhere.createdAt = dateFilter
   }
   if (options?.eventTypes && options.eventTypes.length > 0) {
     movementWhere.movementType = { in: options.eventTypes }
@@ -1287,8 +1309,7 @@ export async function getProphecies(
   }
 
   // Build where clause
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = { leagueId }
+  const where: Record<string, unknown> = { leagueId }
 
   if (options?.playerId) {
     where.playerId = options.playerId
@@ -1487,8 +1508,7 @@ export async function searchPlayersForHistory(
 
   const uniquePlayerIds = [...new Set(playerIds.map(p => p.playerId))]
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const playerWhere: any = {
+  const playerWhere: Record<string, unknown> = {
     id: { in: uniquePlayerIds },
   }
 

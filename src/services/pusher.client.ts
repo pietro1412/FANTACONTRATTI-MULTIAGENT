@@ -1,4 +1,5 @@
-import Pusher, { Channel } from 'pusher-js';
+import type { Channel } from 'pusher-js';
+import Pusher from 'pusher-js';
 import { useEffect, useState, useRef } from 'react';
 
 // ==================== TYPES ====================
@@ -44,6 +45,8 @@ export interface MemberReadyData {
   isReady: boolean;
   readyCount: number;
   totalMembers: number;
+  readyMembers?: Array<{ id: string; username: string }>;
+  pendingMembers?: Array<{ id: string; username: string }>;
   timestamp: string;
 }
 

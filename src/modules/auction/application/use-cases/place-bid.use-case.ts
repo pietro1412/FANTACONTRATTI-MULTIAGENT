@@ -11,7 +11,8 @@
  * - Domain event publishing
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
 import {
   ValidationError,
   NotFoundError,
@@ -19,9 +20,9 @@ import {
   InsufficientBudgetError,
   AuctionClosedError,
   OutbidError,
-} from '../../../../shared/infrastructure/http/errors'
-import { DomainEventTypes } from '../../../../shared/infrastructure/events/domain-events'
-import type { EventBus } from '../../../../shared/infrastructure/events/event-bus'
+} from '@/shared/infrastructure/http/errors'
+import { DomainEventTypes } from '@/shared/infrastructure/events/domain-events'
+import type { EventBus } from '@/shared/infrastructure/events/event-bus'
 import type { IAuctionRepository, PlaceBidData } from '../../domain/repositories/auction.repository.interface'
 import { BidAmount } from '../../domain/entities/bid.entity'
 import type { PlaceBidDto, BidResultDto } from '../dto/auction.dto'

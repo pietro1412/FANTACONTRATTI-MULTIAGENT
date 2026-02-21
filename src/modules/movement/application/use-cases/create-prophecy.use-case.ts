@@ -5,8 +5,9 @@
  * Validates that the prediction window is open and user is involved in the movement.
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { ForbiddenError, ValidationError, NotFoundError } from '../../../../shared/infrastructure/http/errors'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import { ForbiddenError, ValidationError, NotFoundError } from '@/shared/infrastructure/http/errors'
 import type { IMovementRepository, IProphecyRepository } from '../../domain/repositories/movement.repository.interface'
 import type { CreateProphecyDto, ProphecyResultDto } from '../dto/movement.dto'
 

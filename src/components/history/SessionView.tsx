@@ -44,7 +44,7 @@ export function SessionView({ leagueId, sessions, formatSessionType, formatSemes
           leagueId={leagueId}
           session={session}
           isExpanded={expandedSession === session.id}
-          onToggle={() => setExpandedSession(expandedSession === session.id ? null : session.id)}
+          onToggle={() => { setExpandedSession(expandedSession === session.id ? null : session.id); }}
           formatSessionType={formatSessionType}
           formatSemester={formatSemester}
           formatSessionTitle={formatSessionTitle}

@@ -146,7 +146,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
   }, [leagueId, selectedPosition, searchQuery])
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [loadData])
 
   // Enrich players with roster info
@@ -190,12 +190,12 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
               <Input
                 placeholder="Cerca giocatore..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={e => { setSearchQuery(e.target.value); }}
                 className="bg-surface-300 border-surface-50/30"
               />
             </div>
             <button
-              onClick={() => setFiltersOpen(true)}
+              onClick={() => { setFiltersOpen(true); }}
               className="flex items-center gap-1.5 px-3 py-2 bg-surface-300 border border-surface-50/30 rounded-lg text-sm text-gray-300 hover:text-white transition-colors flex-shrink-0"
             >
               <SlidersHorizontal size={16} />
@@ -213,7 +213,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
               <Input
                 placeholder="Cerca giocatore..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={e => { setSearchQuery(e.target.value); }}
                 className="bg-surface-300 border-surface-50/30"
               />
             </div>
@@ -222,12 +222,12 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
               {['', 'P', 'D', 'C', 'A'].map(pos => (
                 <button
                   key={pos}
-                  onClick={() => setSelectedPosition(pos)}
+                  onClick={() => { setSelectedPosition(pos); }}
                   className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
                     selectedPosition === pos
                       ? pos === ''
                         ? 'bg-primary-500/30 text-primary-400'
-                        : POSITION_BG[pos]
+                        : (POSITION_BG[pos] ?? '')
                       : 'bg-surface-300 text-gray-400 hover:text-white'
                   }`}
                 >
@@ -268,7 +268,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
         </div>
 
         {/* Mobile Filters BottomSheet */}
-        <BottomSheet isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filtri">
+        <BottomSheet isOpen={filtersOpen} onClose={() => { setFiltersOpen(false); }} title="Filtri">
           <div className="p-4 space-y-5">
             <div>
               <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Posizione</label>
@@ -276,12 +276,12 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
                 {['', 'P', 'D', 'C', 'A'].map(pos => (
                   <button
                     key={pos}
-                    onClick={() => setSelectedPosition(pos)}
+                    onClick={() => { setSelectedPosition(pos); }}
                     className={`flex-1 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
                       selectedPosition === pos
                         ? pos === ''
                           ? 'bg-primary-500/30 text-primary-400'
-                          : POSITION_BG[pos]
+                          : (POSITION_BG[pos] ?? '')
                         : 'bg-surface-300 text-gray-400'
                     }`}
                   >
@@ -326,7 +326,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
             )}
 
             <button
-              onClick={() => setFiltersOpen(false)}
+              onClick={() => { setFiltersOpen(false); }}
               className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-xl transition-colors"
             >
               Applica Filtri
@@ -354,6 +354,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
                 <div style={{ height: `${virtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
                 {virtualizer.getVirtualItems().map(virtualRow => {
                   const player = filteredPlayers[virtualRow.index]
+                  if (!player) return null
                   return (
                   <div
                     key={player.id}
@@ -377,28 +378,27 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
                             />
                           ) : null}
                           <div
-                            className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} items-center justify-center text-sm font-bold text-white ${player.apiFootballId ? 'hidden' : 'flex'}`}
+                            className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position] ?? ''} items-center justify-center text-sm font-bold text-white ${player.apiFootballId ? 'hidden' : 'flex'}`}
                           >
                             {player.position}
                           </div>
                           <span
-                            className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-[10px] border border-surface-200`}
+                            className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position] ?? ''} flex items-center justify-center text-white font-bold text-[10px] border border-surface-200`}
                           >
                             {player.position}
                           </span>
                         </div>
                         <div>
                           <button
-                            onClick={() => setSelectedPlayerStats({
+                            onClick={() => { setSelectedPlayerStats({
                               name: player.name,
                               team: player.team,
                               position: player.position,
                               quotation: player.quotation,
                               age: player.age,
                               apiFootballId: player.apiFootballId,
-                              apiFootballStats: player.apiFootballStats,
                               statsSyncedAt: player.statsSyncedAt,
-                            })}
+                            }); }}
                             className="font-medium text-white hover:text-primary-400 transition-colors text-left"
                           >
                             {player.name}
@@ -420,7 +420,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
                             <span title="Gol">{player.apiFootballStats?.goals?.total ?? 0}G</span>
                             <span title="Assist">{player.apiFootballStats?.goals?.assists ?? 0}A</span>
                             {player.apiFootballStats?.games?.rating && (
-                              <span title="Rating" className="text-primary-400">{Number(player.apiFootballStats.games.rating).toFixed(1)}</span>
+                              <span title="Rating" className="text-primary-400">{player.apiFootballStats.games.rating.toFixed(1)}</span>
                             )}
                           </div>
                         )}
@@ -461,7 +461,7 @@ export function AllPlayers({ leagueId, onNavigate, initialTeamFilter }: AllPlaye
       {/* Stats Modal */}
       <PlayerStatsModal
         isOpen={!!selectedPlayerStats}
-        onClose={() => setSelectedPlayerStats(null)}
+        onClose={() => { setSelectedPlayerStats(null); }}
         player={selectedPlayerStats}
       />
       </PullToRefresh>

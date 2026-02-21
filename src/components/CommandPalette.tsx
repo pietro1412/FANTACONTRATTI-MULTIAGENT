@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Search, ArrowRight } from 'lucide-react'
 
 interface CommandItem {
@@ -43,34 +43,34 @@ export function CommandPalette() {
   const commands = useMemo<CommandItem[]>(() => {
     const items: CommandItem[] = [
       // Global pages
-      { id: 'dashboard', label: 'Dashboard', category: 'Navigazione', icon: '🏠', action: () => navigate('/dashboard'), keywords: 'home principale' },
-      { id: 'profile', label: 'Profilo', category: 'Navigazione', icon: '👤', action: () => navigate('/profile'), keywords: 'account utente impostazioni' },
-      { id: 'create-league', label: 'Crea Lega', category: 'Azioni', icon: '➕', action: () => navigate('/leagues/new'), keywords: 'nuova lega creare' },
-      { id: 'rules', label: 'Regolamento', category: 'Navigazione', icon: '📖', action: () => navigate('/rules'), keywords: 'regole guida' },
+      { id: 'dashboard', label: 'Dashboard', category: 'Navigazione', icon: '🏠', action: () => { void navigate('/dashboard') }, keywords: 'home principale' },
+      { id: 'profile', label: 'Profilo', category: 'Navigazione', icon: '👤', action: () => { void navigate('/profile') }, keywords: 'account utente impostazioni' },
+      { id: 'create-league', label: 'Crea Lega', category: 'Azioni', icon: '➕', action: () => { void navigate('/leagues/new') }, keywords: 'nuova lega creare' },
+      { id: 'rules', label: 'Regolamento', category: 'Navigazione', icon: '📖', action: () => { void navigate('/rules') }, keywords: 'regole guida' },
     ]
 
     // League-specific pages
     if (leagueId) {
       items.push(
-        { id: 'league', label: 'Dettaglio Lega', category: 'Lega', icon: '🏆', action: () => navigate(`/leagues/${leagueId}`), keywords: 'lega info' },
-        { id: 'rose', label: 'Rose', category: 'Lega', icon: '📋', action: () => navigate(`/leagues/${leagueId}/rose`), keywords: 'rosa squadra giocatori roster' },
-        { id: 'contracts', label: 'Contratti', category: 'Lega', icon: '📝', action: () => navigate(`/leagues/${leagueId}/contracts`), keywords: 'contratto rinnovo taglio' },
-        { id: 'trades', label: 'Scambi', category: 'Lega', icon: '🔄', action: () => navigate(`/leagues/${leagueId}/trades`), keywords: 'trade scambio offerta' },
-        { id: 'rubata', label: 'Rubata', category: 'Lega', icon: '🎯', action: () => navigate(`/leagues/${leagueId}/rubata`), keywords: 'clausola rescissione' },
-        { id: 'svincolati', label: 'Svincolati', category: 'Lega', icon: '📂', action: () => navigate(`/leagues/${leagueId}/svincolati`), keywords: 'free agent libero' },
-        { id: 'financials', label: 'Finanze', category: 'Lega', icon: '💰', action: () => navigate(`/leagues/${leagueId}/financials`), keywords: 'budget soldi bilancio' },
-        { id: 'movements', label: 'Movimenti', category: 'Lega', icon: '📜', action: () => navigate(`/leagues/${leagueId}/movements`), keywords: 'storico operazioni' },
-        { id: 'stats', label: 'Statistiche Giocatori', category: 'Lega', icon: '📊', action: () => navigate(`/leagues/${leagueId}/stats`), keywords: 'stats gol assist rating' },
-        { id: 'players', label: 'Tutti i Giocatori', category: 'Lega', icon: '⚽', action: () => navigate(`/leagues/${leagueId}/players`), keywords: 'calciatori ricerca' },
-        { id: 'manager', label: 'Dashboard Manager', category: 'Lega', icon: '📈', action: () => navigate(`/leagues/${leagueId}/manager`), keywords: 'manager panoramica' },
-        { id: 'history', label: 'Storico', category: 'Lega', icon: '📚', action: () => navigate(`/leagues/${leagueId}/history`), keywords: 'cronologia passato' },
-        { id: 'prizes', label: 'Premi', category: 'Lega', icon: '🏅', action: () => navigate(`/leagues/${leagueId}/prizes`), keywords: 'premio classifica' },
-        { id: 'prophecies', label: 'Profezie', category: 'Lega', icon: '🔮', action: () => navigate(`/leagues/${leagueId}/prophecies`), keywords: 'profezia previsione' },
-        { id: 'strategie', label: 'Strategie Rubata', category: 'Lega', icon: '🧠', action: () => navigate(`/leagues/${leagueId}/strategie-rubata`), keywords: 'strategia rubata piano' },
-        { id: 'indemnity', label: 'Indennizzi', category: 'Lega', icon: '💵', action: () => navigate(`/leagues/${leagueId}/indemnity`), keywords: 'indennizzo compenso' },
-        { id: 'admin', label: 'Pannello Admin', category: 'Lega', icon: '⚙️', action: () => navigate(`/leagues/${leagueId}/admin`), keywords: 'amministrazione gestione' },
-        { id: 'feedback', label: 'Feedback Hub', category: 'Lega', icon: '💬', action: () => navigate(`/leagues/${leagueId}/feedback`), keywords: 'segnalazione bug suggerimento' },
-        { id: 'patchnotes', label: 'Patch Notes', category: 'Lega', icon: '📰', action: () => navigate(`/leagues/${leagueId}/patch-notes`), keywords: 'aggiornamenti novita changelog' },
+        { id: 'league', label: 'Dettaglio Lega', category: 'Lega', icon: '🏆', action: () => { void navigate(`/leagues/${leagueId}`) }, keywords: 'lega info' },
+        { id: 'rose', label: 'Rose', category: 'Lega', icon: '📋', action: () => { void navigate(`/leagues/${leagueId}/rose`) }, keywords: 'rosa squadra giocatori roster' },
+        { id: 'contracts', label: 'Contratti', category: 'Lega', icon: '📝', action: () => { void navigate(`/leagues/${leagueId}/contracts`) }, keywords: 'contratto rinnovo taglio' },
+        { id: 'trades', label: 'Scambi', category: 'Lega', icon: '🔄', action: () => { void navigate(`/leagues/${leagueId}/trades`) }, keywords: 'trade scambio offerta' },
+        { id: 'rubata', label: 'Rubata', category: 'Lega', icon: '🎯', action: () => { void navigate(`/leagues/${leagueId}/rubata`) }, keywords: 'clausola rescissione' },
+        { id: 'svincolati', label: 'Svincolati', category: 'Lega', icon: '📂', action: () => { void navigate(`/leagues/${leagueId}/svincolati`) }, keywords: 'free agent libero' },
+        { id: 'financials', label: 'Finanze', category: 'Lega', icon: '💰', action: () => { void navigate(`/leagues/${leagueId}/financials`) }, keywords: 'budget soldi bilancio' },
+        { id: 'movements', label: 'Movimenti', category: 'Lega', icon: '📜', action: () => { void navigate(`/leagues/${leagueId}/movements`) }, keywords: 'storico operazioni' },
+        { id: 'stats', label: 'Statistiche Giocatori', category: 'Lega', icon: '📊', action: () => { void navigate(`/leagues/${leagueId}/stats`) }, keywords: 'stats gol assist rating' },
+        { id: 'players', label: 'Tutti i Giocatori', category: 'Lega', icon: '⚽', action: () => { void navigate(`/leagues/${leagueId}/players`) }, keywords: 'calciatori ricerca' },
+        { id: 'manager', label: 'Dashboard Manager', category: 'Lega', icon: '📈', action: () => { void navigate(`/leagues/${leagueId}/manager`) }, keywords: 'manager panoramica' },
+        { id: 'history', label: 'Storico', category: 'Lega', icon: '📚', action: () => { void navigate(`/leagues/${leagueId}/history`) }, keywords: 'cronologia passato' },
+        { id: 'prizes', label: 'Premi', category: 'Lega', icon: '🏅', action: () => { void navigate(`/leagues/${leagueId}/prizes`) }, keywords: 'premio classifica' },
+        { id: 'prophecies', label: 'Profezie', category: 'Lega', icon: '🔮', action: () => { void navigate(`/leagues/${leagueId}/prophecies`) }, keywords: 'profezia previsione' },
+        { id: 'strategie', label: 'Strategie Rubata', category: 'Lega', icon: '🧠', action: () => { void navigate(`/leagues/${leagueId}/strategie-rubata`) }, keywords: 'strategia rubata piano' },
+        { id: 'indemnity', label: 'Indennizzi', category: 'Lega', icon: '💵', action: () => { void navigate(`/leagues/${leagueId}/indemnity`) }, keywords: 'indennizzo compenso' },
+        { id: 'admin', label: 'Pannello Admin', category: 'Lega', icon: '⚙️', action: () => { void navigate(`/leagues/${leagueId}/admin`) }, keywords: 'amministrazione gestione' },
+        { id: 'feedback', label: 'Feedback Hub', category: 'Lega', icon: '💬', action: () => { void navigate(`/leagues/${leagueId}/feedback`) }, keywords: 'segnalazione bug suggerimento' },
+        { id: 'patchnotes', label: 'Patch Notes', category: 'Lega', icon: '📰', action: () => { void navigate(`/leagues/${leagueId}/patch-notes`) }, keywords: 'aggiornamenti novita changelog' },
       )
     }
 
@@ -105,7 +105,7 @@ export function CommandPalette() {
 
     for (const item of filtered) {
       if (!groups[item.category]) groups[item.category] = []
-      groups[item.category].push(item)
+      groups[item.category]!.push(item)
     }
     return groups
   }, [filtered, query, commands])
@@ -122,7 +122,7 @@ export function CommandPalette() {
       }
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => { window.removeEventListener('keydown', handleKeyDown); }
   }, [isOpen])
 
   // Focus input when opened
@@ -166,14 +166,14 @@ export function CommandPalette() {
   let flatIndex = 0
 
   return (
-    <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)}>
+    <div className="fixed inset-0 z-[100]" onClick={() => { setIsOpen(false); }}>
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       {/* Palette */}
       <div
         className="absolute top-[15%] left-1/2 -translate-x-1/2 w-[90%] max-w-lg bg-surface-200 rounded-xl border border-surface-50/30 shadow-2xl overflow-hidden"
-        onClick={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); }}
       >
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-surface-50/20">
@@ -182,7 +182,7 @@ export function CommandPalette() {
             ref={inputRef}
             type="text"
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={e => { setQuery(e.target.value); }}
             onKeyDown={handleInputKeyDown}
             placeholder="Cerca pagina o azione..."
             className="flex-1 bg-transparent text-white text-sm placeholder-gray-500 outline-none"
@@ -201,7 +201,7 @@ export function CommandPalette() {
           ) : (
             Object.entries(grouped).map(([category, items]) => (
               <div key={category} className="mb-2">
-                <div className="text-[10px] text-gray-600 uppercase tracking-wider px-2 py-1 font-medium">
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider px-2 py-1 font-medium">
                   {category}
                 </div>
                 {items.map(item => {
@@ -215,7 +215,7 @@ export function CommandPalette() {
                         item.action()
                         setIsOpen(false)
                       }}
-                      onMouseEnter={() => setSelectedIndex(idx)}
+                      onMouseEnter={() => { setSelectedIndex(idx); }}
                       className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
                         selectedIndex === idx
                           ? 'bg-primary-500/20 text-white'
@@ -236,7 +236,7 @@ export function CommandPalette() {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-4 px-4 py-2 border-t border-surface-50/20 text-[10px] text-gray-600">
+        <div className="flex items-center gap-4 px-4 py-2 border-t border-surface-50/20 text-[10px] text-gray-400">
           <span><kbd className="px-1 py-0.5 bg-surface-300 rounded">↑↓</kbd> Naviga</span>
           <span><kbd className="px-1 py-0.5 bg-surface-300 rounded">Enter</kbd> Apri</span>
           <span><kbd className="px-1 py-0.5 bg-surface-300 rounded">Esc</kbd> Chiudi</span>

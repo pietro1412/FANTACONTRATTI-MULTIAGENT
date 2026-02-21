@@ -65,8 +65,8 @@ describe('GetRosterUseCase', () => {
       expect(result.isSuccess).toBe(true)
       if (result.isSuccess) {
         expect(result.value).toHaveLength(1)
-        expect(result.value[0].roster.id).toBe('roster-1')
-        expect(result.value[0].contract.salary).toBe(10)
+        expect(result.value[0]!.roster.id).toBe('roster-1')
+        expect(result.value[0]!.contract.salary).toBe(10)
       }
     })
 
@@ -81,9 +81,9 @@ describe('GetRosterUseCase', () => {
 
       expect(result.isSuccess).toBe(true)
       if (result.isSuccess) {
-        expect(result.value[0].contract).toBeDefined()
-        expect(result.value[0].contract.duration).toBe(3)
-        expect(result.value[0].contract.clausola).toBe(90)
+        expect(result.value[0]!.contract).toBeDefined()
+        expect(result.value[0]!.contract.duration).toBe(3)
+        expect(result.value[0]!.contract.clausola).toBe(90)
       }
     })
 
@@ -121,8 +121,8 @@ describe('GetRosterUseCase', () => {
       expect(result.isSuccess).toBe(true)
       if (result.isSuccess) {
         expect(result.value).toHaveLength(2)
-        expect(result.value[0].roster.id).toBe('roster-1')
-        expect(result.value[1].roster.id).toBe('roster-2')
+        expect(result.value[0]!.roster.id).toBe('roster-1')
+        expect(result.value[1]!.roster.id).toBe('roster-2')
       }
     })
 

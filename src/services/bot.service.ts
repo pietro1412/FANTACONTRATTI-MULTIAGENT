@@ -1,4 +1,5 @@
-import { PrismaClient, MemberStatus, AuctionStatus, Position, AuctionType } from '@prisma/client'
+import type { Position} from '@prisma/client';
+import { PrismaClient, MemberStatus, AuctionStatus, AuctionType } from '@prisma/client'
 import { placeBid } from './auction.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
@@ -187,7 +188,7 @@ export async function botConfirmNomination(
 
   return {
     success: true,
-    message: `Nomination confermata per ${session.pendingNominationPlayer?.name}`,
+    message: `Nomination confermata per ${session.pendingNominationPlayer?.name ?? 'giocatore'}`,
     data: {
       player: session.pendingNominationPlayer,
       nominatorId,
@@ -293,7 +294,7 @@ export async function botMarkAllReady(
 
     return {
       success: true,
-      message: `Asta per ${player?.name} iniziata!`,
+      message: `Asta per ${player?.name ?? 'giocatore'} iniziata!`,
       data: {
         auctionStarted: true,
         auctionId: auction.id,
@@ -569,7 +570,7 @@ export async function simulateBotBidding(
       await tx.auctionBid.create({
         data: {
           auctionId,
-          bidderId: winningBotId!,
+          bidderId: winningBotId,
           userId: winningBot.userId,
           amount: highestBid,
           isWinning: true,
@@ -698,11 +699,7 @@ export async function simulateFirstMarketBotBidding(
   auctionId: string,
   excludeUserId: string
 ): Promise<ServiceResult> {
-  const startTime = Date.now()
-  console.log(`[BOT-TIMING] === Start simulateFirstMarketBotBidding ===`)
-
   // Get the active auction
-  const t1 = Date.now()
   const auction = await prisma.auction.findUnique({
     where: { id: auctionId },
     include: {
@@ -714,7 +711,6 @@ export async function simulateFirstMarketBotBidding(
       },
     },
   })
-  console.log(`[BOT-TIMING] Query auction: ${Date.now() - t1}ms`)
 
   if (!auction) {
     return { success: false, message: 'Asta non trovata' }
@@ -725,7 +721,6 @@ export async function simulateFirstMarketBotBidding(
   }
 
   // Get all league members except the real user
-  const t2 = Date.now()
   const botMembers = await prisma.leagueMember.findMany({
     where: {
       leagueId: auction.leagueId,
@@ -736,7 +731,6 @@ export async function simulateFirstMarketBotBidding(
       user: { select: { id: true, username: true } },
     },
   })
-  console.log(`[BOT-TIMING] Query botMembers: ${Date.now() - t2}ms`)
 
   if (botMembers.length === 0) {
     return { success: false, message: 'Nessun bot disponibile' }
@@ -846,34 +840,16 @@ export async function simulateFirstMarketBotBidding(
     }
   }
 
-  // Log bot decisions for debugging
-  console.log('=== BOT BIDDING DEBUG ===')
-  console.log(`Player: ${auction.player.name}, Quotation: ${playerQuotation}, Current Price: ${currentPrice}`)
-  console.log(`Total bots evaluated: ${botBids.length}`)
-  for (const bid of botBids) {
-    console.log(`  ${bid.botName}: ${bid.amount > 0 ? `BIDS ${bid.amount}` : bid.reason}`)
-  }
-  console.log(`[BOT-TIMING] Bot evaluation loop: ${Date.now() - startTime}ms (cumulative)`)
-
   // If we have a best bid, place it using placeBid from auction.service
   if (bestBidBot) {
-    console.log(`>>> ${bestBidBot.user.username} placing bid of ${bestBidAmount}`)
-    const t3 = Date.now()
     const result = await placeBid(auctionId, bestBidBot.user.id, bestBidAmount)
-    console.log(`[BOT-TIMING] placeBid call: ${Date.now() - t3}ms`)
     if (!result.success) {
-      console.log(`>>> BID FAILED: ${result.message}`)
       return {
         success: false,
-        message: `Bot ${bestBidBot.user.username} non è riuscito a fare offerta: ${result.message}`,
+        message: `Bot ${bestBidBot.user.username} non è riuscito a fare offerta: ${result.message ?? 'errore sconosciuto'}`,
       }
     }
-    console.log(`>>> BID SUCCESS`)
-  } else {
-    console.log('>>> No bot wanted to bid')
   }
-
-  console.log(`[BOT-TIMING] === TOTAL: ${Date.now() - startTime}ms ===`)
 
   return {
     success: true,

@@ -645,9 +645,10 @@ export default function ApiFootballTest() {
 
       setResults(prev => {
         const updated = [...prev]
+        const base = updated[0]!
         updated[0] = {
-          ...updated[0],
-          status: response.ok ? 'success' : 'error',
+          ...base,
+          status: response.ok ? 'success' as const : 'error' as const,
           data,
           responseTime,
           error: !response.ok ? `HTTP ${response.status}` : undefined
@@ -658,9 +659,10 @@ export default function ApiFootballTest() {
       const responseTime = Date.now() - startTime
       setResults(prev => {
         const updated = [...prev]
+        const base = updated[0]!
         updated[0] = {
-          ...updated[0],
-          status: 'error',
+          ...base,
+          status: 'error' as const,
           data: null,
           responseTime,
           error: err instanceof Error ? err.message : 'Unknown error'
@@ -675,7 +677,7 @@ export default function ApiFootballTest() {
     setExpandedResults(new Set([0]))
   }
 
-  const renderValue = (value: unknown, depth = 0): JSX.Element => {
+  const renderValue = (value: unknown, depth = 0): React.JSX.Element => {
     if (value === null) return <span className="text-gray-500">null</span>
     if (value === undefined) return <span className="text-gray-500">undefined</span>
     if (typeof value === 'boolean') return <span className="text-purple-400">{value.toString()}</span>
@@ -713,7 +715,7 @@ export default function ApiFootballTest() {
       )
     }
 
-    return <span>{String(value)}</span>
+    return <span>{String(value as string | number | symbol | bigint)}</span>
   }
 
   const renderCellValue = (value: unknown): string => {
@@ -721,7 +723,7 @@ export default function ApiFootballTest() {
     if (value === undefined) return '-'
     if (typeof value === 'boolean') return value ? 'Yes' : 'No'
     if (typeof value === 'object') return JSON.stringify(value)
-    return String(value)
+    return String(value as string | number | symbol | bigint)
   }
 
   const TableView = useMemo(() => {
@@ -817,7 +819,7 @@ export default function ApiFootballTest() {
           <input
             type="password"
             value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
+            onChange={(e) => { setApiKey(e.target.value); }}
             placeholder="Enter your API-Football key..."
             className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
           />
@@ -833,7 +835,7 @@ export default function ApiFootballTest() {
             {CATEGORIES.map(category => (
               <div key={category} className="mb-2">
                 <button
-                  onClick={() => toggleCategory(category)}
+                  onClick={() => { toggleCategory(category); }}
                   className="w-full flex items-center justify-between px-3 py-2 bg-gray-700 rounded hover:bg-gray-600 transition-colors"
                 >
                   <span className="font-medium text-green-400">{category}</span>
@@ -846,7 +848,7 @@ export default function ApiFootballTest() {
                     {API_ENDPOINTS.filter(e => e.category === category).map(endpoint => (
                       <button
                         key={endpoint.id}
-                        onClick={() => selectEndpoint(endpoint)}
+                        onClick={() => { selectEndpoint(endpoint); }}
                         className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
                           selectedEndpoint?.id === endpoint.id
                             ? 'bg-green-600 text-white'
@@ -886,7 +888,7 @@ export default function ApiFootballTest() {
                         <input
                           type="text"
                           value={paramValues[param.name] || ''}
-                          onChange={(e) => setParamValues(prev => ({ ...prev, [param.name]: e.target.value }))}
+                          onChange={(e) => { setParamValues(prev => ({ ...prev, [param.name]: e.target.value })); }}
                           placeholder={param.example || param.description}
                           className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
                         />
@@ -897,7 +899,7 @@ export default function ApiFootballTest() {
                 )}
 
                 <button
-                  onClick={executeTest}
+                  onClick={() => void executeTest()}
                   disabled={!apiKey}
                   className="w-full mt-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded transition-colors"
                 >
@@ -917,7 +919,7 @@ export default function ApiFootballTest() {
                 {/* View Mode Toggle */}
                 <div className="flex bg-gray-700 rounded overflow-hidden">
                   <button
-                    onClick={() => setViewMode('table')}
+                    onClick={() => { setViewMode('table'); }}
                     className={`px-3 py-1 text-xs font-medium transition-colors ${
                       viewMode === 'table' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-white'
                     }`}
@@ -925,7 +927,7 @@ export default function ApiFootballTest() {
                     Table
                   </button>
                   <button
-                    onClick={() => setViewMode('json')}
+                    onClick={() => { setViewMode('json'); }}
                     className={`px-3 py-1 text-xs font-medium transition-colors ${
                       viewMode === 'json' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-white'
                     }`}
@@ -960,7 +962,7 @@ export default function ApiFootballTest() {
                   >
                     {/* Result Header - Clickable */}
                     <button
-                      onClick={() => toggleResultExpanded(index)}
+                      onClick={() => { toggleResultExpanded(index); }}
                       className="w-full flex items-center justify-between p-3 text-left"
                     >
                       <span className="text-xs font-mono text-gray-400 truncate max-w-[70%]">
@@ -988,7 +990,7 @@ export default function ApiFootballTest() {
                           <div className="text-red-400 text-sm mt-2">{result.error}</div>
                         )}
 
-                        {result.data && (
+                        {result.data != null && (
                           <div className="mt-2">
                             {viewMode === 'table' ? (
                               <TableView data={result.data} />

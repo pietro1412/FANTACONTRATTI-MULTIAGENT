@@ -38,7 +38,7 @@ const allowedOrigins = [
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true)
+    if (!origin) { callback(null, true); return; }
 
     // Check if origin is allowed
     if (allowedOrigins.some(allowed => origin.startsWith(allowed) || origin.includes('vercel.app'))) {
@@ -301,7 +301,7 @@ app.get('/api/debug/ping', async (_req, res) => {
     const count = await diagPrisma.user.count()
     results.dbDataQueryMs = Date.now() - dbDataStart
     results.userCount = count
-  } catch (err) {
+  } catch (_err) {
     results.dbDataQueryMs = Date.now() - dbDataStart
   }
 

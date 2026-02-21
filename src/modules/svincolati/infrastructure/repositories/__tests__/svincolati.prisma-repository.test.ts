@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- vi.mocked partial mocks require any for Prisma model types */
 /**
  * SvincolatiPrismaRepository Tests
  *
@@ -7,8 +8,6 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { SvincolatiPrismaRepository } from '../svincolati.prisma-repository'
-import type { NominateAtomicData } from '../../../domain/repositories/svincolati.repository.interface'
-import type { SvincolatiSession } from '../../../domain/entities/svincolati-session.entity'
 
 // Mock the prisma client
 vi.mock('@/lib/prisma', () => ({
@@ -81,7 +80,7 @@ describe('SvincolatiPrismaRepository', () => {
     it('should return mapped SvincolatiSession when found', async () => {
       vi.mocked(prisma.marketSession.findUnique).mockResolvedValue({
         id: 'session-1',
-        currentPhase: 'SVINCOLATI',
+        currentPhase: 'ASTA_SVINCOLATI',
         svincolatiState: 'NOMINATION',
         svincolatiPendingNominatorId: 'member-1',
         svincolatiCurrentTurnIndex: 2,
@@ -565,7 +564,7 @@ describe('SvincolatiPrismaRepository', () => {
           leagueId: 'league-1',
           marketSessionId: 'session-1',
           playerId: 'player-1',
-          type: 'SVINCOLATI',
+          type: 'FREE_BID',
           basePrice: 1,
           currentPrice: 1,
           status: 'ACTIVE',

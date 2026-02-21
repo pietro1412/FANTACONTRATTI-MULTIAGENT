@@ -5,8 +5,9 @@
  * and issuing new access and refresh tokens.
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { UnauthorizedError, NotFoundError } from '../../../../shared/infrastructure/http/errors'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import { UnauthorizedError, NotFoundError } from '@/shared/infrastructure/http/errors'
 import type { IUserRepository } from '../../domain/repositories/user.repository.interface'
 import type { ITokenService } from '../../domain/services/token.service'
 import type { RefreshTokenDto, RefreshTokenResultDto } from '../dto/auth.dto'

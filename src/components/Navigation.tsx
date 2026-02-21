@@ -97,7 +97,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
   const mobileMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    loadSuperAdminStatus()
+    void loadSuperAdminStatus()
   }, [])
 
   // Monitor Pusher connection status
@@ -123,7 +123,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    return () => { document.removeEventListener('mousedown', handleClickOutside); }
   }, [])
 
   // Close mobile menu when clicking outside
@@ -138,7 +138,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    return () => { document.removeEventListener('mousedown', handleClickOutside); }
   }, [mobileMenuOpen])
 
   // Close mobile menu on escape key
@@ -150,14 +150,14 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
       }
     }
     document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
+    return () => { document.removeEventListener('keydown', handleEscape); }
   }, [])
 
   // Listen for BottomNavBar "Menu" tap (custom event)
   useEffect(() => {
-    const handleOpenMobileMenu = () => setMobileMenuOpen(true)
+    const handleOpenMobileMenu = () => { setMobileMenuOpen(true); }
     window.addEventListener('open-mobile-menu', handleOpenMobileMenu)
-    return () => window.removeEventListener('open-mobile-menu', handleOpenMobileMenu)
+    return () => { window.removeEventListener('open-mobile-menu', handleOpenMobileMenu); }
   }, [])
 
   // Handle keyboard navigation for profile dropdown
@@ -197,7 +197,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             {/* Mobile menu button - a sinistra */}
             <button
               className="lg:hidden text-gray-400 hover:text-white p-2 w-11 h-11 flex items-center justify-center hover:bg-surface-300/50 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400/50"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              onClick={() => { setMobileMenuOpen(!mobileMenuOpen); }}
               data-testid="mobile-menu-toggle"
               aria-expanded={mobileMenuOpen}
               aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
@@ -211,7 +211,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
 
             {/* Logo */}
             <button
-              onClick={() => onNavigate('dashboard')}
+              onClick={() => { onNavigate('dashboard'); }}
               className="flex items-center gap-3 group transition-all duration-300 hover:scale-[1.02]"
               data-testid="logo-button"
             >
@@ -236,7 +236,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                       {__APP_VERSION__}
                     </span>
                   </div>
-                  <p className="text-[10px] text-gray-600 font-mono truncate max-w-[200px]" title={__GIT_COMMIT_MESSAGE__}>
+                  <p className="text-[10px] text-gray-400 font-mono truncate max-w-[200px]" title={__GIT_COMMIT_MESSAGE__}>
                     {__GIT_COMMIT_MESSAGE__}
                   </p>
                 </div>
@@ -267,7 +267,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
           {leagueId && leagueName && currentPage !== 'leagueDetail' && (
             <nav className="flex md:hidden items-center gap-1 text-[11px] mt-1" aria-label="Mobile breadcrumb">
               <button
-                onClick={() => onNavigate('leagueDetail', { leagueId })}
+                onClick={() => { onNavigate('leagueDetail', { leagueId }); }}
                 className="text-gray-500 hover:text-primary-300 transition-colors truncate max-w-[100px]"
                 title={leagueName}
               >
@@ -282,7 +282,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
           {leagueId && leagueName && (
             <nav className="hidden md:flex lg:hidden items-center gap-1.5 text-xs" aria-label="Breadcrumb" data-testid="breadcrumbs">
               <button
-                onClick={() => onNavigate('dashboard')}
+                onClick={() => { onNavigate('dashboard'); }}
                 className="flex items-center gap-1 text-gray-400 hover:text-primary-300 transition-colors duration-200"
               >
                 {MenuIcons.home}
@@ -290,7 +290,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
               </button>
               {MenuIcons.chevronRight}
               <button
-                onClick={() => onNavigate('leagueDetail', { leagueId })}
+                onClick={() => { onNavigate('leagueDetail', { leagueId }); }}
                 className="text-gray-400 hover:text-primary-300 transition-colors duration-200 max-w-[120px] truncate"
                 title={leagueName}
               >
@@ -313,7 +313,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                   key={item.key}
                   label={item.label}
                   active={isActive(item.key)}
-                  onClick={() => onNavigate(item.key, { leagueId })}
+                  onClick={() => { onNavigate(item.key, { leagueId }); }}
                   highlight={item.key === 'adminPanel'}
                   isAdmin={item.adminOnly}
                   iconKey={item.icon}
@@ -330,7 +330,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                   <NavButton
                     label="Quotazioni"
                     active={activeTab === 'upload' || (!activeTab && isActive('superadmin'))}
-                    onClick={() => onNavigate('superadmin', { tab: 'upload' })}
+                    onClick={() => { onNavigate('superadmin', { tab: 'upload' }); }}
                     accent
                     large
                     iconKey="upload"
@@ -338,7 +338,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                   <NavButton
                     label="Giocatori"
                     active={activeTab === 'players'}
-                    onClick={() => onNavigate('superadmin', { tab: 'players' })}
+                    onClick={() => { onNavigate('superadmin', { tab: 'players' }); }}
                     accent
                     large
                     iconKey="players"
@@ -346,7 +346,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                   <NavButton
                     label="Leghe"
                     active={activeTab === 'leagues'}
-                    onClick={() => onNavigate('superadmin', { tab: 'leagues' })}
+                    onClick={() => { onNavigate('superadmin', { tab: 'leagues' }); }}
                     accent
                     large
                     iconKey="leagues"
@@ -354,7 +354,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                   <NavButton
                     label="Utenti"
                     active={activeTab === 'users'}
-                    onClick={() => onNavigate('superadmin', { tab: 'users' })}
+                    onClick={() => { onNavigate('superadmin', { tab: 'users' }); }}
                     accent
                     large
                     iconKey="users"
@@ -362,7 +362,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                   <NavButton
                     label="Stats API"
                     active={activeTab === 'stats'}
-                    onClick={() => onNavigate('superadmin', { tab: 'stats' })}
+                    onClick={() => { onNavigate('superadmin', { tab: 'stats' }); }}
                     accent
                     large
                     iconKey="stats"
@@ -372,7 +372,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                 <NavButton
                   label="Le Mie Leghe"
                   active={isActive('dashboard')}
-                  onClick={() => onNavigate('dashboard')}
+                  onClick={() => { onNavigate('dashboard'); }}
                   iconKey="leagues"
                 />
               )}
@@ -402,7 +402,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                 {/* Notifications with enhanced badge */}
                 <Notifications leagueId={leagueId} isAdmin={isLeagueAdmin} onNavigate={onNavigate} />
                 <button
-                  onClick={() => onNavigate('dashboard')}
+                  onClick={() => { onNavigate('dashboard'); }}
                   className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-white bg-surface-300/50 hover:bg-surface-300 rounded-lg transition-all duration-200 hover:shadow-md group"
                   data-testid="back-to-leagues"
                 >
@@ -415,7 +415,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             {/* User Profile Dropdown */}
             <div className="relative hidden sm:block" ref={profileDropdownRef}>
               <button
-                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                onClick={() => { setProfileDropdownOpen(!profileDropdownOpen); }}
                 onKeyDown={handleProfileKeyDown}
                 className="flex items-center gap-2.5 hover:bg-surface-300/80 rounded-xl px-3 py-2 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-primary-400/50 focus:ring-offset-2 focus:ring-offset-surface-200"
                 data-testid="profile-button"
@@ -516,7 +516,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                 {/* Logout */}
                 <div className="border-t border-surface-50/20 py-1">
                   <button
-                    onClick={() => { handleLogout(); setProfileDropdownOpen(false) }}
+                    onClick={() => { void handleLogout(); setProfileDropdownOpen(false) }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-danger-400 hover:text-danger-300 hover:bg-danger-500/10 transition-colors duration-150 focus:outline-none focus:bg-danger-500/10"
                     data-testid="logout-button-dropdown"
                     role="menuitem"
@@ -529,7 +529,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             </div>
 
             {/* Logout button for smaller screens */}
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="hidden sm:flex lg:hidden" data-testid="logout-button">
+            <Button variant="ghost" size="sm" onClick={() => void handleLogout()} className="hidden sm:flex lg:hidden" data-testid="logout-button">
               Esci
             </Button>
           </div>
@@ -547,7 +547,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
         {/* Backdrop */}
         <div
           className="absolute inset-0 bg-black/60"
-          onClick={() => setMobileMenuOpen(false)}
+          onClick={() => { setMobileMenuOpen(false); }}
         />
 
         {/* Slide-in Panel */}
@@ -579,7 +579,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
               </div>
             </div>
             <button
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={() => { setMobileMenuOpen(false); }}
               className="p-2 text-gray-400 hover:text-white rounded-lg bg-white/10"
               aria-label="Chiudi menu"
             >
@@ -721,7 +721,7 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             {/* Mobile Logout */}
             <div className="border-t my-3 pt-3 border-gray-600">
               <button
-                onClick={() => { handleLogout(); setMobileMenuOpen(false) }}
+                onClick={() => { void handleLogout(); setMobileMenuOpen(false) }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-danger-400 hover:bg-danger-500/10 transition-colors"
                 data-testid="mobile-logout"
               >

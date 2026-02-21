@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { leagueApi, superadminApi, movementApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
@@ -51,11 +52,13 @@ const MEMBERSHIP_STATUS_LABELS: Record<string, string> = {
 }
 
 export function Dashboard({ onNavigate }: DashboardProps) {
+  const { confirm: confirmDialog } = useConfirmDialog()
   const [leagues, setLeagues] = useState<LeagueData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [showSearchModal, setShowSearchModal] = useState(false)
   const [cancellingLeagueId, setCancellingLeagueId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   // T-022: Activity feed
   interface ActivityItem {
@@ -75,7 +78,13 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     e.stopPropagation()
     if (cancellingLeagueId) return
 
-    if (!confirm('Sei sicuro di voler annullare la richiesta di partecipazione?')) return
+    const ok = await confirmDialog({
+      title: 'Annulla richiesta',
+      message: 'Sei sicuro di voler annullare la richiesta di partecipazione?',
+      confirmLabel: 'Annulla richiesta',
+      variant: 'warning'
+    })
+    if (!ok) return
 
     setCancellingLeagueId(leagueId)
     try {
@@ -90,55 +99,68 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   }
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [])
 
   async function loadData() {
-    // Check if user is superadmin
-    const statusResponse = await superadminApi.getStatus()
-    if (statusResponse.success && statusResponse.data) {
-      const isAdmin = (statusResponse.data as { isSuperAdmin: boolean }).isSuperAdmin
-      setIsSuperAdmin(isAdmin)
-      if (isAdmin) {
-        // Redirect superadmin directly to admin panel
-        onNavigate('superadmin')
-        return
+    setError(null)
+    setIsLoading(true)
+    try {
+      // Check if user is superadmin
+      const statusResponse = await superadminApi.getStatus()
+      if (statusResponse.success && statusResponse.data) {
+        const isAdmin = (statusResponse.data as { isSuperAdmin: boolean }).isSuperAdmin
+        setIsSuperAdmin(isAdmin)
+        if (isAdmin) {
+          // Redirect superadmin directly to admin panel
+          onNavigate('superadmin')
+          return
+        }
       }
+      await loadLeagues()
+    } catch {
+      setError('Errore nel caricamento dei dati. Verifica la connessione.')
+      setIsLoading(false)
     }
-    await loadLeagues()
   }
 
   async function loadLeagues() {
-    const response = await leagueApi.getAll()
-    if (response.success && response.data) {
-      const leagueData = response.data as LeagueData[]
-      setLeagues(leagueData)
+    try {
+      const response = await leagueApi.getAll()
+      if (response.success && response.data) {
+        const leagueData = response.data as LeagueData[]
+        setLeagues(leagueData)
 
-      // T-022: Load recent activity from active leagues
-      const activeLeagues = leagueData.filter(l => l.membership.status === 'ACTIVE')
-      if (activeLeagues.length > 0) {
-        const movementPromises = activeLeagues.slice(0, 3).map(async ({ league }) => {
-          const res = await movementApi.getLeagueMovements(league.id, { limit: 5 })
-          if (res.success && res.data) {
-            const movements = (res.data as { movements: Array<{ id: string; type: string; player: { name: string; position: string }; from: { username: string } | null; to: { username: string } | null; price: number | null; createdAt: string }> }).movements || []
-            return movements.map(m => ({
-              id: m.id,
-              type: m.type,
-              playerName: m.player.name,
-              playerPosition: m.player.position,
-              fromUser: m.from?.username || null,
-              toUser: m.to?.username || null,
-              price: m.price,
-              createdAt: m.createdAt,
-              leagueName: league.name,
-            }))
-          }
-          return []
-        })
-        const allMovements = (await Promise.all(movementPromises)).flat()
-        allMovements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        setActivities(allMovements.slice(0, 10))
+        // T-022: Load recent activity from active leagues
+        const activeLeagues = leagueData.filter(l => l.membership.status === 'ACTIVE')
+        if (activeLeagues.length > 0) {
+          const movementPromises = activeLeagues.slice(0, 3).map(async ({ league }) => {
+            const res = await movementApi.getLeagueMovements(league.id, { limit: 5 })
+            if (res.success && res.data) {
+              const movements = (res.data as { movements: Array<{ id: string; type: string; player: { name: string; position: string }; from: { username: string } | null; to: { username: string } | null; price: number | null; createdAt: string }> }).movements || []
+              return movements.map(m => ({
+                id: m.id,
+                type: m.type,
+                playerName: m.player.name,
+                playerPosition: m.player.position,
+                fromUser: m.from?.username || null,
+                toUser: m.to?.username || null,
+                price: m.price,
+                createdAt: m.createdAt,
+                leagueName: league.name,
+              }))
+            }
+            return []
+          })
+          const allMovements = (await Promise.all(movementPromises)).flat()
+          allMovements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          setActivities(allMovements.slice(0, 10))
+        }
+      } else {
+        setError('Errore nel caricamento delle leghe.')
       }
+    } catch {
+      setError('Errore di connessione.')
     }
     setIsLoading(false)
   }
@@ -158,18 +180,30 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           </div>
           {!isSuperAdmin && (
             <div className="flex items-center gap-3">
-              <Button variant="outline" size="lg" onClick={() => setShowSearchModal(true)}>
+              <Button variant="outline" size="lg" onClick={() => { setShowSearchModal(true); }}>
                 <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 Cerca Leghe
               </Button>
-              <Button size="lg" onClick={() => onNavigate('create-league')}>
+              <Button size="lg" onClick={() => { onNavigate('create-league'); }}>
                 <span className="mr-2">+</span> Crea Nuova Lega
               </Button>
             </div>
           )}
         </div>
+
+        {error && (
+          <div className="bg-danger-500/10 border border-danger-500/30 rounded-lg p-6 text-center mb-6">
+            <p className="text-danger-400">{error}</p>
+            <button
+              onClick={() => { setError(null); void loadData(); }}
+              className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
+            >
+              Riprova
+            </button>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -192,7 +226,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             </p>
 
             {isSuperAdmin ? (
-              <Button size="xl" onClick={() => onNavigate('superadmin')}>
+              <Button size="xl" onClick={() => { onNavigate('superadmin'); }}>
                 Vai al Pannello di Controllo
               </Button>
             ) : (
@@ -223,10 +257,10 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button size="xl" onClick={() => onNavigate('create-league')}>
+                  <Button size="xl" onClick={() => { onNavigate('create-league'); }}>
                     <span className="mr-2">+</span> Crea la tua prima lega
                   </Button>
-                  <Button size="xl" variant="outline" onClick={() => setShowSearchModal(true)}>
+                  <Button size="xl" variant="outline" onClick={() => { setShowSearchModal(true); }}>
                     <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
@@ -255,7 +289,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                         ? ''
                         : 'hover:border-primary-500/40 hover:shadow-glow cursor-pointer group'
                   }`}
-                  onClick={() => !isSuperAdmin && !isPending && onNavigate('leagueDetail', { leagueId: league.id })}
+                  onClick={() => { if (!isSuperAdmin && !isPending) onNavigate('leagueDetail', { leagueId: league.id }); }}
                 >
                   {/* Pending Banner (#49) */}
                   {isPending && (
@@ -374,7 +408,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                       <Button
                         variant="outline"
                         className="w-full border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
-                        onClick={(e) => handleCancelRequest(e, league.id)}
+                        onClick={(e) => { void handleCancelRequest(e, league.id) }}
                         disabled={cancellingLeagueId === league.id}
                       >
                         {cancellingLeagueId === league.id ? 'Annullando...' : '✕ Annulla Richiesta'}
@@ -429,7 +463,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       {/* Search Leagues Modal */}
       <SearchLeaguesModal
         isOpen={showSearchModal}
-        onClose={() => setShowSearchModal(false)}
+        onClose={() => { setShowSearchModal(false); }}
         onNavigate={onNavigate}
       />
     </div>

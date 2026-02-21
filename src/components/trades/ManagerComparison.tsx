@@ -90,11 +90,11 @@ export function ManagerComparison({ myTeam, otherTeam, hasFinancialDetails, onCl
                   const diff = otherCount - myCount
                   return (
                     <div key={pos} className="flex items-center gap-2 bg-surface-300/60 rounded-lg px-3 py-2 border border-surface-50/10">
-                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${POSITION_COLORS[pos]}`}>
+                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${POSITION_COLORS[pos] ?? ''}`}>
                         {POSITION_NAMES[pos]?.slice(0, 3).toUpperCase()}
                       </span>
                       <span className="text-sm font-mono text-white">{myCount}</span>
-                      <span className="text-gray-600 text-xs">vs</span>
+                      <span className="text-gray-400 text-xs">vs</span>
                       <span className="text-sm font-mono text-white">{otherCount}</span>
                       {diff !== 0 && (
                         <span className={`text-sm font-bold font-mono ml-auto ${diff > 0 ? 'text-secondary-400' : 'text-danger-400'}`}>
@@ -131,7 +131,7 @@ export function ManagerComparison({ myTeam, otherTeam, hasFinancialDetails, onCl
         {/* CTA */}
         <div className="mt-4 pt-3 border-t border-surface-50/20">
           <Button
-            onClick={() => onStartTrade(otherTeam.memberId)}
+            onClick={() => { onStartTrade(otherTeam.memberId); }}
             className="w-full"
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

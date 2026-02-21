@@ -13,7 +13,7 @@ export function ForgotPassword() {
   const [error, setError] = useState('')
   const [emailError, setEmailError] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
-  const handleTurnstileVerify = useCallback((token: string) => setTurnstileToken(token), [])
+  const handleTurnstileVerify = useCallback((token: string) => { setTurnstileToken(token); }, [])
 
   function validateEmail() {
     if (!email.trim()) {
@@ -88,7 +88,7 @@ export function ForgotPassword() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={(e) => { void handleSubmit(e) }} className="space-y-6">
           {error && (
             <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-3 rounded-lg text-sm">
               {error}

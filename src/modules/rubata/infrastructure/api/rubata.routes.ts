@@ -39,13 +39,12 @@ const router = Router()
 
 // ==================== TYPES ====================
 
+// Type helper for accessing dynamic properties on service result data
+type ResultData = Record<string, unknown>
+
 interface AddToBoardBody {
   playerId: string
   rosterId?: string
-}
-
-interface PlaceOfferBody {
-  amount?: number
 }
 
 interface PlaceBidBody {
@@ -84,7 +83,7 @@ router.get(
   '/:sessionId',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     // Use the league-based function - sessionId maps to leagueId in this context
@@ -112,7 +111,7 @@ router.post(
   '/:sessionId/board',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const { playerId, rosterId } = req.body as AddToBoardBody
     const userId = req.user!.userId
 
@@ -155,8 +154,9 @@ router.post(
 router.delete(
   '/:sessionId/board/:entryId',
   authMiddleware,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId, entryId } = req.params
+  asyncHandler((req: Request, res: Response) => {
+    const sessionId = req.params.sessionId as string
+    const entryId = req.params.entryId as string
     const userId = req.user!.userId
 
     // This would use RemoveFromBoardUseCase
@@ -168,6 +168,7 @@ router.delete(
       userId,
       sessionId,
     })
+    return Promise.resolve()
   })
 )
 
@@ -183,7 +184,7 @@ router.post(
   '/:sessionId/ready',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await setRubataReady(sessionId, userId)
@@ -193,6 +194,8 @@ router.post(
       return
     }
 
+    const data = result.data as ResultData | undefined
+
     // Queue real-time event
     batchedPusherService.queueEvent(
       getRubataChannel(sessionId),
@@ -200,8 +203,8 @@ router.post(
       {
         memberId: userId,
         isReady: true,
-        readyCount: result.data?.readyCount,
-        totalCount: result.data?.totalCount,
+        readyCount: data?.readyCount,
+        totalCount: data?.totalCount,
         timestamp: Date.now(),
       }
     )
@@ -220,7 +223,7 @@ router.get(
   '/:sessionId/ready',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await getRubataReadyStatus(sessionId, userId)
@@ -244,7 +247,7 @@ router.post(
   '/:sessionId/force-ready',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await forceAllRubataReady(sessionId, userId)
@@ -282,7 +285,7 @@ router.post(
   '/:sessionId/offer',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await makeRubataOffer(sessionId, userId)
@@ -298,7 +301,7 @@ router.post(
       BATCHED_PUSHER_EVENTS.RUBATA_STEAL_DECLARED,
       {
         memberId: userId,
-        playerId: result.data?.playerId,
+        playerId: (result.data as ResultData | undefined)?.playerId,
         timestamp: Date.now(),
       }
     )
@@ -318,7 +321,7 @@ router.post(
   '/:sessionId/bid',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const { amount } = req.body as PlaceBidBody
     const userId = req.user!.userId
 
@@ -341,7 +344,7 @@ router.post(
       {
         bidderId: userId,
         amount,
-        timerExpiresAt: result.data?.timerExpiresAt,
+        timerExpiresAt: (result.data as ResultData | undefined)?.timerExpiresAt,
         timestamp: Date.now(),
       }
     )
@@ -362,7 +365,7 @@ router.post(
   '/:sessionId/start-auction',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await startRubata(sessionId, userId)
@@ -398,7 +401,7 @@ router.post(
   '/:sessionId/close-auction',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await closeCurrentRubataAuction(sessionId, userId)
@@ -409,14 +412,16 @@ router.post(
       return
     }
 
+    const data = result.data as ResultData | undefined
+
     // Queue real-time event
     batchedPusherService.queueEvent(
       getRubataChannel(sessionId),
       BATCHED_PUSHER_EVENTS.RUBATA_STATE_CHANGED,
       {
         action: 'auction-closed',
-        winnerId: result.data?.winnerId,
-        winningBid: result.data?.winningBid,
+        winnerId: data?.winnerId,
+        winningBid: data?.winningBid,
         timestamp: Date.now(),
       }
     )
@@ -437,7 +442,7 @@ router.post(
   '/:sessionId/advance',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await advanceRubataPlayer(sessionId, userId)
@@ -454,7 +459,7 @@ router.post(
       BATCHED_PUSHER_EVENTS.RUBATA_STATE_CHANGED,
       {
         action: 'player-advanced',
-        currentIndex: result.data?.currentIndex,
+        currentIndex: (result.data as ResultData | undefined)?.currentIndex,
         timestamp: Date.now(),
       }
     )
@@ -473,7 +478,7 @@ router.post(
   '/:sessionId/back',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await goBackRubataPlayer(sessionId, userId)
@@ -490,7 +495,7 @@ router.post(
       BATCHED_PUSHER_EVENTS.RUBATA_STATE_CHANGED,
       {
         action: 'player-back',
-        currentIndex: result.data?.currentIndex,
+        currentIndex: (result.data as ResultData | undefined)?.currentIndex,
         timestamp: Date.now(),
       }
     )
@@ -511,7 +516,7 @@ router.post(
   '/:sessionId/pause',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await pauseRubata(sessionId, userId)
@@ -546,7 +551,7 @@ router.post(
   '/:sessionId/resume',
   authMiddleware,
   asyncHandler(async (req: Request, res: Response) => {
-    const { sessionId } = req.params
+    const sessionId = req.params.sessionId as string
     const userId = req.user!.userId
 
     const result = await resumeRubata(sessionId, userId)

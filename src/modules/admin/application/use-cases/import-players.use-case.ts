@@ -5,8 +5,9 @@
  * Validates file format before importing.
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { ForbiddenError, ValidationError } from '../../../../shared/infrastructure/http/errors'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import { ForbiddenError, ValidationError } from '@/shared/infrastructure/http/errors'
 import type { IAdminRepository, IAuditLogRepository } from '../../domain/repositories/admin.repository.interface'
 import type { PlayerImportData } from '../../domain/entities/audit-log.entity'
 import type { ImportPlayersDto, ImportPlayersResultDto } from '../dto/admin.dto'
@@ -86,7 +87,7 @@ export class ImportPlayersUseCase {
     }
 
     for (let i = startIndex; i < lines.length; i++) {
-      const line = lines[i].trim()
+      const line = lines[i]?.trim() ?? ''
       if (!line) continue
 
       // Try to parse as CSV or tab-separated
@@ -104,27 +105,27 @@ export class ImportPlayersUseCase {
       const [position, name, team, quotationStr] = parts.map(p => p.trim())
 
       // Validate position
-      if (!VALID_POSITIONS.includes(position.toUpperCase())) {
-        errors.push(`Line ${i + 1}: ruolo non valido "${position}"`)
+      if (!position || !VALID_POSITIONS.includes(position.toUpperCase())) {
+        errors.push(`Line ${i + 1}: ruolo non valido "${position ?? ''}"`)
         continue
       }
 
       // Validate name
       if (!name || name.length < 2) {
-        errors.push(`Line ${i + 1}: nome non valido "${name}"`)
+        errors.push(`Line ${i + 1}: nome non valido "${name ?? ''}"`)
         continue
       }
 
       // Validate team
       if (!team || team.length < 2) {
-        errors.push(`Line ${i + 1}: squadra non valida "${team}"`)
+        errors.push(`Line ${i + 1}: squadra non valida "${team ?? ''}"`)
         continue
       }
 
       // Validate quotation
-      const quotation = parseInt(quotationStr, 10)
+      const quotation = parseInt(quotationStr ?? '', 10)
       if (isNaN(quotation) || quotation < 1) {
-        errors.push(`Line ${i + 1}: quotazione non valida "${quotationStr}"`)
+        errors.push(`Line ${i + 1}: quotazione non valida "${quotationStr ?? ''}"`)
         continue
       }
 

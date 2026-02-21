@@ -4,8 +4,9 @@
  * Returns league or session statistics.
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { ForbiddenError, ValidationError, NotFoundError } from '../../../../shared/infrastructure/http/errors'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import { ForbiddenError, ValidationError, NotFoundError } from '@/shared/infrastructure/http/errors'
 import type { IAdminRepository } from '../../domain/repositories/admin.repository.interface'
 import type { GetStatisticsDto, LeagueStatisticsResultDto } from '../dto/admin.dto'
 

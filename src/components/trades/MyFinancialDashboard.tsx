@@ -81,13 +81,13 @@ export function MyFinancialDashboard({ myTeam, hasFinancialDetails, postTradeImp
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-gray-500">Budget:</span>
                     <span className="text-primary-400 font-medium font-mono">{myTeam.budget}</span>
-                    <span className="text-gray-600">&rarr;</span>
+                    <span className="text-gray-400">&rarr;</span>
                     <span className={`font-semibold font-mono ${postTradeImpact.newBudget >= 0 ? 'text-primary-400' : 'text-danger-400'}`}>{postTradeImpact.newBudget}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-gray-500">Ingaggi:</span>
                     <span className="text-warning-400 font-medium font-mono">{myTeam.annualContractCost}</span>
-                    <span className="text-gray-600">&rarr;</span>
+                    <span className="text-gray-400">&rarr;</span>
                     <span className="text-warning-400 font-semibold font-mono">{postTradeImpact.newSalary}</span>
                   </div>
                 </div>

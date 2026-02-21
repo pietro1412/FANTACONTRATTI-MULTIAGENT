@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import * as XLSX from 'xlsx'
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/Modal'
 import { leagueApi, auctionApi, adminApi, inviteApi, contractApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
@@ -35,6 +37,7 @@ function TabLoadingFallback() {
 }
 
 export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps) {
+  const { confirm: confirmDialog } = useConfirmDialog()
   const [isLoading, setIsLoading] = useState(true)
   const [league, setLeague] = useState<League | null>(null)
   const [members, setMembers] = useState<Member[]>([])
@@ -76,12 +79,14 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   // Swipe gesture for tab navigation (mobile)
   const swipeToNextTab = useCallback(() => {
     const idx = TABS.findIndex(t => t.id === activeTab)
-    if (idx < TABS.length - 1) setActiveTab(TABS[idx + 1].id)
+    const nextTab = TABS[idx + 1]
+    if (idx < TABS.length - 1 && nextTab) setActiveTab(nextTab.id)
   }, [activeTab])
 
   const swipeToPrevTab = useCallback(() => {
     const idx = TABS.findIndex(t => t.id === activeTab)
-    if (idx > 0) setActiveTab(TABS[idx - 1].id)
+    const prevTab = TABS[idx - 1]
+    if (idx > 0 && prevTab) setActiveTab(prevTab.id)
   }, [activeTab])
 
   const { handlers: swipeHandlers } = useSwipeGesture({
@@ -109,12 +114,12 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   const [rosterIncompleteDetails, setRosterIncompleteDetails] = useState<string>('')
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [leagueId])
 
   useEffect(() => {
     if (activeTab === 'members') {
-      loadAppeals()
+      void loadAppeals()
     }
   }, [activeTab, leagueId, appealFilter])
 
@@ -150,7 +155,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
         }
       }
 
-      loadAppeals()
+      void loadAppeals()
     } else {
       setError(res.message || 'Errore')
     }
@@ -165,7 +170,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await auctionApi.simulateAppeal(leagueId)
     if (res.success) {
       setSuccess(res.message || 'Ricorso simulato creato')
-      loadAppeals()
+      void loadAppeals()
     } else {
       setError(res.message || 'Errore nella simulazione')
     }
@@ -180,7 +185,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await contractApi.simulateAllConsolidation(leagueId)
     if (res.success) {
       setSuccess(res.message || 'Consolidamento simulato per tutti i manager')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore nella simulazione')
     }
@@ -232,7 +237,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await auctionApi.createSession(leagueId, isRegularMarket, auctionMode)
     if (res.success) {
       setSuccess(isRegularMarket ? 'Mercato ricorrente creato!' : 'Primo mercato creato!')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -246,7 +251,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await auctionApi.closeSession(sessionId)
     if (res.success) {
       setSuccess('Sessione chiusa')
-      loadData()
+      void loadData()
     } else {
       if (res.message?.startsWith('Rose incomplete')) {
         setRosterIncompleteDetails(res.message)
@@ -265,7 +270,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await auctionApi.setPhase(sessionId, phase)
     if (res.success) {
       setSuccess(`Fase impostata: ${phase}`)
-      loadData()
+      void loadData()
     } else {
       if (res.message?.startsWith('Rose incomplete')) {
         setRosterIncompleteDetails(res.message)
@@ -286,16 +291,22 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       if (action === 'accept') haptic.approve()
       else haptic.reject()
       setSuccess(action === 'accept' ? 'Membro accettato' : action === 'reject' ? 'Richiesta rifiutata' : 'Membro espulso')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
     setIsSubmitting(false)
   }
 
-  function confirmKick(memberId: string, username: string) {
-    if (window.confirm(`Sei sicuro di voler espellere ${username}? Questa azione non può essere annullata.`)) {
-      handleMemberAction(memberId, 'kick')
+  async function confirmKick(memberId: string, username: string) {
+    const ok = await confirmDialog({
+      title: 'Espelli membro',
+      message: `Sei sicuro di voler espellere ${username}? Questa azione non può essere annullata.`,
+      confirmLabel: 'Espelli',
+      variant: 'danger'
+    })
+    if (ok) {
+      void handleMemberAction(memberId, 'kick')
     }
   }
 
@@ -309,7 +320,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     if (res.success) {
       setSuccess(`Invito inviato a ${newInviteEmail} (valido ${inviteDuration} giorni)`)
       setNewInviteEmail('')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore nell\'invio dell\'invito')
     }
@@ -323,7 +334,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await inviteApi.cancel(inviteId)
     if (res.success) {
       setSuccess('Invito annullato')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore')
     }
@@ -337,7 +348,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await leagueApi.start(leagueId)
     if (res.success) {
       setSuccess('Lega avviata con successo!')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore nell\'avvio della lega')
     }
@@ -352,7 +363,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await adminApi.completeWithTestUsers(leagueId)
     if (res.success) {
       setSuccess(res.message || 'Manager di test aggiunti!')
-      loadData()
+      void loadData()
     } else {
       setError(res.message || 'Errore nell\'aggiunta dei manager di test')
     }
@@ -498,7 +509,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
           {TABS.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => { setActiveTab(tab.id); }}
               className={`whitespace-nowrap flex-shrink-0 px-3 md:px-5 py-2 md:py-3 rounded-xl font-semibold flex items-center gap-1.5 md:gap-2 transition-all text-sm md:text-base min-h-[44px] ${
                 activeTab === tab.id
                   ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-glow'
@@ -531,11 +542,11 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                 isSubmitting={isSubmitting}
                 auctionMode={auctionMode}
                 setAuctionMode={setAuctionMode}
-                handleStartLeague={handleStartLeague}
-                handleSetPhase={handleSetPhase}
-                handleCloseSession={handleCloseSession}
-                handleCreateSession={handleCreateSession}
-                handleSimulateAllConsolidation={handleSimulateAllConsolidation}
+                handleStartLeague={() => void handleStartLeague()}
+                handleSetPhase={(sessionId, phase) => void handleSetPhase(sessionId, phase)}
+                handleCloseSession={(sessionId) => void handleCloseSession(sessionId)}
+                handleCreateSession={(isRegularMarket) => void handleCreateSession(isRegularMarket)}
+                handleSimulateAllConsolidation={() => void handleSimulateAllConsolidation()}
               />
             )}
 
@@ -543,8 +554,8 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
               <AdminMembersTab
                 activeMembers={activeMembers}
                 isSubmitting={isSubmitting}
-                confirmKick={confirmKick}
-                handleCompleteWithTestUsers={handleCompleteWithTestUsers}
+                confirmKick={(memberId, username) => void confirmKick(memberId, username)}
+                handleCompleteWithTestUsers={() => void handleCompleteWithTestUsers()}
                 appeals={appeals}
                 isLoadingAppeals={isLoadingAppeals}
                 appealFilter={appealFilter}
@@ -553,8 +564,8 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                 setResolutionNote={setResolutionNote}
                 selectedAppealId={selectedAppealId}
                 setSelectedAppealId={setSelectedAppealId}
-                handleResolveAppeal={handleResolveAppeal}
-                handleSimulateAppeal={handleSimulateAppeal}
+                handleResolveAppeal={(appealId, decision) => void handleResolveAppeal(appealId, decision)}
+                handleSimulateAppeal={() => void handleSimulateAppeal()}
               />
             )}
 
@@ -567,9 +578,9 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                 inviteDuration={inviteDuration}
                 setInviteDuration={setInviteDuration}
                 isSubmitting={isSubmitting}
-                handleMemberAction={handleMemberAction}
-                handleCreateInvite={handleCreateInvite}
-                handleCancelInvite={handleCancelInvite}
+                handleMemberAction={(memberId, action) => void handleMemberAction(memberId, action)}
+                handleCreateInvite={() => void handleCreateInvite()}
+                handleCancelInvite={(inviteId) => void handleCancelInvite(inviteId)}
               />
             )}
 
@@ -577,7 +588,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
               <AdminExportTab
                 isSubmitting={isSubmitting}
                 exportToExcel={exportToExcel}
-                exportRostersToExcel={exportRostersToExcel}
+                exportRostersToExcel={() => void exportRostersToExcel()}
               />
             )}
           </Suspense>
@@ -585,45 +596,44 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       </main>
 
       {/* Roster Incomplete Modal */}
-      {showRosterIncompleteModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-200 rounded-2xl p-6 max-w-lg w-full border border-surface-50/20 shadow-2xl max-h-[80vh] overflow-y-auto">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 rounded-full bg-warning-500/20 flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl">⚠️</span>
-              </div>
-              <h3 className="text-2xl font-bold text-white">Rose Incomplete</h3>
-              <p className="text-gray-400 mt-2">Non puoi chiudere l'asta finché tutte le rose non sono complete.</p>
+      <Modal isOpen={showRosterIncompleteModal} onClose={() => { setShowRosterIncompleteModal(false); }} size="lg">
+        <ModalHeader>Rose Incomplete</ModalHeader>
+        <ModalBody>
+          <div className="text-center mb-4">
+            <div className="w-16 h-16 rounded-full bg-warning-500/20 flex items-center justify-center mx-auto mb-4">
+              <span className="text-4xl">⚠️</span>
             </div>
-
-            <div className="bg-surface-300 rounded-xl p-4 mb-6">
-              <h4 className="text-sm font-semibold text-warning-400 uppercase tracking-wide mb-3">Dettaglio Mancanti</h4>
-              <div className="space-y-2">
-                {rosterIncompleteDetails
-                  .replace('Rose incomplete. ', '')
-                  .split('; ')
-                  .map((detail, idx) => {
-                    const [manager, missing] = detail.split(': mancano ')
-                    return (
-                      <div key={idx} className="flex justify-between items-start py-2 border-b border-surface-50/10 last:border-0">
-                        <span className="font-medium text-white">{manager}</span>
-                        <span className="text-sm text-gray-400 text-right">{missing}</span>
-                      </div>
-                    )
-                  })}
-              </div>
-            </div>
-
-            <Button
-              size="lg"
-              className="w-full"
-              onClick={() => setShowRosterIncompleteModal(false)}
-            >
-              Ho capito
-            </Button>
+            <p className="text-gray-400">Non puoi chiudere l'asta finché tutte le rose non sono complete.</p>
           </div>
-        </div>
-      )}
+
+          <div className="bg-surface-300 rounded-xl p-4">
+            <h4 className="text-sm font-semibold text-warning-400 uppercase tracking-wide mb-3">Dettaglio Mancanti</h4>
+            <div className="space-y-2">
+              {rosterIncompleteDetails
+                .replace('Rose incomplete. ', '')
+                .split('; ')
+                .map((detail, idx) => {
+                  const [manager, missing] = detail.split(': mancano ')
+                  return (
+                    <div key={idx} className="flex justify-between items-start py-2 border-b border-surface-50/10 last:border-0">
+                      <span className="font-medium text-white">{manager}</span>
+                      <span className="text-sm text-gray-400 text-right">{missing}</span>
+                    </div>
+                  )
+                })}
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            size="lg"
+            className="w-full"
+            onClick={() => { setShowRosterIncompleteModal(false); }}
+          >
+            Ho capito
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   )
 }

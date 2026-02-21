@@ -123,7 +123,7 @@ export function useServerTime() {
     // Usa la mediana degli offset
     samples.sort((a, b) => a.offset - b.offset)
     const medianIndex = Math.floor(samples.length / 2)
-    const medianOffset = samples[medianIndex].offset
+    const medianOffset = samples[medianIndex]!.offset
 
     // Media delle latenze
     const avgLatency = Math.round(
@@ -210,7 +210,7 @@ export function useServerTime() {
    * Forza una ricalibrazione manuale
    */
   const forceSync = useCallback(() => {
-    calibrate()
+    void calibrate()
   }, [calibrate])
 
   // Setup iniziale e intervallo di risincronizzazione
@@ -218,11 +218,11 @@ export function useServerTime() {
     mountedRef.current = true
 
     // Calibrazione iniziale
-    calibrate()
+    void calibrate()
 
     // Risincronizzazione periodica
     syncIntervalRef.current = setInterval(() => {
-      calibrate()
+      void calibrate()
     }, SYNC_INTERVAL_MS)
 
     return () => {

@@ -106,7 +106,7 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
   const [indennizzoEstero, setIndennizzoEstero] = useState(50) // Default 50M, fetched from API
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [leagueId])
 
   async function loadData() {
@@ -193,7 +193,7 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
       setHasSubmitted(true)
       setSubmittedAt(new Date().toISOString())
       // Refresh data
-      loadData()
+      void loadData()
     } else {
       setError(result.message || 'Errore durante l\'invio delle decisioni')
     }
@@ -361,7 +361,7 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className={`w-10 h-10 rounded-full ${
-                        POSITION_COLORS[player.position as keyof typeof POSITION_COLORS] || 'bg-gray-500'
+                        POSITION_COLORS[player.position]?.bg ?? 'bg-gray-500'
                       } flex items-center justify-center text-white font-bold text-sm`}>
                         {player.position}
                       </span>
@@ -427,7 +427,7 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <span className={`w-12 h-12 rounded-full ${
-                          POSITION_COLORS[player.position as keyof typeof POSITION_COLORS] || 'bg-gray-500'
+                          POSITION_COLORS[player.position]?.bg ?? 'bg-gray-500'
                         } flex items-center justify-center text-white font-bold`}>
                           {player.position}
                         </span>
@@ -470,7 +470,7 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
                     {!hasSubmitted && inCalcoloPhase && (
                       <div className="flex gap-3">
                         <button
-                          onClick={() => handleDecisionChange(player.roster.id, 'KEEP')}
+                          onClick={() => { handleDecisionChange(player.roster.id, 'KEEP'); }}
                           className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
                             currentDecision === 'KEEP'
                               ? 'bg-primary-500 text-white'
@@ -480,7 +480,7 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
                           🏠 {config.keepLabel}
                         </button>
                         <button
-                          onClick={() => handleDecisionChange(player.roster.id, 'RELEASE')}
+                          onClick={() => { handleDecisionChange(player.roster.id, 'RELEASE'); }}
                           className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
                             currentDecision === 'RELEASE'
                               ? 'bg-danger-500 text-white'
@@ -525,7 +525,7 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
                 </div>
               </div>
               <Button
-                onClick={handleSubmitDecisions}
+                onClick={() => void handleSubmitDecisions()}
                 disabled={isSubmitting || playersNeedingDecision.length === 0}
                 className="btn-primary"
               >

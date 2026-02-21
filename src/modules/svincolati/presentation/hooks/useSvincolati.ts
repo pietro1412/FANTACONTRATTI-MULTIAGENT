@@ -104,9 +104,9 @@ export function useSvincolati(leagueId: string | undefined): UseSvincolatiResult
       if (playersRes.success && playersRes.data) {
         setFreeAgents((playersRes.data as { players: SvincolatiPlayer[] }).players || [])
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to load svincolati state')
-      console.error('useSvincolati error:', err)
+      console.error('useSvincolati error:', _err)
     } finally {
       setIsLoading(false)
     }
@@ -114,7 +114,7 @@ export function useSvincolati(leagueId: string | undefined): UseSvincolatiResult
 
   // Initial fetch
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   const nominate = useCallback(
@@ -125,7 +125,7 @@ export function useSvincolati(leagueId: string | undefined): UseSvincolatiResult
         const response = await svincolatiApi.nominate(leagueId, playerId)
         if (response.success) await refresh()
         return { success: response.success, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to nominate player' }
       }
     },
@@ -139,7 +139,7 @@ export function useSvincolati(leagueId: string | undefined): UseSvincolatiResult
       const response = await svincolatiApi.confirmNomination(leagueId)
       if (response.success) await refresh()
       return { success: response.success, message: response.message }
-    } catch (err) {
+    } catch (_err) {
       return { success: false, message: 'Failed to confirm nomination' }
     }
   }, [leagueId, refresh])
@@ -151,7 +151,7 @@ export function useSvincolati(leagueId: string | undefined): UseSvincolatiResult
       const response = await svincolatiApi.cancelNomination(leagueId)
       if (response.success) await refresh()
       return { success: response.success, message: response.message }
-    } catch (err) {
+    } catch (_err) {
       return { success: false, message: 'Failed to cancel nomination' }
     }
   }, [leagueId, refresh])
@@ -162,7 +162,7 @@ export function useSvincolati(leagueId: string | undefined): UseSvincolatiResult
         const response = await svincolatiApi.bid(auctionId, amount)
         if (response.success) await refresh()
         return { success: response.success, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to place bid' }
       }
     },
@@ -176,7 +176,7 @@ export function useSvincolati(leagueId: string | undefined): UseSvincolatiResult
       const response = await svincolatiApi.markReady(leagueId)
       if (response.success) await refresh()
       return { success: response.success, message: response.message }
-    } catch (err) {
+    } catch (_err) {
       return { success: false, message: 'Failed to mark ready' }
     }
   }, [leagueId, refresh])
@@ -188,7 +188,7 @@ export function useSvincolati(leagueId: string | undefined): UseSvincolatiResult
       const response = await svincolatiApi.passTurn(leagueId)
       if (response.success) await refresh()
       return { success: response.success, message: response.message }
-    } catch (err) {
+    } catch (_err) {
       return { success: false, message: 'Failed to pass turn' }
     }
   }, [leagueId, refresh])
@@ -200,7 +200,7 @@ export function useSvincolati(leagueId: string | undefined): UseSvincolatiResult
       const response = await svincolatiApi.declareFinished(leagueId)
       if (response.success) await refresh()
       return { success: response.success, message: response.message }
-    } catch (err) {
+    } catch (_err) {
       return { success: false, message: 'Failed to declare finished' }
     }
   }, [leagueId, refresh])
@@ -212,7 +212,7 @@ export function useSvincolati(leagueId: string | undefined): UseSvincolatiResult
       const response = await svincolatiApi.undoFinished(leagueId)
       if (response.success) await refresh()
       return { success: response.success, message: response.message }
-    } catch (err) {
+    } catch (_err) {
       return { success: false, message: 'Failed to undo finished' }
     }
   }, [leagueId, refresh])

@@ -4,7 +4,7 @@ type Position = 'P' | 'D' | 'C' | 'A'
 type BadgeSize = 'xs' | 'sm' | 'md' | 'lg'
 
 interface PositionBadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  position: Position | string
+  position: string
   size?: BadgeSize
   showIcon?: boolean
   showLabel?: boolean
@@ -144,7 +144,7 @@ export function PositionBadge({
 /**
  * Returns position colors for custom usage
  */
-export function getPositionColors(position: Position | string): string {
+export function getPositionColors(position: string): string {
   const normalizedPosition = position?.toUpperCase() as Position
   return POSITION_CONFIG[normalizedPosition]?.colors || 'bg-gray-500 text-white'
 }
@@ -152,14 +152,14 @@ export function getPositionColors(position: Position | string): string {
 /**
  * Returns position full label
  */
-export function getPositionLabel(position: Position | string): string {
+export function getPositionLabel(position: string): string {
   const normalizedPosition = position?.toUpperCase() as Position
   return POSITION_CONFIG[normalizedPosition]?.label || position
 }
 
 // Position constants for reuse
 export const POSITIONS = ['P', 'D', 'C', 'A'] as const
-export const POSITION_NAMES: Record<Position, string> = {
+export const POSITION_NAMES: Record<string, string> = {
   P: 'Portiere',
   D: 'Difensore',
   C: 'Centrocampista',
@@ -170,7 +170,7 @@ export const POSITION_NAMES: Record<Position, string> = {
  * Standard position colors for badges (solid gradient with text)
  * Use this for circular/pill badges displaying the position letter
  */
-export const POSITION_COLORS: Record<Position, { bg: string; text: string; border: string }> = {
+export const POSITION_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   P: { bg: 'bg-gradient-to-r from-amber-500 to-amber-600', text: 'text-white', border: '' },
   D: { bg: 'bg-gradient-to-r from-blue-500 to-blue-600', text: 'text-white', border: '' },
   C: { bg: 'bg-gradient-to-r from-emerald-500 to-emerald-600', text: 'text-white', border: '' },
@@ -181,7 +181,7 @@ export const POSITION_COLORS: Record<Position, { bg: string; text: string; borde
  * Position colors for filter buttons/tabs (transparent bg with colored border/text)
  * Use this for toggleable filter buttons
  */
-export const POSITION_FILTER_COLORS: Record<Position, string> = {
+export const POSITION_FILTER_COLORS: Record<string, string> = {
   P: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
   D: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   C: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
@@ -191,7 +191,7 @@ export const POSITION_FILTER_COLORS: Record<Position, string> = {
 /**
  * Position text colors only (for inline text coloring)
  */
-export const POSITION_TEXT_COLORS: Record<Position, string> = {
+export const POSITION_TEXT_COLORS: Record<string, string> = {
   P: 'text-amber-400',
   D: 'text-blue-400',
   C: 'text-emerald-400',
@@ -201,7 +201,7 @@ export const POSITION_TEXT_COLORS: Record<Position, string> = {
 /**
  * Position gradient strings (for custom bg-gradient-to-* usage)
  */
-export const POSITION_GRADIENTS: Record<Position, string> = {
+export const POSITION_GRADIENTS: Record<string, string> = {
   P: 'from-amber-500 to-amber-600',
   D: 'from-blue-500 to-blue-600',
   C: 'from-emerald-500 to-emerald-600',

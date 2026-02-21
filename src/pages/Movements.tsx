@@ -9,6 +9,7 @@ import { getTeamLogo } from '../utils/teamLogos'
 import { ChevronDown, SlidersHorizontal } from 'lucide-react'
 import { SkeletonPlayerRow } from '../components/ui/Skeleton'
 import { MOVEMENT_TYPE_LABELS, MOVEMENT_TYPE_SHORT, MOVEMENT_TYPE_COLORS } from '../utils/movement-constants'
+import { POSITION_TEXT_COLORS } from '../components/ui/PositionBadge'
 
 interface MovementsProps {
   leagueId: string
@@ -58,12 +59,6 @@ interface Movement {
   semester?: number
 }
 
-const POSITION_COLORS: Record<string, string> = {
-  P: 'text-amber-400',
-  D: 'text-blue-400',
-  C: 'text-emerald-400',
-  A: 'text-red-400',
-}
 
 // Formatta stagione (es. 25/26)
 function formatSeason(season?: number): string {
@@ -90,11 +85,11 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
   const [isSubmittingProphecy, setIsSubmittingProphecy] = useState(false)
 
   useEffect(() => {
-    loadLeagueInfo()
+    void loadLeagueInfo()
   }, [leagueId])
 
   useEffect(() => {
-    loadMovements()
+    void loadMovements()
   }, [leagueId, filterType, filterSemester])
 
   async function loadLeagueInfo() {
@@ -146,7 +141,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
     if (result.success) {
       setProphecyContent('')
       setExpandedMovement(null)
-      loadMovements()
+      void loadMovements()
     } else {
       setError(result.message || 'Errore nell\'aggiunta della profezia')
     }
@@ -222,7 +217,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
             <div className="flex items-center gap-2">
               {/* Mobile: Filtri button */}
               <button
-                onClick={() => setFiltersOpen(true)}
+                onClick={() => { setFiltersOpen(true); }}
                 className="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-xs text-gray-300 hover:text-white transition-colors"
               >
                 <SlidersHorizontal size={14} />
@@ -236,7 +231,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
               {/* Desktop: inline selects */}
               <select
                 value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
+                onChange={(e) => { setFilterType(e.target.value); }}
                 className="hidden md:block bg-surface-300 border border-surface-50/30 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none"
               >
                 <option value="">Tutti i tipi</option>
@@ -249,7 +244,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
               </select>
               <select
                 value={filterSemester}
-                onChange={(e) => setFilterSemester(e.target.value)}
+                onChange={(e) => { setFilterSemester(e.target.value); }}
                 className="hidden md:block bg-surface-300 border border-surface-50/30 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none"
               >
                 <option value="">Tutti</option>
@@ -261,14 +256,14 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                 <input
                   type="date"
                   value={filterDateFrom}
-                  onChange={(e) => setFilterDateFrom(e.target.value)}
+                  onChange={(e) => { setFilterDateFrom(e.target.value); }}
                   className="bg-surface-300 border border-surface-50/30 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none [color-scheme:dark]"
                 />
                 <span className="text-xs text-gray-500">al</span>
                 <input
                   type="date"
                   value={filterDateTo}
-                  onChange={(e) => setFilterDateTo(e.target.value)}
+                  onChange={(e) => { setFilterDateTo(e.target.value); }}
                   className="bg-surface-300 border border-surface-50/30 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none [color-scheme:dark]"
                 />
                 {(filterDateFrom || filterDateTo) && (
@@ -288,13 +283,13 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
       </div>
 
       {/* Mobile Filters BottomSheet */}
-      <BottomSheet isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} title="Filtri Movimenti">
+      <BottomSheet isOpen={filtersOpen} onClose={() => { setFiltersOpen(false); }} title="Filtri Movimenti">
         <div className="p-4 space-y-5">
           <div>
             <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Tipo Movimento</label>
             <select
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
+              onChange={(e) => { setFilterType(e.target.value); }}
               className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="">Tutti i tipi</option>
@@ -311,7 +306,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
             <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider">Semestre</label>
             <select
               value={filterSemester}
-              onChange={(e) => setFilterSemester(e.target.value)}
+              onChange={(e) => { setFilterSemester(e.target.value); }}
               className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="">Tutti i semestri</option>
@@ -328,7 +323,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                 <input
                   type="date"
                   value={filterDateFrom}
-                  onChange={(e) => setFilterDateFrom(e.target.value)}
+                  onChange={(e) => { setFilterDateFrom(e.target.value); }}
                   className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm [color-scheme:dark]"
                 />
               </div>
@@ -337,7 +332,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                 <input
                   type="date"
                   value={filterDateTo}
-                  onChange={(e) => setFilterDateTo(e.target.value)}
+                  onChange={(e) => { setFilterDateTo(e.target.value); }}
                   className="w-full px-3 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-sm [color-scheme:dark]"
                 />
               </div>
@@ -345,7 +340,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
           </div>
 
           <button
-            onClick={() => setFiltersOpen(false)}
+            onClick={() => { setFiltersOpen(false); }}
             className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-xl transition-colors"
           >
             Applica Filtri
@@ -356,7 +351,13 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
       <main className="max-w-[1600px] mx-auto px-4 md:px-6 py-4">
         {error && (
           <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg mb-4 text-sm">
-            {error}
+            <p>{error}</p>
+            <button
+              onClick={() => { setError(''); void loadMovements(); }}
+              className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
+            >
+              Riprova
+            </button>
           </div>
         )}
 
@@ -368,7 +369,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
             <div className="md:hidden space-y-2">
               {filteredMovements.map((movement) => {
                 const typeColor = MOVEMENT_TYPE_COLORS[movement.type] || 'bg-gray-500/20 text-gray-400'
-                const posColor = POSITION_COLORS[movement.player.position] || 'text-gray-400'
+                const posColor = POSITION_TEXT_COLORS[movement.player.position] || 'text-gray-400'
                 const hasProphecies = movement.prophecies.length > 0
                 const canAdd = canMakeProphecy[movement.id]?.can
                 const isExpanded = expandedMovement === movement.id
@@ -378,7 +379,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                     {/* Card Header — always visible */}
                     <div
                       className={`px-4 py-3 cursor-pointer ${isExpanded ? 'bg-surface-300/30' : ''}`}
-                      onClick={() => setExpandedMovement(isExpanded ? null : movement.id)}
+                      onClick={() => { setExpandedMovement(isExpanded ? null : movement.id); }}
                     >
                       <div className="flex items-center gap-3">
                         {/* Type badge */}
@@ -412,7 +413,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                           {movement.price ? (
                             <span className="text-accent-400 font-bold text-sm">{movement.price}cr</span>
                           ) : (
-                            <span className="text-gray-600 text-sm">—</span>
+                            <span className="text-gray-400 text-sm">—</span>
                           )}
                           <ChevronDown size={16} className={`text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                         </div>
@@ -467,7 +468,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                           <div>
                             <textarea
                               value={prophecyContent}
-                              onChange={(e) => setProphecyContent(e.target.value)}
+                              onChange={(e) => { setProphecyContent(e.target.value); }}
                               placeholder="Scrivi una profezia..."
                               className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-500/50"
                               rows={2}
@@ -480,7 +481,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                               <Button
                                 size="sm"
                                 variant="accent"
-                                onClick={() => handleAddProphecy(movement.id)}
+                                onClick={() => { void handleAddProphecy(movement.id) }}
                                 disabled={!prophecyContent.trim() || isSubmittingProphecy}
                               >
                                 {isSubmittingProphecy ? '...' : 'Pubblica'}
@@ -513,7 +514,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
               <div className="divide-y divide-surface-50/10">
                 {filteredMovements.map((movement) => {
                   const typeColor = MOVEMENT_TYPE_COLORS[movement.type] || 'bg-gray-500/20 text-gray-400'
-                  const posColor = POSITION_COLORS[movement.player.position] || 'text-gray-400'
+                  const posColor = POSITION_TEXT_COLORS[movement.player.position] || 'text-gray-400'
                   const hasProphecies = movement.prophecies.length > 0
                   const canAdd = canMakeProphecy[movement.id]?.can
                   const isExpanded = expandedMovement === movement.id
@@ -523,7 +524,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                       {/* Main Row */}
                       <div
                         className={`grid grid-cols-12 gap-2 px-4 py-2.5 items-center text-sm hover:bg-surface-300/30 transition-colors cursor-pointer ${isExpanded ? 'bg-surface-300/50' : ''}`}
-                        onClick={() => setExpandedMovement(isExpanded ? null : movement.id)}
+                        onClick={() => { setExpandedMovement(isExpanded ? null : movement.id); }}
                       >
                         {/* Tipo */}
                         <div className="col-span-1">
@@ -559,7 +560,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                         {/* Da → A */}
                         <div className="col-span-2 text-xs">
                           <span className="text-gray-500">{movement.from?.username || '—'}</span>
-                          <span className="text-gray-600 mx-1">→</span>
+                          <span className="text-gray-400 mx-1">→</span>
                           <span className="text-white">{movement.to?.username || '—'}</span>
                         </div>
 
@@ -568,7 +569,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                           {movement.price ? (
                             <span className="text-accent-400 font-semibold">{movement.price}</span>
                           ) : (
-                            <span className="text-gray-600">—</span>
+                            <span className="text-gray-400">—</span>
                           )}
                         </div>
 
@@ -579,14 +580,14 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                               {movement.newContract.salary}M × {movement.newContract.duration}sem
                             </span>
                           ) : (
-                            <span className="text-gray-600">—</span>
+                            <span className="text-gray-400">—</span>
                           )}
                         </div>
 
                         {/* Data */}
                         <div className="col-span-1 text-right text-xs text-gray-500">
                           <div>{formatDate(movement.createdAt)}</div>
-                          <div className="text-gray-600">{formatTime(movement.createdAt)}</div>
+                          <div className="text-gray-400">{formatTime(movement.createdAt)}</div>
                         </div>
                       </div>
 
@@ -625,7 +626,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                                 <div className="mt-2">
                                   <textarea
                                     value={prophecyContent}
-                                    onChange={(e) => setProphecyContent(e.target.value)}
+                                    onChange={(e) => { setProphecyContent(e.target.value); }}
                                     placeholder="Scrivi una profezia..."
                                     className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-500/50"
                                     rows={2}
@@ -638,7 +639,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                                     <Button
                                       size="sm"
                                       variant="accent"
-                                      onClick={() => handleAddProphecy(movement.id)}
+                                      onClick={() => { void handleAddProphecy(movement.id) }}
                                       disabled={!prophecyContent.trim() || isSubmittingProphecy}
                                     >
                                       {isSubmittingProphecy ? '...' : 'Pubblica'}
@@ -662,7 +663,7 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
         <div className="mt-4 flex flex-wrap gap-3 text-xs">
           {Object.entries(MOVEMENT_TYPE_LABELS).map(([key, label]) => (
             <div key={key} className="flex items-center gap-1.5">
-              <span className={`px-1.5 py-0.5 rounded font-bold ${MOVEMENT_TYPE_COLORS[key]}`}>
+              <span className={`px-1.5 py-0.5 rounded font-bold ${MOVEMENT_TYPE_COLORS[key] ?? ''}`}>
                 {MOVEMENT_TYPE_SHORT[key]}
               </span>
               <span className="text-gray-500">{label}</span>

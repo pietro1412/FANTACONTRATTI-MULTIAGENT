@@ -31,7 +31,7 @@ export function StrategySummary({ data, onNavigate, leagueId }: StrategySummaryP
           )}
         </div>
         <button
-          onClick={() => onNavigate('strategies', { leagueId })}
+          onClick={() => { onNavigate('strategies', { leagueId }); }}
           className="text-xs text-primary-400 hover:text-primary-300 transition-colors font-medium"
         >
           Vedi Hub Strategia &rarr;

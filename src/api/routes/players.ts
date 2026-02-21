@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
-import { Position, PrismaClient } from '@prisma/client'
+import type { Position } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client'
 import { getPlayers, getPlayerById, getTeams } from '../../services/player.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -86,9 +87,9 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
     const { position, team, search, sortBy, sortOrder, page, limit } = req.query
 
     // Build where clause
-    const where: Parameters<typeof prisma.serieAPlayer.findMany>[0]['where'] = {
+    const where: Prisma.SerieAPlayerWhereInput = {
       isActive: true,
-      apiFootballStats: { not: null }, // Only players with stats
+      apiFootballStats: { not: Prisma.DbNull }, // Only players with stats
     }
 
     if (position && ['P', 'D', 'C', 'A'].includes(position as string)) {
@@ -197,7 +198,7 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
 // GET /api/players/:apiFootballId/match-history - Get player match history
 router.get('/:apiFootballId/match-history', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const apiFootballId = parseInt(req.params.apiFootballId)
+    const apiFootballId = parseInt(req.params.apiFootballId!)
 
     if (isNaN(apiFootballId)) {
       res.status(400).json({ success: false, message: 'apiFootballId non valido' })

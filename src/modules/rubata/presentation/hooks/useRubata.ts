@@ -93,7 +93,7 @@ export function useRubata(
     onRubataStealDeclared: (data) => {
       // Handle steal declared event
       options.onStealDeclared?.(data)
-      refresh()
+      void refresh()
     },
     onRubataBidPlaced: (data) => {
       // Update local state with new bid
@@ -146,9 +146,9 @@ export function useRubata(
       } else {
         setError(response.message || 'Failed to load rubata state')
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to load rubata state')
-      console.error('useRubata error:', err)
+      console.error('useRubata error:', _err)
     } finally {
       setIsLoading(false)
     }
@@ -156,7 +156,7 @@ export function useRubata(
 
   // Initial fetch
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   const makeOffer = useCallback(async () => {
@@ -166,7 +166,7 @@ export function useRubata(
       const response = await rubataApi.makeOffer(leagueId)
       if (response.success) await refresh()
       return { success: response.success, message: response.message }
-    } catch (err) {
+    } catch (_err) {
       return { success: false, message: 'Failed to make offer' }
     }
   }, [leagueId, refresh])
@@ -179,7 +179,7 @@ export function useRubata(
         const response = await rubataApi.bidOnAuction(leagueId, amount)
         if (response.success) await refresh()
         return { success: response.success, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to place bid' }
       }
     },
@@ -193,7 +193,7 @@ export function useRubata(
       const response = await rubataApi.setReady(leagueId)
       if (response.success) await refresh()
       return { success: response.success, message: response.message }
-    } catch (err) {
+    } catch (_err) {
       return { success: false, message: 'Failed to set ready' }
     }
   }, [leagueId, refresh])
@@ -206,7 +206,7 @@ export function useRubata(
         const response = await rubataApi.acknowledge(leagueId, prophecy)
         if (response.success) await refresh()
         return { success: response.success, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to acknowledge' }
       }
     },

@@ -49,6 +49,7 @@ describe('GetStatisticsUseCase', () => {
       updateMarketPhase: vi.fn(),
       getSessionWithLeague: vi.fn(),
       importPlayers: vi.fn(),
+      isPrizePhaseFinalized: vi.fn(),
     }
 
     getStatisticsUseCase = new GetStatisticsUseCase(mockAdminRepository)

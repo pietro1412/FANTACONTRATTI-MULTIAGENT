@@ -58,7 +58,7 @@ export function ManagerCard({ team, isSelected, hasFinancialDetails, onClick }: 
           <span className="text-white font-bold text-sm">{team.username[0]?.toUpperCase()}</span>
         </div>
         <span className="text-sm font-semibold text-white truncate flex-1">{team.username}</span>
-        <div className={`w-3 h-3 rounded-full ${HEALTH_DOT[health]} flex-shrink-0`} title={health} />
+        <div className={`w-3 h-3 rounded-full ${HEALTH_DOT[health] ?? ''} flex-shrink-0`} title={health} />
       </div>
 
       {/* Row 2: key metrics */}
@@ -88,7 +88,7 @@ export function ManagerCard({ team, isSelected, hasFinancialDetails, onClick }: 
         {(['P', 'D', 'C', 'A'] as const).map(pos => {
           const pct = (dist[pos] / total) * 100
           if (pct === 0) return null
-          return <div key={pos} className={`${POS_COLORS[pos]} transition-all`} style={{ width: `${pct}%` }} />
+          return <div key={pos} className={`${POS_COLORS[pos] ?? ''} transition-all`} style={{ width: `${pct}%` }} />
         })}
       </div>
       <div className="flex gap-2 mt-1 text-xs text-gray-400">

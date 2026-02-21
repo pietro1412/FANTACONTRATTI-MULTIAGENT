@@ -366,7 +366,7 @@ router.get('/:id/financials', authMiddleware, async (req: Request, res: Response
 router.get('/:id/strategy-summary', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params
-    const result = await getStrategySummary(id, req.user!.userId)
+    const result = await getStrategySummary(id!, req.user!.userId)
 
     if (!result.success) {
       res.status(result.message === 'Non sei membro di questa lega' ? 403 : 400).json(result)

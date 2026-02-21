@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useToast } from '@/components/ui/Toast'
 import { userApi, inviteApi } from '../services/api'
 
 interface PendingInvite {
@@ -42,6 +43,7 @@ function getTimeRemaining(expiresAt: string): { text: string; isUrgent: boolean 
 }
 
 export function PendingInvites({ onNavigate }: PendingInvitesProps) {
+  const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [invites, setInvites] = useState<PendingInvite[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -49,10 +51,10 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    loadInvites()
+    void loadInvites()
     // Poll every 60 seconds for new invites
-    const interval = setInterval(loadInvites, 60000)
-    return () => clearInterval(interval)
+    const interval = setInterval(() => { void loadInvites() }, 60000)
+    return () => { clearInterval(interval); }
   }, [])
 
   // Close dropdown when clicking outside
@@ -63,7 +65,7 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    return () => { document.removeEventListener('mousedown', handleClickOutside); }
   }, [])
 
   async function loadInvites() {
@@ -84,7 +86,7 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
       setIsOpen(false)
       onNavigate('leagueDetail', { leagueId: invite.leagueId })
     } else {
-      alert(res.message || 'Errore nell\'accettare l\'invito')
+      toast.error(res.message || 'Errore nell\'accettare l\'invito')
     }
     setActionLoading(null)
   }
@@ -95,7 +97,7 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
     if (res.success) {
       setInvites(prev => prev.filter(i => i.id !== invite.id))
     } else {
-      alert(res.message || 'Errore nel rifiutare l\'invito')
+      toast.error(res.message || 'Errore nel rifiutare l\'invito')
     }
     setActionLoading(null)
   }
@@ -111,7 +113,7 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
     <div className="relative" ref={dropdownRef}>
       {/* Badge Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => { setIsOpen(!isOpen); }}
         className="relative p-2 text-gray-400 hover:text-white hover:bg-surface-300/50 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400/50"
         title={`${count} invit${count === 1 ? 'o' : 'i'} pendenti`}
       >
@@ -209,7 +211,7 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
                       <div className="flex flex-col gap-2">
                         <div className="flex gap-2">
                           <button
-                            onClick={() => handleAccept(invite)}
+                            onClick={() => { void handleAccept(invite) }}
                             disabled={isProcessing}
                             className="flex-1 px-3 py-1.5 text-xs font-medium bg-secondary-500 hover:bg-secondary-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
@@ -222,7 +224,7 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
                             )}
                           </button>
                           <button
-                            onClick={() => handleReject(invite)}
+                            onClick={() => { void handleReject(invite) }}
                             disabled={isProcessing}
                             className="flex-1 px-3 py-1.5 text-xs font-medium bg-surface-300 hover:bg-surface-400 text-gray-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >

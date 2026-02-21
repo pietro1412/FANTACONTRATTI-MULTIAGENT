@@ -35,6 +35,10 @@ describe('LoginUseCase', () => {
       findByEmail: vi.fn(),
       create: vi.fn(),
       updateLastLogin: vi.fn(),
+      setPasswordResetToken: vi.fn(),
+      findByPasswordResetToken: vi.fn(),
+      clearPasswordResetToken: vi.fn(),
+      updatePassword: vi.fn(),
     }
 
     mockPasswordService = {

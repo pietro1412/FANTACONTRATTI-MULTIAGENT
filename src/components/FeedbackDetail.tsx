@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useToast } from '@/components/ui/Toast'
 import { feedbackApi } from '../services/api'
 
 interface FeedbackResponse {
@@ -47,6 +48,7 @@ const categoryConfig: Record<string, { label: string; icon: string }> = {
 }
 
 export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: FeedbackDetailProps) {
+  const { toast } = useToast()
   const [feedback, setFeedback] = useState<FeedbackData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -57,7 +59,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    loadFeedback()
+    void loadFeedback()
   }, [feedbackId])
 
   async function loadFeedback() {
@@ -70,7 +72,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
       } else {
         setError(res.message || 'Errore nel caricamento')
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Errore di connessione')
     }
     setIsLoading(false)
@@ -89,13 +91,13 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
       if (res.success) {
         setResponseContent('')
         setResponseStatus('')
-        loadFeedback()
+        void loadFeedback()
         onUpdated?.()
       } else {
-        alert(res.message || 'Errore nell\'invio della risposta')
+        toast.error(res.message || 'Errore nell\'invio della risposta')
       }
-    } catch (err) {
-      alert('Errore di connessione')
+    } catch (_err) {
+      toast.error('Errore di connessione')
     }
     setIsSubmitting(false)
   }
@@ -104,13 +106,13 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
     try {
       const res = await feedbackApi.updateStatus(feedbackId, newStatus as 'APERTA' | 'IN_LAVORAZIONE' | 'RISOLTA')
       if (res.success) {
-        loadFeedback()
+        void loadFeedback()
         onUpdated?.()
       } else {
-        alert(res.message || 'Errore nell\'aggiornamento dello stato')
+        toast.error(res.message || 'Errore nell\'aggiornamento dello stato')
       }
-    } catch (err) {
-      alert('Errore di connessione')
+    } catch (_err) {
+      toast.error('Errore di connessione')
     }
   }
 
@@ -151,8 +153,10 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
     )
   }
 
-  const statusCfg = statusConfig[feedback.status] || statusConfig.APERTA
-  const categoryCfg = categoryConfig[feedback.category] || categoryConfig.ALTRO
+  const defaultStatus = { label: 'Aperta', color: 'text-amber-400', bgColor: 'bg-amber-500/20' }
+  const defaultCategory = { label: 'Altro', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' }
+  const statusCfg = statusConfig[feedback.status] ?? defaultStatus
+  const categoryCfg = categoryConfig[feedback.category] ?? defaultCategory
 
   return (
     <div className="space-y-6">
@@ -213,11 +217,11 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
             <div className="flex gap-2">
               {['APERTA', 'IN_LAVORAZIONE', 'RISOLTA'].map(status => {
                 if (status === feedback.status) return null
-                const cfg = statusConfig[status]
+                const cfg = statusConfig[status] ?? defaultStatus
                 return (
                   <button
                     key={status}
-                    onClick={() => handleChangeStatus(status)}
+                    onClick={() => { void handleChangeStatus(status) }}
                     className={`px-3 py-1.5 text-xs font-medium rounded-lg ${cfg.bgColor} ${cfg.color} hover:opacity-80 transition-opacity`}
                   >
                     {cfg.label}
@@ -268,7 +272,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
                     <p className="text-sm text-gray-300 whitespace-pre-wrap">{response.content}</p>
                     {response.statusChange && (
                       <div className="mt-2 pt-2 border-t border-surface-50/20">
-                        <span className={`text-xs px-2 py-0.5 rounded ${statusConfig[response.statusChange]?.bgColor} ${statusConfig[response.statusChange]?.color}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded ${statusConfig[response.statusChange]?.bgColor ?? ''} ${statusConfig[response.statusChange]?.color ?? ''}`}>
                           Stato cambiato a: {statusConfig[response.statusChange]?.label}
                         </span>
                       </div>
@@ -287,7 +291,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
           <h4 className="text-sm font-semibold text-white mb-3">Aggiungi Risposta</h4>
           <textarea
             value={responseContent}
-            onChange={e => setResponseContent(e.target.value)}
+            onChange={e => { setResponseContent(e.target.value); }}
             placeholder="Scrivi una risposta..."
             rows={4}
             className="w-full px-4 py-3 bg-surface-300/50 border border-surface-50/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none mb-3"
@@ -297,7 +301,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
               <label className="text-xs text-gray-500 mb-1 block">Cambia stato (opzionale):</label>
               <select
                 value={responseStatus}
-                onChange={e => setResponseStatus(e.target.value)}
+                onChange={e => { setResponseStatus(e.target.value); }}
                 className="w-full px-3 py-2 bg-surface-300/50 border border-surface-50/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
               >
                 <option value="">Nessun cambio</option>
@@ -306,7 +310,7 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
               </select>
             </div>
             <button
-              onClick={handleSubmitResponse}
+              onClick={() => void handleSubmitResponse()}
               disabled={isSubmitting || !responseContent.trim()}
               className="px-6 py-2 bg-purple-500 hover:bg-purple-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >

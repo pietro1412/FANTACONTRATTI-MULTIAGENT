@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ZAxis } from 'recharts'
+import { PieChart, Pie, ResponsiveContainer, Tooltip, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ZAxis } from 'recharts'
+import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
 import { WaterfallChart } from './WaterfallChart'
 import { ContractExpiryGantt } from './ContractExpiryGantt'
-import { KPICard, SectionHeader } from './KPICard'
+import { KPICard } from './KPICard'
 import {
   type TeamData, type FinancialsData,
   getTeamBalance, getHealthStatus,
@@ -34,6 +35,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
       name: POSITION_NAMES[pos],
       value: team.costByPosition[pos].preRenewal,
       color: POSITION_CHART_COLORS[pos],
+      fill: POSITION_CHART_COLORS[pos],
     })).filter(d => d.value > 0)
   }, [team])
 
@@ -59,6 +61,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
         y: p.clause,
         z: p.duration,
         position: p.position,
+        fill: POSITION_CHART_COLORS[p.position] || '#3b82f6',
       }))
   }, [team.players])
 
@@ -89,13 +92,13 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => onNavigateToTimeline(team.memberId)}
+            onClick={() => { onNavigateToTimeline(team.memberId); }}
             className="px-3 py-1.5 bg-surface-300/50 hover:bg-surface-300 text-gray-400 hover:text-white rounded-lg text-xs font-medium transition-colors"
           >
             Movimenti
           </button>
           <button
-            onClick={() => onNavigateToPlayers(team.teamName)}
+            onClick={() => { onNavigateToPlayers(team.teamName); }}
             className="px-3 py-1.5 bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 rounded-lg text-xs font-medium transition-colors"
           >
             Vedi Giocatori &rarr;
@@ -159,14 +162,10 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
                     outerRadius={75}
                     dataKey="value"
                     stroke="rgba(0,0,0,0.3)"
-                  >
-                    {donutData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
+                  />
                   <Tooltip
                     contentStyle={TOOLTIP_STYLE}
-                    formatter={((value: number) => [`${value}M`, '']) as any}
+                    formatter={((value: number) => [`${value}M`, '']) as Formatter<number, string>}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -177,7 +176,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
                 const pct = totalSalary > 0 ? Math.round((cost / totalSalary) * 100) : 0
                 return (
                   <div key={pos} className="flex items-center gap-2 text-xs">
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${POSITION_COLORS[pos]}`}>{pos}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${POSITION_COLORS[pos] ?? ''}`}>{pos}</span>
                     <span className="text-gray-400 w-20">{POSITION_NAMES[pos]}</span>
                     <span className="text-white font-medium">{cost}M</span>
                     <span className="text-gray-500">({pct}%)</span>
@@ -210,7 +209,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
               return (
                 <div key={player.id} className="flex items-center gap-2">
                   <span className="text-xs text-gray-500 w-4">{i + 1}.</span>
-                  <span className={`px-1 py-0.5 rounded text-[8px] font-bold ${POSITION_COLORS[player.position]}`}>
+                  <span className={`px-1 py-0.5 rounded text-[8px] font-bold ${POSITION_COLORS[player.position] ?? ''}`}>
                     {player.position}
                   </span>
                   <span className="text-xs text-white font-medium flex-1 truncate">{player.name}</span>
@@ -270,17 +269,13 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
                       formatter={((value: number, name: string) => [
                         `${value}M`,
                         name
-                      ]) as any}
+                      ]) as Formatter<number, string>}
                       labelFormatter={(_, payload) => {
                         const item = payload?.[0]?.payload as (typeof clauseData)[0] | undefined
                         return item ? `${item.name} (${item.position})` : ''
                       }}
                     />
-                    <Scatter data={clauseData}>
-                      {clauseData.map((entry, i) => (
-                        <Cell key={i} fill={POSITION_CHART_COLORS[entry.position] || '#3b82f6'} fillOpacity={0.7} />
-                      ))}
-                    </Scatter>
+                    <Scatter data={clauseData} fillOpacity={0.7} />
                   </ScatterChart>
                 </ResponsiveContainer>
               </div>
@@ -297,7 +292,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
       {/* Full roster table - accordion on mobile */}
       <div className="bg-surface-300/50 rounded-lg border border-surface-50/10 overflow-hidden">
         <button
-          onClick={() => toggleSection('roster')}
+          onClick={() => { toggleSection('roster'); }}
           className="w-full flex items-center justify-between p-3 md:p-4 text-left md:cursor-default"
         >
           <span className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider font-medium">
@@ -308,7 +303,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
           </span>
         </button>
 
-        <div className={`${expandedSection === 'roster' ? '' : 'hidden md:block'}`}>
+        <div className={expandedSection === 'roster' ? '' : 'hidden md:block'}>
           <div className="overflow-x-auto">
             <table className="w-full min-w-0 text-xs">
               <thead className="bg-surface-300/50">
@@ -330,7 +325,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
                     <tr key={player.id} className="hover:bg-surface-100/20">
                       <td className="px-2 md:px-3 py-2 text-white">{player.name}</td>
                       <td className="px-2 py-2 text-center">
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${POSITION_COLORS[player.position]}`}>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${POSITION_COLORS[player.position] ?? ''}`}>
                           {player.position}
                         </span>
                       </td>

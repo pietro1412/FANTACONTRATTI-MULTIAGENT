@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { NumberStepper } from '../ui/NumberStepper'
@@ -28,6 +29,18 @@ export function AdminRequestsTab({
   handleCreateInvite,
   handleCancelInvite,
 }: AdminRequestsTabProps) {
+  const [expiryDateLabel, setExpiryDateLabel] = useState('')
+  useEffect(() => {
+    setExpiryDateLabel(
+      new Date(Date.now() + inviteDuration * 24 * 60 * 60 * 1000).toLocaleDateString('it-IT', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    )
+  }, [inviteDuration])
+
   return (
     <div className="space-y-6">
       {/* Pending Members */}
@@ -57,10 +70,10 @@ export function AdminRequestsTab({
                     <p className="text-sm text-gray-400">{member.user.email}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button onClick={() => handleMemberAction(member.id, 'accept')} disabled={isSubmitting}>
+                    <Button onClick={() => { handleMemberAction(member.id, 'accept'); }} disabled={isSubmitting}>
                       Accetta
                     </Button>
-                    <Button variant="outline" onClick={() => handleMemberAction(member.id, 'reject')} disabled={isSubmitting}>
+                    <Button variant="outline" onClick={() => { handleMemberAction(member.id, 'reject'); }} disabled={isSubmitting}>
                       Rifiuta
                     </Button>
                   </div>
@@ -87,7 +100,7 @@ export function AdminRequestsTab({
               <Input
                 type="text"
                 value={newInviteEmail}
-                onChange={(e) => setNewInviteEmail(e.target.value)}
+                onChange={(e) => { setNewInviteEmail(e.target.value); }}
                 placeholder="Email o username..."
               />
             </div>
@@ -111,12 +124,7 @@ export function AdminRequestsTab({
                   <span className="text-gray-400">
                     Scade il{' '}
                     <span className="text-white font-medium">
-                      {new Date(Date.now() + inviteDuration * 24 * 60 * 60 * 1000).toLocaleDateString('it-IT', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
+                      {expiryDateLabel}
                     </span>
                   </span>
                 </div>
@@ -160,7 +168,7 @@ export function AdminRequestsTab({
                       Inviato: {new Date(invite.createdAt).toLocaleDateString('it-IT')} - Scade: {new Date(invite.expiresAt).toLocaleDateString('it-IT')}
                     </p>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => handleCancelInvite(invite.id)} disabled={isSubmitting}>
+                  <Button size="sm" variant="outline" onClick={() => { handleCancelInvite(invite.id); }} disabled={isSubmitting}>
                     Annulla
                   </Button>
                 </div>

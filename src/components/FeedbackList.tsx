@@ -40,7 +40,7 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
   const [totalPages, setTotalPages] = useState(1)
 
   useEffect(() => {
-    loadFeedback()
+    void loadFeedback()
   }, [isAdmin, statusFilter, page])
 
   async function loadFeedback() {
@@ -59,8 +59,9 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
         : await feedbackApi.getMyFeedback(options)
 
       if (res.success && res.data) {
-        setFeedback(res.data.feedback || [])
-        setTotalPages(res.data.pagination?.totalPages || 1)
+        const data = res.data as { feedback?: FeedbackItem[]; pagination?: { totalPages: number } }
+        setFeedback(data.feedback ?? [])
+        setTotalPages(data.pagination?.totalPages ?? 1)
       }
     } catch (err) {
       console.error('Failed to load feedback:', err)
@@ -106,7 +107,7 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
         </div>
       ) : feedback.length === 0 ? (
         <div className="py-12 text-center">
-          <svg className="w-12 h-12 mx-auto text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
           </svg>
           <p className="text-gray-400">Nessuna segnalazione trovata</p>
@@ -114,14 +115,16 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
       ) : (
         <div className="space-y-2">
           {feedback.map(item => {
-            const statusCfg = statusConfig[item.status] || statusConfig.APERTA
-            const categoryCfg = categoryConfig[item.category] || categoryConfig.ALTRO
+            const defaultStatus = { label: 'Aperta', color: 'text-amber-400', bgColor: 'bg-amber-500/20' }
+            const defaultCategory = { label: 'Altro', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' }
+            const statusCfg = statusConfig[item.status] ?? defaultStatus
+            const categoryCfg = categoryConfig[item.category] ?? defaultCategory
             const isSelected = selectedId === item.id
 
             return (
               <button
                 key={item.id}
-                onClick={() => onSelectFeedback(item.id)}
+                onClick={() => { onSelectFeedback(item.id); }}
                 className={`w-full p-4 rounded-xl border transition-all text-left ${
                   isSelected
                     ? 'bg-purple-500/10 border-purple-500/50'
@@ -169,7 +172,7 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 pt-4">
           <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
+            onClick={() => { setPage(p => Math.max(1, p - 1)); }}
             disabled={page === 1}
             className="px-3 py-1.5 text-sm bg-surface-300/50 text-gray-400 rounded-lg hover:bg-surface-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -179,7 +182,7 @@ export function FeedbackList({ isAdmin, onSelectFeedback, selectedId }: Feedback
             Pagina {page} di {totalPages}
           </span>
           <button
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            onClick={() => { setPage(p => Math.min(totalPages, p + 1)); }}
             disabled={page === totalPages}
             className="px-3 py-1.5 text-sm bg-surface-300/50 text-gray-400 rounded-lg hover:bg-surface-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >

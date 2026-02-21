@@ -134,11 +134,11 @@ export function FeedbackHub({ leagueId, feedbackId: initialFeedbackId, onNavigat
   const [showForm, setShowForm] = useState(false)
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | undefined>(initialFeedbackId)
 
-  const isSuperAdmin = user?.isSuperAdmin || false
+  const isSuperAdmin = (user as (typeof user & { isSuperAdmin?: boolean }) | null)?.isSuperAdmin || false
 
   useEffect(() => {
     if (leagueId) {
-      loadLeagueInfo()
+      void loadLeagueInfo()
     }
   }, [leagueId])
 
@@ -211,7 +211,7 @@ export function FeedbackHub({ leagueId, feedbackId: initialFeedbackId, onNavigat
               </div>
             </div>
             <button
-              onClick={() => setShowForm(true)}
+              onClick={() => { setShowForm(true); }}
               className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -376,7 +376,7 @@ export function FeedbackHub({ leagueId, feedbackId: initialFeedbackId, onNavigat
             <div className="px-6 py-4 border-b border-surface-50/20 flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">Nuova Segnalazione</h2>
               <button
-                onClick={() => setShowForm(false)}
+                onClick={() => { setShowForm(false); }}
                 className="p-2 text-gray-400 hover:text-white hover:bg-surface-300/50 rounded-lg transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -388,7 +388,7 @@ export function FeedbackHub({ leagueId, feedbackId: initialFeedbackId, onNavigat
               <FeedbackForm
                 leagueId={leagueId}
                 onSuccess={handleFormSuccess}
-                onCancel={() => setShowForm(false)}
+                onCancel={() => { setShowForm(false); }}
               />
             </div>
           </div>

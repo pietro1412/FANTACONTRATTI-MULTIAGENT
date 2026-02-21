@@ -31,11 +31,12 @@ import { prisma } from '@/lib/prisma'
 describe('MovementPrismaRepository', () => {
   let repository: MovementPrismaRepository
 
-  const mockMovement = {
+  /* eslint-disable @typescript-eslint/no-explicit-any -- vi.mocked partial mocks with Prisma includes */
+  const mockMovement: any = {
     id: 'movement-1',
     leagueId: 'league-1',
     playerId: 'player-1',
-    movementType: 'FIRST_MARKET',
+    movementType: 'FIRST_MARKET' as const,
     fromMemberId: null,
     toMemberId: 'member-1',
     price: 10,
@@ -157,8 +158,8 @@ describe('MovementPrismaRepository', () => {
       })
 
       expect(result).toHaveLength(1)
-      expect(result[0].player.name).toBe('Mario Rossi')
-      expect(result[0].to?.teamName).toBe('Team A')
+      expect(result[0]!.player.name).toBe('Mario Rossi')
+      expect(result[0]!.to?.teamName).toBe('Team A')
     })
 
     it('should filter by playerId', async () => {
@@ -239,18 +240,18 @@ describe('MovementPrismaRepository', () => {
     it('should return member ID when user is active member', async () => {
       vi.mocked(prisma.leagueMember.findUnique).mockResolvedValue({
         id: 'member-1',
-        status: 'ACTIVE',
+        status: 'ACTIVE' as const,
         userId: 'user-1',
         leagueId: 'league-1',
-        role: 'MANAGER',
+        role: 'MANAGER' as const,
         teamName: 'Team A',
-        joinType: 'REQUEST',
+        joinType: 'REQUEST' as const,
         currentBudget: 100,
         preConsolidationBudget: null,
         rubataOrder: null,
         firstMarketOrder: null,
         joinedAt: new Date(),
-      })
+      } as unknown as Awaited<ReturnType<typeof prisma.leagueMember.findUnique>>)
 
       const result = await repository.checkMembership('league-1', 'user-1')
 
@@ -260,18 +261,18 @@ describe('MovementPrismaRepository', () => {
     it('should return null when user is not active member', async () => {
       vi.mocked(prisma.leagueMember.findUnique).mockResolvedValue({
         id: 'member-1',
-        status: 'PENDING',
+        status: 'PENDING' as const,
         userId: 'user-1',
         leagueId: 'league-1',
-        role: 'MANAGER',
+        role: 'MANAGER' as const,
         teamName: 'Team A',
-        joinType: 'REQUEST',
+        joinType: 'REQUEST' as const,
         currentBudget: 100,
         preConsolidationBudget: null,
         rubataOrder: null,
         firstMarketOrder: null,
         joinedAt: new Date(),
-      })
+      } as unknown as Awaited<ReturnType<typeof prisma.leagueMember.findUnique>>)
 
       const result = await repository.checkMembership('league-1', 'user-1')
 
@@ -291,7 +292,7 @@ describe('MovementPrismaRepository', () => {
 describe('ProphecyPrismaRepository', () => {
   let repository: ProphecyPrismaRepository
 
-  const mockProphecy = {
+  const mockProphecy: any = {
     id: 'prophecy-1',
     leagueId: 'league-1',
     playerId: 'player-1',

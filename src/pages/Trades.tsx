@@ -9,6 +9,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { BottomSheet } from '../components/ui/BottomSheet'
 import { DealFinanceBar, DealRosterPanel, DealTable, DealMobileFooter } from '../components/trades/deal-room'
 import { PlayerStatsModal, type PlayerInfo } from '../components/PlayerStatsModal'
+import { useToast } from '@/components/ui/Toast'
 import haptic from '../utils/haptics'
 import type { FinancialsData, TeamData } from '../components/finance/types'
 import {
@@ -24,6 +25,7 @@ interface TradesProps {
 }
 
 export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) {
+  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'create' | 'received' | 'sent' | 'history'>(
     highlightOfferId ? 'received' : 'create'
@@ -58,6 +60,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   const [offerDuration, setOfferDuration] = useState(24)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [loadError, setLoadError] = useState('')
   const [success, setSuccess] = useState('')
 
   // Search filters for create offer
@@ -92,7 +95,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   const [isModifyingContract, setIsModifyingContract] = useState(false)
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [leagueId])
 
   // Scroll to highlighted offer and clear highlight after a few seconds
@@ -105,23 +108,25 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       const timer = setTimeout(() => {
         setHighlightedOfferId(undefined)
       }, 5000)
-      return () => clearTimeout(timer)
+      return () => { clearTimeout(timer); }
     }
   }, [highlightedOfferId, isLoading])
 
   // Pusher real-time: auto-refresh when trade events arrive
   const { isConnected: pusherConnected } = usePusherTrades(leagueId, {
     onTradeOfferReceived: useCallback(() => {
-      loadData()
+      void loadData()
     }, [leagueId]),
     onTradeUpdated: useCallback(() => {
-      loadData()
+      void loadData()
     }, [leagueId]),
   })
 
   async function loadData() {
     setIsLoading(true)
+    setLoadError('')
 
+    try {
     const [receivedRes, sentRes, membersRes, rosterRes, sessionsRes, leagueRes, allRostersRes, financialsRes, historyRes] = await Promise.all([
       tradeApi.getReceived(leagueId),
       tradeApi.getSent(leagueId),
@@ -331,6 +336,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       setTradeHistory(historyRes.data as TradeOffer[])
     }
 
+    } catch {
+      setLoadError('Errore nel caricamento delle trattative. Verifica la connessione.')
+    }
     setIsLoading(false)
   }
 
@@ -446,14 +454,14 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
 
     if (res.success) {
       haptic.send()
-      const warnings = (res as any).warnings as string[] | undefined
+      const warnings = (res as unknown as { warnings?: string[] }).warnings
       if (warnings?.length) {
         setSuccess(`Offerta inviata! ${warnings.join(' ')}`)
       } else {
         setSuccess('Offerta inviata!')
       }
       resetCreateForm()
-      loadData()
+      void loadData()
       setActiveTab('sent')
     } else {
       setError(res.message || 'Errore durante l\'invio dell\'offerta')
@@ -466,9 +474,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     const res = await tradeApi.accept(tradeId)
     if (res.success) {
       setSuccess('Scambio accettato! I contratti dei giocatori ricevuti saranno modificabili nella fase di rinnovo contratti.')
-      loadData()
+      void loadData()
     } else {
-      alert(res.message || 'Errore')
+      toast.error(res.message || 'Errore')
     }
   }
 
@@ -486,10 +494,10 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         setIsModifyingContract(false)
         setPendingContractModifications([])
         setCurrentModificationIndex(0)
-        loadData()
+        void loadData()
       }
     } else {
-      alert(res.message || 'Errore durante la modifica del contratto')
+      toast.error(res.message || 'Errore durante la modifica del contratto')
     }
   }
 
@@ -500,25 +508,25 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       setIsModifyingContract(false)
       setPendingContractModifications([])
       setCurrentModificationIndex(0)
-      loadData()
+      void loadData()
     }
   }
 
   async function handleReject(tradeId: string) {
     const res = await tradeApi.reject(tradeId)
     if (res.success) {
-      loadData()
+      void loadData()
     } else {
-      alert(res.message || 'Errore')
+      toast.error(res.message || 'Errore')
     }
   }
 
   async function handleCancel(tradeId: string) {
     const res = await tradeApi.cancel(tradeId)
     if (res.success) {
-      loadData()
+      void loadData()
     } else {
-      alert(res.message || 'Errore')
+      toast.error(res.message || 'Errore')
     }
   }
 
@@ -586,7 +594,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         {/* === Tab Bar === */}
         <div className="flex items-center gap-1 mt-3 mb-4 border-b border-surface-50/20">
           <button
-            onClick={() => setActiveTab('create')}
+            onClick={() => { setActiveTab('create'); }}
             className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
               activeTab === 'create'
                 ? 'border-primary-500 text-primary-400'
@@ -600,7 +608,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
             <span className="sm:hidden">Nuova</span>
           </button>
           <button
-            onClick={() => setActiveTab('received')}
+            onClick={() => { setActiveTab('received'); }}
             className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
               activeTab === 'received'
                 ? 'border-accent-500 text-accent-400'
@@ -617,7 +625,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
             )}
           </button>
           <button
-            onClick={() => setActiveTab('sent')}
+            onClick={() => { setActiveTab('sent'); }}
             className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
               activeTab === 'sent'
                 ? 'border-primary-500 text-primary-400'
@@ -634,7 +642,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
             )}
           </button>
           <button
-            onClick={() => setActiveTab('history')}
+            onClick={() => { setActiveTab('history'); }}
             className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
               activeTab === 'history'
                 ? 'border-gray-400 text-gray-300'
@@ -651,6 +659,19 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
             )}
           </button>
         </div>
+
+        {/* Load error with retry */}
+        {loadError && (
+          <div className="bg-danger-500/10 border border-danger-500/30 rounded-lg p-4 mb-4 text-center">
+            <p className="text-danger-400">{loadError}</p>
+            <button
+              onClick={() => { setLoadError(''); void loadData(); }}
+              className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
+            >
+              Riprova
+            </button>
+          </div>
+        )}
 
         {/* Success/Error messages */}
         <div className="space-y-2 mb-4">
@@ -694,7 +715,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                         side="mine"
                         myRoster={myRoster}
                         selectedOfferedPlayers={selectedOfferedPlayers}
-                        onToggleOffered={(id) => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id)}
+                        onToggleOffered={(id) => { togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id); }}
                         myBudget={myBudget}
                         onViewStats={handleViewStats}
                       />
@@ -717,12 +738,12 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                       myBudget={myBudget}
                       selectedOfferedPlayers={selectedOfferedPlayers}
                       myRoster={myRoster}
-                      onRemoveOffered={(id) => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id)}
+                      onRemoveOffered={(id) => { togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id); }}
                       offeredBudget={offeredBudget}
                       onOfferedBudgetChange={setOfferedBudget}
                       selectedRequestedPlayers={selectedRequestedPlayers}
                       allOtherPlayers={allOtherPlayers}
-                      onRemoveRequested={(id) => togglePlayer(selectedRequestedPlayers, setSelectedRequestedPlayers, id)}
+                      onRemoveRequested={(id) => { togglePlayer(selectedRequestedPlayers, setSelectedRequestedPlayers, id); }}
                       requestedBudget={requestedBudget}
                       onRequestedBudgetChange={setRequestedBudget}
                       offerDuration={offerDuration}
@@ -731,9 +752,9 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                       onMessageChange={setMessage}
                       isSubmitting={isSubmitting}
                       canSubmit={!!(selectedMemberId && (selectedOfferedPlayers.length > 0 || offeredBudget > 0 || selectedRequestedPlayers.length > 0 || requestedBudget > 0))}
-                      onSubmit={handleCreateOffer}
-                      onOpenMyRoster={() => setShowMyRosterModal(true)}
-                      onOpenPartnerRoster={() => setShowPartnerRosterModal(true)}
+                      onSubmit={(e) => { void handleCreateOffer(e) }}
+                      onOpenMyRoster={() => { setShowMyRosterModal(true); }}
+                      onOpenPartnerRoster={() => { setShowPartnerRosterModal(true); }}
                       onViewStats={handleViewStats}
                     />
                   </div>
@@ -769,7 +790,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                 {/* Mobile BottomSheet: La Mia Rosa */}
                 <BottomSheet
                   isOpen={showMyRosterModal}
-                  onClose={() => setShowMyRosterModal(false)}
+                  onClose={() => { setShowMyRosterModal(false); }}
                   title="La Mia Rosa"
                   maxHeight="85vh"
                 >
@@ -777,13 +798,13 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                     side="mine"
                     myRoster={myRoster}
                     selectedOfferedPlayers={selectedOfferedPlayers}
-                    onToggleOffered={(id) => togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id)}
+                    onToggleOffered={(id) => { togglePlayer(selectedOfferedPlayers, setSelectedOfferedPlayers, id); }}
                     myBudget={myBudget}
                     onViewStats={handleViewStats}
                   />
                   <div className="sticky bottom-0 px-4 py-3 bg-surface-200 border-t border-white/10">
                     <button
-                      onClick={() => setShowMyRosterModal(false)}
+                      onClick={() => { setShowMyRosterModal(false); }}
                       className="w-full py-3 rounded-xl font-bold text-base bg-danger-500/20 text-danger-400 border border-danger-500/30 active:scale-[0.98] transition-all"
                     >
                       Conferma selezione{selectedOfferedPlayers.length > 0 ? ` (${selectedOfferedPlayers.length})` : ''}
@@ -794,7 +815,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                 {/* Mobile BottomSheet: Rosa Partner */}
                 <BottomSheet
                   isOpen={showPartnerRosterModal}
-                  onClose={() => setShowPartnerRosterModal(false)}
+                  onClose={() => { setShowPartnerRosterModal(false); }}
                   title={targetMember ? `Rosa ${targetMember.user.username}` : 'Rosa Partner'}
                   maxHeight="85vh"
                 >
@@ -821,7 +842,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                   />
                   <div className="sticky bottom-0 px-4 py-3 bg-surface-200 border-t border-white/10">
                     <button
-                      onClick={() => setShowPartnerRosterModal(false)}
+                      onClick={() => { setShowPartnerRosterModal(false); }}
                       className="w-full py-3 rounded-xl font-bold text-base bg-primary-500/20 text-primary-400 border border-primary-500/30 active:scale-[0.98] transition-all"
                     >
                       Conferma selezione{selectedRequestedPlayers.length > 0 ? ` (${selectedRequestedPlayers.length})` : ''}
@@ -834,7 +855,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                   offeredCount={selectedOfferedPlayers.length}
                   requestedCount={selectedRequestedPlayers.length}
                   isSubmitting={isSubmitting}
-                  onSubmit={() => handleCreateOffer({ preventDefault: () => {} } as React.FormEvent)}
+                  onSubmit={() => { void handleCreateOffer({ preventDefault: () => {} } as React.FormEvent) }}
                   canSubmit={!!(selectedMemberId && (selectedOfferedPlayers.length > 0 || offeredBudget > 0 || selectedRequestedPlayers.length > 0 || requestedBudget > 0))}
                   hasSelections={hasTradeSelections}
                 />
@@ -916,7 +937,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                               </div>
                             )}
                             {(!offer.offeredPlayerDetails?.length && !offer.offeredPlayers?.length && offer.offeredBudget === 0) && (
-                              <p className="text-gray-600 text-sm italic py-2">Nessun giocatore o credito offerto</p>
+                              <p className="text-gray-400 text-sm italic py-2">Nessun giocatore o credito offerto</p>
                             )}
                           </div>
                         </div>
@@ -942,7 +963,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                               </div>
                             )}
                             {(!offer.requestedPlayerDetails?.length && !offer.requestedPlayers?.length && offer.requestedBudget === 0) && (
-                              <p className="text-gray-600 text-sm italic py-2">Nessun giocatore o credito richiesto</p>
+                              <p className="text-gray-400 text-sm italic py-2">Nessun giocatore o credito richiesto</p>
                             )}
                           </div>
                         </div>
@@ -956,13 +977,13 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
 
                       {isInTradePhase && !timeRemaining.isExpired && (
                         <div className="flex gap-3 mt-6 pt-5 border-t border-surface-50/20">
-                          <Button variant="primary" onClick={() => handleAccept(offer.id)} className="flex-1">
+                          <Button variant="primary" onClick={() => { void handleAccept(offer.id) }} className="flex-1">
                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                             Accetta Scambio
                           </Button>
-                          <Button variant="outline" onClick={() => handleReject(offer.id)} className="flex-1">
+                          <Button variant="outline" onClick={() => { void handleReject(offer.id) }} className="flex-1">
                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
@@ -1055,7 +1076,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                               </div>
                             )}
                             {(!offer.offeredPlayerDetails?.length && !offer.offeredPlayers?.length && offer.offeredBudget === 0) && (
-                              <p className="text-gray-600 text-sm italic py-2">Nessun giocatore o credito offerto</p>
+                              <p className="text-gray-400 text-sm italic py-2">Nessun giocatore o credito offerto</p>
                             )}
                           </div>
                         </div>
@@ -1081,7 +1102,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                               </div>
                             )}
                             {(!offer.requestedPlayerDetails?.length && !offer.requestedPlayers?.length && offer.requestedBudget === 0) && (
-                              <p className="text-gray-600 text-sm italic py-2">Nessun giocatore o credito richiesto</p>
+                              <p className="text-gray-400 text-sm italic py-2">Nessun giocatore o credito richiesto</p>
                             )}
                           </div>
                         </div>
@@ -1089,7 +1110,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
 
                       {offer.status === 'PENDING' && !timeRemaining.isExpired && (
                         <div className="mt-6 pt-5 border-t border-surface-50/20">
-                          <Button variant="outline" onClick={() => handleCancel(offer.id)} className="text-danger-400 border-danger-500/40 hover:bg-danger-500/10">
+                          <Button variant="outline" onClick={() => { void handleCancel(offer.id) }} className="text-danger-400 border-danger-500/40 hover:bg-danger-500/10">
                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
@@ -1121,7 +1142,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
               ] as const).map(chip => (
                 <button
                   key={chip.key}
-                  onClick={() => setHistoryFilter(chip.key)}
+                  onClick={() => { setHistoryFilter(chip.key); }}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors border ${
                     historyFilter === chip.key
                       ? 'bg-primary-500/20 text-primary-400 border-primary-500/40'
@@ -1156,7 +1177,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                   CANCELLED: { label: 'Annullato', bg: 'bg-surface-300', text: 'text-gray-400', border: 'border-surface-50/30', borderLeft: 'border-l-gray-500' },
                   EXPIRED: { label: 'Scaduto', bg: 'bg-surface-300', text: 'text-gray-400', border: 'border-surface-50/30', borderLeft: 'border-l-gray-500' },
                 }
-                const cfg = statusConfig[offer.status] || statusConfig.CANCELLED
+                const cfg = (statusConfig[offer.status] || statusConfig.CANCELLED)!
 
                 return (
                   <Card key={offer.id} className={`overflow-hidden border-l-4 ${cfg.borderLeft}`}>
@@ -1257,7 +1278,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       {/* Player Stats Modal */}
       <PlayerStatsModal
         isOpen={!!selectedPlayerStats}
-        onClose={() => setSelectedPlayerStats(null)}
+        onClose={() => { setSelectedPlayerStats(null); }}
         player={selectedPlayerStats}
       />
 

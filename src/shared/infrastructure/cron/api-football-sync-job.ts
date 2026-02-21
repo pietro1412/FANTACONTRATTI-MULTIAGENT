@@ -43,7 +43,7 @@ export function registerApiFootballSyncJob(): void {
 
       // 3a. Priority: match ratings
       const ratingsResult = await syncMatchRatings({ maxFixtures: 5 })
-      console.log(`[CRON] Match ratings: ${ratingsResult.message}`)
+      console.log(`[CRON] Match ratings: ${ratingsResult.message ?? ''}`)
 
       // 3b. If quota remains: season stats (check 24h separately)
       const needsStats = await shouldSync('SEASON_STATS')
@@ -52,7 +52,7 @@ export function registerApiFootballSyncJob(): void {
         if (statsRemaining >= 10) {
           console.log('[CRON] Syncing season stats...')
           const statsResult = await syncStatsInternal()
-          console.log(`[CRON] Season stats: ${statsResult.message}`)
+          console.log(`[CRON] Season stats: ${statsResult.message ?? ''}`)
 
           await prisma.apiFootballSyncLog.create({
             data: {
@@ -74,7 +74,7 @@ export function registerApiFootballSyncJob(): void {
         if (cacheRemaining >= 25) {
           console.log('[CRON] Refreshing API-Football cache...')
           const cacheResult = await refreshCacheInternal()
-          console.log(`[CRON] Cache refresh: ${cacheResult.message}`)
+          console.log(`[CRON] Cache refresh: ${cacheResult.message ?? ''}`)
 
           await prisma.apiFootballSyncLog.create({
             data: {

@@ -15,7 +15,7 @@ export function getAuctionPhase(props: Pick<AuctionViewProps, 'pendingAck' | 're
   return 'waiting'
 }
 
-interface CenterStageProps extends AuctionViewProps {}
+type CenterStageProps = AuctionViewProps
 
 export function CenterStage(props: CenterStageProps) {
   const phase = getAuctionPhase(props)

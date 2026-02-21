@@ -9,6 +9,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
 import type {
   ISvincolatiRepository,
   NominateAtomicData,
@@ -35,18 +36,6 @@ interface TurnOrderJson {
   hasFinished: boolean
 }
 
-interface NominationJson {
-  id: string
-  playerId: string
-  nominatorId: string
-  round: number
-  status: 'PENDING' | 'CONFIRMED' | 'IN_AUCTION' | 'SOLD' | 'UNSOLD'
-  createdAt: string
-  auctionId?: string
-  winnerId?: string
-  finalPrice?: number
-}
-
 // =============================================================================
 // Repository Implementation
 // =============================================================================
@@ -59,7 +48,7 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
       where: { id: sessionId },
     })
 
-    if (!session || session.currentPhase !== 'SVINCOLATI') {
+    if (!session || session.currentPhase !== 'ASTA_SVINCOLATI') {
       return null
     }
 
@@ -70,8 +59,8 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
     const session = await prisma.marketSession.findFirst({
       where: {
         leagueId,
-        currentPhase: 'SVINCOLATI',
-        status: { in: ['ACTIVE', 'IN_PROGRESS'] },
+        currentPhase: 'ASTA_SVINCOLATI',
+        status: 'ACTIVE',
       },
     })
 
@@ -112,7 +101,7 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
 
     if (!session?.svincolatiTurnOrder) return []
 
-    const turnOrder = session.svincolatiTurnOrder as TurnOrderJson[]
+    const turnOrder = session.svincolatiTurnOrder as unknown as TurnOrderJson[]
 
     return turnOrder.map((t, idx) => ({
       id: `${sessionId}-${t.memberId}`,
@@ -134,7 +123,7 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
     await prisma.marketSession.update({
       where: { id: sessionId },
       data: {
-        svincolatiTurnOrder: turnOrder,
+        svincolatiTurnOrder: turnOrder as unknown as Prisma.InputJsonValue,
         svincolatiCurrentTurnIndex: 0,
       },
     })
@@ -147,7 +136,7 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
         select: { svincolatiTurnOrder: true, svincolatiPassedMembers: true },
       })
 
-      const turnOrder = (session?.svincolatiTurnOrder as TurnOrderJson[]) || []
+      const turnOrder = (session?.svincolatiTurnOrder as unknown as TurnOrderJson[]) || []
       const passedMembers = (session?.svincolatiPassedMembers as string[]) || []
 
       // Update turn order JSON
@@ -163,7 +152,7 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
       await tx.marketSession.update({
         where: { id: sessionId },
         data: {
-          svincolatiTurnOrder: updatedTurnOrder,
+          svincolatiTurnOrder: updatedTurnOrder as unknown as Prisma.InputJsonValue,
           svincolatiPassedMembers: updatedPassedMembers,
         },
       })
@@ -177,14 +166,14 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
         select: { svincolatiTurnOrder: true },
       })
 
-      const turnOrder = (session?.svincolatiTurnOrder as TurnOrderJson[]) || []
+      const turnOrder = (session?.svincolatiTurnOrder as unknown as TurnOrderJson[]) || []
 
       const updatedTurnOrder = turnOrder.map((t) => ({ ...t, hasPassed: false }))
 
       await tx.marketSession.update({
         where: { id: sessionId },
         data: {
-          svincolatiTurnOrder: updatedTurnOrder,
+          svincolatiTurnOrder: updatedTurnOrder as unknown as Prisma.InputJsonValue,
           svincolatiPassedMembers: [],
         },
       })
@@ -198,7 +187,7 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
         select: { svincolatiTurnOrder: true, svincolatiFinishedMembers: true },
       })
 
-      const turnOrder = (session?.svincolatiTurnOrder as TurnOrderJson[]) || []
+      const turnOrder = (session?.svincolatiTurnOrder as unknown as TurnOrderJson[]) || []
       const finishedMembers = (session?.svincolatiFinishedMembers as string[]) || []
 
       const updatedTurnOrder = turnOrder.map((t) =>
@@ -212,7 +201,7 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
       await tx.marketSession.update({
         where: { id: sessionId },
         data: {
-          svincolatiTurnOrder: updatedTurnOrder,
+          svincolatiTurnOrder: updatedTurnOrder as unknown as Prisma.InputJsonValue,
           svincolatiFinishedMembers: updatedFinishedMembers,
         },
       })
@@ -226,7 +215,7 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
         select: { svincolatiTurnOrder: true, svincolatiFinishedMembers: true },
       })
 
-      const turnOrder = (session?.svincolatiTurnOrder as TurnOrderJson[]) || []
+      const turnOrder = (session?.svincolatiTurnOrder as unknown as TurnOrderJson[]) || []
       const finishedMembers = (session?.svincolatiFinishedMembers as string[]) || []
 
       const updatedTurnOrder = turnOrder.map((t) =>
@@ -238,7 +227,7 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
       await tx.marketSession.update({
         where: { id: sessionId },
         data: {
-          svincolatiTurnOrder: updatedTurnOrder,
+          svincolatiTurnOrder: updatedTurnOrder as unknown as Prisma.InputJsonValue,
           svincolatiFinishedMembers: updatedFinishedMembers,
         },
       })
@@ -253,7 +242,7 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
 
     if (!session?.svincolatiTurnOrder) return null
 
-    const turnOrder = session.svincolatiTurnOrder as TurnOrderJson[]
+    const turnOrder = session.svincolatiTurnOrder as unknown as TurnOrderJson[]
     const currentIndex = session.svincolatiCurrentTurnIndex ?? 0
 
     // Find next active member starting from current index
@@ -277,7 +266,7 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
 
       if (!session?.svincolatiTurnOrder) return null
 
-      const turnOrder = session.svincolatiTurnOrder as TurnOrderJson[]
+      const turnOrder = session.svincolatiTurnOrder as unknown as TurnOrderJson[]
       const currentIndex = session.svincolatiCurrentTurnIndex ?? 0
 
       // Find next active member
@@ -329,7 +318,7 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
       }
 
       // Verify the nominator is the current turn holder
-      const turnOrder = (session.svincolatiTurnOrder as TurnOrderJson[]) || []
+      const turnOrder = (session.svincolatiTurnOrder as unknown as TurnOrderJson[]) || []
       const currentIndex = session.svincolatiCurrentTurnIndex ?? 0
       const currentEntry = turnOrder[currentIndex]
 
@@ -375,7 +364,7 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
           leagueId: session.leagueId,
           marketSessionId: data.sessionId,
           playerId: data.playerId,
-          type: 'SVINCOLATI',
+          type: 'FREE_BID',
           basePrice: 1,
           currentPrice: 1,
           status: 'ACTIVE',
@@ -419,7 +408,7 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
     const auctions = await prisma.auction.findMany({
       where: {
         marketSessionId: sessionId,
-        type: 'SVINCOLATI',
+        type: 'FREE_BID',
       },
       orderBy: { createdAt: 'asc' },
     })
@@ -473,7 +462,7 @@ export class SvincolatiPrismaRepository implements ISvincolatiRepository {
     }
   }
 
-  async updateNomination(id: string, data: UpdateNominationData): Promise<void> {
+  async updateNomination(_id: string, data: UpdateNominationData): Promise<void> {
     // Nominations are tracked through auctions
     if (data.auctionId && (data.status === 'SOLD' || data.status === 'UNSOLD')) {
       await prisma.auction.update({

@@ -21,8 +21,9 @@ import {
   TeamNotFoundError,
   SessionNotFoundError,
 } from '../errors'
+import type {
+  Result} from '../result';
 import {
-  Result,
   Success,
   Failure,
   ok,
@@ -353,7 +354,7 @@ describe('Result Type', () => {
   describe('tryCatchAsync', () => {
     it('returns Success when async function succeeds', async () => {
       const result = await tryCatchAsync(
-        async () => 42,
+        () => Promise.resolve(42),
         (e) => new Error(String(e))
       )
       expect(result.isSuccess).toBe(true)
@@ -362,9 +363,7 @@ describe('Result Type', () => {
 
     it('returns Failure when async function throws', async () => {
       const result = await tryCatchAsync(
-        async () => {
-          throw new Error('Async error')
-        },
+        () => Promise.reject(new Error('Async error')),
         (e) => new ValidationError((e as Error).message)
       )
       expect(result.isFailure).toBe(true)

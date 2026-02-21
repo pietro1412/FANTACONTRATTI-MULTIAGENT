@@ -24,7 +24,7 @@ export function PageLayout({
     <div className="min-h-screen">
       {/* Header */}
       <header className="bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
           {onBack && (
             <button
               onClick={onBack}
@@ -49,7 +49,7 @@ export function PageLayout({
       </header>
 
       {/* Main content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {children}
       </main>
     </div>

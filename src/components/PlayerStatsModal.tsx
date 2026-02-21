@@ -1,16 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Modal, ModalHeader, ModalBody } from './ui/Modal'
+import { POSITION_GRADIENTS } from './ui/PositionBadge'
 import { getPlayerPhotoUrl, getTeamLogoUrl } from '../utils/player-images'
 
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3003')
-
-// Position colors
-const POSITION_COLORS: Record<string, string> = {
-  P: 'from-yellow-500 to-yellow-600',
-  D: 'from-green-500 to-green-600',
-  C: 'from-blue-500 to-blue-600',
-  A: 'from-red-500 to-red-600',
-}
+const API_URL = String(import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3003'))
 
 // Age color function - younger is better
 function getAgeColor(age: number | null | undefined): string {
@@ -138,9 +131,9 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
     setHistoryLoading(true)
     fetch(`${API_URL}/api/players/${player.apiFootballId}/match-history`)
       .then(res => res.ok ? res.json() : { data: [] })
-      .then(data => setMatchHistory(data.data || []))
-      .catch(() => setMatchHistory([]))
-      .finally(() => setHistoryLoading(false))
+      .then(data => { setMatchHistory(data.data || []); })
+      .catch(() => { setMatchHistory([]); })
+      .finally(() => { setHistoryLoading(false); })
   }, [activeTab, player?.apiFootballId])
 
   if (!player) return null
@@ -174,13 +167,13 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
               />
             ) : (
               <div
-                className={`w-16 h-16 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xl`}
+                className={`w-16 h-16 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position] ?? ''} flex items-center justify-center text-white font-bold text-xl`}
               >
                 {player.position}
               </div>
             )}
             <span
-              className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xs border-2 border-surface-200`}
+              className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position] ?? ''} flex items-center justify-center text-white font-bold text-xs border-2 border-surface-200`}
             >
               {player.position}
             </span>
@@ -221,7 +214,7 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
         {/* T-025: Tab bar */}
         <div className="flex gap-1 mb-4 bg-surface-300/50 rounded-lg p-1">
           <button
-            onClick={() => setActiveTab('panoramica')}
+            onClick={() => { setActiveTab('panoramica'); }}
             className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'panoramica' ? 'bg-primary-500/20 text-primary-400' : 'text-gray-400 hover:text-white'
             }`}
@@ -229,7 +222,7 @@ export function PlayerStatsModal({ isOpen, onClose, player }: PlayerStatsModalPr
             Panoramica
           </button>
           <button
-            onClick={() => setActiveTab('storico')}
+            onClick={() => { setActiveTab('storico'); }}
             className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'storico' ? 'bg-primary-500/20 text-primary-400' : 'text-gray-400 hover:text-white'
             }`}

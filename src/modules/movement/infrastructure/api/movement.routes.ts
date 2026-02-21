@@ -70,7 +70,7 @@ router.get(
     if (playerId) options.playerId = playerId
     if (semester) options.semester = parseInt(semester)
 
-    const result = await getLeagueMovements(leagueId, userId, options)
+    const result = await getLeagueMovements(leagueId as string, userId, options)
 
     if (!result.success) {
       res.status(400).json(result)
@@ -106,8 +106,8 @@ router.get(
 
     // Get player history and prophecies in parallel
     const [historyResult, propheciesResult] = await Promise.all([
-      getPlayerHistory(leagueId, playerId, userId),
-      getPlayerProphecies(leagueId, playerId, userId),
+      getPlayerHistory(leagueId, playerId as string, userId),
+      getPlayerProphecies(leagueId, playerId as string, userId),
     ])
 
     if (!historyResult.success) {
@@ -190,7 +190,7 @@ router.get(
     const { movementId } = req.params
     const userId = req.user!.userId
 
-    const result = await canMakeProphecy(movementId, userId)
+    const result = await canMakeProphecy(movementId as string, userId)
 
     if (!result.success) {
       res.status(400).json(result)
@@ -214,7 +214,7 @@ router.get(
     const { leagueId, playerId } = req.params
     const userId = req.user!.userId
 
-    const result = await getPlayerProphecies(leagueId, playerId, userId)
+    const result = await getPlayerProphecies(leagueId as string, playerId as string, userId)
 
     if (!result.success) {
       res.status(400).json(result)

@@ -29,7 +29,7 @@ import {
   syncMatchRatings,
   getSyncHistory,
 } from '../../services/api-football.service'
-import { PlayerExitReason } from '@prisma/client'
+import type { PlayerExitReason } from '@prisma/client'
 import { authMiddleware } from '../middleware/auth'
 
 const router = Router()

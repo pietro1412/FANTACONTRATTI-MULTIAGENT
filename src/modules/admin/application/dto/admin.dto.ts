@@ -54,12 +54,12 @@ export interface GetAuditLogDto {
 /**
  * Result DTO for league statistics
  */
-export interface LeagueStatisticsResultDto extends LeagueStatistics {}
+export type LeagueStatisticsResultDto = LeagueStatistics
 
 /**
  * Result DTO for session statistics
  */
-export interface SessionStatisticsResultDto extends SessionStatistics {}
+export type SessionStatisticsResultDto = SessionStatistics
 
 /**
  * Result DTO for phase management
@@ -74,7 +74,7 @@ export interface ManagePhaseResultDto {
 /**
  * Result DTO for player import
  */
-export interface ImportPlayersResultDto extends ImportResult {}
+export type ImportPlayersResultDto = ImportResult
 
 /**
  * Result DTO for audit log

@@ -213,7 +213,7 @@ export function MarketPhaseManager({
         <Button
           size="lg"
           className="w-full"
-          onClick={() => onCreateSession(hasCompletedFirstMarket)}
+          onClick={() => { onCreateSession(hasCompletedFirstMarket); }}
           disabled={isSubmitting}
         >
           {hasCompletedFirstMarket ? 'Avvia Mercato Ricorrente' : 'Avvia Primo Mercato'}
@@ -377,7 +377,7 @@ export function MarketPhaseManager({
           {prevPhase && (
             <Button
               variant="outline"
-              onClick={() => onSetPhase(session.id, prevPhase.id)}
+              onClick={() => { onSetPhase(session.id, prevPhase.id); }}
               disabled={isSubmitting}
             >
               ← Torna a {prevPhase.label}
@@ -388,7 +388,7 @@ export function MarketPhaseManager({
           {nextPhase && (
             <Button
               variant="primary"
-              onClick={() => onSetPhase(session.id, nextPhase.id)}
+              onClick={() => { onSetPhase(session.id, nextPhase.id); }}
               disabled={isSubmitting || !canAdvance()}
             >
               Avanza a {nextPhase.label} →
@@ -401,7 +401,7 @@ export function MarketPhaseManager({
               {!showCloseConfirm ? (
                 <Button
                   variant="danger"
-                  onClick={() => setShowCloseConfirm(true)}
+                  onClick={() => { setShowCloseConfirm(true); }}
                   disabled={isSubmitting}
                 >
                   Chiudi Sessione
@@ -423,7 +423,7 @@ export function MarketPhaseManager({
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setShowCloseConfirm(false)}
+                    onClick={() => { setShowCloseConfirm(false); }}
                   >
                     Annulla
                   </Button>
@@ -462,7 +462,7 @@ export function MarketPhaseManager({
                 key={phase.id}
                 size="sm"
                 variant={phase.id === session.currentPhase ? 'primary' : 'outline'}
-                onClick={() => onSetPhase(session.id, phase.id)}
+                onClick={() => { onSetPhase(session.id, phase.id); }}
                 disabled={isSubmitting || phase.id === session.currentPhase}
               >
                 {phase.icon} {phase.label}

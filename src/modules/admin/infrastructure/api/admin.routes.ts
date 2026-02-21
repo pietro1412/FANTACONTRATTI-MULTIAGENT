@@ -81,7 +81,7 @@ router.get(
     const { leagueId } = req.params
     const userId = req.user!.userId
 
-    const result = await getLeagueStatistics(leagueId, userId)
+    const result = await getLeagueStatistics(leagueId as string, userId)
 
     if (!result.success) {
       res.status(400).json(result)
@@ -105,7 +105,7 @@ router.get(
     const { leagueId } = req.params
     const userId = req.user!.userId
 
-    const result = await exportAllRosters(leagueId, userId)
+    const result = await exportAllRosters(leagueId as string, userId)
 
     if (!result.success) {
       const status = result.message === 'Non autorizzato' ? 403 : 400
@@ -132,7 +132,7 @@ router.get(
     const { limit, offset, action } = req.query as GetAuditQuery
     const userId = req.user!.userId
 
-    const result = await getAuditLog(leagueId, userId, {
+    const result = await getAuditLog(leagueId as string, userId, {
       limit: limit ? parseInt(limit) : undefined,
       offset: offset ? parseInt(offset) : undefined,
       action,
@@ -192,7 +192,7 @@ router.post(
       return
     }
 
-    const result = await setMarketPhase(sessionId, userId, phase)
+    const result = await setMarketPhase(sessionId as string, userId, phase)
 
     if (!result.success) {
       const status = result.message === 'Non autorizzato' ? 403 : 400
@@ -258,7 +258,7 @@ router.get(
     const { leagueId } = req.params
     const userId = req.user!.userId
 
-    const result = await getPrizeHistory(leagueId, userId)
+    const result = await getPrizeHistory(leagueId as string, userId)
 
     if (!result.success) {
       const status = result.message === 'Non autorizzato' ? 403 : 400
@@ -283,7 +283,7 @@ router.get(
     const { leagueId } = req.params
     const userId = req.user!.userId
 
-    const result = await getMembersForPrizes(leagueId, userId)
+    const result = await getMembersForPrizes(leagueId as string, userId)
 
     if (!result.success) {
       const status = result.message === 'Non autorizzato' ? 403 : 400
@@ -318,7 +318,7 @@ router.post(
       return
     }
 
-    const result = await assignPrize(leagueId, userId, memberId, amount, reason)
+    const result = await assignPrize(leagueId as string, userId, memberId, amount, reason)
 
     if (!result.success) {
       const status = result.message === 'Non autorizzato' ? 403 : 400
@@ -345,7 +345,7 @@ router.post(
     const { leagueId } = req.params
     const userId = req.user!.userId
 
-    const result = await resetFirstMarket(leagueId, userId)
+    const result = await resetFirstMarket(leagueId as string, userId)
 
     if (!result.success) {
       const status = result.message === 'Non autorizzato' ? 403 : 400
@@ -370,7 +370,7 @@ router.post(
     const { leagueId } = req.params
     const userId = req.user!.userId
 
-    const result = await migrateProphecies(leagueId, userId)
+    const result = await migrateProphecies(leagueId as string, userId)
 
     if (!result.success) {
       const status = result.message === 'Non autorizzato' ? 403 : 400

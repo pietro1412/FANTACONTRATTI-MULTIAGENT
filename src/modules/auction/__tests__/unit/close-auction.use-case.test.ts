@@ -9,7 +9,7 @@ import { CloseAuctionUseCase } from '../../application/use-cases/close-auction.u
 import type { IAuctionRepository } from '../../domain/repositories/auction.repository.interface'
 import type { Auction } from '../../domain/entities/auction.entity'
 import type { AuctionBid } from '../../domain/entities/bid.entity'
-import type { EventBus } from '../../../../shared/infrastructure/events/event-bus'
+import type { EventBus } from '@/shared/infrastructure/events/event-bus'
 
 describe('CloseAuctionUseCase', () => {
   let closeAuctionUseCase: CloseAuctionUseCase
@@ -99,13 +99,15 @@ describe('CloseAuctionUseCase', () => {
       getMemberName: vi.fn().mockResolvedValue('Winner User'),
     }
 
+    /* eslint-disable @typescript-eslint/no-explicit-any -- vi.fn() partial mocks */
     closeAuctionUseCase = new CloseAuctionUseCase(
       mockAuctionRepository,
       mockEventBus,
-      mockRosterService,
-      mockPlayerService,
-      mockMemberService
+      mockRosterService as any,
+      mockPlayerService as any,
+      mockMemberService as any
     )
+    /* eslint-enable @typescript-eslint/no-explicit-any */
   })
 
   describe('execute', () => {

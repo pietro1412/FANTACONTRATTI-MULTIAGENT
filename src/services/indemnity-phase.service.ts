@@ -1,4 +1,5 @@
-import { PrismaClient, MemberStatus, RosterStatus, PlayerExitReason, Prisma } from '@prisma/client'
+import type { PlayerExitReason, Prisma } from '@prisma/client';
+import { PrismaClient, MemberStatus, RosterStatus } from '@prisma/client'
 import { recordMovement } from './movement.service'
 import { triggerIndemnityDecisionSubmitted, triggerIndemnityAllDecided } from './pusher.service'
 import type { ServiceResult } from '@/shared/types/service-result'
@@ -560,8 +561,7 @@ export async function submitPlayerDecisions(
         totalCompensation,
       },
     }
-  } catch (error) {
-    console.error('Error processing indemnity decisions:', error)
+  } catch {
     return { success: false, message: 'Errore durante l\'elaborazione delle decisioni' }
   }
 }
@@ -839,7 +839,7 @@ export async function autoProcessExitedPlayers(
       // Use the first non-zero value as default if available
       const values = prevCategory.managerPrizes.map(p => p.amount).filter(a => a > 0)
       if (values.length > 0) {
-        defaultIndennizzoEstero = values[0]
+        defaultIndennizzoEstero = values[0]!
       }
     }
   }
@@ -1035,14 +1035,14 @@ export async function autoReleaseRitiratiPlayers(
 
   // Record movements outside transaction
   for (const roster of affectedRosters) {
-    await recordMovement(prisma, {
+    await recordMovement({
       leagueId,
-      sessionId,
+      marketSessionId: sessionId,
       playerId: roster.player.id,
       fromMemberId: roster.leagueMember.id,
       toMemberId: null,
-      type: 'RETIREMENT',
-      amount: 0,
+      movementType: 'RETIREMENT',
+      price: 0,
     })
   }
 

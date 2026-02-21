@@ -22,13 +22,13 @@ async function request<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.headers as Record<string, string> | undefined),
   }
 
   if (accessToken) {
-    (headers as Record<string, string>)['Authorization'] = `Bearer ${accessToken}`
+    headers['Authorization'] = `Bearer ${accessToken}`
   }
 
   try {
@@ -46,7 +46,7 @@ async function request<T>(
       const refreshed = await refreshAccessToken()
       if (refreshed) {
         // Retry the request
-        return request(endpoint, options)
+        return await request(endpoint, options)
       }
     }
 
@@ -412,7 +412,7 @@ export const inviteApi = {
     }>(`/api/invites/${token}/details`),
 
   // Accept invite
-  accept: (token: string, teamName: string) =>
+  accept: (token: string, teamName?: string) =>
     request(`/api/invites/${token}/accept`, {
       method: 'POST',
       body: JSON.stringify({ teamName }),

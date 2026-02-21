@@ -6,7 +6,7 @@
  */
 
 // Re-export from existing locations
-export { default as Roster } from '@/pages/Roster'
-export { default as AllRosters } from '@/pages/AllRosters'
-export { default as Contracts } from '@/pages/Contracts'
-export { default as AllPlayers } from '@/pages/AllPlayers'
+export { Roster } from '@/pages/Roster'
+export { AllRosters } from '@/pages/AllRosters'
+export { Contracts } from '@/pages/Contracts'
+export { AllPlayers } from '@/pages/AllPlayers'

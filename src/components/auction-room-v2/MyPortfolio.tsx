@@ -37,7 +37,7 @@ function SlotPlayerPhoto({ apiFootballId, playerName, position, posGradient }: {
         src={photoUrl}
         alt={playerName}
         className="w-5 h-5 rounded-full object-cover bg-slate-700 flex-shrink-0"
-        onError={() => setImgError(true)}
+        onError={() => { setImgError(true); }}
       />
     )
   }
@@ -122,7 +122,7 @@ export function MyPortfolio({ myRosterSlots, budget }: MyPortfolioProps) {
           const slot = myRosterSlots.slots[pos]
           if (slot.total === 0) return null
           const isCurrent = myRosterSlots.currentRole === pos
-          const colors = POS_COLORS[pos]
+          const colors = POS_COLORS[pos] ?? { bg: 'bg-gray-500/15', border: 'border-gray-500/40', text: 'text-gray-400', badge: 'from-gray-500 to-gray-600' }
           const posName = POSITION_NAMES[pos as keyof typeof POSITION_NAMES] || pos
 
           return (
@@ -150,7 +150,7 @@ export function MyPortfolio({ myRosterSlots, budget }: MyPortfolioProps) {
                     return (
                       <button
                         key={i}
-                        onClick={() => handleSlotClick(player, pos)}
+                        onClick={() => { handleSlotClick(player, pos); }}
                         className={`${colors.bg} border ${colors.border} rounded-lg px-2 py-1.5 min-w-[4.5rem] hover:brightness-125 transition-all cursor-pointer`}
                         title={`${player.playerName} - ${player.playerTeam} - ${player.acquisitionPrice}M${player.age ? ` - ${player.age} anni` : ''}`}
                       >
@@ -187,7 +187,7 @@ export function MyPortfolio({ myRosterSlots, budget }: MyPortfolioProps) {
                       key={i}
                       className={`border border-dashed ${colors.border} rounded-lg px-2 py-1.5 min-w-[4.5rem] text-center opacity-40 flex items-center justify-center`}
                     >
-                      <span className="text-gray-600 text-lg leading-none">+</span>
+                      <span className="text-gray-400 text-lg leading-none">+</span>
                     </div>
                   )
                 })}

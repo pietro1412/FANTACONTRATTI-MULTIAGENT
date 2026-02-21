@@ -79,7 +79,7 @@ export function TimelineView({ leagueId, sessions }: TimelineViewProps) {
   const limit = 50
 
   useEffect(() => {
-    loadEvents(true)
+    void loadEvents(true)
   }, [leagueId, filterTypes, filterSession])
 
   async function loadEvents(reset = false) {
@@ -154,7 +154,7 @@ export function TimelineView({ leagueId, sessions }: TimelineViewProps) {
             {Object.entries(eventTypeConfig).map(([type, config]) => (
               <button
                 key={type}
-                onClick={() => toggleTypeFilter(type)}
+                onClick={() => { toggleTypeFilter(type); }}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   filterTypes.includes(type)
                     ? 'bg-primary-500 text-white'
@@ -169,7 +169,7 @@ export function TimelineView({ leagueId, sessions }: TimelineViewProps) {
           {/* Session Filter */}
           <select
             value={filterSession}
-            onChange={e => setFilterSession(e.target.value)}
+            onChange={e => { setFilterSession(e.target.value); }}
             className="px-3 py-1.5 bg-surface-300 border border-surface-50/20 rounded-lg text-white text-sm"
           >
             <option value="">Tutte le sessioni</option>
@@ -250,7 +250,7 @@ export function TimelineView({ leagueId, sessions }: TimelineViewProps) {
                       <td className={`py-1.5 px-2 text-xs font-medium ${config.color}`}>
                         {config.label}
                       </td>
-                      <td className={`py-1.5 px-2 font-bold ${(positionColors[event.player.position] || 'bg-gray-500/20 text-gray-400').split(' ')[1]}`}>
+                      <td className={`py-1.5 px-2 font-bold ${(positionColors[event.player.position] ?? 'bg-gray-500/20 text-gray-400').split(' ')[1] ?? ''}`}>
                         {event.player.position}
                       </td>
                       <td className="py-1.5 px-3 text-white">{event.player.name}</td>
@@ -275,7 +275,7 @@ export function TimelineView({ leagueId, sessions }: TimelineViewProps) {
         {hasMore && !isLoading && (
           <div className="text-center py-3 border-t border-surface-50/20">
             <button
-              onClick={() => loadEvents(false)}
+              onClick={() => { void loadEvents(false) }}
               className="px-6 py-2 bg-surface-300 text-gray-300 rounded-lg hover:bg-surface-400 transition-colors text-sm"
             >
               Carica altri

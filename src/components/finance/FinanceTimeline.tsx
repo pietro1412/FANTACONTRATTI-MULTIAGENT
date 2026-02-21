@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
 import { leagueApi } from '../../services/api'
 import { type FinancialsData, POSITION_COLORS } from './types'
 
@@ -83,7 +84,7 @@ export function FinanceTimeline({ leagueId, data, initialMemberId, onBack }: Fin
 
   useEffect(() => {
     if (selectedMemberId) {
-      loadTimeline(selectedMemberId)
+      void loadTimeline(selectedMemberId)
     }
   }, [selectedMemberId, leagueId])
 
@@ -176,7 +177,7 @@ export function FinanceTimeline({ leagueId, data, initialMemberId, onBack }: Fin
         {data.teams.map(team => (
           <button
             key={team.memberId}
-            onClick={() => setSelectedMemberId(team.memberId)}
+            onClick={() => { setSelectedMemberId(team.memberId); }}
             className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
               selectedMemberId === team.memberId
                 ? 'bg-primary-500 text-white'
@@ -226,7 +227,7 @@ export function FinanceTimeline({ leagueId, data, initialMemberId, onBack }: Fin
                       formatter={((value: number, name: string) => [
                         `${value}M`,
                         name === 'bilancio' ? 'Bilancio' : name === 'budget' ? 'Budget' : 'Ingaggi',
-                      ]) as any}
+                      ]) as Formatter<number, string>}
                     />
                     <Legend
                       formatter={(value: string) => value === 'bilancio' ? 'Bilancio' : value === 'budget' ? 'Budget' : 'Ingaggi'}
@@ -252,7 +253,7 @@ export function FinanceTimeline({ leagueId, data, initialMemberId, onBack }: Fin
             ].map(opt => (
               <button
                 key={opt.key}
-                onClick={() => setFilterType(opt.key)}
+                onClick={() => { setFilterType(opt.key); }}
                 className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
                   filterType === opt.key
                     ? 'bg-primary-500 text-white'
@@ -286,7 +287,7 @@ export function FinanceTimeline({ leagueId, data, initialMemberId, onBack }: Fin
                         <div className={`hidden md:block absolute left-2 top-3 w-2.5 h-2.5 rounded-full ${EVENT_DOT_COLORS[event.color] || 'bg-gray-400'} ring-2 ring-surface-200`} />
 
                         {/* Card */}
-                        <div className={`flex-1 rounded-lg p-2.5 md:p-3 border ${EVENT_BG_COLORS[event.color] || EVENT_BG_COLORS.gray}`}>
+                        <div className={`flex-1 rounded-lg p-2.5 md:p-3 border ${EVENT_BG_COLORS[event.color] ?? EVENT_BG_COLORS.gray ?? ''}`}>
                           <div className="flex items-center justify-between mb-1">
                             <div className="flex items-center gap-2">
                               <span className="text-xs md:text-sm font-medium text-white">{event.label}</span>

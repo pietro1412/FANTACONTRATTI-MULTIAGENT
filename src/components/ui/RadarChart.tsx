@@ -75,7 +75,7 @@ export default function RadarChart({
             }}
           />
           {players.map((player, i) => {
-            const colors = PLAYER_COLORS[i % PLAYER_COLORS.length]
+            const colors = PLAYER_COLORS[i % PLAYER_COLORS.length]!
             return (
               <Radar
                 key={player.name}

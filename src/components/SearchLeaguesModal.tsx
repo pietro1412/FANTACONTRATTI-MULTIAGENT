@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { leagueApi } from '../services/api'
+import { Modal } from '@/components/ui/Modal'
 import { Button } from './ui/Button'
 import { JoinLeagueModal } from './JoinLeagueModal'
 
@@ -27,7 +28,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   COMPLETED: { label: 'Completata', color: 'bg-gray-500/20 text-gray-400' },
 }
 
-export function SearchLeaguesModal({ isOpen, onClose, onNavigate }: SearchLeaguesModalProps) {
+export function SearchLeaguesModal({ isOpen, onClose, onNavigate: _onNavigate }: SearchLeaguesModalProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -87,44 +88,25 @@ export function SearchLeaguesModal({ isOpen, onClose, onNavigate }: SearchLeague
     onClose()
   }
 
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative w-full max-w-2xl bg-surface-200 rounded-2xl border border-surface-50/20 shadow-2xl overflow-hidden">
+    <>
+      <Modal isOpen={isOpen} onClose={onClose} size="xl" className="max-w-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-surface-300/80 to-surface-300/40 border-b border-surface-50/20">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg">
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white">Cerca Leghe</h2>
-              <p className="text-xs text-gray-400">Trova leghe esistenti a cui unirti</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-white hover:bg-surface-300/50 rounded-lg transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        <div className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-surface-300/80 to-surface-300/40 border-b border-surface-50/20">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-          </button>
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-white">Cerca Leghe</h2>
+            <p className="text-xs text-gray-400">Trova leghe esistenti a cui unirti</p>
+          </div>
         </div>
 
         {/* Search Form */}
         <div className="px-6 py-4 border-b border-surface-50/20">
-          <form onSubmit={handleSearch} className="flex gap-3">
+          <form onSubmit={(e) => { void handleSearch(e) }} className="flex gap-3">
             <div className="relative flex-1">
               <svg
                 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
@@ -140,7 +122,7 @@ export function SearchLeaguesModal({ isOpen, onClose, onNavigate }: SearchLeague
                 inputMode="search"
                 enterKeyHint="search"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => { setQuery(e.target.value); }}
                 placeholder="Nome lega, codice invito, admin o membro..."
                 className="w-full pl-10 pr-4 py-2.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50 focus:ring-2 focus:ring-primary-500/20 transition-all"
               />
@@ -241,7 +223,7 @@ export function SearchLeaguesModal({ isOpen, onClose, onNavigate }: SearchLeague
                         {canJoin ? (
                           <Button
                             size="sm"
-                            onClick={() => handleSelectLeague(league)}
+                            onClick={() => { handleSelectLeague(league); }}
                           >
                             Unisciti
                           </Button>
@@ -265,15 +247,15 @@ export function SearchLeaguesModal({ isOpen, onClose, onNavigate }: SearchLeague
             Puoi anche unirti a una lega usando il codice invito nella pagina di join
           </p>
         </div>
-      </div>
+      </Modal>
 
       {/* Join League Modal */}
       <JoinLeagueModal
         isOpen={selectedLeague !== null}
         league={selectedLeague}
-        onClose={() => setSelectedLeague(null)}
+        onClose={() => { setSelectedLeague(null); }}
         onSuccess={handleJoinSuccess}
       />
-    </div>
+    </>
   )
 }

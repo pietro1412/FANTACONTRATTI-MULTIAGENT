@@ -4,8 +4,9 @@
  * Returns movement history for league/player/member.
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { ForbiddenError, ValidationError } from '../../../../shared/infrastructure/http/errors'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import { ForbiddenError, ValidationError } from '@/shared/infrastructure/http/errors'
 import type { IMovementRepository, FormattedMovement } from '../../domain/repositories/movement.repository.interface'
 import type { GetMovementHistoryDto, MovementHistoryResultDto } from '../dto/movement.dto'
 

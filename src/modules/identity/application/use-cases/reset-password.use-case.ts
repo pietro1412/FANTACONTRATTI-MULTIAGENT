@@ -1,8 +1,9 @@
-import { IUserRepository } from '../../domain/repositories/user.repository.interface'
-import { IPasswordService } from '../../domain/services/password.service.interface'
-import { ResetPasswordDto, ResetPasswordResultDto } from '../dto/password-reset.dto'
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { ValidationError, NotFoundError } from '../../../../shared/infrastructure/http/errors'
+import type { IUserRepository } from '../../domain/repositories/user.repository.interface'
+import type { IPasswordService } from '../../domain/services/password.service'
+import type { ResetPasswordDto, ResetPasswordResultDto } from '../dto/password-reset.dto'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import { ValidationError, NotFoundError } from '@/shared/infrastructure/http/errors'
 
 /**
  * Use case for completing password reset

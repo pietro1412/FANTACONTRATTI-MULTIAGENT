@@ -46,9 +46,9 @@ describe('AdminPrismaRepository', () => {
     userId: 'user-1',
     leagueId: 'league-1',
     teamName: 'Team A',
-    role: 'ADMIN',
-    status: 'ACTIVE',
-    joinType: 'CREATOR',
+    role: 'ADMIN' as const,
+    status: 'ACTIVE' as const,
+    joinType: 'CREATOR' as const,
     currentBudget: 100,
     preConsolidationBudget: null,
     rubataOrder: null,
@@ -74,7 +74,7 @@ describe('AdminPrismaRepository', () => {
     it('should return false when user is not admin', async () => {
       vi.mocked(prisma.leagueMember.findUnique).mockResolvedValue({
         ...mockMember,
-        role: 'MANAGER',
+        role: 'MANAGER' as const,
       })
 
       const result = await repository.verifyAdmin('league-1', 'user-1')
@@ -86,7 +86,7 @@ describe('AdminPrismaRepository', () => {
     it('should return false when user is not active', async () => {
       vi.mocked(prisma.leagueMember.findUnique).mockResolvedValue({
         ...mockMember,
-        status: 'PENDING',
+        status: 'PENDING' as const,
       })
 
       const result = await repository.verifyAdmin('league-1', 'user-1')
@@ -117,7 +117,7 @@ describe('AdminPrismaRepository', () => {
     it('should return null when user is not active', async () => {
       vi.mocked(prisma.leagueMember.findUnique).mockResolvedValue({
         ...mockMember,
-        status: 'PENDING',
+        status: 'PENDING' as const,
       })
 
       const result = await repository.checkMembership('league-1', 'user-1')
@@ -166,7 +166,7 @@ describe('AdminPrismaRepository', () => {
         auctions: [
           { id: 'auction-1', status: 'COMPLETED' },
         ],
-      })
+      } as unknown as Awaited<ReturnType<typeof prisma.league.findUnique>>)
       vi.mocked(prisma.tradeOffer.count).mockResolvedValue(5)
 
       const result = await repository.getLeagueStatistics('league-1')
@@ -238,7 +238,7 @@ describe('AdminPrismaRepository', () => {
           { id: 'auction-2', status: 'ACTIVE', _count: { bids: 3 } },
           { id: 'auction-3', status: 'COMPLETED', _count: { bids: 7 } },
         ],
-      })
+      } as unknown as Awaited<ReturnType<typeof prisma.marketSession.findUnique>>)
 
       const result = await repository.getSessionStatistics('session-1')
 
@@ -332,7 +332,7 @@ describe('AdminPrismaRepository', () => {
         endsAt: null,
         phaseStartedAt: null,
         createdAt: new Date(),
-      })
+      } as unknown as Awaited<ReturnType<typeof prisma.marketSession.findUnique>>)
 
       const result = await repository.getSessionWithLeague('session-1')
 
@@ -356,7 +356,7 @@ describe('AdminPrismaRepository', () => {
         listStatus: 'IN_LIST',
         createdAt: new Date(),
         updatedAt: new Date(),
-      })
+      } as unknown as Awaited<ReturnType<typeof prisma.serieAPlayer.create>>)
 
       const result = await repository.importPlayers([
         { name: 'Mario Rossi', team: 'Inter', position: 'A', quotation: 25 },
@@ -380,7 +380,7 @@ describe('AdminPrismaRepository', () => {
         listStatus: 'IN_LIST',
         createdAt: new Date(),
         updatedAt: new Date(),
-      })
+      } as unknown as Awaited<ReturnType<typeof prisma.serieAPlayer.findFirst>>)
       vi.mocked(prisma.serieAPlayer.update).mockResolvedValue({
         id: 'player-1',
         name: 'Mario Rossi',
@@ -393,7 +393,7 @@ describe('AdminPrismaRepository', () => {
         listStatus: 'IN_LIST',
         createdAt: new Date(),
         updatedAt: new Date(),
-      })
+      } as unknown as Awaited<ReturnType<typeof prisma.serieAPlayer.update>>)
 
       const result = await repository.importPlayers([
         { name: 'Mario Rossi', team: 'Inter', position: 'A', quotation: 25 },
@@ -428,7 +428,7 @@ describe('AdminPrismaRepository', () => {
         listStatus: 'IN_LIST',
         createdAt: new Date(),
         updatedAt: new Date(),
-      })
+      } as unknown as Awaited<ReturnType<typeof prisma.serieAPlayer.create>>)
 
       await repository.importPlayers([
         { name: 'Mario Rossi', team: 'Inter', position: 'ATT', quotation: 25 },
@@ -499,8 +499,8 @@ describe('AuditLogPrismaRepository', () => {
       })
 
       expect(result).toHaveLength(1)
-      expect(result[0].action).toBe('PHASE_CHANGED')
-      expect(result[0].user?.username).toBe('user1')
+      expect(result[0]!.action).toBe('PHASE_CHANGED')
+      expect(result[0]!.user?.username).toBe('user1')
     })
 
     it('should filter by action', async () => {

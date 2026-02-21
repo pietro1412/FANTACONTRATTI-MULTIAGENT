@@ -6,7 +6,7 @@
  */
 
 // Re-export existing components
-export { default as MarketPhaseManager } from '@/components/MarketPhaseManager'
+export { MarketPhaseManager } from '@/components/MarketPhaseManager'
 
 // Future exports:
 // export { LeagueCard } from './LeagueCard'

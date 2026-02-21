@@ -66,7 +66,7 @@ export class EventBus {
    * @param event - The event payload
    * @returns Promise that resolves when all handlers have completed
    */
-  async publish<T>(eventType: string, event: T): Promise<void> {
+  async publish(eventType: string, event: unknown): Promise<void> {
     const handlers = this.handlers.get(eventType)
     if (!handlers || handlers.length === 0) {
       return

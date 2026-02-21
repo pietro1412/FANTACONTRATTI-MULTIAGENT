@@ -26,7 +26,7 @@ export function MobileSidePanel({
       {/* Trigger buttons */}
       <div className="flex gap-2 lg:hidden">
         <button
-          onClick={() => setSheet('managers')}
+          onClick={() => { setSheet('managers'); }}
           className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-900/80 backdrop-blur-xl rounded-xl border border-white/10 text-sms font-medium text-gray-300 active:scale-95 transition-transform min-h-[44px]"
         >
           <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -39,7 +39,7 @@ export function MobileSidePanel({
           )}
         </button>
         <button
-          onClick={() => setSheet('roster')}
+          onClick={() => { setSheet('roster'); }}
           className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-900/80 backdrop-blur-xl rounded-xl border border-white/10 text-sms font-medium text-gray-300 active:scale-95 transition-transform min-h-[44px]"
         >
           <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -58,7 +58,7 @@ export function MobileSidePanel({
       {/* Bottom Sheet: Managers */}
       <BottomSheet
         isOpen={sheet === 'managers'}
-        onClose={() => setSheet(null)}
+        onClose={() => { setSheet(null); }}
         title="Spy Financials"
         maxHeight="80vh"
       >
@@ -74,7 +74,7 @@ export function MobileSidePanel({
       {/* Bottom Sheet: Roster */}
       <BottomSheet
         isOpen={sheet === 'roster'}
-        onClose={() => setSheet(null)}
+        onClose={() => { setSheet(null); }}
         title="La Mia Rosa"
         maxHeight="80vh"
       >

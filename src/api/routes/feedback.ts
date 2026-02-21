@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
-import { FeedbackStatus, FeedbackCategory } from '@prisma/client'
+import type { FeedbackCategory } from '@prisma/client';
+import { FeedbackStatus } from '@prisma/client'
 import {
   submitFeedback,
   getFeedbackForManager,
@@ -125,7 +126,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const feedbackId = req.params.id
 
-    const result = await getFeedbackById(feedbackId, req.user!.userId)
+    const result = await getFeedbackById(feedbackId!, req.user!.userId)
 
     if (!result.success) {
       const status = result.message === 'Non autorizzato' ? 403 :
@@ -154,7 +155,7 @@ router.patch('/:id/status', authMiddleware, async (req: Request, res: Response) 
       return
     }
 
-    const result = await updateFeedbackStatus(feedbackId, req.user!.userId, status)
+    const result = await updateFeedbackStatus(feedbackId!, req.user!.userId, status)
 
     if (!result.success) {
       const statusCode = result.message === 'Non autorizzato' ? 403 :
@@ -189,7 +190,7 @@ router.post('/:id/response', authMiddleware, async (req: Request, res: Response)
       return
     }
 
-    const result = await addResponse(feedbackId, req.user!.userId, content, statusChange)
+    const result = await addResponse(feedbackId!, req.user!.userId, content, statusChange)
 
     if (!result.success) {
       const statusCode = result.message === 'Non autorizzato' ? 403 :
@@ -222,7 +223,7 @@ router.get('/notifications/unread', authMiddleware, async (req: Request, res: Re
 router.patch('/notifications/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const notificationId = req.params.id
-    const result = await markNotificationRead(notificationId, req.user!.userId)
+    const result = await markNotificationRead(notificationId!, req.user!.userId)
 
     if (!result.success) {
       const statusCode = result.message === 'Non autorizzato' ? 403 :

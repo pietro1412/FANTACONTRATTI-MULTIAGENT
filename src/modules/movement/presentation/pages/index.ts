@@ -5,4 +5,4 @@
  */
 
 // Re-export from existing locations
-export { default as Movements } from '@/pages/Movements'
+export { Movements } from '@/pages/Movements'

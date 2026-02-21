@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { leagueApi, auctionApi, superadminApi, movementApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
@@ -71,6 +72,7 @@ interface MovementData {
 }
 
 export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
+  const { confirm: confirmDialog } = useConfirmDialog()
   // Core state
   const [league, setLeague] = useState<League | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
@@ -105,9 +107,9 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
       } else {
         setIsSuperAdmin(false)
       }
-      loadCriticalData()
+      void loadCriticalData()
     }
-    checkSuperAdmin()
+    void checkSuperAdmin()
   }, [leagueId, onNavigate])
 
   async function loadCriticalData() {
@@ -142,7 +144,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
 
     setLazyLoaded(true)
 
-    Promise.all([
+    void Promise.all([
       leagueApi.getFinancials(leagueId),
       movementApi.getLeagueMovements(leagueId, { limit: 5 }),
       leagueApi.getStrategySummary(leagueId),
@@ -194,7 +196,13 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
   }
 
   async function handleLeaveLeague() {
-    if (!confirm('Sei sicuro di voler abbandonare questa lega?')) return
+    const ok = await confirmDialog({
+      title: 'Abbandona lega',
+      message: 'Sei sicuro di voler abbandonare questa lega?',
+      confirmLabel: 'Abbandona',
+      variant: 'danger'
+    })
+    if (!ok) return
     setIsLeaving(true)
     const result = await leagueApi.leave(leagueId)
     if (result.success) {
@@ -249,7 +257,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-xl text-danger-400 mb-4">Lega non trovata</p>
-          <Button variant="outline" onClick={() => onNavigate('dashboard')}>
+          <Button variant="outline" onClick={() => { onNavigate('dashboard'); }}>
             Torna alla Dashboard
           </Button>
         </div>
@@ -280,7 +288,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
               <span className="text-danger-400 text-sm">!</span>
             </div>
             <p className="text-gray-300 text-sm flex-1">{error}</p>
-            <button onClick={() => setError('')} className="text-gray-500 hover:text-white transition-colors flex-shrink-0 p-1">
+            <button onClick={() => { setError(''); }} className="text-gray-500 hover:text-white transition-colors flex-shrink-0 p-1">
               <span className="text-lg leading-none">&times;</span>
             </button>
           </div>
@@ -294,7 +302,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           isFirstMarketCompleted={isFirstMarketCompleted()}
           leagueId={leagueId}
           onNavigate={onNavigate}
-          onOpenAuctionClick={() => setShowAuctionConfirm(true)}
+          onOpenAuctionClick={() => { setShowAuctionConfirm(true); }}
         />
 
         {/* Main grid: 2/3 content + 1/3 sidebar */}
@@ -344,7 +352,7 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
               isAdmin={isAdmin}
               isLeaving={isLeaving}
               totals={leagueTotals}
-              onLeaveLeague={handleLeaveLeague}
+              onLeaveLeague={() => void handleLeaveLeague()}
             />
           </div>
         </div>
@@ -356,8 +364,8 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           isRegularMarket={isFirstMarketCompleted()}
           activeMembers={activeMembers.length}
           isCreating={isCreatingSession}
-          onConfirm={handleConfirmCreateSession}
-          onCancel={() => setShowAuctionConfirm(false)}
+          onConfirm={() => void handleConfirmCreateSession()}
+          onCancel={() => { setShowAuctionConfirm(false); }}
         />
       )}
     </div>

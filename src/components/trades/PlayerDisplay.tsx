@@ -23,7 +23,7 @@ export function TeamLogo({ team, size = 'md' }: { team: string, size?: 'sm' | 'm
 export function PlayerCard({ player, compact = false }: { player: Player, compact?: boolean }) {
   const roleStyle = getRoleStyle(player.position)
 
-  const gradient = POSITION_GRADIENTS[player.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
+  const gradient = POSITION_GRADIENTS[player.position] || 'from-gray-500 to-gray-600'
 
   if (compact) {
     return (
@@ -59,7 +59,7 @@ export function PlayerCard({ player, compact = false }: { player: Player, compac
             </span>
           </div>
         ) : (
-          <span className="text-xs text-gray-600 italic ml-auto">n.d.</span>
+          <span className="text-xs text-gray-400 italic ml-auto">n.d.</span>
         )}
       </div>
     )
@@ -99,7 +99,7 @@ export function PlayerCard({ player, compact = false }: { player: Player, compac
           <div className="space-y-0.5">
             <div className="flex items-center justify-end gap-2">
               <span className="text-accent-400 font-semibold text-sm font-mono">{player.contract.salary}M</span>
-              <span className="text-gray-600">•</span>
+              <span className="text-gray-400">•</span>
               <span className="text-gray-400 text-xs font-mono">{player.contract.duration}sem</span>
             </div>
             <div className="flex items-center justify-end gap-1">
@@ -110,7 +110,7 @@ export function PlayerCard({ player, compact = false }: { player: Player, compac
             </div>
           </div>
         ) : (
-          <p className="text-gray-600 text-xs italic">Contratto n.d.</p>
+          <p className="text-gray-400 text-xs italic">Contratto n.d.</p>
         )}
       </div>
     </div>
@@ -136,7 +136,7 @@ export function PlayersTable({ players }: { players: Player[] }) {
         {players.map(p => {
           const roleStyle = getRoleStyle(p.position)
           const photoUrl = getPlayerPhotoUrl(p.apiFootballId)
-          const posGradient = POSITION_GRADIENTS[p.position as keyof typeof POSITION_GRADIENTS] || 'from-gray-500 to-gray-600'
+          const posGradient = POSITION_GRADIENTS[p.position] || 'from-gray-500 to-gray-600'
           return (
             <tr key={p.id} className="border-t border-surface-50/10">
               <td className="py-2">

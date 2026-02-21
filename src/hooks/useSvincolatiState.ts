@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { arrayMove } from '@dnd-kit/sortable'
+import type { DragEndEvent } from '@dnd-kit/core'
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { svincolatiApi, leagueApi, auctionApi, contractApi } from '../services/api'
 import { usePusherAuction } from '../services/pusher.client'
 import type {
@@ -12,6 +15,7 @@ import type {
 } from '../types/svincolati.types'
 
 export function useSvincolatiState(leagueId: string) {
+  const { confirm: confirmDialog } = useConfirmDialog()
   const [isLoading, setIsLoading] = useState(true)
   const [board, setBoard] = useState<BoardState | null>(null)
 
@@ -27,7 +31,7 @@ export function useSvincolatiState(leagueId: string) {
 
   // Turn order setup
   const [turnOrderDraft, setTurnOrderDraft] = useState<TurnMember[]>([])
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
 
   // Auction
   const [bidAmount, setBidAmount] = useState('')
@@ -67,7 +71,7 @@ export function useSvincolatiState(leagueId: string) {
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    return () => { document.removeEventListener('mousedown', handleClickOutside); }
   }, [])
 
   const loadBoard = useCallback(async () => {
@@ -97,28 +101,28 @@ export function useSvincolatiState(leagueId: string) {
   }, [leagueId, selectedPosition, selectedTeam, searchQuery])
 
   useEffect(() => {
-    loadInitialData()
+    void loadInitialData()
   }, [leagueId])
 
   useEffect(() => {
-    loadFreeAgents()
+    void loadFreeAgents()
   }, [loadFreeAgents])
 
   // Poll for board updates (fallback, Pusher handles instant updates)
   useEffect(() => {
-    const interval = setInterval(loadBoard, 8000)
-    return () => clearInterval(interval)
+    const interval = setInterval(() => { void loadBoard() }, 8000)
+    return () => { clearInterval(interval); }
   }, [loadBoard])
 
   // Pusher real-time updates (#110, #113)
   const { isConnected: isPusherConnected } = usePusherAuction(board?.sessionId, {
     onSvincolatiStateChanged: () => {
       console.log('[Pusher] Svincolati state changed')
-      loadBoard()
+      void loadBoard()
     },
     onSvincolatiNomination: () => {
       console.log('[Pusher] Svincolati nomination')
-      loadBoard()
+      void loadBoard()
     },
     onSvincolatiBidPlaced: (data) => {
       console.log('[Pusher] Svincolati bid placed', data)
@@ -139,7 +143,7 @@ export function useSvincolatiState(leagueId: string) {
           }
         })
       }
-      setTimeout(() => loadBoard(), 100)
+      setTimeout(() => { void loadBoard() }, 100)
     },
     onSvincolatiReadyChanged: (data) => {
       console.log('[Pusher] Svincolati ready changed', data)
@@ -148,15 +152,15 @@ export function useSvincolatiState(leagueId: string) {
     onBidPlaced: (data) => {
       // Also listen to generic bid events (used by svincolati auction engine)
       console.log('[Pusher] Generic bid placed in svincolati', data)
-      loadBoard()
+      void loadBoard()
     },
     onAuctionClosed: () => {
       console.log('[Pusher] Svincolati auction closed')
-      loadBoard()
+      void loadBoard()
     },
     onMemberReady: () => {
       console.log('[Pusher] Svincolati member ready')
-      loadBoard()
+      void loadBoard()
     },
   })
 
@@ -174,11 +178,11 @@ export function useSvincolatiState(leagueId: string) {
     }
 
     // Send immediately on mount
-    sendHeartbeat()
+    void sendHeartbeat()
 
     // Then every 3 seconds
-    const interval = setInterval(sendHeartbeat, 3000)
-    return () => clearInterval(interval)
+    const interval = setInterval(() => { void sendHeartbeat() }, 3000)
+    return () => { clearInterval(interval); }
   }, [leagueId, board?.myMemberId])
 
   // Timer countdown
@@ -200,16 +204,16 @@ export function useSvincolatiState(leagueId: string) {
           const res = await svincolatiApi.closeTurnAuction(board.activeAuction!.id)
           console.log('[Svincolati] Close auction result:', res)
           if (res.success) {
-            loadBoard()
+            void loadBoard()
           } else {
             console.error('[Svincolati] Failed to close auction:', res.message)
             isClosingAuction.current = false // Reset so we can try again
           }
         }
       }
-      updateTimer()
-      const interval = setInterval(updateTimer, 1000)
-      return () => clearInterval(interval)
+      void updateTimer()
+      const interval = setInterval(() => { void updateTimer() }, 1000)
+      return () => { clearInterval(interval); }
     } else {
       setTimerRemaining(null)
     }
@@ -245,9 +249,9 @@ export function useSvincolatiState(leagueId: string) {
 
   // Poll appeal status when in PENDING_ACK state
   useEffect(() => {
-    loadAppealStatus()
-    const interval = setInterval(loadAppealStatus, 5000)
-    return () => clearInterval(interval)
+    void loadAppealStatus()
+    const interval = setInterval(() => { void loadAppealStatus() }, 5000)
+    return () => { clearInterval(interval); }
   }, [loadAppealStatus])
 
   async function loadInitialData() {
@@ -290,23 +294,20 @@ export function useSvincolatiState(leagueId: string) {
 
   // ========== TURN ORDER SETUP ==========
 
-  function handleDragStart(index: number) {
-    setDraggedIndex(index)
+  function handleDndDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    setDraggedId(null)
+    if (over && active.id !== over.id) {
+      setTurnOrderDraft(prev => {
+        const oldIndex = prev.findIndex(m => m.id === String(active.id))
+        const newIndex = prev.findIndex(m => m.id === String(over.id))
+        return arrayMove(prev, oldIndex, newIndex)
+      })
+    }
   }
 
-  function handleDragOver(e: React.DragEvent, index: number) {
-    e.preventDefault()
-    if (draggedIndex === null || draggedIndex === index) return
-
-    const newOrder = [...turnOrderDraft]
-    const [removed] = newOrder.splice(draggedIndex, 1)
-    newOrder.splice(index, 0, removed)
-    setTurnOrderDraft(newOrder)
-    setDraggedIndex(index)
-  }
-
-  function handleDragEnd() {
-    setDraggedIndex(null)
+  function handleDndDragStart(event: { active: { id: string | number } }) {
+    setDraggedId(String(event.active.id))
   }
 
   async function handleSetTurnOrder() {
@@ -316,7 +317,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await svincolatiApi.setTurnOrder(leagueId, turnOrderDraft.map(m => m.id))
     if (res.success) {
       setSuccess('Ordine turni impostato!')
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -395,7 +396,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await svincolatiApi.nominate(leagueId, playerId)
     if (res.success) {
       setSuccess('Giocatore nominato! Conferma la tua scelta.')
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -409,7 +410,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await svincolatiApi.confirmNomination(leagueId)
     if (res.success) {
       setSuccess('Nominazione confermata!')
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -422,7 +423,7 @@ export function useSvincolatiState(leagueId: string) {
 
     const res = await svincolatiApi.cancelNomination(leagueId)
     if (res.success) {
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -430,7 +431,13 @@ export function useSvincolatiState(leagueId: string) {
   }
 
   async function handlePassTurn() {
-    if (!confirm('Vuoi passare il turno? Non chiamerai più giocatori in questa fase.')) return
+    const ok = await confirmDialog({
+      title: 'Passa turno',
+      message: 'Vuoi passare il turno? Non chiamerai più giocatori in questa fase.',
+      confirmLabel: 'Passa',
+      variant: 'warning'
+    })
+    if (!ok) return
     setError('')
     setIsSubmitting(true)
 
@@ -440,7 +447,7 @@ export function useSvincolatiState(leagueId: string) {
       if (data.completed) {
         setSuccess('Tutti hanno passato. Fase svincolati completata!')
       }
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -464,7 +471,7 @@ export function useSvincolatiState(leagueId: string) {
       } else {
         setSuccess(res.message || 'Hai dichiarato di aver finito.')
       }
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -478,7 +485,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await svincolatiApi.undoFinished(leagueId)
     if (res.success) {
       setSuccess('Puoi tornare a fare offerte.')
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -492,7 +499,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await svincolatiApi.forceAllFinished(leagueId)
     if (res.success) {
       setSuccess(res.message || 'Tutti i manager sono stati marcati come finiti.')
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -505,7 +512,7 @@ export function useSvincolatiState(leagueId: string) {
 
     const res = await svincolatiApi.markReady(leagueId)
     if (res.success) {
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -518,7 +525,7 @@ export function useSvincolatiState(leagueId: string) {
 
     const res = await svincolatiApi.forceAllReady(leagueId)
     if (res.success) {
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -542,7 +549,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await svincolatiApi.bid(board.activeAuction.id, amount)
     if (res.success) {
       setBidAmount(String(amount + 1))
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -556,7 +563,7 @@ export function useSvincolatiState(leagueId: string) {
 
     const res = await svincolatiApi.closeTurnAuction(board.activeAuction.id)
     if (res.success) {
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -596,8 +603,8 @@ export function useSvincolatiState(leagueId: string) {
         setPendingContractModification(data.winnerContractInfo)
       }
 
-      loadBoard()
-      loadAppealStatus()
+      void loadBoard()
+      void loadAppealStatus()
     } else {
       setError(res.message || 'Errore')
     }
@@ -611,7 +618,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await contractApi.modify(pendingContractModification.contractId, newSalary, newDuration)
     if (res.success) {
       setPendingContractModification(null)
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore durante la modifica del contratto')
     }
@@ -627,7 +634,7 @@ export function useSvincolatiState(leagueId: string) {
 
     const res = await svincolatiApi.forceAllAck(leagueId)
     if (res.success) {
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -640,7 +647,7 @@ export function useSvincolatiState(leagueId: string) {
     const result = await auctionApi.simulateAppeal(leagueId, board?.pendingAck?.auctionId)
     if (result.success) {
       setSuccess('Ricorso simulato! Vai nel pannello Admin per gestirlo.')
-      loadAppealStatus()
+      void loadAppealStatus()
     } else {
       setError(result.message || 'Errore')
     }
@@ -652,8 +659,8 @@ export function useSvincolatiState(leagueId: string) {
     const result = await auctionApi.acknowledgeAppealDecision(appealStatus.auctionId)
     setAckSubmitting(false)
     if (result.success) {
-      loadAppealStatus()
-      loadBoard()
+      void loadAppealStatus()
+      void loadBoard()
     } else {
       setError(result.message || 'Errore')
     }
@@ -665,8 +672,8 @@ export function useSvincolatiState(leagueId: string) {
     const result = await auctionApi.markReadyToResume(appealStatus.auctionId)
     setAckSubmitting(false)
     if (result.success) {
-      loadAppealStatus()
-      loadBoard()
+      void loadAppealStatus()
+      void loadBoard()
     } else {
       setError(result.message || 'Errore')
     }
@@ -677,7 +684,7 @@ export function useSvincolatiState(leagueId: string) {
     const result = await auctionApi.forceAllAppealAcks(appealStatus.auctionId)
     if (result.success) {
       setSuccess('Conferme forzate!')
-      loadAppealStatus()
+      void loadAppealStatus()
     } else {
       setError(result.message || 'Errore')
     }
@@ -688,7 +695,7 @@ export function useSvincolatiState(leagueId: string) {
     const result = await auctionApi.forceAllReadyResume(appealStatus.auctionId)
     if (result.success) {
       setSuccess('Pronti forzati!')
-      loadAppealStatus()
+      void loadAppealStatus()
     } else {
       setError(result.message || 'Errore')
     }
@@ -702,7 +709,7 @@ export function useSvincolatiState(leagueId: string) {
 
     const res = await svincolatiApi.pause(leagueId)
     if (res.success) {
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -715,7 +722,7 @@ export function useSvincolatiState(leagueId: string) {
 
     const res = await svincolatiApi.resume(leagueId)
     if (res.success) {
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -731,7 +738,7 @@ export function useSvincolatiState(leagueId: string) {
     const res = await svincolatiApi.setTimer(leagueId, timerInput)
     if (res.success) {
       setSuccess('Timer aggiornato')
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -741,14 +748,20 @@ export function useSvincolatiState(leagueId: string) {
   // ========== COMPLETE ==========
 
   async function handleCompletePhase() {
-    if (!confirm('Vuoi completare la fase svincolati?')) return
+    const ok = await confirmDialog({
+      title: 'Completa fase svincolati',
+      message: 'Vuoi completare la fase svincolati?',
+      confirmLabel: 'Completa',
+      variant: 'warning'
+    })
+    if (!ok) return
     setError('')
     setIsSubmitting(true)
 
     const res = await svincolatiApi.completePhase(leagueId)
     if (res.success) {
       setSuccess('Fase completata!')
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -765,7 +778,7 @@ export function useSvincolatiState(leagueId: string) {
     if (res.success) {
       const data = res.data as { player?: { name: string }, nominator?: string }
       setSuccess(`Bot: ${data.nominator || 'Manager'} ha nominato ${data.player?.name || 'giocatore'}`)
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -780,7 +793,7 @@ export function useSvincolatiState(leagueId: string) {
     if (res.success) {
       const data = res.data as { player?: { name: string } }
       setSuccess(`Bot: Nominazione confermata per ${data.player?.name || 'giocatore'}`)
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -796,11 +809,11 @@ export function useSvincolatiState(leagueId: string) {
     if (res.success) {
       const data = res.data as { hasBotBid: boolean, winningBot?: string, newCurrentPrice?: number }
       if (data.hasBotBid) {
-        setSuccess(`Bot: ${data.winningBot} ha offerto ${data.newCurrentPrice}!`)
+        setSuccess(`Bot: ${data.winningBot ?? 'Bot'} ha offerto ${data.newCurrentPrice ?? 0}!`)
       } else {
         setSuccess('Nessun manager ha rilanciato')
       }
-      loadBoard()
+      void loadBoard()
     } else {
       setError(res.message || 'Errore')
     }
@@ -845,7 +858,7 @@ export function useSvincolatiState(leagueId: string) {
     // Turn order setup
     turnOrderDraft,
     setTurnOrderDraft,
-    draggedIndex,
+    draggedId,
 
     // Auction
     bidAmount,
@@ -894,9 +907,8 @@ export function useSvincolatiState(leagueId: string) {
     getTimerClass,
 
     // Turn order handlers
-    handleDragStart,
-    handleDragOver,
-    handleDragEnd,
+    handleDndDragEnd,
+    handleDndDragStart,
     handleSetTurnOrder,
 
     // Manager roster handlers
@@ -956,5 +968,6 @@ export function useSvincolatiState(leagueId: string) {
     loadBoard,
     loadFreeAgents,
     loadAppealStatus,
+    setError,
   }
 }

@@ -19,7 +19,6 @@ import type {
   PrizeCategory,
   PrizePhaseConfig,
   SessionPrize,
-  PrizePhaseStatus,
 } from '../../domain/entities/prize.entity'
 
 export class PrizePrismaRepository implements IPrizeRepository {
@@ -68,9 +67,9 @@ export class PrizePrismaRepository implements IPrizeRepository {
   /**
    * Get all system categories (returns empty for now, system categories are per session)
    */
-  async getCategories(): Promise<PrizeCategory[]> {
+  getCategories(): Promise<PrizeCategory[]> {
     // System categories are created per session
-    return []
+    return Promise.resolve([])
   }
 
   /**

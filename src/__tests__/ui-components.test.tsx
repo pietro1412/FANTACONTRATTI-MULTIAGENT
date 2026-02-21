@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createRef } from 'react'
@@ -138,7 +138,7 @@ describe('Button', () => {
       sizes.forEach((size, index) => {
         const { unmount } = render(<Button isLoading size={size}>Button</Button>)
         const svg = screen.getByRole('button').querySelector('svg')
-        expect(svg?.classList.contains(expectedHeights[index])).toBe(true)
+        expect(svg?.classList.contains(expectedHeights[index]!)).toBe(true)
         unmount()
       })
     })
@@ -906,7 +906,7 @@ describe('Input', () => {
       expect(screen.getByText('11/100')).toBeInTheDocument()
     })
 
-    it('does not update internal state when controlled input changes', async () => {
+    it('does not update internal state when controlled input changes', () => {
       const handleChange = vi.fn()
       render(<Input value="controlled" onChange={handleChange} showCharCount maxLength={100} />)
       const input = screen.getByRole('textbox')

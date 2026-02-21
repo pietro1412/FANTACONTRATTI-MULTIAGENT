@@ -39,8 +39,7 @@ export async function createContractHistoryEntry(
       },
     })
     return entry.id
-  } catch (error) {
-    console.error('Error creating contract history entry:', error)
+  } catch {
     return null
   }
 }
@@ -69,8 +68,7 @@ export async function createContractHistoryEntries(
       })),
     })
     return result.count
-  } catch (error) {
-    console.error('Error creating contract history entries:', error)
+  } catch {
     return 0
   }
 }
@@ -116,8 +114,7 @@ export async function createManagerSnapshot(
       },
     })
     return snapshot.id
-  } catch (error) {
-    console.error('Error creating manager snapshot:', error)
+  } catch {
     return null
   }
 }
@@ -167,8 +164,8 @@ export async function createSessionStartSnapshots(
         failed++
       }
     }
-  } catch (error) {
-    console.error('Error creating session start snapshots:', error)
+  } catch {
+    // Error intentionally silenced
   }
 
   return { created, failed }
@@ -488,7 +485,7 @@ export async function getContractPhaseProspetto(
       costiRinnovi += event.cost
       lineItems.push({
         id: event.id,
-        description: `Rinnovo ${event.player.name}: ${event.previousSalary}→${event.newSalary}`,
+        description: `Rinnovo ${event.player.name}: ${event.previousSalary ?? 0}→${event.newSalary ?? 0}`,
         playerName: event.player.name,
         eventType,
         debit: event.cost,
@@ -499,7 +496,7 @@ export async function getContractPhaseProspetto(
     if (eventType === 'SPALMA') {
       lineItems.push({
         id: event.id,
-        description: `Spalma ${event.player.name}: ${event.previousSalary}/${event.previousDuration}s→${event.newSalary}/${event.newDuration}s`,
+        description: `Spalma ${event.player.name}: ${event.previousSalary ?? 0}/${event.previousDuration ?? 0}s→${event.newSalary ?? 0}/${event.newDuration ?? 0}s`,
         playerName: event.player.name,
         eventType,
         timestamp: event.createdAt,
@@ -715,8 +712,8 @@ export async function createPhaseStartSnapshot(
         failed++
       }
     }
-  } catch (error) {
-    console.error('Error creating phase start snapshots:', error)
+  } catch {
+    // Error intentionally silenced
   }
 
   return { created, failed }
@@ -792,8 +789,7 @@ export async function createPhaseEndSnapshot(
       releasedCount,
       renewedCount,
     })
-  } catch (error) {
-    console.error('Error creating phase end snapshot:', error)
+  } catch {
     return null
   }
 }

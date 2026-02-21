@@ -141,8 +141,8 @@ export async function logAction(
         userAgent,
       },
     })
-  } catch (error) {
-    console.error('Failed to log action:', error)
+  } catch {
+    // Error intentionally silenced
   }
 }
 
@@ -475,7 +475,7 @@ export async function migrateProphecies(
       })
       migrated++
     } catch (error) {
-      errors.push(`Errore migrazione profezia per asta ${ack.auctionId}: ${error}`)
+      errors.push(`Errore migrazione profezia per asta ${ack.auctionId}: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -555,7 +555,7 @@ export async function assignPrize(
 
   return {
     success: true,
-    message: `Premio di ${amount}M assegnato a ${targetMember.teamName}${reason ? ` (${reason})` : ''}`,
+    message: `Premio di ${amount}M assegnato a ${targetMember.teamName ?? 'squadra'}${reason ? ` (${reason})` : ''}`,
     data: {
       memberId,
       teamName: targetMember.teamName,

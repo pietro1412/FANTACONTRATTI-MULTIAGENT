@@ -6,8 +6,9 @@
 import type { IRosterRepository } from '../../domain/repositories/roster.repository.interface'
 import type { IContractCalculator } from '../../domain/services/contract-calculator.service'
 import { DURATION_MULTIPLIERS } from '../../domain/services/contract-calculator.service'
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { NotFoundError, InternalError } from '../../../../shared/infrastructure/http/errors'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import { NotFoundError, InternalError } from '@/shared/infrastructure/http/errors'
 
 /**
  * Output of rescission calculation

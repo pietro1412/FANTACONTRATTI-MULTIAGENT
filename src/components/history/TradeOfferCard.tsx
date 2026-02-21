@@ -170,7 +170,7 @@ function PlayerRow({ player }: {
   return (
     <div className="flex items-center justify-between bg-surface-300/30 rounded px-2 py-1.5">
       <div className="flex items-center gap-2">
-        <span className={`text-xs px-1.5 py-0.5 rounded ${positionColors[player.position]}`}>
+        <span className={`text-xs px-1.5 py-0.5 rounded ${positionColors[player.position] ?? ''}`}>
           {player.position}
         </span>
         <span className="text-sm text-white">{player.name}</span>

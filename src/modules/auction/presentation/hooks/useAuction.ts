@@ -241,7 +241,7 @@ export function useAuction(
 
   // Initial fetch
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   // Actions
@@ -254,7 +254,7 @@ export function useAuction(
       try {
         const response = await auctionApi.placeBid(state.currentAuction.id, amount)
         return { success: response.success, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to place bid' }
       }
     },
@@ -269,7 +269,7 @@ export function useAuction(
     try {
       const response = await auctionApi.closeAuction(state.currentAuction.id)
       return { success: response.success, message: response.message }
-    } catch (err) {
+    } catch (_err) {
       return { success: false, message: 'Failed to close auction' }
     }
   }, [state?.currentAuction])
@@ -283,7 +283,7 @@ export function useAuction(
       try {
         const response = await auctionApi.nominatePlayer(sessionId, playerId, basePrice)
         return { success: response.success, message: response.message }
-      } catch (err) {
+      } catch (_err) {
         return { success: false, message: 'Failed to nominate player' }
       }
     },
@@ -298,7 +298,7 @@ export function useAuction(
     try {
       const response = await auctionApi.markReady(sessionId)
       return { success: response.success, message: response.message }
-    } catch (err) {
+    } catch (_err) {
       return { success: false, message: 'Failed to mark ready' }
     }
   }, [sessionId])

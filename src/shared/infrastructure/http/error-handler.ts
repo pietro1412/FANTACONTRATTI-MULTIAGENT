@@ -5,7 +5,7 @@
  * - Hides internal details in production
  */
 
-import { Request, Response, NextFunction } from 'express'
+import type { Request, Response, NextFunction } from 'express'
 import { AppError } from './errors'
 
 interface ErrorResponse {
@@ -35,7 +35,7 @@ const logError = (error: Error | AppError, req: Request): void => {
     method: req.method,
     url: req.originalUrl,
     ip: req.ip,
-    userId: (req as any).userId || 'anonymous',
+    userId: (req as unknown as { userId?: string }).userId || 'anonymous',
   }
 
   if (error instanceof AppError) {

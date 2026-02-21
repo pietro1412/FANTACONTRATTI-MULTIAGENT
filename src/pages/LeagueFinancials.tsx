@@ -49,7 +49,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
   }>> | null>(null)
 
   useEffect(() => {
-    loadFinancials()
+    void loadFinancials()
   }, [leagueId, selectedSession])
 
   async function loadFinancials() {
@@ -90,7 +90,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
     if (tab === 'panoramica') setView({ level: 'panoramica' })
     else if (tab === 'squadre') {
       setView({ level: 'squadre' })
-      loadTrends()
+      void loadTrends()
     }
     else if (tab === 'movimenti') setView({ level: 'movimenti' })
   }
@@ -156,7 +156,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
           <div className="bg-danger-500/10 border border-danger-500/30 rounded-lg p-6 text-center">
             <p className="text-danger-400">{error}</p>
             <button
-              onClick={loadFinancials}
+              onClick={() => void loadFinancials()}
               className="mt-4 px-4 py-2 bg-primary-500 text-white rounded hover:bg-primary-600 transition-colors"
             >
               Riprova
@@ -199,7 +199,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
             {TABS.map(tab => (
               <button
                 key={tab.key}
-                onClick={() => handleTabClick(tab.key)}
+                onClick={() => { handleTabClick(tab.key); }}
                 className={`px-3 md:px-4 py-1.5 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors ${
                   activeTab === tab.key
                     ? 'bg-primary-500 text-white shadow-sm'
@@ -216,7 +216,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] md:text-xs text-gray-500">Fase:</span>
               <button
-                onClick={() => setSelectedSession(undefined)}
+                onClick={() => { setSelectedSession(undefined); }}
                 className={`px-2 md:px-2.5 py-1 rounded-lg text-[10px] md:text-xs font-medium transition-colors ${
                   !selectedSession
                     ? 'bg-primary-500 text-white'
@@ -228,7 +228,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
               {data.availableSessions.map((session) => (
                 <button
                   key={session.id}
-                  onClick={() => setSelectedSession(session.id)}
+                  onClick={() => { setSelectedSession(session.id); }}
                   className={`px-2 md:px-2.5 py-1 rounded-lg text-[10px] md:text-xs font-medium transition-colors ${
                     selectedSession === session.id
                       ? 'bg-primary-500 text-white'

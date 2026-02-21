@@ -152,13 +152,13 @@ export default function LatencyTest() {
         {/* Tab selector */}
         <div className="flex gap-2 mb-4">
           <button
-            onClick={() => setActiveTab('ping')}
+            onClick={() => { setActiveTab('ping'); }}
             className={`px-4 py-2 rounded font-medium ${activeTab === 'ping' ? 'bg-primary-500' : 'bg-surface-300 hover:bg-surface-200'}`}
           >
             Simple Ping
           </button>
           <button
-            onClick={() => setActiveTab('auction')}
+            onClick={() => { setActiveTab('auction'); }}
             className={`px-4 py-2 rounded font-medium ${activeTab === 'auction' ? 'bg-amber-500' : 'bg-surface-300 hover:bg-surface-200'}`}
           >
             Auction Simulation
@@ -173,14 +173,14 @@ export default function LatencyTest() {
               <input
                 type="number"
                 value={testCount}
-                onChange={(e) => setTestCount(Math.max(1, Math.min(50, parseInt(e.target.value) || 10)))}
+                onChange={(e) => { setTestCount(Math.max(1, Math.min(50, parseInt(e.target.value) || 10))); }}
                 className="w-20 px-2 py-1 bg-surface-200 rounded border border-surface-100"
                 min={1}
                 max={50}
               />
             </label>
             <button
-              onClick={runTests}
+              onClick={() => void runTests()}
               disabled={isRunning}
               className={`px-4 py-2 ${activeTab === 'ping' ? 'bg-primary-500 hover:bg-primary-600' : 'bg-amber-500 hover:bg-amber-600'} disabled:opacity-50 rounded font-medium`}
             >
@@ -321,7 +321,7 @@ export default function LatencyTest() {
                         <td className="px-2 py-2 text-right font-mono text-xs">{r.timing['4_countWinningBids'] ?? '-'}ms</td>
                         <td className="px-2 py-2 text-right font-mono text-xs">{r.timing['5_findSession'] ?? '-'}ms</td>
                         <td className="px-2 py-2 text-right font-mono text-xs">
-                          <span className={r.timing['6_pusherTrigger'] > 100 ? 'text-amber-400' : 'text-green-400'}>
+                          <span className={(r.timing['6_pusherTrigger'] ?? 0) > 100 ? 'text-amber-400' : 'text-green-400'}>
                             {r.timing['6_pusherTrigger'] ?? '-'}ms
                           </span>
                         </td>

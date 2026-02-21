@@ -146,9 +146,8 @@ export async function createEmailInvite(
       inviteUrl,
       expiresAt
     )
-    console.log(`[InviteService] Email sent to ${email} for league ${invite.league.name}${!existingUser ? ' (unregistered user)' : ''}`)
-  } catch (err) {
-    console.error('[InviteService] Failed to send invite email:', err)
+    // Email sent successfully
+  } catch {
     // Non blocchiamo la creazione dell'invito se l'email fallisce
   }
 
@@ -270,12 +269,12 @@ export async function acceptInvite(
       await emailService.sendInviteResponseNotificationEmail(
         adminMember.user.email,
         invite.league.name,
-        user.email.split('@')[0], // username approximation from email
+        user.email.split('@')[0] ?? user.email, // username approximation from email
         true, // accepted
         leagueUrl
       )
-    } catch (err) {
-      console.error('[InviteService] Failed to send invite acceptance notification:', err)
+    } catch {
+      // Error intentionally silenced
     }
   }
 
@@ -642,12 +641,12 @@ export async function rejectInvite(
       await emailService.sendInviteResponseNotificationEmail(
         adminMember.user.email,
         invite.league.name,
-        user.email.split('@')[0], // username approximation from email
+        user.email.split('@')[0] ?? user.email, // username approximation from email
         false, // rejected
         leagueUrl
       )
-    } catch (err) {
-      console.error('[InviteService] Failed to send invite rejection notification:', err)
+    } catch {
+      // Error intentionally silenced
     }
   }
 

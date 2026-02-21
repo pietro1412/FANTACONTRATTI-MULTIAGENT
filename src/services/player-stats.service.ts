@@ -5,7 +5,7 @@
  * Fonte dati accurata e sempre aggiornata.
  */
 
-import { PrismaClient } from '@prisma/client'
+import { Prisma, PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 const CURRENT_SEASON = '2025-2026'
@@ -187,7 +187,7 @@ export async function computeSeasonStatsBatch(
   // Fallback: for players without PlayerMatchRating data, use apiFootballStats JSON
   if (missingIds.length > 0) {
     const fallbackPlayers = await prisma.serieAPlayer.findMany({
-      where: { id: { in: missingIds }, apiFootballStats: { not: null } },
+      where: { id: { in: missingIds }, apiFootballStats: { not: Prisma.DbNull } },
       select: { id: true, apiFootballStats: true },
     })
 
@@ -296,7 +296,7 @@ export async function computeAutoTagsBatch(
     const totalGoals = ratings.filter(r => r.minutesPlayed && r.minutesPlayed > 0)
       .reduce((sum, r) => sum + (r.goals || 0), 0)
     if (!goalsByPosition[p.position]) goalsByPosition[p.position] = []
-    goalsByPosition[p.position].push(totalGoals)
+    goalsByPosition[p.position]!.push(totalGoals)
   }
   const avgGoalsByPosition: Record<string, number> = {}
   for (const [pos, goals] of Object.entries(goalsByPosition)) {
@@ -348,7 +348,7 @@ export async function computeAutoTagsBatch(
     }
 
     // RIGORISTA: from apiFootballStats
-    const stats = player.apiFootballStats as Record<string, unknown> | null
+    const stats = player.apiFootballStats
     if (stats) {
       const penalty = stats.penalty as { scored?: number } | undefined
       if (penalty && (penalty.scored || 0) > 0) tags.push('RIGORISTA')

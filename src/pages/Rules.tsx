@@ -69,9 +69,9 @@ export function Rules() {
 
   const handleBack = () => {
     if (isAuthenticated) {
-      navigate('/dashboard')
+      void navigate('/dashboard')
     } else {
-      navigate('/login')
+      void navigate('/login')
     }
   }
 
@@ -102,7 +102,7 @@ export function Rules() {
           </div>
           {!isAuthenticated && (
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => { void navigate('/login') }}
               className="px-4 py-2 text-sm font-medium text-primary-400 hover:text-white hover:bg-primary-500/20 rounded-lg transition-all"
             >
               Accedi

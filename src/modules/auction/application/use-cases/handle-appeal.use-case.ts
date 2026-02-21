@@ -5,15 +5,17 @@
  * Appeals can be created by league members and resolved by admins.
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import type {
+  ForbiddenError} from '@/shared/infrastructure/http/errors';
 import {
   ValidationError,
   NotFoundError,
-  ConflictError,
-  ForbiddenError,
-} from '../../../../shared/infrastructure/http/errors'
-import { DomainEventTypes } from '../../../../shared/infrastructure/events/domain-events'
-import type { EventBus } from '../../../../shared/infrastructure/events/event-bus'
+  ConflictError
+} from '@/shared/infrastructure/http/errors'
+import { DomainEventTypes } from '@/shared/infrastructure/events/domain-events'
+import type { EventBus } from '@/shared/infrastructure/events/event-bus'
 import type { IAuctionRepository } from '../../domain/repositories/auction.repository.interface'
 import type { CreateAppealDto, ResolveAppealDto, AppealResultDto } from '../dto/auction.dto'
 
@@ -124,11 +126,16 @@ export class CreateAppealUseCase {
  * If accepted, may reopen auction or reassign player.
  */
 export class ResolveAppealUseCase {
+  // Reserved for future authorization checks
+  readonly authorizationService: IAuthorizationService
+
   constructor(
     private readonly auctionRepository: IAuctionRepository,
     private readonly eventBus: EventBus,
-    private readonly authorizationService: IAuthorizationService
-  ) {}
+    authorizationService: IAuthorizationService
+  ) {
+    this.authorizationService = authorizationService
+  }
 
   /**
    * Execute the resolve appeal use case
@@ -139,7 +146,7 @@ export class ResolveAppealUseCase {
   async execute(
     dto: ResolveAppealDto
   ): Promise<Result<AppealResultDto, ValidationError | NotFoundError | ForbiddenError>> {
-    const { appealId, resolution, notes, adminUserId } = dto
+    const { appealId, resolution, notes } = dto
 
     // ==================== VALIDATE INPUT ====================
     if (!notes || notes.trim().length === 0) {

@@ -360,7 +360,7 @@ export class ProphecyPrismaRepository implements IProphecyRepository {
         playerId: data.playerId,
         authorId: data.authorId,
         movementId: data.movementId,
-        authorRole: data.authorRole as 'BUYER' | 'SELLER',
+        authorRole: data.authorRole,
         content: data.content,
       },
       include: {

@@ -28,7 +28,7 @@ export function Register({ onNavigate }: RegisterProps) {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [isLoading, setIsLoading] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState('')
-  const handleTurnstileVerify = useCallback((token: string) => setTurnstileToken(token), [])
+  const handleTurnstileVerify = useCallback((token: string) => { setTurnstileToken(token); }, [])
 
   function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
     let score = 0
@@ -144,7 +144,7 @@ export function Register({ onNavigate }: RegisterProps) {
 
         {/* Card */}
         <div className="bg-surface-200 rounded-2xl border border-surface-50/20 p-4 sm:p-8 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={(e) => { void handleSubmit(e) }} className="space-y-5">
             <div className={`min-h-[56px] transition-all duration-200 ${error ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
               {error && (
                 <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-lg text-base">
@@ -160,7 +160,7 @@ export function Register({ onNavigate }: RegisterProps) {
               autoComplete="email"
               value={email}
               onChange={e => { setEmail(e.target.value); if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: undefined })) }}
-              onBlur={() => validateField('email')}
+              onBlur={() => { validateField('email'); }}
               placeholder="mario@email.com"
               required
               error={fieldErrors.email}
@@ -171,7 +171,7 @@ export function Register({ onNavigate }: RegisterProps) {
               type="text"
               value={username}
               onChange={e => { setUsername(e.target.value); if (fieldErrors.username) setFieldErrors(prev => ({ ...prev, username: undefined })) }}
-              onBlur={() => validateField('username')}
+              onBlur={() => { validateField('username'); }}
               placeholder="MisterRossi"
               required
               minLength={3}
@@ -185,7 +185,7 @@ export function Register({ onNavigate }: RegisterProps) {
                 type="password"
                 value={password}
                 onChange={e => { setPassword(e.target.value); if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: undefined })) }}
-                onBlur={() => validateField('password')}
+                onBlur={() => { validateField('password'); }}
                 placeholder="••••••••"
                 required
                 minLength={8}
@@ -215,7 +215,7 @@ export function Register({ onNavigate }: RegisterProps) {
               type="password"
               value={confirmPassword}
               onChange={e => { setConfirmPassword(e.target.value); if (fieldErrors.confirmPassword) setFieldErrors(prev => ({ ...prev, confirmPassword: undefined })) }}
-              onBlur={() => validateField('confirmPassword')}
+              onBlur={() => { validateField('confirmPassword'); }}
               placeholder="••••••••"
               required
               error={fieldErrors.confirmPassword}
@@ -237,7 +237,7 @@ export function Register({ onNavigate }: RegisterProps) {
               Hai già un account?{' '}
               <button
                 type="button"
-                onClick={() => onNavigate('login')}
+                onClick={() => { onNavigate('login'); }}
                 className="text-primary-400 hover:text-primary-300 font-semibold transition-colors"
               >
                 Accedi

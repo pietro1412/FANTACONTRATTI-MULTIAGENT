@@ -1,4 +1,5 @@
-import { PrismaClient, MemberStatus, AuctionStatus, Position, Prisma } from '@prisma/client'
+import type { Position } from '@prisma/client';
+import { PrismaClient, MemberStatus, AuctionStatus, Prisma, RosterStatus } from '@prisma/client'
 import { recordMovement } from './movement.service'
 import { calculateDefaultSalary, calculateRescissionClause } from './contract.service'
 import { logAction } from './admin.service'
@@ -751,7 +752,7 @@ export async function setSvincolatiTurnOrder(
       svincolatiPendingPlayerId: null,
       svincolatiPendingNominatorId: null,
       svincolatiNominatorConfirmed: false,
-      svincolatiPendingAck: null,
+      svincolatiPendingAck: Prisma.DbNull,
     },
   })
 
@@ -1386,7 +1387,7 @@ export async function passSvincolatiTurn(
   // Skip members who have already passed or declared finished
   let searchIndex = nextTurnIndex
   let searchCount = 0
-  while ((newPassedMembers.includes(turnOrder[searchIndex]) || finishedMembers.includes(turnOrder[searchIndex])) && searchCount < turnOrder.length) {
+  while ((newPassedMembers.includes(turnOrder[searchIndex]!) || finishedMembers.includes(turnOrder[searchIndex]!)) && searchCount < turnOrder.length) {
     searchIndex = (searchIndex + 1) % turnOrder.length
     searchCount++
   }
@@ -1400,7 +1401,7 @@ export async function passSvincolatiTurn(
   })
 
   const nextMember = await prisma.leagueMember.findUnique({
-    where: { id: turnOrder[searchIndex] },
+    where: { id: turnOrder[searchIndex]! },
     include: { user: { select: { username: true } } },
   })
 
@@ -1838,7 +1839,7 @@ async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceRe
         svincolatiPendingPlayerId: null,
         svincolatiPendingNominatorId: null,
         svincolatiNominatorConfirmed: false,
-        svincolatiPendingAck: null,
+        svincolatiPendingAck: Prisma.DbNull,
         svincolatiReadyMembers: [],
       },
     })
@@ -1873,7 +1874,7 @@ async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceRe
         svincolatiPendingPlayerId: null,
         svincolatiPendingNominatorId: null,
         svincolatiNominatorConfirmed: false,
-        svincolatiPendingAck: null,
+        svincolatiPendingAck: Prisma.DbNull,
         svincolatiReadyMembers: [],
       },
     })
@@ -1915,9 +1916,9 @@ async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceRe
   let nextIndex = (currentTurnIndex + 1) % turnOrder.length
   let searchCount = 0
   while (
-    (newPassedMembers.includes(turnOrder[nextIndex]) ||
-     finishedMembers.includes(turnOrder[nextIndex]) ||
-     insufficientBudgetMembers.includes(turnOrder[nextIndex])) &&
+    (newPassedMembers.includes(turnOrder[nextIndex]!) ||
+     finishedMembers.includes(turnOrder[nextIndex]!) ||
+     insufficientBudgetMembers.includes(turnOrder[nextIndex]!)) &&
     searchCount < turnOrder.length
   ) {
     nextIndex = (nextIndex + 1) % turnOrder.length
@@ -1939,7 +1940,7 @@ async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceRe
         svincolatiPendingPlayerId: null,
         svincolatiPendingNominatorId: null,
         svincolatiNominatorConfirmed: false,
-        svincolatiPendingAck: null,
+        svincolatiPendingAck: Prisma.DbNull,
         svincolatiReadyMembers: [],
       },
     })
@@ -1960,14 +1961,14 @@ async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceRe
       svincolatiPendingPlayerId: null,
       svincolatiPendingNominatorId: null,
       svincolatiNominatorConfirmed: false,
-      svincolatiPendingAck: null,
+      svincolatiPendingAck: Prisma.DbNull,
       svincolatiReadyMembers: [],
       svincolatiPassedMembers: newPassedMembers,
     },
   })
 
   const nextMember = await prisma.leagueMember.findUnique({
-    where: { id: turnOrder[nextIndex] },
+    where: { id: turnOrder[nextIndex]! },
     include: { user: { select: { username: true } } },
   })
 
@@ -2105,7 +2106,7 @@ export async function botNominateSvincolati(
   }
 
   if (activeSession.svincolatiState !== 'READY_CHECK') {
-    return { success: false, message: 'Non è il momento di nominare (stato: ' + activeSession.svincolatiState + ')' }
+    return { success: false, message: `Non è il momento di nominare (stato: ${activeSession.svincolatiState ?? 'N/A'})` }
   }
 
   // Get current turn member
@@ -2152,7 +2153,7 @@ export async function botNominateSvincolati(
   }
 
   // Pick a random player
-  const randomPlayer = freeAgents[Math.floor(Math.random() * freeAgents.length)]
+  const randomPlayer = freeAgents[Math.floor(Math.random() * freeAgents.length)]!
 
   // Set pending nomination
   await prisma.marketSession.update({
@@ -2315,7 +2316,7 @@ export async function botBidSvincolati(
   }
 
   // Pick a random bidder
-  const randomBidder = potentialBidders[Math.floor(Math.random() * potentialBidders.length)]
+  const randomBidder = potentialBidders[Math.floor(Math.random() * potentialBidders.length)]!
 
   // Calculate bid amount (+1 to +3)
   const bidIncrement = Math.floor(Math.random() * 3) + 1

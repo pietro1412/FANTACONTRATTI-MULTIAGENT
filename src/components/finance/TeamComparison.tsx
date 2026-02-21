@@ -2,11 +2,12 @@ import { useMemo, useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  ScatterChart, Scatter, Cell, ZAxis,
+  ScatterChart, Scatter, ZAxis,
   LineChart, Line,
 } from 'recharts'
+import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
 import { TeamRanking } from './TeamRanking'
-import { SectionHeader } from './KPICard'
+
 import { LandscapeHint } from '../ui/LandscapeHint'
 import {
   type FinancialsData, type LeagueTotals,
@@ -89,12 +90,14 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
       const balance = getTeamBalance(t, totals.hasFinancialDetails)
       const initialBudget = t.budget + t.totalAcquisitionCost
       const salaryPct = initialBudget > 0 ? (t.annualContractCost / initialBudget) * 100 : 0
+      const health = getHealthStatus(balance)
       return {
         name: t.teamName,
         memberId: t.memberId,
         x: Math.round(salaryPct),
         y: balance,
-        health: getHealthStatus(balance),
+        health,
+        fill: health === 'good' ? '#22c55e' : health === 'warning' ? '#fbbf24' : '#ef4444',
       }
     })
   }, [sortedTeams, totals.hasFinancialDetails])
@@ -123,7 +126,7 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
 
   // Contract duration averages
   const durationData = useMemo(() => {
-    return sortedTeams.map(t => {
+    return sortedTeams.map((t, i) => {
       const players = t.players.filter(p => p.duration > 0)
       const avgDur = players.length > 0
         ? players.reduce((s, p) => s + p.duration, 0) / players.length
@@ -132,6 +135,7 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
         name: t.teamName.length > 10 ? t.teamName.substring(0, 10) + '..' : t.teamName,
         fullName: t.teamName,
         avgDuration: Math.round(avgDur * 10) / 10,
+        fill: TEAM_COLORS[i % TEAM_COLORS.length],
       }
     }).sort((a, b) => b.avgDuration - a.avgDuration)
   }, [sortedTeams])
@@ -149,7 +153,7 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
         ] as const).map(opt => (
           <button
             key={opt.key}
-            onClick={() => setSortBy(opt.key)}
+            onClick={() => { setSortBy(opt.key); }}
             className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
               sortBy === opt.key
                 ? 'bg-primary-500 text-white'
@@ -185,11 +189,12 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
                   itemStyle={{ color: '#fff' }}
-                  formatter={((value: number, name: string) => [`${value}M`, name === 'bilancio' ? 'Bilancio' : name === 'ingaggi' ? 'Ingaggi' : 'Acquisti']) as any}
-                  labelFormatter={((label: string) => {
-                    const item = stackedBarData.find(d => d.name === label)
-                    return item?.fullName || label
-                  }) as any}
+                  formatter={((value: number, name: string) => [`${value}M`, name === 'bilancio' ? 'Bilancio' : name === 'ingaggi' ? 'Ingaggi' : 'Acquisti']) as Formatter<number, string>}
+                  labelFormatter={((label: unknown) => {
+                    const labelStr = String(label)
+                    const item = stackedBarData.find(d => d.name === labelStr)
+                    return item?.fullName ?? labelStr
+                  }) as never}
                 />
                 <Legend
                   formatter={(value: string) => value === 'bilancio' ? 'Bilancio' : value === 'ingaggi' ? 'Ingaggi' : 'Acquisti'}
@@ -244,17 +249,14 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
                 <YAxis type="category" dataKey="name" tick={{ fill: '#9ca3af', fontSize: 10 }} width={80} />
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
-                  formatter={((value: number) => [`${value} semestri`, 'Durata media']) as any}
-                  labelFormatter={((label: string) => {
-                    const item = durationData.find(d => d.name === label)
-                    return item?.fullName || label
-                  }) as any}
+                  formatter={((value: number) => [`${value} semestri`, 'Durata media']) as Formatter<number, string>}
+                  labelFormatter={((label: unknown) => {
+                    const labelStr = String(label)
+                    const item = durationData.find(d => d.name === labelStr)
+                    return item?.fullName ?? labelStr
+                  }) as never}
                 />
-                <Bar dataKey="avgDuration" fill="#8b5cf6" radius={[0, 4, 4, 0]}>
-                  {durationData.map((_, i) => (
-                    <Cell key={i} fill={TEAM_COLORS[i % TEAM_COLORS.length]} fillOpacity={0.7} />
-                  ))}
-                </Bar>
+                <Bar dataKey="avgDuration" fill="#8b5cf6" radius={[0, 4, 4, 0]} fillOpacity={0.7} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -289,20 +291,13 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
                   formatter={((value: number, name: string) => [
                     name === 'Bilancio' ? `${value}M` : `${value}%`,
                     name
-                  ]) as any}
+                  ]) as Formatter<number, string>}
                   labelFormatter={(_, payload) => {
                     const item = payload?.[0]?.payload as (typeof scatterData)[0] | undefined
                     return item?.name || ''
                   }}
                 />
-                <Scatter data={scatterData} name="Squadre">
-                  {scatterData.map((entry, i) => (
-                    <Cell
-                      key={i}
-                      fill={entry.health === 'good' ? '#22c55e' : entry.health === 'warning' ? '#fbbf24' : '#ef4444'}
-                    />
-                  ))}
-                </Scatter>
+                <Scatter data={scatterData} name="Squadre" />
               </ScatterChart>
             </ResponsiveContainer>
           </div>
@@ -327,7 +322,7 @@ export function TeamComparison({ data, onTeamClick, trends }: TeamComparisonProp
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
                   itemStyle={{ color: '#fff' }}
-                  formatter={((value: number) => [`${value}M`, '']) as any}
+                  formatter={((value: number) => [`${value}M`, '']) as Formatter<number, string>}
                 />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
                 {trendsChartData.teamNames.map((name, i) => (

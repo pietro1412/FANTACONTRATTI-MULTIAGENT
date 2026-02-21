@@ -68,6 +68,9 @@ describe('RosterPrismaRepository', () => {
     draftSalary: null,
     draftDuration: null,
     draftReleased: false,
+    draftExitDecision: null,
+    preConsolidationSalary: null,
+    preConsolidationDuration: null,
     signedAt: new Date('2024-01-01'),
     expiresAt: null,
     renewalHistory: null,
@@ -100,8 +103,8 @@ describe('RosterPrismaRepository', () => {
       })
 
       expect(result).toHaveLength(1)
-      expect(result[0].id).toBe('roster-1')
-      expect(result[0].acquisitionType).toBe('AUCTION') // Mapped from FIRST_MARKET
+      expect(result[0]!.id).toBe('roster-1')
+      expect(result[0]!.acquisitionType).toBe('AUCTION') // Mapped from FIRST_MARKET
     })
 
     it('should return empty array when no rosters found', async () => {
@@ -365,8 +368,8 @@ describe('RosterPrismaRepository', () => {
       })
 
       expect(result).toHaveLength(1)
-      expect(result[0].roster.id).toBe('roster-1')
-      expect(result[0].contract.salary).toBe(10)
+      expect(result[0]!.roster.id).toBe('roster-1')
+      expect(result[0]!.contract.salary).toBe(10)
     })
   })
 
@@ -393,7 +396,7 @@ describe('RosterPrismaRepository', () => {
       })
 
       expect(result).toHaveLength(1)
-      expect(result[0].duration).toBe(4)
+      expect(result[0]!.duration).toBe(4)
     })
   })
 
@@ -402,6 +405,7 @@ describe('RosterPrismaRepository', () => {
       vi.mocked(prisma.leagueMember.findUnique).mockResolvedValue({
         id: 'member-1',
         currentBudget: 150,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
       } as any)
 
       const result = await repository.getMemberBudget('member-1')
@@ -426,6 +430,7 @@ describe('RosterPrismaRepository', () => {
       vi.mocked(prisma.leagueMember.update).mockResolvedValue({
         id: 'member-1',
         currentBudget: 200,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
       } as any)
 
       const result = await repository.updateMemberBudget('member-1', 50)
@@ -447,6 +452,7 @@ describe('RosterPrismaRepository', () => {
       vi.mocked(prisma.leagueMember.update).mockResolvedValue({
         id: 'member-1',
         currentBudget: 100,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vi.mocked partial mock
       } as any)
 
       const result = await repository.updateMemberBudget('member-1', -50)
@@ -475,7 +481,7 @@ describe('RosterPrismaRepository', () => {
 
       const result = await repository.findByMemberId('member-1')
 
-      expect(result[0].acquisitionType).toBe('RUBATA')
+      expect(result[0]!.acquisitionType).toBe('RUBATA')
     })
 
     it('should correctly map SVINCOLATI acquisition type', async () => {
@@ -487,7 +493,7 @@ describe('RosterPrismaRepository', () => {
 
       const result = await repository.findByMemberId('member-1')
 
-      expect(result[0].acquisitionType).toBe('SVINCOLATI')
+      expect(result[0]!.acquisitionType).toBe('SVINCOLATI')
     })
 
     it('should correctly map TRADE acquisition type', async () => {
@@ -499,7 +505,7 @@ describe('RosterPrismaRepository', () => {
 
       const result = await repository.findByMemberId('member-1')
 
-      expect(result[0].acquisitionType).toBe('TRADE')
+      expect(result[0]!.acquisitionType).toBe('TRADE')
     })
   })
 })

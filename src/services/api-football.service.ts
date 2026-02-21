@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, Prisma } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -227,7 +227,7 @@ async function apiFootballFetch<T>(endpoint: string, params: Record<string, stri
   }
 
   const url = new URL(API_BASE + endpoint)
-  Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v))
+  Object.entries(params).forEach(([k, v]) => { url.searchParams.append(k, v); })
 
   const res = await fetch(url.toString(), {
     headers: {
@@ -272,11 +272,11 @@ function extractLastName(fullName: string): string {
 
   if (nonInitials.length > 0) {
     // Prefer the LAST part as surname (Italian/Spanish convention: "Name Surname")
-    return nonInitials[nonInitials.length - 1]
+    return nonInitials[nonInitials.length - 1]!
   }
 
   // Fallback: return the last part even if short
-  return parts.length > 0 ? parts[parts.length - 1] : ''
+  return parts.length > 0 ? parts[parts.length - 1]! : ''
 }
 
 /**
@@ -374,7 +374,7 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
         })
 
         if (exactMatches.length === 1) {
-          const apiPlayer = exactMatches[0]
+          const apiPlayer = exactMatches[0]!
           if (!usedApiIds.has(apiPlayer.id)) {
             matched.push({ dbId: dbPlayer.id, apiId: apiPlayer.id, name: dbPlayer.name, age: apiPlayer.age || null })
             matchedDbIds.add(dbPlayer.id)
@@ -394,7 +394,7 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
           })
 
           if (partialMatches.length === 1) {
-            const apiPlayer = partialMatches[0]
+            const apiPlayer = partialMatches[0]!
             if (!usedApiIds.has(apiPlayer.id)) {
               matched.push({ dbId: dbPlayer.id, apiId: apiPlayer.id, name: dbPlayer.name, age: apiPlayer.age || null })
               matchedDbIds.add(dbPlayer.id)
@@ -415,7 +415,7 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
             })
 
             if (namePartMatches.length === 1) {
-              const apiPlayer = namePartMatches[0]
+              const apiPlayer = namePartMatches[0]!
               if (!usedApiIds.has(apiPlayer.id)) {
                 matched.push({ dbId: dbPlayer.id, apiId: apiPlayer.id, name: dbPlayer.name, age: apiPlayer.age || null })
                 matchedDbIds.add(dbPlayer.id)
@@ -437,7 +437,7 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
               })
 
               if (levenshteinMatches.length === 1) {
-                const apiPlayer = levenshteinMatches[0]
+                const apiPlayer = levenshteinMatches[0]!
                 if (!usedApiIds.has(apiPlayer.id)) {
                   matched.push({ dbId: dbPlayer.id, apiId: apiPlayer.id, name: dbPlayer.name, age: apiPlayer.age || null })
                   matchedDbIds.add(dbPlayer.id)
@@ -471,9 +471,8 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
           },
         })
         savedCount++
-      } catch (e) {
+      } catch {
         // Skip duplicates (unique constraint violations)
-        console.log(`Skipped duplicate apiFootballId ${m.apiId} for player ${m.name}`)
       }
     }
 
@@ -498,7 +497,6 @@ export async function matchPlayers(userId: string): Promise<MatchResult> {
       },
     }
   } catch (error) {
-    console.error('matchPlayers error:', error)
     return { success: false, message: `Errore matching: ${(error as Error).message}` }
   }
 }
@@ -531,7 +529,6 @@ export async function manualMatch(userId: string, playerId: string, apiFootballI
 
     return { success: true, message: `${player.name} matchato con API-Football ID ${apiFootballId}` }
   } catch (error) {
-    console.error('manualMatch error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
   }
 }
@@ -670,7 +667,6 @@ export async function syncStats(userId: string): Promise<SyncResult> {
       data: { synced, notFound, noApiId, apiCallsUsed },
     }
   } catch (error) {
-    console.error('syncStats error:', error)
     return { success: false, message: `Errore sync: ${(error as Error).message}` }
   }
 }
@@ -687,7 +683,7 @@ export async function getSyncStatus(userId: string): Promise<SyncStatus> {
   try {
     const totalPlayers = await prisma.serieAPlayer.count({ where: { isActive: true } })
     const matched = await prisma.serieAPlayer.count({ where: { isActive: true, apiFootballId: { not: null } } })
-    const withStats = await prisma.serieAPlayer.count({ where: { isActive: true, apiFootballStats: { not: null } } })
+    const withStats = await prisma.serieAPlayer.count({ where: { isActive: true, apiFootballStats: { not: Prisma.JsonNull } } })
 
     // Get last sync time
     const lastSynced = await prisma.serieAPlayer.findFirst({
@@ -708,7 +704,6 @@ export async function getSyncStatus(userId: string): Promise<SyncStatus> {
       },
     }
   } catch (error) {
-    console.error('getSyncStatus error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
   }
 }
@@ -724,22 +719,22 @@ function levenshteinDistance(a: string, b: string): number {
     matrix[i] = [i]
   }
   for (let j = 0; j <= a.length; j++) {
-    matrix[0][j] = j
+    matrix[0]![j] = j
   }
   for (let i = 1; i <= b.length; i++) {
     for (let j = 1; j <= a.length; j++) {
       if (b.charAt(i - 1) === a.charAt(j - 1)) {
-        matrix[i][j] = matrix[i - 1][j - 1]
+        matrix[i]![j] = matrix[i - 1]![j - 1]!
       } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
+        matrix[i]![j] = Math.min(
+          (matrix[i - 1]![j - 1] ?? 0) + 1,
+          (matrix[i]![j - 1] ?? 0) + 1,
+          (matrix[i - 1]![j] ?? 0) + 1
         )
       }
     }
   }
-  return matrix[b.length][a.length]
+  return matrix[b.length]![a.length]!
 }
 
 /**
@@ -806,7 +801,6 @@ export async function refreshApiFootballCache(userId: string): Promise<{ success
       apiCallsUsed,
     }
   } catch (error) {
-    console.error('refreshApiFootballCache error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}`, apiCallsUsed: 0 }
   }
 }
@@ -910,12 +904,12 @@ export async function getMatchProposals(userId: string): Promise<ProposalsResult
         }
 
         // MEDIUM confidence: partial name match (one contains the other)
-        if (!bestMatch || bestMatch.confidence === 'LOW' || bestMatch.confidence === 'NONE') {
+        if (!bestMatch || bestMatch.confidence === 'LOW' || (bestMatch.confidence as string) === 'NONE') {
           for (const dbPart of dbParts) {
             for (const apiPart of apiParts) {
               if (dbPart.length >= 3 && apiPart.length >= 3) {
                 if (apiPart.includes(dbPart) || dbPart.includes(apiPart)) {
-                  if (!bestMatch || bestMatch.confidence === 'LOW' || bestMatch.confidence === 'NONE') {
+                  if (!bestMatch || bestMatch.confidence === 'LOW' || (bestMatch.confidence as string) === 'NONE') {
                     bestMatch = { player: apiPlayer, confidence: 'MEDIUM', method: 'partial_name' }
                   }
                 }
@@ -957,7 +951,6 @@ export async function getMatchProposals(userId: string): Promise<ProposalsResult
       data: { proposals, apiCallsUsed, cacheRefreshed },
     }
   } catch (error) {
-    console.error('getMatchProposals error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
   }
 }
@@ -1012,7 +1005,6 @@ export async function searchApiFootballPlayers(userId: string, query: string): P
       data: { players: matchingPlayers },
     }
   } catch (error) {
-    console.error('searchApiFootballPlayers error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
   }
 }
@@ -1027,7 +1019,7 @@ export async function getUnmatchedPlayers(userId: string, search?: string): Prom
   }
 
   try {
-    const where: Parameters<typeof prisma.serieAPlayer.findMany>[0]['where'] = {
+    const where: NonNullable<Parameters<typeof prisma.serieAPlayer.findMany>[0]>['where'] = {
       isActive: true,
       apiFootballId: null,
     }
@@ -1065,7 +1057,6 @@ export async function getUnmatchedPlayers(userId: string, search?: string): Prom
       },
     }
   } catch (error) {
-    console.error('getUnmatchedPlayers error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
   }
 }
@@ -1080,7 +1071,7 @@ export async function getMatchedPlayers(userId: string, search?: string): Promis
   }
 
   try {
-    const where: Parameters<typeof prisma.serieAPlayer.findMany>[0]['where'] = {
+    const where: NonNullable<Parameters<typeof prisma.serieAPlayer.findMany>[0]>['where'] = {
       isActive: true,
       apiFootballId: { not: null },
     }
@@ -1128,7 +1119,6 @@ export async function getMatchedPlayers(userId: string, search?: string): Promis
       },
     }
   } catch (error) {
-    console.error('getMatchedPlayers error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
   }
 }
@@ -1224,7 +1214,6 @@ export async function syncStatsInternal(): Promise<SyncResult> {
       data: { synced, notFound, noApiId, apiCallsUsed },
     }
   } catch (error) {
-    console.error('syncStatsInternal error:', error)
     return { success: false, message: `Errore sync: ${(error as Error).message}` }
   }
 }
@@ -1271,7 +1260,6 @@ export async function refreshCacheInternal(): Promise<{ success: boolean; messag
 
     return { success: true, message: `Cache aggiornata: ${allPlayers.length} giocatori da ${teams.length} squadre`, apiCallsUsed }
   } catch (error) {
-    console.error('refreshCacheInternal error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}`, apiCallsUsed: 0 }
   }
 }
@@ -1430,8 +1418,7 @@ export async function syncMatchRatings(options: { maxFixtures?: number } = {}): 
 
         // Rate limiting between fixtures
         await new Promise((resolve) => setTimeout(resolve, 150))
-      } catch (fixtureError) {
-        console.error(`[SYNC] Error processing fixture ${fixture.fixture.id}:`, fixtureError)
+      } catch {
         // Continue with next fixture
       }
     }
@@ -1464,8 +1451,6 @@ export async function syncMatchRatings(options: { maxFixtures?: number } = {}): 
       },
     }
   } catch (error) {
-    console.error('syncMatchRatings error:', error)
-
     // Log failure
     try {
       await prisma.apiFootballSyncLog.create({
@@ -1493,8 +1478,7 @@ export async function getSyncHistory(): Promise<{ success: boolean; data?: unkno
       take: 50,
     })
     return { success: true, data: logs }
-  } catch (error) {
-    console.error('getSyncHistory error:', error)
+  } catch {
     return { success: false }
   }
 }
@@ -1526,14 +1510,13 @@ export async function removeMatch(userId: string, playerId: string): Promise<{ s
       where: { id: playerId },
       data: {
         apiFootballId: null,
-        apiFootballStats: null,
+        apiFootballStats: Prisma.DbNull,
         statsSyncedAt: null,
       },
     })
 
     return { success: true, message: `Match rimosso per ${player.name}` }
   } catch (error) {
-    console.error('removeMatch error:', error)
     return { success: false, message: `Errore: ${(error as Error).message}` }
   }
 }

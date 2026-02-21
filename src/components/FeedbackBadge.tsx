@@ -28,10 +28,10 @@ export function FeedbackBadge({ onNavigate }: FeedbackBadgeProps) {
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    loadNotifications()
+    void loadNotifications()
     // Poll every 30 seconds for new notifications
-    const interval = setInterval(loadNotifications, 30000)
-    return () => clearInterval(interval)
+    const interval = setInterval(() => { void loadNotifications() }, 30000)
+    return () => { clearInterval(interval); }
   }, [])
 
   // Close dropdown when clicking outside
@@ -42,7 +42,7 @@ export function FeedbackBadge({ onNavigate }: FeedbackBadgeProps) {
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    return () => { document.removeEventListener('mousedown', handleClickOutside); }
   }, [])
 
   async function loadNotifications() {
@@ -50,8 +50,9 @@ export function FeedbackBadge({ onNavigate }: FeedbackBadgeProps) {
     try {
       const res = await feedbackApi.getUnreadNotifications()
       if (res.success && res.data) {
-        setNotifications(res.data.notifications || [])
-        setCount(res.data.count || 0)
+        const data = res.data as { notifications?: FeedbackNotification[]; count?: number }
+        setNotifications(data.notifications ?? [])
+        setCount(data.count ?? 0)
       }
     } catch (err) {
       console.error('Failed to load feedback notifications:', err)
@@ -90,7 +91,7 @@ export function FeedbackBadge({ onNavigate }: FeedbackBadgeProps) {
     <div className="relative" ref={dropdownRef}>
       {/* Badge Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => { setIsOpen(!isOpen); }}
         className="relative p-2 text-gray-400 hover:text-white hover:bg-surface-300/50 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400/50"
         title={`${count} notific${count === 1 ? 'a' : 'he'} segnalazioni`}
       >
@@ -119,7 +120,7 @@ export function FeedbackBadge({ onNavigate }: FeedbackBadgeProps) {
               </div>
               {count > 0 && (
                 <button
-                  onClick={handleMarkAllRead}
+                  onClick={() => void handleMarkAllRead()}
                   className="text-xs text-gray-400 hover:text-white transition-colors"
                 >
                   Segna tutte lette
@@ -141,12 +142,12 @@ export function FeedbackBadge({ onNavigate }: FeedbackBadgeProps) {
             ) : (
               <div className="py-2">
                 {notifications.map(notification => {
-                  const statusCfg = statusConfig[notification.feedbackStatus] || statusConfig.APERTA
+                  const statusCfg = statusConfig[notification.feedbackStatus] ?? { label: 'Aperta', color: 'bg-amber-500/20 text-amber-400' }
 
                   return (
                     <button
                       key={notification.id}
-                      onClick={() => handleViewFeedback(notification.feedbackId)}
+                      onClick={() => { handleViewFeedback(notification.feedbackId); }}
                       className="w-full px-4 py-3 border-b border-surface-50/10 last:border-0 hover:bg-surface-300/30 transition-colors text-left"
                     >
                       <div className="flex items-start justify-between gap-2 mb-1">

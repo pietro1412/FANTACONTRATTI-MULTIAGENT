@@ -5,4 +5,4 @@
  */
 
 // Re-export from existing locations
-export { default as Trades } from '@/pages/Trades'
+export { Trades } from '@/pages/Trades'

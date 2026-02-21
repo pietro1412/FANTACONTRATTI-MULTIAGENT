@@ -47,7 +47,7 @@ export function ManagersSidebar({
   const handleCopy = async () => {
     await navigator.clipboard.writeText(inviteCode)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setTimeout(() => { setCopied(false); }, 2000)
   }
 
   const giniInfo = totals ? getGiniLabel(totals.giniIndex) : null
@@ -119,7 +119,7 @@ export function ManagersSidebar({
                 {inviteCode}
               </code>
               <button
-                onClick={handleCopy}
+                onClick={() => void handleCopy()}
                 className="px-3 py-1.5 bg-primary-500/20 text-primary-400 text-xs rounded hover:bg-primary-500/30 transition-colors font-medium"
               >
                 {copied ? 'Copiato!' : 'Copia'}
@@ -151,9 +151,9 @@ export function ManagersSidebar({
               <span className="text-gray-400">Team OK / Attenzione / Critico</span>
               <span className="text-sm">
                 <span className="text-green-400 font-medium">{totals.healthyTeams}</span>
-                <span className="text-gray-600 mx-0.5">/</span>
+                <span className="text-gray-400 mx-0.5">/</span>
                 <span className="text-amber-400 font-medium">{totals.warningTeams}</span>
-                <span className="text-gray-600 mx-0.5">/</span>
+                <span className="text-gray-400 mx-0.5">/</span>
                 <span className="text-danger-400 font-medium">{totals.criticalTeams}</span>
               </span>
             </div>

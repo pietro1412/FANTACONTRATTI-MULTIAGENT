@@ -5,6 +5,7 @@ import { Input } from '../components/ui/Input'
 import { Card } from '../components/ui/Card'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
+import { POSITION_GRADIENTS } from '../components/ui/PositionBadge'
 
 interface SuperAdminProps {
   onNavigate: (page: string, params?: Record<string, string>) => void
@@ -149,12 +150,6 @@ const EXIT_REASON_COLORS: Record<ExitReason, string> = {
   ESTERO: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
 }
 
-const POSITION_COLORS: Record<string, string> = {
-  P: 'from-amber-500 to-amber-600',
-  D: 'from-blue-500 to-blue-600',
-  C: 'from-emerald-500 to-emerald-600',
-  A: 'from-red-500 to-red-600',
-}
 
 const POSITION_NAMES: Record<string, string> = {
   P: 'Portieri',
@@ -200,7 +195,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
   })
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false)
   const [availableTeams, setAvailableTeams] = useState<Array<{ name: string; playerCount: number }>>([])
-  const [_teamsLoading, setTeamsLoading] = useState(false)
+  const [, setTeamsLoading] = useState(false)
 
   // Leagues state
   const [leagues, setLeagues] = useState<League[]>([])
@@ -289,7 +284,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
   const [classifiedCount, setClassifiedCount] = useState(0)
 
   useEffect(() => {
-    loadStatus()
+    void loadStatus()
   }, [])
 
   // Sync activeTab with URL parameter
@@ -308,25 +303,25 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
       }
     }
     document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
+    return () => { document.removeEventListener('click', handleClickOutside); }
   }, [teamDropdownOpen])
 
   useEffect(() => {
     if (isSuperAdmin) {
       if (activeTab === 'upload') {
-        loadUploadHistory()
-        loadPlayersNeedingClassification()
+        void loadUploadHistory()
+        void loadPlayersNeedingClassification()
       }
       if (activeTab === 'players') {
-        loadPlayers()
-        loadTeams()
+        void loadPlayers()
+        void loadTeams()
       }
-      if (activeTab === 'leagues') loadLeagues()
-      if (activeTab === 'users') loadUsers()
+      if (activeTab === 'leagues') void loadLeagues()
+      if (activeTab === 'users') void loadUsers()
       if (activeTab === 'stats') {
-        loadApiFootballStatus()
-        loadMatchProposals() // Auto-load proposals
-        loadMatchedPlayers() // Auto-load matched players
+        void loadApiFootballStatus()
+        void loadMatchProposals() // Auto-load proposals
+        void loadMatchedPlayers() // Auto-load matched players
       }
     }
   }, [isSuperAdmin, activeTab, filters, leagueSearch])
@@ -391,7 +386,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
         // Remove from proposals
         setMatchProposals(prev => prev.filter(p => p.dbPlayer.id !== dbPlayerId))
         // Refresh status
-        loadApiFootballStatus()
+        void loadApiFootballStatus()
       }
     } catch (err) {
       console.error('Error confirming match:', err)
@@ -453,8 +448,8 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
         // Remove from matched list
         setMatchedPlayers(prev => prev.filter(p => p.id !== playerId))
         // Refresh proposals and status
-        loadMatchProposals()
-        loadApiFootballStatus()
+        void loadMatchProposals()
+        void loadApiFootballStatus()
       }
     } catch (err) {
       console.error('Error removing match:', err)
@@ -472,8 +467,8 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
         // Remove from proposals
         setMatchProposals(prev => prev.filter(p => p.dbPlayer.id !== searchModalPlayer.id))
         closeSearchModal()
-        loadApiFootballStatus()
-        loadMatchedPlayers(matchedSearch) // Refresh matched list
+        void loadApiFootballStatus()
+        void loadMatchedPlayers(matchedSearch) // Refresh matched list
       }
     } catch (err) {
       console.error('Error manual association:', err)
@@ -488,7 +483,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
     if (result.success && result.data) {
       setIsSuperAdmin((result.data as { isSuperAdmin: boolean }).isSuperAdmin)
       if ((result.data as { isSuperAdmin: boolean }).isSuperAdmin) {
-        loadStats()
+        void loadStats()
       }
     }
     setIsLoading(false)
@@ -641,15 +636,15 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
         setClassifiedCount(classificationArray.length)
         setClassificationStep('success')
         // Reload data after successful classification
-        loadPlayersNeedingClassification()
-        loadStats()
+        void loadPlayersNeedingClassification()
+        void loadStats()
       } else {
         setClassificationResult({
           success: false,
           message: result.message || 'Errore sconosciuto'
         })
       }
-    } catch (error) {
+    } catch (_error) {
       setClassificationResult({
         success: false,
         message: 'Errore durante la classificazione'
@@ -677,8 +672,8 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
         data: result.data
       })
       if (result.success) {
-        loadStats()
-        loadUploadHistory()
+        void loadStats()
+        void loadUploadHistory()
         if (fileInputRef.current) {
           fileInputRef.current.value = ''
         }
@@ -698,7 +693,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
           openClassificationModal()
         }
       }
-    } catch (error) {
+    } catch (_error) {
       setImportResult({ success: false, message: 'Errore durante l\'upload' })
     }
 
@@ -717,10 +712,10 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
         data: result.data
       })
       if (result.success) {
-        loadStats()
-        loadUploadHistory()
+        void loadStats()
+        void loadUploadHistory()
       }
-    } catch (error) {
+    } catch (_error) {
       setImportResult({ success: false, message: 'Errore durante la cancellazione' })
     }
 
@@ -746,7 +741,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
           <div className="text-6xl mb-4">🔒</div>
           <h1 className="text-2xl font-bold text-white mb-2">Accesso Negato</h1>
           <p className="text-gray-400 mb-6">Non hai i permessi di Superadmin per accedere a questa area.</p>
-          <Button onClick={() => onNavigate('dashboard')} variant="primary">
+          <Button onClick={() => { onNavigate('dashboard'); }} variant="primary">
             Torna alla Dashboard
           </Button>
         </Card>
@@ -834,7 +829,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   {(['P', 'D', 'C', 'A'] as const).map(pos => (
                     <div key={pos} className="bg-surface-300 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos]} flex items-center justify-center text-white font-bold text-sm`}>{pos}</span>
+                        <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[pos] ?? ''} flex items-center justify-center text-white font-bold text-sm`}>{pos}</span>
                         <span className="text-gray-300 font-medium">{POSITION_NAMES[pos]}</span>
                       </div>
                       <div className="flex justify-between text-sm">
@@ -859,7 +854,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <label className="block text-sm font-medium text-gray-300 mb-2">Nome Foglio</label>
                   <Input
                     value={sheetName}
-                    onChange={(e) => setSheetName(e.target.value)}
+                    onChange={(e) => { setSheetName(e.target.value); }}
                     placeholder="Es: Tutti"
                     className="max-w-xs"
                   />
@@ -884,14 +879,14 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
 
                 <div className="flex gap-3">
                   <Button
-                    onClick={handleFileUpload}
+                    onClick={() => void handleFileUpload()}
                     disabled={importing || deleting}
                     className="btn-primary"
                   >
                     {importing ? 'Importazione in corso...' : 'Importa Quotazioni'}
                   </Button>
                   <Button
-                    onClick={() => setShowDeleteConfirm(true)}
+                    onClick={() => { setShowDeleteConfirm(true); }}
                     disabled={importing || deleting || !stats || stats.totalPlayers === 0}
                     variant="outline"
                     className="border-danger-500/50 text-danger-400 hover:bg-danger-500/20"
@@ -919,14 +914,14 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                         <Button
                           variant="outline"
                           className="flex-1"
-                          onClick={() => setShowDeleteConfirm(false)}
+                          onClick={() => { setShowDeleteConfirm(false); }}
                           disabled={deleting}
                         >
                           Annulla
                         </Button>
                         <Button
                           className="flex-1 bg-danger-500 hover:bg-danger-600"
-                          onClick={handleDeleteAllPlayers}
+                          onClick={() => void handleDeleteAllPlayers()}
                           disabled={deleting}
                         >
                           {deleting ? 'Cancellazione...' : 'Conferma'}
@@ -1038,7 +1033,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     <div key={player.playerId} className="bg-surface-300 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
-                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xs`}>
+                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position] ?? ''} flex items-center justify-center text-white font-bold text-xs`}>
                             {player.position}
                           </span>
                           <div>
@@ -1093,7 +1088,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <label className="block text-xs text-gray-400 mb-1">Cerca</label>
                   <Input
                     value={filters.search}
-                    onChange={(e) => setFilters({ ...filters, search: e.target.value, page: 1 })}
+                    onChange={(e) => { setFilters({ ...filters, search: e.target.value, page: 1 }); }}
                     placeholder="Nome giocatore..."
                     className="w-48"
                   />
@@ -1102,7 +1097,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <label className="block text-xs text-gray-400 mb-1">Ruolo</label>
                   <select
                     value={filters.position}
-                    onChange={(e) => setFilters({ ...filters, position: e.target.value, page: 1 })}
+                    onChange={(e) => { setFilters({ ...filters, position: e.target.value, page: 1 }); }}
                     className="bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm"
                   >
                     <option value="">Tutti</option>
@@ -1116,7 +1111,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <label className="block text-xs text-gray-400 mb-1">Stato</label>
                   <select
                     value={filters.listStatus}
-                    onChange={(e) => setFilters({ ...filters, listStatus: e.target.value, page: 1 })}
+                    onChange={(e) => { setFilters({ ...filters, listStatus: e.target.value, page: 1 }); }}
                     className="bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm"
                   >
                     <option value="">Tutti</option>
@@ -1128,7 +1123,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <label className="block text-xs text-gray-400 mb-1">Squadra</label>
                   <button
                     type="button"
-                    onClick={() => setTeamDropdownOpen(!teamDropdownOpen)}
+                    onClick={() => { setTeamDropdownOpen(!teamDropdownOpen); }}
                     className="bg-surface-300 border border-surface-50/30 text-white rounded-lg px-3 py-2 text-sm flex items-center gap-2 min-w-[160px] justify-between"
                   >
                     <div className="flex items-center gap-2">
@@ -1176,7 +1171,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setFilters({ position: '', listStatus: '', search: '', team: '', page: 1 })}
+                  onClick={() => { setFilters({ position: '', listStatus: '', search: '', team: '', page: 1 }); }}
                 >
                   Reset
                 </Button>
@@ -1208,7 +1203,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                           return (
                             <tr key={player.id} className={`hover:bg-surface-300/50 ${isNotInList ? 'opacity-50' : ''}`}>
                               <td className="px-4 py-3">
-                                <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xs`}>
+                                <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position] ?? ''} flex items-center justify-center text-white font-bold text-xs`}>
                                   {player.position}
                                 </span>
                               </td>
@@ -1261,7 +1256,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                         variant="outline"
                         size="sm"
                         disabled={playersData.page <= 1}
-                        onClick={() => setFilters({ ...filters, page: filters.page - 1 })}
+                        onClick={() => { setFilters({ ...filters, page: filters.page - 1 }); }}
                       >
                         Prec.
                       </Button>
@@ -1272,7 +1267,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                         variant="outline"
                         size="sm"
                         disabled={playersData.page >= playersData.totalPages}
-                        onClick={() => setFilters({ ...filters, page: filters.page + 1 })}
+                        onClick={() => { setFilters({ ...filters, page: filters.page + 1 }); }}
                       >
                         Succ.
                       </Button>
@@ -1299,9 +1294,9 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <label className="block text-xs text-gray-400 mb-1">Cerca lega o utente</label>
                   <Input
                     value={leagueSearchInput}
-                    onChange={(e) => setLeagueSearchInput(e.target.value)}
+                    onChange={(e) => { setLeagueSearchInput(e.target.value); }}
                     placeholder="Nome lega o username..."
-                    onKeyDown={(e) => e.key === 'Enter' && handleLeagueSearch()}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleLeagueSearch(); }}
                   />
                 </div>
                 <Button onClick={handleLeagueSearch} variant="primary">
@@ -1336,7 +1331,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   {leagues.map((league) => (
                     <div key={league.id}>
                       <button
-                        onClick={() => setExpandedLeague(expandedLeague === league.id ? null : league.id)}
+                        onClick={() => { setExpandedLeague(expandedLeague === league.id ? null : league.id); }}
                         className="w-full px-6 py-4 flex items-center justify-between hover:bg-surface-300/50 transition-colors text-left"
                       >
                         <div className="flex items-center gap-4">
@@ -1389,7 +1384,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                                   className="w-full"
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    loadMemberRoster(member.id)
+                                    void loadMemberRoster(member.id)
                                   }}
                                 >
                                   Vedi Rosa
@@ -1481,7 +1476,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <p className="text-sm text-gray-400">Statistiche giocatori da API-Football v3</p>
                 </div>
                 <Button
-                  onClick={async () => {
+                  onClick={() => { void (async () => {
                     setApiFootballLoading(true)
                     try {
                       const res = await superadminApi.getApiFootballStatus()
@@ -1493,7 +1488,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     } finally {
                       setApiFootballLoading(false)
                     }
-                  }}
+                  })()}}
                   variant="secondary"
                   size="sm"
                   disabled={apiFootballLoading}
@@ -1552,7 +1547,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   Circa 20 chiamate API.
                 </p>
                 <Button
-                  onClick={async () => {
+                  onClick={() => { void (async () => {
                     setApiFootballLoading(true)
                     setMatchingResult(null)
                     try {
@@ -1568,7 +1563,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     } finally {
                       setApiFootballLoading(false)
                     }
-                  }}
+                  })()}}
                   disabled={apiFootballLoading}
                   className="w-full"
                 >
@@ -1596,7 +1591,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   Circa 25 chiamate API.
                 </p>
                 <Button
-                  onClick={async () => {
+                  onClick={() => { void (async () => {
                     setApiFootballLoading(true)
                     setSyncResult(null)
                     try {
@@ -1612,7 +1607,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     } finally {
                       setApiFootballLoading(false)
                     }
-                  }}
+                  })()}}
                   disabled={apiFootballLoading}
                   variant="secondary"
                   className="w-full"
@@ -1644,7 +1639,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <Input
                     placeholder="es. clx123..."
                     value={manualMatchPlayerId}
-                    onChange={(e) => setManualMatchPlayerId(e.target.value)}
+                    onChange={(e) => { setManualMatchPlayerId(e.target.value); }}
                   />
                 </div>
                 <div className="flex-1 min-w-[150px]">
@@ -1652,11 +1647,11 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   <Input
                     placeholder="es. 217"
                     value={manualMatchApiId}
-                    onChange={(e) => setManualMatchApiId(e.target.value)}
+                    onChange={(e) => { setManualMatchApiId(e.target.value); }}
                   />
                 </div>
                 <Button
-                  onClick={async () => {
+                  onClick={() => { void (async () => {
                     if (!manualMatchPlayerId || !manualMatchApiId) return
                     setApiFootballLoading(true)
                     try {
@@ -1673,7 +1668,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     } finally {
                       setApiFootballLoading(false)
                     }
-                  }}
+                  })()}}
                   disabled={apiFootballLoading || !manualMatchPlayerId || !manualMatchApiId}
                 >
                   Match
@@ -1692,7 +1687,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                           <span className="text-gray-400 text-sm ml-2">{p.team}</span>
                         </div>
                         <button
-                          onClick={() => setManualMatchPlayerId(p.id)}
+                          onClick={() => { setManualMatchPlayerId(p.id); }}
                           className="text-xs text-primary-400 hover:text-primary-300"
                         >
                           Seleziona
@@ -1715,7 +1710,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                 </div>
                 <div className="flex gap-2">
                   <Button
-                    onClick={handleRefreshCache}
+                    onClick={() => void handleRefreshCache()}
                     disabled={cacheRefreshing || proposalsLoading}
                     variant="secondary"
                     size="sm"
@@ -1723,7 +1718,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     {cacheRefreshing ? 'Aggiornando Cache...' : 'Aggiorna Cache API'}
                   </Button>
                   <Button
-                    onClick={loadMatchProposals}
+                    onClick={() => void loadMatchProposals()}
                     disabled={proposalsLoading || cacheRefreshing}
                     variant="outline"
                     size="sm"
@@ -1795,7 +1790,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                           <div className="flex items-center justify-between flex-wrap gap-4">
                             {/* DB Player */}
                             <div className="flex items-center gap-3 min-w-[200px]">
-                              <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[proposal.dbPlayer.position]} flex items-center justify-center text-white font-bold text-xs`}>
+                              <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[proposal.dbPlayer.position] ?? ''} flex items-center justify-center text-white font-bold text-xs`}>
                                 {proposal.dbPlayer.position}
                               </span>
                               <div>
@@ -1834,7 +1829,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                                 <Button
                                   size="sm"
                                   variant="secondary"
-                                  onClick={() => handleConfirmProposal(proposal.dbPlayer.id, proposal.apiPlayer!.id)}
+                                  onClick={() => { void handleConfirmProposal(proposal.dbPlayer.id, proposal.apiPlayer!.id) }}
                                   disabled={confirmingMatch}
                                 >
                                   Conferma
@@ -1843,7 +1838,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => openSearchModal(proposal.dbPlayer)}
+                                onClick={() => { openSearchModal(proposal.dbPlayer); }}
                               >
                                 Cerca
                               </Button>
@@ -1885,13 +1880,13 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                 <div className="flex gap-2">
                   <Input
                     value={matchedSearch}
-                    onChange={(e) => setMatchedSearch(e.target.value)}
+                    onChange={(e) => { setMatchedSearch(e.target.value); }}
                     placeholder="Cerca giocatore..."
                     className="w-48"
-                    onKeyDown={(e) => e.key === 'Enter' && loadMatchedPlayers(matchedSearch)}
+                    onKeyDown={(e) => { void (e.key === 'Enter' && loadMatchedPlayers(matchedSearch)) }}
                   />
                   <Button
-                    onClick={() => loadMatchedPlayers(matchedSearch)}
+                    onClick={() => { void loadMatchedPlayers(matchedSearch) }}
                     variant="outline"
                     size="sm"
                     disabled={matchedLoading}
@@ -1910,7 +1905,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   {matchedPlayers.map((player) => (
                     <div key={player.id} className="bg-surface-300 rounded-lg p-3 flex items-center justify-between">
                       <div className="flex items-center gap-3 flex-1">
-                        <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xs`}>
+                        <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position] ?? ''} flex items-center justify-center text-white font-bold text-xs`}>
                           {player.position}
                         </span>
                         <div className="min-w-[180px]">
@@ -1930,7 +1925,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                         size="sm"
                         variant="outline"
                         className="border-danger-500/50 text-danger-400 hover:bg-danger-500/20"
-                        onClick={() => handleRemoveMatch(player.id)}
+                        onClick={() => { void handleRemoveMatch(player.id) }}
                         disabled={removingMatch === player.id}
                       >
                         {removingMatch === player.id ? '...' : 'Rimuovi'}
@@ -2030,7 +2025,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                       <div key={player.playerId} className="bg-surface-300 rounded-lg p-4">
                         <div className="flex items-center justify-between flex-wrap gap-4">
                           <div className="flex items-center gap-3">
-                            <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-sm`}>
+                            <span className={`w-10 h-10 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position] ?? ''} flex items-center justify-center text-white font-bold text-sm`}>
                               {player.position}
                             </span>
                             <div>
@@ -2054,7 +2049,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
 
                             <select
                               value={classifications[player.playerId] || 'RITIRATO'}
-                              onChange={(e) => handleClassificationChange(player.playerId, e.target.value as ExitReason)}
+                              onChange={(e) => { handleClassificationChange(player.playerId, e.target.value as ExitReason); }}
                               className={`px-4 py-2 rounded-lg border text-sm font-medium ${
                                 EXIT_REASON_COLORS[classifications[player.playerId] || 'RITIRATO']
                               } bg-surface-200 cursor-pointer min-w-[140px]`}
@@ -2095,7 +2090,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     {submittedClassifications.map(({ player, reason }) => (
                       <div key={player.playerId} className="bg-surface-300 rounded-lg p-3 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_COLORS[player.position]} flex items-center justify-center text-white font-bold text-xs`}>
+                          <span className={`w-8 h-8 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[player.position] ?? ''} flex items-center justify-center text-white font-bold text-xs`}>
                             {player.position}
                           </span>
                           <div>
@@ -2175,7 +2170,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                   </Button>
                   <Button
                     className="flex-1 btn-primary"
-                    onClick={handleSubmitClassifications}
+                    onClick={() => void handleSubmitClassifications()}
                     disabled={classifyingPlayers}
                   >
                     {classifyingPlayers ? 'Salvataggio...' : 'Conferma e Salva'}
@@ -2226,13 +2221,13 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
               <div className="flex gap-3 mb-4">
                 <Input
                   value={apiSearchQuery}
-                  onChange={(e) => setApiSearchQuery(e.target.value)}
+                  onChange={(e) => { setApiSearchQuery(e.target.value); }}
                   placeholder="Cerca per nome..."
                   className="flex-1"
-                  onKeyDown={(e) => e.key === 'Enter' && handleApiSearch()}
+                  onKeyDown={(e) => { void (e.key === 'Enter' && handleApiSearch()) }}
                 />
                 <Button
-                  onClick={handleApiSearch}
+                  onClick={() => void handleApiSearch()}
                   disabled={apiSearchLoading || apiSearchQuery.length < 2}
                 >
                   {apiSearchLoading ? 'Ricerca...' : 'Cerca'}
@@ -2260,7 +2255,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                           name="apiPlayer"
                           value={player.id}
                           checked={selectedApiPlayer === player.id}
-                          onChange={() => setSelectedApiPlayer(player.id)}
+                          onChange={() => { setSelectedApiPlayer(player.id); }}
                           className="w-4 h-4 text-primary-500"
                         />
                         <div className="flex-1">
@@ -2296,7 +2291,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
               </Button>
               <Button
                 className="flex-1 btn-primary"
-                onClick={handleManualAssociation}
+                onClick={() => void handleManualAssociation()}
                 disabled={!selectedApiPlayer || confirmingMatch}
               >
                 {confirmingMatch ? 'Associazione...' : 'Associa'}
@@ -2351,7 +2346,7 @@ export function SuperAdmin({ onNavigate, initialTab }: SuperAdminProps) {
                     return (
                       <div key={pos}>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className={`w-7 h-7 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos]} flex items-center justify-center text-white font-bold text-xs`}>
+                          <span className={`w-7 h-7 rounded-full bg-gradient-to-br ${POSITION_GRADIENTS[pos] ?? ''} flex items-center justify-center text-white font-bold text-xs`}>
                             {pos}
                           </span>
                           <span className="text-sm font-bold text-gray-300">{POSITION_NAMES[pos]} ({posPlayers.length})</span>

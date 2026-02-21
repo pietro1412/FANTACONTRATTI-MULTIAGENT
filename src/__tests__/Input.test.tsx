@@ -195,7 +195,7 @@ describe('Input', () => {
           maxLength={100}
         />
       )
-      const container = screen.getByTestId('input').parentElement
+      void screen.getByTestId('input').parentElement
       // Should show character counter, not success icon
       expect(screen.getByText(/\/100/)).toBeInTheDocument()
     })

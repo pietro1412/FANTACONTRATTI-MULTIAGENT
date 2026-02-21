@@ -186,7 +186,7 @@ export async function getPrizePhaseData(
     for (const cat of categories) {
       const prize = cat.managerPrizes.find(p => p.leagueMemberId === m.id)
       if (prize) {
-        memberTotals[m.id] += prize.amount
+        memberTotals[m.id] = (memberTotals[m.id] ?? 0) + prize.amount
       }
     }
   }
@@ -586,7 +586,7 @@ export async function setMemberPrize(
 
   return {
     success: true,
-    message: `Premio di ${amount}M assegnato a ${targetMember.teamName}`,
+    message: `Premio di ${amount}M assegnato a ${targetMember.teamName ?? 'squadra'}`,
     data: { memberId, amount },
   }
 }
@@ -664,7 +664,7 @@ export async function finalizePrizePhase(
   for (const prize of prizes) {
     if (memberTotals[prize.leagueMemberId] !== undefined) {
       if (!prize.prizeCategory.isSystemPrize) {
-        memberTotals[prize.leagueMemberId] += prize.amount
+        memberTotals[prize.leagueMemberId] = (memberTotals[prize.leagueMemberId] ?? 0) + prize.amount
       }
     }
   }
@@ -1125,8 +1125,8 @@ export async function getPrizeHistory(
             total: session.prizePhaseConfig?.baseReincrement ?? 0,
           }
         }
-        memberTotals[prize.leagueMemberId].categoryPrizes[cat.name] = prize.amount
-        memberTotals[prize.leagueMemberId].total += prize.amount
+        memberTotals[prize.leagueMemberId]!.categoryPrizes[cat.name] = prize.amount
+        memberTotals[prize.leagueMemberId]!.total += prize.amount
       }
     }
 

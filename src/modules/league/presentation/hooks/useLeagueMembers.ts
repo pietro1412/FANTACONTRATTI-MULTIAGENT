@@ -116,7 +116,7 @@ export function useLeagueMembers(leagueId: string | undefined): UseLeagueMembers
 
   // Initial fetch
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   // Derived state

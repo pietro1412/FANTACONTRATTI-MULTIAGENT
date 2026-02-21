@@ -6,8 +6,9 @@
  * SvincolatiAuctionClosed, TradeAccepted
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { ValidationError } from '../../../../shared/infrastructure/http/errors'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import { ValidationError } from '@/shared/infrastructure/http/errors'
 import type { IMovementRepository } from '../../domain/repositories/movement.repository.interface'
 import type { RecordMovementDto } from '../dto/movement.dto'
 

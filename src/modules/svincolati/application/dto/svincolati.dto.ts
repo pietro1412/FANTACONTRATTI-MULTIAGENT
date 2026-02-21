@@ -6,9 +6,7 @@
  */
 
 import type { SvincolatiStatus } from '../../domain/entities/svincolati-session.entity'
-import type { SvincolatiTurnOrder } from '../../domain/entities/turn-order.entity'
-import type { SvincolatiNomination, NominationStatus } from '../../domain/entities/nomination.entity'
-import type { Player } from '../../domain/repositories/svincolati.repository.interface'
+import type { NominationStatus } from '../../domain/entities/nomination.entity'
 
 // ==================== SETUP ====================
 

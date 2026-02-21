@@ -42,7 +42,7 @@ export function StatusBar({
   marketProgress,
   isPrimoMercato,
   membership,
-  currentPhase,
+  currentPhase: _currentPhase,
   myRosterSlots,
   onPauseAuction,
   onExit,
@@ -92,11 +92,11 @@ export function StatusBar({
               key={role}
               className={`px-1.5 py-0.5 rounded text-sm font-bold border ${
                 role === marketProgress.currentRole
-                  ? POSITION_FILTER_COLORS[role as keyof typeof POSITION_FILTER_COLORS] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                  ? POSITION_FILTER_COLORS[role] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'
                   : 'bg-slate-800/50 text-gray-500 border-white/5'
               }`}
             >
-              {(POSITION_NAMES[role as keyof typeof POSITION_NAMES] || role).slice(0, 3)}
+              {(POSITION_NAMES[role] || role).slice(0, 3)}
             </span>
           ))}
           <span className="text-sm text-gray-400 ml-1 font-mono">

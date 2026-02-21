@@ -5,10 +5,6 @@
 
 import type {
   PrizePhaseStatus,
-  PrizePhaseConfig,
-  PrizeCategory,
-  SessionPrize,
-  MemberPrizeSummary,
 } from '../../domain/entities/prize.entity'
 
 // ==================== Input DTOs ====================

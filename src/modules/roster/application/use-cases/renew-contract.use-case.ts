@@ -7,8 +7,9 @@ import type { IRosterRepository } from '../../domain/repositories/roster.reposit
 import type { IContractCalculator } from '../../domain/services/contract-calculator.service'
 import type { PlayerContract } from '../../domain/entities/contract.entity'
 import { MAX_CONTRACT_DURATION } from '../../domain/entities/contract.entity'
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { ValidationError, NotFoundError, InternalError } from '../../../../shared/infrastructure/http/errors'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import { ValidationError, NotFoundError, InternalError } from '@/shared/infrastructure/http/errors'
 
 /**
  * Input for renewal operation

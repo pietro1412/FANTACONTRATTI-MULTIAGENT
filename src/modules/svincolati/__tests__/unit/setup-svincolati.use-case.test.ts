@@ -95,7 +95,7 @@ describe('SetupSvincolatiUseCase', () => {
 
     it('should return failure if less than 2 active members', async () => {
       // Arrange
-      vi.mocked(mockRepository.getActiveMembers).mockResolvedValue([mockMembers[0]])
+      vi.mocked(mockRepository.getActiveMembers).mockResolvedValue([mockMembers[0]!])
 
       // Act
       const result = await useCase.execute({ sessionId: 'session-123' })
@@ -115,9 +115,9 @@ describe('SetupSvincolatiUseCase', () => {
       expect(result.isSuccess).toBe(true)
       if (result.isSuccess) {
         // Budget order: member-2 (80) < member-1 (100) < member-3 (120)
-        expect(result.value.turnOrder[0].memberId).toBe('member-2')
-        expect(result.value.turnOrder[1].memberId).toBe('member-1')
-        expect(result.value.turnOrder[2].memberId).toBe('member-3')
+        expect(result.value.turnOrder[0]!.memberId).toBe('member-2')
+        expect(result.value.turnOrder[1]!.memberId).toBe('member-1')
+        expect(result.value.turnOrder[2]!.memberId).toBe('member-3')
         expect(result.value.firstNominatorId).toBe('member-2')
       }
 
@@ -140,7 +140,7 @@ describe('SetupSvincolatiUseCase', () => {
       // Assert
       expect(result.isSuccess).toBe(true)
       if (result.isSuccess) {
-        expect(result.value.turnOrder[0].memberId).toBe('member-3')
+        expect(result.value.turnOrder[0]!.memberId).toBe('member-3')
         expect(result.value.firstNominatorId).toBe('member-3')
       }
 

@@ -80,14 +80,14 @@ describe('EventBus', () => {
         value: number
       }
 
-      const handler = vi.fn<[TestEvent], void>()
+      const handler = vi.fn<(event: TestEvent) => void>()
       const event: TestEvent = { id: 'test-123', value: 42 }
 
       eventBus.subscribe<TestEvent>('test.event', handler)
       await eventBus.publish('test.event', event)
 
       expect(handler).toHaveBeenCalledWith(event)
-      const receivedEvent = handler.mock.calls[0][0]
+      const receivedEvent = handler.mock.calls[0]![0]
       expect(receivedEvent.id).toBe('test-123')
       expect(receivedEvent.value).toBe(42)
     })
@@ -220,7 +220,7 @@ describe('EventBus', () => {
   })
 
   describe('clear', () => {
-    it('should remove all handlers', async () => {
+    it('should remove all handlers', () => {
       const handler1 = vi.fn()
       const handler2 = vi.fn()
 
@@ -265,7 +265,7 @@ describe('EventBus', () => {
         createdAt: Date
       }
 
-      const handler = vi.fn<[UserCreatedEvent], void>()
+      const handler = vi.fn<(event: UserCreatedEvent) => void>()
       const event: UserCreatedEvent = {
         userId: 'user-123',
         email: 'test@example.com',
@@ -275,7 +275,7 @@ describe('EventBus', () => {
       eventBus.subscribe<UserCreatedEvent>('user.created', handler)
       await eventBus.publish('user.created', event)
 
-      const receivedEvent = handler.mock.calls[0][0]
+      const receivedEvent = handler.mock.calls[0]![0]
       expect(receivedEvent.userId).toBe('user-123')
       expect(receivedEvent.email).toBe('test@example.com')
       expect(receivedEvent.createdAt).toEqual(new Date('2024-01-01'))

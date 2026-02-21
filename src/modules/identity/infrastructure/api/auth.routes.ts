@@ -175,7 +175,7 @@ router.post('/forgot-password', asyncHandler(async (req, res) => {
   // Always return success (even if email doesn't exist) to prevent enumeration
   res.json({
     success: true,
-    message: result.value.message
+    message: result.isSuccess ? result.value.message : 'Se l\'email esiste, riceverai un link per reimpostare la password'
   })
 }))
 

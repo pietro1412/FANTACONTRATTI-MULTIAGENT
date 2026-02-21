@@ -5,8 +5,9 @@
  * Validates admin permission before allowing phase changes.
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { ForbiddenError, ValidationError, NotFoundError } from '../../../../shared/infrastructure/http/errors'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import { ForbiddenError, ValidationError, NotFoundError } from '@/shared/infrastructure/http/errors'
 import type { IAdminRepository, IAuditLogRepository } from '../../domain/repositories/admin.repository.interface'
 import type { MarketPhase } from '../../domain/entities/audit-log.entity'
 import type { ManagePhaseDto, ManagePhaseResultDto } from '../dto/admin.dto'

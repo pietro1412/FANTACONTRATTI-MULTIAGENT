@@ -5,8 +5,9 @@
  * Returns tokens on successful authentication.
  */
 
-import { Result, ok, fail } from '../../../../shared/infrastructure/http/result'
-import { UnauthorizedError } from '../../../../shared/infrastructure/http/errors'
+import type { Result} from '@/shared/infrastructure/http/result';
+import { ok, fail } from '@/shared/infrastructure/http/result'
+import { UnauthorizedError } from '@/shared/infrastructure/http/errors'
 import type { IUserRepository } from '../../domain/repositories/user.repository.interface'
 import type { IPasswordService } from '../../domain/services/password.service'
 import type { ITokenService } from '../../domain/services/token.service'

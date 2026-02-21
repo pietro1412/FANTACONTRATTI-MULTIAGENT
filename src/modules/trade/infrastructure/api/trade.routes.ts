@@ -65,9 +65,9 @@ router.get(
 
     // Get all trade data in parallel
     const [receivedResult, sentResult, historyResult] = await Promise.all([
-      getReceivedOffers(leagueId, userId),
-      getSentOffers(leagueId, userId),
-      getTradeHistory(leagueId, userId),
+      getReceivedOffers(leagueId as string, userId),
+      getSentOffers(leagueId as string, userId),
+      getTradeHistory(leagueId as string, userId),
     ])
 
     if (!receivedResult.success) {
@@ -176,7 +176,7 @@ router.post(
     const { tradeId } = req.params
     const userId = req.user!.userId
 
-    const result = await acceptTrade(tradeId, userId)
+    const result = await acceptTrade(tradeId as string, userId)
 
     if (!result.success) {
       const status = result.message === 'Non sei autorizzato ad accettare questa offerta' ? 403 : 400
@@ -201,7 +201,7 @@ router.post(
     const { tradeId } = req.params
     const userId = req.user!.userId
 
-    const result = await rejectTrade(tradeId, userId)
+    const result = await rejectTrade(tradeId as string, userId)
 
     if (!result.success) {
       const status = result.message === 'Non sei autorizzato a rifiutare questa offerta' ? 403 : 400
@@ -235,7 +235,7 @@ router.post(
     const userId = req.user!.userId
 
     const result = await counterOffer(
-      tradeId,
+      tradeId as string,
       userId,
       offeredPlayerIds || [],
       requestedPlayerIds || [],
@@ -267,7 +267,7 @@ router.delete(
     const { tradeId } = req.params
     const userId = req.user!.userId
 
-    const result = await cancelTradeOffer(tradeId, userId)
+    const result = await cancelTradeOffer(tradeId as string, userId)
 
     if (!result.success) {
       const status = result.message === 'Non sei autorizzato a cancellare questa offerta' ? 403 : 400

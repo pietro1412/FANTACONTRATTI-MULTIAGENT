@@ -131,7 +131,7 @@ function useScrollShadow(ref: React.RefObject<HTMLDivElement | null>) {
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   if (!active) {
     return (
-      <svg className="w-3.5 h-3.5 text-gray-600 ml-1 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg className="w-3.5 h-3.5 text-gray-400 ml-1 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
       </svg>
     )
@@ -162,7 +162,7 @@ function PaginationControls({
   return (
     <div className="flex items-center justify-center gap-2 py-3 border-t border-surface-50/20">
       <button
-        onClick={() => setPage(Math.max(0, page - 1))}
+        onClick={() => { setPage(Math.max(0, page - 1)); }}
         disabled={page === 0}
         className="px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-300 text-gray-300 hover:bg-surface-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         aria-label="Pagina precedente"
@@ -173,7 +173,7 @@ function PaginationControls({
         {page + 1} / {totalPages}
       </span>
       <button
-        onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+        onClick={() => { setPage(Math.min(totalPages - 1, page + 1)); }}
         disabled={page >= totalPages - 1}
         className="px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-300 text-gray-300 hover:bg-surface-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         aria-label="Pagina successiva"
@@ -265,7 +265,7 @@ export function DataTable<T>({
                     scope="col"
                     aria-sort={isActive ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}
                     className={`px-4 py-2.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide ${isSortable ? 'cursor-pointer hover:text-gray-300 select-none' : ''} ${col.headerClassName ?? ''} ${col.width ?? ''}`}
-                    onClick={isSortable ? () => toggleSort(col.key) : undefined}
+                    onClick={isSortable ? () => { toggleSort(col.key); } : undefined}
                   >
                     <span className="inline-flex items-center">
                       {col.header}
@@ -287,7 +287,7 @@ export function DataTable<T>({
                   columns={desktopCols}
                   expandable={expandable}
                   isExpanded={isExp}
-                  onToggleExpand={() => toggleExpand(key)}
+                  onToggleExpand={() => { toggleExpand(key); }}
                   renderExpandedRow={renderExpandedRow}
                   onRowClick={onRowClick}
                 />
@@ -321,7 +321,7 @@ export function DataTable<T>({
                       scope="col"
                       aria-sort={isActive ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}
                       className={`px-3 py-2.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap ${isSortable ? 'cursor-pointer hover:text-gray-300 select-none' : ''} ${col.headerClassName ?? ''} ${col.width ?? ''}`}
-                      onClick={isSortable ? () => toggleSort(col.key) : undefined}
+                      onClick={isSortable ? () => { toggleSort(col.key); } : undefined}
                     >
                       <span className="inline-flex items-center">
                         {col.header}
@@ -343,7 +343,7 @@ export function DataTable<T>({
                     columns={tabletCols}
                     expandable={expandable}
                     isExpanded={isExp}
-                    onToggleExpand={() => toggleExpand(key)}
+                    onToggleExpand={() => { toggleExpand(key); }}
                     renderExpandedRow={renderExpandedRow}
                     onRowClick={onRowClick}
                   />
@@ -364,7 +364,7 @@ export function DataTable<T>({
             return (
               <div
                 key={key}
-                onClick={() => toggleExpand(key)}
+                onClick={() => { toggleExpand(key); }}
                 className="cursor-pointer"
               >
                 {renderMobileCard(row, isExp)}
@@ -379,7 +379,7 @@ export function DataTable<T>({
               primaryCols={mobilePrimaryCols}
               detailCols={mobileDetailCols}
               isExpanded={isExp}
-              onToggle={() => toggleExpand(key)}
+              onToggle={() => { toggleExpand(key); }}
               renderExpandedRow={renderExpandedRow}
               onRowClick={onRowClick}
             />
@@ -483,7 +483,7 @@ function MobileCard<T>({
       <div className="flex items-center justify-between cursor-pointer">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {primaryCols.map((col) => (
-            <div key={col.key} className={`${col.className ?? ''}`}>
+            <div key={col.key} className={col.className ?? ''}>
               {col.render(row)}
             </div>
           ))}
