@@ -321,20 +321,6 @@ export const BoardRow = memo(function BoardRow({
         </div>
       </div>
 
-      {/* Inline VOGLIO RUBARE button — desktop only (mobile uses ActionBar) */}
-      {isCurrent && rubataState === 'OFFERING' && canMakeOffer && (
-        <div className="hidden md:block md:flex-shrink-0">
-          <Button
-            onClick={onMakeOffer}
-            disabled={isSubmitting}
-            variant="accent"
-            className="text-sm py-2 px-4 whitespace-nowrap"
-          >
-            🎯 VOGLIO RUBARE! ({player.rubataPrice}M)
-          </Button>
-        </div>
-      )}
-
       {/* Stats grid — desktop only, always visible */}
       <div className={`hidden md:grid grid-cols-3 w-[120px] flex-shrink-0 text-center ${isPassed ? 'opacity-60' : ''}`}>
         {/* MV */}
@@ -377,6 +363,20 @@ export const BoardRow = memo(function BoardRow({
         </div>
       </div>
       </div>
+
+      {/* VOGLIO RUBARE button — prominent, own line in flex-col for current player */}
+      {isCurrent && rubataState === 'OFFERING' && canMakeOffer && (
+        <div className="hidden md:block">
+          <Button
+            onClick={onMakeOffer}
+            disabled={isSubmitting}
+            variant="accent"
+            className="py-2.5 px-6 text-base font-bold whitespace-nowrap"
+          >
+            🎯 VOGLIO RUBARE! ({player.rubataPrice}M)
+          </Button>
+        </div>
+      )}
 
       {/* Passed + not stolen — hidden on mobile (shown inline in header) */}
       {isPassed && !wasStolen && (
