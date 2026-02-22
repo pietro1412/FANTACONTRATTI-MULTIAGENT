@@ -140,10 +140,10 @@ export const BoardRow = memo(function BoardRow({
           : isAutoSkip
           ? 'opacity-40'
           : 'md:bg-surface-300 md:border-surface-50/20'
-      } ${isCurrent ? 'md:flex md:flex-col md:gap-2' : 'md:flex md:items-center md:gap-4'}`}
+      } md:flex md:items-center md:gap-4`}
     >
       {/* Player header */}
-      <div className={`flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-0 md:min-w-0 ${isCurrent ? '' : 'md:flex-1'}`}>
+      <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-0 md:flex-1 md:min-w-0">
         {/* D5: Compare checkbox */}
         {compareMode && !isPassed && (
           <button
@@ -263,8 +263,6 @@ export const BoardRow = memo(function BoardRow({
         <span className={`font-bold ${isPassed ? 'text-gray-500' : 'text-purple-400'}`}>{player.contractClause}M</span>
       </div>
 
-      {/* Desktop line 2 wrapper: flex-row for current (explicit 2nd line), contents for non-current (inline) */}
-      <div className={isCurrent ? 'hidden md:flex items-center gap-4' : 'contents'}>
       {/* Stolen indicator — desktop badge */}
       {wasStolen && (
         <div className="hidden md:flex flex-col items-start bg-danger-500/15 border border-danger-500/30 rounded-lg px-3 py-1.5 min-w-[140px] flex-shrink-0">
@@ -362,21 +360,6 @@ export const BoardRow = memo(function BoardRow({
           )}
         </div>
       </div>
-      </div>
-
-      {/* VOGLIO RUBARE button — prominent, own line in flex-col for current player */}
-      {isCurrent && rubataState === 'OFFERING' && canMakeOffer && (
-        <div className="hidden md:block">
-          <Button
-            onClick={onMakeOffer}
-            disabled={isSubmitting}
-            variant="accent"
-            className="py-2.5 px-6 text-base font-bold whitespace-nowrap"
-          >
-            🎯 VOGLIO RUBARE! ({player.rubataPrice}M)
-          </Button>
-        </div>
-      )}
 
       {/* Passed + not stolen — hidden on mobile (shown inline in header) */}
       {isPassed && !wasStolen && (
@@ -385,8 +368,25 @@ export const BoardRow = memo(function BoardRow({
         </div>
       )}
 
-      {/* Strategy */}
+      {/* Strategy / RUBARE button slot */}
       {(() => {
+        // Current player in offering phase: show RUBARE button instead of strategy
+        if (isCurrent && rubataState === 'OFFERING' && canMakeOffer) {
+          return (
+            <div className="hidden md:block md:flex-shrink-0 md:ml-auto">
+              <Button
+                onClick={onMakeOffer}
+                disabled={isSubmitting}
+                variant="accent"
+                className="text-sm py-1.5 px-4 whitespace-nowrap"
+              >
+                🎯 RUBARE ({player.rubataPrice}M)
+              </Button>
+            </div>
+          )
+        }
+        // Current player not in offering: nothing needed in this slot
+        if (isCurrent) return null
         if (isMyPlayer) return <div className="hidden md:block md:mt-0 md:ml-auto text-center text-gray-500 text-xs md:flex-shrink-0">Mio</div>
         if (isPassed) return null
         const hasStrategy = pref?.priority || pref?.maxBid || pref?.notes || pref?.isWatchlist || pref?.isAutoPass

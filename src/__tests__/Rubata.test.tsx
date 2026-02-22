@@ -940,8 +940,8 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
-      board: [makeBoardPlayer()] as never[],
+      boardData: { totalPlayers: 2, currentIndex: 0, memberBudgets: [] } as never,
+      board: [makeBoardPlayer({ rosterId: 'r-current', playerId: 'player-current' }), makeBoardPlayer()] as never[],
       preferencesMap: prefMap,
       canEditPreferences: true,
     }
@@ -962,8 +962,8 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
-      board: [makeBoardPlayer()] as never[],
+      boardData: { totalPlayers: 2, currentIndex: 0, memberBudgets: [] } as never,
+      board: [makeBoardPlayer({ rosterId: 'r-current', playerId: 'player-current' }), makeBoardPlayer()] as never[],
       preferencesMap: prefMap,
       canEditPreferences: false,
     }
@@ -980,8 +980,8 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
-      board: [makeBoardPlayer()] as never[],
+      boardData: { totalPlayers: 2, currentIndex: 0, memberBudgets: [] } as never,
+      board: [makeBoardPlayer({ rosterId: 'r-current', playerId: 'player-current' }), makeBoardPlayer()] as never[],
       preferencesMap: new Map(),
       canEditPreferences: true,
     }
@@ -996,8 +996,8 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
-      board: [makeBoardPlayer()] as never[],
+      boardData: { totalPlayers: 2, currentIndex: 0, memberBudgets: [] } as never,
+      board: [makeBoardPlayer({ rosterId: 'r-current', playerId: 'player-current' }), makeBoardPlayer()] as never[],
       preferencesMap: new Map(),
       canEditPreferences: true,
     }
@@ -1518,8 +1518,8 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
-      board: [makeBoardPlayer()] as never[],
+      boardData: { totalPlayers: 2, currentIndex: 0, memberBudgets: [] } as never,
+      board: [makeBoardPlayer({ rosterId: 'r-current', playerId: 'player-current' }), makeBoardPlayer()] as never[],
       preferencesMap: prefMap,
       canEditPreferences: true,
     }
