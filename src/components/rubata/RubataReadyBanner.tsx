@@ -28,10 +28,10 @@ export function RubataReadyBanner({
     : 0
 
   const isPaused = variant === 'paused'
-  const borderColor = isPaused ? 'border-gray-500/50' : 'border-blue-500/50'
+  const borderColor = isPaused ? 'border-gray-500/50' : 'border-primary-500/50'
   const icon = isPaused ? '⏸️' : '🔔'
   const title = isPaused ? 'IN PAUSA' : 'Pronti?'
-  const titleColor = isPaused ? 'text-gray-300' : 'text-blue-400'
+  const titleColor = isPaused ? 'text-gray-300' : 'text-primary-400'
 
   return (
     <div className={`mb-3 bg-surface-200 rounded-xl border ${borderColor} overflow-hidden`}>
@@ -44,14 +44,14 @@ export function RubataReadyBanner({
         {/* Progress bar */}
         <div className="w-20 h-1.5 bg-surface-300 rounded-full overflow-hidden">
           <div
-            className="h-full bg-blue-500 transition-all"
+            className="h-full bg-primary-500 transition-all"
             style={{ width: `${progressPct}%` }}
           />
         </div>
 
         {/* Paused timer info */}
         {isPaused && pausedInfo?.remainingSeconds != null && (
-          <span className="text-yellow-400 text-xs">
+          <span className="text-warning-400 text-xs">
             ({pausedInfo.remainingSeconds}s — {pausedInfo.fromState === 'AUCTION' ? 'Asta' : 'Offerta'})
           </span>
         )}
@@ -76,7 +76,7 @@ export function RubataReadyBanner({
               disabled={isSubmitting}
               variant="outline"
               size="sm"
-              className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 text-xs py-1 px-2"
+              className="border-warning-500/50 text-warning-400 hover:bg-warning-500/10 text-xs py-1 px-2"
             >
               🤖 Forza Tutti
             </Button>
@@ -104,7 +104,7 @@ export function RubataReadyBanner({
             <span key={member.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-warning-500/20 text-warning-400 rounded text-[11px]">
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
-                  member.isConnected === true ? 'bg-green-500' : member.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
+                  member.isConnected === true ? 'bg-secondary-500' : member.isConnected === false ? 'bg-danger-500' : 'bg-gray-500'
                 }`}
               />
               {member.username}

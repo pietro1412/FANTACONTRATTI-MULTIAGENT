@@ -292,7 +292,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 <div>
                   <div className="flex items-center gap-2">
                     <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Fase Rubata</h1>
-                    <span className={`w-2 h-2 rounded-full ${isPusherConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse`} />
+                    <span className={`w-2 h-2 rounded-full ${isPusherConnected ? 'bg-secondary-400' : 'bg-danger-400'}`} />
                   </div>
                   <p className="text-gray-400 text-sm">
                     {rubataState === 'COMPLETED' ? 'Fase completata' :

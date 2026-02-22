@@ -56,7 +56,7 @@ export function RubataBidPanel({
       {/* Header with player card */}
       <div className="p-3 md:p-5 border-b border-surface-50/20 bg-gradient-to-r from-danger-600/30 via-danger-500/20 to-danger-600/30">
         <h3 className="text-center text-lg md:text-xl font-black text-danger-400 uppercase tracking-wide mb-2 md:mb-3">
-          <span className="inline-block animate-pulse">🔥</span> ASTA IN CORSO <span className="inline-block animate-pulse">🔥</span>
+          <span className="inline-block">🔥</span> ASTA IN CORSO <span className="inline-block">🔥</span>
         </h3>
 
         {/* Player card — pattern Svincolati */}
@@ -84,7 +84,7 @@ export function RubataBidPanel({
         {/* Winning badge */}
         {isUserWinning && (
           <div className="mt-3 flex justify-center animate-[fadeIn_0.3s_ease-out]">
-            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-secondary-500/20 border border-secondary-500/40 text-secondary-400 font-bold text-sm animate-pulse">
+            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-secondary-500/20 border border-secondary-500/40 text-secondary-400 font-bold text-sm">
               ✅ Stai vincendo!
             </span>
           </div>
@@ -111,7 +111,7 @@ export function RubataBidPanel({
                     className={`font-black font-mono transition-all ${
                       isUserWinning
                         ? 'text-2xl md:text-3xl text-secondary-400'
-                        : 'text-2xl md:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-accent-400 animate-pulse'
+                        : 'text-2xl md:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-accent-400'
                     }`}
                     aria-live="polite"
                     aria-label={`Offerta attuale: ${activeAuction.currentPrice} milioni`}
@@ -140,8 +140,8 @@ export function RubataBidPanel({
                       disabled={isSubmitting || activeAuction.currentPrice + increment > budget}
                       className={`py-2 md:py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95 min-h-[44px] ${
                         increment === 20
-                          ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-400 hover:to-orange-400 disabled:opacity-30 disabled:cursor-not-allowed'
-                          : 'bg-sky-500/20 border border-sky-500/30 text-sky-400 hover:bg-sky-500/30 disabled:opacity-30 disabled:cursor-not-allowed'
+                          ? 'bg-danger-500/80 text-white hover:bg-danger-500 disabled:opacity-30 disabled:cursor-not-allowed'
+                          : 'bg-primary-500/20 border border-primary-500/30 text-primary-400 hover:bg-primary-500/30 disabled:opacity-30 disabled:cursor-not-allowed'
                       }`}
                     >
                       +{increment}
@@ -208,9 +208,9 @@ export function RubataBidPanel({
                   </div>
                 )}
                 {myMaxBid != null && activeAuction.currentPrice < myMaxBid && activeAuction.currentPrice >= myMaxBid * 0.8 && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/20 border border-orange-500/40 animate-[fadeIn_0.2s_ease-out]">
-                    <span className="text-orange-400 text-lg">⚡</span>
-                    <span className="text-orange-400 text-sm font-medium">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warning-500/20 border border-warning-500/40 animate-[fadeIn_0.2s_ease-out]">
+                    <span className="text-warning-400 text-lg">⚡</span>
+                    <span className="text-warning-400 text-sm font-medium">
                       Vicino al tuo limite strategia ({myMaxBid}M)
                     </span>
                   </div>

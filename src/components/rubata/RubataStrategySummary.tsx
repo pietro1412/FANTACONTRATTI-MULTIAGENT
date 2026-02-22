@@ -273,7 +273,7 @@ export function RubataStrategySummary({
                         }
                       }}
                       disabled={isSubmitting || !bulkMaxBid}
-                      className="px-3 py-1.5 rounded text-[11px] font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 disabled:opacity-30 transition-all whitespace-nowrap"
+                      className="px-3 py-1.5 rounded text-[11px] font-medium bg-primary-500/20 text-primary-400 hover:bg-primary-500/30 disabled:opacity-30 transition-all whitespace-nowrap"
                     >
                       MaxBid {bulkPosition}
                     </button>

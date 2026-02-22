@@ -97,7 +97,7 @@ export const BoardRow = memo(function BoardRow({
   const durationColor =
     player.contractDuration === 1 ? 'text-danger-400' :
     player.contractDuration === 2 ? 'text-warning-400' :
-    player.contractDuration === 3 ? 'text-blue-400' :
+    player.contractDuration === 3 ? 'text-primary-400' :
     'text-secondary-400'
 
   const ownerLabel = player.ownerTeamName
@@ -219,7 +219,7 @@ export const BoardRow = memo(function BoardRow({
         {/* Mobile: stolen indicator inline */}
         {wasStolen && (
           <span className="md:hidden text-danger-400 text-[10px] font-bold flex-shrink-0">
-            <span className="animate-pulse inline-block">🎯</span> {player.stolenByUsername}{player.stolenPrice != null && player.stolenPrice > player.rubataPrice ? ` (+${player.stolenPrice - player.rubataPrice}M)` : ''}
+            <span className="inline-block">🎯</span> {player.stolenByUsername}{player.stolenPrice != null && player.stolenPrice > player.rubataPrice ? ` (+${player.stolenPrice - player.rubataPrice}M)` : ''}
           </span>
         )}
         {/* Mobile: rubata price right-aligned */}
@@ -266,7 +266,7 @@ export const BoardRow = memo(function BoardRow({
       {/* Stolen indicator — desktop badge */}
       {wasStolen && (
         <div className="hidden md:flex flex-col items-start bg-danger-500/15 border border-danger-500/30 rounded-lg px-3 py-1.5 min-w-[140px] flex-shrink-0">
-          <span className="text-[8px] text-danger-300 uppercase font-medium tracking-wide">Rubato da</span>
+          <span className="text-[10px] text-danger-300 uppercase font-medium tracking-wide">Rubato da</span>
           <div className="flex items-center gap-1.5">
             <span>🎯</span>
             <span className="text-sm font-bold text-danger-400">{player.stolenByUsername}</span>
@@ -280,7 +280,7 @@ export const BoardRow = memo(function BoardRow({
       {/* Contract details — single row, 4-col */}
       <div className={`hidden md:grid grid-cols-4 gap-x-2 rounded-lg p-2 w-[280px] flex-shrink-0 ${isPassed ? 'bg-surface-50/5' : 'bg-surface-300/40'}`}>
         <div className="text-center">
-          <div className="text-[8px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
+          <div className="text-[10px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
             <span className="md:hidden">Ing.</span><span className="hidden md:inline">Ingaggio</span>
           </div>
           <div className={`font-bold text-sm md:text-sm ${isPassed ? 'text-gray-500' : 'text-accent-400'}`}>
@@ -288,21 +288,21 @@ export const BoardRow = memo(function BoardRow({
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[8px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
+          <div className="text-[10px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
             <span className="md:hidden">Dur.</span><span className="hidden md:inline">Durata</span>
           </div>
           <div className={`font-bold text-sm md:text-sm ${
             isPassed ? 'text-gray-500' :
             player.contractDuration === 1 ? 'text-danger-400' :
             player.contractDuration === 2 ? 'text-warning-400' :
-            player.contractDuration === 3 ? 'text-blue-400' :
+            player.contractDuration === 3 ? 'text-primary-400' :
             'text-secondary-400'
           }`}>
             {player.contractDuration}s
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[8px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
+          <div className="text-[10px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
             <span className="md:hidden">Claus.</span><span className="hidden md:inline">Clausola</span>
           </div>
           <div className={`font-bold text-sm md:text-sm ${isPassed ? 'text-gray-500' : 'text-purple-400'}`}>
@@ -310,7 +310,7 @@ export const BoardRow = memo(function BoardRow({
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[8px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
+          <div className="text-[10px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
             <span className="md:hidden">Rub.</span><span className="hidden md:inline">Rubata</span>
           </div>
           <div className={`font-black ${isCurrent ? 'text-base md:text-lg text-primary-400' : isPassed ? 'text-sm text-gray-500' : 'text-sm text-warning-400'}`}>
@@ -323,13 +323,13 @@ export const BoardRow = memo(function BoardRow({
       <div className={`hidden md:grid grid-cols-3 w-[120px] flex-shrink-0 text-center ${isPassed ? 'opacity-60' : ''}`}>
         {/* MV */}
         <div>
-          <div className="text-[8px] uppercase text-gray-600 leading-tight">MV</div>
+          <div className="text-[10px] uppercase text-gray-600 leading-tight">MV</div>
           {player.playerComputedStats?.avgRating != null ? (
             <div className={`text-xs font-bold ${
               isPassed ? 'text-gray-500' :
-              player.playerComputedStats.avgRating >= 6.5 ? 'text-green-400' :
-              player.playerComputedStats.avgRating >= 6.0 ? 'text-yellow-400' :
-              'text-red-400'
+              player.playerComputedStats.avgRating >= 6.5 ? 'text-secondary-400' :
+              player.playerComputedStats.avgRating >= 6.0 ? 'text-warning-400' :
+              'text-danger-400'
             }`}>
               {player.playerComputedStats.avgRating.toFixed(2)}
             </div>
@@ -339,7 +339,7 @@ export const BoardRow = memo(function BoardRow({
         </div>
         {/* GOL */}
         <div>
-          <div className="text-[8px] uppercase text-gray-600 leading-tight">GOL</div>
+          <div className="text-[10px] uppercase text-gray-600 leading-tight">GOL</div>
           {player.playerPosition === 'A' && player.playerComputedStats?.totalGoals != null ? (
             <div className={`text-xs font-bold ${isPassed ? 'text-gray-500' : 'text-gray-300'}`}>
               {player.playerComputedStats.totalGoals}
@@ -350,7 +350,7 @@ export const BoardRow = memo(function BoardRow({
         </div>
         {/* ASS */}
         <div>
-          <div className="text-[8px] uppercase text-gray-600 leading-tight">ASS</div>
+          <div className="text-[10px] uppercase text-gray-600 leading-tight">ASS</div>
           {(player.playerPosition === 'C' || player.playerPosition === 'A') && player.playerComputedStats?.totalAssists != null ? (
             <div className={`text-xs font-bold ${isPassed ? 'text-gray-500' : 'text-gray-300'}`}>
               {player.playerComputedStats.totalAssists}

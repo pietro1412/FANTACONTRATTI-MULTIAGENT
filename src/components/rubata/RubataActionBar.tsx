@@ -21,12 +21,12 @@ interface RubataActionBarProps {
 
 function getStateBadge(state: RubataStateType): { label: string; classes: string } {
   switch (state) {
-    case 'READY_CHECK': return { label: '🔔 PRONTI?', classes: 'bg-blue-500/20 text-blue-400 border-blue-500/40' }
+    case 'READY_CHECK': return { label: '🔔 PRONTI?', classes: 'bg-primary-500/20 text-primary-400 border-primary-500/40' }
     case 'PREVIEW': return { label: '👁️ PREVIEW', classes: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40' }
     case 'OFFERING': return { label: '⏳ OFFERTA', classes: 'bg-warning-500/20 text-warning-400 border-warning-500/40' }
-    case 'AUCTION_READY_CHECK': return { label: '🎯 RUBATA!', classes: 'bg-orange-500/20 text-orange-400 border-orange-500/40 animate-pulse' }
+    case 'AUCTION_READY_CHECK': return { label: '🎯 RUBATA!', classes: 'bg-warning-500/20 text-warning-400 border-warning-500/40 animate-pulse' }
     case 'AUCTION': return { label: '🔥 ASTA', classes: 'bg-danger-500/20 text-danger-400 border-danger-500/40 animate-pulse' }
-    case 'PENDING_ACK': return { label: '✋ CONFERMA', classes: 'bg-purple-500/20 text-purple-400 border-purple-500/40' }
+    case 'PENDING_ACK': return { label: '✋ CONFERMA', classes: 'bg-primary-500/20 text-primary-400 border-primary-500/40' }
     case 'PAUSED': return { label: '⏸️ PAUSA', classes: 'bg-gray-500/20 text-gray-400 border-gray-500/40' }
     case 'WAITING': return { label: '⏹️ ATTESA', classes: 'bg-primary-500/20 text-primary-400 border-primary-500/40' }
     case 'COMPLETED': return { label: '✅ COMPLETATA', classes: 'bg-secondary-500/20 text-secondary-400 border-secondary-500/40' }
@@ -136,7 +136,7 @@ export function RubataActionBar({
 
       {/* Paused timer info */}
       {rubataState === 'PAUSED' && boardData?.pausedRemainingSeconds != null && (
-        <div className="px-3 pb-2 text-xs text-yellow-400">
+        <div className="px-3 pb-2 text-xs text-warning-400">
           ⏸️ {boardData.pausedRemainingSeconds}s rimanenti — {boardData.pausedFromState === 'AUCTION' ? 'Asta' : 'Offerta'}
         </div>
       )}
