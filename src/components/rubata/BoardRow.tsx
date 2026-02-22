@@ -140,10 +140,10 @@ export const BoardRow = memo(function BoardRow({
           : isAutoSkip
           ? 'opacity-40'
           : 'md:bg-surface-300 md:border-surface-50/20'
-      } ${isCurrent ? 'md:flex md:flex-wrap md:items-center md:gap-x-4 md:gap-y-2' : 'md:flex md:items-center md:gap-4'}`}
+      } ${isCurrent ? 'md:flex md:flex-col md:gap-2' : 'md:flex md:items-center md:gap-4'}`}
     >
       {/* Player header */}
-      <div className={`flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-0 ${isCurrent ? 'md:w-full' : 'md:flex-1 md:min-w-0'}`}>
+      <div className={`flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-0 md:min-w-0 ${isCurrent ? '' : 'md:flex-1'}`}>
         {/* D5: Compare checkbox */}
         {compareMode && !isPassed && (
           <button
@@ -263,6 +263,8 @@ export const BoardRow = memo(function BoardRow({
         <span className={`font-bold ${isPassed ? 'text-gray-500' : 'text-purple-400'}`}>{player.contractClause}M</span>
       </div>
 
+      {/* Desktop line 2 wrapper: flex-row for current (explicit 2nd line), contents for non-current (inline) */}
+      <div className={isCurrent ? 'hidden md:flex items-center gap-4' : 'contents'}>
       {/* Stolen indicator — desktop badge */}
       {wasStolen && (
         <div className="hidden md:flex flex-col items-start bg-danger-500/15 border border-danger-500/30 rounded-lg px-3 py-1.5 min-w-[140px] flex-shrink-0">
@@ -373,6 +375,7 @@ export const BoardRow = memo(function BoardRow({
             <div className="text-xs font-bold text-gray-600">-</div>
           )}
         </div>
+      </div>
       </div>
 
       {/* Passed + not stolen — hidden on mobile (shown inline in header) */}
