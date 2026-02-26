@@ -21,6 +21,7 @@ import AuctionDetailScreen from '@/screens/auctions/AuctionDetailScreen';
 import InitialAuctionScreen from '@/screens/auctions/InitialAuctionScreen';
 import RepairAuctionScreen from '@/screens/auctions/RepairAuctionScreen';
 import IndemnityScreen from '@/screens/auctions/IndemnityScreen';
+import FirstMarketRoomScreen from '@/screens/auctions/FirstMarketRoomScreen';
 
 // Screen imports - Scambi (Trades)
 import TradesScreen from '@/screens/trades/TradesScreen';
@@ -35,6 +36,10 @@ import ProfileScreen from '@/screens/more/ProfileScreen';
 
 // Screen imports - Contracts
 import ContractsScreen from '@/screens/contracts/ContractsScreen';
+
+// Screen imports - Admin
+import LeagueManagementScreen from '@/screens/admin/LeagueManagementScreen';
+import LeagueSettingsScreen from '@/screens/admin/LeagueSettingsScreen';
 
 // Theme colors
 const COLORS = {
@@ -66,6 +71,7 @@ export type AuctionsStackParamList = {
   InitialAuction: { leagueId: string };
   RepairAuction: { leagueId: string };
   Indemnity: { leagueId: string };
+  FirstMarketRoom: { leagueId: string };
 };
 
 export type TradesStackParamList = {
@@ -80,6 +86,8 @@ export type MoreStackParamList = {
   Settings: undefined;
   Profile: undefined;
   Contracts: undefined;
+  LeagueManagement: undefined;
+  LeagueSettings: undefined;
 };
 
 export type MainTabParamList = {
@@ -190,6 +198,11 @@ function AuctionsStackNavigator() {
         component={IndemnityScreen}
         options={{ title: 'Indennizzi' }}
       />
+      <AuctionsStack.Screen
+        name="FirstMarketRoom"
+        component={FirstMarketRoomScreen}
+        options={{ title: 'Asta Primo Mercato' }}
+      />
     </AuctionsStack.Navigator>
   );
 }
@@ -245,6 +258,16 @@ function MoreStackNavigator() {
         name="Contracts"
         component={ContractsScreen}
         options={{ title: 'Contratti' }}
+      />
+      <MoreStack.Screen
+        name="LeagueManagement"
+        component={LeagueManagementScreen}
+        options={{ title: 'Gestione Lega' }}
+      />
+      <MoreStack.Screen
+        name="LeagueSettings"
+        component={LeagueSettingsScreen}
+        options={{ title: 'Impostazioni Lega' }}
       />
     </MoreStack.Navigator>
   );

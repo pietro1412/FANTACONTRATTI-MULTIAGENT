@@ -71,8 +71,9 @@ interface RosterSummary {
 // Helper Functions
 // =============================================================================
 
-const formatCurrency = (amount: number): string => {
-  return `${amount.toLocaleString('it-IT')} M`;
+const formatCurrency = (amount: number | undefined | null): string => {
+  const safeAmount = amount ?? 0;
+  return `${safeAmount.toLocaleString('it-IT')} M`;
 };
 
 const getPositionColor = (position: Position): string => {
@@ -310,7 +311,9 @@ export default function RosterScreen(): React.JSX.Element {
       const response = await rosterApi.getRoster(selectedLeague.id);
 
       if (response.success && response.data) {
-        setRoster(response.data);
+        // Ensure roster is always an array
+        const rosterData = Array.isArray(response.data) ? response.data : [];
+        setRoster(rosterData);
       } else {
         setError(response.message || 'Errore nel caricamento della rosa');
       }

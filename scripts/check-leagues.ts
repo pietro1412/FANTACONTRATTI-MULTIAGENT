@@ -1,25 +1,49 @@
 import { PrismaClient } from '@prisma/client'
+
 const prisma = new PrismaClient()
 
 async function main() {
-  const leagues = await prisma.league.findMany({
-    include: {
-      members: {
-        include: { user: { select: { username: true, email: true } } }
-      }
-    }
-  })
+  try {
+    console.log('Checking leagues in database...\n')
 
-  console.log('=== LEGHE ===')
-  for (const league of leagues) {
-    console.log('Lega:', league.name, '- Status:', league.status)
-    console.log('Min/Max partecipanti:', league.minParticipants, '/', league.maxParticipants)
-    console.log('Membri:')
-    for (const m of league.members) {
-      console.log('  -', m.user.username, '(' + m.role + ')', 'Status:', m.status)
+    const leagues = await prisma.league.findMany({
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        _count: { select: { members: true } }
+      },
+    })
+
+    console.log(`Found ${leagues.length} leagues:`)
+    leagues.forEach(l => {
+      console.log(` - ${l.name}`)
+      console.log(`   ID: ${l.id}`)
+      console.log(`   Members: ${l._count.members}`)
+      console.log('')
+    })
+
+    const pietro = await prisma.user.findFirst({
+      where: { email: 'pietro@test.com' },
+      include: {
+        leagueMemberships: {
+          include: { league: true }
+        }
+      }
+    })
+
+    if (pietro) {
+      console.log(`Pietro's league memberships:`)
+      pietro.leagueMemberships.forEach(m => {
+        console.log(` - ${m.league.name} (${m.league.id}) - Role: ${m.role}`)
+      })
     }
-    console.log('')
+
+  } catch (e) {
+    console.error('Error:', e)
+  } finally {
+    await prisma.$disconnect()
   }
 }
 
-main().catch(console.error).finally(() => prisma.$disconnect())
+main()

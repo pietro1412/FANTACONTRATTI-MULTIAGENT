@@ -46,6 +46,7 @@ interface MenuItem {
   route?: keyof MoreStackParamList;
   action?: () => void;
   requiresLeague?: boolean;
+  adminOnly?: boolean;
 }
 
 // =============================================================================
@@ -55,7 +56,10 @@ interface MenuItem {
 export default function MoreScreen(): React.JSX.Element {
   const navigation = useNavigation<NavigationProp>();
   const { user, logout } = useAuth();
-  const { selectedLeague } = useLeague();
+  const { selectedLeague, selectedMember } = useLeague();
+
+  // Check if user is admin
+  const isAdmin = selectedMember?.role === 'ADMIN';
 
   // ===========================================================================
   // Handlers
@@ -96,7 +100,17 @@ export default function MoreScreen(): React.JSX.Element {
   // Menu Items
   // ===========================================================================
 
-  const menuItems: MenuItem[] = [
+  const allMenuItems: MenuItem[] = [
+    {
+      id: 'league-management',
+      title: 'Gestione Lega',
+      subtitle: 'Gestisci membri, inviti e mercato',
+      icon: 'shield-checkmark-outline',
+      iconColor: '#8B5CF6',
+      route: 'LeagueManagement',
+      requiresLeague: true,
+      adminOnly: true,
+    },
     {
       id: 'contracts',
       title: 'Contratti',
@@ -140,6 +154,9 @@ export default function MoreScreen(): React.JSX.Element {
       action: handleLogout,
     },
   ];
+
+  // Filter menu items based on admin status
+  const menuItems = allMenuItems.filter(item => !item.adminOnly || isAdmin);
 
   // ===========================================================================
   // Render

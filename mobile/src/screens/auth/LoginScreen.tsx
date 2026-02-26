@@ -70,11 +70,11 @@ export default function LoginScreen(): JSX.Element {
 
   const validateEmail = useCallback((value: string): boolean => {
     if (!value.trim()) {
-      setEmailError('Email is required');
+      setEmailError('Email obbligatoria');
       return false;
     }
     if (!isValidEmail(value.trim())) {
-      setEmailError('Please enter a valid email address');
+      setEmailError('Inserisci un indirizzo email valido');
       return false;
     }
     setEmailError('');
@@ -83,7 +83,7 @@ export default function LoginScreen(): JSX.Element {
 
   const validatePassword = useCallback((value: string): boolean => {
     if (!value) {
-      setPasswordError('Password is required');
+      setPasswordError('Password obbligatoria');
       return false;
     }
     setPasswordError('');
@@ -121,6 +121,9 @@ export default function LoginScreen(): JSX.Element {
   // ---------------------------------------------------------------------------
 
   const handleLogin = useCallback(async () => {
+    console.log('[LoginScreen] handleLogin called');
+    console.log('[LoginScreen] email:', email, 'password length:', password.length);
+
     // Dismiss keyboard
     Keyboard.dismiss();
 
@@ -131,20 +134,26 @@ export default function LoginScreen(): JSX.Element {
     const isEmailValid = validateEmail(email);
     const isPasswordValid = validatePassword(password);
 
+    console.log('[LoginScreen] validation:', { isEmailValid, isPasswordValid });
+
     if (!isEmailValid || !isPasswordValid) {
+      console.log('[LoginScreen] validation failed, returning');
       return;
     }
 
     setIsSubmitting(true);
+    console.log('[LoginScreen] calling login...');
 
     try {
       await login(email.trim(), password);
+      console.log('[LoginScreen] login successful');
       // Navigation will be handled by the auth state change in AppNavigator
     } catch (error) {
+      console.log('[LoginScreen] login error:', error);
       const errorMessage =
         error instanceof Error
           ? error.message
-          : 'An unexpected error occurred. Please try again.';
+          : 'Si è verificato un errore. Riprova.';
       setGeneralError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -161,8 +170,8 @@ export default function LoginScreen(): JSX.Element {
   // Render
   // ---------------------------------------------------------------------------
 
-  return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+  // Su web TouchableWithoutFeedback causa problemi con il focus degli input
+  const content = (
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -179,7 +188,7 @@ export default function LoginScreen(): JSX.Element {
               <Text style={styles.logoText}>FC</Text>
             </View>
             <Text style={styles.title}>FantaContratti</Text>
-            <Text style={styles.subtitle}>Sign in to manage your leagues</Text>
+            <Text style={styles.subtitle}>Accedi per gestire le tue leghe</Text>
           </View>
 
           {/* Form Section */}
@@ -200,7 +209,7 @@ export default function LoginScreen(): JSX.Element {
                   emailFocused && styles.inputFocused,
                   emailError ? styles.inputError : null,
                 ]}
-                placeholder="Enter your email"
+                placeholder="Inserisci la tua email"
                 placeholderTextColor={COLORS.textSecondary}
                 value={email}
                 onChangeText={handleEmailChange}
@@ -230,7 +239,7 @@ export default function LoginScreen(): JSX.Element {
                   passwordFocused && styles.inputFocused,
                   passwordError ? styles.inputError : null,
                 ]}
-                placeholder="Enter your password"
+                placeholder="Inserisci la tua password"
                 placeholderTextColor={COLORS.textSecondary}
                 value={password}
                 onChangeText={handlePasswordChange}
@@ -262,7 +271,7 @@ export default function LoginScreen(): JSX.Element {
               {isSubmitting || authLoading ? (
                 <ActivityIndicator color={COLORS.text} size="small" />
               ) : (
-                <Text style={styles.loginButtonText}>Sign In</Text>
+                <Text style={styles.loginButtonText}>Accedi</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -270,12 +279,22 @@ export default function LoginScreen(): JSX.Element {
           {/* Footer Section */}
           <View style={styles.footerSection}>
             <Text style={styles.footerText}>
-              Don't have an account?{' '}
-              <Text style={styles.footerLink}>Contact your league admin</Text>
+              Non hai un account?{' '}
+              <Text style={styles.footerLink}>Contatta l'admin della lega</Text>
             </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+  );
+
+  // Su web non usiamo TouchableWithoutFeedback che causa problemi con il focus
+  if (Platform.OS === 'web') {
+    return content;
+  }
+
+  return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      {content}
     </TouchableWithoutFeedback>
   );
 }

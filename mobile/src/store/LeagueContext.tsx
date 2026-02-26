@@ -12,7 +12,7 @@ import React, {
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { League, LeagueMember } from '../types';
-import { leaguesApi, rosterApi, ApiResponse } from '../services/api';
+import { leaguesApi, rosterApi, ApiResponse, authApi } from '../services/api';
 
 // =============================================================================
 // Constants
@@ -112,17 +112,38 @@ export function LeagueProvider({ children }: LeagueProviderProps): JSX.Element {
    */
   const loadMemberInfo = useCallback(async (leagueId: string): Promise<void> => {
     try {
+      // Get current user first
+      const userResponse = await authApi.getCurrentUser();
+      console.log('[LeagueContext] loadMemberInfo - current user:', userResponse.data?.id);
+
+      if (!userResponse.success || !userResponse.data) {
+        console.error('[LeagueContext] loadMemberInfo - could not get current user');
+        return;
+      }
+
+      const currentUserId = userResponse.data.id;
+
       const membersResponse = await leaguesApi.getLeagueMembers(leagueId);
+      console.log('[LeagueContext] loadMemberInfo - response:', JSON.stringify(membersResponse, null, 2));
+
       if (membersResponse.success && membersResponse.data) {
-        // The API should return members including the current user
-        // For now, we'll just take the first member that has status ACCEPTED
-        const activeMember = membersResponse.data.find(m => m.status === 'ACCEPTED');
-        if (activeMember) {
-          setSelectedMember(activeMember);
+        const membersArray = Array.isArray(membersResponse.data) ? membersResponse.data : [];
+        console.log('[LeagueContext] loadMemberInfo - members count:', membersArray.length);
+
+        // Find the member that belongs to the current user
+        const currentUserMember = membersArray.find((m: LeagueMember) =>
+          m.userId === currentUserId && (m.status === 'ACCEPTED' || m.status === 'ACTIVE')
+        );
+
+        if (currentUserMember) {
+          console.log('[LeagueContext] loadMemberInfo - found current user member:', currentUserMember.username, 'role:', currentUserMember.role);
+          setSelectedMember(currentUserMember);
+        } else {
+          console.log('[LeagueContext] loadMemberInfo - current user not found in members, userId:', currentUserId);
         }
       }
     } catch (err) {
-      console.error('Error loading member info:', err);
+      console.error('[LeagueContext] loadMemberInfo - error:', err);
     }
   }, []);
 
@@ -130,35 +151,47 @@ export function LeagueProvider({ children }: LeagueProviderProps): JSX.Element {
    * Load saved league selection from AsyncStorage
    */
   const loadSavedLeague = useCallback(async (): Promise<void> => {
+    console.log('[LeagueContext] loadSavedLeague - starting');
     setIsLoading(true);
     setError(null);
     try {
       const savedLeagueJson = await AsyncStorage.getItem(SELECTED_LEAGUE_KEY);
+      console.log('[LeagueContext] loadSavedLeague - savedLeagueJson:', savedLeagueJson ? 'exists' : 'null');
 
       if (savedLeagueJson) {
         const savedLeague: League = JSON.parse(savedLeagueJson);
+        console.log('[LeagueContext] loadSavedLeague - parsed league:', savedLeague.id);
 
         // Verify the league still exists and user has access
+        console.log('[LeagueContext] loadSavedLeague - calling getLeagueById...');
         const response = await leaguesApi.getLeagueById(savedLeague.id);
+        console.log('[LeagueContext] loadSavedLeague - getLeagueById response:', response.success);
 
         if (response.success && response.data) {
           setSelectedLeague(response.data);
+          console.log('[LeagueContext] loadSavedLeague - loading member info...');
           await loadMemberInfo(response.data.id);
+          console.log('[LeagueContext] loadSavedLeague - loading stats...');
           await loadLeagueStats(response.data.id);
+          console.log('[LeagueContext] loadSavedLeague - done');
         } else {
           // League no longer accessible, clear storage
+          console.log('[LeagueContext] loadSavedLeague - league not accessible, clearing');
           await AsyncStorage.removeItem(SELECTED_LEAGUE_KEY);
           setSelectedLeague(null);
           setSelectedMember(null);
           setLeagueStats(null);
         }
+      } else {
+        console.log('[LeagueContext] loadSavedLeague - no saved league');
       }
     } catch (err) {
-      console.error('Error loading saved league:', err);
+      console.error('[LeagueContext] loadSavedLeague - error:', err);
       setError('Errore nel caricamento della lega salvata');
       // Clear potentially corrupted data
       await AsyncStorage.removeItem(SELECTED_LEAGUE_KEY);
     } finally {
+      console.log('[LeagueContext] loadSavedLeague - setting isLoading false');
       setIsLoading(false);
     }
   }, [loadMemberInfo, loadLeagueStats]);

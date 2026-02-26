@@ -2,7 +2,7 @@
 // Pusher Service - Real-time notifications for FantaContratti Mobile App
 // =============================================================================
 
-import Pusher, { Channel } from 'pusher-js/react-native';
+import Pusher, { Channel } from 'pusher-js';
 
 // =============================================================================
 // Configuration

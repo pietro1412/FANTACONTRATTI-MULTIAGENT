@@ -229,15 +229,19 @@ export default function LeagueSelectionScreen(): React.JSX.Element {
    */
   const fetchLeagues = useCallback(async () => {
     setError(null);
+    console.log('[LeagueSelection] Starting fetchLeagues...');
     try {
       const response = await leaguesApi.getMyLeagues();
+      console.log('[LeagueSelection] API response:', JSON.stringify(response, null, 2));
       if (response.success && response.data) {
+        console.log('[LeagueSelection] Setting leagues:', response.data.length);
         setLeagues(response.data);
       } else {
+        console.log('[LeagueSelection] Error in response:', response.message);
         setError(response.message || 'Errore nel caricamento delle leghe');
       }
     } catch (err) {
-      console.error('Error fetching leagues:', err);
+      console.error('[LeagueSelection] Exception:', err);
       setError('Errore di connessione al server');
     } finally {
       setIsLoading(false);
