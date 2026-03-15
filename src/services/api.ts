@@ -51,8 +51,7 @@ async function request<T>(
     }
 
     return data
-  } catch (error) {
-    console.error('API request error:', error)
+  } catch {
     return { success: false, message: 'Errore di connessione al server' }
   }
 }
@@ -71,8 +70,8 @@ async function refreshAccessToken(): Promise<boolean> {
         return true
       }
     }
-  } catch (error) {
-    console.error('Token refresh error:', error)
+  } catch {
+    // Token refresh failed — caller handles fallback
   }
 
   setAccessToken(null)

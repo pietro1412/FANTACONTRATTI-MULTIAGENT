@@ -50,6 +50,9 @@ export interface BoardRowProps {
   onToggleCompare?: () => void
   // Manager group separator
   isNewOwnerGroup?: boolean
+  // Expandable row (mobile density)
+  isExpanded?: boolean
+  onToggleExpand?: () => void
 }
 
 export const BoardRow = memo(function BoardRow({
@@ -71,6 +74,8 @@ export const BoardRow = memo(function BoardRow({
   isCompareSelected,
   onToggleCompare,
   isNewOwnerGroup,
+  isExpanded,
+  onToggleExpand,
 }: BoardRowProps) {
   const wasStolen = !!player.stolenByUsername
   const isMyPlayer = player.memberId === myMemberId
@@ -164,7 +169,7 @@ export const BoardRow = memo(function BoardRow({
           </button>
         )}
         {isCurrent ? (
-          <span className="inline-flex items-center justify-center w-7 h-7 bg-primary-500 text-white rounded-full text-xs font-bold animate-pulse flex-shrink-0">
+          <span className="inline-flex items-center justify-center w-7 h-7 bg-primary-500 text-white rounded-full text-xs font-bold flex-shrink-0">
             {globalIndex + 1}
           </span>
         ) : (
@@ -204,7 +209,7 @@ export const BoardRow = memo(function BoardRow({
             apiFootballId: player.playerApiFootballId,
             computedStats: player.playerComputedStats,
           }); }}
-          className={`font-semibold truncate text-left ${isCurrent ? 'text-white font-bold text-base' : isPassed ? 'text-gray-500' : 'text-white hover:text-primary-300'}`}
+          className={`font-semibold truncate text-left min-h-[44px] flex items-center ${isCurrent ? 'text-white font-bold text-base' : isPassed ? 'text-gray-500' : 'text-white hover:text-primary-300'}`}
           title="Clicca per vedere statistiche"
         >
           {player.playerName}
@@ -244,24 +249,44 @@ export const BoardRow = memo(function BoardRow({
         )}
       </div>
 
-      {/* Mobile: compact info — owner + age + contract inline */}
-      <div className="md:hidden flex items-center gap-1 text-[11px] mt-0.5 ml-8 flex-wrap">
+      {/* Mobile: compact info — always show owner, expand for details */}
+      <div className="md:hidden flex items-center gap-1 text-[11px] mt-0.5 ml-8 flex-wrap cursor-pointer" onClick={onToggleExpand} role="button" tabIndex={0}>
         <span className="text-gray-500">
           di <span className={isPassed && wasStolen ? 'line-through text-gray-500' : 'text-gray-400'}>{player.ownerUsername}</span>
         </span>
-        {player.playerAge != null && (
+        {(isCurrent || isExpanded) ? (
           <>
+            {player.playerAge != null && (
+              <>
+                <span className="text-gray-600">·</span>
+                <AgeBadge age={player.playerAge} />
+              </>
+            )}
             <span className="text-gray-600">·</span>
-            <AgeBadge age={player.playerAge} />
+            <span className={`font-bold ${isPassed ? 'text-gray-500' : 'text-accent-400'}`}>{player.contractSalary}M</span>
+            <span className="text-gray-600">·</span>
+            <span className={`font-bold ${isPassed ? 'text-gray-500' : durationColor}`}>{player.contractDuration}s</span>
+            <span className="text-gray-600">·</span>
+            <span className={`font-bold ${isPassed ? 'text-gray-500' : 'text-purple-400'}`}>{player.contractClause}M</span>
           </>
+        ) : (
+          <span className="text-gray-600 ml-0.5">›</span>
         )}
-        <span className="text-gray-600">·</span>
-        <span className={`font-bold ${isPassed ? 'text-gray-500' : 'text-accent-400'}`}>{player.contractSalary}M</span>
-        <span className="text-gray-600">·</span>
-        <span className={`font-bold ${isPassed ? 'text-gray-500' : durationColor}`}>{player.contractDuration}s</span>
-        <span className="text-gray-600">·</span>
-        <span className={`font-bold ${isPassed ? 'text-gray-500' : 'text-purple-400'}`}>{player.contractClause}M</span>
       </div>
+
+      {/* Mobile: inline VOGLIO RUBARE button for current player */}
+      {isCurrent && rubataState === 'OFFERING' && canMakeOffer && (
+        <div className="md:hidden mt-1.5 ml-8">
+          <Button
+            onClick={onMakeOffer}
+            disabled={isSubmitting}
+            variant="accent"
+            className="w-full text-base py-2.5"
+          >
+            🎯 VOGLIO RUBARE! ({player.rubataPrice}M)
+          </Button>
+        </div>
+      )}
 
       {/* Stolen indicator — desktop badge */}
       {wasStolen && (
@@ -380,7 +405,7 @@ export const BoardRow = memo(function BoardRow({
                 variant="accent"
                 className="text-sm py-1.5 px-4 whitespace-nowrap"
               >
-                🎯 RUBARE ({player.rubataPrice}M)
+                🎯 VOGLIO RUBARE! ({player.rubataPrice}M)
               </Button>
             </div>
           )

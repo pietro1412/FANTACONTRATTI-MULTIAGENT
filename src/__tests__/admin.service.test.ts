@@ -305,8 +305,8 @@ describe('Admin Service', () => {
       })
       // memberStats should be sorted by playerCount desc
       const memberStats = data.memberStats as Array<Record<string, unknown>>
-      expect(memberStats[0].playerCount).toBe(2)
-      expect(memberStats[1].playerCount).toBe(1)
+      expect((memberStats[0] as Record<string, unknown>).playerCount).toBe(2)
+      expect((memberStats[1] as Record<string, unknown>).playerCount).toBe(1)
     })
   })
 

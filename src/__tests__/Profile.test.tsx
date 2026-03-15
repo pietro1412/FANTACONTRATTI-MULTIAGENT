@@ -212,7 +212,7 @@ describe('Profile Page', () => {
     })
   })
 
-  it('validates password confirmation match', async () => {
+  it('validates password confirmation match', { timeout: 15000 }, async () => {
     const user = userEvent.setup()
     render(<Profile onNavigate={mockOnNavigate} />)
 

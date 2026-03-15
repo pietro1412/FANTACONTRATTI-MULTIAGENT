@@ -455,9 +455,10 @@ describe('Contract History Service', () => {
       const data = result.data as Record<string, unknown>
       const lineItems = data.lineItems as Array<Record<string, unknown>>
       expect(lineItems).toHaveLength(1)
-      expect(lineItems[0].description).toContain('[BOZZA] Taglio Theo')
+      const firstItem = lineItems[0] as Record<string, unknown>
+      expect(firstItem.description).toContain('[BOZZA] Taglio Theo')
       // calculateReleaseCost(20, 2) = ceil((20*2)/2) = 20
-      expect(lineItems[0].debit).toBe(20)
+      expect(firstItem.debit).toBe(20)
     })
   })
 
@@ -495,10 +496,11 @@ describe('Contract History Service', () => {
       expect(result.success).toBe(true)
       const data = result.data as Array<Record<string, unknown>>
       expect(data).toHaveLength(1)
-      expect(data[0].sessionName).toBe('Stagione 2 - Estate')
-      expect(data[0].budgetChange).toBe(-20) // 180 - 200
-      expect(data[0].salariesChange).toBe(-10) // 90 - 100
-      expect(data[0].netChange).toBe(-10) // 90 - 100
+      const firstSummary = data[0] as Record<string, unknown>
+      expect(firstSummary.sessionName).toBe('Stagione 2 - Estate')
+      expect(firstSummary.budgetChange).toBe(-20) // 180 - 200
+      expect(firstSummary.salariesChange).toBe(-10) // 90 - 100
+      expect(firstSummary.netChange).toBe(-10) // 90 - 100
     })
 
     it('returns zero changes when no snapshots available', async () => {
@@ -514,10 +516,11 @@ describe('Contract History Service', () => {
       expect(result.success).toBe(true)
       const data = result.data as Array<Record<string, unknown>>
       expect(data).toHaveLength(1)
-      expect(data[0].sessionName).toBe('Stagione 1 - Inverno')
-      expect(data[0].budgetChange).toBe(0)
-      expect(data[0].salariesChange).toBe(0)
-      expect(data[0].netChange).toBe(0)
+      const firstSummary2 = data[0] as Record<string, unknown>
+      expect(firstSummary2.sessionName).toBe('Stagione 1 - Inverno')
+      expect(firstSummary2.budgetChange).toBe(0)
+      expect(firstSummary2.salariesChange).toBe(0)
+      expect(firstSummary2.netChange).toBe(0)
     })
   })
 
@@ -587,14 +590,15 @@ describe('Contract History Service', () => {
 
       expect(result).toBe('snap-end')
       // Verify the snapshot was created with correct computed values
-      const upsertCall = mockPrisma.managerSessionSnapshot.upsert.mock.calls[0][0]
-      expect(upsertCall.create.totalSalaries).toBe(45) // 20+25
-      expect(upsertCall.create.balance).toBe(135) // 180-45
-      expect(upsertCall.create.totalIndemnities).toBe(10) // only RELEASE_ESTERO income
-      expect(upsertCall.create.totalReleaseCosts).toBe(15) // RELEASE_NORMAL cost
-      expect(upsertCall.create.totalRenewalCosts).toBe(5) // 25-20
-      expect(upsertCall.create.releasedCount).toBe(3) // RELEASE_ESTERO + RELEASE_NORMAL + AUTO_RELEASE_EXPIRED
-      expect(upsertCall.create.renewedCount).toBe(1) // RENEWAL only
+      const upsertCallArgs = mockPrisma.managerSessionSnapshot.upsert.mock.calls[0] as unknown as [{ create: Record<string, unknown> }]
+      const createData = upsertCallArgs[0].create
+      expect(createData.totalSalaries).toBe(45) // 20+25
+      expect(createData.balance).toBe(135) // 180-45
+      expect(createData.totalIndemnities).toBe(10) // only RELEASE_ESTERO income
+      expect(createData.totalReleaseCosts).toBe(15) // RELEASE_NORMAL cost
+      expect(createData.totalRenewalCosts).toBe(5) // 25-20
+      expect(createData.releasedCount).toBe(3) // RELEASE_ESTERO + RELEASE_NORMAL + AUTO_RELEASE_EXPIRED
+      expect(createData.renewedCount).toBe(1) // RENEWAL only
     })
 
     it('returns null on database error', async () => {

@@ -30,12 +30,14 @@ import { RubataBidPanel } from '../components/rubata/RubataBidPanel'
 import { RubataActivityFeed } from '../components/rubata/RubataActivityFeed'
 import { RubataStrategySummary } from '../components/rubata/RubataStrategySummary'
 import { BoardRow } from '../components/rubata/BoardRow'
+import { BoardRowSkeleton } from '../components/rubata/BoardRowSkeleton'
 import { PlayerCompareModal } from '../components/rubata/PlayerCompareModal'
 import { POSITION_COLORS } from '../types/rubata.types'
 import type { BoardPlayer } from '../types/rubata.types'
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { useToast } from '../components/ui/Toast'
 
 interface SortableOrderItemProps {
   id: string
@@ -179,6 +181,25 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   const [comparePlayerIds, setComparePlayerIds] = useState<string[]>([])
   const [showCompareModal, setShowCompareModal] = useState(false)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+  // P1-1: Expandable rows for mobile density
+  const [expandedRowIds, setExpandedRowIds] = useState<Set<string>>(new Set())
+
+  // Toast notifications for success/error feedback
+  const { toast } = useToast()
+  const prevErrorRef = useRef(error)
+  const prevSuccessRef = useRef(success)
+  useEffect(() => {
+    if (error && error !== prevErrorRef.current) {
+      toast.error(error)
+    }
+    prevErrorRef.current = error
+  }, [error, toast])
+  useEffect(() => {
+    if (success && success !== prevSuccessRef.current) {
+      toast.success(success)
+    }
+    prevSuccessRef.current = success
+  }, [success, toast])
 
   // Auto-set "Rimanenti" filter when rubata starts actively running
   const prevRubataStateRef = useRef(rubataState)
@@ -257,6 +278,15 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     setSelectedPlayerForStats(info as Parameters<typeof setSelectedPlayerForStats>[0])
   }, [setSelectedPlayerForStats])
 
+  const toggleExpandRow = useCallback((rosterId: string) => {
+    setExpandedRowIds(prev => {
+      const next = new Set(prev)
+      if (next.has(rosterId)) next.delete(rosterId)
+      else next.add(rosterId)
+      return next
+    })
+  }, [])
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -266,10 +296,16 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     return (
       <div className="min-h-screen">
         <Navigation currentPage="rubata" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
-        <div className="flex items-center justify-center h-[80vh]">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-gray-400">Caricamento rubata...</p>
+        <div className="max-w-[1600px] mx-auto px-4 py-6">
+          <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
+            <div className="p-3 md:p-4 border-b border-surface-50/20">
+              <div className="h-6 w-48 bg-surface-300 rounded animate-pulse" />
+            </div>
+            <div className="divide-y divide-surface-50/10">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <BoardRowSkeleton key={i} />
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -688,7 +724,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             )}
 
             {/* Tabellone completo */}
-            <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden flex flex-col" style={{ maxHeight: 'calc(100vh - 180px)', minHeight: '250px' }}>
+            <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden flex flex-col" style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '250px' }}>
               {/* Board header with search + filters */}
               <div className="p-3 md:p-4 border-b border-surface-50/20 shrink-0 space-y-2 md:space-y-3">
                 <div className="flex items-center justify-between gap-2">
@@ -755,7 +791,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     <button
                       key={pos}
                       onClick={() => { setPositionFilter(prev => prev === pos ? null : pos); }}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all min-h-[32px] ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all min-h-[44px] ${
                         positionFilter === pos
                           ? POSITION_COLORS[pos] ?? ''
                           : 'bg-surface-300 text-gray-400 hover:text-white border border-surface-50/20'
@@ -776,7 +812,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     <button
                       key={chip.key}
                       onClick={() => { setChipFilter(prev => prev === chip.key ? null : chip.key); }}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all min-h-[32px] flex items-center gap-1 ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all min-h-[44px] flex items-center gap-1 ${
                         chipFilter === chip.key
                           ? 'bg-primary-500/20 border border-primary-500/40 text-primary-400'
                           : 'bg-surface-300 text-gray-400 hover:text-white border border-surface-50/20'
@@ -845,6 +881,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                                   : prev.length < 3 ? [...prev, player.playerId] : prev
                               )
                             }}
+                            isExpanded={expandedRowIds.has(player.rosterId)}
+                            onToggleExpand={() => toggleExpandRow(player.rosterId)}
                           />
                         </div>
                       )
@@ -885,6 +923,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                                 : prev.length < 3 ? [...prev, player.playerId] : prev
                             )
                           }}
+                          isExpanded={expandedRowIds.has(player.rosterId)}
+                          onToggleExpand={() => toggleExpandRow(player.rosterId)}
                         />
                       )
                     })}

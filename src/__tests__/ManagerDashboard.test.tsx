@@ -389,8 +389,6 @@ describe('ManagerDashboard', () => {
   })
 
   it('shows "Nessun giocatore" for empty position groups in roster', async () => {
-    const user = userEvent.setup()
-
     render(<ManagerDashboard leagueId="league1" onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {

@@ -120,6 +120,7 @@ describe('League Service', () => {
 
       const result = await leagueService.createLeague('user-1', {
         name: 'Test League',
+        maxParticipants: 10,
         initialBudget: 200,
         goalkeeperSlots: 3,
         defenderSlots: 8,
@@ -154,6 +155,7 @@ describe('League Service', () => {
     it('should reject when teamName is missing or too short', async () => {
       const result = await leagueService.createLeague('user-1', {
         name: 'Test League',
+        maxParticipants: 10,
         initialBudget: 200,
         goalkeeperSlots: 3,
         defenderSlots: 8,
@@ -192,8 +194,9 @@ describe('League Service', () => {
       expect(Array.isArray(result.data)).toBe(true)
       const data = result.data as Array<{ membership: { id: string }; league: { id: string } }>
       expect(data).toHaveLength(1)
-      expect(data[0].membership.id).toBe('member-1')
-      expect(data[0].league.id).toBe('league-1')
+      const first = data[0] as { membership: { id: string }; league: { id: string } }
+      expect(first.membership.id).toBe('member-1')
+      expect(first.league.id).toBe('league-1')
     })
 
     it('should return empty array when user has no leagues', async () => {
@@ -235,8 +238,9 @@ describe('League Service', () => {
         userMembership: { totalSalaries: number; balance: number }
         isAdmin: boolean
       }
-      expect(data.league.members[0].totalSalaries).toBe(25)
-      expect(data.league.members[0].balance).toBe(175) // 200 - 25
+      const firstMember = data.league.members[0] as { totalSalaries: number; balance: number }
+      expect(firstMember.totalSalaries).toBe(25)
+      expect(firstMember.balance).toBe(175) // 200 - 25
       expect(data.isAdmin).toBe(true)
     })
 
@@ -630,8 +634,9 @@ describe('League Service', () => {
       expect(result.success).toBe(true)
       const data = result.data as Array<{ name: string; adminUsername: string }>
       expect(data).toHaveLength(1)
-      expect(data[0].name).toBe('Serie A Dynasty')
-      expect(data[0].adminUsername).toBe('admin_user')
+      const firstLeague = data[0] as { name: string; adminUsername: string }
+      expect(firstLeague.name).toBe('Serie A Dynasty')
+      expect(firstLeague.adminUsername).toBe('admin_user')
     })
 
     it('should return error when query is too short', async () => {
@@ -747,9 +752,10 @@ describe('League Service', () => {
       expect(data.leagueName).toBe('Test League')
       expect(data.maxSlots).toBe(25) // 3+8+8+6
       expect(data.teams).toHaveLength(1)
-      expect(data.teams[0].budget).toBe(200)
-      expect(data.teams[0].annualContractCost).toBe(15)
-      expect(data.teams[0].slotCount).toBe(1)
+      const firstTeam = data.teams[0] as { budget: number; annualContractCost: number; slotCount: number }
+      expect(firstTeam.budget).toBe(200)
+      expect(firstTeam.annualContractCost).toBe(15)
+      expect(firstTeam.slotCount).toBe(1)
       expect(data.isAdmin).toBe(true)
     })
   })

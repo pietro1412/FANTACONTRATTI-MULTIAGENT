@@ -31,7 +31,7 @@ import { prisma } from '@/lib/prisma'
 describe('MovementPrismaRepository', () => {
   let repository: MovementPrismaRepository
 
-  /* eslint-disable @typescript-eslint/no-explicit-any -- vi.mocked partial mocks with Prisma includes */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mockMovement: any = {
     id: 'movement-1',
     leagueId: 'league-1',
@@ -292,6 +292,7 @@ describe('MovementPrismaRepository', () => {
 describe('ProphecyPrismaRepository', () => {
   let repository: ProphecyPrismaRepository
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mockProphecy: any = {
     id: 'prophecy-1',
     leagueId: 'league-1',

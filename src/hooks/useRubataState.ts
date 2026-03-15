@@ -1086,7 +1086,12 @@ export function useRubataState(leagueId: string) {
   const currentPlayer = boardData?.currentPlayer
   const activeAuction = boardData?.activeAuction
   const myMemberId = boardData?.myMemberId
-  const canMakeOffer = rubataState === 'OFFERING' && currentPlayer && currentPlayer.memberId !== myMemberId
+  const myBudgetInfo = boardData?.memberBudgets?.find(mb => mb.memberId === myMemberId)
+  const myResiduo = myBudgetInfo?.residuo ?? 0
+  const canMakeOffer = rubataState === 'OFFERING'
+    && currentPlayer
+    && currentPlayer.memberId !== myMemberId
+    && myResiduo >= (currentPlayer?.rubataPrice ?? Infinity)
 
   const currentPlayerPreference = currentPlayer ? preferencesMap.get(currentPlayer.playerId) : null
 
