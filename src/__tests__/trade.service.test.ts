@@ -161,8 +161,8 @@ describe('Trade Service', () => {
     // Restore fire-and-forget service mocks (must return Promises for .catch())
     mockNotifyTradeOffer.mockResolvedValue(undefined)
     mockNotifyTradeInvalidated.mockResolvedValue(undefined)
-    mockTriggerTradeOfferReceived.mockResolvedValue(undefined)
-    mockTriggerTradeUpdated.mockResolvedValue(undefined)
+    mockTriggerTradeOfferReceived.mockResolvedValue(true)
+    mockTriggerTradeUpdated.mockResolvedValue(true)
     mockRecordMovement.mockResolvedValue('movement-id')
   })
 
@@ -430,9 +430,10 @@ describe('Trade Service', () => {
 
       expect(result.success).toBe(true)
       expect(result.data).toHaveLength(1)
-      const offer = (result.data as Array<Record<string, unknown>>)[0]
-      expect(offer.offeredPlayerDetails).toBeDefined()
-      expect(offer.requestedPlayerDetails).toBeDefined()
+      const offers = result.data as Array<Record<string, unknown>>
+      const firstOffer = offers[0] as Record<string, unknown>
+      expect(firstOffer.offeredPlayerDetails).toBeDefined()
+      expect(firstOffer.requestedPlayerDetails).toBeDefined()
     })
   })
 

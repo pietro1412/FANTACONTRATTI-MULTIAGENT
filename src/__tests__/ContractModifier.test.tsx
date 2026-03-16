@@ -25,7 +25,7 @@ describe('ContractModifier — increaseOnly mode (post-rubata)', () => {
     // Increase duration from 2 to 3 without touching salary
     const durationPlusButtons = screen.getAllByText('+')
     // The second '+' button is the duration one (first is salary)
-    await user.click(durationPlusButtons[1])
+    await user.click(durationPlusButtons[1] as HTMLElement)
 
     // Should show "Modifica non valida" — NOT "Anteprima nuovo contratto"
     expect(screen.getByText('Modifica non valida')).toBeInTheDocument()
@@ -47,10 +47,10 @@ describe('ContractModifier — increaseOnly mode (post-rubata)', () => {
 
     // First increase salary
     const plusButtons = screen.getAllByText('+')
-    await user.click(plusButtons[0]) // salary +1
+    await user.click(plusButtons[0] as HTMLElement) // salary +1
 
     // Then increase duration
-    await user.click(plusButtons[1]) // duration +1
+    await user.click(plusButtons[1] as HTMLElement) // duration +1
 
     // Should show valid preview
     expect(screen.getByText('Anteprima nuovo contratto')).toBeInTheDocument()

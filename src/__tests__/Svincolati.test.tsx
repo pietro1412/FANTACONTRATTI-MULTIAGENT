@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 // ---------------------------------------------------------------------------
@@ -159,13 +159,13 @@ const defaultHookReturn = {
   setIsAppealMode: vi.fn(),
   appealContent: '',
   setAppealContent: vi.fn(),
-  appealStatus: null,
+  appealStatus: null as Record<string, unknown> | null,
   ackSubmitting: false,
   userHasAcked: false,
   showFinishConfirmModal: false,
   setShowFinishConfirmModal: vi.fn(),
-  pendingContractModification: null,
-  selectedManager: null,
+  pendingContractModification: null as Record<string, unknown> | null,
+  selectedManager: null as Record<string, unknown> | null,
   setSelectedManager: vi.fn(),
   loadingManager: false,
   isPusherConnected: true,

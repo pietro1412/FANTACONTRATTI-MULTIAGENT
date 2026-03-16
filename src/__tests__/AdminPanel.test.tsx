@@ -34,16 +34,16 @@ vi.mock('../components/ui/Button', () => ({
 
 // Mock xlsx
 const mockWriteFile = vi.fn()
-const mockAoaToSheet = vi.fn(() => ({}))
+const mockAoaToSheet = vi.fn((_a?: unknown, _b?: unknown) => ({}))
 const mockBookNew = vi.fn(() => ({}))
 const mockBookAppendSheet = vi.fn()
 vi.mock('xlsx', () => ({
   utils: {
-    aoa_to_sheet: (...args: unknown[]) => mockAoaToSheet(...args),
-    book_new: (...args: unknown[]) => mockBookNew(...args),
-    book_append_sheet: (...args: unknown[]) => mockBookAppendSheet(...args),
+    aoa_to_sheet: (a: unknown, b?: unknown) => mockAoaToSheet(a, b),
+    book_new: () => mockBookNew(),
+    book_append_sheet: (a: unknown, b: unknown, c: unknown) => mockBookAppendSheet(a, b, c),
   },
-  writeFile: (...args: unknown[]) => mockWriteFile(...args),
+  writeFile: (a: unknown, b: unknown) => mockWriteFile(a, b),
 }))
 
 // Mock haptics
@@ -432,7 +432,6 @@ describe('AdminPanel', () => {
   })
 
   it('maps old tab ID "appeals" to "members"', async () => {
-    const user = userEvent.setup()
     render(<AdminPanel leagueId="league1" initialTab="appeals" onNavigate={mockOnNavigate} />)
 
     // "appeals" maps to "members" tab

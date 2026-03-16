@@ -2014,10 +2014,10 @@ export async function closeCurrentRubataAuction(
     const contractSalary = rosterEntry.contract?.salary ?? 0
     const sellerPayment = payment - contractSalary
 
-    // Update winner budget (decrease)
+    // Winner pays OFFERTA only (salary captured in monte ingaggi via contract transfer)
     await tx.leagueMember.update({
       where: { id: winningBid.bidderId },
-      data: { currentBudget: { decrement: payment } },
+      data: { currentBudget: { decrement: sellerPayment } },
     })
 
     // Update seller budget (increase by OFFERTA only)

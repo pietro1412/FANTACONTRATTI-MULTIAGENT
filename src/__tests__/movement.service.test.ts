@@ -116,11 +116,12 @@ describe('Movement Service', () => {
       })
 
       expect(result).toBe('movement-2')
-      const createCall = mockPrisma.playerMovement.create.mock.calls[0][0]
-      expect(createCall.data.fromMemberId).toBe('member-1')
-      expect(createCall.data.toMemberId).toBe('member-2')
-      expect(createCall.data.oldSalary).toBe(10)
-      expect(createCall.data.newSalary).toBe(15)
+      const createCallArgs = mockPrisma.playerMovement.create.mock.calls[0] as unknown as [{ data: Record<string, unknown> }]
+      const createData = createCallArgs[0].data
+      expect(createData.fromMemberId).toBe('member-1')
+      expect(createData.toMemberId).toBe('member-2')
+      expect(createData.oldSalary).toBe(10)
+      expect(createData.newSalary).toBe(15)
     })
   })
 
@@ -170,10 +171,11 @@ describe('Movement Service', () => {
       expect(result.success).toBe(true)
       const data = result.data as Array<Record<string, unknown>>
       expect(data).toHaveLength(1)
-      expect(data[0].type).toBe('ACQUISTO_ASTA')
-      expect((data[0].player as Record<string, unknown>).name).toBe('Leao')
-      expect(data[0].from).toBeNull()
-      expect(data[0].to).toBeDefined()
+      const first = data[0] as Record<string, unknown>
+      expect(first.type).toBe('ACQUISTO_ASTA')
+      expect((first.player as Record<string, unknown>).name).toBe('Leao')
+      expect(first.from).toBeNull()
+      expect(first.to).toBeDefined()
     })
 
     it('applies optional filters for movementType and playerId', async () => {
@@ -188,11 +190,12 @@ describe('Movement Service', () => {
         offset: 5,
       })
 
-      const findManyCall = mockPrisma.playerMovement.findMany.mock.calls[0][0]
-      expect(findManyCall.where.movementType).toBe('SCAMBIO')
-      expect(findManyCall.where.playerId).toBe('player-1')
-      expect(findManyCall.take).toBe(10)
-      expect(findManyCall.skip).toBe(5)
+      const findManyFirstCall = mockPrisma.playerMovement.findMany.mock.calls[0] as unknown as [{ where: Record<string, unknown>; take: number; skip: number }]
+      const findManyArg = findManyFirstCall[0]
+      expect(findManyArg.where.movementType).toBe('SCAMBIO')
+      expect(findManyArg.where.playerId).toBe('player-1')
+      expect(findManyArg.take).toBe(10)
+      expect(findManyArg.skip).toBe(5)
     })
 
     it('applies semester filter correctly', async () => {
@@ -204,8 +207,8 @@ describe('Movement Service', () => {
         semester: 1,
       })
 
-      const findManyCall = mockPrisma.playerMovement.findMany.mock.calls[0][0]
-      expect(findManyCall.where.marketSession).toEqual({ semester: 1 })
+      const findManyFirstCall2 = mockPrisma.playerMovement.findMany.mock.calls[0] as unknown as [{ where: Record<string, unknown> }]
+      expect(findManyFirstCall2[0].where.marketSession).toEqual({ semester: 1 })
     })
 
     it('merges prophecies from both Prophecy model and AuctionAcknowledgment', async () => {
@@ -256,11 +259,14 @@ describe('Movement Service', () => {
 
       expect(result.success).toBe(true)
       const data = result.data as Array<Record<string, unknown>>
-      const prophecies = data[0].prophecies as Array<Record<string, unknown>>
+      const firstMov = data[0] as Record<string, unknown>
+      const prophecies = firstMov.prophecies as Array<Record<string, unknown>>
       expect(prophecies).toHaveLength(2) // 1 from model + 1 from ack
-      expect(prophecies[0].source).toBe('prophecy')
-      expect(prophecies[1].source).toBe('acknowledgment')
-      expect(prophecies[1].content).toBe('Pago troppo')
+      const proph0 = prophecies[0] as Record<string, unknown>
+      const proph1 = prophecies[1] as Record<string, unknown>
+      expect(proph0.source).toBe('prophecy')
+      expect(proph1.source).toBe('acknowledgment')
+      expect(proph1.content).toBe('Pago troppo')
     })
   })
 
@@ -333,7 +339,7 @@ describe('Movement Service', () => {
       expect(currentOwner.username).toBe('manager1')
       const movements = data.movements as Array<Record<string, unknown>>
       expect(movements).toHaveLength(1)
-      expect(movements[0].session).toBe('MERCATO_RICORRENTE S1/1')
+      expect((movements[0] as Record<string, unknown>).session).toBe('MERCATO_RICORRENTE S1/1')
     })
 
     it('returns null currentOwner when player is free agent', async () => {
@@ -511,8 +517,8 @@ describe('Movement Service', () => {
 
       expect(result.success).toBe(true)
       // Verify SELLER role is used in create call
-      const createCall = mockPrisma.prophecy.create.mock.calls[0][0]
-      expect(createCall.data.authorRole).toBe('SELLER')
+      const propCreateFirstCall = mockPrisma.prophecy.create.mock.calls[0] as unknown as [{ data: Record<string, unknown> }]
+      expect(propCreateFirstCall[0].data.authorRole).toBe('SELLER')
     })
   })
 
@@ -546,9 +552,10 @@ describe('Movement Service', () => {
       expect(result.success).toBe(true)
       const data = result.data as Array<Record<string, unknown>>
       expect(data).toHaveLength(1)
-      expect(data[0].content).toBe('Fara bene')
-      expect(data[0].movementType).toBe('ACQUISTO_ASTA')
-      const author = data[0].author as Record<string, unknown>
+      const firstProphecy = data[0] as Record<string, unknown>
+      expect(firstProphecy.content).toBe('Fara bene')
+      expect(firstProphecy.movementType).toBe('ACQUISTO_ASTA')
+      const author = firstProphecy.author as Record<string, unknown>
       expect(author.username).toBe('manager1')
     })
   })

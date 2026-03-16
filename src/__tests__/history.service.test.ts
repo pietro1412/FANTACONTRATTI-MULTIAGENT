@@ -70,6 +70,104 @@ vi.mock('@prisma/client', () => ({
 // Import after mocking
 import * as historyService from '../services/history.service'
 
+// ==================== Test types for assertions ====================
+
+interface SessionOverviewData {
+  sessions: Array<{
+    counts: { auctions: number; movements: number; trades: number; prizes: number }
+    prizesFinalized: boolean
+  }>
+}
+
+interface SessionDetailsData {
+  session: { id: string }
+  summary: {
+    auctions: Record<string, number>
+    trades: Record<string, number>
+    movements: Record<string, number>
+    prizesFinalized: boolean
+  }
+}
+
+interface TimelineEventData {
+  events: Array<{
+    type: string
+    player: { name: string }
+    to: { teamName: string }
+    contract: { salary: number; duration: number; clause: number | null }
+  }>
+  hasMore: boolean
+}
+
+interface PlayerCareerData {
+  player: { id: string }
+  currentOwner: {
+    teamName: string
+    contract: { salary: number; duration: number; rescissionClause: number }
+  } | null
+  timeline: unknown[]
+  stats: {
+    totalMovements: number
+    trades: number
+    acquisitions: number
+    totalValue: number
+    teams: string[]
+  }
+}
+
+interface RubataHistoryData {
+  auctions: Array<{
+    wasStolen: boolean
+    noBids: boolean
+    player: { id: string }
+  }>
+  stats: { total: number; stolen: number; retained: number; noBids: number }
+}
+
+interface SvincolatiHistoryData {
+  auctions: Array<{
+    player: { id: string }
+  }>
+  stats: { total: number; totalSpent: number; avgPrice: number }
+}
+
+interface ProphecyData {
+  prophecies: Array<{
+    content: string
+    author: { username: string }
+  }>
+  pagination: { total: number; hasMore: boolean }
+}
+
+interface ProphecyStatsData {
+  total: number
+  byAuthor: Array<{ username: string; count: number }>
+  topPlayers: Array<{ name: string }>
+}
+
+interface SearchPlayersData {
+  players: Array<{
+    id: string
+    isActive: boolean
+    currentOwner: unknown | null
+  }>
+}
+
+interface FirstMarketData {
+  auctions: Array<{
+    finalPrice: number
+    winner: { username: string }
+  }>
+  members: Array<{
+    totalSpent: number
+  }>
+  stats: {
+    totalAuctions: number
+    avgPrice: number
+    maxPrice: number
+  }
+}
+
 // ==================== Test helpers ====================
 
 const LEAGUE_ID = 'league-1'
@@ -137,14 +235,16 @@ describe('History Service', () => {
       const result = await historyService.getSessionsOverview(LEAGUE_ID, USER_ID)
 
       expect(result.success).toBe(true)
-      expect(result.data.sessions).toHaveLength(1)
-      expect(result.data.sessions[0].counts).toEqual({
+      const data = result.data as SessionOverviewData
+      expect(data.sessions).toHaveLength(1)
+      const firstSession = data.sessions[0] as SessionOverviewData['sessions'][number]
+      expect(firstSession.counts).toEqual({
         auctions: 10,
         movements: 25,
         trades: 5,
         prizes: 3,
       })
-      expect(result.data.sessions[0].prizesFinalized).toBe(true)
+      expect(firstSession.prizesFinalized).toBe(true)
     })
 
     it('returns empty sessions list when none exist', async () => {
@@ -155,7 +255,8 @@ describe('History Service', () => {
       const result = await historyService.getSessionsOverview(LEAGUE_ID, USER_ID)
 
       expect(result.success).toBe(true)
-      expect(result.data.sessions).toHaveLength(0)
+      const data = result.data as SessionOverviewData
+      expect(data.sessions).toHaveLength(0)
     })
   })
 
@@ -211,11 +312,12 @@ describe('History Service', () => {
       const result = await historyService.getSessionDetails(LEAGUE_ID, SESSION_ID, USER_ID)
 
       expect(result.success).toBe(true)
-      expect(result.data.session.id).toBe(SESSION_ID)
-      expect(result.data.summary.auctions).toEqual({ FREE_BID: 8, RUBATA: 4 })
-      expect(result.data.summary.trades).toEqual({ ACCEPTED: 3, REJECTED: 1 })
-      expect(result.data.summary.movements).toEqual({ FIRST_MARKET: 15 })
-      expect(result.data.summary.prizesFinalized).toBe(false)
+      const data = result.data as SessionDetailsData
+      expect(data.session.id).toBe(SESSION_ID)
+      expect(data.summary.auctions).toEqual({ FREE_BID: 8, RUBATA: 4 })
+      expect(data.summary.trades).toEqual({ ACCEPTED: 3, REJECTED: 1 })
+      expect(data.summary.movements).toEqual({ FIRST_MARKET: 15 })
+      expect(data.summary.prizesFinalized).toBe(false)
     })
   })
 
@@ -258,12 +360,14 @@ describe('History Service', () => {
       const result = await historyService.getTimelineEvents(LEAGUE_ID, USER_ID)
 
       expect(result.success).toBe(true)
-      expect(result.data.events).toHaveLength(1)
-      expect(result.data.events[0].type).toBe('FIRST_MARKET')
-      expect(result.data.events[0].player.name).toBe(`Player ${PLAYER_ID}`)
-      expect(result.data.events[0].to.teamName).toBe('Team Alpha')
-      expect(result.data.events[0].contract).toEqual({ salary: 5, duration: 3, clause: null })
-      expect(result.data.hasMore).toBe(false)
+      const data = result.data as TimelineEventData
+      expect(data.events).toHaveLength(1)
+      const firstEvent = data.events[0] as TimelineEventData['events'][number]
+      expect(firstEvent.type).toBe('FIRST_MARKET')
+      expect(firstEvent.player.name).toBe(`Player ${PLAYER_ID}`)
+      expect(firstEvent.to.teamName).toBe('Team Alpha')
+      expect(firstEvent.contract).toEqual({ salary: 5, duration: 3, clause: null })
+      expect(data.hasMore).toBe(false)
     })
 
     it('returns hasMore true when events fill the limit', async () => {
@@ -286,7 +390,8 @@ describe('History Service', () => {
       const result = await historyService.getTimelineEvents(LEAGUE_ID, USER_ID, { limit: 5 })
 
       expect(result.success).toBe(true)
-      expect(result.data.hasMore).toBe(true)
+      const data = result.data as TimelineEventData
+      expect(data.hasMore).toBe(true)
     })
   })
 
@@ -360,16 +465,17 @@ describe('History Service', () => {
       const result = await historyService.getPlayerCareer(LEAGUE_ID, PLAYER_ID, USER_ID)
 
       expect(result.success).toBe(true)
-      expect(result.data.player.id).toBe(PLAYER_ID)
-      expect(result.data.currentOwner).not.toBeNull()
-      expect(result.data.currentOwner.teamName).toBe('Team Beta')
-      expect(result.data.currentOwner.contract.salary).toBe(7)
-      expect(result.data.timeline).toHaveLength(2)
-      expect(result.data.stats.totalMovements).toBe(2)
-      expect(result.data.stats.trades).toBe(1)
-      expect(result.data.stats.acquisitions).toBe(1)
-      expect(result.data.stats.totalValue).toBe(45)
-      expect(result.data.stats.teams).toEqual(['Team Alpha', 'Team Beta'])
+      const data = result.data as PlayerCareerData
+      expect(data.player.id).toBe(PLAYER_ID)
+      expect(data.currentOwner).not.toBeNull()
+      expect(data.currentOwner?.teamName).toBe('Team Beta')
+      expect(data.currentOwner?.contract.salary).toBe(7)
+      expect(data.timeline).toHaveLength(2)
+      expect(data.stats.totalMovements).toBe(2)
+      expect(data.stats.trades).toBe(1)
+      expect(data.stats.acquisitions).toBe(1)
+      expect(data.stats.totalValue).toBe(45)
+      expect(data.stats.teams).toEqual(['Team Alpha', 'Team Beta'])
     })
 
     it('returns null currentOwner when player is not on any roster', async () => {
@@ -381,9 +487,10 @@ describe('History Service', () => {
       const result = await historyService.getPlayerCareer(LEAGUE_ID, PLAYER_ID, USER_ID)
 
       expect(result.success).toBe(true)
-      expect(result.data.currentOwner).toBeNull()
-      expect(result.data.timeline).toHaveLength(0)
-      expect(result.data.stats.totalMovements).toBe(0)
+      const data = result.data as PlayerCareerData
+      expect(data.currentOwner).toBeNull()
+      expect(data.timeline).toHaveLength(0)
+      expect(data.stats.totalMovements).toBe(0)
     })
   })
 
@@ -434,12 +541,15 @@ describe('History Service', () => {
       const result = await historyService.getSessionRubataHistory(LEAGUE_ID, SESSION_ID, USER_ID)
 
       expect(result.success).toBe(true)
-      expect(result.data.auctions).toHaveLength(2)
-      expect(result.data.auctions[0].wasStolen).toBe(true)
-      expect(result.data.auctions[1].noBids).toBe(true)
-      expect(result.data.stats.total).toBe(2)
-      expect(result.data.stats.stolen).toBe(1)
-      expect(result.data.stats.noBids).toBe(1)
+      const data = result.data as RubataHistoryData
+      expect(data.auctions).toHaveLength(2)
+      const firstAuction = data.auctions[0] as RubataHistoryData['auctions'][number]
+      const secondAuction = data.auctions[1] as RubataHistoryData['auctions'][number]
+      expect(firstAuction.wasStolen).toBe(true)
+      expect(secondAuction.noBids).toBe(true)
+      expect(data.stats.total).toBe(2)
+      expect(data.stats.stolen).toBe(1)
+      expect(data.stats.noBids).toBe(1)
     })
 
     it('returns empty list when no rubata auctions exist', async () => {
@@ -449,8 +559,9 @@ describe('History Service', () => {
       const result = await historyService.getSessionRubataHistory(LEAGUE_ID, SESSION_ID, USER_ID)
 
       expect(result.success).toBe(true)
-      expect(result.data.auctions).toHaveLength(0)
-      expect(result.data.stats).toEqual({ total: 0, stolen: 0, retained: 0, noBids: 0 })
+      const data = result.data as RubataHistoryData
+      expect(data.auctions).toHaveLength(0)
+      expect(data.stats).toEqual({ total: 0, stolen: 0, retained: 0, noBids: 0 })
     })
   })
 
@@ -504,12 +615,14 @@ describe('History Service', () => {
       const result = await historyService.getSessionSvincolatiHistory(LEAGUE_ID, SESSION_ID, USER_ID)
 
       expect(result.success).toBe(true)
+      const data = result.data as SvincolatiHistoryData
       // Only auc-1 matches because p-1 is in svincolati movements; p-3 is not
-      expect(result.data.auctions).toHaveLength(1)
-      expect(result.data.auctions[0].player.id).toBe('p-1')
-      expect(result.data.stats.total).toBe(1)
-      expect(result.data.stats.totalSpent).toBe(8)
-      expect(result.data.stats.avgPrice).toBe(8)
+      expect(data.auctions).toHaveLength(1)
+      const firstAuction = data.auctions[0] as SvincolatiHistoryData['auctions'][number]
+      expect(firstAuction.player.id).toBe('p-1')
+      expect(data.stats.total).toBe(1)
+      expect(data.stats.totalSpent).toBe(8)
+      expect(data.stats.avgPrice).toBe(8)
     })
   })
 
@@ -548,11 +661,13 @@ describe('History Service', () => {
       const result = await historyService.getProphecies(LEAGUE_ID, USER_ID)
 
       expect(result.success).toBe(true)
-      expect(result.data.prophecies).toHaveLength(1)
-      expect(result.data.prophecies[0].content).toBe('This player will score 20 goals')
-      expect(result.data.prophecies[0].author.username).toBe('alice')
-      expect(result.data.pagination.total).toBe(1)
-      expect(result.data.pagination.hasMore).toBe(false)
+      const data = result.data as ProphecyData
+      expect(data.prophecies).toHaveLength(1)
+      const firstProphecy = data.prophecies[0] as ProphecyData['prophecies'][number]
+      expect(firstProphecy.content).toBe('This player will score 20 goals')
+      expect(firstProphecy.author.username).toBe('alice')
+      expect(data.pagination.total).toBe(1)
+      expect(data.pagination.hasMore).toBe(false)
     })
 
     it('returns empty list when no prophecies exist', async () => {
@@ -563,8 +678,9 @@ describe('History Service', () => {
       const result = await historyService.getProphecies(LEAGUE_ID, USER_ID)
 
       expect(result.success).toBe(true)
-      expect(result.data.prophecies).toHaveLength(0)
-      expect(result.data.pagination.total).toBe(0)
+      const data = result.data as ProphecyData
+      expect(data.prophecies).toHaveLength(0)
+      expect(data.pagination.total).toBe(0)
     })
   })
 
@@ -606,12 +722,15 @@ describe('History Service', () => {
       const result = await historyService.getProphecyStats(LEAGUE_ID, USER_ID)
 
       expect(result.success).toBe(true)
-      expect(result.data.total).toBe(8)
-      expect(result.data.byAuthor).toHaveLength(2)
-      expect(result.data.byAuthor[0].username).toBe('alice')
-      expect(result.data.byAuthor[0].count).toBe(5)
-      expect(result.data.topPlayers).toHaveLength(1)
-      expect(result.data.topPlayers[0].name).toBe('Player p-1')
+      const data = result.data as ProphecyStatsData
+      expect(data.total).toBe(8)
+      expect(data.byAuthor).toHaveLength(2)
+      const firstAuthor = data.byAuthor[0] as ProphecyStatsData['byAuthor'][number]
+      expect(firstAuthor.username).toBe('alice')
+      expect(firstAuthor.count).toBe(5)
+      expect(data.topPlayers).toHaveLength(1)
+      const firstPlayer = data.topPlayers[0] as ProphecyStatsData['topPlayers'][number]
+      expect(firstPlayer.name).toBe('Player p-1')
     })
   })
 
@@ -651,10 +770,12 @@ describe('History Service', () => {
       const result = await historyService.searchPlayersForHistory(LEAGUE_ID, USER_ID)
 
       expect(result.success).toBe(true)
+      const data = result.data as SearchPlayersData
       // Without includeReleased, only active players returned
-      expect(result.data.players).toHaveLength(1)
-      expect(result.data.players[0].id).toBe('p-1')
-      expect(result.data.players[0].isActive).toBe(true)
+      expect(data.players).toHaveLength(1)
+      const firstPlayer = data.players[0] as SearchPlayersData['players'][number]
+      expect(firstPlayer.id).toBe('p-1')
+      expect(firstPlayer.isActive).toBe(true)
     })
 
     it('includes released players when option is set', async () => {
@@ -680,10 +801,11 @@ describe('History Service', () => {
       const result = await historyService.searchPlayersForHistory(LEAGUE_ID, USER_ID, undefined, { includeReleased: true })
 
       expect(result.success).toBe(true)
-      expect(result.data.players).toHaveLength(2)
-      const released = result.data.players.find((p: { id: string }) => p.id === 'p-2')
-      expect(released.isActive).toBe(false)
-      expect(released.currentOwner).toBeNull()
+      const data = result.data as SearchPlayersData
+      expect(data.players).toHaveLength(2)
+      const released = data.players.find((p) => p.id === 'p-2')
+      expect(released?.isActive).toBe(false)
+      expect(released?.currentOwner).toBeNull()
     })
   })
 
@@ -748,14 +870,17 @@ describe('History Service', () => {
       const result = await historyService.getFirstMarketHistory(LEAGUE_ID, SESSION_ID, USER_ID)
 
       expect(result.success).toBe(true)
-      expect(result.data.auctions).toHaveLength(1)
-      expect(result.data.auctions[0].finalPrice).toBe(12)
-      expect(result.data.auctions[0].winner.username).toBe('alice')
-      expect(result.data.members).toHaveLength(1)
-      expect(result.data.members[0].totalSpent).toBe(12)
-      expect(result.data.stats.totalAuctions).toBe(1)
-      expect(result.data.stats.avgPrice).toBe(12)
-      expect(result.data.stats.maxPrice).toBe(12)
+      const data = result.data as FirstMarketData
+      expect(data.auctions).toHaveLength(1)
+      const firstAuction = data.auctions[0] as FirstMarketData['auctions'][number]
+      expect(firstAuction.finalPrice).toBe(12)
+      expect(firstAuction.winner.username).toBe('alice')
+      expect(data.members).toHaveLength(1)
+      const firstMember = data.members[0] as FirstMarketData['members'][number]
+      expect(firstMember.totalSpent).toBe(12)
+      expect(data.stats.totalAuctions).toBe(1)
+      expect(data.stats.avgPrice).toBe(12)
+      expect(data.stats.maxPrice).toBe(12)
     })
   })
 

@@ -131,8 +131,9 @@ describe('Register Page', () => {
     render(<Register onNavigate={mockOnNavigate} />)
 
     const passwordInputs = screen.getAllByPlaceholderText('••••••••')
+    const passwordInput = passwordInputs[0] as HTMLElement
 
-    await user.click(passwordInputs[0])
+    await user.click(passwordInput)
     await user.tab()
 
     await waitFor(() => {
@@ -145,8 +146,9 @@ describe('Register Page', () => {
     render(<Register onNavigate={mockOnNavigate} />)
 
     const passwordInputs = screen.getAllByPlaceholderText('••••••••')
+    const passwordInput = passwordInputs[0] as HTMLElement
 
-    await user.type(passwordInputs[0], 'Short1')
+    await user.type(passwordInput, 'Short1')
     await user.tab()
 
     await waitFor(() => {
@@ -159,8 +161,9 @@ describe('Register Page', () => {
     render(<Register onNavigate={mockOnNavigate} />)
 
     const passwordInputs = screen.getAllByPlaceholderText('••••••••')
+    const passwordInput = passwordInputs[0] as HTMLElement
 
-    await user.type(passwordInputs[0], 'lowercase1')
+    await user.type(passwordInput, 'lowercase1')
     await user.tab()
 
     await waitFor(() => {
@@ -173,8 +176,9 @@ describe('Register Page', () => {
     render(<Register onNavigate={mockOnNavigate} />)
 
     const passwordInputs = screen.getAllByPlaceholderText('••••••••')
+    const passwordInput = passwordInputs[0] as HTMLElement
 
-    await user.type(passwordInputs[0], 'NoNumber!')
+    await user.type(passwordInput, 'NoNumber!')
     await user.tab()
 
     await waitFor(() => {
@@ -190,8 +194,10 @@ describe('Register Page', () => {
     await user.type(screen.getByPlaceholderText('MisterRossi'), 'TestUser')
 
     const passwordInputs = screen.getAllByPlaceholderText('••••••••')
-    await user.type(passwordInputs[0], 'Password1!')
-    await user.type(passwordInputs[1], 'DifferentPass1!')
+    const passwordInput = passwordInputs[0] as HTMLElement
+    const confirmInput = passwordInputs[1] as HTMLElement
+    await user.type(passwordInput, 'Password1!')
+    await user.type(confirmInput, 'DifferentPass1!')
 
     await user.click(screen.getByRole('button', { name: 'Crea Account' }))
 
@@ -212,8 +218,10 @@ describe('Register Page', () => {
     await user.type(screen.getByPlaceholderText('MisterRossi'), 'TestUser')
 
     const passwordInputs = screen.getAllByPlaceholderText('••••••••')
-    await user.type(passwordInputs[0], 'Password1!')
-    await user.type(passwordInputs[1], 'Password1!')
+    const passwordInput = passwordInputs[0] as HTMLElement
+    const confirmInput = passwordInputs[1] as HTMLElement
+    await user.type(passwordInput, 'Password1!')
+    await user.type(confirmInput, 'Password1!')
 
     await user.click(screen.getByRole('button', { name: 'Crea Account' }))
 
@@ -237,8 +245,10 @@ describe('Register Page', () => {
     await user.type(screen.getByPlaceholderText('MisterRossi'), 'TestUser')
 
     const passwordInputs = screen.getAllByPlaceholderText('••••••••')
-    await user.type(passwordInputs[0], 'Password1!')
-    await user.type(passwordInputs[1], 'Password1!')
+    const passwordInput = passwordInputs[0] as HTMLElement
+    const confirmInput = passwordInputs[1] as HTMLElement
+    await user.type(passwordInput, 'Password1!')
+    await user.type(confirmInput, 'Password1!')
 
     await user.click(screen.getByRole('button', { name: 'Crea Account' }))
 
@@ -259,8 +269,10 @@ describe('Register Page', () => {
     await user.type(screen.getByPlaceholderText('MisterRossi'), 'TestUser')
 
     const passwordInputs = screen.getAllByPlaceholderText('••••••••')
-    await user.type(passwordInputs[0], 'Password1!')
-    await user.type(passwordInputs[1], 'Password1!')
+    const passwordInput = passwordInputs[0] as HTMLElement
+    const confirmInput = passwordInputs[1] as HTMLElement
+    await user.type(passwordInput, 'Password1!')
+    await user.type(confirmInput, 'Password1!')
 
     await user.click(screen.getByRole('button', { name: 'Crea Account' }))
 
@@ -283,8 +295,10 @@ describe('Register Page', () => {
     await user.type(screen.getByPlaceholderText('MisterRossi'), 'TakenUser')
 
     const passwordInputs = screen.getAllByPlaceholderText('••••••••')
-    await user.type(passwordInputs[0], 'Password1!')
-    await user.type(passwordInputs[1], 'Password1!')
+    const passwordInput = passwordInputs[0] as HTMLElement
+    const confirmInput = passwordInputs[1] as HTMLElement
+    await user.type(passwordInput, 'Password1!')
+    await user.type(confirmInput, 'Password1!')
 
     await user.click(screen.getByRole('button', { name: 'Crea Account' }))
 
@@ -307,9 +321,10 @@ describe('Register Page', () => {
     render(<Register onNavigate={mockOnNavigate} />)
 
     const passwordInputs = screen.getAllByPlaceholderText('••••••••')
+    const passwordInput = passwordInputs[0] as HTMLElement
 
     // Weak password (only length >= 8)
-    await user.type(passwordInputs[0], 'abcdefgh')
+    await user.type(passwordInput, 'abcdefgh')
 
     await waitFor(() => {
       expect(screen.getByText('Debole')).toBeInTheDocument()
@@ -334,8 +349,10 @@ describe('Register Page', () => {
     await user.type(screen.getByPlaceholderText('MisterRossi'), 'TestUser')
 
     const passwordInputs = screen.getAllByPlaceholderText('••••••••')
-    await user.type(passwordInputs[0], 'Password1!')
-    await user.type(passwordInputs[1], 'Password1!')
+    const passwordInput = passwordInputs[0] as HTMLElement
+    const confirmInput = passwordInputs[1] as HTMLElement
+    await user.type(passwordInput, 'Password1!')
+    await user.type(confirmInput, 'Password1!')
 
     await user.click(screen.getByRole('button', { name: 'Crea Account' }))
 

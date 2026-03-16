@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 // ---------------------------------------------------------------------------
@@ -99,8 +99,24 @@ vi.mock('../components/rubata/RubataAdminControls', () => ({
   CompleteRubataPanel: () => <div data-testid="complete-rubata-panel">CompleteRubata</div>,
 }))
 
-vi.mock('../components/rubata/RubataActionBar', () => ({
-  RubataActionBar: () => <div data-testid="rubata-action-bar">ActionBar</div>,
+vi.mock('../components/rubata/RubataStateBar', () => ({
+  RubataStateBar: () => <div data-testid="rubata-state-bar">StateBar</div>,
+}))
+
+vi.mock('../components/rubata/HeroPlayerCard', () => ({
+  HeroPlayerCard: () => <div data-testid="hero-player-card">HeroPlayerCard</div>,
+}))
+
+vi.mock('../components/rubata/BoardViewToggle', () => ({
+  BoardViewToggle: () => <div data-testid="board-view-toggle">BoardViewToggle</div>,
+}))
+
+vi.mock('../components/rubata/PendingAckBanner', () => ({
+  PendingAckBanner: () => <div data-testid="pending-ack-banner">PendingAckBanner</div>,
+}))
+
+vi.mock('../components/rubata/CircularTimer', () => ({
+  CircularTimer: () => <div data-testid="circular-timer">Timer</div>,
 }))
 
 vi.mock('../components/rubata/RubataReadyBanner', () => ({
@@ -210,7 +226,119 @@ const mockHandleSetReady = vi.fn()
 const mockMoveInOrder = vi.fn()
 const mockHandleCloseAuction = vi.fn()
 
-const defaultHookReturn = {
+// ---------------------------------------------------------------------------
+// Test-only interface to properly type the hook return and avoid never[] / null inference
+// ---------------------------------------------------------------------------
+interface TestMember {
+  id: string
+  user: { username: string }
+  teamName: string
+}
+
+interface TestBoardData {
+  totalPlayers: number
+  currentIndex: number
+  memberBudgets: Array<Record<string, unknown>>
+  pausedRemainingSeconds?: number | null
+  pausedFromState?: string | null
+}
+
+interface TestReadyStatus {
+  readyCount: number
+  totalMembers: number
+  userIsReady: boolean
+  pendingMembers: Array<{ id: string; username: string; isConnected: boolean }>
+}
+
+interface TestHookReturn {
+  isLoading: boolean
+  isAdmin: boolean
+  error: string
+  success: string
+  isSubmitting: boolean
+  members: TestMember[]
+  boardData: TestBoardData | null
+  board: Array<Record<string, unknown>> | null
+  rubataState: string | null
+  currentPlayer: Record<string, unknown> | null
+  activeAuction: Record<string, unknown> | null
+  myMemberId: string
+  isRubataPhase: boolean
+  isOrderSet: boolean
+  canMakeOffer: boolean
+  isPusherConnected: boolean
+  timerDisplay: string | null
+  offerTimer: number
+  setOfferTimer: ReturnType<typeof vi.fn>
+  auctionTimer: number
+  setAuctionTimer: ReturnType<typeof vi.fn>
+  mobileBudgetExpanded: boolean
+  setMobileBudgetExpanded: ReturnType<typeof vi.fn>
+  readyStatus: TestReadyStatus | null
+  pendingAck: Record<string, unknown> | null
+  appealStatus: Record<string, unknown> | null
+  isAppealMode: boolean
+  setIsAppealMode: ReturnType<typeof vi.fn>
+  appealContent: string
+  setAppealContent: ReturnType<typeof vi.fn>
+  prophecyContent: string
+  setProphecyContent: ReturnType<typeof vi.fn>
+  bidAmount: number
+  setBidAmount: ReturnType<typeof vi.fn>
+  simulateMemberId: string
+  setSimulateMemberId: ReturnType<typeof vi.fn>
+  simulateBidAmount: number
+  setSimulateBidAmount: ReturnType<typeof vi.fn>
+  orderDraft: string[]
+  moveInOrder: ReturnType<typeof vi.fn>
+  handleDndDragEnd: ReturnType<typeof vi.fn>
+  handleDndDragStart: ReturnType<typeof vi.fn>
+  preferencesMap: Map<string, Record<string, unknown>>
+  selectedPlayerForPrefs: Record<string, unknown> | null
+  openPrefsModal: ReturnType<typeof vi.fn>
+  closePrefsModal: ReturnType<typeof vi.fn>
+  currentPlayerPreference: Record<string, unknown> | null
+  canEditPreferences: boolean
+  progressStats: Record<string, unknown> | null
+  currentPlayerRef: { current: HTMLElement | null }
+  isCurrentPlayerVisible: boolean
+  scrollToCurrentPlayer: ReturnType<typeof vi.fn>
+  pendingContractModification: Record<string, unknown> | null
+  selectedPlayerForStats: Record<string, unknown> | null
+  setSelectedPlayerForStats: ReturnType<typeof vi.fn>
+  handleSetOrder: ReturnType<typeof vi.fn>
+  handleGenerateBoard: ReturnType<typeof vi.fn>
+  handleStartRubata: ReturnType<typeof vi.fn>
+  handleUpdateTimers: ReturnType<typeof vi.fn>
+  handlePause: ReturnType<typeof vi.fn>
+  handleResume: ReturnType<typeof vi.fn>
+  handleAdvance: ReturnType<typeof vi.fn>
+  handleGoBack: ReturnType<typeof vi.fn>
+  handleCloseAuction: ReturnType<typeof vi.fn>
+  handleCompleteRubata: ReturnType<typeof vi.fn>
+  handleMakeOffer: ReturnType<typeof vi.fn>
+  handleBid: ReturnType<typeof vi.fn>
+  handleQuickBid: ReturnType<typeof vi.fn>
+  handleSetReady: ReturnType<typeof vi.fn>
+  handleForceAllReady: ReturnType<typeof vi.fn>
+  handleAcknowledgeWithAppeal: ReturnType<typeof vi.fn>
+  handleForceAllAcknowledge: ReturnType<typeof vi.fn>
+  handleAcknowledgeAppealDecision: ReturnType<typeof vi.fn>
+  handleMarkReadyToResume: ReturnType<typeof vi.fn>
+  handleForceAllAppealAcks: ReturnType<typeof vi.fn>
+  handleForceAllReadyResume: ReturnType<typeof vi.fn>
+  handleSimulateAppeal: ReturnType<typeof vi.fn>
+  handleContractModification: ReturnType<typeof vi.fn>
+  handleSkipContractModification: ReturnType<typeof vi.fn>
+  handleSimulateOffer: ReturnType<typeof vi.fn>
+  handleSimulateBid: ReturnType<typeof vi.fn>
+  handleSavePreference: ReturnType<typeof vi.fn>
+  handleDeletePreference: ReturnType<typeof vi.fn>
+  setError: ReturnType<typeof vi.fn>
+  loadData: ReturnType<typeof vi.fn>
+}
+
+const defaultHookReturn: TestHookReturn = {
   isLoading: false,
   isAdmin: false,
   error: '',
@@ -278,6 +406,7 @@ const defaultHookReturn = {
   handleCompleteRubata: vi.fn(),
   handleMakeOffer: mockHandleMakeOffer,
   handleBid: mockHandleBid,
+  handleQuickBid: vi.fn(),
   handleSetReady: mockHandleSetReady,
   handleForceAllReady: vi.fn(),
   handleAcknowledgeWithAppeal: vi.fn(),
@@ -297,7 +426,7 @@ const defaultHookReturn = {
   loadData: mockLoadData,
 }
 
-let hookOverrides: Partial<typeof defaultHookReturn> = {}
+let hookOverrides: Partial<TestHookReturn> = {}
 
 vi.mock('../hooks/useRubataState', () => ({
   useRubataState: () => ({ ...defaultHookReturn, ...hookOverrides }),
@@ -329,10 +458,9 @@ describe('Rubata', () => {
 
     expect(screen.getByTestId('navigation')).toBeInTheDocument()
     expect(screen.getByTestId('navigation').getAttribute('data-page')).toBe('rubata')
-    // The loading spinner has the animate-spin class
-    const spinner = document.querySelector('.animate-spin')
-    expect(spinner).toBeTruthy()
-    expect(screen.getByText('Caricamento rubata...')).toBeInTheDocument()
+    // The loading skeleton has the animate-pulse class
+    const skeleton = document.querySelector('.animate-pulse')
+    expect(skeleton).toBeTruthy()
   })
 
   // ---- Phase not active ----
@@ -376,8 +504,8 @@ describe('Rubata', () => {
       isOrderSet: false,
       isAdmin: true,
       members: [
-        { id: 'm1', user: { username: 'Player1' }, teamName: 'Team1' } as never,
-        { id: 'm2', user: { username: 'Player2' }, teamName: 'Team2' } as never,
+        { id: 'm1', user: { username: 'Player1' }, teamName: 'Team1' },
+        { id: 'm2', user: { username: 'Player2' }, teamName: 'Team2' },
       ],
       orderDraft: ['m1', 'm2'],
     }
@@ -399,7 +527,7 @@ describe('Rubata', () => {
       isOrderSet: false,
       isAdmin: true,
       orderDraft: ['m1'],
-      members: [{ id: 'm1', user: { username: 'Player1' }, teamName: 'Team1' } as never],
+      members: [{ id: 'm1', user: { username: 'Player1' }, teamName: 'Team1' }],
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -440,14 +568,14 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 10, currentIndex: 0, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 10, currentIndex: 0, memberBudgets: [] },
       board: [],
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
     expect(screen.getByTestId('rubata-stepper')).toBeInTheDocument()
-    expect(screen.getByTestId('rubata-action-bar')).toBeInTheDocument()
+    expect(screen.getByTestId('rubata-state-bar')).toBeInTheDocument()
     expect(screen.getByText('Tabellone Rubata')).toBeInTheDocument()
   })
 
@@ -456,7 +584,7 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 42, currentIndex: 0, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 42, currentIndex: 0, memberBudgets: [] },
       board: [],
     }
 
@@ -471,7 +599,7 @@ describe('Rubata', () => {
       isRubataPhase: true,
       isOrderSet: true,
       rubataState: 'READY_CHECK',
-      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] },
       board: [],
       readyStatus: {
         readyCount: 2,
@@ -481,7 +609,7 @@ describe('Rubata', () => {
           { id: 'pm1', username: 'UserA', isConnected: true },
           { id: 'pm2', username: 'UserB', isConnected: false },
         ],
-      } as never,
+      },
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -498,14 +626,14 @@ describe('Rubata', () => {
       isRubataPhase: true,
       isOrderSet: true,
       rubataState: 'READY_CHECK',
-      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] },
       board: [],
       readyStatus: {
         readyCount: 3,
         totalMembers: 5,
         userIsReady: true,
         pendingMembers: [],
-      } as never,
+      },
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -522,7 +650,7 @@ describe('Rubata', () => {
       isRubataPhase: true,
       isOrderSet: true,
       isAdmin: true,
-      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] },
       board: [],
     }
 
@@ -543,7 +671,7 @@ describe('Rubata', () => {
         totalPlayers: 5,
         currentIndex: 0,
         memberBudgets: [{ memberId: 'm1', teamName: 'Team1', residuo: 100, currentBudget: 200, totalSalaries: 100 }],
-      } as never,
+      },
       board: [],
     }
 
@@ -647,8 +775,8 @@ describe('Rubata', () => {
       isOrderSet: false,
       isAdmin: true,
       members: [
-        { id: 'm1', user: { username: 'Alice' }, teamName: 'TeamA' } as never,
-        { id: 'm2', user: { username: 'Bob' }, teamName: 'TeamB' } as never,
+        { id: 'm1', user: { username: 'Alice' }, teamName: 'TeamA' },
+        { id: 'm2', user: { username: 'Bob' }, teamName: 'TeamB' },
       ],
       orderDraft: ['m1', 'm2'],
     }
@@ -669,8 +797,8 @@ describe('Rubata', () => {
       isOrderSet: false,
       isAdmin: true,
       members: [
-        { id: 'm1', user: { username: 'Alice' }, teamName: 'TeamA' } as never,
-        { id: 'm2', user: { username: 'Bob' }, teamName: 'TeamB' } as never,
+        { id: 'm1', user: { username: 'Alice' }, teamName: 'TeamA' },
+        { id: 'm2', user: { username: 'Bob' }, teamName: 'TeamB' },
       ],
       orderDraft: ['m1', 'm2'],
     }
@@ -690,8 +818,8 @@ describe('Rubata', () => {
       isOrderSet: false,
       isAdmin: true,
       members: [
-        { id: 'm1', user: { username: 'Alice' }, teamName: 'TeamA' } as never,
-        { id: 'm2', user: { username: 'Bob' }, teamName: 'TeamB' } as never,
+        { id: 'm1', user: { username: 'Alice' }, teamName: 'TeamA' },
+        { id: 'm2', user: { username: 'Bob' }, teamName: 'TeamB' },
       ],
       orderDraft: ['m1', 'm2'],
     }
@@ -711,7 +839,7 @@ describe('Rubata', () => {
       isOrderSet: false,
       isAdmin: true,
       isSubmitting: true,
-      members: [{ id: 'm1', user: { username: 'Alice' }, teamName: 'TeamA' } as never],
+      members: [{ id: 'm1', user: { username: 'Alice' }, teamName: 'TeamA' }],
       orderDraft: ['m1'],
     }
 
@@ -749,7 +877,7 @@ describe('Rubata', () => {
         memberBudgets: [],
         pausedRemainingSeconds: 22,
         pausedFromState: 'AUCTION',
-      } as never,
+      },
       board: [],
       readyStatus: {
         readyCount: 1,
@@ -758,7 +886,7 @@ describe('Rubata', () => {
         pendingMembers: [
           { id: 'pm1', username: 'WaitingUser', isConnected: true },
         ],
-      } as never,
+      },
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -780,14 +908,14 @@ describe('Rubata', () => {
         memberBudgets: [],
         pausedRemainingSeconds: 10,
         pausedFromState: 'OFFERING',
-      } as never,
+      },
       board: [],
       readyStatus: {
         readyCount: 2,
         totalMembers: 3,
         userIsReady: true,
         pendingMembers: [],
-      } as never,
+      },
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -809,14 +937,14 @@ describe('Rubata', () => {
         currentIndex: 0,
         memberBudgets: [],
         pausedRemainingSeconds: null,
-      } as never,
+      },
       board: [],
       readyStatus: {
         readyCount: 1,
         totalMembers: 3,
         userIsReady: false,
         pendingMembers: [],
-      } as never,
+      },
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -834,14 +962,14 @@ describe('Rubata', () => {
       isOrderSet: true,
       isAdmin: true,
       rubataState: 'READY_CHECK',
-      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] },
       board: [],
       readyStatus: {
         readyCount: 1,
         totalMembers: 5,
         userIsReady: false,
         pendingMembers: [],
-      } as never,
+      },
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -858,6 +986,7 @@ describe('Rubata', () => {
       isRubataPhase: true,
       isOrderSet: true,
       rubataState: 'AUCTION',
+      currentPlayer: makeBoardPlayer({ playerName: 'Test Player' }) as Record<string, unknown>,
       activeAuction: {
         id: 'auction1',
         player: { id: 'p1', name: 'Test Player', team: 'Napoli', position: 'A' },
@@ -865,8 +994,8 @@ describe('Rubata', () => {
         currentPrice: 15,
         sellerId: 'seller1',
         bids: [{ amount: 15, bidder: 'Bidder1', bidderId: 'b1', isWinning: true }],
-      } as never,
-      boardData: { totalPlayers: 10, currentIndex: 3, memberBudgets: [] } as never,
+      },
+      boardData: { totalPlayers: 10, currentIndex: 3, memberBudgets: [] },
       board: [],
     }
 
@@ -886,13 +1015,13 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 3, currentIndex: 1, memberBudgets: [] } as never,
-      board: players as never[],
+      boardData: { totalPlayers: 3, currentIndex: 0, memberBudgets: [] },
+      board: players as Array<Record<string, unknown>>,
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // Player names rendered
+    // All 3 players visible (currentIndex=0, all within upcoming range)
     expect(screen.getAllByText('Luca Bianchi').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Mario Rossi').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Paolo Verdi').length).toBeGreaterThanOrEqual(1)
@@ -906,8 +1035,8 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
-      board: [makeNoPhotoPlayer()] as never[],
+      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] },
+      board: [makeNoPhotoPlayer()],
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -922,8 +1051,8 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
-      board: [makeMyPlayer()] as never[],
+      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] },
+      board: [makeMyPlayer()],
       myMemberId: 'member1',
     }
 
@@ -940,8 +1069,8 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
-      board: [makeBoardPlayer()] as never[],
+      boardData: { totalPlayers: 2, currentIndex: 0, memberBudgets: [] },
+      board: [makeBoardPlayer({ rosterId: 'r-current', playerId: 'player-current' }), makeBoardPlayer()],
       preferencesMap: prefMap,
       canEditPreferences: true,
     }
@@ -962,8 +1091,8 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
-      board: [makeBoardPlayer()] as never[],
+      boardData: { totalPlayers: 2, currentIndex: 0, memberBudgets: [] },
+      board: [makeBoardPlayer({ rosterId: 'r-current', playerId: 'player-current' }), makeBoardPlayer()],
       preferencesMap: prefMap,
       canEditPreferences: false,
     }
@@ -975,20 +1104,20 @@ describe('Rubata', () => {
     expect(noteIcons.length).toBeGreaterThanOrEqual(1)
   })
 
-  // ---- Board: "+ Strategia" CTA for no-pref player ----
-  it('shows "+ Strategia" CTA in card view for player without preference', () => {
+  // ---- Board: strategy gear CTA for no-pref player ----
+  it('shows strategy gear icon in compact view for player without preference', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
-      board: [makeBoardPlayer()] as never[],
+      boardData: { totalPlayers: 2, currentIndex: 0, memberBudgets: [] },
+      board: [makeBoardPlayer({ rosterId: 'r-current', playerId: 'player-current' }), makeBoardPlayer()],
       preferencesMap: new Map(),
       canEditPreferences: true,
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getAllByText('+ Strategia').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByTitle('Imposta strategia').length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Board: edit preference button calls openPrefsModal ----
@@ -996,8 +1125,8 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
-      board: [makeBoardPlayer()] as never[],
+      boardData: { totalPlayers: 2, currentIndex: 0, memberBudgets: [] },
+      board: [makeBoardPlayer({ rosterId: 'r-current', playerId: 'player-current' }), makeBoardPlayer()],
       preferencesMap: new Map(),
       canEditPreferences: true,
     }
@@ -1008,32 +1137,35 @@ describe('Rubata', () => {
     expect(strategyBtns.length).toBeGreaterThanOrEqual(1)
   })
 
-  // ---- Mobile: "SUL PIATTO" badge for current player ----
-  it('shows "SUL PIATTO" badge on mobile for the current player', () => {
+  // ---- Current player has highlighted border (SUL PIATTO badge removed in compact layout) ----
+  it('highlights current player row with primary border', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
-      board: [makeBoardPlayer()] as never[],
+      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] },
+      board: [makeBoardPlayer()],
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getAllByText('SUL PIATTO').length).toBeGreaterThanOrEqual(1)
+    // Current player has aria-label mentioning "sul piatto"
+    expect(screen.getByRole('listitem', { name: /sul piatto/ })).toBeInTheDocument()
   })
 
-  // ---- Mobile: passed and not stolen shows "Non rubato" ----
-  it('shows "Non rubato" for passed players that were not stolen in mobile view', () => {
+  // ---- Passed and not stolen shows checkmark (compact layout) ----
+  it('shows checkmark for passed players that were not stolen', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 2, currentIndex: 1, memberBudgets: [] } as never,
-      board: [makeBoardPlayer({ rosterId: 'passed1' }), makeBoardPlayer({ rosterId: 'r-current' })] as never[],
+      boardData: { totalPlayers: 2, currentIndex: 1, memberBudgets: [] },
+      board: [makeBoardPlayer({ rosterId: 'passed1' }), makeBoardPlayer({ rosterId: 'r-current' })],
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getAllByText(/Non rubato/).length).toBeGreaterThanOrEqual(1)
+    // Passed player row has reduced opacity (opacity-40 class)
+    const passedRow = screen.getAllByRole('listitem')[0]
+    expect(passedRow!.className).toContain('opacity-40')
   })
 
   // ---- Mobile: stolen player shows stolen price when higher than rubata price ----
@@ -1041,11 +1173,11 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 2, currentIndex: 1, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 2, currentIndex: 1, memberBudgets: [] },
       board: [
         makeStolenPlayer({ stolenPrice: 20, rubataPrice: 8 }),
         makeBoardPlayer({ rosterId: 'r-current' }),
-      ] as never[],
+      ],
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -1060,8 +1192,8 @@ describe('Rubata', () => {
       isRubataPhase: true,
       isOrderSet: true,
       isCurrentPlayerVisible: false,
-      currentPlayer: makeBoardPlayer({ playerName: 'Federico Chiesa' }) as never,
-      boardData: { totalPlayers: 5, currentIndex: 2, memberBudgets: [] } as never,
+      currentPlayer: makeBoardPlayer({ playerName: 'Federico Chiesa' }) as Record<string, unknown>,
+      boardData: { totalPlayers: 5, currentIndex: 2, memberBudgets: [] },
       board: [],
     }
 
@@ -1076,8 +1208,8 @@ describe('Rubata', () => {
       isRubataPhase: true,
       isOrderSet: true,
       isCurrentPlayerVisible: true,
-      currentPlayer: makeBoardPlayer({ playerName: 'Federico Chiesa' }) as never,
-      boardData: { totalPlayers: 5, currentIndex: 2, memberBudgets: [] } as never,
+      currentPlayer: makeBoardPlayer({ playerName: 'Federico Chiesa' }) as Record<string, unknown>,
+      boardData: { totalPlayers: 5, currentIndex: 2, memberBudgets: [] },
       board: [],
     }
 
@@ -1093,9 +1225,9 @@ describe('Rubata', () => {
       isRubataPhase: true,
       isOrderSet: true,
       isCurrentPlayerVisible: false,
-      currentPlayer: makeBoardPlayer({ playerName: 'Federico Chiesa' }) as never,
+      currentPlayer: makeBoardPlayer({ playerName: 'Federico Chiesa' }) as Record<string, unknown>,
       scrollToCurrentPlayer: mockScroll,
-      boardData: { totalPlayers: 5, currentIndex: 2, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 5, currentIndex: 2, memberBudgets: [] },
       board: [],
     }
 
@@ -1116,7 +1248,7 @@ describe('Rubata', () => {
         totalPlayers: 5,
         currentIndex: 0,
         memberBudgets: [{ memberId: 'm1', teamName: 'T1', residuo: 100, currentBudget: 200, totalSalaries: 100 }],
-      } as never,
+      },
       board: [],
     }
 
@@ -1139,7 +1271,7 @@ describe('Rubata', () => {
         totalPlayers: 5,
         currentIndex: 0,
         memberBudgets: makeBudgets(),
-      } as never,
+      },
       board: [],
     }
 
@@ -1155,7 +1287,7 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] },
       board: [],
       pendingContractModification: {
         contractId: 'c1',
@@ -1168,7 +1300,7 @@ describe('Rubata', () => {
         duration: 3,
         initialSalary: 8,
         rescissionClause: 20,
-      } as never,
+      },
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -1181,7 +1313,7 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] },
       board: [],
       selectedPlayerForStats: {
         name: 'Stats Player',
@@ -1191,7 +1323,7 @@ describe('Rubata', () => {
         age: 25,
         apiFootballId: 456,
         computedStats: null,
-      } as never,
+      },
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -1204,7 +1336,7 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] },
       board: [],
       selectedPlayerForStats: null,
     }
@@ -1220,7 +1352,7 @@ describe('Rubata', () => {
       isRubataPhase: true,
       isOrderSet: true,
       rubataState: 'PENDING_ACK',
-      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] },
       board: [],
       pendingAck: {
         auctionId: 'a1',
@@ -1234,7 +1366,7 @@ describe('Rubata', () => {
         totalAcknowledged: 3,
         userAcknowledged: false,
         allAcknowledged: false,
-      } as never,
+      },
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -1242,12 +1374,40 @@ describe('Rubata', () => {
     expect(screen.getByTestId('pending-ack-modal')).toBeInTheDocument()
   })
 
+  it('renders PendingAckBanner when user already acknowledged but waiting for others', () => {
+    hookOverrides = {
+      isRubataPhase: true,
+      isOrderSet: true,
+      rubataState: 'PENDING_ACK',
+      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] },
+      board: [],
+      pendingAck: {
+        auctionId: 'a1',
+        player: { id: 'p1', name: 'Acked Player', team: 'Napoli', position: 'A' },
+        winner: { id: 'w1', username: 'Winner' },
+        seller: { id: 's1', username: 'Seller' },
+        finalPrice: 15,
+        acknowledgedMembers: [{ id: 'member1', username: 'Me' }],
+        pendingMembers: [{ id: 'm2', username: 'Other' }],
+        totalMembers: 5,
+        totalAcknowledged: 3,
+        userAcknowledged: true,
+        allAcknowledged: false,
+      },
+    }
+
+    render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
+
+    // Banner shows inline progress while modal handles the ack flow
+    expect(screen.getByTestId('pending-ack-banner')).toBeInTheDocument()
+  })
+
   // ---- Appeal modals ----
   it('renders AppealReviewModal when appealStatus has APPEAL_REVIEW status', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] },
       board: [],
       appealStatus: {
         auctionId: 'a1',
@@ -1259,7 +1419,7 @@ describe('Rubata', () => {
         allMembers: [],
         userIsReady: false,
         resumeReadyMembers: [],
-      } as never,
+      },
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -1271,7 +1431,7 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] },
       board: [],
       appealStatus: {
         auctionId: 'a1',
@@ -1283,7 +1443,7 @@ describe('Rubata', () => {
         allMembers: [],
         userIsReady: false,
         resumeReadyMembers: [],
-      } as never,
+      },
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -1295,7 +1455,7 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] },
       board: [],
       appealStatus: {
         auctionId: 'a1',
@@ -1307,7 +1467,7 @@ describe('Rubata', () => {
         allMembers: [],
         userIsReady: false,
         resumeReadyMembers: [],
-      } as never,
+      },
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -1321,14 +1481,14 @@ describe('Rubata', () => {
       isRubataPhase: true,
       isOrderSet: true,
       rubataState: 'AUCTION_READY_CHECK',
-      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] },
       board: [],
       readyStatus: {
         readyCount: 2,
         totalMembers: 5,
         userIsReady: false,
         pendingMembers: [],
-      } as never,
+      },
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -1341,9 +1501,9 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] } as never,
+      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] },
       board: [],
-      selectedPlayerForPrefs: makeBoardPlayer() as never,
+      selectedPlayerForPrefs: makeBoardPlayer() as Record<string, unknown>,
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -1351,27 +1511,21 @@ describe('Rubata', () => {
     expect(screen.getByTestId('preference-modal')).toBeInTheDocument()
   })
 
-  // ---- Board: player age brackets render in card view ----
-  it('renders player ages in card view for different age brackets', () => {
+  // ---- Board: player age available via aria-label (age badge removed from compact layout) ----
+  it('includes player age in aria-label for accessibility', () => {
     const youngPlayer = makeBoardPlayer({ rosterId: 'ry', playerAge: 21, playerName: 'Young' })
-    const midPlayer = makeBoardPlayer({ rosterId: 'rm', playerAge: 26, playerName: 'Mid', playerId: 'p-mid' })
-    const seniorPlayer = makeBoardPlayer({ rosterId: 'rs', playerAge: 29, playerName: 'Senior', playerId: 'p-senior' })
-    const oldPlayer = makeBoardPlayer({ rosterId: 'ro', playerAge: 33, playerName: 'Old', playerId: 'p-old' })
 
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 4, currentIndex: 4, memberBudgets: [] } as never,
-      board: [youngPlayer, midPlayer, seniorPlayer, oldPlayer] as never[],
+      boardData: { totalPlayers: 1, currentIndex: 1, memberBudgets: [] },
+      board: [youngPlayer],
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // All ages appear in card format (e.g. "21a", "26a")
-    expect(screen.getAllByText(/21a/).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText(/26a/).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText(/29a/).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText(/33a/).length).toBeGreaterThanOrEqual(1)
+    // Player name is rendered in the compact row
+    expect(screen.getAllByText('Young').length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Board: owner username shown in mobile compact info line ----
@@ -1379,8 +1533,8 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
-      board: [makeBoardPlayer({ ownerUsername: 'Neo', ownerTeamName: 'FC Fantastica' })] as never[],
+      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] },
+      board: [makeBoardPlayer({ ownerUsername: 'Neo', ownerTeamName: 'FC Fantastica' })],
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -1397,8 +1551,8 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 3, currentIndex: 3, memberBudgets: [] } as never,
-      board: [d1, d2, d4] as never[],
+      boardData: { totalPlayers: 3, currentIndex: 3, memberBudgets: [] },
+      board: [d1, d2, d4],
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -1420,7 +1574,7 @@ describe('Rubata', () => {
         totalPlayers: 5,
         currentIndex: 0,
         memberBudgets: makeBudgets(),
-      } as never,
+      },
       board: [],
     }
 
@@ -1455,7 +1609,7 @@ describe('Rubata', () => {
         totalPlayers: 5,
         currentIndex: 0,
         memberBudgets: makeBudgets(),
-      } as never,
+      },
       board: [],
     }
 
@@ -1477,7 +1631,7 @@ describe('Rubata', () => {
         totalPlayers: 5,
         currentIndex: 0,
         memberBudgets: makeBudgets(), // Team3 has residuo -5
-      } as never,
+      },
       board: [],
     }
 
@@ -1499,7 +1653,7 @@ describe('Rubata', () => {
         memberBudgets: [
           { memberId: 'm1', teamName: 'TeamX', residuo: 50, currentBudget: 200, totalSalaries: 150, username: 'UserX' },
         ],
-      } as never,
+      },
       board: [],
     }
 
@@ -1518,8 +1672,8 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
-      board: [makeBoardPlayer()] as never[],
+      boardData: { totalPlayers: 2, currentIndex: 0, memberBudgets: [] },
+      board: [makeBoardPlayer({ rosterId: 'r-current', playerId: 'player-current' }), makeBoardPlayer()],
       preferencesMap: prefMap,
       canEditPreferences: true,
     }
@@ -1539,8 +1693,8 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] } as never,
-      board: [makeMyPlayer({ playerAge: null })] as never[],
+      boardData: { totalPlayers: 1, currentIndex: 0, memberBudgets: [] },
+      board: [makeMyPlayer({ playerAge: null })],
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
@@ -1560,14 +1714,14 @@ describe('Rubata', () => {
         currentIndex: 0,
         memberBudgets: [],
         pausedRemainingSeconds: null,
-      } as never,
+      },
       board: [],
       readyStatus: {
         readyCount: 0,
         totalMembers: 3,
         userIsReady: false,
         pendingMembers: [],
-      } as never,
+      },
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)

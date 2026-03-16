@@ -498,8 +498,9 @@ describe('Invite Service', () => {
       expect(result.success).toBe(true)
       const data = result.data as Array<Record<string, unknown>>
       expect(data).toHaveLength(2)
-      expect(data[0].email).toBe('a@test.com')
-      expect(data[0].invitedBy).toBe('admin_user')
+      const firstInvite = data[0] as Record<string, unknown>
+      expect(firstInvite.email).toBe('a@test.com')
+      expect(firstInvite.invitedBy).toBe('admin_user')
     })
   })
 
@@ -740,9 +741,10 @@ describe('Invite Service', () => {
       expect(result.success).toBe(true)
       const data = result.data as Array<Record<string, unknown>>
       expect(data).toHaveLength(1)
-      expect(data[0].leagueName).toBe('Liga A')
-      expect(data[0].currentMembers).toBe(1)
-      expect(data[0].invitedBy).toBe('admin_user')
+      const firstPending = data[0] as Record<string, unknown>
+      expect(firstPending.leagueName).toBe('Liga A')
+      expect(firstPending.currentMembers).toBe(1)
+      expect(firstPending.invitedBy).toBe('admin_user')
     })
   })
 

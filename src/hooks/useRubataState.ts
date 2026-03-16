@@ -612,6 +612,51 @@ export function useRubataState(leagueId: string) {
     setIsSubmitting(false)
   }
 
+  async function handleQuickBid(amount: number) {
+    const myId = boardData?.myMemberId
+    if (!amount || !boardData?.activeAuction || !myId) return
+    setError('')
+    setIsSubmitting(true)
+
+    const currentUser = members.find(m => m.id === myId)
+    const currentUsername = currentUser?.user?.username || 'Tu'
+
+    const previousBoardData = boardData
+    const optimisticBid = {
+      amount,
+      bidder: currentUsername,
+      bidderId: myId,
+      isWinning: true,
+    }
+
+    setBoardData(prev => {
+      if (!prev?.activeAuction) return prev
+      return {
+        ...prev,
+        activeAuction: {
+          ...prev.activeAuction,
+          currentPrice: amount,
+          bids: [
+            optimisticBid,
+            ...prev.activeAuction.bids.map(b => ({ ...b, isWinning: false })),
+          ],
+        },
+      }
+    })
+
+    setBidAmount(amount + 1)
+
+    const res = await rubataApi.bidOnAuction(leagueId, amount)
+    if (res.success) {
+      haptic.bid()
+      void loadBoardOnly()
+    } else {
+      setBoardData(previousBoardData)
+      setError(res.message || 'Errore')
+    }
+    setIsSubmitting(false)
+  }
+
   // ========== Ready Check ==========
 
   async function handleSetReady() {
@@ -1086,7 +1131,12 @@ export function useRubataState(leagueId: string) {
   const currentPlayer = boardData?.currentPlayer
   const activeAuction = boardData?.activeAuction
   const myMemberId = boardData?.myMemberId
-  const canMakeOffer = rubataState === 'OFFERING' && currentPlayer && currentPlayer.memberId !== myMemberId
+  const myBudgetInfo = boardData?.memberBudgets?.find(mb => mb.memberId === myMemberId)
+  const myResiduo = myBudgetInfo?.residuo ?? 0
+  const canMakeOffer = rubataState === 'OFFERING'
+    && currentPlayer
+    && currentPlayer.memberId !== myMemberId
+    && myResiduo >= (currentPlayer?.rubataPrice ?? Infinity)
 
   const currentPlayerPreference = currentPlayer ? preferencesMap.get(currentPlayer.playerId) : null
 
@@ -1243,6 +1293,7 @@ export function useRubataState(leagueId: string) {
     // Player
     handleMakeOffer,
     handleBid,
+    handleQuickBid,
 
     // Ready check
     handleSetReady,
