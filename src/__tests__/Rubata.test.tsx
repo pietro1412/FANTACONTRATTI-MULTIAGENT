@@ -99,8 +99,24 @@ vi.mock('../components/rubata/RubataAdminControls', () => ({
   CompleteRubataPanel: () => <div data-testid="complete-rubata-panel">CompleteRubata</div>,
 }))
 
-vi.mock('../components/rubata/RubataActionBar', () => ({
-  RubataActionBar: () => <div data-testid="rubata-action-bar">ActionBar</div>,
+vi.mock('../components/rubata/RubataStateBar', () => ({
+  RubataStateBar: () => <div data-testid="rubata-state-bar">StateBar</div>,
+}))
+
+vi.mock('../components/rubata/HeroPlayerCard', () => ({
+  HeroPlayerCard: () => <div data-testid="hero-player-card">HeroPlayerCard</div>,
+}))
+
+vi.mock('../components/rubata/BoardViewToggle', () => ({
+  BoardViewToggle: () => <div data-testid="board-view-toggle">BoardViewToggle</div>,
+}))
+
+vi.mock('../components/rubata/PendingAckBanner', () => ({
+  PendingAckBanner: () => <div data-testid="pending-ack-banner">PendingAckBanner</div>,
+}))
+
+vi.mock('../components/rubata/CircularTimer', () => ({
+  CircularTimer: () => <div data-testid="circular-timer">Timer</div>,
 }))
 
 vi.mock('../components/rubata/RubataReadyBanner', () => ({
@@ -302,6 +318,7 @@ interface TestHookReturn {
   handleCompleteRubata: ReturnType<typeof vi.fn>
   handleMakeOffer: ReturnType<typeof vi.fn>
   handleBid: ReturnType<typeof vi.fn>
+  handleQuickBid: ReturnType<typeof vi.fn>
   handleSetReady: ReturnType<typeof vi.fn>
   handleForceAllReady: ReturnType<typeof vi.fn>
   handleAcknowledgeWithAppeal: ReturnType<typeof vi.fn>
@@ -389,6 +406,7 @@ const defaultHookReturn: TestHookReturn = {
   handleCompleteRubata: vi.fn(),
   handleMakeOffer: mockHandleMakeOffer,
   handleBid: mockHandleBid,
+  handleQuickBid: vi.fn(),
   handleSetReady: mockHandleSetReady,
   handleForceAllReady: vi.fn(),
   handleAcknowledgeWithAppeal: vi.fn(),
@@ -557,7 +575,7 @@ describe('Rubata', () => {
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
     expect(screen.getByTestId('rubata-stepper')).toBeInTheDocument()
-    expect(screen.getByTestId('rubata-action-bar')).toBeInTheDocument()
+    expect(screen.getByTestId('rubata-state-bar')).toBeInTheDocument()
     expect(screen.getByText('Tabellone Rubata')).toBeInTheDocument()
   })
 
@@ -968,6 +986,7 @@ describe('Rubata', () => {
       isRubataPhase: true,
       isOrderSet: true,
       rubataState: 'AUCTION',
+      currentPlayer: makeBoardPlayer({ playerName: 'Test Player' }) as Record<string, unknown>,
       activeAuction: {
         id: 'auction1',
         player: { id: 'p1', name: 'Test Player', team: 'Napoli', position: 'A' },
@@ -996,13 +1015,13 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 3, currentIndex: 1, memberBudgets: [] },
+      boardData: { totalPlayers: 3, currentIndex: 0, memberBudgets: [] },
       board: players as Array<Record<string, unknown>>,
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // Player names rendered
+    // All 3 players visible (currentIndex=0, all within upcoming range)
     expect(screen.getAllByText('Luca Bianchi').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Mario Rossi').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Paolo Verdi').length).toBeGreaterThanOrEqual(1)
@@ -1085,8 +1104,8 @@ describe('Rubata', () => {
     expect(noteIcons.length).toBeGreaterThanOrEqual(1)
   })
 
-  // ---- Board: "+ Strategia" CTA for no-pref player ----
-  it('shows "+ Strategia" CTA in card view for player without preference', () => {
+  // ---- Board: strategy gear CTA for no-pref player ----
+  it('shows strategy gear icon in compact view for player without preference', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
@@ -1098,7 +1117,7 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getAllByText('+ Strategia').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByTitle('Imposta strategia').length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Board: edit preference button calls openPrefsModal ----
@@ -1118,8 +1137,8 @@ describe('Rubata', () => {
     expect(strategyBtns.length).toBeGreaterThanOrEqual(1)
   })
 
-  // ---- Mobile: "SUL PIATTO" badge for current player ----
-  it('shows "SUL PIATTO" badge on mobile for the current player', () => {
+  // ---- Current player has highlighted border (SUL PIATTO badge removed in compact layout) ----
+  it('highlights current player row with primary border', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
@@ -1129,11 +1148,12 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getAllByText('SUL PIATTO').length).toBeGreaterThanOrEqual(1)
+    // Current player has aria-label mentioning "sul piatto"
+    expect(screen.getByRole('listitem', { name: /sul piatto/ })).toBeInTheDocument()
   })
 
-  // ---- Mobile: passed and not stolen shows "Non rubato" ----
-  it('shows "Non rubato" for passed players that were not stolen in mobile view', () => {
+  // ---- Passed and not stolen shows checkmark (compact layout) ----
+  it('shows checkmark for passed players that were not stolen', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
@@ -1143,7 +1163,9 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getAllByText(/Non rubato/).length).toBeGreaterThanOrEqual(1)
+    // Passed player row has reduced opacity (opacity-40 class)
+    const passedRow = screen.getAllByRole('listitem')[0]
+    expect(passedRow!.className).toContain('opacity-40')
   })
 
   // ---- Mobile: stolen player shows stolen price when higher than rubata price ----
@@ -1352,6 +1374,34 @@ describe('Rubata', () => {
     expect(screen.getByTestId('pending-ack-modal')).toBeInTheDocument()
   })
 
+  it('renders PendingAckBanner when user already acknowledged but waiting for others', () => {
+    hookOverrides = {
+      isRubataPhase: true,
+      isOrderSet: true,
+      rubataState: 'PENDING_ACK',
+      boardData: { totalPlayers: 5, currentIndex: 0, memberBudgets: [] },
+      board: [],
+      pendingAck: {
+        auctionId: 'a1',
+        player: { id: 'p1', name: 'Acked Player', team: 'Napoli', position: 'A' },
+        winner: { id: 'w1', username: 'Winner' },
+        seller: { id: 's1', username: 'Seller' },
+        finalPrice: 15,
+        acknowledgedMembers: [{ id: 'member1', username: 'Me' }],
+        pendingMembers: [{ id: 'm2', username: 'Other' }],
+        totalMembers: 5,
+        totalAcknowledged: 3,
+        userAcknowledged: true,
+        allAcknowledged: false,
+      },
+    }
+
+    render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
+
+    // Banner shows inline progress while modal handles the ack flow
+    expect(screen.getByTestId('pending-ack-banner')).toBeInTheDocument()
+  })
+
   // ---- Appeal modals ----
   it('renders AppealReviewModal when appealStatus has APPEAL_REVIEW status', () => {
     hookOverrides = {
@@ -1461,27 +1511,21 @@ describe('Rubata', () => {
     expect(screen.getByTestId('preference-modal')).toBeInTheDocument()
   })
 
-  // ---- Board: player age brackets render in card view ----
-  it('renders player ages in card view for different age brackets', () => {
+  // ---- Board: player age available via aria-label (age badge removed from compact layout) ----
+  it('includes player age in aria-label for accessibility', () => {
     const youngPlayer = makeBoardPlayer({ rosterId: 'ry', playerAge: 21, playerName: 'Young' })
-    const midPlayer = makeBoardPlayer({ rosterId: 'rm', playerAge: 26, playerName: 'Mid', playerId: 'p-mid' })
-    const seniorPlayer = makeBoardPlayer({ rosterId: 'rs', playerAge: 29, playerName: 'Senior', playerId: 'p-senior' })
-    const oldPlayer = makeBoardPlayer({ rosterId: 'ro', playerAge: 33, playerName: 'Old', playerId: 'p-old' })
 
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 4, currentIndex: 4, memberBudgets: [] },
-      board: [youngPlayer, midPlayer, seniorPlayer, oldPlayer],
+      boardData: { totalPlayers: 1, currentIndex: 1, memberBudgets: [] },
+      board: [youngPlayer],
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // All ages appear in card format (e.g. "21a", "26a")
-    expect(screen.getAllByText(/21a/).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText(/26a/).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText(/29a/).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText(/33a/).length).toBeGreaterThanOrEqual(1)
+    // Player name is rendered in the compact row
+    expect(screen.getAllByText('Young').length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Board: owner username shown in mobile compact info line ----

@@ -1,9 +1,6 @@
 import { memo } from 'react'
-import { Button } from '../ui/Button'
-import { TeamLogo } from './TeamLogo'
 import { POSITION_COLORS } from '../../types/rubata.types'
-import { getPlayerPhotoUrl } from '../../utils/player-images'
-import type { BoardPlayer, RubataPreference, RubataStateType } from '../../types/rubata.types'
+import type { BoardPlayer, RubataPreference } from '../../types/rubata.types'
 import type { ComputedSeasonStats } from '../PlayerStatsModal'
 
 interface PlayerStatsInfo {
@@ -16,31 +13,14 @@ interface PlayerStatsInfo {
   computedStats?: ComputedSeasonStats | null
 }
 
-function AgeBadge({ age, className = '' }: { age: number; className?: string }) {
-  const colors =
-    age <= 23 ? 'bg-green-500/20 text-green-400' :
-    age <= 28 ? 'bg-surface-50/20 text-gray-300' :
-    age <= 31 ? 'bg-warning-500/20 text-warning-400' :
-    'bg-danger-500/20 text-danger-400'
-  return (
-    <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${colors} ${className}`}>
-      {age}a
-    </span>
-  )
-}
-
 export interface BoardRowProps {
   player: BoardPlayer
   globalIndex: number
   isCurrent: boolean
   isPassed: boolean
-  rubataState: RubataStateType
-  canMakeOffer: boolean
-  isSubmitting: boolean
   myMemberId: string | undefined
   preference: RubataPreference | undefined
   canEditPreferences: boolean
-  onMakeOffer: () => void
   onOpenPrefsModal: (player: BoardPlayer & { preference: RubataPreference | null }) => void
   onPlayerStatsClick: (info: PlayerStatsInfo) => void
   currentPlayerRef?: React.RefObject<HTMLDivElement>
@@ -60,20 +40,15 @@ export const BoardRow = memo(function BoardRow({
   globalIndex,
   isCurrent,
   isPassed,
-  rubataState,
-  canMakeOffer,
-  isSubmitting,
   myMemberId,
   preference: pref,
   canEditPreferences,
-  onMakeOffer,
   onOpenPrefsModal,
   onPlayerStatsClick,
   currentPlayerRef,
   compareMode,
   isCompareSelected,
   onToggleCompare,
-  isNewOwnerGroup,
   isExpanded,
   onToggleExpand,
 }: BoardRowProps) {
@@ -105,56 +80,101 @@ export const BoardRow = memo(function BoardRow({
     player.contractDuration === 3 ? 'text-primary-400' :
     'text-secondary-400'
 
-  const ownerLabel = player.ownerTeamName
-    ? `${player.ownerTeamName} (${player.ownerUsername})`
-    : player.ownerUsername
+  const handlePlayerClick = () => {
+    onPlayerStatsClick({
+      name: player.playerName,
+      team: player.playerTeam,
+      position: player.playerPosition,
+      quotation: player.playerQuotation,
+      age: player.playerAge,
+      apiFootballId: player.playerApiFootballId,
+      computedStats: player.playerComputedStats,
+    })
+  }
+
+  // Row background/state styles
+  const rowStateClass =
+    isCurrent
+      ? 'border-l-4 border-l-primary-500 bg-primary-500/15'
+      : isPassed && wasStolen
+      ? 'bg-danger-500/10'
+      : isPassed && !wasStolen
+      ? 'opacity-40'
+      : isAutoSkip
+      ? 'opacity-30'
+      : isWatchlisted
+      ? 'bg-indigo-500/5'
+      : ''
+
+  // Strategy indicators
+  const hasStrategy = pref?.priority || pref?.maxBid || pref?.notes || pref?.isWatchlist || pref?.isAutoPass
+
+  // Contract info string (used on both layouts)
+  const contractInline = (passedStyle: boolean) => (
+    <span className="flex items-center gap-0.5 text-xs whitespace-nowrap">
+      <span className={passedStyle ? 'text-gray-500' : 'text-accent-400'}>Ing {player.contractSalary}M</span>
+      <span className="text-gray-600 mx-0.5">&middot;</span>
+      <span className={passedStyle ? 'text-gray-500' : durationColor}>{player.contractDuration}s</span>
+      <span className="text-gray-600 mx-0.5">&middot;</span>
+      <span className={passedStyle ? 'text-gray-500' : 'text-purple-400'}>Cl {player.contractClause}M</span>
+    </span>
+  )
+
+  // Strategy indicators inline
+  const strategyIndicators = () => {
+    if (isMyPlayer || isPassed) return null
+    return (
+      <span className="flex items-center gap-1 flex-shrink-0">
+        {pref?.isWatchlist && <span className="text-indigo-400 text-[10px]" title="In watchlist">&#128065;&#65039;</span>}
+        {pref?.isAutoPass && <span className="text-gray-400 text-[10px]" title="Auto-skip">&#9197;&#65039;</span>}
+        {pref?.priority && <span className="text-purple-400 text-[10px]" title={`Priorita ${pref.priority}`}>{'★'.repeat(pref.priority)}</span>}
+        {pref?.maxBid && <span className="text-blue-400 text-[10px]" title={`Max ${pref.maxBid}M`}>Max: {pref.maxBid}M</span>}
+        {pref?.notes && <span className="text-gray-400 text-[10px]" title={pref.notes} aria-label="Note strategia impostate">&#128221;</span>}
+      </span>
+    )
+  }
+
+  // Strategy gear button
+  const strategyButton = () => {
+    if (isMyPlayer || isPassed || isCurrent || !canEditPreferences) return null
+    return hasStrategy ? (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onOpenPrefsModal({ ...player, preference: pref }) }}
+        className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/30 text-indigo-400 flex-shrink-0"
+        title="Modifica strategia"
+      >
+        &#9881;&#65039;
+      </button>
+    ) : (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onOpenPrefsModal({ ...player, preference: pref || null }) }}
+        className="px-1.5 py-0.5 rounded text-[10px] bg-surface-50/20 text-indigo-400/70 hover:bg-indigo-500/20 hover:text-indigo-400 flex-shrink-0"
+        title="Imposta strategia"
+      >
+        &#9881;&#65039;
+      </button>
+    )
+  }
 
   return (
-    <div>
-      {/* Manager group separator */}
-      {isNewOwnerGroup && (
-        <>
-          {/* Desktop banner */}
-          <div className="hidden md:flex items-center gap-3 px-3 pb-1">
-            <span className="text-sm">📋</span>
-            <span className="text-sm font-bold text-primary-300">{ownerLabel}</span>
-            <span className="flex-1 border-t border-surface-50/15" />
-          </div>
-          {/* Mobile thin divider */}
-          <div className="md:hidden flex items-center gap-1.5 border-t border-primary-500/20 pb-0.5 px-3">
-            <span className="text-[10px] font-bold text-primary-400/70 truncate">{ownerLabel}</span>
-            <span className="flex-1 border-t border-surface-50/10" />
-          </div>
-        </>
-      )}
     <div
       ref={isCurrent ? currentPlayerRef as React.RefObject<HTMLDivElement> : null}
       tabIndex={0}
       role="listitem"
       aria-label={`${player.playerName}, ${player.playerPosition}, ${player.playerTeam}${isCurrent ? ', sul piatto' : ''}${wasStolen ? `, rubato da ${player.stolenByUsername ?? ''}` : ''}`}
       onKeyDown={handleKeyDown}
-      className={`${isCurrent ? 'px-3 py-2.5 md:p-4' : 'px-3 py-2 md:p-3'} rounded-none md:rounded-lg border-0 border-b border-surface-50/15 md:border md:border-surface-50/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/70 ${
-        isCurrent
-          ? 'bg-primary-500/25 border-l-4 !border-l-primary-500 md:bg-primary-500/30 md:border-primary-400 md:ring-2 md:ring-primary-400/50 md:shadow-lg'
-          : isPassed
-          ? wasStolen
-            ? 'bg-danger-500/10 md:border-danger-500/30'
-            : 'opacity-50'
-          : isWatchlisted
-          ? 'bg-indigo-500/10 md:border-indigo-500/30'
-          : isAutoSkip
-          ? 'opacity-40'
-          : 'md:bg-surface-300 md:border-surface-50/20'
-      } md:flex md:items-center md:gap-4`}
+      className={`px-2 py-1 md:px-3 md:py-1.5 border-b border-surface-50/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/70 ${rowStateClass}`}
     >
-      {/* Player header */}
-      <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-0 md:flex-1 md:min-w-0">
-        {/* D5: Compare checkbox */}
+      {/* DESKTOP: single flex row */}
+      <div className="hidden md:flex items-center gap-2 min-w-0">
+        {/* Compare checkbox */}
         {compareMode && !isPassed && (
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onToggleCompare?.(); }}
-            className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+            onClick={(e) => { e.stopPropagation(); onToggleCompare?.() }}
+            className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all ${
               isCompareSelected
                 ? 'bg-primary-500 border-primary-500 text-white'
                 : 'border-gray-500 hover:border-primary-400'
@@ -162,305 +182,173 @@ export const BoardRow = memo(function BoardRow({
             aria-label={isCompareSelected ? 'Rimuovi dal confronto' : 'Aggiungi al confronto'}
           >
             {isCompareSelected && (
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             )}
           </button>
         )}
-        {isCurrent ? (
-          <span className="inline-flex items-center justify-center w-7 h-7 bg-primary-500 text-white rounded-full text-xs font-bold flex-shrink-0">
-            {globalIndex + 1}
-          </span>
-        ) : (
-          <span className="text-xs font-mono w-6 text-center text-gray-500 flex-shrink-0">
-            #{globalIndex + 1}
-          </span>
-        )}
-        {player.playerApiFootballId ? (
-          <img
-            src={getPlayerPhotoUrl(player.playerApiFootballId)}
-            alt={player.playerName}
-            className={`${isCurrent ? 'w-10 h-10 border-2 border-primary-500' : 'w-8 h-8'} rounded-full object-cover bg-surface-300 flex-shrink-0`}
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none'
-            }}
-          />
-        ) : (
-          <div className={`${isCurrent ? 'w-10 h-10' : 'w-8 h-8'} rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
-            {player.playerPosition}
-          </div>
-        )}
-        <div className="hidden md:block w-6 h-6 bg-white rounded p-0.5 flex-shrink-0">
-          <TeamLogo team={player.playerTeam} />
-        </div>
-        {/* Position badge: desktop only (mobile shows position in fallback circle or is redundant next to photo) */}
-        <span className={`hidden md:inline-flex items-center justify-center w-5 h-5 rounded text-[8px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
+
+        {/* Index */}
+        <span className="text-[11px] font-mono w-5 text-center text-gray-500 flex-shrink-0">#{globalIndex + 1}</span>
+
+        {/* Position badge */}
+        <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[9px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
           {player.playerPosition}
         </span>
+
+        {/* Player name (clickable) */}
         <button
           type="button"
-          onClick={() => { onPlayerStatsClick({
-            name: player.playerName,
-            team: player.playerTeam,
-            position: player.playerPosition,
-            quotation: player.playerQuotation,
-            age: player.playerAge,
-            apiFootballId: player.playerApiFootballId,
-            computedStats: player.playerComputedStats,
-          }); }}
-          className={`font-semibold truncate text-left min-h-[44px] flex items-center ${isCurrent ? 'text-white font-bold text-base' : isPassed ? 'text-gray-500' : 'text-white hover:text-primary-300'}`}
-          title="Clicca per vedere statistiche"
+          onClick={handlePlayerClick}
+          className={`font-semibold text-sm truncate text-left flex-shrink min-w-0 ${
+            isPassed ? 'text-gray-500' : 'text-white hover:text-primary-300'
+          }`}
+          title="Clicca per statistiche"
         >
           {player.playerName}
         </button>
-        {/* Mobile inline indicators */}
-        {isPassed && !wasStolen && (
-          <span className="md:hidden text-[10px] text-secondary-500 flex-shrink-0">✓</span>
-        )}
-        {isMyPlayer && (
-          <span className="md:hidden text-[10px] text-gray-500 flex-shrink-0">Mio</span>
-        )}
-        {/* Mobile: stolen indicator inline */}
+
+        {/* Owner */}
+        <span className="text-[11px] text-gray-500 truncate flex-shrink-0 max-w-[120px]">
+          di <span className={isPassed && wasStolen ? 'line-through' : ''}>{player.ownerTeamName ?? player.ownerUsername}</span>
+        </span>
+
+        {/* Stolen inline */}
         {wasStolen && (
-          <span className="md:hidden text-danger-400 text-[10px] font-bold flex-shrink-0">
-            <span className="inline-block">🎯</span> {player.stolenByUsername}{player.stolenPrice != null && player.stolenPrice > player.rubataPrice ? ` (+${player.stolenPrice - player.rubataPrice}M)` : ''}
-          </span>
+          <>
+            <span className="text-danger-400 text-[11px] font-bold flex-shrink-0">
+              &#127919; {player.stolenByUsername}
+            </span>
+            {player.stolenPrice != null && player.stolenPrice > player.rubataPrice && (
+              <span className="text-danger-500 text-[10px] font-medium flex-shrink-0">(+{player.stolenPrice - player.rubataPrice}M)</span>
+            )}
+          </>
         )}
-        {/* Mobile: rubata price right-aligned */}
-        <span className={`md:hidden ml-auto font-black text-base flex-shrink-0 ${
+
+        {/* Passed check */}
+        {isPassed && !wasStolen && (
+          <span className="text-secondary-500 text-[11px] flex-shrink-0">&#10003;</span>
+        )}
+
+        {/* My player label */}
+        {isMyPlayer && !isPassed && (
+          <span className="text-gray-500 text-[10px] flex-shrink-0">Mio</span>
+        )}
+
+        {/* Separator */}
+        <span className="text-gray-700 flex-shrink-0">|</span>
+
+        {/* Contract data inline */}
+        {contractInline(isPassed)}
+
+        {/* Separator */}
+        <span className="text-gray-700 flex-shrink-0">|</span>
+
+        {/* Rubata price */}
+        <span className={`font-black text-sm flex-shrink-0 ${
           isCurrent ? 'text-primary-400' : isPassed ? 'text-gray-500' : 'text-warning-400'
         }`}>
           {player.rubataPrice}M
         </span>
-        {isCurrent && (
-          <span className="inline text-[10px] sm:text-xs bg-primary-500 text-white px-1.5 sm:px-2.5 py-0.5 rounded-full shrink-0 font-medium">
-            <span className="sm:hidden">⚔️</span>
-            <span className="hidden sm:inline">SUL PIATTO</span>
-          </span>
-        )}
-        {/* Desktop: owner inline */}
-        <span className="hidden md:inline text-xs text-gray-400 ml-1 truncate flex-shrink-0">
-          di <span className={isPassed && wasStolen ? 'line-through' : ''}>{player.ownerTeamName ? `${player.ownerTeamName}` : player.ownerUsername}</span>
-        </span>
-        {/* Desktop: age badge */}
-        {player.playerAge != null && (
-          <AgeBadge age={player.playerAge} className="hidden md:inline-flex ml-1 flex-shrink-0" />
-        )}
+
+        {/* Separator before strategy */}
+        {!isPassed && !isMyPlayer && !isCurrent && <span className="text-gray-700 flex-shrink-0">|</span>}
+
+        {/* Strategy indicators + button */}
+        {strategyIndicators()}
+        {strategyButton()}
       </div>
 
-      {/* Mobile: compact info — always show owner, expand for details */}
-      <div className="md:hidden flex items-center gap-1 text-[11px] mt-0.5 ml-8 flex-wrap cursor-pointer" onClick={onToggleExpand} role="button" tabIndex={0}>
-        <span className="text-gray-500">
-          di <span className={isPassed && wasStolen ? 'line-through text-gray-500' : 'text-gray-400'}>{player.ownerUsername}</span>
-        </span>
-        {(isCurrent || isExpanded) ? (
-          <>
-            {player.playerAge != null && (
-              <>
-                <span className="text-gray-600">·</span>
-                <AgeBadge age={player.playerAge} />
-              </>
-            )}
-            <span className="text-gray-600">·</span>
-            <span className={`font-bold ${isPassed ? 'text-gray-500' : 'text-accent-400'}`}>{player.contractSalary}M</span>
-            <span className="text-gray-600">·</span>
-            <span className={`font-bold ${isPassed ? 'text-gray-500' : durationColor}`}>{player.contractDuration}s</span>
-            <span className="text-gray-600">·</span>
-            <span className={`font-bold ${isPassed ? 'text-gray-500' : 'text-purple-400'}`}>{player.contractClause}M</span>
-          </>
-        ) : (
-          <span className="text-gray-600 ml-0.5">›</span>
-        )}
-      </div>
-
-      {/* Mobile: inline VOGLIO RUBARE button for current player */}
-      {isCurrent && rubataState === 'OFFERING' && canMakeOffer && (
-        <div className="md:hidden mt-1.5 ml-8">
-          <Button
-            onClick={onMakeOffer}
-            disabled={isSubmitting}
-            variant="accent"
-            className="w-full text-base py-2.5"
-          >
-            🎯 VOGLIO RUBARE! ({player.rubataPrice}M)
-          </Button>
-        </div>
-      )}
-
-      {/* Stolen indicator — desktop badge */}
-      {wasStolen && (
-        <div className="hidden md:flex flex-col items-start bg-danger-500/15 border border-danger-500/30 rounded-lg px-3 py-1.5 min-w-[140px] flex-shrink-0">
-          <span className="text-[10px] text-danger-300 uppercase font-medium tracking-wide">Rubato da</span>
-          <div className="flex items-center gap-1.5">
-            <span>🎯</span>
-            <span className="text-sm font-bold text-danger-400">{player.stolenByUsername}</span>
-            {player.stolenPrice != null && player.stolenPrice > player.rubataPrice && (
-              <span className="text-xs text-danger-500 font-medium">(+{player.stolenPrice - player.rubataPrice}M)</span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Contract details — single row, 4-col */}
-      <div className={`hidden md:grid grid-cols-4 gap-x-2 rounded-lg p-2 w-[280px] flex-shrink-0 ${isPassed ? 'bg-surface-50/5' : 'bg-surface-300/40'}`}>
-        <div className="text-center">
-          <div className="text-[10px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
-            <span className="md:hidden">Ing.</span><span className="hidden md:inline">Ingaggio</span>
-          </div>
-          <div className={`font-bold text-sm md:text-sm ${isPassed ? 'text-gray-500' : 'text-accent-400'}`}>
-            {player.contractSalary}M
-          </div>
-        </div>
-        <div className="text-center">
-          <div className="text-[10px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
-            <span className="md:hidden">Dur.</span><span className="hidden md:inline">Durata</span>
-          </div>
-          <div className={`font-bold text-sm md:text-sm ${
-            isPassed ? 'text-gray-500' :
-            player.contractDuration === 1 ? 'text-danger-400' :
-            player.contractDuration === 2 ? 'text-warning-400' :
-            player.contractDuration === 3 ? 'text-primary-400' :
-            'text-secondary-400'
-          }`}>
-            {player.contractDuration}s
-          </div>
-        </div>
-        <div className="text-center">
-          <div className="text-[10px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
-            <span className="md:hidden">Claus.</span><span className="hidden md:inline">Clausola</span>
-          </div>
-          <div className={`font-bold text-sm md:text-sm ${isPassed ? 'text-gray-500' : 'text-purple-400'}`}>
-            {player.contractClause}M
-          </div>
-        </div>
-        <div className="text-center">
-          <div className="text-[10px] md:text-[11px] text-gray-600 uppercase leading-tight tracking-wide">
-            <span className="md:hidden">Rub.</span><span className="hidden md:inline">Rubata</span>
-          </div>
-          <div className={`font-black ${isCurrent ? 'text-base md:text-lg text-primary-400' : isPassed ? 'text-sm text-gray-500' : 'text-sm text-warning-400'}`}>
-            {player.rubataPrice}M
-          </div>
-        </div>
-      </div>
-
-      {/* Stats grid — desktop only, always visible */}
-      <div className={`hidden md:grid grid-cols-3 w-[120px] flex-shrink-0 text-center ${isPassed ? 'opacity-60' : ''}`}>
-        {/* MV */}
-        <div>
-          <div className="text-[10px] uppercase text-gray-600 leading-tight">MV</div>
-          {player.playerComputedStats?.avgRating != null ? (
-            <div className={`text-xs font-bold ${
-              isPassed ? 'text-gray-500' :
-              player.playerComputedStats.avgRating >= 6.5 ? 'text-secondary-400' :
-              player.playerComputedStats.avgRating >= 6.0 ? 'text-warning-400' :
-              'text-danger-400'
-            }`}>
-              {player.playerComputedStats.avgRating.toFixed(2)}
-            </div>
-          ) : (
-            <div className="text-xs font-bold text-gray-600">-</div>
-          )}
-        </div>
-        {/* GOL */}
-        <div>
-          <div className="text-[10px] uppercase text-gray-600 leading-tight">GOL</div>
-          {player.playerPosition === 'A' && player.playerComputedStats?.totalGoals != null ? (
-            <div className={`text-xs font-bold ${isPassed ? 'text-gray-500' : 'text-gray-300'}`}>
-              {player.playerComputedStats.totalGoals}
-            </div>
-          ) : (
-            <div className="text-xs font-bold text-gray-600">-</div>
-          )}
-        </div>
-        {/* ASS */}
-        <div>
-          <div className="text-[10px] uppercase text-gray-600 leading-tight">ASS</div>
-          {(player.playerPosition === 'C' || player.playerPosition === 'A') && player.playerComputedStats?.totalAssists != null ? (
-            <div className={`text-xs font-bold ${isPassed ? 'text-gray-500' : 'text-gray-300'}`}>
-              {player.playerComputedStats.totalAssists}
-            </div>
-          ) : (
-            <div className="text-xs font-bold text-gray-600">-</div>
-          )}
-        </div>
-      </div>
-
-      {/* Passed + not stolen — hidden on mobile (shown inline in header) */}
-      {isPassed && !wasStolen && (
-        <div className="hidden md:block md:mt-0 text-center text-xs text-secondary-500 md:flex-shrink-0">
-          ✓ Non rubato
-        </div>
-      )}
-
-      {/* Strategy / RUBARE button slot */}
-      {(() => {
-        // Current player in offering phase: show RUBARE button instead of strategy
-        if (isCurrent && rubataState === 'OFFERING' && canMakeOffer) {
-          return (
-            <div className="hidden md:block md:flex-shrink-0 md:ml-auto">
-              <Button
-                onClick={onMakeOffer}
-                disabled={isSubmitting}
-                variant="accent"
-                className="text-sm py-1.5 px-4 whitespace-nowrap"
-              >
-                🎯 VOGLIO RUBARE! ({player.rubataPrice}M)
-              </Button>
-            </div>
-          )
-        }
-        // Current player not in offering: nothing needed in this slot
-        if (isCurrent) return null
-        if (isMyPlayer) return <div className="hidden md:block md:mt-0 md:ml-auto text-center text-gray-500 text-xs md:flex-shrink-0">Mio</div>
-        if (isPassed) return null
-        const hasStrategy = pref?.priority || pref?.maxBid || pref?.notes || pref?.isWatchlist || pref?.isAutoPass
-        return (
-          <div className={`${hasStrategy ? 'mt-0.5' : 'hidden md:block'} md:mt-0 md:ml-auto md:w-[140px] md:flex-shrink-0`}>
-            <div className="flex items-center justify-between md:justify-end gap-2">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {pref?.isWatchlist && (
-                  <span className="text-indigo-400 text-xs" title="In watchlist">👁️</span>
-                )}
-                {pref?.isAutoPass && (
-                  <span className="text-gray-400 text-xs" title="Auto-skip">⏭️</span>
-                )}
-                {pref?.priority && (
-                  <span className="text-purple-400 text-xs" title={`Priorità ${pref.priority}`}>{'★'.repeat(pref.priority)}</span>
-                )}
-                {pref?.maxBid && (
-                  <span className="text-blue-400 text-xs" title={`Max ${pref.maxBid}M`}>Max: {pref.maxBid}M</span>
-                )}
-                {pref?.notes && (
-                  <span className="text-gray-400 text-xs" title={pref.notes} aria-label="Note strategia impostate">📝</span>
-                )}
-              </div>
-              {canEditPreferences && (
-                hasStrategy ? (
-                  <button
-                    type="button"
-                    onClick={() => { onOpenPrefsModal({ ...player, preference: pref || null }); }}
-                    className="px-2 py-1 rounded text-xs transition-all bg-indigo-500/30 text-indigo-400"
-                    title="Modifica strategia"
-                  >
-                    ⚙️
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => { onOpenPrefsModal({ ...player, preference: pref || null }); }}
-                    className="px-2 py-1 rounded text-xs transition-all bg-surface-50/20 text-indigo-400/70 hover:bg-indigo-500/20 hover:text-indigo-400"
-                    title="Imposta strategia"
-                  >
-                    + Strategia
-                  </button>
-                )
+      {/* MOBILE: 2-row layout */}
+      <div className="md:hidden">
+        {/* Row 1: index, position, name, rubata price */}
+        <div className="flex items-center gap-1 min-w-0">
+          {/* Compare checkbox */}
+          {compareMode && !isPassed && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onToggleCompare?.() }}
+              className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center ${
+                isCompareSelected
+                  ? 'bg-primary-500 border-primary-500 text-white'
+                  : 'border-gray-500'
+              }`}
+              aria-label={isCompareSelected ? 'Rimuovi dal confronto' : 'Aggiungi al confronto'}
+            >
+              {isCompareSelected && (
+                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
               )}
-            </div>
-          </div>
-        )
-      })()}
-    </div>
+            </button>
+          )}
+
+          <span className="text-[10px] font-mono text-gray-500 flex-shrink-0 w-5 text-center">#{globalIndex + 1}</span>
+
+          <span className={`inline-flex items-center justify-center w-4 h-4 rounded text-[8px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
+            {player.playerPosition}
+          </span>
+
+          <button
+            type="button"
+            onClick={handlePlayerClick}
+            className={`font-semibold text-sm truncate text-left flex-1 min-w-0 ${
+              isPassed ? 'text-gray-500' : 'text-white'
+            }`}
+            title="Clicca per statistiche"
+          >
+            {player.playerName}
+          </button>
+
+          {/* Stolen inline on mobile */}
+          {wasStolen && (
+            <>
+              <span className="text-danger-400 text-[10px] font-bold flex-shrink-0">
+                &#127919; {player.stolenByUsername}
+              </span>
+              {player.stolenPrice != null && player.stolenPrice > player.rubataPrice && (
+                <span className="text-danger-500 text-[10px] font-medium flex-shrink-0">(+{player.stolenPrice - player.rubataPrice}M)</span>
+              )}
+            </>
+          )}
+
+          {/* Passed check on mobile */}
+          {isPassed && !wasStolen && (
+            <span className="text-secondary-500 text-[10px] flex-shrink-0">&#10003;</span>
+          )}
+
+          {/* Rubata price right-aligned */}
+          <span className={`ml-auto font-black text-sm flex-shrink-0 ${
+            isCurrent ? 'text-primary-400' : isPassed ? 'text-gray-500' : 'text-warning-400'
+          }`}>
+            {player.rubataPrice}M
+          </span>
+        </div>
+
+        {/* Row 2: owner, contract, strategy (click to expand on non-current) */}
+        <div
+          className="flex items-center gap-1 ml-5 mt-0.5 flex-wrap cursor-pointer"
+          onClick={onToggleExpand}
+          role="button"
+          tabIndex={0}
+        >
+          <span className="text-[10px] text-gray-500">
+            di <span className={isPassed && wasStolen ? 'line-through' : 'text-gray-400'}>{player.ownerUsername}</span>
+          </span>
+
+          {(isCurrent || isExpanded) ? (
+            <>
+              <span className="text-gray-600 text-[10px]">&middot;</span>
+              {contractInline(isPassed)}
+              {strategyIndicators()}
+              {strategyButton()}
+            </>
+          ) : (
+            <span className="text-gray-600 text-[10px] ml-0.5">&#8250;</span>
+          )}
+        </div>
+      </div>
     </div>
   )
 })
