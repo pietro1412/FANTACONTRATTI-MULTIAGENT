@@ -23,6 +23,7 @@ test-results/
 .env
 .env.local
 .env.*.local
+.env.vercel
 
 # Logs
 logs/
@@ -39,3 +40,4 @@ prisma/migrations/*_migration_lock.toml
 # Temporary
 *.tmp
 *.temp
+data/
