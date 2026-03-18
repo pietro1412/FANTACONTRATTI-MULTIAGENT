@@ -155,7 +155,7 @@ model ContractConsolidation {
 }
 
 // ==================== DECISIONI INDENNIZZI ====================
-// Traccia le decisioni dei manager durante la fase CALCOLO_INDENNIZZI
+// Traccia le decisioni dei manager durante la fase CONTRATTI (indennizzi)
 model IndemnityDecision {
   id          String   @id @default(cuid())
 

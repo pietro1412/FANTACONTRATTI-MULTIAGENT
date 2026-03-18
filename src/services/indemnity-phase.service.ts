@@ -45,7 +45,7 @@ export interface PlayerDecisionInput {
 // ==================== GET AFFECTED PLAYERS FOR LEAGUE ====================
 
 /**
- * Get all players affected by exit classification for the current CALCOLO_INDENNIZZI phase
+ * Get all players affected by exit classification for the current CONTRATTI phase
  * Returns players grouped by manager, with their exit reasons and contract details
  */
 export async function getAffectedPlayersForLeague(
@@ -65,16 +65,16 @@ export async function getAffectedPlayersForLeague(
     return { success: false, message: 'Non sei membro di questa lega' }
   }
 
-  // Check if we're in CALCOLO_INDENNIZZI phase
+  // Check if we're in CONTRATTI phase
   const activeSession = await prisma.marketSession.findFirst({
     where: {
       leagueId,
       status: 'ACTIVE',
-      currentPhase: 'CALCOLO_INDENNIZZI',
+      currentPhase: 'CONTRATTI',
     },
   })
 
-  const inCalcoloIndennizziPhase = !!activeSession
+  const inContrattiPhase = !!activeSession
 
   // Get all members with affected players
   const members = await prisma.leagueMember.findMany({
@@ -132,7 +132,7 @@ export async function getAffectedPlayersForLeague(
   return {
     success: true,
     data: {
-      inCalcoloIndennizziPhase,
+      inContrattiPhase,
       sessionId: activeSession?.id || null,
       members: result,
       isAdmin: member.role === 'ADMIN',
@@ -178,16 +178,16 @@ export async function getMyAffectedPlayers(
     return { success: false, message: 'Non sei membro di questa lega' }
   }
 
-  // Check if we're in CALCOLO_INDENNIZZI phase
+  // Check if we're in CONTRATTI phase
   const activeSession = await prisma.marketSession.findFirst({
     where: {
       leagueId,
       status: 'ACTIVE',
-      currentPhase: 'CALCOLO_INDENNIZZI',
+      currentPhase: 'CONTRATTI',
     },
   })
 
-  const inCalcoloIndennizziPhase = !!activeSession
+  const inContrattiPhase = !!activeSession
 
   // Check if already submitted decisions
   const existingDecision = activeSession ? await prisma.indemnityDecision.findUnique({
@@ -243,7 +243,7 @@ export async function getMyAffectedPlayers(
   return {
     success: true,
     data: {
-      inCalcoloIndennizziPhase,
+      inContrattiPhase,
       sessionId: activeSession?.id || null,
       hasSubmittedDecisions: !!existingDecision,
       submittedAt: existingDecision?.decidedAt || null,
@@ -280,17 +280,17 @@ export async function submitPlayerDecisions(
     return { success: false, message: 'Non sei membro di questa lega' }
   }
 
-  // Check if we're in CALCOLO_INDENNIZZI phase
+  // Check if we're in CONTRATTI phase
   const activeSession = await prisma.marketSession.findFirst({
     where: {
       leagueId,
       status: 'ACTIVE',
-      currentPhase: 'CALCOLO_INDENNIZZI',
+      currentPhase: 'CONTRATTI',
     },
   })
 
   if (!activeSession) {
-    return { success: false, message: 'Non siamo in fase CALCOLO_INDENNIZZI' }
+    return { success: false, message: 'Non siamo in fase CONTRATTI' }
   }
 
   // Check if already submitted
@@ -597,7 +597,7 @@ export async function getAllDecisionsStatus(
     where: {
       leagueId,
       status: 'ACTIVE',
-      currentPhase: 'CALCOLO_INDENNIZZI',
+      currentPhase: 'CONTRATTI',
     },
   })
 
@@ -605,7 +605,7 @@ export async function getAllDecisionsStatus(
     return {
       success: true,
       data: {
-        inCalcoloIndennizziPhase: false,
+        inContrattiPhase: false,
         managers: [],
         allDecided: false,
       },
@@ -662,7 +662,7 @@ export async function getAllDecisionsStatus(
   return {
     success: true,
     data: {
-      inCalcoloIndennizziPhase: true,
+      inContrattiPhase: true,
       sessionId: activeSession.id,
       managers: managersStatus,
       decidedCount: managersStatus.filter(m => m.hasDecided).length,
@@ -672,12 +672,12 @@ export async function getAllDecisionsStatus(
   }
 }
 
-// ==================== CAN ADVANCE FROM CALCOLO_INDENNIZZI ====================
+// ==================== CAN ADVANCE FROM CONTRATTI (INDEMNITY) ====================
 
 /**
- * Check if all managers have submitted their decisions
+ * Check if all managers have submitted their indemnity decisions
  */
-export async function canAdvanceFromCalcoloIndennizzi(
+export async function canAdvanceFromIndemnity(
   sessionId: string
 ): Promise<{ canAdvance: boolean; reason?: string }> {
   const session = await prisma.marketSession.findUnique({
@@ -688,7 +688,7 @@ export async function canAdvanceFromCalcoloIndennizzi(
     return { canAdvance: false, reason: 'Sessione non trovata' }
   }
 
-  if (session.currentPhase !== 'CALCOLO_INDENNIZZI') {
+  if (session.currentPhase !== 'CONTRATTI') {
     return { canAdvance: true }
   }
 

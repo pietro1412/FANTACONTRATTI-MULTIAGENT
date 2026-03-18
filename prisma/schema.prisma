@@ -124,7 +124,6 @@ enum MarketPhase {
   OFFERTE_PRE_RINNOVO            // Prima fase MERCATO_RICORRENTE - scambi/offerte pre rinnovo
   PREMI                          // Assegnazione premi budget ai manager
   CONTRATTI                      // Rinnovo contratti
-  CALCOLO_INDENNIZZI             // Gestione giocatori usciti (ritirato, retrocesso, estero)
   RUBATA                         // Asta forzata
   ASTA_SVINCOLATI                // Asta svincolati (solo MERCATO_RICORRENTE)
   OFFERTE_POST_ASTA_SVINCOLATI   // Fase finale - scambi/offerte post svincolati
@@ -751,7 +750,7 @@ model ContractConsolidation {
 }
 
 // ==================== DECISIONI INDENNIZZI ====================
-// Traccia le decisioni dei manager durante la fase CALCOLO_INDENNIZZI
+// Traccia le decisioni dei manager durante la fase CONTRATTI (indennizzi)
 model IndemnityDecision {
   id          String   @id @default(cuid())
 

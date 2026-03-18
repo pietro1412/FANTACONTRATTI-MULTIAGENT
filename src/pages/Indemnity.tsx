@@ -124,14 +124,14 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
     const myResult = await indemnityApi.getMyAffectedPlayers(leagueId)
     if (myResult.success && myResult.data) {
       const data = myResult.data as {
-        inCalcoloIndennizziPhase: boolean
+        inContrattiPhase: boolean
         hasSubmittedDecisions: boolean
         submittedAt: string | null
         currentBudget: number
         indennizzoEstero: number
         affectedPlayers: AffectedPlayer[]
       }
-      setInCalcoloPhase(data.inCalcoloIndennizziPhase)
+      setInCalcoloPhase(data.inContrattiPhase)
       setHasSubmitted(data.hasSubmittedDecisions)
       setSubmittedAt(data.submittedAt)
       setCurrentBudget(data.currentBudget)
@@ -160,7 +160,7 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
     const result = await indemnityApi.getAllDecisionsStatus(leagueId)
     if (result.success && result.data) {
       const data = result.data as {
-        inCalcoloIndennizziPhase: boolean
+        inContrattiPhase: boolean
         managers: DecisionStatus[]
         allDecided: boolean
       }
@@ -250,7 +250,7 @@ export function Indemnity({ leagueId, onNavigate }: IndemnityProps) {
               <div>
                 <h3 className="text-lg font-bold text-white">Fase non attiva</h3>
                 <p className="text-gray-400">
-                  La fase CALCOLO_INDENNIZZI non e' attualmente attiva.
+                  La fase Contratti non e' attualmente attiva. Le decisioni su giocatori usciti si gestiscono durante la fase Contratti.
                   {isLeagueAdmin && ' Come admin, puoi attivarla dal pannello mercato.'}
                 </p>
               </div>
