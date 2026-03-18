@@ -125,7 +125,7 @@ describe('Indemnity', () => {
     mockGetMyAffectedPlayers.mockResolvedValue({
       success: true,
       data: {
-        inCalcoloIndennizziPhase: true,
+        inContrattiPhase: true,
         hasSubmittedDecisions: false,
         submittedAt: null,
         currentBudget: 200,
@@ -135,7 +135,7 @@ describe('Indemnity', () => {
     })
     mockGetAllDecisionsStatus.mockResolvedValue({
       success: true,
-      data: { inCalcoloIndennizziPhase: true, managers: [], allDecided: false },
+      data: { inContrattiPhase: true, managers: [], allDecided: false },
     })
   })
 
@@ -182,7 +182,7 @@ describe('Indemnity', () => {
     mockGetMyAffectedPlayers.mockResolvedValue({
       success: true,
       data: {
-        inCalcoloIndennizziPhase: false,
+        inContrattiPhase: false,
         hasSubmittedDecisions: false,
         submittedAt: null,
         currentBudget: 200,
@@ -200,7 +200,7 @@ describe('Indemnity', () => {
     mockGetMyAffectedPlayers.mockResolvedValue({
       success: true,
       data: {
-        inCalcoloIndennizziPhase: true,
+        inContrattiPhase: true,
         hasSubmittedDecisions: false,
         submittedAt: null,
         currentBudget: 200,
@@ -218,7 +218,7 @@ describe('Indemnity', () => {
     mockGetMyAffectedPlayers.mockResolvedValue({
       success: true,
       data: {
-        inCalcoloIndennizziPhase: true,
+        inContrattiPhase: true,
         hasSubmittedDecisions: true,
         submittedAt: '2025-06-01T10:00:00Z',
         currentBudget: 200,
