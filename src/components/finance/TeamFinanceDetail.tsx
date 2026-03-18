@@ -140,6 +140,29 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
         />
       </div>
 
+      {/* Slot budget reservation during primo mercato */}
+      {data.inAstaLiberaPhase && team.slotReserve != null && team.availableBilancio != null && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 md:p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-amber-400 text-sm font-medium">Riserva Budget Primo Mercato</span>
+          </div>
+          <div className="grid grid-cols-3 gap-4 text-sm">
+            <div>
+              <span className="text-gray-400">Slot da riempire: </span>
+              <span className="text-white font-mono">{team.slotsFree}</span>
+            </div>
+            <div>
+              <span className="text-gray-400">Riserva: </span>
+              <span className="text-amber-400 font-mono">{team.slotReserve}M</span>
+            </div>
+            <div>
+              <span className="text-gray-400">Bilancio disponibile: </span>
+              <span className="text-accent-400 font-mono">{team.availableBilancio}M</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Waterfall */}
       <WaterfallChart team={team} />
 

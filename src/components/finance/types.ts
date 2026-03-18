@@ -57,6 +57,9 @@ export interface TeamData {
   totalRenewalCosts: number | null
   tradeBudgetIn: number
   tradeBudgetOut: number
+  // Budget reservation during primo mercato (ASTA_LIBERA)
+  slotReserve?: number
+  availableBilancio?: number
 }
 
 export interface SessionInfo {
@@ -73,6 +76,7 @@ export interface FinancialsData {
   teams: TeamData[]
   isAdmin: boolean
   inContrattiPhase: boolean
+  inAstaLiberaPhase?: boolean
   availableSessions: SessionInfo[]
   isHistorical?: boolean
   historicalSessionType?: string

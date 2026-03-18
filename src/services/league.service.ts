@@ -1142,6 +1142,16 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
       consolidationMap = new Map(consolidations.map(c => [c.memberId, c.consolidatedAt]))
     }
 
+    // Check if we're in ASTA_LIBERA phase (primo mercato) for budget reservation display
+    const activeAstaLiberaSession = await prisma.marketSession.findFirst({
+      where: {
+        leagueId,
+        status: 'ACTIVE',
+        currentPhase: 'ASTA_LIBERA',
+      },
+    })
+    const inAstaLiberaPhase = !!activeAstaLiberaSession
+
     // Get the most recent active session to fetch snapshot data (tagli, indennizzi)
     const activeSession = await prisma.marketSession.findFirst({
       where: { leagueId, status: 'ACTIVE' },
@@ -1509,6 +1519,16 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
         // Trade budget transfers
         tradeBudgetIn: tradeBudgetMap.get(`user:${member.userId}`)?.budgetIn ?? 0,
         tradeBudgetOut: tradeBudgetMap.get(`user:${member.userId}`)?.budgetOut ?? 0,
+        // Budget reservation during ASTA_LIBERA (primo mercato)
+        ...(inAstaLiberaPhase ? (() => {
+          const bilancio = displayBudget - annualContractCost
+          const slotsFree = maxSlots - slotCount
+          const slotReserve = slotsFree * 2
+          return {
+            slotReserve,
+            availableBilancio: bilancio - slotReserve,
+          }
+        })() : {}),
       }
     })
 
@@ -1542,6 +1562,8 @@ export async function getLeagueFinancials(leagueId: string, userId: string, sess
         isAdmin: membership.role === MemberRole.ADMIN,
         // #193: Phase info
         inContrattiPhase,
+        // Budget reservation during primo mercato
+        inAstaLiberaPhase,
         // OSS-6: Available sessions for phase selector
         availableSessions,
       },
