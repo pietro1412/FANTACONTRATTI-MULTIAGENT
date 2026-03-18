@@ -66,6 +66,19 @@ describe('P1-1/P1-2: Svincolati bid budget checks use bilancio', () => {
     // Should have bilancio-based check
     expect(fnBody).toContain('bilancio')
   })
+
+  it('bidOnFreeAgent should reject bids from members who passed their turn', () => {
+    const fnStart = code.indexOf('export async function bidOnFreeAgent')
+    expect(fnStart).toBeGreaterThan(-1)
+
+    const fnBody = code.slice(fnStart, fnStart + 2000)
+
+    // Should check passedMembers (not just finishedMembers)
+    expect(fnBody).toContain('passedMembers')
+    expect(fnBody).toContain('svincolatiPassedMembers')
+    // Should have a rejection message for passed members
+    expect(fnBody).toMatch(/rinunciato al turno/)
+  })
 })
 
 describe('P1-1/P1-2: Rubata budget checks use bilancio', () => {

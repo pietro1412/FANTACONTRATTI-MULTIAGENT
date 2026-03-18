@@ -305,11 +305,15 @@ export async function bidOnFreeAgent(
     return { success: false, message: 'Non sei membro di questa lega' }
   }
 
-  // Check if member has declared finished (can't bid anymore)
+  // Check if member has declared finished or passed turn (can't bid anymore)
   if (auction.marketSession) {
     const finishedMembers = (auction.marketSession.svincolatiFinishedMembers as string[] | null) || []
     if (finishedMembers.includes(bidder.id)) {
       return { success: false, message: 'Hai dichiarato di aver finito questa fase. Non puoi più fare offerte.' }
+    }
+    const passedMembers = (auction.marketSession.svincolatiPassedMembers as string[] | null) || []
+    if (passedMembers.includes(bidder.id)) {
+      return { success: false, message: 'Hai rinunciato al turno. Non puoi più fare offerte.' }
     }
   }
 
