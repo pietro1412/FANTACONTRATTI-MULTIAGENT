@@ -123,60 +123,48 @@ Manager A dà 10M a Manager B per Maignan:
 
 ---
 
-## 4. FASE 2 - ASSEGNAZIONE PREMI
+## 4. FASE 2 - ASSEGNAZIONE PREMI E INDENNIZZI
 
 ### 4.1 Descrizione
 
-L'admin assegna premi ai manager e gestisce indennizzi per giocatori ESTERO.
+L'admin assegna premi ai manager e definisce gli importi degli indennizzi per giocatori ESTERO.
 
-### 4.2 Budget Premi Standard
+### 4.2 Premio Reintegro Crediti (Fisso)
 
 - Importo uguale per tutti i manager
 - Configurato dall'admin **ad ogni mercato ricorrente** (puo variare)
 
-### 4.3 Premi Variabili
+### 4.3 Premi Variabili (Custom)
 
-L'admin puo aggiungere premi specifici:
+L'admin puo creare categorie di premio completamente custom (nome libero + importo per manager).
 
-| Tipo | Descrizione |
-|------|-------------|
-| Miglior portiere | L'admin assegna importo a un manager |
-| Disciplina | L'admin assegna importo |
-| Punteggio | L'admin assegna importo |
-| Altro | Qualsiasi premio custom |
-
-Per ogni premio variabile, l'admin inserisce manualmente l'importo per ogni manager interessato.
+Suggerimenti per un gioco bilanciato:
+- **Miglior punteggio**: somma punti fantamedia del campionato precedente (non classifica)
+- **Disciplina**: minori malus di ammonizioni e espulsioni
+- **Miglior portiere titolare**: in funzione del portiere schierato nella singola giornata
 
 ### 4.4 Indennizzi Giocatori ESTERO
 
 - L'admin **deve** inserire un valore di indennizzo per ogni giocatore ESTERO
 - Valore minimo: 0 (esiste il caso di indennizzo pari a 0)
 - Formula automatica: da definire in futuro (attualmente manuale)
+- Il manager decidera in Fase 3 se accettare l'indennizzo (RELEASE) o mantenere il giocatore (KEEP)
 
-### 4.5 Tagli
-
-In questa fase i manager possono tagliare giocatori:
-
-```
-Costo taglio = CEIL(ingaggio * durata / 2)
-```
-
-- Giocatori ESTERO: costo taglio = 0
-- Giocatori RETROCESSO: costo taglio = 0
-
-### 4.6 Consolidamento Premi
+### 4.5 Consolidamento Premi
 
 Quando l'admin consolida:
-- Le finanze dei manager si aggiornano
+- I premi vengono accreditati ai manager
 - Tutti i manager vedono la situazione aggiornata
 - Il consolidamento e **irreversibile**
-- L'admin ha interfaccia per correzioni successive (vedi futura Bibbia ADMIN-CORREZIONI)
+- L'admin ha interfaccia per correzioni successive
 
-### 4.7 Impatto Finanziario
+### 4.6 Impatto Finanziario
 
 ```
-Budget += premi_standard + premi_variabili + indennizzi - costi_tagli
+Budget += premi_reintegro + premi_variabili
 ```
+
+**Nota:** Gli indennizzi ESTERO vengono definiti in questa fase ma accreditati solo in Fase 3, quando il manager conferma il RELEASE.
 
 ---
 
@@ -192,23 +180,33 @@ I manager decidono come gestire i contratti dei propri giocatori. Al consolidame
 |------------|---------------|----------------------|
 | Rinnovo (aumento ingaggio) | Invariato | Aumenta |
 | Rinnovo (aumento durata) | Invariato | Invariato (fino a prossimo decremento) |
-| Spalma | Invariato | Varia |
+| Spalma | Invariato | Varia (diminuisce ingaggio annuale) |
 | Taglio | -= costo taglio | Diminuisce |
+| RELEASE giocatore ESTERO | += indennizzo | Diminuisce |
+| RELEASE giocatore RETROCESSO | Invariato (gratuito) | Diminuisce |
+| KEEP giocatore ESTERO/RETROCESSO | Invariato (nessun indennizzo) | Invariato |
 | Nessuna azione | Invariato | Invariato |
 
-### 5.3 Regola Fondamentale
+Vedi **Bibbia CONTRATTI.md** per regole dettagliate di rinnovo, spalma, taglio e gestione giocatori usciti.
+
+### 5.3 Limite Rosa
+
+Al consolidamento, il manager deve avere **massimo 29 giocatori** in rosa. Se li supera, deve tagliare prima di poter consolidare. Nessun vincolo di slot per ruolo.
+
+### 5.4 Regola Fondamentale
 
 > **Il rinnovo aumenta il monte ingaggi, NON decrementa il budget.**
 
 Questo e il punto piu importante dell'intero sistema contrattuale.
 
-### 5.4 Consolidamento
+### 5.5 Consolidamento
 
-- L'admin consolida i rinnovi
+- Ogni manager consolida individualmente le proprie operazioni
 - Il monte ingaggi viene **ricalcolato completamente** con tutti i contratti attuali
 - Il bilancio = Budget - Monte Ingaggi (ricalcolo completo)
 - Da questo punto il bilancio e il riferimento per le fasi successive (rubata, svincolati)
 - **Irreversibile** (con possibilita di correzione admin)
+- Vedi **Bibbia CONTRATTI.md** per il flusso completo di consolidamento e congelamento dati
 
 ---
 
@@ -271,9 +269,9 @@ APERTURA: decremento durata, svincoli, ricalcolo clausole
   ↓
 FASE 1: bilancio +/- scambi economici (monte ingaggi non ricalcolato)
   ↓
-FASE 2: bilancio + premi + indennizzi - tagli
+FASE 2: bilancio + premi (reintegro + variabili). Indennizzi ESTERO definiti ma non ancora accreditati
   ↓
-FASE 3: CONSOLIDAMENTO → bilancio = budget - monte_ingaggi (ricalcolo completo)
+FASE 3: CONSOLIDAMENTO → rinnovi, spalma, tagli, KEEP/RELEASE + indennizzi → bilancio = budget - monte_ingaggi (ricalcolo completo)
   ↓
 FASE 4: bilancio incrementale rubata (offerta + ingaggio, vedi FINANZE.md)
   ↓
@@ -291,3 +289,5 @@ FASE 7: blocco operazioni, bilancio finale
 | Data | Modifica |
 |------|----------|
 | 2026-02-06 | Creazione documento con overview 7 fasi, dettaglio fasi 1/2/3/6/7, rimandi a Bibbie dedicate |
+| 2026-03-18 | Correzione Fase 2/3: tagli spostati da Fase 2 a Fase 3, indennizzi definiti in Fase 2 ma accreditati in Fase 3, premi variabili diventano custom, aggiunto limite rosa 29, aggiunto KEEP/RELEASE in Fase 3 |
+| 2026-03-18 | Gap analysis: confermato 7 fasi (CALCOLO_INDENNIZZI rimosso dal codice, era fase separata non prevista dalla Bibbia). KEEP/RELEASE gia in Fase 3 come da specifica. |
