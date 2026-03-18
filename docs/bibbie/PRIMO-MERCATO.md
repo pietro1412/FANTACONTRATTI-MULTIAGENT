@@ -166,12 +166,42 @@ Al termine:
 
 ---
 
-## 8. MANAGER ESCLUSO
+## 8. RISERVA BUDGET PER SLOT RIMANENTI
 
-Se un manager non ha budget sufficiente per fare offerte (bilancio < offerta minima 1 + ingaggio minimo 1 = 2):
-- Viene **escluso** dall'asta
-- Non partecipa ai turni di chiamata
-- I suoi slot rimanenti restano vuoti? (da definire con admin)
+### 8.1 Regola
+
+Il sistema deve garantire che ogni manager possa riempire tutti gli slot. Per ogni offerta, il budget disponibile tiene conto degli slot ancora da riempire:
+
+```
+budget_disponibile_per_offerta = bilancio - (slot_rimanenti * 2)
+```
+
+Dove `2` = offerta minima 1 + ingaggio minimo 1 per ogni slot futuro.
+
+### 8.2 Esempio
+
+```
+Manager A, bilancio 30, 3 slot portiere rimanenti
+Sta offrendo per il 1° portiere (restano 2 slot dopo questo)
+Budget disponibile = 30 - (2 * 2) = 26
+Puo offrire al massimo 26 - ingaggio_default(26) = 26 - 3 = 23
+```
+
+### 8.3 Conseguenza
+
+Grazie alla riserva, un manager **non puo mai trovarsi senza budget per riempire gli slot rimanenti**. Il sistema previene questa situazione a monte, limitando l'offerta massima possibile.
+
+---
+
+## 9. GAP NOTI (da risolvere nel refactor auction core engine)
+
+### 9.1 Timer non lazy
+
+Il timer dell'asta nel primo mercato usa un countdown server-side attivo. Il target e un timer **lazy/piggyback** (come documentato nella Bibbia RUBATA.md), dove il server valuta la scadenza solo quando arriva un evento (offerta, heartbeat, polling). Questo riduce il carico server e semplifica la gestione dei restart.
+
+### 9.2 Acknowledgment flow
+
+Il flusso di acknowledgment (ready check pre-asta, conferma assegnazione post-asta) non e uniforme tra primo mercato, rubata e svincolati. Il refactor unificera il pattern con un flow comune `PENDING_ACK → ACK_ALL → PROCEED`.
 
 ---
 
@@ -180,3 +210,4 @@ Se un manager non ha budget sufficiente per fare offerte (bilancio < offerta min
 | Data | Modifica |
 |------|----------|
 | 2026-02-06 | Creazione documento con tutte le regole del primo mercato assoluto |
+| 2026-03-18 | Aggiunta sezione 9 "Gap Noti" (timer lazy, ack flow) post gap-analysis |

@@ -133,8 +133,9 @@ Un manager puo dichiarare di voler **saltare il turno**. Questa rinuncia e **def
 ### 6.2 Effetto
 
 - Il manager esce dalla rotazione dei turni
-- Puo ancora fare offerte quando altri manager mettono giocatori all'asta? (da definire)
+- **NON puo piu fare offerte** sulle aste aperte da altri manager
 - Non puo piu chiamare giocatori
+- E' fuori dalla fase in maniera definitiva
 
 ---
 
@@ -161,8 +162,21 @@ Tutti i movimenti devono essere tracciati:
 
 ---
 
+## 9. GAP NOTI (da risolvere nel refactor auction core engine)
+
+### 9.1 Timer non lazy
+
+Come per il primo mercato, il timer dell'asta svincolati usa un countdown server-side attivo. Il target e un timer **lazy/piggyback** (come la rubata), dove il server valuta la scadenza solo all'arrivo di eventi.
+
+### 9.2 Acknowledgment flow
+
+Il flusso di acknowledgment post-asta non e uniforme rispetto alla rubata. Il refactor unificera il pattern.
+
+---
+
 ## CHANGELOG
 
 | Data | Modifica |
 |------|----------|
 | 2026-02-06 | Creazione documento con regole asta svincolati, ordine inverso, rinuncia turno, fine fase |
+| 2026-03-18 | Aggiunta sezione 9 "Gap Noti" (timer lazy, ack flow) post gap-analysis. Fix: rinuncia turno ora blocca anche le offerte (codice corretto) |
