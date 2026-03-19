@@ -12,6 +12,7 @@ import {
   RecentMovements,
   ManagersSidebar,
   AuctionConfirmModal,
+  PreMarketOverview,
 } from '../components/league-detail'
 
 interface LeagueDetailProps {
@@ -339,6 +340,20 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
             {/* Recent Movements */}
             {hasFinancialData && (
               <RecentMovements movements={recentMovements} onNavigate={onNavigate} leagueId={leagueId} />
+            )}
+
+            {/* Pre-market overview when no financial data yet */}
+            {!hasFinancialData && league && (
+              <PreMarketOverview
+                initialBudget={league.initialBudget}
+                teamCount={activeMembers.length}
+                goalkeeperSlots={league.goalkeeperSlots}
+                defenderSlots={league.defenderSlots}
+                midfielderSlots={league.midfielderSlots}
+                forwardSlots={league.forwardSlots}
+                onNavigate={onNavigate}
+                leagueId={leagueId}
+              />
             )}
           </div>
 
