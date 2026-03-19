@@ -28,6 +28,8 @@ import feedbackRoutes from './routes/feedback'
 import contractHistoryRoutes from './routes/contract-history'
 import pushRoutes from './routes/push'
 import cronRoutes from './routes/cron'
+import logRoutes from './routes/logs'
+import { requestLogger } from './middleware/request-logger'
 import { initWebPush } from '../services/notification.service'
 import { registerApiFootballSyncJob, startApiFootballSyncJob } from '../shared/infrastructure/cron'
 
@@ -98,6 +100,9 @@ app.use((req, _res, next) => {
   }
   next()
 })
+
+// Request logging middleware (after auth-related middleware, before routes)
+app.use(requestLogger)
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -184,6 +189,7 @@ app.use('/api/feedback', feedbackRoutes) // Feedback/segnalazioni routes
 app.use('/api', contractHistoryRoutes) // Contract history routes for tracking changes
 app.use('/api/push', pushRoutes) // Push notification routes
 app.use('/api', cronRoutes) // Cron endpoints for Vercel Cron
+app.use('/api/logs', logRoutes) // Structured logging endpoints
 
 // 404 handler
 app.use((_req, res) => {

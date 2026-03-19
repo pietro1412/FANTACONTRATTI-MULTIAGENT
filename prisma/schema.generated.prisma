@@ -174,6 +174,7 @@ enum TradeStatus {
   COUNTERED
   CANCELLED
   EXPIRED
+  INVALIDATED
 }
 
 // ==================== INVITE ENUMS ====================
@@ -236,6 +237,56 @@ model AuditLog {
   userAgent   String?
 
   createdAt   DateTime @default(now())
+}
+
+
+// =============================================================================
+// Source: prisma/schemas/app-log.prisma
+// =============================================================================
+// ==================== APP LOGGING ====================
+// Structured logging for beta monitoring and auto-correction
+
+enum LogSeverity {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+  CRITICAL
+}
+
+enum LogSource {
+  FRONTEND
+  BACKEND
+}
+
+enum LogCategory {
+  REQUEST       // HTTP request lifecycle
+  ERROR         // Unhandled/caught errors
+  ANOMALY       // Business logic anomalies
+  PERFORMANCE   // Slow queries, timeouts
+}
+
+model AppLog {
+  id          String       @id @default(cuid())
+  timestamp   DateTime     @default(now())
+  source      LogSource
+  severity    LogSeverity
+  category    LogCategory
+  message     String       @db.Text
+  metadata    Json?
+
+  // Optional user context (no FK — fire-and-forget, never fail)
+  userId      String?
+
+  // Request context (REQUEST category)
+  method      String?
+  path        String?
+  statusCode  Int?
+  durationMs  Int?
+
+  @@index([timestamp])
+  @@index([severity])
+  @@index([source, category])
 }
 
 

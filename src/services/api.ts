@@ -8,6 +8,22 @@ interface ApiResponse<T = unknown> {
   errors?: Array<{ message: string; path?: string[] }>
 }
 
+// Fire-and-forget frontend log — uses fetch directly to avoid recursive loops with request()
+function sendFrontendLog(
+  severity: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL',
+  category: 'REQUEST' | 'ERROR' | 'ANOMALY' | 'PERFORMANCE',
+  message: string,
+  metadata?: Record<string, unknown>
+): void {
+  fetch(`${API_URL}/api/logs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ severity, category, message, metadata }),
+  }).catch(() => {
+    // Fire-and-forget — never block the caller
+  })
+}
+
 let accessToken: string | null = null
 
 export function setAccessToken(token: string | null): void {
@@ -40,6 +56,15 @@ async function request<T>(
 
     const data = await response.json() as ApiResponse<T>
 
+    // Log server errors to backend
+    if (response.status >= 500) {
+      sendFrontendLog('ERROR', 'ERROR', `Server error ${response.status} on ${endpoint}`, {
+        status: response.status,
+        endpoint,
+        message: data.message,
+      })
+    }
+
     // Handle token refresh on 401 (but NOT for login/register/logout - those don't need refresh)
     const authEndpoints = ['/api/auth/login', '/api/auth/register', '/api/auth/logout', '/api/auth/refresh', '/api/auth/forgot-password', '/api/auth/reset-password']
     if (response.status === 401 && !authEndpoints.includes(endpoint)) {
@@ -52,6 +77,7 @@ async function request<T>(
 
     return data
   } catch {
+    sendFrontendLog('ERROR', 'ERROR', `Connection error on ${endpoint}`, { endpoint })
     return { success: false, message: 'Errore di connessione al server' }
   }
 }
