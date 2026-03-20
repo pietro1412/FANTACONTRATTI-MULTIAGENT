@@ -5264,6 +5264,19 @@ export async function completeAllRosterSlots(
           },
         })
 
+        // Record movement for history tracking
+        await recordMovement({
+          leagueId: session.leagueId,
+          playerId: player.id,
+          movementType: 'FIRST_MARKET',
+          toMemberId: member.id,
+          price: finalPrice,
+          marketSessionId: session.id,
+          newSalary: salary,
+          newDuration: duration,
+          newClause: rescissionClause,
+        })
+
         // Update member budget
         memberBudget -= finalPrice
         memberPlayersAdded++
