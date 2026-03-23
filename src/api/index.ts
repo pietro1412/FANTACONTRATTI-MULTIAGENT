@@ -68,7 +68,7 @@ app.use('/api', apiLimiter)
 // Rate limiting - auth endpoints (più restrittivo)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minuti
-  max: 20, // max 20 tentativi login per IP
+  max: process.env.NODE_ENV === 'production' ? 20 : 100, // 20 in prod, 100 in dev (simulations)
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Troppi tentativi di accesso. Riprova tra 15 minuti.' },
