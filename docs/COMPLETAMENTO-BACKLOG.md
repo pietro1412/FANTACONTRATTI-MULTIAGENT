@@ -18,13 +18,17 @@ Legenda stato: ⬜ da fare · 🔄 in corso · ✅ fatto
 - ✅ T1-B1 — msg "3 semestri"; ✅ T1-B2 — bug pause/resume (ricevevano leagueId, cercavano per id); ✅ T2-4 — logging sui catch muti
 - ✅ T2-1 / T5-C / T8-3 — Bibbie aggiornate (esteri timing, bilancio al consolidamento, modello statistiche JSON)
 
-**Rimanenti Sprint A** (cleanup/bug più delicati, in serie):
-- ⬜ T5-B — reset `preConsolidation*` a fine fase
-- ⬜ T4-3 — indennizzo custom per-giocatore non letto al RELEASE (cross-file prize/contract)
-- ⬜ T6-2 — dedup logica chiusura Rubata
-- ⬜ T7-5 — rimuovere funzioni legacy Svincolati
+**Resto di Sprint A completato:**
+- ✅ T6-2 — dedup chiusura Rubata (estratta `applyRubataAuctionClose`)
+- ✅ T7-5 — rimosse funzioni legacy Svincolati (service + route + client)
+- ✅ T5-B — **già presente e corretto**: reset `preConsolidation*` in `auction.service.ts:581-596` (`setMarketPhase`, uscita da CONTRATTI). Era un falso gap del walkthrough.
+- ✅ T4-3 — **già risolto**: indennizzo custom per-giocatore letto al RELEASE in `contract.service.ts:1323-1340` + uso a `:1350` (`playerIndemnityMap[name] ?? default`). Falso gap del walkthrough.
 
-Poi → Sprint B (feature) e Sprint C (formula indennizzo + nice-to-have).
+### ✅ SPRINT A COMPLETO
+
+Prossimo → **Sprint B** (feature decise) e **Sprint C** (formula indennizzo + nice-to-have).
+
+**Hardening opzionale** (post-Sprint A, non bloccante): test per reset preConsolidation e per indennizzo-custom→RELEASE; `$transaction` su reset+cambio fase; matching indennizzo per `playerId` invece che per nome; commento obsoleto `prize-phase.service.ts:819`.
 
 ---
 
