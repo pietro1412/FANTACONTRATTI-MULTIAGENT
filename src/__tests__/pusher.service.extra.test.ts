@@ -223,10 +223,12 @@ describe('pusher.service (extra coverage)', () => {
       const mod = await freshImport()
 
       const data = {
+        sessionId: 'session-1',
         state: 'NOMINATING',
         currentTurnMemberId: 'member-1',
         currentTurnUsername: 'TestUser',
         passedMembers: ['member-2', 'member-3'],
+        timestamp: new Date().toISOString(),
       }
 
       const result = await mod.triggerSvincolatiStateChanged('session-1', data)
@@ -247,10 +249,12 @@ describe('pusher.service (extra coverage)', () => {
       const mod = await freshImport()
 
       const data = {
+        sessionId: 'session-1',
         state: 'WAITING',
         currentTurnMemberId: null,
         currentTurnUsername: null,
         passedMembers: [],
+        timestamp: new Date().toISOString(),
       }
 
       const result = await mod.triggerSvincolatiStateChanged('session-1', data)
@@ -272,11 +276,14 @@ describe('pusher.service (extra coverage)', () => {
       const mod = await freshImport()
 
       const data = {
+        sessionId: 'session-1',
         playerId: 'player-1',
         playerName: 'Leao',
+        playerRole: 'A',
         nominatorId: 'member-1',
         nominatorUsername: 'TestUser',
         confirmed: true,
+        timestamp: new Date().toISOString(),
       }
 
       const result = await mod.triggerSvincolatiNomination('session-1', data)
@@ -298,11 +305,16 @@ describe('pusher.service (extra coverage)', () => {
       const mod = await freshImport()
 
       const data = {
+        sessionId: 'session-1',
         auctionId: 'auction-1',
         playerId: 'player-1',
+        playerName: 'Leao',
         bidderId: 'member-1',
         bidderUsername: 'TestUser',
         amount: 15,
+        timerExpiresAt: new Date().toISOString(),
+        timerSeconds: 30,
+        timestamp: new Date().toISOString(),
       }
 
       const result = await mod.triggerSvincolatiBidPlaced('session-1', data)
@@ -324,8 +336,13 @@ describe('pusher.service (extra coverage)', () => {
       const mod = await freshImport()
 
       const data = {
-        readyMembers: ['member-1', 'member-2'],
+        sessionId: 'session-1',
+        memberId: 'member-1',
+        memberUsername: 'TestUser',
+        isReady: true,
+        readyCount: 2,
         totalMembers: 8,
+        timestamp: new Date().toISOString(),
       }
 
       const result = await mod.triggerSvincolatiReadyChanged('session-1', data)
@@ -335,7 +352,8 @@ describe('pusher.service (extra coverage)', () => {
         'auction-session-1',
         mod.PUSHER_EVENTS.SVINCOLATI_READY_CHANGED,
         expect.objectContaining({
-          readyMembers: ['member-1', 'member-2'],
+          memberId: 'member-1',
+          readyCount: 2,
           totalMembers: 8,
         })
       )

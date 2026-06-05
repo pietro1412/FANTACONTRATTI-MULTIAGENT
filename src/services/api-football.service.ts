@@ -50,7 +50,9 @@ interface ApiPlayerStats {
     shots: { total: number | null; on: number | null }
     passes: { total: number | null; key: number | null; accuracy: number | null }
     tackles: { total: number | null; interceptions: number | null }
+    duels: { total: number | null; won: number | null }
     dribbles: { attempts: number | null; success: number | null }
+    fouls: { drawn: number | null; committed: number | null }
     cards: { yellow: number | null; red: number | null }
     penalty: { scored: number | null; missed: number | null; saved: number | null }
   }>
@@ -625,9 +627,15 @@ export async function syncStats(userId: string): Promise<SyncResult> {
             total: serieAStats.tackles.total,
             interceptions: serieAStats.tackles.interceptions,
           },
+          duels: {
+            won: serieAStats.duels?.won ?? null,        // Duels won
+          },
           dribbles: {
             attempts: serieAStats.dribbles.attempts,
             success: serieAStats.dribbles.success,
+          },
+          fouls: {
+            committed: serieAStats.fouls?.committed ?? null,  // Fouls committed
           },
           cards: {
             yellow: serieAStats.cards.yellow,
@@ -1191,7 +1199,9 @@ export async function syncStatsInternal(): Promise<SyncResult> {
           shots: { total: serieAStats.shots.total, on: serieAStats.shots.on },
           passes: { total: serieAStats.passes.total, key: serieAStats.passes.key, accuracy: serieAStats.passes.accuracy },
           tackles: { total: serieAStats.tackles.total, interceptions: serieAStats.tackles.interceptions },
+          duels: { won: serieAStats.duels?.won ?? null },
           dribbles: { attempts: serieAStats.dribbles.attempts, success: serieAStats.dribbles.success },
+          fouls: { committed: serieAStats.fouls?.committed ?? null },
           cards: { yellow: serieAStats.cards.yellow, red: serieAStats.cards.red },
           penalty: { scored: serieAStats.penalty.scored, missed: serieAStats.penalty.missed, saved: serieAStats.penalty.saved },
         }

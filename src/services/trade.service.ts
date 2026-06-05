@@ -230,18 +230,15 @@ export async function getReceivedOffers(leagueId: string, userId: string): Promi
     },
   })
 
-  // Auto-expire old offers (disabled until Prisma client is regenerated)
-  // TODO: Uncomment after running `npx prisma generate`
-  /*
+  // Auto-expire old pending offers received by this user before returning the list
   await prisma.tradeOffer.updateMany({
     where: {
       receiverId: userId,
       status: TradeStatus.PENDING,
       expiresAt: { lt: new Date() },
     },
-    data: { status: 'EXPIRED' as any },
+    data: { status: TradeStatus.EXPIRED },
   })
-  */
 
   const offers = await prisma.tradeOffer.findMany({
     where: {
@@ -333,18 +330,15 @@ export async function getSentOffers(leagueId: string, userId: string): Promise<S
     },
   })
 
-  // Auto-expire old offers (disabled until Prisma client is regenerated)
-  // TODO: Uncomment after running `npx prisma generate`
-  /*
+  // Auto-expire old pending offers sent by this user before returning the list
   await prisma.tradeOffer.updateMany({
     where: {
       senderId: userId,
       status: TradeStatus.PENDING,
       expiresAt: { lt: new Date() },
     },
-    data: { status: 'EXPIRED' as any },
+    data: { status: TradeStatus.EXPIRED },
   })
-  */
 
   const offers = await prisma.tradeOffer.findMany({
     where: {
@@ -439,18 +433,14 @@ export async function acceptTrade(tradeId: string, userId: string): Promise<Serv
     return { success: false, message: 'Questa offerta non è più valida' }
   }
 
-  // Check if offer has expired (disabled until Prisma client is regenerated)
-  // TODO: Uncomment after running `npx prisma generate`
-  /*
-  if ((trade as any).expiresAt && new Date() > (trade as any).expiresAt) {
-    // Mark as expired
+  // Reject acceptance if the offer has expired, marking it as EXPIRED
+  if (trade.expiresAt && new Date() > trade.expiresAt) {
     await prisma.tradeOffer.update({
       where: { id: tradeId },
-      data: { status: 'EXPIRED' as any },
+      data: { status: TradeStatus.EXPIRED },
     })
     return { success: false, message: 'Questa offerta è scaduta' }
   }
-  */
 
   const leagueId = trade.marketSession.leagueId
 

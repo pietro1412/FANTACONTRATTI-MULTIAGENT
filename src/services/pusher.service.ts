@@ -174,6 +174,8 @@ export const PUSHER_EVENTS = {
   SVINCOLATI_NOMINATION: 'svincolati-nomination',
   SVINCOLATI_BID_PLACED: 'svincolati-bid-placed',
   SVINCOLATI_READY_CHANGED: 'svincolati-ready-changed',
+  SVINCOLATI_AUCTION_CLOSED: 'svincolati-auction-closed',
+  SVINCOLATI_TURN_ADVANCED: 'svincolati-turn-advanced',
   // Indemnity phase events
   INDEMNITY_DECISION_SUBMITTED: 'indemnity-decision-submitted',
   INDEMNITY_ALL_DECIDED: 'indemnity-all-decided',
@@ -356,32 +358,71 @@ export async function triggerRubataReadyChanged(
 
 // ==================== SVINCOLATI TRIGGER FUNCTIONS ====================
 
-interface SvincolatiStateChangedData {
+export interface SvincolatiStateChangedData {
+  sessionId: string
   state: string
   currentTurnMemberId: string | null
   currentTurnUsername: string | null
   passedMembers: string[]
+  timestamp: string
 }
 
-interface SvincolatiNominationData {
+export interface SvincolatiNominationData {
+  sessionId: string
   playerId: string
   playerName: string
+  playerRole: string
   nominatorId: string
   nominatorUsername: string
   confirmed: boolean
+  auctionId?: string
+  startingPrice?: number
+  timerSeconds?: number
+  timestamp: string
 }
 
-interface SvincolatiBidPlacedData {
+export interface SvincolatiBidPlacedData {
+  sessionId: string
   auctionId: string
   playerId: string
+  playerName: string
   bidderId: string
   bidderUsername: string
   amount: number
+  timerExpiresAt: string
+  timerSeconds: number
+  timestamp: string
 }
 
-interface SvincolatiReadyChangedData {
-  readyMembers: string[]
+export interface SvincolatiReadyChangedData {
+  sessionId: string
+  memberId: string
+  memberUsername: string
+  isReady: boolean
+  readyCount: number
   totalMembers: number
+  timestamp: string
+}
+
+export interface SvincolatiAuctionClosedData {
+  sessionId: string
+  auctionId: string
+  playerId: string
+  playerName: string
+  winnerId: string | null
+  winnerUsername: string | null
+  finalPrice: number | null
+  wasUnsold: boolean
+  timestamp: string
+}
+
+export interface SvincolatiTurnAdvancedData {
+  sessionId: string
+  state: string
+  nextTurnMemberId: string | null
+  nextTurnUsername: string | null
+  completed: boolean
+  timestamp: string
 }
 
 /**
@@ -422,6 +463,26 @@ export async function triggerSvincolatiReadyChanged(
   data: SvincolatiReadyChangedData
 ): Promise<boolean> {
   return triggerEvent(sessionId, PUSHER_EVENTS.SVINCOLATI_READY_CHANGED, data)
+}
+
+/**
+ * Trigger when a svincolati auction closes (player assigned or unsold)
+ */
+export async function triggerSvincolatiAuctionClosed(
+  sessionId: string,
+  data: SvincolatiAuctionClosedData
+): Promise<boolean> {
+  return triggerEvent(sessionId, PUSHER_EVENTS.SVINCOLATI_AUCTION_CLOSED, data)
+}
+
+/**
+ * Trigger when the svincolati turn advances to the next manager (or phase completes)
+ */
+export async function triggerSvincolatiTurnAdvanced(
+  sessionId: string,
+  data: SvincolatiTurnAdvancedData
+): Promise<boolean> {
+  return triggerEvent(sessionId, PUSHER_EVENTS.SVINCOLATI_TURN_ADVANCED, data)
 }
 
 // ==================== INDEMNITY PHASE EVENTS ====================

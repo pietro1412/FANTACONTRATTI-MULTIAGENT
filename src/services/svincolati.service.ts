@@ -4,6 +4,13 @@ import { prisma } from '@/lib/prisma'
 import { recordMovement } from './movement.service'
 import { calculateDefaultSalary, calculateRescissionClause } from './contract.service'
 import { logAction } from './admin.service'
+import {
+  triggerSvincolatiNomination,
+  triggerSvincolatiBidPlaced,
+  triggerSvincolatiReadyChanged,
+  triggerSvincolatiAuctionClosed,
+  triggerSvincolatiTurnAdvanced,
+} from './pusher.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
 
@@ -274,6 +281,24 @@ export async function bidOnFreeAgent(
       },
     })
   })
+
+  // Trigger Pusher event for real-time bid (non-blocking)
+  const bidderWithUser = await prisma.leagueMember.findUnique({
+    where: { id: bidder.id },
+    include: { user: { select: { username: true } } },
+  })
+  triggerSvincolatiBidPlaced(auction.marketSessionId ?? auctionId, {
+    sessionId: auction.marketSessionId ?? auctionId,
+    auctionId,
+    playerId: auction.playerId,
+    playerName: auction.player.name,
+    bidderId: bidder.id,
+    bidderUsername: bidderWithUser?.user.username || 'Unknown',
+    amount,
+    timerExpiresAt: newTimerExpires.toISOString(),
+    timerSeconds,
+    timestamp: new Date().toISOString(),
+  }).catch(() => { /* Error intentionally silenced */ })
 
   return {
     success: true,
@@ -745,6 +770,27 @@ export async function confirmSvincolatiNomination(
     },
   })
 
+  // Trigger Pusher event for confirmed nomination (non-blocking)
+  if (activeSession.svincolatiPendingPlayerId) {
+    const [nominatedPlayer, nominatorWithUser] = await Promise.all([
+      prisma.serieAPlayer.findUnique({ where: { id: activeSession.svincolatiPendingPlayerId } }),
+      prisma.leagueMember.findUnique({
+        where: { id: member.id },
+        include: { user: { select: { username: true } } },
+      }),
+    ])
+    triggerSvincolatiNomination(activeSession.id, {
+      sessionId: activeSession.id,
+      playerId: activeSession.svincolatiPendingPlayerId,
+      playerName: nominatedPlayer?.name || 'Unknown',
+      playerRole: nominatedPlayer?.position || '',
+      nominatorId: member.id,
+      nominatorUsername: nominatorWithUser?.user.username || 'Unknown',
+      confirmed: true,
+      timestamp: new Date().toISOString(),
+    }).catch(() => { /* Error intentionally silenced */ })
+  }
+
   // In IN_PRESENCE mode, auto-start auction (skip ready-check)
   if (activeSession.auctionMode === 'IN_PRESENCE') {
     const turnOrder = (activeSession.svincolatiTurnOrder as string[] | null) || []
@@ -880,6 +926,21 @@ export async function markReadyForSvincolati(
     where: { id: activeSession.id },
     data: { svincolatiReadyMembers: newReadyMembers },
   })
+
+  // Trigger Pusher event for ready status change (non-blocking)
+  const readyMemberWithUser = await prisma.leagueMember.findUnique({
+    where: { id: member.id },
+    include: { user: { select: { username: true } } },
+  })
+  triggerSvincolatiReadyChanged(activeSession.id, {
+    sessionId: activeSession.id,
+    memberId: member.id,
+    memberUsername: readyMemberWithUser?.user.username || 'Unknown',
+    isReady: true,
+    readyCount: newReadyMembers.length,
+    totalMembers: turnOrder.length,
+    timestamp: new Date().toISOString(),
+  }).catch(() => { /* Error intentionally silenced */ })
 
   return {
     success: true,
@@ -1034,6 +1095,15 @@ export async function passSvincolatiTurn(
       },
     })
 
+    triggerSvincolatiTurnAdvanced(activeSession.id, {
+      sessionId: activeSession.id,
+      state: 'COMPLETED',
+      nextTurnMemberId: null,
+      nextTurnUsername: null,
+      completed: true,
+      timestamp: new Date().toISOString(),
+    }).catch(() => { /* Error intentionally silenced */ })
+
     return {
       success: true,
       message: 'Tutti i manager hanno passato. Fase svincolati completata!',
@@ -1064,6 +1134,16 @@ export async function passSvincolatiTurn(
     where: { id: turnOrder[searchIndex]! },
     include: { user: { select: { username: true } } },
   })
+
+  // Trigger Pusher event for turn advancement after a pass (non-blocking)
+  triggerSvincolatiTurnAdvanced(activeSession.id, {
+    sessionId: activeSession.id,
+    state: 'READY_CHECK',
+    nextTurnMemberId: turnOrder[searchIndex] ?? null,
+    nextTurnUsername: nextMember?.user.username ?? null,
+    completed: false,
+    timestamp: new Date().toISOString(),
+  }).catch(() => { /* Error intentionally silenced */ })
 
   return {
     success: true,
@@ -1201,6 +1281,19 @@ export async function closeSvincolatiAuction(
       })
     })
 
+    // Trigger Pusher event for auction closed - unsold (non-blocking)
+    triggerSvincolatiAuctionClosed(auction.marketSessionId ?? auctionId, {
+      sessionId: auction.marketSessionId ?? auctionId,
+      auctionId,
+      playerId: auction.playerId,
+      playerName: auction.player.name,
+      winnerId: null,
+      winnerUsername: null,
+      finalPrice: null,
+      wasUnsold: true,
+      timestamp: new Date().toISOString(),
+    }).catch(() => { /* Error intentionally silenced */ })
+
     return {
       success: true,
       message: `Nessuna offerta per ${auction.player.name}. Il giocatore rimane svincolato.`,
@@ -1291,6 +1384,19 @@ export async function closeSvincolatiAuction(
     newDuration: movementDuration2,
     newClause: movementClause2,
   })
+
+  // Trigger Pusher event for auction closed - assigned (non-blocking)
+  triggerSvincolatiAuctionClosed(auction.marketSessionId ?? auctionId, {
+    sessionId: auction.marketSessionId ?? auctionId,
+    auctionId,
+    playerId: auction.playerId,
+    playerName: auction.player.name,
+    winnerId: winningBid.bidderId,
+    winnerUsername: winningBid.bidder.user.username,
+    finalPrice: auction.currentPrice,
+    wasUnsold: false,
+    timestamp: new Date().toISOString(),
+  }).catch(() => { /* Error intentionally silenced */ })
 
   return {
     success: true,
@@ -1503,6 +1609,15 @@ async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceRe
         svincolatiReadyMembers: [],
       },
     })
+    triggerSvincolatiTurnAdvanced(sessionId, {
+      sessionId,
+      state: 'COMPLETED',
+      nextTurnMemberId: null,
+      nextTurnUsername: null,
+      completed: true,
+      timestamp: new Date().toISOString(),
+    }).catch(() => { /* Error intentionally silenced */ })
+
     return {
       success: true,
       message: 'Nessun giocatore svincolato disponibile. Fase completata!',
@@ -1538,6 +1653,15 @@ async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceRe
         svincolatiReadyMembers: [],
       },
     })
+    triggerSvincolatiTurnAdvanced(sessionId, {
+      sessionId,
+      state: 'COMPLETED',
+      nextTurnMemberId: null,
+      nextTurnUsername: null,
+      completed: true,
+      timestamp: new Date().toISOString(),
+    }).catch(() => { /* Error intentionally silenced */ })
+
     return {
       success: true,
       message: 'Nessun manager ha bilancio sufficiente (>= 2). Fase completata!',
@@ -1631,6 +1755,16 @@ async function advanceSvincolatiToNextTurn(sessionId: string): Promise<ServiceRe
     where: { id: turnOrder[nextIndex]! },
     include: { user: { select: { username: true } } },
   })
+
+  // Trigger Pusher event for turn advancement (non-blocking)
+  triggerSvincolatiTurnAdvanced(sessionId, {
+    sessionId,
+    state: 'READY_CHECK',
+    nextTurnMemberId: turnOrder[nextIndex] ?? null,
+    nextTurnUsername: nextMember?.user.username ?? null,
+    completed: false,
+    timestamp: new Date().toISOString(),
+  }).catch(() => { /* Error intentionally silenced */ })
 
   return {
     success: true,
@@ -1891,6 +2025,24 @@ export async function botConfirmSvincolatiNomination(
     },
   })
 
+  // Trigger Pusher event for confirmed nomination (non-blocking)
+  if (activeSession.svincolatiPendingPlayerId) {
+    const botNominator = await prisma.leagueMember.findUnique({
+      where: { id: activeSession.svincolatiPendingNominatorId },
+      include: { user: { select: { username: true } } },
+    })
+    triggerSvincolatiNomination(activeSession.id, {
+      sessionId: activeSession.id,
+      playerId: activeSession.svincolatiPendingPlayerId,
+      playerName: player?.name || 'Unknown',
+      playerRole: player?.position || '',
+      nominatorId: activeSession.svincolatiPendingNominatorId,
+      nominatorUsername: botNominator?.user.username || 'Unknown',
+      confirmed: true,
+      timestamp: new Date().toISOString(),
+    }).catch(() => { /* Error intentionally silenced */ })
+  }
+
   return {
     success: true,
     message: `[BOT] Nominazione confermata per ${player?.name || 'giocatore'}`,
@@ -2023,6 +2175,20 @@ export async function botBidSvincolati(
       },
     })
   })
+
+  // Trigger Pusher event for bot bid (non-blocking)
+  triggerSvincolatiBidPlaced(activeSession.id, {
+    sessionId: activeSession.id,
+    auctionId,
+    playerId: auction.playerId,
+    playerName: auction.player.name,
+    bidderId: randomBidder.id,
+    bidderUsername: randomBidder.user.username,
+    amount: newBidAmount,
+    timerExpiresAt: newTimerExpires.toISOString(),
+    timerSeconds,
+    timestamp: new Date().toISOString(),
+  }).catch(() => { /* Error intentionally silenced */ })
 
   return {
     success: true,
