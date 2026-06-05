@@ -165,6 +165,35 @@ export interface ContractPhaseProspetto {
   lineItems: ProspettoLineItem[];
 }
 
+// ==================== MARKET OPENING SUMMARY ====================
+
+// Reason a player left the manager's roster automatically at market opening
+export type OpeningExitReason =
+  | 'SCADENZA'    // Contratto scaduto (durata arrivata a 0)
+  | 'RITIRATO'    // Giocatore ritirato
+  | 'ESTERO'      // Giocatore andato all'estero
+  | 'RETROCESSO'; // Giocatore retrocesso
+
+// Single player removed from the manager's roster at the market opening
+export interface OpeningExitEntry {
+  playerId: string;
+  playerName: string;
+  team: string;
+  position: string;
+  reason: OpeningExitReason;
+  detail: string | null; // Extra info (es. note evento), null se assente
+  occurredAt: Date;
+}
+
+// Per-manager summary of automatic exits at the active session's market opening
+export interface MarketOpeningSummary {
+  leagueMemberId: string;
+  marketSessionId: string;
+  season: number;
+  semester: number;
+  exits: OpeningExitEntry[];
+}
+
 // Historical session summary for viewing past sessions
 export interface HistoricalSessionSummary {
   sessionId: string;

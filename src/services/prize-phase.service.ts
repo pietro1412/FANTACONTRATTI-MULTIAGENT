@@ -1,6 +1,7 @@
 import { MemberStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import type { ServiceResult } from '@/shared/types/service-result'
+import { logInfo } from '@/services/app-log.service'
 
 
 // ==================== INIZIALIZZAZIONE FASE PREMI ====================
@@ -588,6 +589,181 @@ export async function setMemberPrize(
     success: true,
     message: `Premio di ${amount}M assegnato a ${targetMember.teamName ?? 'squadra'}`,
     data: { memberId, amount },
+  }
+}
+
+// ==================== ADMIN CORRECT MEMBER PRIZE (POST-FINALIZE) ====================
+
+/**
+ * Correzione admin di un premio per-manager.
+ *
+ * A differenza di setMemberPrize, questo percorso è CONSENTITO anche quando la fase
+ * premi è già finalizzata (Bibbia MERCATO-RICORRENTE §4.5): l'admin deve poter
+ * correggere i premi dopo la finalizzazione.
+ *
+ * Logica budget:
+ * - delta = newAmount - vecchioAmount del SessionPrize
+ * - se la fase è FINALIZZATA, il premio è già stato accreditato sul currentBudget al
+ *   momento del finalize → applichiamo il delta al currentBudget del membro
+ *   (increment se positivo, decrement se negativo).
+ * - se la fase NON è finalizzata, il premio non è ancora stato accreditato → aggiorniamo
+ *   solo il SessionPrize, NON tocchiamo il budget (verrà accreditato al finalize).
+ *
+ * Le categorie di sistema (isSystemPrize, es. indennizzi) NON vengono accreditate al
+ * finalize: per coerenza, anche qui un delta su una categoria di sistema non tocca il
+ * budget (l'importo è solo potenziale, viene liquidato in fase CONTRATTI).
+ *
+ * Idempotente: se newAmount == vecchioAmount il delta è 0 e nessun budget viene toccato.
+ * Atomico: SessionPrize + budget aggiornati nella stessa transazione.
+ */
+export async function adminCorrectMemberPrize(
+  leagueId: string,
+  adminUserId: string,
+  input: {
+    marketSessionId: string
+    categoryId: string
+    leagueMemberId: string
+    newAmount: number
+  }
+): Promise<ServiceResult> {
+  const { marketSessionId, categoryId, leagueMemberId, newAmount } = input
+
+  // Validate amount
+  if (!Number.isInteger(newAmount) || newAmount < 0) {
+    return { success: false, message: 'L\'importo deve essere un numero intero >= 0' }
+  }
+
+  // Verify session belongs to the league
+  const session = await prisma.marketSession.findFirst({
+    where: { id: marketSessionId, leagueId },
+  })
+
+  if (!session) {
+    return { success: false, message: 'Sessione non trovata' }
+  }
+
+  // Verify admin of the league
+  const adminMember = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: 'ADMIN',
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!adminMember) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const config = await prisma.prizePhaseConfig.findUnique({
+    where: { marketSessionId },
+  })
+
+  if (!config) {
+    return { success: false, message: 'Fase premi non inizializzata' }
+  }
+
+  // Verify category belongs to this session
+  const category = await prisma.prizeCategory.findFirst({
+    where: { id: categoryId, marketSessionId },
+  })
+
+  if (!category) {
+    return { success: false, message: 'Categoria non trovata' }
+  }
+
+  // Verify target member exists in league
+  const targetMember = await prisma.leagueMember.findFirst({
+    where: {
+      id: leagueMemberId,
+      leagueId,
+      status: MemberStatus.ACTIVE,
+    },
+    include: { user: { select: { username: true } } },
+  })
+
+  if (!targetMember) {
+    return { success: false, message: 'Manager non trovato' }
+  }
+
+  // Read current prize amount (default 0 if none yet)
+  const existingPrize = await prisma.sessionPrize.findUnique({
+    where: {
+      prizeCategoryId_leagueMemberId: {
+        prizeCategoryId: categoryId,
+        leagueMemberId,
+      },
+    },
+  })
+
+  const oldAmount = existingPrize?.amount ?? 0
+  const delta = newAmount - oldAmount
+
+  // Budget is touched only when the prize was already credited:
+  // - phase finalized (credited at finalize) AND
+  // - non-system category (system prizes are not credited at finalize)
+  const shouldAdjustBudget = config.isFinalized && !category.isSystemPrize && delta !== 0
+
+  await prisma.$transaction(async (tx) => {
+    // Upsert the prize to the new amount (idempotent)
+    await tx.sessionPrize.upsert({
+      where: {
+        prizeCategoryId_leagueMemberId: {
+          prizeCategoryId: categoryId,
+          leagueMemberId,
+        },
+      },
+      update: { amount: newAmount },
+      create: {
+        prizeCategoryId: categoryId,
+        leagueMemberId,
+        amount: newAmount,
+      },
+    })
+
+    // Apply delta to budget only when the prize was already credited
+    if (shouldAdjustBudget) {
+      await tx.leagueMember.update({
+        where: { id: leagueMemberId },
+        data: { currentBudget: { increment: delta } },
+      })
+    }
+  })
+
+  // Audit: who corrected what, with the delta and budget impact.
+  // ANOMALY category = out-of-normal-flow admin correction (esp. post-finalize).
+  logInfo('ANOMALY', 'Admin prize correction', {
+    action: 'adminCorrectMemberPrize',
+    leagueId,
+    adminUserId,
+    adminMemberId: adminMember.id,
+    marketSessionId,
+    categoryId,
+    categoryName: category.name,
+    isSystemPrize: category.isSystemPrize,
+    leagueMemberId,
+    targetTeamName: targetMember.teamName,
+    oldAmount,
+    newAmount,
+    delta,
+    isFinalized: config.isFinalized,
+    budgetAdjusted: shouldAdjustBudget,
+  })
+
+  return {
+    success: true,
+    message: config.isFinalized
+      ? `Premio corretto a ${newAmount}M (delta ${delta >= 0 ? '+' : ''}${delta}M${shouldAdjustBudget ? ', budget aggiornato' : ''})`
+      : `Premio corretto a ${newAmount}M`,
+    data: {
+      categoryId,
+      leagueMemberId,
+      oldAmount,
+      newAmount,
+      delta,
+      budgetAdjusted: shouldAdjustBudget,
+    },
   }
 }
 

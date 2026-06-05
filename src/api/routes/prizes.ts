@@ -12,6 +12,7 @@ import {
   setCustomIndemnity,
   getCustomIndemnities,
   consolidateIndemnities,
+  adminCorrectMemberPrize,
 } from '../../services/prize-phase.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -255,6 +256,47 @@ router.post('/sessions/:sessionId/prizes/indemnities/consolidate', authMiddlewar
     res.json(result)
   } catch (error) {
     console.error('Consolidate indemnities error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// ==================== ADMIN CORRECT MEMBER PRIZE (POST-FINALIZE) ====================
+
+// PATCH /api/leagues/:leagueId/prizes/correct - Admin correction of a member prize,
+// allowed even after the prize phase has been finalized (Admin)
+router.patch('/leagues/:leagueId/prizes/correct', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const { marketSessionId, categoryId, leagueMemberId, newAmount } = req.body as {
+      marketSessionId?: string
+      categoryId?: string
+      leagueMemberId?: string
+      newAmount?: number
+    }
+
+    if (!marketSessionId || !categoryId || !leagueMemberId || newAmount === undefined) {
+      res.status(400).json({
+        success: false,
+        message: 'marketSessionId, categoryId, leagueMemberId e newAmount sono obbligatori',
+      })
+      return
+    }
+
+    const result = await adminCorrectMemberPrize(leagueId, req.user!.userId, {
+      marketSessionId,
+      categoryId,
+      leagueMemberId,
+      newAmount,
+    })
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Admin correct member prize error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

@@ -1,3 +1,4 @@
+import type { MovementType } from '@prisma/client'
 import { MemberStatus, RosterStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import type {
@@ -9,6 +10,9 @@ import type {
   ManagerSessionSummary,
   ContractPhaseProspetto,
   ProspettoLineItem,
+  MarketOpeningSummary,
+  OpeningExitEntry,
+  OpeningExitReason,
 } from '../types/contract-history'
 import { calculateReleaseCost } from './contract.service'
 import type { ServiceResult } from '@/shared/types/service-result'
@@ -663,6 +667,124 @@ export async function getHistoricalSessionSummaries(
     success: true,
     data: summaries,
   }
+}
+
+// ==================== GET MARKET OPENING SUMMARY ====================
+
+// Movement types that represent an automatic exit from the roster at market opening.
+// At opening only RELEASE (contratto scaduto) and RETIREMENT (ritirato) occur today;
+// the ESTERO/RETROCESSO movement types are listed defensively in case the opening
+// logic starts auto-releasing them in the future. They are NOT generated here.
+const OPENING_EXIT_REASON_BY_MOVEMENT: Partial<Record<MovementType, OpeningExitReason>> = {
+  RELEASE: 'SCADENZA',
+  RETIREMENT: 'RITIRATO',
+  ABROAD_COMPENSATION: 'ESTERO',
+  RELEGATION_RELEASE: 'RETROCESSO',
+}
+
+/**
+ * Returns, for the manager corresponding to `userId` in `leagueId`, the list of
+ * players that left their roster automatically at the opening of the ACTIVE market
+ * session (contratti scaduti e giocatori ritirati).
+ *
+ * Derivation (read-only, does NOT alter the opening logic):
+ * - Source of truth is PlayerMovement filtered by the active session and the
+ *   current member as `fromMemberId`, restricted to the auto-exit movement types.
+ *   This single source covers both SCADENZA (RELEASE) and RITIRATO (RETIREMENT)
+ *   and avoids double-counting (AUTO_RELEASE_EXPIRED in ContractHistory maps 1:1
+ *   to a RELEASE movement).
+ * - For SCADENZA exits, the matching ContractHistory AUTO_RELEASE_EXPIRED entry
+ *   (same player + session) is used to enrich `detail` with its notes when present.
+ */
+export async function getMarketOpeningEvents(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  // Verify membership
+  const member = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Get the active market session for this league
+  const activeSession = await prisma.marketSession.findFirst({
+    where: {
+      leagueId,
+      status: 'ACTIVE',
+    },
+  })
+
+  if (!activeSession) {
+    return { success: false, message: 'Nessuna sessione di mercato attiva' }
+  }
+
+  const autoExitTypes = Object.keys(OPENING_EXIT_REASON_BY_MOVEMENT) as MovementType[]
+
+  // Movements that represent this member's automatic exits at opening
+  const movements = await prisma.playerMovement.findMany({
+    where: {
+      leagueId,
+      marketSessionId: activeSession.id,
+      fromMemberId: member.id,
+      toMemberId: null,
+      movementType: { in: autoExitTypes },
+    },
+    include: {
+      player: {
+        select: { id: true, name: true, team: true, position: true },
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+  })
+
+  // Pull AUTO_RELEASE_EXPIRED history entries to enrich SCADENZA exits with notes
+  const expiredHistory = await prisma.contractHistory.findMany({
+    where: {
+      marketSessionId: activeSession.id,
+      leagueMemberId: member.id,
+      eventType: 'AUTO_RELEASE_EXPIRED',
+    },
+    select: { playerId: true, notes: true },
+  })
+
+  const notesByPlayerId = new Map<string, string | null>()
+  for (const entry of expiredHistory) {
+    notesByPlayerId.set(entry.playerId, entry.notes)
+  }
+
+  const exits: OpeningExitEntry[] = movements.map(movement => {
+    const reason = OPENING_EXIT_REASON_BY_MOVEMENT[movement.movementType] ?? 'SCADENZA'
+    const detail = reason === 'SCADENZA'
+      ? notesByPlayerId.get(movement.playerId) ?? null
+      : null
+
+    return {
+      playerId: movement.player.id,
+      playerName: movement.player.name,
+      team: movement.player.team,
+      position: movement.player.position,
+      reason,
+      detail,
+      occurredAt: movement.createdAt,
+    }
+  })
+
+  const summary: MarketOpeningSummary = {
+    leagueMemberId: member.id,
+    marketSessionId: activeSession.id,
+    season: activeSession.season,
+    semester: activeSession.semester,
+    exits,
+  }
+
+  return { success: true, data: summary }
 }
 
 // ==================== UTILITY FUNCTIONS ====================

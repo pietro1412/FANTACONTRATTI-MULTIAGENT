@@ -6,6 +6,7 @@ import {
   getManagerSessionSummary,
   getContractPhaseProspetto,
   getHistoricalSessionSummaries,
+  getMarketOpeningEvents,
 } from '../../services/contract-history.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -155,6 +156,31 @@ router.get(
       res.json(result)
     } catch (error) {
       console.error('Get historical summaries error:', error)
+      res.status(500).json({ success: false, message: 'Errore interno del server' })
+    }
+  }
+)
+
+// GET /api/leagues/:leagueId/market/opening-summary
+// Get the per-manager summary of automatic exits (scaduti/ritirati) at the
+// opening of the active market session
+router.get(
+  '/leagues/:leagueId/market/opening-summary',
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const leagueId = req.params.leagueId as string
+
+      const result = await getMarketOpeningEvents(leagueId, req.user!.userId)
+
+      if (!result.success) {
+        res.status(400).json(result)
+        return
+      }
+
+      res.json(result)
+    } catch (error) {
+      console.error('Get market opening summary error:', error)
       res.status(500).json({ success: false, message: 'Errore interno del server' })
     }
   }
