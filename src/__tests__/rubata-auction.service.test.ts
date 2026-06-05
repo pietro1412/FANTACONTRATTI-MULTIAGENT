@@ -377,16 +377,16 @@ describe('bidOnRubataAuction', () => {
     expect(result.message).toContain('tuo giocatore')
   })
 
-  it('should fail if budget is insufficient (amount > bilancio - 1)', async () => {
+  it('should fail if budget is insufficient (amount > bilancio)', async () => {
     const { bidOnRubataAuction } = await getService()
 
-    // budget=30, monteIngaggi=5, bilancio=25, maxBid=24
+    // budget=30, monteIngaggi=5, bilancio=25 → offerta 26 supera il bilancio (Bibbia RUBATA §4.2: bilancio >= amount, senza riserva)
     mockPrisma.leagueMember.findFirst.mockResolvedValue(makeMember({ currentBudget: 30 }))
     mockPrisma.marketSession.findFirst.mockResolvedValue(makeSession({ rubataState: 'AUCTION' }))
     mockPrisma.auction.findFirst.mockResolvedValue(makeAuction({ currentPrice: 20 }))
     mockPrisma.playerContract.aggregate.mockResolvedValue({ _sum: { salary: 5 } })
 
-    const result = await bidOnRubataAuction(LEAGUE_ID, USER_ID, 25)
+    const result = await bidOnRubataAuction(LEAGUE_ID, USER_ID, 26)
 
     expect(result.success).toBe(false)
     expect(result.message).toContain('Budget insufficiente')

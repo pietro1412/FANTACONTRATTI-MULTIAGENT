@@ -19,6 +19,7 @@ import {
 import { computeSeasonStatsBatch } from './player-stats.service'
 import { withRetry } from '../utils/db-retry'
 import { notifyAuctionStart, notifyPhaseChange } from './notification.service'
+import { logError } from './app-log.service'
 
 import type { ServiceResult } from '@/shared/types/service-result'
 
@@ -423,8 +424,12 @@ export async function createAuctionSession(
       // Create SESSION_START snapshots for all managers (after duration decrement)
       try {
         await createSessionStartSnapshots(result.session.id, leagueId)
-      } catch {
-        // Error intentionally silenced
+      } catch (error) {
+        logError('ERROR', 'Errore durante la creazione degli snapshot di inizio sessione', {
+          sessionId: result.session.id,
+          leagueId,
+          error: error instanceof Error ? error.message : String(error),
+        })
       }
     }
 
@@ -433,8 +438,12 @@ export async function createAuctionSession(
     if (isEffectivelyRegularMarket) {
       try {
         ritiratiResult = await autoReleaseRitiratiPlayers(leagueId, result.session.id)
-      } catch {
-        // Error intentionally silenced
+      } catch (error) {
+        logError('ERROR', 'Errore durante il rilascio automatico dei giocatori ritirati', {
+          sessionId: result.session.id,
+          leagueId,
+          error: error instanceof Error ? error.message : String(error),
+        })
       }
     }
 
@@ -749,7 +758,7 @@ export async function closeAuctionSession(
   return {
     success: true,
     message: session.type === 'PRIMO_MERCATO'
-      ? `Sessione chiusa. Creati ${contractsCreated} contratti automatici (10% prezzo acquisto, 2 semestri)`
+      ? `Sessione chiusa. Creati ${contractsCreated} contratti automatici (10% prezzo acquisto, 3 semestri)`
       : 'Sessione chiusa',
   }
 }
@@ -2095,12 +2104,13 @@ export async function requestPause(
 // ==================== M-1: PAUSE/RESUME AUCTION TIMER ====================
 
 export async function pauseAuction(
-  auctionId: string,
+  leagueId: string,
   adminUserId: string
 ): Promise<ServiceResult> {
-  const auction = await prisma.auction.findUnique({
-    where: { id: auctionId },
+  const auction = await prisma.auction.findFirst({
+    where: { leagueId, status: AuctionStatus.ACTIVE },
     include: { marketSession: true },
+    orderBy: { startsAt: 'desc' },
   })
 
   if (!auction || !auction.marketSession) {
@@ -2133,7 +2143,7 @@ export async function pauseAuction(
   }
 
   await prisma.auction.update({
-    where: { id: auctionId },
+    where: { id: auction.id },
     data: {
       status: AuctionStatus.AWAITING_RESUME,
       timerExpiresAt: null,
@@ -2150,12 +2160,13 @@ export async function pauseAuction(
 }
 
 export async function resumeAuction(
-  auctionId: string,
+  leagueId: string,
   adminUserId: string
 ): Promise<ServiceResult> {
-  const auction = await prisma.auction.findUnique({
-    where: { id: auctionId },
+  const auction = await prisma.auction.findFirst({
+    where: { leagueId, status: AuctionStatus.AWAITING_RESUME },
     include: { marketSession: true },
+    orderBy: { startsAt: 'desc' },
   })
 
   if (!auction || !auction.marketSession) {
@@ -2183,7 +2194,7 @@ export async function resumeAuction(
   const remainingSeconds = auction.timerSeconds || 30
 
   await prisma.auction.update({
-    where: { id: auctionId },
+    where: { id: auction.id },
     data: {
       status: AuctionStatus.ACTIVE,
       timerExpiresAt: new Date(Date.now() + remainingSeconds * 1000),

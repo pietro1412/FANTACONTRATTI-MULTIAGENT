@@ -1714,15 +1714,14 @@ export async function bidOnRubataAuction(
     return { success: false, message: `L'offerta deve essere maggiore di ${activeAuction.currentPrice}` }
   }
 
-  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary. Reserve 1.
+  // Check budget using bilancio (budget - monteIngaggi). Rubata price includes salary.
   const monteIngaggiBidR = await prisma.playerContract.aggregate({
     where: { leagueMemberId: member.id },
     _sum: { salary: true },
   })
   const bilancioBidR = member.currentBudget - (monteIngaggiBidR._sum.salary || 0)
-  const maxBidR = bilancioBidR - 1
-  if (amount > maxBidR) {
-    return { success: false, message: `Budget insufficiente. Offerta massima: ${maxBidR}` }
+  if (amount > bilancioBidR) {
+    return { success: false, message: `Budget insufficiente. Necessario: ${amount}, Bilancio disponibile: ${bilancioBidR}` }
   }
 
   // Get member username and player info for Pusher notification

@@ -22,6 +22,9 @@ const MAX_DURATION = 4 // Max 4 semestri
 const MIN_SALARY_PERCENTAGE = 0.1 // 10% del prezzo acquisto per acquisti non-PRIMO MERCATO
 const MAX_ROSTER_SIZE = 29 // Massimo giocatori in rosa dopo consolidamento
 
+// Default indennizzo per giocatori ESTERO quando non esiste una categoria individuale/base
+const DEFAULT_INDENNIZZO_ESTERO = 50
+
 // M-12: Runtime validation to ensure budget never goes negative
 export async function validateBudgetNotNegative(memberId: string): Promise<boolean> {
   const member = await prisma.leagueMember.findUnique({
@@ -187,7 +190,7 @@ export async function getContracts(leagueId: string, userId: string): Promise<Se
   // (activeSession is already defined above for CONTRATTI phase check)
   // Map: playerName -> indemnity amount (from consolidated individual categories)
   const playerIndemnityAmounts: Record<string, number> = {}
-  let indennizzoEsteroDefault = 50 // fallback if no individual category exists
+  let indennizzoEsteroDefault = DEFAULT_INDENNIZZO_ESTERO // fallback if no individual category exists
   if (activeSession) {
     // Get base amount from "Indennizzo Partenza Estero"
     const baseCategory = await prisma.prizeCategory.findFirst({
@@ -604,11 +607,6 @@ export async function renewContract(
     return { success: false, message: 'Non sei il proprietario di questo contratto' }
   }
 
-  // Block contract modification for players acquired via trade
-  if (contract.roster.acquisitionType === 'TRADE') {
-    return { success: false, message: 'Non puoi modificare il contratto di un giocatore acquisito tramite scambio' }
-  }
-
   // Check if in CONTRATTI phase
   const inContrattiPhase = await isInContrattiPhase(contract.roster.leagueMember.leagueId)
   if (!inContrattiPhase) {
@@ -618,6 +616,7 @@ export async function renewContract(
   // P0-9 FIX: Block standalone renewal if member has already consolidated.
   // After consolidation, contract modifications must go through saveDrafts → consolidateContracts.
   // This is a legacy path — the preferred flow is the consolidation pipeline.
+  // NOTE: isInContrattiPhase already guarantees an ACTIVE CONTRATTI session exists here.
   const activeSessionForConsolidation = await prisma.marketSession.findFirst({
     where: {
       leagueId: contract.roster.leagueMember.leagueId,
@@ -625,6 +624,54 @@ export async function renewContract(
       currentPhase: 'CONTRATTI',
     },
   })
+
+  // T5-F: Block renewal for players acquired via TRADE only when the trade happened
+  // AFTER the current CONTRATTI phase (i.e. in the OFFERTE_POST_ASTA_SVINCOLATI phase of a
+  // previous market cycle). A player traded BEFORE/DURING the current cycle's CONTRATTI phase
+  // (i.e. during OFFERTE_PRE_RINNOVO of the *current* session) IS renewable.
+  //
+  // Timing discriminator (schema-supported, no migration needed):
+  //   - On trade, PlayerRoster is updated in place: acquisitionType becomes 'TRADE' but
+  //     acquiredAt keeps the ORIGINAL acquisition timestamp → acquiredAt is NOT usable.
+  //   - Each trade records a PlayerMovement of type 'TRADE' with marketSessionId (non-null,
+  //     from TradeOffer.marketSessionId) and createdAt.
+  //   - Trades can only occur in OFFERTE_PRE_RINNOVO (before CONTRATTI) or
+  //     OFFERTE_POST_ASTA_SVINCOLATI (after CONTRATTI) within a session.
+  //   - renewContract only runs during the current session's CONTRATTI phase, so:
+  //       latest TRADE marketSessionId === current session  → traded in this cycle's
+  //         OFFERTE_PRE_RINNOVO (the only pre-CONTRATTI trade phase) → renewable.
+  //       latest TRADE marketSessionId !== current session  → traded in a previous cycle's
+  //         OFFERTE_POST_ASTA_SVINCOLATI → not renewable until next cycle's CONTRATTI.
+  if (contract.roster.acquisitionType === 'TRADE') {
+    const latestTradeMovement = await prisma.playerMovement.findFirst({
+      where: {
+        leagueId: contract.roster.leagueMember.leagueId,
+        playerId: contract.roster.playerId,
+        movementType: 'TRADE',
+        toMemberId: contract.roster.leagueMember.id,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { marketSessionId: true },
+    })
+
+    // Renewable only if the most recent trade to the current owner happened in the
+    // current CONTRATTI session (i.e. during this cycle's OFFERTE_PRE_RINNOVO).
+    // If we cannot resolve the trade timing (no movement / missing session), stay
+    // conservative and keep the original block to avoid regressions.
+    const tradedInCurrentCycle =
+      !!activeSessionForConsolidation &&
+      !!latestTradeMovement?.marketSessionId &&
+      latestTradeMovement.marketSessionId === activeSessionForConsolidation.id
+
+    if (!tradedInCurrentCycle) {
+      return {
+        success: false,
+        message:
+          'Non puoi rinnovare il contratto di un giocatore acquisito tramite scambio dopo la fase contratti: potrai farlo dal prossimo ciclo di mercato',
+      }
+    }
+  }
+
   if (activeSessionForConsolidation) {
     const existingConsolidation = await prisma.contractConsolidation.findUnique({
       where: {
@@ -1144,8 +1191,7 @@ export async function consolidateContracts(
           const renewalCost = salaryDiff > 0 ? salaryDiff : 0
 
           // Calculate new rescission clause
-          const multiplier = DURATION_MULTIPLIERS[renewal.duration] || 7
-          const newRescissionClause = renewal.salary * multiplier
+          const newRescissionClause = calculateRescissionClause(renewal.salary, renewal.duration)
 
           // Determine if this is a renewal (increase) or spalma (decrease salary with duration > 1)
           const isSpalma = contract.duration === 1 && renewal.duration > 1
@@ -1207,8 +1253,7 @@ export async function consolidateContracts(
           }
 
           // Calculate rescission clause
-          const multiplier = DURATION_MULTIPLIERS[nc.duration] || 7
-          const rescissionClause = nc.salary * multiplier
+          const rescissionClause = calculateRescissionClause(nc.salary, nc.duration)
 
           // Create contract
           await tx.playerContract.create({
@@ -1260,7 +1305,7 @@ export async function consolidateContracts(
       })
 
       // Fetch indemnity amounts for ESTERO players from individual categories
-      let indennizzoEsteroDefault = 50
+      let indennizzoEsteroDefault = DEFAULT_INDENNIZZO_ESTERO
       const baseIndemnityCategory = await tx.prizeCategory.findFirst({
         where: {
           marketSessionId: activeSession.id,
