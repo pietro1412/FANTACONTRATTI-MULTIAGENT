@@ -67,7 +67,6 @@ export function CommandPalette() {
         { id: 'prizes', label: 'Premi', category: 'Lega', icon: '🏅', action: () => { void navigate(`/leagues/${leagueId}/prizes`) }, keywords: 'premio classifica' },
         { id: 'prophecies', label: 'Profezie', category: 'Lega', icon: '🔮', action: () => { void navigate(`/leagues/${leagueId}/prophecies`) }, keywords: 'profezia previsione' },
         { id: 'strategie', label: 'Strategie Rubata', category: 'Lega', icon: '🧠', action: () => { void navigate(`/leagues/${leagueId}/strategie-rubata`) }, keywords: 'strategia rubata piano' },
-        { id: 'indemnity', label: 'Indennizzi', category: 'Lega', icon: '💵', action: () => { void navigate(`/leagues/${leagueId}/indemnity`) }, keywords: 'indennizzo compenso' },
         { id: 'admin', label: 'Pannello Admin', category: 'Lega', icon: '⚙️', action: () => { void navigate(`/leagues/${leagueId}/admin`) }, keywords: 'amministrazione gestione' },
         { id: 'feedback', label: 'Feedback Hub', category: 'Lega', icon: '💬', action: () => { void navigate(`/leagues/${leagueId}/feedback`) }, keywords: 'segnalazione bug suggerimento' },
         { id: 'patchnotes', label: 'Patch Notes', category: 'Lega', icon: '📰', action: () => { void navigate(`/leagues/${leagueId}/patch-notes`) }, keywords: 'aggiornamenti novita changelog' },

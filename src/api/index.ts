@@ -21,7 +21,6 @@ import movementRoutes from './routes/movements'
 import superadminRoutes from './routes/superadmin'
 import prizeRoutes from './routes/prizes'
 import historyRoutes from './routes/history'
-import indemnityRoutes from './routes/indemnity'
 import timeRoutes from './routes/time'
 import objectivesRoutes from './routes/objectives'
 import feedbackRoutes from './routes/feedback'
@@ -182,7 +181,6 @@ app.use('/api', movementRoutes) // Movement routes include /leagues/:id/movement
 app.use('/api', superadminRoutes) // Superadmin routes include /superadmin/*
 app.use('/api', prizeRoutes) // Prize phase routes include /sessions/:id/prizes/*
 app.use('/api', historyRoutes) // History routes include /leagues/:id/history/*
-app.use('/api', indemnityRoutes) // Indemnity phase routes include /leagues/:id/indemnity/*
 app.use('/api/time', timeRoutes) // Time sync endpoint for client clock calibration
 app.use('/api', objectivesRoutes) // Objectives routes for pre-auction targets
 app.use('/api/feedback', feedbackRoutes) // Feedback/segnalazioni routes

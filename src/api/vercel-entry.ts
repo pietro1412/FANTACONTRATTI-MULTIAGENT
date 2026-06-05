@@ -19,7 +19,6 @@ import movementRoutes from './routes/movements'
 import superadminRoutes from './routes/superadmin'
 import prizeRoutes from './routes/prizes'
 import historyRoutes from './routes/history'
-import indemnityRoutes from './routes/indemnity'
 import timeRoutes from './routes/time'
 import objectivesRoutes from './routes/objectives'
 import feedbackRoutes from './routes/feedback'
@@ -382,7 +381,6 @@ app.use('/api', movementRoutes)
 app.use('/api', superadminRoutes)
 app.use('/api', prizeRoutes)
 app.use('/api', historyRoutes)
-app.use('/api', indemnityRoutes)
 app.use('/api/time', timeRoutes)
 app.use('/api', objectivesRoutes)
 app.use('/api/feedback', feedbackRoutes)
