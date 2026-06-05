@@ -58,6 +58,7 @@ export const createLeagueSchema = z.object({
   defenderSlots: z.number().int().min(3).max(12).default(8),
   midfielderSlots: z.number().int().min(3).max(12).default(8),
   forwardSlots: z.number().int().min(2).max(8).default(6),
+  isPublic: z.boolean().optional().default(false),
 })
 
 export const updateLeagueSchema = createLeagueSchema.partial()

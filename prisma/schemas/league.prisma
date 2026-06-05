@@ -28,6 +28,9 @@ model League {
   status           LeagueStatus @default(DRAFT)  // see: _base.prisma
   currentSeason    Int          @default(1)
 
+  // Visibilita: PUBBLICA (ricercabile, richieste consentite) vs PRIVATA (solo su invito). Default conservativo: privata
+  isPublic         Boolean  @default(false)
+
   // Codice invito
   inviteCode       String   @unique @default(cuid())
 

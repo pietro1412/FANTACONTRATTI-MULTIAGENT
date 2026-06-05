@@ -127,6 +127,7 @@ describe('League Service', () => {
         midfielderSlots: 8,
         forwardSlots: 6,
         teamName: 'My Team',
+        isPublic: false,
       })
 
       expect(result.success).toBe(true)
@@ -145,6 +146,7 @@ describe('League Service', () => {
         midfielderSlots: 8,
         forwardSlots: 6,
         teamName: 'My Team',
+        isPublic: false,
       })
 
       expect(result.success).toBe(false)
@@ -162,6 +164,7 @@ describe('League Service', () => {
         midfielderSlots: 8,
         forwardSlots: 6,
         teamName: 'A', // too short — minimum 2 characters
+        isPublic: false,
       })
 
       expect(result.success).toBe(false)
@@ -284,6 +287,7 @@ describe('League Service', () => {
       mockPrisma.league.findUnique.mockResolvedValue({
         id: 'league-1',
         status: 'DRAFT',
+        isPublic: true,
         maxParticipants: 10,
         members: [{ role: 'ADMIN', user: { email: 'admin@test.it' } }],
       })
@@ -316,6 +320,7 @@ describe('League Service', () => {
       mockPrisma.league.findUnique.mockResolvedValue({
         id: 'league-1',
         status: 'ACTIVE',
+        isPublic: true,
         maxParticipants: 10,
         members: [],
       })
@@ -330,6 +335,7 @@ describe('League Service', () => {
       mockPrisma.league.findUnique.mockResolvedValue({
         id: 'league-1',
         status: 'DRAFT',
+        isPublic: true,
         maxParticipants: 1,
         members: [{ role: 'ADMIN', user: { email: 'admin@test.it' } }],
       })
@@ -344,6 +350,7 @@ describe('League Service', () => {
       mockPrisma.league.findUnique.mockResolvedValue({
         id: 'league-1',
         status: 'DRAFT',
+        isPublic: true,
         maxParticipants: 10,
         members: [{ role: 'ADMIN', user: { email: 'admin@test.it' } }],
       })
@@ -362,6 +369,7 @@ describe('League Service', () => {
       mockPrisma.league.findUnique.mockResolvedValue({
         id: 'league-1',
         status: 'DRAFT',
+        isPublic: true,
         maxParticipants: 10,
         members: [{ role: 'ADMIN', user: { email: 'admin@test.it' } }],
       })

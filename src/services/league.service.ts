@@ -51,6 +51,7 @@ export async function createLeague(userId: string, input: CreateLeagueInput & { 
       defenderSlots: input.defenderSlots,
       midfielderSlots: input.midfielderSlots,
       forwardSlots: input.forwardSlots,
+      isPublic: input.isPublic,
       members: {
         create: {
           userId,
@@ -284,6 +285,11 @@ export async function requestJoinLeague(leagueId: string, userId: string, teamNa
 
   if (!league) {
     return { success: false, message: 'Lega non trovata' }
+  }
+
+  // Le leghe private sono accessibili solo su invito
+  if (!league.isPublic) {
+    return { success: false, message: 'Questa lega è privata: l\'accesso è solo su invito' }
   }
 
   // Verifica che la lega sia in stato DRAFT
@@ -893,6 +899,8 @@ export async function searchLeagues(
   // 3. Username o email di admin/membri
   const leagues = await prisma.league.findMany({
     where: {
+      // Solo leghe pubbliche compaiono nei risultati di ricerca
+      isPublic: true,
       OR: [
         // Ricerca per nome lega
         { name: { contains: searchTerm, mode: 'insensitive' } },
