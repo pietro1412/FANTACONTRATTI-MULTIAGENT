@@ -35,20 +35,22 @@ Prossimo → **Sprint B** (feature decise) e **Sprint C** (formula indennizzo + 
 ## 🚀 STATO IMPLEMENTAZIONE — Sprint B (aggiornato 2026-06-05)
 
 **Fatti e committati** (tutto verde):
-- ✅ T8-2 — statistiche `duelsWon` + `foulsCommitted` (syncStats + syncStatsInternal)
+- ✅ T8-2 — statistiche `duelsWon` + `foulsCommitted`
 - ✅ T3-3 — auto-scadenza offerte di scambio attivata
-- ✅ T7-2 — eventi Pusher real-time Svincolati (backend)
-- ✅ T1-1 (backend) — Lega Pubblica/Privata: schema `isPublic`, migration, service (create/search/requestJoin), validation. **Manca `db:push` sul DB** (richiede DB attivo) e la **UI**.
+- ✅ T7-2 (backend) — eventi Pusher real-time Svincolati
+- ✅ T1-1 (backend) — Lega Pubblica/Privata: schema `isPublic`, migration, service, validation
+- ✅ T2-3 — riepilogo eventi apertura per-manager (`GET /market/opening-summary`)
+- ✅ T4-1 — correzioni admin post-finalize premi (`PATCH /prizes/correct`, con audit)
+- ✅ T1-2 — annulla-fine-asta / reopen (`POST /auctions/:leagueId/:id/reopen`)
 
-**Rimanenti Sprint B:**
+**Rimanenti Sprint B — solo UI:**
 - ⬜ T1-1 (UI) — toggle Pubblica/Privata nella creazione lega + badge nella ricerca
 - ⬜ T3-2 / T3-1 — controfferta UI completa + indicatore "trattativa in corso" ai terzi
-- ⬜ T1-2 — annulla-fine-asta / reopen (auction.service)
-- ⬜ T2-3 — riepilogo eventi apertura per-manager
-- ⬜ T4-1 — correzioni admin post-finalize (premi/indennizzi) — tema TR-3
 - ⬜ T7-2 (wiring frontend) — collegare gli eventi Pusher Svincolati a `useSvincolatiState`
 
-> Nota: `db:push` del nuovo campo `isPublic` va eseguito sul DB (locale e prod) prima dell'uso reale.
+> Note operative:
+> - `db:push` del campo `isPublic` va eseguito sul DB (locale e prod) prima dell'uso reale.
+> - Test flaky ricorrente: `SuperAdmin.test.tsx > uses initialTab prop` (passa isolato, fallisce a volte nella suite) — da stabilizzare.
 
 ---
 
