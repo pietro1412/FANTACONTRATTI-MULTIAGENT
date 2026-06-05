@@ -46,6 +46,7 @@ import {
   resumeAuction,
   cancelActiveAuction,
   rectifyTransaction,
+  reopenAuction,
 } from '../../services/auction.service'
 import { simulateFirstMarketBotBidding, completeBotTurn, botNominate, botConfirmNomination } from '../../services/bot.service'
 import { authMiddleware } from '../middleware/auth'
@@ -1049,6 +1050,25 @@ router.post('/:leagueId/auctions/rectify', authMiddleware, async (req: Request, 
     res.json(result)
   } catch (error) {
     console.error('Rectify transaction error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// POST /:leagueId/auctions/:auctionId/reopen - Annulla la chiusura e riapre l'asta (Admin)
+// Mantiene le offerte: l'asta riprende dall'ultima offerta valida.
+router.post('/:leagueId/auctions/:auctionId/reopen', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { leagueId, auctionId } = req.params
+    const result = await reopenAuction(leagueId!, auctionId!, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Reopen auction error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

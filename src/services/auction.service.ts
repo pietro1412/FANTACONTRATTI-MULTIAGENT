@@ -2489,6 +2489,182 @@ export async function rectifyTransaction(
   }
 }
 
+// ==================== T1-2: ADMIN REOPEN COMPLETED AUCTION ====================
+
+/**
+ * Annulla la chiusura di un'asta COMPLETED e la riapre, MANTENENDO le offerte
+ * (riprende dall'ultima offerta valida).
+ *
+ * Differenza con rectifyTransaction: rectify annulla del tutto la transazione
+ * (status -> NO_BIDS, niente riapertura), mentre reopen riporta l'asta ad ACTIVE
+ * così i manager possono continuare a rilanciare da dove era rimasta.
+ *
+ * Simmetria con closeAuction: closeAuction crea PlayerRoster, PlayerContract,
+ * decrementa il budget del vincitore e registra un PlayerMovement (keyed by
+ * auctionId). reopenAuction annulla esattamente queste operazioni, poi rimette
+ * l'asta in ACTIVE con winnerId=null e timer fresco. Le AuctionBid NON vengono
+ * toccate: l'ultima offerta vincente resta isWinning=true e currentPrice resta
+ * pari al suo importo, così il prossimo rilancio dovrà superarla.
+ */
+export async function reopenAuction(
+  leagueId: string,
+  auctionId: string,
+  adminUserId: string
+): Promise<ServiceResult> {
+  const auction = await prisma.auction.findUnique({
+    where: { id: auctionId },
+    include: {
+      player: true,
+      marketSession: true,
+      bids: {
+        where: { isWinning: true, isCancelled: false },
+        take: 1,
+      },
+    },
+  })
+
+  if (!auction || auction.leagueId !== leagueId) {
+    return { success: false, message: 'Asta non trovata' }
+  }
+
+  // Verify admin
+  const admin = await prisma.leagueMember.findFirst({
+    where: {
+      leagueId,
+      userId: adminUserId,
+      role: MemberRole.ADMIN,
+      status: MemberStatus.ACTIVE,
+    },
+  })
+
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (auction.status !== AuctionStatus.COMPLETED) {
+    return { success: false, message: 'Solo aste completate possono essere riaperte' }
+  }
+
+  if (!auction.winnerId) {
+    return { success: false, message: 'Asta senza vincitore: nulla da riaprire' }
+  }
+
+  const winningBid = auction.bids[0]
+  if (!winningBid) {
+    return { success: false, message: 'Nessuna offerta vincente trovata' }
+  }
+
+  const winnerId = auction.winnerId
+  const refundedAmount = winningBid.amount
+
+  // Timer fresco per la ripresa (stessa logica di placeBid / resolveAppeal)
+  const timerSeconds =
+    auction.marketSession?.svincolatiTimerSeconds ??
+    auction.marketSession?.auctionTimerSeconds ??
+    30
+  const newTimerExpires = new Date(Date.now() + timerSeconds * 1000)
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Rimuovi roster + contratto creati alla chiusura (FK: contratto prima)
+      const roster = await tx.playerRoster.findFirst({
+        where: {
+          leagueMemberId: winnerId,
+          playerId: auction.playerId,
+          status: 'ACTIVE',
+        },
+      })
+
+      if (roster) {
+        await tx.playerContract.deleteMany({ where: { rosterId: roster.id } })
+        await tx.playerRoster.delete({ where: { id: roster.id } })
+      }
+
+      // 2. Ripristina il budget del vincitore (simmetrico al decrement di closeAuction)
+      await tx.leagueMember.update({
+        where: { id: winnerId },
+        data: { currentBudget: { increment: refundedAmount } },
+      })
+
+      // 3. Pulisci il movimento di assegnazione creato alla chiusura
+      await tx.playerMovement.deleteMany({ where: { auctionId } })
+
+      // 4. Riporta l'asta ad ACTIVE: niente vincitore, timer fresco, currentPrice
+      //    = ultima offerta valida. Le bids restano intatte (isWinning invariato).
+      await tx.auction.update({
+        where: { id: auctionId },
+        data: {
+          status: AuctionStatus.ACTIVE,
+          winnerId: null,
+          currentPrice: winningBid.amount,
+          timerExpiresAt: newTimerExpires,
+          timerSeconds,
+          endsAt: null,
+        },
+      })
+
+      // 5. Audit log (stesso pattern di cancelActiveAuction / rectifyTransaction)
+      await tx.auditLog.create({
+        data: {
+          userId: adminUserId,
+          leagueId,
+          action: 'AUCTION_REOPENED_BY_ADMIN',
+          entityType: 'Auction',
+          entityId: auctionId,
+          oldValues: {
+            status: AuctionStatus.COMPLETED,
+            winnerId,
+            finalPrice: refundedAmount,
+            playerName: auction.player.name,
+          } as never,
+          newValues: {
+            status: AuctionStatus.ACTIVE,
+            winnerId: null,
+            currentPrice: winningBid.amount,
+          } as never,
+        },
+      })
+    })
+  } catch (error) {
+    logError('ERROR', 'reopenAuction failed', {
+      leagueId,
+      auctionId,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return {
+      success: false,
+      message: `Errore nella riapertura dell'asta: ${
+        error instanceof Error ? error.message : 'Errore sconosciuto'
+      }`,
+    }
+  }
+
+  // Pusher fire-and-forget: notifica che l'asta è di nuovo aperta. Riusa
+  // AUCTION_STARTED come fa la ripresa post-ricorso lato client.
+  if (auction.marketSessionId) {
+    void triggerAuctionStarted(auction.marketSessionId, {
+      sessionId: auction.marketSessionId,
+      auctionType: auction.type,
+      nominatorId: admin.id,
+      nominatorName: 'Admin',
+      timestamp: new Date().toISOString(),
+    })
+  }
+
+  return {
+    success: true,
+    message: `Asta per ${auction.player.name} riaperta. Budget restituito (${refundedAmount}). Riprende dall'ultima offerta (${winningBid.amount}).`,
+    data: {
+      auctionId,
+      leagueId,
+      playerName: auction.player.name,
+      refundedAmount,
+      currentPrice: winningBid.amount,
+      timerExpiresAt: newTimerExpires,
+    },
+  }
+}
+
 // ==================== PRIMO MERCATO: NOMINA GIOCATORE (Manager) ====================
 
 export async function nominatePlayerByManager(
