@@ -349,7 +349,7 @@ Arrotondamento per ECCESSO (Math.ceil).
 
 ## 10. REGOLE IMPORTANTI
 
-1. **Bilancio puo essere negativo**: il monte ingaggi puo superare il budget, rendendo il bilancio negativo. Non e vietato ma limita le operazioni di mercato.
+1. **Bilancio negativo — solo durante il mercato**: per effetto di operazioni gia validate (rubata, svincolati) il monte ingaggi puo temporaneamente superare il budget, rendendo il bilancio incrementale negativo. **Al consolidamento (Fase 3), invece, il bilancio deve essere >= 0**: non si puo consolidare in rosso — il sistema blocca il consolidamento se il monte ingaggi supera il budget, e il manager deve tagliare ingaggi per rientrare.
 
 2. **Budget sempre >= 0**: il budget (liquidita) non puo mai essere negativo. Il sistema valida la disponibilita prima di ogni operazione (asta, rubata, taglio, scambio).
 

@@ -17,7 +17,7 @@
 - **Provider**: api-sports.io (v3)
 - **Dati**: Presenze, gol, assist, voto medio, cartellini, tiri, passaggi, etc.
 - **Frequenza**: Aggiornamento settimanale (limiti API: 100 call/giorno piano Free)
-- **Modello DB**: `SerieAPlayer.apiFootballId` (link) + campi statistiche
+- **Modello DB**: `SerieAPlayer.apiFootballId` (link) + statistiche salvate come **blob JSON** nel campo `SerieAPlayer.apiFootballStats` (i campi elencati in §4 sono chiavi del JSON, non colonne DB dedicate)
 - **Lega**: Serie A (ID 135), Stagione corrente (2025)
 
 ---

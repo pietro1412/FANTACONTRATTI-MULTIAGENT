@@ -45,7 +45,7 @@ All'apertura del mercato ricorrente, PRIMA di qualsiasi fase:
 1. **Tutti i contratti attivi**: `durata -= 1`
 2. **Ricalcolo clausole** rescissorie con nuove durate
 3. **Contratti con durata 0**: giocatore diventa svincolato automaticamente (evento tracciato)
-4. **Giocatori ESTERO/RETROCESSO**: gestiti separatamente (possono cambiare stato con aggiornamento quotazioni)
+4. **Giocatori ESTERO/RETROCESSO**: NON gestiti all'apertura. All'apertura si auto-svincolano solo i contratti scaduti (durata 0) e i giocatori RITIRATI. I giocatori ESTERO/RETROCESSO sono gestiti dal manager in **Fase 3 (Rinnovi)** con scelta KEEP/RELEASE (vedi §5.2 e Bibbia GIOCATORI.md §5). Possono cambiare stato con l'aggiornamento quotazioni.
 5. **Comunicazione**: ogni manager vede chiaramente la situazione contrattuale aggiornata e gli eventi (svincoli, partenze estero/serie B)
 
 **NOTA:** I dati possono cambiare durante il periodo di mercato a fronte di aggiornamenti del file quotazioni.
