@@ -8,6 +8,26 @@ Legenda stato: ⬜ da fare · 🔄 in corso · ✅ fatto
 
 ---
 
+## 🚀 STATO IMPLEMENTAZIONE — Sprint A (aggiornato 2026-06-05)
+
+**Fatti e committati** (typecheck + 1696 test verdi):
+- ✅ TR-1 — rimosso dead code `src/modules/` (9 moduli + barrel + file dead di identity)
+- ✅ T5-D — rimossa pagina Indennizzi + path residuo CALCOLO_INDENNIZZI
+- ✅ TR-2 (T6-1 / T7-1) — riserva-1-credito uniformata alle Bibbie (Rubata + Svincolati)
+- ✅ T5-F — rinnovo post-trade condizionale al timing; ✅ T5-G — fallback moltiplicatore + costante indennizzo
+- ✅ T1-B1 — msg "3 semestri"; ✅ T1-B2 — bug pause/resume (ricevevano leagueId, cercavano per id); ✅ T2-4 — logging sui catch muti
+- ✅ T2-1 / T5-C / T8-3 — Bibbie aggiornate (esteri timing, bilancio al consolidamento, modello statistiche JSON)
+
+**Rimanenti Sprint A** (cleanup/bug più delicati, in serie):
+- ⬜ T5-B — reset `preConsolidation*` a fine fase
+- ⬜ T4-3 — indennizzo custom per-giocatore non letto al RELEASE (cross-file prize/contract)
+- ⬜ T6-2 — dedup logica chiusura Rubata
+- ⬜ T7-5 — rimuovere funzioni legacy Svincolati
+
+Poi → Sprint B (feature) e Sprint C (formula indennizzo + nice-to-have).
+
+---
+
 ## T1 — Setup: Registrazione Lega + Primo Mercato
 
 Primo Mercato implementato ~100% (formule contratto, slot ruolo, riserva budget, timer, rettifiche, anti-misclick). Gap concentrati su gestione lega.
@@ -63,7 +83,7 @@ Formule core **corrette e fedeli**: clausola {4:11,3:9,2:7,1:3}, costo taglio CE
 | T5-A | **Formula indennizzo ESTERO divergente tra due path**: `consolidateContracts` usa valore pieno; `submitPlayerDecisions`/`autoProcess` usano `MIN(clausola, indennizzo)` (cap NON previsto da Bibbia) | **RISOLVERE** con formula unica (lega a T4-2) | ⬜ |
 | T5-B | Reset `preConsolidation*`→null a fine fase ASSENTE (CONTRATTI §12.2): i dati congelati restano valorizzati | **BUG-FIX** | ⬜ |
 | T5-C | Guard `postMonteIngaggi > budget` blocca il consolidamento, ma FINANZE §10.1 consente bilancio **negativo** | **AGGIORNA BIBBIA** FINANZE §10.1 (no bilancio negativo al consolidamento); mantieni guard | ⬜ |
-| T5-D | Doppio path KEEP/RELEASE. Attivo: `Contracts.tsx`→`consolidateContracts` (nel menu). Residuo: `Indemnity.tsx` + route `/indemnity` + `submitPlayerDecisions` + `indemnityApi` (tolto dal menu ma raggiungibile via URL/palette, formula divergente MIN(clausola,indennizzo)) | ✅ **RIMUOVERE path residuo** (confermato utente) | ⬜ |
+| T5-D | Doppio path KEEP/RELEASE. Attivo: `Contracts.tsx`→`consolidateContracts` (nel menu). Residuo: `Indemnity.tsx` + route `/indemnity` + `submitPlayerDecisions` + `indemnityApi` (tolto dal menu ma raggiungibile via URL/palette, formula divergente MIN(clausola,indennizzo)) | ✅ **RIMUOVERE path residuo** (confermato utente) | ✅ FATTO |
 | T5-E | Codice morto `autoProcessExitedPlayers` (= T2-2) | **BUG-FIX** rimuovere | ⬜ |
 | T5-F | Blocco rinnovo contratti acquisiti via TRADE (`contract.service.ts:608-610`) è incondizionato | **DOCUMENTARE + CORREGGERE**: rinnovabile se lo scambio avviene PRIMA della fase contratti; NON rinnovabile se avviene DOPO (Fase 6) → fino al ciclo successivo | ⬜ |
 | T5-G | Minori: ricevuta consolidamento conta come "rinnovo" modifiche di sessioni precedenti; fallback moltiplicatore incoerente (`\|\|7` vs `??3`); default `50` hardcoded sparso | **CLEANUP** | ⬜ |
@@ -82,7 +102,7 @@ Implementata molto bene. Formule finanziarie conformi a FINANZE §3 (prezzo=clau
 |----|-----|-----------|-------|
 | T6-1 | Riserva 1 credito sul rilancio (`amount ≤ bilancio−1`) incoerente con offerta iniziale (`≥`, no riserva); Bibbia §4.2 vuole `bilancio ≥ amount` | **BUG-FIX** uniformare a Bibbia (no riserva), salvo obiezione | ⬜ |
 | T6-2 | Duplicazione logica di chiusura (auto-close `getRubataBoard:1038` vs `closeCurrentRubataAuction:1992`) | **CLEANUP** estrarre funzione condivisa | ⬜ |
-| T6-3 | Dead code `src/modules/rubata/` (router non montato): stub 501 DELETE board (era "C2") + POST board errato | **BUG-FIX** rimuovere dead code — **C2 ridimensionato: non è feature mancante** | ⬜ |
+| T6-3 | Dead code `src/modules/rubata/` (router non montato): stub 501 DELETE board (era "C2") + POST board errato | **BUG-FIX** rimuovere dead code — **C2 ridimensionato: non è feature mancante** | ✅ (in TR-1) |
 
 ## T7 — Fase 5 — Svincolati
 
@@ -92,7 +112,7 @@ Implementata bene. Formule contratto default corrette (ingaggio=max(1,round(prez
 |----|-----|-----------|-------|
 | T7-1 | Verifica pre-offerta riserva 1 credito (`bilancio−1`) divergente da Bibbia §5.2 e incoerente con la nomina (`<2`, corretta). Stesso pattern di T6-1 | **BUG-FIX** uniformare (coerenza con T6-1) | ⬜ |
 | T7-2 | Real-time Pusher assente nel layer attivo (eventi solo nel dead code modules); il client fa polling `/board` | **IMPLEMENTARE** Pusher real-time (coerenza con Rubata) | ⬜ |
-| T7-3 | Dead code `src/modules/svincolati/` (il "C3" `activeAuction: null`) non cablato | **BUG-FIX** rimuovere — **C3 ridimensionato: non è feature mancante** | ⬜ |
+| T7-3 | Dead code `src/modules/svincolati/` (il "C3" `activeAuction: null`) non cablato | **BUG-FIX** rimuovere — **C3 ridimensionato: non è feature mancante** | ✅ (in TR-1) |
 | T7-4 | Pausa admin-only (Bibbia §3.3: anche il manager può richiederla); annullo/rettifica svincolati con restituzione crediti non confermato nel service | **VERIFICARE** + eventuale fix | ⬜ |
 | T7-5 | Funzioni legacy `startFreeAgentAuction`/`closeFreeAgentAuction` coesistono col flusso a-turni (entrambe montate) | **CLEANUP** rimuovere legacy | ⬜ |
 
@@ -112,7 +132,7 @@ Implementata bene. Formule contratto default corrette (ingaggio=max(1,round(prez
 
 | ID | Tema | Note | Decisione |
 |----|------|------|-----------|
-| TR-1 | **Dead code `src/modules/`** | Layer DDD scaffolding non cablato (rubata, svincolati, e parz. league/auction/identity/trade/prize): duplica logica e contiene i falsi "C2/C3" (501/TODO) | **RIMUOVERE** il dead code non cablato (DDD resta target per codice NUOVO) |
+| TR-1 | **Dead code `src/modules/`** | Layer DDD scaffolding non cablato (rubata, svincolati, e parz. league/auction/identity/trade/prize): duplica logica e contiene i falsi "C2/C3" (501/TODO) | ✅ **FATTO** — rimossi 9 moduli + barrel + dead di identity (DDD resta target per codice NUOVO) |
 | TR-2 | **Riserva 1 credito** | Incoerente in rubata (T6-1) e svincolati (T7-1) | Fix unico di coerenza → uniformare a Bibbia |
 | TR-3 | **Rettifica/correzione admin** | Richiesta in più fasi (T4-1 premi, T5 contratti) | Valutare sistema unico di rettifica admin post-consolidamento |
 | TR-4 | **Formula indennizzo ESTERO** | Input mancante dall'utente | Blocca T4-2 / T5-A |
