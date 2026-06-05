@@ -976,3 +976,70 @@ export async function cancelTradeOffer(tradeId: string, userId: string): Promise
     message: 'Offerta cancellata',
   }
 }
+
+// ==================== ONGOING TRADES INDICATOR ====================
+
+/**
+ * Returns an AGGREGATED / anonymous indicator of ongoing (PENDING) trade
+ * negotiations in the league that do NOT involve the requesting user.
+ *
+ * Bibbia §3.5: other managers must know that negotiations are happening,
+ * WITHOUT seeing any details. This function intentionally exposes ONLY:
+ *  - the count of pending negotiations not involving the user
+ *  - the anonymized manager pairs involved (usernames only)
+ * It NEVER exposes players, budgets, messages or any trade content.
+ */
+export async function getOngoingTradesIndicator(
+  leagueId: string,
+  userId: string
+): Promise<ServiceResult> {
+  const member = await prisma.leagueMember.findFirst({
+    where: { leagueId, userId, status: MemberStatus.ACTIVE },
+  })
+  if (!member) {
+    return { success: false, message: 'Non sei membro di questa lega' }
+  }
+
+  // Get active session — indicator is scoped to the current market session
+  const activeSession = await prisma.marketSession.findFirst({
+    where: { leagueId, status: 'ACTIVE' },
+  })
+  if (!activeSession) {
+    return { success: true, data: { count: 0, pairs: [] } }
+  }
+
+  // Pending offers in this session NOT involving the user (neither sender nor receiver)
+  const offers = await prisma.tradeOffer.findMany({
+    where: {
+      marketSessionId: activeSession.id,
+      status: TradeStatus.PENDING,
+      expiresAt: { gt: new Date() },
+      senderId: { not: userId },
+      receiverId: { not: userId },
+    },
+    select: {
+      senderId: true,
+      receiverId: true,
+      sender: { select: { username: true } },
+      receiver: { select: { username: true } },
+    },
+  })
+
+  // Deduplicate manager pairs (anonymized: usernames only, no trade content)
+  const seenPairs = new Set<string>()
+  const pairs: Array<{ a: string; b: string }> = []
+  for (const offer of offers) {
+    const key = [offer.senderId, offer.receiverId].sort().join('|')
+    if (seenPairs.has(key)) continue
+    seenPairs.add(key)
+    pairs.push({ a: offer.sender.username, b: offer.receiver.username })
+  }
+
+  return {
+    success: true,
+    data: {
+      count: offers.length,
+      pairs,
+    },
+  }
+}

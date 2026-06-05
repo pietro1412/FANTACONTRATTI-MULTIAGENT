@@ -141,6 +141,27 @@ export interface SvincolatiReadyChangedData {
   totalMembers: number;
 }
 
+export interface SvincolatiAuctionClosedData {
+  sessionId: string;
+  auctionId: string;
+  playerId: string;
+  playerName: string;
+  winnerId: string | null;
+  winnerUsername: string | null;
+  finalPrice: number | null;
+  wasUnsold: boolean;
+  timestamp: string;
+}
+
+export interface SvincolatiTurnAdvancedData {
+  sessionId: string;
+  state: string;
+  nextTurnMemberId: string | null;
+  nextTurnUsername: string | null;
+  completed: boolean;
+  timestamp: string;
+}
+
 // ==================== TRADE TYPES ====================
 
 export interface TradeOfferReceivedData {
@@ -188,6 +209,8 @@ export interface AuctionEventHandlers {
   onSvincolatiNomination?: (data: SvincolatiNominationData) => void;
   onSvincolatiBidPlaced?: (data: SvincolatiBidPlacedData) => void;
   onSvincolatiReadyChanged?: (data: SvincolatiReadyChangedData) => void;
+  onSvincolatiAuctionClosed?: (data: SvincolatiAuctionClosedData) => void;
+  onSvincolatiTurnAdvanced?: (data: SvincolatiTurnAdvancedData) => void;
   // Indemnity events
   onIndemnityDecisionSubmitted?: (data: IndemnityDecisionSubmittedData) => void;
   onIndemnityAllDecided?: (data: IndemnityAllDecidedData) => void;
@@ -308,6 +331,14 @@ export function subscribeToAuction(
     channel.bind('svincolati-ready-changed', handlers.onSvincolatiReadyChanged);
   }
 
+  if (handlers.onSvincolatiAuctionClosed) {
+    channel.bind('svincolati-auction-closed', handlers.onSvincolatiAuctionClosed);
+  }
+
+  if (handlers.onSvincolatiTurnAdvanced) {
+    channel.bind('svincolati-turn-advanced', handlers.onSvincolatiTurnAdvanced);
+  }
+
   // Indemnity events
   if (handlers.onIndemnityDecisionSubmitted) {
     channel.bind('indemnity-decision-submitted', handlers.onIndemnityDecisionSubmitted);
@@ -402,6 +433,12 @@ export function unbindAuctionHandlers(
     if (handlers.onSvincolatiReadyChanged) {
       channel.unbind('svincolati-ready-changed', handlers.onSvincolatiReadyChanged);
     }
+    if (handlers.onSvincolatiAuctionClosed) {
+      channel.unbind('svincolati-auction-closed', handlers.onSvincolatiAuctionClosed);
+    }
+    if (handlers.onSvincolatiTurnAdvanced) {
+      channel.unbind('svincolati-turn-advanced', handlers.onSvincolatiTurnAdvanced);
+    }
     // Indemnity events
     if (handlers.onIndemnityDecisionSubmitted) {
       channel.unbind('indemnity-decision-submitted', handlers.onIndemnityDecisionSubmitted);
@@ -435,6 +472,8 @@ export interface UsePusherAuctionOptions {
   onSvincolatiNomination?: (data: SvincolatiNominationData) => void;
   onSvincolatiBidPlaced?: (data: SvincolatiBidPlacedData) => void;
   onSvincolatiReadyChanged?: (data: SvincolatiReadyChangedData) => void;
+  onSvincolatiAuctionClosed?: (data: SvincolatiAuctionClosedData) => void;
+  onSvincolatiTurnAdvanced?: (data: SvincolatiTurnAdvancedData) => void;
   // Indemnity events
   onIndemnityDecisionSubmitted?: (data: IndemnityDecisionSubmittedData) => void;
   onIndemnityAllDecided?: (data: IndemnityAllDecidedData) => void;
@@ -509,6 +548,8 @@ export function usePusherAuction(
       onSvincolatiNomination: (data) => handlersRef.current.onSvincolatiNomination?.(data),
       onSvincolatiBidPlaced: (data) => handlersRef.current.onSvincolatiBidPlaced?.(data),
       onSvincolatiReadyChanged: (data) => handlersRef.current.onSvincolatiReadyChanged?.(data),
+      onSvincolatiAuctionClosed: (data) => handlersRef.current.onSvincolatiAuctionClosed?.(data),
+      onSvincolatiTurnAdvanced: (data) => handlersRef.current.onSvincolatiTurnAdvanced?.(data),
       // Pause request event
       onPauseRequested: (data) => handlersRef.current.onPauseRequested?.(data),
     };

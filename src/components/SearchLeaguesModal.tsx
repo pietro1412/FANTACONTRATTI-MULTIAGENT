@@ -100,7 +100,7 @@ export function SearchLeaguesModal({ isOpen, onClose, onNavigate: _onNavigate }:
           </div>
           <div>
             <h2 className="text-lg font-bold text-white">Cerca Leghe</h2>
-            <p className="text-xs text-gray-400">Trova leghe esistenti a cui unirti</p>
+            <p className="text-xs text-gray-400">Trova leghe pubbliche a cui unirti</p>
           </div>
         </div>
 
@@ -190,6 +190,11 @@ export function SearchLeaguesModal({ isOpen, onClose, onNavigate: _onNavigate }:
                           <h3 className="text-base font-semibold text-white truncate">
                             {league.name}
                           </h3>
+                          {/* Tutte le leghe restituite dalla ricerca sono pubbliche (filtro backend) */}
+                          <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-secondary-500/20 text-secondary-400 flex items-center gap-1">
+                            <span aria-hidden="true">🌐</span>
+                            Pubblica
+                          </span>
                           <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${status.color}`}>
                             {status.label}
                           </span>
@@ -242,9 +247,12 @@ export function SearchLeaguesModal({ isOpen, onClose, onNavigate: _onNavigate }:
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 bg-surface-300/30 border-t border-surface-50/20 text-center">
+        <div className="px-6 py-3 bg-surface-300/30 border-t border-surface-50/20 text-center space-y-1">
           <p className="text-xs text-gray-500">
-            Puoi anche unirti a una lega usando il codice invito nella pagina di join
+            La ricerca mostra solo leghe pubbliche. Le leghe private si raggiungono solo tramite codice invito.
+          </p>
+          <p className="text-xs text-gray-500">
+            Puoi unirti a una lega privata usando il codice invito nella pagina di join.
           </p>
         </div>
       </Modal>

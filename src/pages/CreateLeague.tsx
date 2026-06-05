@@ -50,6 +50,8 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
   const [defenderSlots, setDefenderSlots] = useState(8)
   const [midfielderSlots, setMidfielderSlots] = useState(8)
   const [forwardSlots, setForwardSlots] = useState(6)
+  // Default: lega privata (isPublic = false) -> accessibile solo su invito
+  const [isPublic, setIsPublic] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [inviteCode, setInviteCode] = useState('')
@@ -72,6 +74,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
       midfielderSlots,
       forwardSlots,
       teamName,
+      isPublic,
     })
 
     if (response.success && response.data) {
@@ -237,6 +240,60 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                         error={fieldErrors.initialBudget}
                       />
                     </div>
+                  </div>
+                </div>
+
+                {/* Section: Visibilità */}
+                <div className="space-y-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-xl">🔒</span>
+                    <h3 className="text-xl font-bold text-white">Visibilità</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => { setIsPublic(false); }}
+                      aria-pressed={!isPublic}
+                      className={`text-left rounded-xl p-5 border-2 transition-all duration-200 ${
+                        !isPublic
+                          ? 'border-primary-500 bg-primary-500/10 shadow-glow'
+                          : 'border-surface-50/20 bg-surface-300 hover:border-surface-50/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-lg">🔒</span>
+                        <span className="font-bold text-white">Privata</span>
+                        {!isPublic && (
+                          <span className="ml-auto text-xs font-medium text-primary-400">Selezionata</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-400">
+                        Accessibile solo su invito tramite codice. Non compare nella ricerca pubblica.
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => { setIsPublic(true); }}
+                      aria-pressed={isPublic}
+                      className={`text-left rounded-xl p-5 border-2 transition-all duration-200 ${
+                        isPublic
+                          ? 'border-secondary-500 bg-secondary-500/10 shadow-glow'
+                          : 'border-surface-50/20 bg-surface-300 hover:border-surface-50/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-lg">🌐</span>
+                        <span className="font-bold text-white">Pubblica</span>
+                        {isPublic && (
+                          <span className="ml-auto text-xs font-medium text-secondary-400">Selezionata</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-400">
+                        Ricercabile da tutti: chiunque può trovarla e richiedere di unirsi.
+                      </p>
+                    </button>
                   </div>
                 </div>
 

@@ -168,6 +168,7 @@ export const leagueApi = {
     midfielderSlots?: number
     forwardSlots?: number
     requireEvenNumber?: boolean
+    isPublic?: boolean
   }) => request('/api/leagues', { method: 'POST', body: JSON.stringify(data) }),
 
   getAll: () => request('/api/leagues'),
@@ -852,6 +853,10 @@ export const tradeApi = {
   // Get trade history
   getHistory: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/trades/history`),
+
+  // Get anonymized indicator of ongoing trades not involving the user
+  getOngoingIndicator: (leagueId: string) =>
+    request(`/api/leagues/${leagueId}/trades/ongoing-indicator`),
 
   // Accept trade
   accept: (tradeId: string) =>

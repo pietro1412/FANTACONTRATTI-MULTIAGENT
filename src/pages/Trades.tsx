@@ -16,6 +16,7 @@ import {
   type TradeOffer, type LeagueMember, type RosterEntry, type MarketSession,
   getTimeRemaining,
   PlayersTable,
+  CounterOfferModal,
 } from '../components/trades'
 
 interface TradesProps {
@@ -75,6 +76,12 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
   // Player stats modal
   const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerInfo | null>(null)
 
+  // Counter offer modal
+  const [counterOffer, setCounterOffer] = useState<TradeOffer | null>(null)
+
+  // Ongoing trades indicator (anonymized, league-wide, not involving the user)
+  const [ongoingTradesCount, setOngoingTradesCount] = useState(0)
+
   // Contract modification after trade acceptance
   interface ReceivedPlayerForModification {
     rosterId: string
@@ -127,7 +134,7 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
     setLoadError('')
 
     try {
-    const [receivedRes, sentRes, membersRes, rosterRes, sessionsRes, leagueRes, allRostersRes, financialsRes, historyRes] = await Promise.all([
+    const [receivedRes, sentRes, membersRes, rosterRes, sessionsRes, leagueRes, allRostersRes, financialsRes, historyRes, ongoingRes] = await Promise.all([
       tradeApi.getReceived(leagueId),
       tradeApi.getSent(leagueId),
       leagueApi.getMembers(leagueId),
@@ -137,7 +144,16 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
       auctionApi.getLeagueRosters(leagueId),
       leagueApi.getFinancials(leagueId),
       tradeApi.getHistory(leagueId),
+      // Non-essential indicator: a failure here must not blank the whole page
+      Promise.resolve()
+        .then(() => tradeApi.getOngoingIndicator(leagueId))
+        .catch((): { success: boolean; data?: unknown } => ({ success: false })),
     ])
+
+    if (ongoingRes.success && ongoingRes.data) {
+      const data = ongoingRes.data as { count?: number }
+      setOngoingTradesCount(typeof data.count === 'number' ? data.count : 0)
+    }
 
     if (leagueRes.success && leagueRes.data) {
       const data = leagueRes.data as { userMembership?: { role: string } }
@@ -571,7 +587,20 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                 </p>
               </div>
             </div>
-            {/* Budget shown in DealFinanceBar below */}
+            {/* Ongoing trades indicator (anonymized: count only, no details) */}
+            {ongoingTradesCount > 0 && (
+              <div
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-500/15 border border-accent-500/30 text-accent-400 text-xs font-medium"
+                title="Altre trattative sono in corso nella lega. I dettagli non sono visibili."
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                <span>
+                  {ongoingTradesCount} {ongoingTradesCount === 1 ? 'trattativa in corso' : 'trattative in corso'} nella lega
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -983,6 +1012,12 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
                             </svg>
                             Accetta Scambio
                           </Button>
+                          <Button variant="outline" onClick={() => { setCounterOffer(offer); }} className="flex-1">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                            Controfferta
+                          </Button>
                           <Button variant="outline" onClick={() => { void handleReject(offer.id) }} className="flex-1">
                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1281,6 +1316,23 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         onClose={() => { setSelectedPlayerStats(null); }}
         player={selectedPlayerStats}
       />
+
+      {/* Counter Offer Modal */}
+      {counterOffer && (
+        <CounterOfferModal
+          isOpen={true}
+          onClose={() => { setCounterOffer(null); }}
+          offer={counterOffer}
+          myRoster={myRoster}
+          allOtherPlayers={allOtherPlayers}
+          onCountered={() => {
+            setSuccess('Controfferta inviata!')
+            haptic.send()
+            void loadData()
+            setActiveTab('sent')
+          }}
+        />
+      )}
 
       {/* Contract Modification Modal after Trade Acceptance */}
       {isModifyingContract && currentPlayerForModification && currentPlayerForModification.contract && (

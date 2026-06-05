@@ -9,6 +9,7 @@ import {
   counterOffer,
   cancelTradeOffer,
   getTradeHistory,
+  getOngoingTradesIndicator,
 } from '../../services/trade.service'
 import { authMiddleware } from '../middleware/auth'
 
@@ -124,6 +125,24 @@ router.get('/leagues/:leagueId/trades/history', authMiddleware, async (req: Requ
     res.json(result)
   } catch (error) {
     console.error('Get trade history error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:leagueId/trades/ongoing-indicator - Anonymized ongoing trades indicator
+router.get('/leagues/:leagueId/trades/ongoing-indicator', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const leagueId = req.params.leagueId as string
+    const result = await getOngoingTradesIndicator(leagueId, req.user!.userId)
+
+    if (!result.success) {
+      res.status(400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Get ongoing trades indicator error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

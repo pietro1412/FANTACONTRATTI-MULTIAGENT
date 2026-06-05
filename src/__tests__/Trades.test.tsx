@@ -112,6 +112,7 @@ vi.mock('../components/finance/types', () => ({}))
 const mockGetReceived = vi.fn()
 const mockGetSent = vi.fn()
 const mockGetHistory = vi.fn()
+const mockGetOngoingIndicator = vi.fn()
 const mockCreate = vi.fn()
 const mockAcceptTrade = vi.fn()
 const mockRejectTrade = vi.fn()
@@ -133,6 +134,7 @@ vi.mock('../services/api', () => ({
     accept: (...args: unknown[]) => mockAcceptTrade(...args),
     reject: (...args: unknown[]) => mockRejectTrade(...args),
     cancel: (...args: unknown[]) => mockCancelTrade(...args),
+    getOngoingIndicator: (...args: unknown[]) => mockGetOngoingIndicator(...args),
   },
   auctionApi: {
     getRoster: (...args: unknown[]) => mockGetRoster(...args),
@@ -161,6 +163,7 @@ function setupDefaultMocks() {
   mockGetReceived.mockResolvedValue({ success: true, data: [] })
   mockGetSent.mockResolvedValue({ success: true, data: [] })
   mockGetHistory.mockResolvedValue({ success: true, data: [] })
+  mockGetOngoingIndicator.mockResolvedValue({ success: true, data: { count: 0, pairs: [] } })
   mockGetMembers.mockResolvedValue({
     success: true,
     data: {

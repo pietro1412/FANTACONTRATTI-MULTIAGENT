@@ -108,25 +108,22 @@ export function useSvincolatiState(leagueId: string) {
     void loadFreeAgents()
   }, [loadFreeAgents])
 
-  // Poll for board updates (fallback, Pusher handles instant updates)
-  useEffect(() => {
-    const interval = setInterval(() => { void loadBoard() }, 8000)
-    return () => { clearInterval(interval); }
-  }, [loadBoard])
-
-  // Pusher real-time updates (#110, #113)
+  // Pusher real-time updates (T7-2 wiring)
+  // Channel: auction-{sessionId} — events emitted by svincolati.service.ts
+  // (svincolati-state-changed, svincolati-nomination, svincolati-bid-placed,
+  //  svincolati-ready-changed, svincolati-auction-closed, svincolati-turn-advanced).
+  // Each handler refetches the board for a consistent state; bids also apply an
+  // optimistic update for instant feedback. Cleanup (unsubscribe) is handled
+  // inside usePusherAuction's own effect when sessionId changes / unmounts.
   const { isConnected: isPusherConnected } = usePusherAuction(board?.sessionId, {
     onSvincolatiStateChanged: () => {
-      console.log('[Pusher] Svincolati state changed')
       void loadBoard()
     },
     onSvincolatiNomination: () => {
-      console.log('[Pusher] Svincolati nomination')
       void loadBoard()
     },
     onSvincolatiBidPlaced: (data) => {
-      console.log('[Pusher] Svincolati bid placed', data)
-      // Instant UI update for bids from others
+      // Instant UI update for bids from others, then reconcile with the server
       if (data.bidderId !== board?.myMemberId) {
         setBoard(prev => {
           if (!prev?.activeAuction) return prev
@@ -146,23 +143,26 @@ export function useSvincolatiState(leagueId: string) {
       setTimeout(() => { void loadBoard() }, 100)
     },
     onSvincolatiReadyChanged: (data) => {
-      console.log('[Pusher] Svincolati ready changed', data)
       setBoard(prev => prev ? { ...prev, readyMembers: data.readyMembers } : prev)
+      // Refetch to pick up any derived state (e.g. all-ready transitions)
+      setTimeout(() => { void loadBoard() }, 100)
     },
-    onBidPlaced: (data) => {
-      // Also listen to generic bid events (used by svincolati auction engine)
-      console.log('[Pusher] Generic bid placed in svincolati', data)
+    onSvincolatiAuctionClosed: () => {
       void loadBoard()
     },
-    onAuctionClosed: () => {
-      console.log('[Pusher] Svincolati auction closed')
-      void loadBoard()
-    },
-    onMemberReady: () => {
-      console.log('[Pusher] Svincolati member ready')
+    onSvincolatiTurnAdvanced: () => {
       void loadBoard()
     },
   })
+
+  // Poll for board updates as a fallback. When Pusher is connected, real-time
+  // events drive updates, so we slow the poll to a low-frequency safety net;
+  // when disconnected we keep the original cadence.
+  useEffect(() => {
+    const intervalMs = isPusherConnected ? 20000 : 8000
+    const interval = setInterval(() => { void loadBoard() }, intervalMs)
+    return () => { clearInterval(interval); }
+  }, [loadBoard, isPusherConnected])
 
   // Send heartbeat every 3 seconds to track connection status
   useEffect(() => {
