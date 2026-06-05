@@ -191,11 +191,13 @@ Questi file contengono le regole di business core. **NON modificare senza confer
 - Global error handler non utilizzato (route handlers non chiamano `next(err)`)
 - ~36 `console.log` residui nei services → da rimuovere
 - `auction-room/` e `auction-room-v2/` coesistono → v2 è quella attiva
-- Nessun ErrorBoundary React
-- Nessuna logging library strutturata
 
 ## Documenti di Riferimento
 
-- `docs/bibbie/` — 11 documenti di regolamento ("Bibbie")
-- `docs/SESSION-CONTEXT.md` — Contesto sessioni precedenti con decisioni prese
-- `fantacontratti-prompt-v2-final.md` — Prompt originale (riferimento storico, schema DB obsoleto)
+Gerarchia delle fonti di verità (in caso di conflitto, vince la fonte più in alto per il suo dominio):
+
+- **Regole di gioco** → `docs/bibbie/` — **10 documenti** di regolamento ("Bibbie"). Ordine di lettura e dipendenze in `docs/bibbie/INDEX.md`.
+- **Architettura, convenzioni, comandi** → questo file (`CLAUDE.md`).
+- **Stato & roadmap** → `docs/PROJECT-STATUS.md` (stato tecnico consolidato, gap, roadmap).
+- **Storici** (solo reference, NON aggiornare) → `docs/SESSION-CONTEXT.md`, `docs/GAP-ANALYSIS-REPORT.md` (decisioni e gap fermi a febbraio 2026).
+- **Archivio** (obsoleto) → `docs/archive/` (es. `fantacontratti-prompt-v2-final.md`, schema DB superato).

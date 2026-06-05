@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Fantacontratti — Native App (Android/iOS) Mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--body:#0a0a0b;--card:#1a1c20;--s50:#2d3139;--s100:#252830;--s200:#1a1c20;--s300:#111214;
+--primary:#3b82f6;--primary-h:#2563eb;--secondary:#22c55e;--accent:#f59e0b;--danger:#ef4444;
+--text:#f3f4f6;--text2:#9ca3af;--dim:#6b7280;--border:rgba(42,49,66,0.2);
+--radius:0.75rem;--shadow:0 4px 20px rgba(0,0,0,0.4);
+--glow-blue:0 0 20px rgba(59,130,246,0.3);
+/* Old app colors for BEFORE */
+--old-bg:#1a1a2e;--old-card:#252542;--old-primary:#6366F1;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--body);color:var(--text);line-height:1.6;overflow-x:hidden}
+h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif;font-weight:700}
+.num{font-family:'Oswald',sans-serif}
+
+/* LAYOUT */
+.sidebar{position:fixed;top:0;left:0;width:260px;height:100vh;background:var(--s300);border-right:1px solid var(--border);overflow-y:auto;z-index:100;padding:1rem 0;transition:transform .3s}
+.main-content{margin-left:260px;flex:1;padding:2rem 2.5rem 4rem}
+@media(max-width:1024px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main-content{margin-left:0;padding:1rem}.burger-btn{display:flex!important}}
+.sidebar-header{padding:0.75rem 1rem;border-bottom:1px solid var(--border);margin-bottom:0.5rem}
+.sidebar-header h3{font-size:0.85rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px}
+.nav-group{margin-bottom:0.25rem}
+.nav-group-title{padding:0.5rem 1rem;font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--dim)}
+.nav-items a{display:block;padding:0.35rem 1rem 0.35rem 1.5rem;font-size:0.8rem;color:var(--text2);text-decoration:none;border-left:2px solid transparent;transition:all .15s}
+.nav-items a:hover{color:var(--text);background:rgba(59,130,246,0.08);border-left-color:var(--primary)}
+.pdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.burger-btn{display:none;position:fixed;top:1rem;left:1rem;z-index:200;width:40px;height:40px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1.2rem;cursor:pointer;align-items:center;justify-content:center}
+
+/* HEADER */
+.page-header{text-align:center;padding:2.5rem 0 2rem;border-bottom:1px solid var(--border);margin-bottom:2.5rem}
+.page-header h1{font-size:2.2rem;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:0.5rem}
+.page-header .subtitle{font-size:1rem;color:var(--text2);margin-bottom:1rem}
+.psummary{display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap}
+.pbadge{padding:0.4rem 1rem;border-radius:2rem;font-size:0.85rem;font-weight:600}
+.pb-c{background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3)}
+.pb-h{background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.3)}
+.pb-m{background:rgba(234,179,8,0.15);color:#facc15;border:1px solid rgba(234,179,8,0.3)}
+.pb-l{background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3)}
+
+/* SECTION DIVIDERS */
+.sd{margin:3rem 0 2rem;padding:1rem 1.5rem;border-radius:var(--radius);display:flex;align-items:center;gap:1rem}
+.sd h2{font-size:1.4rem}
+.sd-c{background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(239,68,68,0.03));border-left:4px solid var(--danger)}
+.sd-h{background:linear-gradient(135deg,rgba(245,158,11,0.12),rgba(245,158,11,0.03));border-left:4px solid var(--accent)}
+.sd-m{background:linear-gradient(135deg,rgba(234,179,8,0.12),rgba(234,179,8,0.03));border-left:4px solid #eab308}
+.sd-l{background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(59,130,246,0.03));border-left:4px solid var(--primary)}
+
+/* TASK */
+.ts{margin-bottom:3rem;scroll-margin-top:1.5rem}
+.tc{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.th{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.tn{font-family:'Oswald';font-size:1.1rem;color:var(--accent);font-weight:600}
+.tt{font-size:1.1rem;font-weight:600;flex:1}
+.badge{padding:0.2rem 0.65rem;border-radius:1rem;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+.b-c{background:rgba(239,68,68,0.2);color:#f87171}
+.b-h{background:rgba(245,158,11,0.2);color:#fbbf24}
+.b-m{background:rgba(234,179,8,0.2);color:#facc15}
+.b-l{background:rgba(59,130,246,0.2);color:#60a5fa}
+.b-e{background:rgba(139,92,246,0.2);color:#a78bfa;margin-left:0.25rem}
+.tb{padding:1.25rem 1.5rem}
+.tm{color:var(--text2);font-size:0.9rem;margin-bottom:1.25rem;line-height:1.7}
+
+/* BEFORE/AFTER */
+.bag{display:flex;gap:2rem;overflow-x:auto;padding-bottom:1rem}
+@media(max-width:900px){.bag{flex-direction:column;align-items:center}}
+.bac{flex-shrink:0}
+.bal{font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem}
+.bal.bf{color:#f87171}
+.bal.af{color:#4ade80}
+
+/* PHONE */
+.pf{width:375px;height:720px;border:3px solid var(--s50);border-radius:40px;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.pf.old{background:var(--old-bg)}
+.pf.new{background:var(--body)}
+.psb{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:11px;flex-shrink:0}
+.pf.old .psb{background:var(--old-bg);color:#6b7280}
+.pf.new .psb{background:var(--body);color:var(--dim)}
+.pc{flex:1;overflow-y:auto;overflow-x:hidden}
+.pnb{height:60px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;flex-shrink:0}
+.pf.old .pnb{background:var(--old-card)}
+.pf.new .pnb{background:var(--s300)}
+.ntab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;color:var(--dim)}
+.ntab.act{color:var(--primary)}
+.ntab .ico{font-size:18px}
+
+/* POSITION */
+.pos{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:5px;font-size:10px;font-weight:700;flex-shrink:0}
+.pos-P{background:linear-gradient(135deg,#f59e0b,#d97706);color:#000}
+.pos-D{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff}
+.pos-C{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff}
+.pos-A{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff}
+
+/* MINI */
+.mc{border-radius:10px;padding:12px;margin:8px 16px}
+.pf.old .mc{background:var(--old-card);border:1px solid #374151}
+.pf.new .mc{background:var(--card);border:1px solid var(--border)}
+.mc .r{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.mc .r:last-child{margin-bottom:0}
+.mc .nm{font-weight:600;font-size:13px;flex:1}
+.mc .vl{font-family:'Oswald';font-size:13px;color:var(--accent)}
+.mc .sb{font-size:10px;color:var(--dim)}
+.mbtn{display:inline-flex;align-items:center;justify-content:center;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;border:none}
+.mbtn-p{background:var(--primary);color:#fff}
+.mbtn-g{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.pf.old .mbtn-p{background:var(--old-primary)}
+.minp{border-radius:10px;padding:12px;font-size:13px;width:100%;border:none}
+.pf.old .minp{background:var(--old-card);border:1px solid #374151;color:#fff}
+.pf.new .minp{background:var(--s100);border:1px solid var(--border);color:var(--text)}
+.mtabs{display:flex;border-radius:10px;padding:3px;margin:8px 16px}
+.pf.old .mtabs{background:#1a1a3e}
+.pf.new .mtabs{background:var(--s300)}
+.mtab{flex:1;padding:8px;text-align:center;font-size:11px;font-weight:600;color:var(--dim);border-radius:8px}
+.mtab.act{color:#fff}
+.pf.old .mtab.act{background:var(--old-primary)}
+.pf.new .mtab.act{background:var(--primary)}
+.stub-msg{text-align:center;padding:40px 20px;color:var(--dim);font-size:12px}
+
+/* ROADMAP */
+.roadmap{display:flex;gap:1rem;margin:2rem 0;flex-wrap:wrap}
+.sbox{flex:1;min-width:180px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;position:relative}
+.sbox h4{font-size:0.9rem;margin-bottom:0.5rem}
+.sbox .sn{font-family:'Oswald';font-size:2rem;color:var(--accent);opacity:0.2;position:absolute;top:8px;right:12px}
+.sbox ul{list-style:none;font-size:0.8rem;color:var(--text2)}
+.sbox li{padding:0.2rem 0;border-bottom:1px solid rgba(42,49,66,0.1)}
+
+.btt{position:fixed;bottom:2rem;right:2rem;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-h));color:#fff;border:none;font-size:1.2rem;cursor:pointer;box-shadow:var(--glow-blue);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;z-index:150}
+.btt.visible{opacity:1;pointer-events:auto}
+</style>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+<div class="sidebar-header"><h3>Native App Mockups</h3></div>
+<div class="nav-group"><div class="nav-group-title">Critica (8)</div><div class="nav-items">
+<a href="#app-001"><span class="pdot" style="background:#f87171"></span>APP-001 Asta</a>
+<a href="#app-002"><span class="pdot" style="background:#f87171"></span>APP-002 Riparazione</a>
+<a href="#app-003"><span class="pdot" style="background:#f87171"></span>APP-003 Scambi</a>
+<a href="#app-004"><span class="pdot" style="background:#f87171"></span>APP-004 API URL</a>
+<a href="#app-005"><span class="pdot" style="background:#f87171"></span>APP-005 Tema</a>
+<a href="#app-006"><span class="pdot" style="background:#f87171"></span>APP-006 Error Boundary</a>
+<a href="#app-007"><span class="pdot" style="background:#f87171"></span>APP-007 Registrazione</a>
+<a href="#app-008"><span class="pdot" style="background:#f87171"></span>APP-008 Rubata</a>
+</div></div>
+<div class="nav-group"><div class="nav-group-title">Alta (8)</div><div class="nav-items">
+<a href="#app-009"><span class="pdot" style="background:#fbbf24"></span>APP-009 Profilo</a>
+<a href="#app-010"><span class="pdot" style="background:#fbbf24"></span>APP-010 Settings</a>
+<a href="#app-011"><span class="pdot" style="background:#fbbf24"></span>APP-011 History</a>
+<a href="#app-012"><span class="pdot" style="background:#fbbf24"></span>APP-012 Skeleton</a>
+<a href="#app-013"><span class="pdot" style="background:#fbbf24"></span>APP-013 Pull Refresh</a>
+<a href="#app-014"><span class="pdot" style="background:#fbbf24"></span>APP-014 Biometrics</a>
+<a href="#app-015"><span class="pdot" style="background:#fbbf24"></span>APP-015 League Detail</a>
+<a href="#app-016"><span class="pdot" style="background:#fbbf24"></span>APP-016 Finanze</a>
+</div></div>
+<div class="nav-group"><div class="nav-group-title">Media (6)</div><div class="nav-items">
+<a href="#app-017"><span class="pdot" style="background:#facc15"></span>APP-017 Deep Link</a>
+<a href="#app-018"><span class="pdot" style="background:#facc15"></span>APP-018 Offline</a>
+<a href="#app-019"><span class="pdot" style="background:#facc15"></span>APP-019 Player Stats</a>
+<a href="#app-020"><span class="pdot" style="background:#facc15"></span>APP-020 All Players</a>
+<a href="#app-021"><span class="pdot" style="background:#facc15"></span>APP-021 Movements</a>
+<a href="#app-022"><span class="pdot" style="background:#facc15"></span>APP-022 Notifiche</a>
+</div></div>
+<div class="nav-group"><div class="nav-group-title">Bassa (6)</div><div class="nav-items">
+<a href="#app-023"><span class="pdot" style="background:#60a5fa"></span>APP-023 CI/CD</a>
+<a href="#app-024"><span class="pdot" style="background:#60a5fa"></span>APP-024 App Store</a>
+<a href="#app-025"><span class="pdot" style="background:#60a5fa"></span>APP-025 Analytics</a>
+<a href="#app-026"><span class="pdot" style="background:#60a5fa"></span>APP-026 Haptics</a>
+<a href="#app-027"><span class="pdot" style="background:#60a5fa"></span>APP-027 Forgot Pwd</a>
+<a href="#app-028"><span class="pdot" style="background:#60a5fa"></span>APP-028 Animazioni</a>
+</div></div>
+<div class="nav-group"><div class="nav-group-title"><a href="#roadmap" style="color:var(--dim);text-decoration:none">Sprint Roadmap</a></div></div>
+</nav>
+
+<button class="burger-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">&#9776;</button>
+
+<div class="main-content">
+
+<div class="page-header">
+<h1>Native App Mockups (Android/iOS)</h1>
+<p class="subtitle">28 evolutive per completare l'app React Native/Expo — Branch MOBILE-ANDROID</p>
+<div class="psummary">
+<span class="pbadge pb-c">8 Critiche</span>
+<span class="pbadge pb-h">8 Alte</span>
+<span class="pbadge pb-m">6 Medie</span>
+<span class="pbadge pb-l">6 Basse</span>
+</div>
+</div>
+
+<!-- ========== CRITICAL ========== -->
+<div class="sd sd-c"><h2>Priorita Critica</h2><span class="num" style="opacity:0.3;font-size:1.8rem">8</span></div>
+
+<!-- APP-001 -->
+<section class="ts" id="app-001">
+<div class="tc"><div class="th"><span class="tn">APP-001</span><span class="tt">Implementare AuctionScreen (Asta Iniziale)</span><span class="badge b-c">Critica</span><span class="badge b-e">XL 2-5gg</span></div>
+<div class="tb"><p class="tm">La schermata asta e' il cuore dell'app — attualmente mostra solo "In sviluppo". Servono bid real-time, timer, budget tracking.</p>
+<div class="bag">
+<div class="bac"><div class="bal bf">PRIMA — Stub</div>
+<div class="pf old"><div class="psb"><span>9:41</span><span>100%</span></div>
+<div class="pc"><div class="stub-msg" style="margin-top:120px"><div style="font-size:48px;margin-bottom:16px">&#128679;</div><div style="font-size:16px;font-weight:600;color:#fff;margin-bottom:8px">In sviluppo</div><div>Questa funzionalita sara<br>disponibile a breve</div></div></div>
+<div class="pnb"><div class="ntab"><span class="ico">&#127968;</span>Home</div><div class="ntab"><span class="ico">&#128101;</span>Rosa</div><div class="ntab act"><span class="ico">&#9889;</span>Mercato</div><div class="ntab"><span class="ico">&#128260;</span>Scambi</div><div class="ntab"><span class="ico">&#8943;</span>Altro</div></div>
+</div></div>
+<div class="bac"><div class="bal af">DOPO — Asta Live</div>
+<div class="pf new"><div class="psb"><span>9:41</span><span>100%</span></div>
+<div class="pc">
+<div style="display:flex;justify-content:space-between;padding:12px 16px;background:var(--s300)">
+<div><div style="font-size:10px;color:var(--dim)">Budget</div><div style="font-family:Oswald;font-size:18px;color:var(--secondary)">187M</div></div>
+<div style="text-align:right"><div style="font-size:10px;color:var(--dim)">Timer</div><div style="font-family:Oswald;font-size:18px;color:var(--accent)">00:24</div></div>
+</div>
+<div style="height:4px;background:var(--s100);margin:0 16px 8px"><div style="height:4px;width:60%;background:linear-gradient(90deg,var(--secondary),var(--accent));border-radius:2px"></div></div>
+<div style="text-align:center;padding:20px 16px">
+<span class="pos pos-A" style="width:48px;height:48px;font-size:18px;border-radius:12px">A</span>
+<div style="font-size:16px;font-weight:700;margin-top:8px">Lautaro Martinez</div>
+<div style="font-size:12px;color:var(--dim)">Inter | Quotazione: 35M</div>
+</div>
+<div style="text-align:center;padding:0 16px 16px">
+<div style="font-size:12px;color:var(--dim);margin-bottom:4px">Offerta attuale</div>
+<div style="font-family:Oswald;font-size:28px;color:var(--accent)">42M</div>
+<div style="font-size:11px;color:var(--text2)">di FC Mario</div>
+</div>
+<div style="display:flex;align-items:center;gap:8px;padding:0 16px;margin-bottom:16px">
+<div class="mbtn mbtn-g" style="width:48px;height:48px;padding:0;font-size:20px;border-radius:12px">-</div>
+<div style="flex:1;text-align:center;font-family:Oswald;font-size:24px;color:var(--text);background:var(--s100);border-radius:12px;padding:10px">43M</div>
+<div class="mbtn mbtn-g" style="width:48px;height:48px;padding:0;font-size:20px;border-radius:12px">+</div>
+</div>
+<div style="padding:0 16px"><div class="mbtn mbtn-p" style="width:100%;text-align:center;padding:14px;font-size:15px;border-radius:12px">OFFRI 43M</div></div>
+</div>
+<div class="pnb"><div class="ntab"><span class="ico">&#127968;</span>Home</div><div class="ntab"><span class="ico">&#128101;</span>Rosa</div><div class="ntab act"><span class="ico">&#9889;</span>Mercato</div><div class="ntab"><span class="ico">&#128260;</span>Scambi</div><div class="ntab"><span class="ico">&#8943;</span>Altro</div></div>
+</div></div>
+</div></div></div>
+</section>
+
+<!-- APP-003 -->
+<section class="ts" id="app-003">
+<div class="tc"><div class="th"><span class="tn">APP-003</span><span class="tt">Implementare Trades (Scambi)</span><span class="badge b-c">Critica</span><span class="badge b-e">XL 2-5gg</span></div>
+<div class="tb"><p class="tm">Gli scambi sono solo placeholder. Serve flusso completo: lista, creazione, dettaglio, accetta/rifiuta.</p>
+<div class="bag">
+<div class="bac"><div class="bal bf">PRIMA — Stub</div>
+<div class="pf old"><div class="psb"><span>9:41</span><span>100%</span></div>
+<div class="pc"><div class="stub-msg" style="margin-top:120px"><div style="font-size:48px;margin-bottom:16px">&#128679;</div><div style="font-size:16px;font-weight:600;color:#fff;margin-bottom:8px">In sviluppo</div><div>Scambi non disponibili</div></div></div>
+<div class="pnb"><div class="ntab"><span class="ico">&#127968;</span>Home</div><div class="ntab"><span class="ico">&#128101;</span>Rosa</div><div class="ntab"><span class="ico">&#9889;</span>Mercato</div><div class="ntab act"><span class="ico">&#128260;</span>Scambi</div><div class="ntab"><span class="ico">&#8943;</span>Altro</div></div>
+</div></div>
+<div class="bac"><div class="bal af">DOPO — Scambi completi</div>
+<div class="pf new"><div class="psb"><span>9:41</span><span>100%</span></div>
+<div class="pc">
+<div style="padding:16px 16px 8px;font-size:16px;font-weight:700">Scambi</div>
+<div class="mtabs"><div class="mtab act">Ricevuti (2)</div><div class="mtab">Inviati (1)</div></div>
+<div class="mc"><div class="r"><div style="width:32px;height:32px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">FM</div><span class="nm">FC Mario</span><span style="font-size:10px;color:var(--accent);font-weight:600">PENDING</span></div>
+<div class="r"><span class="sb">Offre: Barella, 5M | Chiede: Vlahovic</span></div>
+<div style="display:flex;gap:8px;margin-top:8px"><span class="mbtn mbtn-g" style="flex:1;padding:8px;font-size:11px;text-align:center;color:var(--danger)">Rifiuta</span><span class="mbtn mbtn-p" style="flex:1;padding:8px;font-size:11px;text-align:center">Accetta</span></div>
+</div>
+<div class="mc"><div class="r"><div style="width:32px;height:32px;border-radius:50%;background:var(--secondary);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">AL</div><span class="nm">AC Luigi</span><span style="font-size:10px;color:var(--accent);font-weight:600">PENDING</span></div>
+<div class="r"><span class="sb">Offre: Calhanoglu | Chiede: Kean, 3M</span></div>
+</div>
+<div style="padding:16px;text-align:center"><span class="mbtn mbtn-p" style="padding:12px 24px">+ Proponi Scambio</span></div>
+</div>
+<div class="pnb"><div class="ntab"><span class="ico">&#127968;</span>Home</div><div class="ntab"><span class="ico">&#128101;</span>Rosa</div><div class="ntab"><span class="ico">&#9889;</span>Mercato</div><div class="ntab act"><span class="ico">&#128260;</span>Scambi</div><div class="ntab"><span class="ico">&#8943;</span>Altro</div></div>
+</div></div>
+</div></div></div>
+</section>
+
+<!-- APP-005 -->
+<section class="ts" id="app-005">
+<div class="tc"><div class="th"><span class="tn">APP-005</span><span class="tt">Allineare Tema Colori con Web</span><span class="badge b-c">Critica</span><span class="badge b-e">M 3-8h</span></div>
+<div class="tb"><p class="tm">L'app usa colori diversi dalla web (#1a1a2e/#6366F1 vs #0a0a0b/#3b82f6). L'utente ha un'esperienza visiva incoerente.</p>
+<div class="bag">
+<div class="bac"><div class="bal bf">PRIMA — Tema vecchio</div>
+<div class="pf old"><div class="psb"><span>9:41</span><span>100%</span></div>
+<div class="pc" style="padding:16px">
+<div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px">Dashboard</div>
+<div class="mc"><div class="r"><span class="nm" style="color:#fff">Serie A Fantasy</span></div><div class="sb">bg: #1a1a2e | card: #252542</div></div>
+<div style="margin:12px 0;padding:12px;border-radius:10px;background:var(--old-primary);text-align:center;font-weight:600;color:#fff">Bottone #6366F1</div>
+<div style="display:flex;gap:8px;margin-top:12px">
+<div style="flex:1;text-align:center;padding:8px;border-radius:8px;background:var(--old-card);font-size:10px;color:var(--dim)">bg: #1a1a2e</div>
+<div style="flex:1;text-align:center;padding:8px;border-radius:8px;background:var(--old-primary);font-size:10px;color:#fff">primary: #6366F1</div>
+</div>
+</div>
+<div class="pnb"><div class="ntab act"><span class="ico">&#127968;</span>Home</div><div class="ntab"><span class="ico">&#128101;</span>Rosa</div><div class="ntab"><span class="ico">&#9889;</span>Mercato</div><div class="ntab"><span class="ico">&#128260;</span>Scambi</div><div class="ntab"><span class="ico">&#8943;</span>Altro</div></div>
+</div></div>
+<div class="bac"><div class="bal af">DOPO — Stadium Nights (= web)</div>
+<div class="pf new"><div class="psb"><span>9:41</span><span>100%</span></div>
+<div class="pc" style="padding:16px">
+<div style="font-size:14px;font-weight:700;margin-bottom:12px;font-family:Outfit">Dashboard</div>
+<div class="mc"><div class="r"><span class="nm">Serie A Fantasy</span></div><div class="sb">bg: #0a0a0b | card: #1a1c20</div></div>
+<div style="margin:12px 0;padding:12px;border-radius:10px;background:var(--primary);text-align:center;font-weight:600;color:#fff">Bottone #3b82f6</div>
+<div style="display:flex;gap:8px;margin-top:12px">
+<div style="flex:1;text-align:center;padding:8px;border-radius:8px;background:var(--card);font-size:10px;color:var(--dim)">bg: #0a0a0b</div>
+<div style="flex:1;text-align:center;padding:8px;border-radius:8px;background:var(--primary);font-size:10px;color:#fff">primary: #3b82f6</div>
+</div>
+<div style="display:flex;gap:4px;margin-top:8px;justify-content:center">
+<div style="width:20px;height:20px;border-radius:4px;background:var(--primary)" title="#3b82f6"></div>
+<div style="width:20px;height:20px;border-radius:4px;background:var(--secondary)" title="#22c55e"></div>
+<div style="width:20px;height:20px;border-radius:4px;background:var(--accent)" title="#f59e0b"></div>
+<div style="width:20px;height:20px;border-radius:4px;background:var(--danger)" title="#ef4444"></div>
+</div>
+</div>
+<div class="pnb"><div class="ntab act"><span class="ico">&#127968;</span>Home</div><div class="ntab"><span class="ico">&#128101;</span>Rosa</div><div class="ntab"><span class="ico">&#9889;</span>Mercato</div><div class="ntab"><span class="ico">&#128260;</span>Scambi</div><div class="ntab"><span class="ico">&#8943;</span>Altro</div></div>
+</div></div>
+</div></div></div>
+</section>
+
+<!-- APP-007 -->
+<section class="ts" id="app-007">
+<div class="tc"><div class="th"><span class="tn">APP-007</span><span class="tt">Registration Screen</span><span class="badge b-c">Critica</span><span class="badge b-e">M 3-8h</span></div>
+<div class="tb"><p class="tm">Solo login disponibile. Utenti nuovi non possono registrarsi dall'app.</p>
+<div class="bag">
+<div class="bac"><div class="bal bf">PRIMA — Solo Login</div>
+<div class="pf old"><div class="psb"><span>9:41</span><span>100%</span></div>
+<div class="pc" style="padding:24px;display:flex;flex-direction:column;justify-content:center;height:100%">
+<div style="text-align:center;font-size:24px;font-weight:700;color:#fff;margin-bottom:24px;font-family:Outfit">Fantacontratti</div>
+<div style="margin-bottom:12px"><div style="font-size:10px;color:var(--dim);margin-bottom:4px">Email</div><input class="minp" placeholder="email@test.com" disabled></div>
+<div style="margin-bottom:16px"><div style="font-size:10px;color:var(--dim);margin-bottom:4px">Password</div><input class="minp" type="password" placeholder="********" disabled></div>
+<div class="mbtn mbtn-p" style="width:100%;text-align:center;padding:14px">Accedi</div>
+<div style="text-align:center;margin-top:16px;font-size:11px;color:var(--dim)">Nessun link registrazione!</div>
+</div></div>
+</div>
+<div class="bac"><div class="bal af">DOPO — Login + Registrazione</div>
+<div class="pf new"><div class="psb"><span>9:41</span><span>100%</span></div>
+<div class="pc" style="padding:24px">
+<div style="text-align:center;font-size:22px;font-weight:700;margin-bottom:4px;font-family:Outfit">Crea Account</div>
+<div style="text-align:center;font-size:11px;color:var(--dim);margin-bottom:20px">Unisciti a Fantacontratti</div>
+<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--dim);margin-bottom:4px">Nome</div><input class="minp" placeholder="Mario Rossi" disabled></div>
+<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--dim);margin-bottom:4px">Email</div><input class="minp" placeholder="mario@test.com" disabled></div>
+<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--dim);margin-bottom:4px">Password</div><input class="minp" type="password" placeholder="Min. 8 caratteri" disabled></div>
+<div style="margin-bottom:16px"><div style="font-size:10px;color:var(--dim);margin-bottom:4px">Conferma Password</div><input class="minp" type="password" placeholder="Ripeti password" disabled></div>
+<div class="mbtn mbtn-p" style="width:100%;text-align:center;padding:14px">Registrati</div>
+<div style="text-align:center;margin-top:12px;font-size:12px;color:var(--text2)">Hai gia un account? <span style="color:var(--primary);font-weight:600">Accedi</span></div>
+</div></div>
+</div>
+</div></div></div>
+</section>
+
+<!-- ========== HIGH ========== -->
+<div class="sd sd-h"><h2>Priorita Alta</h2><span class="num" style="opacity:0.3;font-size:1.8rem">8</span></div>
+
+<!-- APP-012 -->
+<section class="ts" id="app-012">
+<div class="tc"><div class="th"><span class="tn">APP-012</span><span class="tt">Skeleton Loading</span><span class="badge b-h">Alta</span><span class="badge b-e">M 3-8h</span></div>
+<div class="tb"><p class="tm">Le schermate mostrano vuoto durante il caricamento API. Servono shimmer skeleton.</p>
+<div class="bag">
+<div class="bac"><div class="bal bf">PRIMA — Vuoto</div>
+<div class="pf old"><div class="psb"><span>9:41</span><span>100%</span></div>
+<div class="pc" style="padding:16px">
+<div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:16px">Rosa</div>
+<div style="height:400px"></div>
+<div style="text-align:center;color:var(--dim);font-size:11px">Schermo vuoto durante loading</div>
+</div>
+<div class="pnb"><div class="ntab"><span class="ico">&#127968;</span>Home</div><div class="ntab act"><span class="ico">&#128101;</span>Rosa</div><div class="ntab"><span class="ico">&#9889;</span>Mercato</div><div class="ntab"><span class="ico">&#128260;</span>Scambi</div><div class="ntab"><span class="ico">&#8943;</span>Altro</div></div>
+</div></div>
+<div class="bac"><div class="bal af">DOPO — Skeleton shimmer</div>
+<div class="pf new"><div class="psb"><span>9:41</span><span>100%</span></div>
+<div class="pc" style="padding:16px">
+<div style="font-size:14px;font-weight:700;margin-bottom:16px;font-family:Outfit">Rosa</div>
+<style>@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}.sk{background:linear-gradient(90deg,var(--s50) 25%,var(--s100) 50%,var(--s50) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px}</style>
+<div class="mc" style="display:flex;gap:10px;align-items:center"><div class="sk" style="width:32px;height:32px;border-radius:8px;flex-shrink:0"></div><div style="flex:1"><div class="sk" style="height:12px;width:70%;margin-bottom:6px"></div><div class="sk" style="height:10px;width:40%"></div></div><div class="sk" style="width:40px;height:14px"></div></div>
+<div class="mc" style="display:flex;gap:10px;align-items:center"><div class="sk" style="width:32px;height:32px;border-radius:8px;flex-shrink:0"></div><div style="flex:1"><div class="sk" style="height:12px;width:60%;margin-bottom:6px"></div><div class="sk" style="height:10px;width:50%"></div></div><div class="sk" style="width:40px;height:14px"></div></div>
+<div class="mc" style="display:flex;gap:10px;align-items:center"><div class="sk" style="width:32px;height:32px;border-radius:8px;flex-shrink:0"></div><div style="flex:1"><div class="sk" style="height:12px;width:55%;margin-bottom:6px"></div><div class="sk" style="height:10px;width:35%"></div></div><div class="sk" style="width:40px;height:14px"></div></div>
+<div class="mc" style="display:flex;gap:10px;align-items:center"><div class="sk" style="width:32px;height:32px;border-radius:8px;flex-shrink:0"></div><div style="flex:1"><div class="sk" style="height:12px;width:65%;margin-bottom:6px"></div><div class="sk" style="height:10px;width:45%"></div></div><div class="sk" style="width:40px;height:14px"></div></div>
+</div>
+<div class="pnb"><div class="ntab"><span class="ico">&#127968;</span>Home</div><div class="ntab act"><span class="ico">&#128101;</span>Rosa</div><div class="ntab"><span class="ico">&#9889;</span>Mercato</div><div class="ntab"><span class="ico">&#128260;</span>Scambi</div><div class="ntab"><span class="ico">&#8943;</span>Altro</div></div>
+</div></div>
+</div></div></div>
+</section>
+
+<!-- APP-014 -->
+<section class="ts" id="app-014">
+<div class="tc"><div class="th"><span class="tn">APP-014</span><span class="tt">Biometric Authentication</span><span class="badge b-h">Alta</span><span class="badge b-e">M 3-8h</span></div>
+<div class="tb"><p class="tm">Login solo email/password. Su mobile ci si aspetta Face ID / Touch ID / Fingerprint.</p>
+<div class="bag">
+<div class="bac"><div class="bal bf">PRIMA — Solo password</div>
+<div class="pf old"><div class="psb"><span>9:41</span><span>100%</span></div>
+<div class="pc" style="padding:24px;display:flex;flex-direction:column;justify-content:center;height:100%">
+<div style="text-align:center;font-size:24px;font-weight:700;color:#fff;margin-bottom:24px">Login</div>
+<div class="mbtn mbtn-p" style="width:100%;text-align:center;padding:14px">Accedi con Email</div>
+<div style="text-align:center;margin-top:16px;font-size:11px;color:var(--dim)">Nessuna opzione biometrica</div>
+</div></div>
+</div>
+<div class="bac"><div class="bal af">DOPO — Biometrics</div>
+<div class="pf new"><div class="psb"><span>9:41</span><span>100%</span></div>
+<div class="pc" style="padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%">
+<div style="font-size:48px;margin-bottom:16px">&#9918;</div>
+<div style="font-size:20px;font-weight:700;margin-bottom:4px;font-family:Outfit">Fantacontratti</div>
+<div style="font-size:12px;color:var(--dim);margin-bottom:32px">Bentornato, Pietro</div>
+<div style="width:64px;height:64px;border-radius:50%;border:2px solid var(--primary);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:12px;animation:pulse 2s infinite">&#128275;</div>
+<div style="font-size:12px;color:var(--primary);margin-bottom:24px">Tocca per Face ID</div>
+<div style="font-size:11px;color:var(--dim);cursor:pointer">Accedi con email e password</div>
+<style>@keyframes pulse{0%,100%{border-color:var(--primary)}50%{border-color:var(--primary-h);box-shadow:0 0 20px rgba(59,130,246,0.3)}}</style>
+</div></div>
+</div>
+</div></div></div>
+</section>
+
+<!-- APP-015 -->
+<section class="ts" id="app-015">
+<div class="tc"><div class="th"><span class="tn">APP-015</span><span class="tt">League Detail Screen</span><span class="badge b-h">Alta</span><span class="badge b-e">M 3-8h</span></div>
+<div class="tb"><p class="tm">Non esiste nemmeno come stub. Dalla Home non si vedono dettagli lega, membri, fasi mercato.</p>
+<div class="bag">
+<div class="bac"><div class="bal af">NUOVO — League Detail</div>
+<div class="pf new"><div class="psb"><span>9:41</span><span>100%</span></div>
+<div class="pc">
+<div style="padding:16px;background:linear-gradient(180deg,rgba(59,130,246,0.15),transparent)">
+<div style="font-size:18px;font-weight:700;font-family:Outfit">Serie A Fantasy</div>
+<div style="font-size:11px;color:var(--dim);margin-top:2px">8 membri | Creata: Set 2025</div>
+<div style="display:flex;gap:8px;margin-top:12px">
+<div style="flex:1;background:var(--card);border-radius:8px;padding:8px;text-align:center"><div style="font-family:Oswald;font-size:18px;color:var(--accent)">187M</div><div style="font-size:9px;color:var(--dim)">Budget</div></div>
+<div style="flex:1;background:var(--card);border-radius:8px;padding:8px;text-align:center"><div style="font-family:Oswald;font-size:18px;color:var(--secondary)">23</div><div style="font-size:9px;color:var(--dim)">Giocatori</div></div>
+<div style="flex:1;background:var(--card);border-radius:8px;padding:8px;text-align:center"><div style="font-family:Oswald;font-size:18px;color:var(--primary)">4</div><div style="font-size:9px;color:var(--dim)">Fasi</div></div>
+</div>
+</div>
+<div style="padding:8px 16px;font-size:12px;font-weight:600;color:var(--text2)">FASI MERCATO</div>
+<div class="mc"><div class="r"><span style="width:8px;height:8px;border-radius:50%;background:var(--secondary)"></span><span class="nm" style="font-size:12px">Asta Iniziale</span><span style="font-size:10px;color:var(--secondary)">Completata</span></div></div>
+<div class="mc"><div class="r"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></span><span class="nm" style="font-size:12px">Contratti</span><span style="font-size:10px;color:var(--accent)">In corso</span></div></div>
+<div class="mc"><div class="r"><span style="width:8px;height:8px;border-radius:50%;background:var(--dim)"></span><span class="nm" style="font-size:12px">Rubata</span><span style="font-size:10px;color:var(--dim)">Prossima</span></div></div>
+<div style="padding:8px 16px;font-size:12px;font-weight:600;color:var(--text2);margin-top:4px">MEMBRI</div>
+<div class="mc"><div class="r"><div style="width:28px;height:28px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">PM</div><span class="nm" style="font-size:12px">FC Pietro</span><span style="font-size:10px;color:var(--accent)">Admin</span></div></div>
+<div class="mc"><div class="r"><div style="width:28px;height:28px;border-radius:50%;background:var(--secondary);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">FM</div><span class="nm" style="font-size:12px">FC Mario</span><span style="font-size:10px;color:var(--dim)">Manager</span></div></div>
+</div>
+<div class="pnb"><div class="ntab act"><span class="ico">&#127968;</span>Home</div><div class="ntab"><span class="ico">&#128101;</span>Rosa</div><div class="ntab"><span class="ico">&#9889;</span>Mercato</div><div class="ntab"><span class="ico">&#128260;</span>Scambi</div><div class="ntab"><span class="ico">&#8943;</span>Altro</div></div>
+</div></div>
+</div></div></div>
+</section>
+
+<!-- COMPACT CARDS for remaining tasks -->
+<div style="margin-top:2rem">
+
+<!-- Remaining Critical (APP-002, APP-004, APP-006, APP-008) -->
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem;margin-bottom:2rem">
+<div class="tc" id="app-002" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-002</span><span class="tt">Asta Riparazione</span><span class="badge b-c">Critica</span><span class="badge b-e">L</span></div><div class="tb"><p class="tm">Schermata asta svincolati: timer, bid, filtri posizione. Riusa componenti da APP-001.</p></div></div>
+<div class="tc" id="app-004" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-004</span><span class="tt">API URL da Environment</span><span class="badge b-c">Critica</span><span class="badge b-e">S</span></div><div class="tb"><p class="tm">URL hardcoded 10.138.157.172:3003. Usare expo-constants + app.config.js per dev/staging/prod.</p></div></div>
+<div class="tc" id="app-006" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-006</span><span class="tt">Error Boundary</span><span class="badge b-c">Critica</span><span class="badge b-e">S</span></div><div class="tb"><p class="tm">Crash = schermo bianco. Serve ErrorBoundary con UI "Qualcosa e' andato storto" + Riprova.</p></div></div>
+<div class="tc" id="app-008" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-008</span><span class="tt">Rubata / Indennita</span><span class="badge b-c">Critica</span><span class="badge b-e">L</span></div><div class="tb"><p class="tm">Board con colonne P/D/C/A, selezione preferenze con tap, timer fase, conferma scelte.</p></div></div>
+</div>
+
+<!-- Remaining High (APP-009, APP-010, APP-011, APP-013, APP-016) -->
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem;margin-bottom:2rem">
+<div class="tc" id="app-009" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-009</span><span class="tt">Profile Screen</span><span class="badge b-h">Alta</span><span class="badge b-e">M</span></div><div class="tb"><p class="tm">Info utente, cambio password, upload foto (camera + galleria), statistiche personali.</p></div></div>
+<div class="tc" id="app-010" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-010</span><span class="tt">Settings Screen</span><span class="badge b-h">Alta</span><span class="badge b-e">M</span></div><div class="tb"><p class="tm">Toggle notifiche, haptic, tema, clear cache, versione app, logout.</p></div></div>
+<div class="tc" id="app-011" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-011</span><span class="tt">History Screen</span><span class="badge b-h">Alta</span><span class="badge b-e">M</span></div><div class="tb"><p class="tm">Timeline movimenti: acquisti, cessioni, scambi, rinnovi. Filtri tipo e data.</p></div></div>
+<div class="tc" id="app-013" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-013</span><span class="tt">Pull-to-Refresh</span><span class="badge b-h">Alta</span><span class="badge b-e">S</span></div><div class="tb"><p class="tm">RefreshControl su tutte le FlatList/ScrollView. Aggiornamento dati con gesto nativo.</p></div></div>
+<div class="tc" id="app-016" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-016</span><span class="tt">League Financials</span><span class="badge b-h">Alta</span><span class="badge b-e">L</span></div><div class="tb"><p class="tm">Tabellone finanze: budget per manager, grafico torta spese, classifica budget.</p></div></div>
+</div>
+
+<!-- Medium (APP-017 to APP-022) -->
+<div class="sd sd-m"><h2>Priorita Media</h2><span class="num" style="opacity:0.3;font-size:1.8rem">6</span></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem;margin-bottom:2rem">
+<div class="tc" id="app-017" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-017</span><span class="tt">Deep Linking Notifiche</span><span class="badge b-m">Media</span><span class="badge b-e">M</span></div><div class="tb"><p class="tm">Tap su notifica push apre la schermata giusta (asta, scambio, contratto).</p></div></div>
+<div class="tc" id="app-018" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-018</span><span class="tt">Offline Mode</span><span class="badge b-m">Media</span><span class="badge b-e">L</span></div><div class="tb"><p class="tm">Cache rosa, contratti, leghe in AsyncStorage. Banner "Offline" quando senza rete.</p></div></div>
+<div class="tc" id="app-019" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-019</span><span class="tt">Player Stats Screen</span><span class="badge b-m">Media</span><span class="badge b-e">L</span></div><div class="tb"><p class="tm">Radar chart voti, storico presenze/gol/assist, valore mercato, info contratto.</p></div></div>
+<div class="tc" id="app-020" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-020</span><span class="tt">All Players Search</span><span class="badge b-m">Media</span><span class="badge b-e">M</span></div><div class="tb"><p class="tm">Ricerca tutti i giocatori con filtri posizione/squadra, FlatList virtualizzata.</p></div></div>
+<div class="tc" id="app-021" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-021</span><span class="tt">Movements Screen</span><span class="badge b-m">Media</span><span class="badge b-e">M</span></div><div class="tb"><p class="tm">Storico movimenti lega: acquisti, cessioni, scambi. Filtri tipo/manager/data.</p></div></div>
+<div class="tc" id="app-022" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-022</span><span class="tt">Notifications List</span><span class="badge b-m">Media</span><span class="badge b-e">M</span></div><div class="tb"><p class="tm">Lista notifiche persistente con read/unread, swipe archivia, filtri tipo.</p></div></div>
+</div>
+
+<!-- Low (APP-023 to APP-028) -->
+<div class="sd sd-l"><h2>Priorita Bassa</h2><span class="num" style="opacity:0.3;font-size:1.8rem">6</span></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1rem;margin-bottom:2rem">
+<div class="tc" id="app-023" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-023</span><span class="tt">CI/CD EAS Build</span><span class="badge b-l">Bassa</span><span class="badge b-e">L</span></div><div class="tb"><p class="tm">GitHub Actions + EAS Build per APK/AAB/IPA automatici su push.</p></div></div>
+<div class="tc" id="app-024" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-024</span><span class="tt">App Store Readiness</span><span class="badge b-l">Bassa</span><span class="badge b-e">L</span></div><div class="tb"><p class="tm">Splash screen, icone adaptive, screenshots store, privacy policy, ToS.</p></div></div>
+<div class="tc" id="app-025" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-025</span><span class="tt">Analytics + Crash Report</span><span class="badge b-l">Bassa</span><span class="badge b-e">M</span></div><div class="tb"><p class="tm">Sentry crash reporting + Firebase Analytics per usage tracking.</p></div></div>
+<div class="tc" id="app-026" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-026</span><span class="tt">Haptic Feedback</span><span class="badge b-l">Bassa</span><span class="badge b-e">S</span></div><div class="tb"><p class="tm">expo-haptics per bid (impact), win (success), error, navigation (selection).</p></div></div>
+<div class="tc" id="app-027" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-027</span><span class="tt">Forgot Password</span><span class="badge b-l">Bassa</span><span class="badge b-e">S</span></div><div class="tb"><p class="tm">Schermata "Password dimenticata" con invio email di reset.</p></div></div>
+<div class="tc" id="app-028" style="scroll-margin-top:1.5rem"><div class="th"><span class="tn">APP-028</span><span class="tt">Animazioni</span><span class="badge b-l">Bassa</span><span class="badge b-e">L</span></div><div class="tb"><p class="tm">Shared element transitions, animated list items, gesture-based interactions.</p></div></div>
+</div>
+</div>
+
+<!-- ROADMAP -->
+<section id="roadmap" style="margin-top:3rem;scroll-margin-top:1.5rem">
+<div class="sd" style="background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(245,158,11,0.06));border-left:4px solid var(--primary)"><h2>Sprint Roadmap Native App</h2></div>
+<div class="roadmap">
+<div class="sbox" style="border-top:3px solid var(--secondary)"><span class="sn">N1</span><h4 style="color:var(--secondary)">Foundation (2 sett.)</h4><ul>
+<li>APP-004 API URL config</li><li>APP-005 Tema colori</li><li>APP-006 Error Boundary</li><li>APP-012 Skeleton Loading</li><li>APP-013 Pull-to-refresh</li><li>APP-007 Registration</li></ul></div>
+<div class="sbox" style="border-top:3px solid var(--danger)"><span class="sn">N2</span><h4 style="color:var(--danger)">Asta (2 sett.)</h4><ul>
+<li>APP-001 Asta Iniziale</li><li>APP-002 Asta Riparazione</li><li>APP-008 Rubata/Indennita</li></ul></div>
+<div class="sbox" style="border-top:3px solid var(--accent)"><span class="sn">N3</span><h4 style="color:var(--accent)">Scambi + Profilo (2 sett.)</h4><ul>
+<li>APP-003 Trades</li><li>APP-009 Profile</li><li>APP-010 Settings</li><li>APP-011 History</li></ul></div>
+<div class="sbox" style="border-top:3px solid var(--primary)"><span class="sn">N4</span><h4 style="color:var(--primary)">Schermate (2 sett.)</h4><ul>
+<li>APP-015 League Detail</li><li>APP-016 Financials</li><li>APP-019 Player Stats</li><li>APP-020 All Players</li><li>APP-021 Movements</li><li>APP-022 Notifications</li></ul></div>
+</div>
+<div class="roadmap">
+<div class="sbox" style="border-top:3px solid #a78bfa"><span class="sn">N5</span><h4 style="color:#a78bfa">Polish (2 sett.)</h4><ul>
+<li>APP-014 Biometrics</li><li>APP-017 Deep Linking</li><li>APP-018 Offline</li><li>APP-026 Haptics</li><li>APP-027 Forgot Pwd</li></ul></div>
+<div class="sbox" style="border-top:3px solid var(--dim)"><span class="sn">N6</span><h4 style="color:var(--dim)">Release (1 sett.)</h4><ul>
+<li>APP-023 CI/CD</li><li>APP-024 App Store</li><li>APP-025 Analytics</li><li>APP-028 Animazioni</li></ul></div>
+<div class="sbox" style="border-top:3px solid var(--dim);opacity:0.6"><span class="sn">TOT</span><h4>~11 settimane</h4><ul>
+<li>28 task totali</li><li>~30 giorni di lavoro</li><li>8 Critiche + 8 Alte</li><li>6 Medie + 6 Basse</li></ul></div>
+</div>
+</section>
+
+</div>
+
+<button class="btt" id="btt" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8593;</button>
+<script>window.addEventListener('scroll',()=>{document.getElementById('btt').classList.toggle('visible',window.scrollY>500)})</script>
+</body>
+</html>

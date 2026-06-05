@@ -41,3 +41,22 @@ prisma/migrations/*_migration_lock.toml
 *.tmp
 *.temp
 data/
+
+# Lint / typecheck artifacts (regenerable dumps)
+eslint-*.json
+eslint-*.txt
+ts-errors.txt
+nul
+
+# Screenshot capture output
+screenshots/
+
+# Vercel
+.vercel/
+
+# Claude Code runtime
+.claude/scheduled_tasks.lock
+.claude/*.lock
+
+# Working data (not source of truth)
+/Fantacontratti storico.xlsx

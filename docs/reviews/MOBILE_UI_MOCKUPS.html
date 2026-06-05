@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Fantacontratti — Mobile Browser UI Mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--body:#0a0a0b;--card:#1a1c20;--s50:#2d3139;--s100:#252830;--s200:#1a1c20;--s300:#111214;
+--primary:#3b82f6;--primary-h:#2563eb;--secondary:#22c55e;--secondary-h:#16a34a;
+--accent:#f59e0b;--accent-h:#d97706;--danger:#ef4444;--danger-h:#dc2626;
+--text:#f3f4f6;--text2:#9ca3af;--dim:#6b7280;--border:rgba(42,49,66,0.2);
+--radius:0.75rem;--shadow:0 4px 20px rgba(0,0,0,0.4);
+--glow-blue:0 0 20px rgba(59,130,246,0.3);--glow-gold:0 0 20px rgba(245,158,11,0.3);
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--body);color:var(--text);line-height:1.6;overflow-x:hidden}
+h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif;font-weight:700}
+.stat,.num{font-family:'Oswald',sans-serif}
+
+/* LAYOUT */
+.sidebar{position:fixed;top:0;left:0;width:260px;height:100vh;background:var(--s300);border-right:1px solid var(--border);overflow-y:auto;z-index:100;padding:1rem 0;transition:transform .3s}
+.main-content{margin-left:260px;flex:1;padding:2rem 2.5rem 4rem}
+@media(max-width:1024px){
+.sidebar{transform:translateX(-100%)}
+.sidebar.open{transform:translateX(0)}
+.main-content{margin-left:0;padding:1rem}
+.burger-btn{display:flex!important}
+}
+.sidebar-header{padding:0.75rem 1rem;border-bottom:1px solid var(--border);margin-bottom:0.5rem}
+.sidebar-header h3{font-size:0.85rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px}
+.nav-group{margin-bottom:0.25rem}
+.nav-group-title{display:flex;align-items:center;justify-content:space-between;padding:0.5rem 1rem;font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--dim);cursor:pointer;user-select:none}
+.nav-group-title:hover{color:var(--text2)}
+.nav-items a{display:block;padding:0.35rem 1rem 0.35rem 1.5rem;font-size:0.8rem;color:var(--text2);text-decoration:none;border-left:2px solid transparent;transition:all .15s}
+.nav-items a:hover{color:var(--text);background:rgba(59,130,246,0.08);border-left-color:var(--primary)}
+.priority-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.burger-btn{display:none;position:fixed;top:1rem;left:1rem;z-index:200;width:40px;height:40px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1.2rem;cursor:pointer;align-items:center;justify-content:center}
+
+/* HEADER */
+.page-header{text-align:center;padding:2.5rem 0 2rem;border-bottom:1px solid var(--border);margin-bottom:2.5rem}
+.page-header h1{font-size:2.2rem;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:0.5rem}
+.page-header .subtitle{font-size:1rem;color:var(--text2);margin-bottom:1rem}
+.priority-summary{display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap}
+.priority-badge{padding:0.4rem 1rem;border-radius:2rem;font-size:0.85rem;font-weight:600}
+.pb-critical{background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3)}
+.pb-high{background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.3)}
+.pb-medium{background:rgba(234,179,8,0.15);color:#facc15;border:1px solid rgba(234,179,8,0.3)}
+.pb-low{background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3)}
+
+/* SECTION DIVIDERS */
+.section-divider{margin:3rem 0 2rem;padding:1rem 1.5rem;border-radius:var(--radius);display:flex;align-items:center;gap:1rem}
+.section-divider h2{font-size:1.4rem}
+.sd-critical{background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(239,68,68,0.03));border-left:4px solid var(--danger)}
+.sd-high{background:linear-gradient(135deg,rgba(245,158,11,0.12),rgba(245,158,11,0.03));border-left:4px solid var(--accent)}
+.sd-medium{background:linear-gradient(135deg,rgba(234,179,8,0.12),rgba(234,179,8,0.03));border-left:4px solid #eab308}
+.sd-low{background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(59,130,246,0.03));border-left:4px solid var(--primary)}
+
+/* TASK CARD */
+.task-section{margin-bottom:3rem;scroll-margin-top:1.5rem}
+.task-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.task-header{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.task-num{font-family:'Oswald';font-size:1.1rem;color:var(--accent);font-weight:600}
+.task-title{font-size:1.1rem;font-weight:600;flex:1}
+.badge{padding:0.2rem 0.65rem;border-radius:1rem;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+.badge-critical{background:rgba(239,68,68,0.2);color:#f87171}
+.badge-high{background:rgba(245,158,11,0.2);color:#fbbf24}
+.badge-medium{background:rgba(234,179,8,0.2);color:#facc15}
+.badge-low{background:rgba(59,130,246,0.2);color:#60a5fa}
+.badge-effort{background:rgba(139,92,246,0.2);color:#a78bfa;margin-left:0.25rem}
+.task-body{padding:1.25rem 1.5rem}
+.task-motivation{color:var(--text2);font-size:0.9rem;margin-bottom:1.25rem;line-height:1.7}
+
+/* BEFORE/AFTER GRID */
+.ba-grid{display:flex;gap:2rem;overflow-x:auto;padding-bottom:1rem}
+@media(max-width:900px){.ba-grid{flex-direction:column;align-items:center}}
+.ba-col{flex-shrink:0}
+.ba-label{font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem}
+.ba-label.before{color:#f87171}
+.ba-label.after{color:#4ade80}
+
+/* PHONE FRAME */
+.phone-frame{width:375px;height:667px;border:3px solid var(--s50);border-radius:32px;background:var(--body);overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.phone-sb{height:44px;background:var(--s300);display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:11px;color:var(--dim);flex-shrink:0}
+.phone-content{flex:1;overflow-y:auto;overflow-x:hidden}
+.phone-nav-bottom{height:56px;background:var(--s300);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;flex-shrink:0}
+.phone-nav-bottom .nav-tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;color:var(--dim);position:relative}
+.phone-nav-bottom .nav-tab.active{color:var(--primary)}
+.phone-nav-bottom .nav-tab .icon{font-size:18px}
+.live-dot{position:absolute;top:-2px;right:-8px;width:6px;height:6px;background:var(--danger);border-radius:50%;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* PHONE HEADER */
+.phone-header{height:48px;background:var(--s300);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0}
+.phone-header .burger{width:24px;height:24px;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.phone-header .burger span{display:block;height:2px;background:var(--text2);border-radius:1px}
+.phone-header .burger-big{width:44px;height:44px;background:var(--s50);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.phone-header .burger-big span{display:block;width:18px;height:2px;background:var(--text);border-radius:1px}
+.phone-header .logo{font-family:'Outfit';font-weight:700;font-size:14px;flex:1;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.phone-header .bell{font-size:16px;color:var(--text2)}
+.phone-header .avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+
+/* POSITION BADGES */
+.pos{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:5px;font-size:10px;font-weight:700;flex-shrink:0}
+.pos-P{background:linear-gradient(135deg,#f59e0b,#d97706);color:#000}
+.pos-D{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff}
+.pos-C{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff}
+.pos-A{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff}
+
+/* MINI COMPONENTS */
+.m-card{background:var(--s100);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin:6px 12px}
+.m-card .row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.m-card .row:last-child{margin-bottom:0}
+.m-card .name{font-weight:600;font-size:13px;flex:1}
+.m-card .val{font-family:'Oswald';font-size:13px;color:var(--accent)}
+.m-card .sub{font-size:10px;color:var(--dim)}
+.m-card .expand{font-size:10px;color:var(--primary);cursor:pointer;margin-top:4px}
+.m-btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;border:none;cursor:pointer}
+.m-btn-primary{background:var(--primary);color:#fff}
+.m-btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.m-input{background:var(--s100);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:13px;width:100%}
+.m-tabs{display:flex;background:var(--s300);border-radius:8px;padding:2px;margin:8px 12px}
+.m-tab{flex:1;padding:8px;text-align:center;font-size:11px;font-weight:600;color:var(--dim);border-radius:6px;cursor:pointer}
+.m-tab.active{background:var(--primary);color:#fff}
+.m-section-title{font-size:12px;font-weight:600;color:var(--text2);padding:8px 12px 4px;text-transform:uppercase;letter-spacing:0.5px}
+.sticky-bar{position:absolute;bottom:0;left:0;right:0;height:52px;background:var(--s300);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+.red-outline{outline:2px solid var(--danger);outline-offset:2px;border-radius:4px}
+.green-outline{outline:2px solid var(--secondary);outline-offset:2px;border-radius:4px}
+.waste-overlay{background:rgba(239,68,68,0.15);position:absolute;top:0;bottom:0}
+
+/* BOTTOM SHEET */
+.bsheet{background:var(--card);border-radius:16px 16px 0 0;border:1px solid var(--border);border-bottom:none;padding:12px 16px;position:absolute;bottom:0;left:0;right:0}
+.bsheet-handle{width:40px;height:4px;background:var(--s50);border-radius:2px;margin:0 auto 12px}
+
+/* ROADMAP */
+.roadmap{display:flex;gap:1rem;margin:2rem 0;flex-wrap:wrap}
+.sprint-box{flex:1;min-width:200px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;position:relative}
+.sprint-box h4{font-size:0.9rem;margin-bottom:0.5rem}
+.sprint-box .sprint-num{font-family:'Oswald';font-size:2rem;color:var(--accent);opacity:0.2;position:absolute;top:8px;right:12px}
+.sprint-box ul{list-style:none;font-size:0.8rem;color:var(--text2)}
+.sprint-box li{padding:0.2rem 0;border-bottom:1px solid rgba(42,49,66,0.1)}
+
+/* BACK TO TOP */
+.btt{position:fixed;bottom:2rem;right:2rem;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-h));color:#fff;border:none;font-size:1.2rem;cursor:pointer;box-shadow:var(--glow-blue);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;z-index:150}
+.btt.visible{opacity:1;pointer-events:auto}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+<div class="sidebar-header"><h3>Mobile UI Mockups</h3></div>
+<div class="nav-group">
+<div class="nav-group-title">Critica (6)</div>
+<div class="nav-items">
+<a href="#mob-001"><span class="priority-dot" style="background:#f87171"></span>MOB-001 Bottom Nav</a>
+<a href="#mob-002"><span class="priority-dot" style="background:#f87171"></span>MOB-002 Profilo</a>
+<a href="#mob-003"><span class="priority-dot" style="background:#f87171"></span>MOB-003 PWA</a>
+<a href="#mob-004"><span class="priority-dot" style="background:#f87171"></span>MOB-004 Padding</a>
+<a href="#mob-005"><span class="priority-dot" style="background:#f87171"></span>MOB-005 Card View</a>
+<a href="#mob-006"><span class="priority-dot" style="background:#f87171"></span>MOB-006 Trades</a>
+</div></div>
+<div class="nav-group">
+<div class="nav-group-title">Alta (6)</div>
+<div class="nav-items">
+<a href="#mob-007"><span class="priority-dot" style="background:#fbbf24"></span>MOB-007 Touch 44px</a>
+<a href="#mob-008"><span class="priority-dot" style="background:#fbbf24"></span>MOB-008 Pull Refresh</a>
+<a href="#mob-009"><span class="priority-dot" style="background:#fbbf24"></span>MOB-009 Sticky Btns</a>
+<a href="#mob-010"><span class="priority-dot" style="background:#fbbf24"></span>MOB-010 Hamburger</a>
+<a href="#mob-011"><span class="priority-dot" style="background:#fbbf24"></span>MOB-011 Filtri Sheet</a>
+<a href="#mob-012"><span class="priority-dot" style="background:#fbbf24"></span>MOB-012 Swipe Tab</a>
+</div></div>
+<div class="nav-group">
+<div class="nav-group-title">Media (7)</div>
+<div class="nav-items">
+<a href="#mob-013"><span class="priority-dot" style="background:#facc15"></span>MOB-013 Offline</a>
+<a href="#mob-014"><span class="priority-dot" style="background:#facc15"></span>MOB-014 Keyboard</a>
+<a href="#mob-015"><span class="priority-dot" style="background:#facc15"></span>MOB-015 Contratti</a>
+<a href="#mob-016"><span class="priority-dot" style="background:#facc15"></span>MOB-016 Push Notif</a>
+<a href="#mob-017"><span class="priority-dot" style="background:#facc15"></span>MOB-017 Share</a>
+<a href="#mob-018"><span class="priority-dot" style="background:#facc15"></span>MOB-018 Scroll Top</a>
+<a href="#mob-019"><span class="priority-dot" style="background:#facc15"></span>MOB-019 Swipe Modal</a>
+</div></div>
+<div class="nav-group">
+<div class="nav-group-title">Bassa (5)</div>
+<div class="nav-items">
+<a href="#mob-020"><span class="priority-dot" style="background:#60a5fa"></span>MOB-020 Landscape</a>
+<a href="#mob-021"><span class="priority-dot" style="background:#60a5fa"></span>MOB-021 Dark/Light</a>
+<a href="#mob-022"><span class="priority-dot" style="background:#60a5fa"></span>MOB-022 Haptics</a>
+<a href="#mob-023"><span class="priority-dot" style="background:#60a5fa"></span>MOB-023 Font Size</a>
+<a href="#mob-024"><span class="priority-dot" style="background:#60a5fa"></span>MOB-024 Camera</a>
+</div></div>
+<div class="nav-group">
+<div class="nav-group-title"><a href="#roadmap" style="color:var(--dim);text-decoration:none">Sprint Roadmap</a></div>
+</div>
+</nav>
+
+<button class="burger-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">&#9776;</button>
+
+<!-- MAIN -->
+<div class="main-content">
+
+<div class="page-header">
+<h1>Mobile Browser UI Mockups</h1>
+<p class="subtitle">Mockup interattivi per 24 miglioramenti mobile browser (375px) — Fantacontratti</p>
+<div class="priority-summary">
+<span class="priority-badge pb-critical">6 Critiche</span>
+<span class="priority-badge pb-high">6 Alte</span>
+<span class="priority-badge pb-medium">7 Medie</span>
+<span class="priority-badge pb-low">5 Basse</span>
+</div>
+</div>
+
+<!-- ========== CRITICAL ========== -->
+<div class="section-divider sd-critical"><h2>Priorita Critica</h2><span class="num" style="opacity:0.3;font-family:Oswald;font-size:1.8rem">6</span></div>
+
+<!-- MOB-001 -->
+<section class="task-section" id="mob-001">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-001</span>
+<span class="task-title">Bottom Navigation Bar</span>
+<span class="badge badge-critical">Critica</span>
+<span class="badge badge-effort">M 3-8h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">L'utente deve fare 2 tap per navigare (hamburger + voce). Le app mobile usano una bottom tab bar con navigazione a 1 tap. Impatto su tutte le 23 pagine.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA (375px)</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header">
+<div class="burger"><span></span><span></span><span></span></div>
+<span class="logo">Fantacontratti</span>
+<span class="bell">&#128276;</span>
+</div>
+<div class="phone-content" style="padding:16px">
+<div style="font-size:14px;font-weight:600;margin-bottom:12px">Le tue Leghe</div>
+<div class="m-card"><div class="row"><span class="name">Serie A Fantasy</span><span class="val">8 membri</span></div><div class="sub">Fase: Contratti | Budget: 187M</div></div>
+<div class="m-card"><div class="row"><span class="name">Champions League</span><span class="val">6 membri</span></div><div class="sub">Fase: Rubata</div></div>
+<div style="text-align:center;margin-top:40px;color:var(--dim);font-size:11px">Nessuna bottom navigation<br>Solo hamburger menu (2 tap)</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO (375px)</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header">
+<div class="burger"><span></span><span></span><span></span></div>
+<span class="logo">Fantacontratti</span>
+<span class="bell">&#128276;</span>
+</div>
+<div class="phone-content" style="padding:16px">
+<div style="font-size:14px;font-weight:600;margin-bottom:12px">Le tue Leghe</div>
+<div class="m-card"><div class="row"><span class="name">Serie A Fantasy</span><span class="val">8 membri</span></div><div class="sub">Fase: Contratti | Budget: 187M</div></div>
+<div class="m-card"><div class="row"><span class="name">Champions League</span><span class="val">6 membri</span></div><div class="sub">Fase: Rubata</div></div>
+</div>
+<div class="phone-nav-bottom">
+<div class="nav-tab active"><span class="icon">&#127968;</span><span>Home</span></div>
+<div class="nav-tab"><span class="icon">&#9889;</span><span>Asta</span><span class="live-dot"></span></div>
+<div class="nav-tab"><span class="icon">&#128101;</span><span>Rosa</span></div>
+<div class="nav-tab"><span class="icon">&#128176;</span><span>Finanze</span></div>
+<div class="nav-tab"><span class="icon">&#9776;</span><span>Menu</span></div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-002 -->
+<section class="task-section" id="mob-002">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-002</span>
+<span class="task-title">Profilo accessibile su mobile</span>
+<span class="badge badge-critical">Critica</span>
+<span class="badge badge-effort">S 1-3h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Il dropdown profilo usa <code>hidden sm:block</code> e sparisce sotto 640px. Nessun modo di accedere a profilo, password o logout su mobile.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header">
+<div class="burger"><span></span><span></span><span></span></div>
+<span class="logo">Fantacontratti</span>
+<span class="bell">&#128276;</span>
+<!-- No avatar! -->
+</div>
+<div class="phone-content" style="padding:16px">
+<div style="background:var(--s100);border-radius:8px;padding:12px;margin-top:20px">
+<div style="font-size:12px;font-weight:600;margin-bottom:8px">Menu Slide-in</div>
+<div style="padding:6px 0;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border)">Dashboard</div>
+<div style="padding:6px 0;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border)">Le mie Leghe</div>
+<div style="padding:6px 0;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border)">Notifiche</div>
+<div style="padding:6px 0;font-size:12px;color:var(--dim);border-bottom:1px solid var(--border)">Profilo &#10060; hidden</div>
+<div style="padding:6px 0;font-size:12px;color:var(--dim)">Logout &#10060; hidden</div>
+</div>
+<div style="text-align:center;margin-top:20px;color:var(--danger);font-size:11px">Profilo e Logout non accessibili!</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header">
+<div class="burger"><span></span><span></span><span></span></div>
+<span class="logo">Fantacontratti</span>
+<span class="bell">&#128276;</span>
+<div class="avatar">PM</div>
+</div>
+<div class="phone-content" style="padding:16px">
+<div style="background:var(--s100);border-radius:8px;padding:12px;margin-top:20px">
+<div style="font-size:12px;font-weight:600;margin-bottom:8px">Menu Slide-in</div>
+<div style="padding:6px 0;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border)">Dashboard</div>
+<div style="padding:6px 0;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border)">Le mie Leghe</div>
+<div style="padding:6px 0;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border)">Notifiche</div>
+<div style="padding:6px 0;font-size:12px;color:var(--primary);border-bottom:1px solid var(--border);font-weight:600">&#128100; Profilo</div>
+<div style="padding:6px 0;font-size:12px;color:var(--danger);font-weight:600">&#128682; Logout</div>
+</div>
+</div>
+<div class="phone-nav-bottom">
+<div class="nav-tab active"><span class="icon">&#127968;</span><span>Home</span></div>
+<div class="nav-tab"><span class="icon">&#9889;</span><span>Asta</span></div>
+<div class="nav-tab"><span class="icon">&#128101;</span><span>Rosa</span></div>
+<div class="nav-tab"><span class="icon">&#128176;</span><span>Finanze</span></div>
+<div class="nav-tab"><span class="icon">&#9776;</span><span>Menu</span></div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-003 -->
+<section class="task-section" id="mob-003">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-003</span>
+<span class="task-title">PWA Manifest + Theme Color</span>
+<span class="badge badge-critical">Critica</span>
+<span class="badge badge-effort">S 1-3h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">L'app non puo essere installata sulla home screen, non ha icona dedicata, e il browser chrome non si integra col tema scuro.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA</div>
+<div class="phone-frame">
+<div class="phone-sb" style="background:#e5e7eb"><span style="color:#374151">9:41</span><span style="color:#374151">100%</span></div>
+<div style="height:36px;background:#f3f4f6;display:flex;align-items:center;padding:0 12px;font-size:11px;color:#6b7280;border-bottom:1px solid #d1d5db">
+<span style="flex:1">fantacontratti.vercel.app</span>
+<span>&#8942;</span>
+</div>
+<div class="phone-content" style="padding:16px;background:var(--body)">
+<div style="text-align:center;margin-top:60px">
+<div style="font-size:40px;margin-bottom:12px">&#9918;</div>
+<div style="font-size:14px;font-weight:600;margin-bottom:8px">Fantacontratti</div>
+<div style="font-size:11px;color:var(--dim)">Barra browser bianca<br>Non installabile<br>Nessun theme-color</div>
+</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div style="height:36px;background:var(--s300);display:flex;align-items:center;padding:0 12px;font-size:11px;color:var(--dim);border-bottom:1px solid var(--border)">
+<span style="flex:1;color:var(--text2)">fantacontratti.vercel.app</span>
+<span>&#8942;</span>
+</div>
+<div class="phone-content" style="padding:16px">
+<div style="text-align:center;margin-top:40px">
+<div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--primary),var(--accent));margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:28px">&#9918;</div>
+<div style="font-size:14px;font-weight:600;margin-bottom:4px">Fantacontratti</div>
+<div style="font-size:11px;color:var(--secondary)">Theme-color integrato</div>
+</div>
+</div>
+<div style="position:absolute;bottom:56px;left:0;right:0;background:var(--card);border-top:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px">
+<div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:20px">&#9918;</div>
+<div style="flex:1"><div style="font-size:12px;font-weight:600">Aggiungi a Home</div><div style="font-size:10px;color:var(--dim)">fantacontratti.vercel.app</div></div>
+<div style="background:var(--primary);color:#fff;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:600">Installa</div>
+</div>
+<div class="phone-nav-bottom">
+<div class="nav-tab active"><span class="icon">&#127968;</span><span>Home</span></div>
+<div class="nav-tab"><span class="icon">&#9889;</span><span>Asta</span></div>
+<div class="nav-tab"><span class="icon">&#128101;</span><span>Rosa</span></div>
+<div class="nav-tab"><span class="icon">&#128176;</span><span>Finanze</span></div>
+<div class="nav-tab"><span class="icon">&#9776;</span><span>Menu</span></div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-004 -->
+<section class="task-section" id="mob-004">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-004</span>
+<span class="task-title">Ridurre padding eccessivo</span>
+<span class="badge badge-critical">Critica</span>
+<span class="badge badge-effort">S 1-3h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Padding p-8 (32px x2) spreca il 17% dello schermo. Su 375px restano solo 311px per il contenuto.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — p-8 (32px)</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Fantacontratti</span></div>
+<div class="phone-content" style="position:relative">
+<div style="position:absolute;left:0;top:0;bottom:0;width:32px;background:rgba(239,68,68,0.2)"></div>
+<div style="position:absolute;right:0;top:0;bottom:0;width:32px;background:rgba(239,68,68,0.2)"></div>
+<div style="padding:32px">
+<div style="font-size:14px;font-weight:600;margin-bottom:12px">Login</div>
+<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--dim);margin-bottom:4px">Email</div><input class="m-input" value="mario@test.com" disabled></div>
+<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--dim);margin-bottom:4px">Password</div><input class="m-input" type="password" value="test123" disabled></div>
+<div class="m-btn m-btn-primary" style="width:100%;text-align:center">Accedi</div>
+<div style="text-align:center;margin-top:12px;font-size:10px;color:var(--danger)">311px utili su 375 (-17%)</div>
+</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — p-4 (16px)</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Fantacontratti</span></div>
+<div class="phone-content" style="position:relative">
+<div style="position:absolute;left:0;top:0;bottom:0;width:16px;background:rgba(34,197,94,0.1)"></div>
+<div style="position:absolute;right:0;top:0;bottom:0;width:16px;background:rgba(34,197,94,0.1)"></div>
+<div style="padding:16px">
+<div style="font-size:14px;font-weight:600;margin-bottom:12px">Login</div>
+<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--dim);margin-bottom:4px">Email</div><input class="m-input" value="mario@test.com" disabled></div>
+<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--dim);margin-bottom:4px">Password</div><input class="m-input" type="password" value="test123" disabled></div>
+<div class="m-btn m-btn-primary" style="width:100%;text-align:center">Accedi</div>
+<div style="text-align:center;margin-top:12px;font-size:10px;color:var(--secondary)">343px utili su 375 (-8%)</div>
+</div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-005 -->
+<section class="task-section" id="mob-005">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-005</span>
+<span class="task-title">Card view per tabelle su mobile</span>
+<span class="badge badge-critical">Critica</span>
+<span class="badge badge-effort">L 1-2gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Tabelle con 10-13+ colonne sono inutilizzabili su 375px. Solo 2-3 colonne visibili, il resto tagliato con <code>hidden lg:table-cell</code>.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — Tabella Rose</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Rosa</span></div>
+<div class="phone-content" style="padding:8px;font-size:9px;overflow-x:hidden">
+<table style="width:100%;border-collapse:collapse">
+<thead><tr style="border-bottom:1px solid var(--border)">
+<th style="padding:4px;text-align:left;color:var(--dim);font-size:8px">Pos</th>
+<th style="padding:4px;text-align:left;color:var(--dim);font-size:8px">Nome</th>
+<th style="padding:4px;text-align:left;color:var(--dim);font-size:8px">Sq</th>
+<th style="padding:4px;color:var(--dim);font-size:8px;opacity:0.3">Vt</th>
+<th style="padding:4px;color:var(--dim);font-size:8px;opacity:0.15">G</th>
+<th style="padding:4px;color:var(--dim);font-size:8px;opacity:0.1">A</th>
+</tr></thead>
+<tbody>
+<tr style="border-bottom:1px solid rgba(42,49,66,0.1)"><td style="padding:4px"><span class="pos pos-A">A</span></td><td style="padding:4px;font-size:9px">Lautaro</td><td style="padding:4px;font-size:8px;color:var(--dim)">INT</td><td style="padding:4px;opacity:0.3;font-size:8px">7.2</td><td style="padding:4px;opacity:0.15;font-size:8px">18</td><td style="padding:4px;opacity:0.1;font-size:8px">5</td></tr>
+<tr style="border-bottom:1px solid rgba(42,49,66,0.1)"><td style="padding:4px"><span class="pos pos-C">C</span></td><td style="padding:4px;font-size:9px">Barella</td><td style="padding:4px;font-size:8px;color:var(--dim)">INT</td><td style="padding:4px;opacity:0.3;font-size:8px">6.8</td><td style="padding:4px;opacity:0.15;font-size:8px">4</td><td style="padding:4px;opacity:0.1;font-size:8px">9</td></tr>
+<tr style="border-bottom:1px solid rgba(42,49,66,0.1)"><td style="padding:4px"><span class="pos pos-D">D</span></td><td style="padding:4px;font-size:9px">Bastoni</td><td style="padding:4px;font-size:8px;color:var(--dim)">INT</td><td style="padding:4px;opacity:0.3;font-size:8px">6.4</td><td style="padding:4px;opacity:0.15;font-size:8px">2</td><td style="padding:4px;opacity:0.1;font-size:8px">1</td></tr>
+<tr><td style="padding:4px"><span class="pos pos-P">P</span></td><td style="padding:4px;font-size:9px">Sommer</td><td style="padding:4px;font-size:8px;color:var(--dim)">INT</td><td style="padding:4px;opacity:0.3;font-size:8px">6.5</td><td style="padding:4px;opacity:0.15;font-size:8px">0</td><td style="padding:4px;opacity:0.1;font-size:8px">0</td></tr>
+</tbody></table>
+<div style="text-align:center;margin-top:16px;color:var(--danger);font-size:10px">8 colonne nascoste (hidden lg:table-cell)</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Card espandibili</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Rosa</span></div>
+<div class="phone-content" style="padding:8px">
+<div class="m-card">
+<div class="row"><span class="pos pos-A">A</span><span class="name">Lautaro Martinez</span><span class="val">8.5M</span></div>
+<div class="row"><span class="sub">Inter | 3 anni | Vt: 7.2</span></div>
+<div class="expand">&#9660; Dettagli</div>
+</div>
+<div class="m-card" style="border-color:rgba(59,130,246,0.3)">
+<div class="row"><span class="pos pos-C">C</span><span class="name">Barella</span><span class="val">7.2M</span></div>
+<div class="row"><span class="sub">Inter | 2 anni | Vt: 6.8</span></div>
+<div style="background:var(--s300);border-radius:6px;padding:8px;margin-top:6px;font-size:10px;color:var(--text2)">
+<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span>Presenze:</span><span style="color:var(--text)">24</span></div>
+<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span>Gol:</span><span style="color:var(--text)">4</span></div>
+<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span>Assist:</span><span style="color:var(--text)">9</span></div>
+<div style="display:flex;justify-content:space-between"><span>Clausola:</span><span style="color:var(--accent)">12M</span></div>
+</div>
+</div>
+<div class="m-card">
+<div class="row"><span class="pos pos-D">D</span><span class="name">Bastoni</span><span class="val">5.0M</span></div>
+<div class="row"><span class="sub">Inter | 4 anni | Vt: 6.4</span></div>
+<div class="expand">&#9660; Dettagli</div>
+</div>
+<div class="m-card">
+<div class="row"><span class="pos pos-P">P</span><span class="name">Sommer</span><span class="val">3.0M</span></div>
+<div class="row"><span class="sub">Inter | 1 anno | Vt: 6.5</span></div>
+<div class="expand">&#9660; Dettagli</div>
+</div>
+</div>
+<div class="phone-nav-bottom">
+<div class="nav-tab"><span class="icon">&#127968;</span><span>Home</span></div>
+<div class="nav-tab"><span class="icon">&#9889;</span><span>Asta</span></div>
+<div class="nav-tab active"><span class="icon">&#128101;</span><span>Rosa</span></div>
+<div class="nav-tab"><span class="icon">&#128176;</span><span>Finanze</span></div>
+<div class="nav-tab"><span class="icon">&#9776;</span><span>Menu</span></div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-006 -->
+<section class="task-section" id="mob-006">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-006</span>
+<span class="task-title">Layout mobile per Trades</span>
+<span class="badge badge-critical">Critica</span>
+<span class="badge badge-effort">M 3-8h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Il confronto offerta/richiesta side-by-side non funziona su 375px. I due pannelli si comprimono/sovrappongono.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — Side-by-side rotto</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Scambi</span></div>
+<div class="phone-content" style="padding:8px">
+<div style="display:flex;gap:4px;margin-bottom:8px">
+<div style="flex:1;background:var(--s100);border-radius:6px;padding:6px">
+<div style="font-size:8px;color:var(--dim);margin-bottom:4px">OFFRI</div>
+<div style="font-size:8px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Laut... 8.5M</div>
+<div style="font-size:8px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Bare... 7.2M</div>
+</div>
+<div style="flex:1;background:var(--s100);border-radius:6px;padding:6px">
+<div style="font-size:8px;color:var(--dim);margin-bottom:4px">RICHIEDI</div>
+<div style="font-size:8px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Vlah... 9.0M</div>
+</div>
+</div>
+<div style="text-align:center;color:var(--danger);font-size:10px;margin-top:20px">Nomi troncati, layout illeggibile</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Tab switch</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Scambi</span></div>
+<div class="phone-content">
+<div style="padding:8px 12px;font-size:12px;font-weight:600">Scambio con AC Luigi</div>
+<div class="m-tabs">
+<div class="m-tab active">Cosa Offri</div>
+<div class="m-tab">Cosa Chiedi</div>
+</div>
+<div style="padding:0 12px">
+<div class="m-card" style="margin:6px 0">
+<div class="row"><span class="pos pos-C">C</span><span class="name">Barella</span><span class="val">7.2M</span></div>
+<div class="row"><span class="sub">Inter | 2 anni</span><span style="color:var(--danger);font-size:10px;cursor:pointer">&#10005; Rimuovi</span></div>
+</div>
+<div class="m-card" style="margin:6px 0">
+<div class="row"><span class="pos pos-A">A</span><span class="name">Lautaro Martinez</span><span class="val">8.5M</span></div>
+<div class="row"><span class="sub">Inter | 3 anni</span><span style="color:var(--danger);font-size:10px;cursor:pointer">&#10005; Rimuovi</span></div>
+</div>
+<div style="text-align:center;margin:12px 0">
+<span class="m-btn m-btn-ghost" style="font-size:11px">+ Aggiungi giocatore</span>
+</div>
+</div>
+</div>
+<div class="sticky-bar" style="bottom:56px">
+<span class="m-btn m-btn-ghost">Annulla</span>
+<span class="m-btn m-btn-primary">Proponi Scambio</span>
+</div>
+<div class="phone-nav-bottom">
+<div class="nav-tab"><span class="icon">&#127968;</span><span>Home</span></div>
+<div class="nav-tab"><span class="icon">&#9889;</span><span>Asta</span></div>
+<div class="nav-tab"><span class="icon">&#128101;</span><span>Rosa</span></div>
+<div class="nav-tab active"><span class="icon">&#128176;</span><span>Finanze</span></div>
+<div class="nav-tab"><span class="icon">&#9776;</span><span>Menu</span></div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- ========== HIGH ========== -->
+<div class="section-divider sd-high"><h2>Priorita Alta</h2><span class="num" style="opacity:0.3;font-family:Oswald;font-size:1.8rem">6</span></div>
+
+<!-- MOB-007 -->
+<section class="task-section" id="mob-007">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-007</span>
+<span class="task-title">Touch targets minimi 44x44px</span>
+<span class="badge badge-high">Alta</span>
+<span class="badge badge-effort">M 3-8h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Bottoni e link sotto 44x44px: hamburger 32px, icone azione 24px, badge filtro 30px. Standard Apple/Google violato.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — Target troppo piccoli</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-content" style="padding:20px">
+<div style="margin-bottom:20px">
+<div style="font-size:10px;color:var(--dim);margin-bottom:8px">HAMBURGER: 32x32px</div>
+<div class="red-outline" style="width:32px;height:32px;background:var(--s100);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:4px"><span style="display:block;width:16px;height:2px;background:var(--text2)"></span><span style="display:block;width:16px;height:2px;background:var(--text2)"></span><span style="display:block;width:16px;height:2px;background:var(--text2)"></span></div>
+</div>
+<div style="margin-bottom:20px">
+<div style="font-size:10px;color:var(--dim);margin-bottom:8px">ICONE AZIONE: 24x24px</div>
+<div style="display:flex;gap:8px">
+<div class="red-outline" style="width:24px;height:24px;background:var(--s100);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--dim)">&#9998;</div>
+<div class="red-outline" style="width:24px;height:24px;background:var(--s100);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--dim)">&#128465;</div>
+<div class="red-outline" style="width:24px;height:24px;background:var(--s100);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--dim)">&#128279;</div>
+</div>
+</div>
+<div>
+<div style="font-size:10px;color:var(--dim);margin-bottom:8px">FILTRI POSIZIONE: 30x24px</div>
+<div style="display:flex;gap:4px">
+<div class="red-outline" style="padding:2px 8px;font-size:10px;background:var(--s100);border-radius:4px;color:var(--dim)">P</div>
+<div class="red-outline" style="padding:2px 8px;font-size:10px;background:var(--s100);border-radius:4px;color:var(--dim)">D</div>
+<div class="red-outline" style="padding:2px 8px;font-size:10px;background:var(--s100);border-radius:4px;color:var(--dim)">C</div>
+<div class="red-outline" style="padding:2px 8px;font-size:10px;background:var(--s100);border-radius:4px;color:var(--dim)">A</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Tutti >= 44x44px</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-content" style="padding:20px">
+<div style="margin-bottom:20px">
+<div style="font-size:10px;color:var(--dim);margin-bottom:8px">HAMBURGER: 44x44px</div>
+<div class="green-outline" style="width:44px;height:44px;background:var(--s100);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:8px"><span style="display:block;width:18px;height:2px;background:var(--text)"></span><span style="display:block;width:18px;height:2px;background:var(--text)"></span><span style="display:block;width:18px;height:2px;background:var(--text)"></span></div>
+</div>
+<div style="margin-bottom:20px">
+<div style="font-size:10px;color:var(--dim);margin-bottom:8px">ICONE AZIONE: 44x44px</div>
+<div style="display:flex;gap:8px">
+<div class="green-outline" style="width:44px;height:44px;background:var(--s100);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text2)">&#9998;</div>
+<div class="green-outline" style="width:44px;height:44px;background:var(--s100);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text2)">&#128465;</div>
+<div class="green-outline" style="width:44px;height:44px;background:var(--s100);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text2)">&#128279;</div>
+</div>
+</div>
+<div>
+<div style="font-size:10px;color:var(--dim);margin-bottom:8px">FILTRI POSIZIONE: 44x44px</div>
+<div style="display:flex;gap:6px">
+<div class="green-outline pos pos-P" style="width:44px;height:44px;font-size:14px;border-radius:8px">P</div>
+<div class="green-outline pos pos-D" style="width:44px;height:44px;font-size:14px;border-radius:8px">D</div>
+<div class="green-outline pos pos-C" style="width:44px;height:44px;font-size:14px;border-radius:8px">C</div>
+<div class="green-outline pos pos-A" style="width:44px;height:44px;font-size:14px;border-radius:8px">A</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-008 -->
+<section class="task-section" id="mob-008">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-008</span>
+<span class="task-title">Pull-to-refresh</span>
+<span class="badge badge-high">Alta</span>
+<span class="badge badge-effort">M 3-8h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Nessun modo per aggiornare i dati se non ricaricare la pagina. Su mobile browser manca pull-to-refresh nativo.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — Nessun refresh</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Dashboard</span></div>
+<div class="phone-content" style="padding:16px">
+<div class="m-card"><div class="row"><span class="name">Serie A Fantasy</span><span class="val">8</span></div><div class="sub">Ultimo aggiornamento: 2h fa</div></div>
+<div style="text-align:center;margin-top:40px;color:var(--dim);font-size:11px">Dati potenzialmente vecchi<br>Nessun modo per aggiornare<br>senza ricaricare la pagina</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Pull to refresh</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Dashboard</span></div>
+<div class="phone-content" style="padding:0">
+<div style="text-align:center;padding:16px;background:linear-gradient(180deg,rgba(59,130,246,0.1),transparent)">
+<div style="font-size:20px;animation:spin 1s linear infinite;display:inline-block">&#8635;</div>
+<div style="font-size:11px;color:var(--primary);margin-top:4px">Aggiornamento...</div>
+</div>
+<style>@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}</style>
+<div style="padding:0 16px">
+<div class="m-card"><div class="row"><span class="name">Serie A Fantasy</span><span class="val">8</span></div><div class="sub">Aggiornato: ora</div></div>
+</div>
+</div>
+<div class="phone-nav-bottom">
+<div class="nav-tab active"><span class="icon">&#127968;</span><span>Home</span></div>
+<div class="nav-tab"><span class="icon">&#9889;</span><span>Asta</span></div>
+<div class="nav-tab"><span class="icon">&#128101;</span><span>Rosa</span></div>
+<div class="nav-tab"><span class="icon">&#128176;</span><span>Finanze</span></div>
+<div class="nav-tab"><span class="icon">&#9776;</span><span>Menu</span></div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-009 -->
+<section class="task-section" id="mob-009">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-009</span>
+<span class="task-title">Sticky action buttons</span>
+<span class="badge badge-high">Alta</span>
+<span class="badge badge-effort">S 1-3h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">I bottoni Salva/Conferma sono in fondo alla pagina. Su mobile l'utente deve scrollare fino in fondo per trovarli.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — Bottone fuori vista</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Contratti</span></div>
+<div class="phone-content" style="padding:12px">
+<div class="m-card"><div class="row"><span class="pos pos-A">A</span><span class="name">Lautaro</span><span class="val">8.5M</span></div></div>
+<div class="m-card"><div class="row"><span class="pos pos-C">C</span><span class="name">Barella</span><span class="val">7.2M</span></div></div>
+<div class="m-card"><div class="row"><span class="pos pos-D">D</span><span class="name">Bastoni</span><span class="val">5.0M</span></div></div>
+<div class="m-card"><div class="row"><span class="pos pos-P">P</span><span class="name">Sommer</span><span class="val">3.0M</span></div></div>
+<div class="m-card"><div class="row"><span class="pos pos-C">C</span><span class="name">Calhanoglu</span><span class="val">6.0M</span></div></div>
+<div style="text-align:center;margin-top:16px;font-size:10px;color:var(--dim)">&#8595; Scroll per trovare "Salva"<br>(nascosto sotto)</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Sticky bottom bar</div>
+<div class="phone-frame" style="position:relative">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Contratti</span></div>
+<div class="phone-content" style="padding:12px;padding-bottom:120px">
+<div class="m-card"><div class="row"><span class="pos pos-A">A</span><span class="name">Lautaro</span><span class="val">8.5M</span></div></div>
+<div class="m-card"><div class="row"><span class="pos pos-C">C</span><span class="name">Barella</span><span class="val">7.2M</span></div></div>
+<div class="m-card"><div class="row"><span class="pos pos-D">D</span><span class="name">Bastoni</span><span class="val">5.0M</span></div></div>
+<div class="m-card"><div class="row"><span class="pos pos-C">C</span><span class="name">Calhanoglu</span><span class="val">6.0M</span></div></div>
+</div>
+<div style="position:absolute;bottom:56px;left:0;right:0;height:52px;background:var(--s300);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:0 -4px 12px rgba(0,0,0,0.3)">
+<span class="m-btn m-btn-ghost">Annulla</span>
+<span class="m-btn m-btn-primary">Salva Contratti</span>
+</div>
+<div class="phone-nav-bottom">
+<div class="nav-tab"><span class="icon">&#127968;</span><span>Home</span></div>
+<div class="nav-tab"><span class="icon">&#9889;</span><span>Asta</span></div>
+<div class="nav-tab"><span class="icon">&#128101;</span><span>Rosa</span></div>
+<div class="nav-tab active"><span class="icon">&#128176;</span><span>Finanze</span></div>
+<div class="nav-tab"><span class="icon">&#9776;</span><span>Menu</span></div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-010 -->
+<section class="task-section" id="mob-010">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-010</span>
+<span class="task-title">Hamburger menu piu grande</span>
+<span class="badge badge-high">Alta</span>
+<span class="badge badge-effort">XS &lt;1h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Il bottone hamburger e' 24x24px con padding 8px = 32x32px area touch. Sotto il minimo 44px raccomandato da Apple/Google.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — 32x32px</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div style="height:48px;background:var(--s300);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px">
+<div class="red-outline" style="width:32px;height:32px;background:var(--s100);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:4px"><span style="display:block;width:14px;height:2px;background:var(--text2)"></span><span style="display:block;width:14px;height:2px;background:var(--text2)"></span><span style="display:block;width:14px;height:2px;background:var(--text2)"></span></div>
+<span class="logo">Fantacontratti</span>
+</div>
+<div class="phone-content" style="padding:20px;text-align:center">
+<div style="font-size:11px;color:var(--danger);margin-top:40px">Area touch: 32x32px<br>Sotto minimo 44x44px<br>Difficile da toccare</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — 44x44px</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div style="height:52px;background:var(--s300);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 8px;gap:8px">
+<div class="green-outline" style="width:44px;height:44px;background:var(--s50);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:8px"><span style="display:block;width:18px;height:2px;background:var(--text)"></span><span style="display:block;width:18px;height:2px;background:var(--text)"></span><span style="display:block;width:18px;height:2px;background:var(--text)"></span></div>
+<span class="logo">Fantacontratti</span>
+</div>
+<div class="phone-content" style="padding:20px;text-align:center">
+<div style="font-size:11px;color:var(--secondary);margin-top:40px">Area touch: 44x44px<br>Conforme standard<br>aria-label aggiunto</div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-011 -->
+<section class="task-section" id="mob-011">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-011</span>
+<span class="task-title">Filtri in BottomSheet</span>
+<span class="badge badge-high">Alta</span>
+<span class="badge badge-effort">M 3-8h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Le barre filtro (posizione, team, ricerca, ordinamento) occupano 80-120px in alto su 375px, riducendo lo spazio per il contenuto.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — Filtri inline</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Giocatori</span></div>
+<div class="phone-content">
+<div style="background:var(--s100);padding:8px;border-bottom:1px solid var(--border)">
+<input class="m-input" placeholder="Cerca..." style="margin-bottom:6px;font-size:11px">
+<div style="display:flex;gap:4px;margin-bottom:6px">
+<span style="padding:3px 8px;font-size:9px;background:var(--s50);border-radius:4px;color:var(--dim)">P</span>
+<span style="padding:3px 8px;font-size:9px;background:var(--s50);border-radius:4px;color:var(--dim)">D</span>
+<span style="padding:3px 8px;font-size:9px;background:var(--primary);border-radius:4px;color:#fff">C</span>
+<span style="padding:3px 8px;font-size:9px;background:var(--s50);border-radius:4px;color:var(--dim)">A</span>
+</div>
+<div style="display:flex;gap:4px">
+<select style="background:var(--s50);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-size:9px;padding:3px;flex:1"><option>Tutte le squadre</option></select>
+<select style="background:var(--s50);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-size:9px;padding:3px;flex:1"><option>Ordina per...</option></select>
+</div>
+</div>
+<div style="text-align:center;padding:16px;color:var(--danger);font-size:10px">Filtri occupano ~110px<br>Solo 513px per il contenuto</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Compact + BottomSheet</div>
+<div class="phone-frame" style="position:relative">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Giocatori</span></div>
+<div class="phone-content">
+<div style="padding:8px 12px;display:flex;gap:8px;align-items:center">
+<input class="m-input" placeholder="Cerca..." style="flex:1;font-size:12px">
+<span class="m-btn m-btn-ghost" style="font-size:10px;white-space:nowrap;padding:8px 10px">Filtri (3)</span>
+</div>
+<div style="padding:0 12px">
+<div class="m-card"><div class="row"><span class="pos pos-C">C</span><span class="name">Barella</span><span class="val">42</span></div><div class="sub">Inter | Vt: 6.8</div></div>
+<div class="m-card"><div class="row"><span class="pos pos-C">C</span><span class="name">Calhanoglu</span><span class="val">38</span></div><div class="sub">Inter | Vt: 6.5</div></div>
+</div>
+</div>
+<!-- BottomSheet overlay -->
+<div style="position:absolute;bottom:56px;left:0;right:0;background:var(--card);border-radius:16px 16px 0 0;border:1px solid var(--border);padding:16px;z-index:10">
+<div style="width:40px;height:4px;background:var(--s50);border-radius:2px;margin:0 auto 16px"></div>
+<div style="font-size:13px;font-weight:600;margin-bottom:12px">Filtri</div>
+<div style="font-size:11px;color:var(--dim);margin-bottom:6px">Posizione</div>
+<div style="display:flex;gap:6px;margin-bottom:12px">
+<span class="pos pos-P" style="width:40px;height:36px;border-radius:6px;font-size:12px">P</span>
+<span class="pos pos-D" style="width:40px;height:36px;border-radius:6px;font-size:12px">D</span>
+<span class="pos pos-C" style="width:40px;height:36px;border-radius:6px;font-size:12px;box-shadow:0 0 0 2px #fff">C</span>
+<span class="pos pos-A" style="width:40px;height:36px;border-radius:6px;font-size:12px">A</span>
+</div>
+<div style="font-size:11px;color:var(--dim);margin-bottom:6px">Squadra</div>
+<select class="m-input" style="margin-bottom:12px"><option>Tutte le squadre</option></select>
+<div class="m-btn m-btn-primary" style="width:100%;text-align:center">Applica Filtri</div>
+</div>
+<div class="phone-nav-bottom">
+<div class="nav-tab"><span class="icon">&#127968;</span><span>Home</span></div>
+<div class="nav-tab"><span class="icon">&#9889;</span><span>Asta</span></div>
+<div class="nav-tab active"><span class="icon">&#128101;</span><span>Rosa</span></div>
+<div class="nav-tab"><span class="icon">&#128176;</span><span>Finanze</span></div>
+<div class="nav-tab"><span class="icon">&#9776;</span><span>Menu</span></div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-012 -->
+<section class="task-section" id="mob-012">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-012</span>
+<span class="task-title">Swipe gesture per tab</span>
+<span class="badge badge-high">Alta</span>
+<span class="badge badge-effort">M 3-8h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Le tab richiedono tap preciso. Su mobile, lo swipe orizzontale e' il pattern nativo per cambiare tab (AdminPanel ha 8 tab in overflow).</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — Solo tap</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Admin</span></div>
+<div class="phone-content">
+<div style="display:flex;overflow-x:auto;background:var(--s300);padding:2px;gap:1px;border-bottom:1px solid var(--border)">
+<div style="padding:8px 10px;font-size:9px;color:var(--dim);white-space:nowrap">Membri</div>
+<div style="padding:8px 10px;font-size:9px;background:var(--primary);color:#fff;border-radius:4px;white-space:nowrap">Fasi</div>
+<div style="padding:8px 10px;font-size:9px;color:var(--dim);white-space:nowrap">Budget</div>
+<div style="padding:8px 10px;font-size:9px;color:var(--dim);white-space:nowrap">Regole</div>
+<div style="padding:8px 10px;font-size:9px;color:var(--dim);white-space:nowrap">Inviti</div>
+<div style="padding:8px 10px;font-size:9px;color:var(--dim);white-space:nowrap">Log</div>
+<div style="padding:8px 10px;font-size:9px;color:var(--dim);white-space:nowrap">Import</div>
+<div style="padding:8px 10px;font-size:9px;color:var(--dim);white-space:nowrap">Export</div>
+</div>
+<div style="padding:20px;text-align:center;color:var(--dim);font-size:10px">8 tab in overflow orizzontale<br>Nessun indicatore swipe<br>Solo tap preciso</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Swipe + indicatori</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Admin</span></div>
+<div class="phone-content">
+<div style="display:flex;overflow-x:auto;background:var(--s300);padding:2px;gap:1px;border-bottom:1px solid var(--border);position:relative">
+<div style="padding:8px 12px;font-size:10px;color:var(--dim);white-space:nowrap">Membri</div>
+<div style="padding:8px 12px;font-size:10px;background:var(--primary);color:#fff;border-radius:4px;white-space:nowrap">Fasi</div>
+<div style="padding:8px 12px;font-size:10px;color:var(--dim);white-space:nowrap">Budget</div>
+<div style="padding:8px 12px;font-size:10px;color:var(--dim);white-space:nowrap">Regole</div>
+<div style="padding:8px 12px;font-size:10px;color:var(--dim);white-space:nowrap;opacity:0.5">...</div>
+</div>
+<div style="display:flex;justify-content:center;gap:4px;padding:6px">
+<div style="width:6px;height:6px;border-radius:50%;background:var(--dim)"></div>
+<div style="width:16px;height:6px;border-radius:3px;background:var(--primary)"></div>
+<div style="width:6px;height:6px;border-radius:50%;background:var(--dim)"></div>
+<div style="width:6px;height:6px;border-radius:50%;background:var(--dim)"></div>
+</div>
+<div style="padding:16px;text-align:center">
+<div style="font-size:24px;color:var(--dim);margin-bottom:8px">&#8592; &#8594;</div>
+<div style="font-size:11px;color:var(--secondary)">Swipe per navigare tra tab<br>Indicatore posizione attiva<br>Soglia: 50px orizzontale</div>
+</div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- ========== MEDIUM ========== -->
+<div class="section-divider sd-medium"><h2>Priorita Media</h2><span class="num" style="opacity:0.3;font-family:Oswald;font-size:1.8rem">7</span></div>
+
+<!-- MOB-013 -->
+<section class="task-section" id="mob-013">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-013</span>
+<span class="task-title">Service Worker offline</span>
+<span class="badge badge-medium">Media</span>
+<span class="badge badge-effort">L 1-2gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">L'app non funziona offline. Se l'utente perde connessione durante un'asta, vede una pagina bianca.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — Offline = errore</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span style="color:var(--danger)">No signal</span></div>
+<div class="phone-content" style="display:flex;align-items:center;justify-content:center;padding:40px">
+<div style="text-align:center">
+<div style="font-size:48px;margin-bottom:16px;opacity:0.3">&#128542;</div>
+<div style="font-size:14px;font-weight:600;margin-bottom:8px">ERR_INTERNET_DISCONNECTED</div>
+<div style="font-size:11px;color:var(--dim)">Impossibile raggiungere il sito</div>
+</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Pagina offline dedicata</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span style="color:var(--danger)">Offline</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Fantacontratti</span></div>
+<div class="phone-content" style="display:flex;align-items:center;justify-content:center;padding:40px">
+<div style="text-align:center">
+<div style="font-size:48px;margin-bottom:16px">&#128225;</div>
+<div style="font-size:14px;font-weight:600;margin-bottom:4px">Sei offline</div>
+<div style="font-size:11px;color:var(--dim);margin-bottom:16px">Alcune funzioni non sono disponibili</div>
+<div class="m-card" style="margin:0 0 12px;text-align:left"><div class="row"><span class="name" style="font-size:11px">La tua rosa</span><span style="font-size:10px;color:var(--secondary)">Cached</span></div></div>
+<div class="m-btn m-btn-primary">Riprova connessione</div>
+</div>
+</div>
+<div class="phone-nav-bottom">
+<div class="nav-tab active"><span class="icon">&#127968;</span><span>Home</span></div>
+<div class="nav-tab"><span class="icon">&#9889;</span><span>Asta</span></div>
+<div class="nav-tab"><span class="icon">&#128101;</span><span>Rosa</span></div>
+<div class="nav-tab"><span class="icon">&#128176;</span><span>Finanze</span></div>
+<div class="nav-tab"><span class="icon">&#9776;</span><span>Menu</span></div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-014 -->
+<section class="task-section" id="mob-014">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-014</span>
+<span class="task-title">Input keyboard ottimizzato</span>
+<span class="badge badge-medium">Media</span>
+<span class="badge badge-effort">S 1-3h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">I campi numerici (salario, prezzo) aprono la tastiera QWERTY completa invece del tastierino numerico.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — QWERTY per numeri</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-content" style="padding:16px">
+<div style="font-size:11px;color:var(--dim);margin-bottom:4px">Salario mensile (M)</div>
+<input class="m-input" value="8.5" style="margin-bottom:16px">
+</div>
+<div style="background:var(--s100);padding:8px;border-top:1px solid var(--border)">
+<div style="display:grid;grid-template-columns:repeat(10,1fr);gap:3px;margin-bottom:4px">
+<div style="background:var(--s50);padding:6px 0;text-align:center;border-radius:4px;font-size:10px;color:var(--text2)">q</div>
+<div style="background:var(--s50);padding:6px 0;text-align:center;border-radius:4px;font-size:10px;color:var(--text2)">w</div>
+<div style="background:var(--s50);padding:6px 0;text-align:center;border-radius:4px;font-size:10px;color:var(--text2)">e</div>
+<div style="background:var(--s50);padding:6px 0;text-align:center;border-radius:4px;font-size:10px;color:var(--text2)">r</div>
+<div style="background:var(--s50);padding:6px 0;text-align:center;border-radius:4px;font-size:10px;color:var(--text2)">t</div>
+<div style="background:var(--s50);padding:6px 0;text-align:center;border-radius:4px;font-size:10px;color:var(--text2)">y</div>
+<div style="background:var(--s50);padding:6px 0;text-align:center;border-radius:4px;font-size:10px;color:var(--text2)">u</div>
+<div style="background:var(--s50);padding:6px 0;text-align:center;border-radius:4px;font-size:10px;color:var(--text2)">i</div>
+<div style="background:var(--s50);padding:6px 0;text-align:center;border-radius:4px;font-size:10px;color:var(--text2)">o</div>
+<div style="background:var(--s50);padding:6px 0;text-align:center;border-radius:4px;font-size:10px;color:var(--text2)">p</div>
+</div>
+<div style="text-align:center;font-size:9px;color:var(--danger);margin-top:4px">Tastiera QWERTY per campo numerico!</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Tastierino numerico</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-content" style="padding:16px">
+<div style="font-size:11px;color:var(--dim);margin-bottom:4px">Salario mensile (M)</div>
+<input class="m-input" value="8.5" style="margin-bottom:16px">
+</div>
+<div style="background:var(--s100);padding:12px;border-top:1px solid var(--border)">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+<div style="background:var(--s50);padding:12px 0;text-align:center;border-radius:6px;font-size:16px;font-weight:500;color:var(--text)">1</div>
+<div style="background:var(--s50);padding:12px 0;text-align:center;border-radius:6px;font-size:16px;font-weight:500;color:var(--text)">2</div>
+<div style="background:var(--s50);padding:12px 0;text-align:center;border-radius:6px;font-size:16px;font-weight:500;color:var(--text)">3</div>
+<div style="background:var(--s50);padding:12px 0;text-align:center;border-radius:6px;font-size:16px;font-weight:500;color:var(--text)">4</div>
+<div style="background:var(--s50);padding:12px 0;text-align:center;border-radius:6px;font-size:16px;font-weight:500;color:var(--text)">5</div>
+<div style="background:var(--s50);padding:12px 0;text-align:center;border-radius:6px;font-size:16px;font-weight:500;color:var(--text)">6</div>
+<div style="background:var(--s50);padding:12px 0;text-align:center;border-radius:6px;font-size:16px;font-weight:500;color:var(--text)">7</div>
+<div style="background:var(--s50);padding:12px 0;text-align:center;border-radius:6px;font-size:16px;font-weight:500;color:var(--text)">8</div>
+<div style="background:var(--s50);padding:12px 0;text-align:center;border-radius:6px;font-size:16px;font-weight:500;color:var(--text)">9</div>
+<div style="background:var(--s50);padding:12px 0;text-align:center;border-radius:6px;font-size:14px;color:var(--text)">.</div>
+<div style="background:var(--s50);padding:12px 0;text-align:center;border-radius:6px;font-size:16px;font-weight:500;color:var(--text)">0</div>
+<div style="background:var(--s50);padding:12px 0;text-align:center;border-radius:6px;font-size:14px;color:var(--text)">&#9003;</div>
+</div>
+<div style="text-align:center;font-size:9px;color:var(--secondary);margin-top:6px">inputMode="numeric" attivo</div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-015 -->
+<section class="task-section" id="mob-015">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-015</span>
+<span class="task-title">Contratti editing BottomSheet</span>
+<span class="badge badge-medium">Media</span>
+<span class="badge badge-effort">M 3-8h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Modificare salario, durata e clausola nella tabella su 375px e' impossibile: i campi sono troppo piccoli per le dita.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — Edit inline minuscolo</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Contratti</span></div>
+<div class="phone-content" style="padding:8px;font-size:8px">
+<table style="width:100%;border-collapse:collapse">
+<tr style="border-bottom:1px solid var(--border)"><td style="padding:3px;font-size:8px"><span class="pos pos-A" style="width:16px;height:16px;font-size:7px">A</span></td><td style="padding:3px;font-size:8px">Lautaro</td><td style="padding:3px"><input style="width:30px;background:var(--s100);border:1px solid var(--border);border-radius:2px;color:var(--text);font-size:7px;padding:1px" value="8.5"></td><td style="padding:3px"><input style="width:20px;background:var(--s100);border:1px solid var(--border);border-radius:2px;color:var(--text);font-size:7px;padding:1px" value="3"></td><td style="padding:3px"><input style="width:30px;background:var(--s100);border:1px solid var(--border);border-radius:2px;color:var(--text);font-size:7px;padding:1px" value="15"></td></tr>
+</table>
+<div style="text-align:center;margin-top:20px;color:var(--danger);font-size:10px">Input da 30px: impossibile toccare</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — BottomSheet dedicato</div>
+<div class="phone-frame" style="position:relative">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Contratti</span></div>
+<div class="phone-content" style="padding:12px;opacity:0.3">
+<div class="m-card"><div class="row"><span class="pos pos-A">A</span><span class="name">Lautaro</span></div></div>
+</div>
+<!-- BottomSheet -->
+<div style="position:absolute;bottom:0;left:0;right:0;background:var(--card);border-radius:16px 16px 0 0;border:1px solid var(--border);padding:16px;z-index:10">
+<div style="width:40px;height:4px;background:var(--s50);border-radius:2px;margin:0 auto 12px"></div>
+<div style="font-size:14px;font-weight:600;margin-bottom:4px">Modifica Contratto</div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+<span class="pos pos-A">A</span>
+<div><div style="font-size:13px;font-weight:600">Lautaro Martinez</div><div style="font-size:10px;color:var(--dim)">Inter | Acquistato: 42M</div></div>
+</div>
+<div style="font-size:11px;color:var(--dim);margin-bottom:6px">Durata</div>
+<div style="display:flex;gap:6px;margin-bottom:14px">
+<div style="flex:1;padding:10px;text-align:center;background:var(--s100);border-radius:6px;font-size:12px;color:var(--dim)">1a</div>
+<div style="flex:1;padding:10px;text-align:center;background:var(--s100);border-radius:6px;font-size:12px;color:var(--dim)">2a</div>
+<div style="flex:1;padding:10px;text-align:center;background:var(--primary);border-radius:6px;font-size:12px;color:#fff;font-weight:600">3a</div>
+<div style="flex:1;padding:10px;text-align:center;background:var(--s100);border-radius:6px;font-size:12px;color:var(--dim)">4a</div>
+</div>
+<div style="font-size:11px;color:var(--dim);margin-bottom:6px">Salario mensile</div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+<div class="m-btn m-btn-ghost" style="width:44px;height:44px;padding:0;font-size:18px">-</div>
+<div style="flex:1;text-align:center;font-family:Oswald;font-size:20px;color:var(--accent)">8.5M</div>
+<div class="m-btn m-btn-ghost" style="width:44px;height:44px;padding:0;font-size:18px">+</div>
+</div>
+<div style="font-size:11px;color:var(--dim);margin-bottom:6px">Clausola rescissoria</div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+<div class="m-btn m-btn-ghost" style="width:44px;height:44px;padding:0;font-size:18px">-</div>
+<div style="flex:1;text-align:center;font-family:Oswald;font-size:20px;color:var(--accent)">15.0M</div>
+<div class="m-btn m-btn-ghost" style="width:44px;height:44px;padding:0;font-size:18px">+</div>
+</div>
+<div style="display:flex;gap:8px">
+<span class="m-btn m-btn-ghost" style="flex:1;text-align:center">Annulla</span>
+<span class="m-btn m-btn-primary" style="flex:1;text-align:center">Salva</span>
+</div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-016 -->
+<section class="task-section" id="mob-016">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-016</span>
+<span class="task-title">Push Notifications</span>
+<span class="badge badge-medium">Media</span>
+<span class="badge badge-effort">XL 2-5gg</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">L'utente deve tenere l'app aperta per non perdere il turno in asta. Se chiude il browser, perde il turno.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — Nessuna notifica</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-content" style="display:flex;align-items:center;justify-content:center;background:#1a1a2e">
+<div style="text-align:center">
+<div style="font-size:48px;margin-bottom:16px">&#128564;</div>
+<div style="font-size:24px;font-family:Oswald;margin-bottom:8px;color:var(--text)">14:32</div>
+<div style="font-size:11px;color:var(--dim)">Browser chiuso<br>Turno asta perso!</div>
+</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Push notification</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-content" style="background:#1a1a2e;padding:16px">
+<div style="font-size:24px;font-family:Oswald;text-align:center;margin:40px 0 30px;color:var(--text)">14:32</div>
+<!-- Notification -->
+<div style="background:var(--card);border-radius:12px;padding:12px;display:flex;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,0.4)">
+<div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">&#9918;</div>
+<div>
+<div style="font-size:11px;font-weight:600;margin-bottom:2px">Fantacontratti</div>
+<div style="font-size:10px;color:var(--text2)">Il tuo turno in asta! Lautaro Martinez in vendita - 00:30 rimasti</div>
+</div>
+<div style="font-size:9px;color:var(--dim);white-space:nowrap">ora</div>
+</div>
+<div style="background:var(--card);border-radius:12px;padding:12px;display:flex;gap:10px;margin-top:8px;box-shadow:0 4px 16px rgba(0,0,0,0.4)">
+<div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">&#9918;</div>
+<div>
+<div style="font-size:11px;font-weight:600;margin-bottom:2px">Fantacontratti</div>
+<div style="font-size:10px;color:var(--text2)">Nuova proposta di scambio da FC Mario</div>
+</div>
+<div style="font-size:9px;color:var(--dim);white-space:nowrap">2m</div>
+</div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-017 -->
+<section class="task-section" id="mob-017">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-017</span>
+<span class="task-title">Web Share API</span>
+<span class="badge badge-medium">Media</span>
+<span class="badge badge-effort">S 1-3h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">L'utente non puo condividere facilmente statistiche o dati con gli altri manager della lega.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — Nessuna condivisione</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Statistiche</span></div>
+<div class="phone-content" style="padding:16px">
+<div style="text-align:center;margin-bottom:16px">
+<span class="pos pos-A" style="width:40px;height:40px;font-size:16px;border-radius:10px">A</span>
+<div style="font-size:14px;font-weight:600;margin-top:8px">Lautaro Martinez</div>
+<div style="font-size:11px;color:var(--dim)">Inter</div>
+</div>
+<div class="m-card" style="margin:0"><div style="display:flex;justify-content:space-around;text-align:center;font-size:10px"><div><div class="num" style="font-size:18px;color:var(--accent)">7.2</div>Voto</div><div><div class="num" style="font-size:18px;color:var(--secondary)">18</div>Gol</div><div><div class="num" style="font-size:18px;color:var(--primary)">5</div>Assist</div></div></div>
+<div style="text-align:center;margin-top:24px;color:var(--dim);font-size:10px">Nessun bottone condivisione</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Bottone Share</div>
+<div class="phone-frame" style="position:relative">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header">
+<div class="burger"><span></span><span></span><span></span></div>
+<span class="logo">Statistiche</span>
+<span style="font-size:16px;cursor:pointer">&#128279;</span>
+</div>
+<div class="phone-content" style="padding:16px">
+<div style="text-align:center;margin-bottom:16px">
+<span class="pos pos-A" style="width:40px;height:40px;font-size:16px;border-radius:10px">A</span>
+<div style="font-size:14px;font-weight:600;margin-top:8px">Lautaro Martinez</div>
+<div style="font-size:11px;color:var(--dim)">Inter</div>
+</div>
+<div class="m-card" style="margin:0"><div style="display:flex;justify-content:space-around;text-align:center;font-size:10px"><div><div class="num" style="font-size:18px;color:var(--accent)">7.2</div>Voto</div><div><div class="num" style="font-size:18px;color:var(--secondary)">18</div>Gol</div><div><div class="num" style="font-size:18px;color:var(--primary)">5</div>Assist</div></div></div>
+</div>
+<!-- Share sheet -->
+<div style="position:absolute;bottom:0;left:0;right:0;background:var(--card);border-radius:16px 16px 0 0;border:1px solid var(--border);padding:16px;z-index:10">
+<div style="width:40px;height:4px;background:var(--s50);border-radius:2px;margin:0 auto 12px"></div>
+<div style="font-size:13px;font-weight:600;margin-bottom:12px">Condividi</div>
+<div style="display:flex;gap:16px;justify-content:center;margin-bottom:12px">
+<div style="text-align:center"><div style="width:48px;height:48px;border-radius:12px;background:#25D366;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:4px">W</div><div style="font-size:9px;color:var(--dim)">WhatsApp</div></div>
+<div style="text-align:center"><div style="width:48px;height:48px;border-radius:12px;background:#0088cc;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:4px">T</div><div style="font-size:9px;color:var(--dim)">Telegram</div></div>
+<div style="text-align:center"><div style="width:48px;height:48px;border-radius:12px;background:var(--s50);display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:4px">&#128203;</div><div style="font-size:9px;color:var(--dim)">Copia</div></div>
+</div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-018 -->
+<section class="task-section" id="mob-018">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-018</span>
+<span class="task-title">Scroll-to-top</span>
+<span class="badge badge-medium">Media</span>
+<span class="badge badge-effort">XS &lt;1h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Liste lunghe (giocatori, movimenti) richiedono molto scroll. Tornare in cima e' faticoso.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — Nessun shortcut</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Giocatori</span></div>
+<div class="phone-content" style="padding:8px">
+<div style="font-size:9px;color:var(--dim);padding:4px 8px">...giocatore #47</div>
+<div class="m-card"><div class="row"><span class="pos pos-D">D</span><span class="name">Udogie</span><span class="val">12</span></div></div>
+<div class="m-card"><div class="row"><span class="pos pos-C">C</span><span class="name">Pellegrini</span><span class="val">22</span></div></div>
+<div class="m-card"><div class="row"><span class="pos pos-A">A</span><span class="name">Kean</span><span class="val">28</span></div></div>
+<div style="text-align:center;margin-top:16px;color:var(--dim);font-size:10px">&#8593; Scroll manuale per tornare su<br>Nessun bottone rapido</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Floating button</div>
+<div class="phone-frame" style="position:relative">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Giocatori</span></div>
+<div class="phone-content" style="padding:8px">
+<div style="font-size:9px;color:var(--dim);padding:4px 8px">...giocatore #47</div>
+<div class="m-card"><div class="row"><span class="pos pos-D">D</span><span class="name">Udogie</span><span class="val">12</span></div></div>
+<div class="m-card"><div class="row"><span class="pos pos-C">C</span><span class="name">Pellegrini</span><span class="val">22</span></div></div>
+<div class="m-card"><div class="row"><span class="pos pos-A">A</span><span class="name">Kean</span><span class="val">28</span></div></div>
+</div>
+<!-- Floating scroll-to-top -->
+<div style="position:absolute;bottom:68px;right:12px;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-h));display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;box-shadow:var(--glow-blue)">&#8593;</div>
+<div class="phone-nav-bottom">
+<div class="nav-tab"><span class="icon">&#127968;</span><span>Home</span></div>
+<div class="nav-tab"><span class="icon">&#9889;</span><span>Asta</span></div>
+<div class="nav-tab active"><span class="icon">&#128101;</span><span>Rosa</span></div>
+<div class="nav-tab"><span class="icon">&#128176;</span><span>Finanze</span></div>
+<div class="nav-tab"><span class="icon">&#9776;</span><span>Menu</span></div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-019 -->
+<section class="task-section" id="mob-019">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-019</span>
+<span class="task-title">Swipe-to-dismiss modali</span>
+<span class="badge badge-medium">Media</span>
+<span class="badge badge-effort">S 1-3h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">I modal si chiudono solo con X o tap su backdrop. Su mobile lo swipe-down e' piu naturale.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — Solo X per chiudere</div>
+<div class="phone-frame" style="position:relative">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-content" style="background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;padding:24px">
+<div style="background:var(--card);border-radius:12px;padding:16px;width:100%">
+<div style="display:flex;justify-content:space-between;margin-bottom:12px"><span style="font-size:13px;font-weight:600">Dettagli</span><span style="cursor:pointer;color:var(--dim)">&#10005;</span></div>
+<div style="font-size:11px;color:var(--text2)">Contenuto del modal...</div>
+<div style="text-align:center;margin-top:16px;font-size:10px;color:var(--danger)">Solo X per chiudere</div>
+</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Drag handle + swipe</div>
+<div class="phone-frame" style="position:relative">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-content" style="background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;padding:0">
+<div style="background:var(--card);border-radius:16px 16px 0 0;padding:16px;width:100%;transform:translateY(20px);opacity:0.9">
+<div style="width:40px;height:4px;background:var(--s50);border-radius:2px;margin:0 auto 12px"></div>
+<div style="font-size:13px;font-weight:600;margin-bottom:12px">Dettagli</div>
+<div style="font-size:11px;color:var(--text2);margin-bottom:12px">Contenuto del modal...</div>
+<div style="text-align:center;font-size:10px;color:var(--secondary)">&#8595; Swipe down per chiudere<br>Drag handle visibile</div>
+</div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- ========== LOW ========== -->
+<div class="section-divider sd-low"><h2>Priorita Bassa</h2><span class="num" style="opacity:0.3;font-family:Oswald;font-size:1.8rem">5</span></div>
+
+<!-- MOB-020 -->
+<section class="task-section" id="mob-020">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-020</span>
+<span class="task-title">Landscape hint per grafici</span>
+<span class="badge badge-low">Bassa</span>
+<span class="badge badge-effort">XS &lt;1h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">I grafici (DonutChart, BarChart, RadarChart) sono piccoli su 375px portrait. In landscape avrebbero piu spazio.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — Grafico compresso</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Finanze</span></div>
+<div class="phone-content" style="padding:16px;text-align:center">
+<div style="width:120px;height:120px;border-radius:50%;background:conic-gradient(var(--primary) 0% 35%,var(--secondary) 35% 55%,var(--accent) 55% 80%,var(--danger) 80% 100%);margin:20px auto;display:flex;align-items:center;justify-content:center"><div style="width:70%;height:70%;border-radius:50%;background:var(--body);display:flex;align-items:center;justify-content:center;font-family:Oswald;font-size:14px">187M</div></div>
+<div style="font-size:10px;color:var(--dim)">Grafico piccolo, dettagli illeggibili</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Hint rotazione</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Finanze</span></div>
+<div class="phone-content" style="padding:16px;text-align:center">
+<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:8px;margin-bottom:12px;font-size:10px;color:var(--primary);display:flex;align-items:center;gap:8px;justify-content:center">
+<span style="font-size:16px">&#128241;</span> Ruota per vista migliore
+</div>
+<div style="width:120px;height:120px;border-radius:50%;background:conic-gradient(var(--primary) 0% 35%,var(--secondary) 35% 55%,var(--accent) 55% 80%,var(--danger) 80% 100%);margin:12px auto;display:flex;align-items:center;justify-content:center"><div style="width:70%;height:70%;border-radius:50%;background:var(--body);display:flex;align-items:center;justify-content:center;font-family:Oswald;font-size:14px">187M</div></div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-021 -->
+<section class="task-section" id="mob-021">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-021</span>
+<span class="task-title">Dark/Light mode toggle</span>
+<span class="badge badge-low">Bassa</span>
+<span class="badge badge-effort">XS &lt;1h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Il selettore tema e' nel menu slide-in, richiede 3 tap per cambiare tema.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — 3 tap per tema</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Fantacontratti</span><span class="bell">&#128276;</span></div>
+<div class="phone-content" style="padding:16px;text-align:center">
+<div style="margin-top:40px;font-size:11px;color:var(--dim)">1. Apri hamburger<br>2. Scorri a "Tema"<br>3. Seleziona tema<br><br>= 3 tap + scroll</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Toggle in header</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div style="height:48px;background:var(--s300);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px">
+<div class="burger"><span></span><span></span><span></span></div>
+<span class="logo" style="flex:1">Fantacontratti</span>
+<div style="width:36px;height:20px;background:var(--primary);border-radius:10px;position:relative;cursor:pointer"><div style="width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;right:2px"></div></div>
+<span class="bell">&#128276;</span>
+</div>
+<div class="phone-content" style="padding:16px;text-align:center">
+<div style="margin-top:40px;font-size:11px;color:var(--secondary)">1 tap per cambiare tema<br><br>&#9728;&#65039; / &#127769; toggle nell'header</div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-022 -->
+<section class="task-section" id="mob-022">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-022</span>
+<span class="task-title">Haptic feedback esteso</span>
+<span class="badge badge-low">Bassa</span>
+<span class="badge badge-effort">S 1-3h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">L'haptic feedback e' solo in AuctionRoom. Azioni importanti (salva, scambio, approva) non hanno feedback tattile.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — Solo asta</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-content" style="padding:20px">
+<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:600;margin-bottom:4px;color:var(--secondary)">AuctionRoom</div><div style="font-size:10px;color:var(--text2)">bid: &#8226;&#8226;&#8226; vibrazione<br>outbid: &#8226;&#8226;&#8226;&#8226; vibrazione<br>win: &#8226;&#8226;&#8226;&#8226;&#8226; vibrazione</div></div>
+<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:600;margin-bottom:4px;color:var(--dim)">Contracts</div><div style="font-size:10px;color:var(--dim)">Salva: nessun feedback</div></div>
+<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:600;margin-bottom:4px;color:var(--dim)">Trades</div><div style="font-size:10px;color:var(--dim)">Invia scambio: nessun feedback</div></div>
+<div><div style="font-size:11px;font-weight:600;margin-bottom:4px;color:var(--dim)">Admin</div><div style="font-size:10px;color:var(--dim)">Approva: nessun feedback</div></div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Ovunque</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-content" style="padding:20px">
+<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:600;margin-bottom:4px;color:var(--secondary)">AuctionRoom</div><div style="font-size:10px;color:var(--text2)">bid/outbid/win: &#128243; vibrazione</div></div>
+<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:600;margin-bottom:4px;color:var(--secondary)">Contracts</div><div style="font-size:10px;color:var(--text2)">Salva: &#128243; success (short)</div></div>
+<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:600;margin-bottom:4px;color:var(--secondary)">Trades</div><div style="font-size:10px;color:var(--text2)">Invia: &#128243; medium<br>Rifiuta: &#128243; error (double)</div></div>
+<div><div style="font-size:11px;font-weight:600;margin-bottom:4px;color:var(--secondary)">Admin</div><div style="font-size:10px;color:var(--text2)">Approva: &#128243; success<br>Rifiuta: &#128243; error</div></div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-023 -->
+<section class="task-section" id="mob-023">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-023</span>
+<span class="task-title">Font-size responsive</span>
+<span class="badge badge-low">Bassa</span>
+<span class="badge badge-effort">S 1-3h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">Titoli text-3xl (30px) e text-4xl (36px) sono troppo grandi su 375px, causando wrapping su 2-3 righe.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — text-3xl (30px)</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Fantacontratti</span></div>
+<div class="phone-content" style="padding:16px">
+<div style="font-family:Outfit;font-size:30px;font-weight:700;line-height:1.2;margin-bottom:8px">Serie A Fantasy League 2025/26</div>
+<div style="font-size:10px;color:var(--danger)">Titolo wrappa su 3 righe!<br>Spreca 90px verticali</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — text-xl (20px)</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Fantacontratti</span></div>
+<div class="phone-content" style="padding:16px">
+<div style="font-family:Outfit;font-size:20px;font-weight:700;line-height:1.3;margin-bottom:8px">Serie A Fantasy League 2025/26</div>
+<div style="font-size:10px;color:var(--secondary)">Titolo su 1-2 righe<br>text-xl sm:text-2xl md:text-3xl</div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- MOB-024 -->
+<section class="task-section" id="mob-024">
+<div class="task-card">
+<div class="task-header">
+<span class="task-num">MOB-024</span>
+<span class="task-title">Camera per upload profilo</span>
+<span class="badge badge-low">Bassa</span>
+<span class="badge badge-effort">XS &lt;1h</span>
+</div>
+<div class="task-body">
+<p class="task-motivation">L'upload foto usa file picker standard che non offre opzione camera diretta su mobile.</p>
+<div class="ba-grid">
+<div class="ba-col">
+<div class="ba-label before">PRIMA — Solo file picker</div>
+<div class="phone-frame">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Profilo</span></div>
+<div class="phone-content" style="padding:16px;text-align:center">
+<div style="width:80px;height:80px;border-radius:50%;background:var(--s100);margin:20px auto;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--dim)">&#128100;</div>
+<div class="m-btn m-btn-ghost" style="margin-bottom:12px">Scegli file...</div>
+<div style="font-size:10px;color:var(--dim)">File picker standard<br>Nessun accesso diretto alla camera</div>
+</div>
+</div>
+</div>
+<div class="ba-col">
+<div class="ba-label after">DOPO — Camera diretta</div>
+<div class="phone-frame" style="position:relative">
+<div class="phone-sb"><span>9:41</span><span>100%</span></div>
+<div class="phone-header"><div class="burger"><span></span><span></span><span></span></div><span class="logo">Profilo</span></div>
+<div class="phone-content" style="padding:16px;text-align:center">
+<div style="width:80px;height:80px;border-radius:50%;background:var(--s100);margin:20px auto;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--dim)">&#128100;</div>
+<div class="m-btn m-btn-primary" style="margin-bottom:8px">&#128247; Scatta Foto</div>
+<div class="m-btn m-btn-ghost">&#128193; Scegli dalla galleria</div>
+<div style="font-size:10px;color:var(--secondary);margin-top:12px">capture="user" per camera frontale</div>
+</div>
+</div>
+</div>
+</div></div></div>
+</section>
+
+<!-- ========== SPRINT ROADMAP ========== -->
+<section id="roadmap" style="margin-top:3rem;scroll-margin-top:1.5rem">
+<div class="section-divider" style="background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(245,158,11,0.06));border-left:4px solid var(--primary)">
+<h2>Sprint Roadmap Mobile</h2>
+</div>
+<div class="roadmap">
+<div class="sprint-box" style="border-top:3px solid var(--secondary)">
+<span class="sprint-num">M1</span>
+<h4 style="color:var(--secondary)">Quick Wins (1 sett.)</h4>
+<ul>
+<li>MOB-003 PWA Manifest</li>
+<li>MOB-004 Ridurre padding</li>
+<li>MOB-002 Profilo mobile</li>
+<li>MOB-010 Hamburger 44px</li>
+<li>MOB-014 Input keyboard</li>
+<li>MOB-023 Font responsive</li>
+<li>MOB-018 Scroll-to-top</li>
+<li>MOB-024 Camera profilo</li>
+</ul>
+</div>
+<div class="sprint-box" style="border-top:3px solid var(--primary)">
+<span class="sprint-num">M2</span>
+<h4 style="color:var(--primary)">Navigazione (1 sett.)</h4>
+<ul>
+<li>MOB-001 Bottom Nav Bar</li>
+<li>MOB-009 Sticky buttons</li>
+<li>MOB-011 Filtri BottomSheet</li>
+<li>MOB-021 Dark/Light toggle</li>
+</ul>
+</div>
+<div class="sprint-box" style="border-top:3px solid var(--accent)">
+<span class="sprint-num">M3</span>
+<h4 style="color:var(--accent)">Interazioni (2 sett.)</h4>
+<ul>
+<li>MOB-005 Card view tabelle</li>
+<li>MOB-006 Trades mobile</li>
+<li>MOB-015 Contratti BottomSheet</li>
+<li>MOB-007 Touch targets 44px</li>
+<li>MOB-022 Haptic esteso</li>
+</ul>
+</div>
+<div class="sprint-box" style="border-top:3px solid var(--danger)">
+<span class="sprint-num">M4</span>
+<h4 style="color:var(--danger)">Power Features (2 sett.)</h4>
+<ul>
+<li>MOB-008 Pull-to-refresh</li>
+<li>MOB-012 Swipe gestures</li>
+<li>MOB-013 Service Worker</li>
+<li>MOB-019 Swipe modali</li>
+<li>MOB-020 Landscape hint</li>
+</ul>
+</div>
+</div>
+<div style="text-align:center;padding:2rem 0;font-size:0.85rem;color:var(--dim)">
+Backlog Futuro: MOB-016 Push Notifications (XL) | MOB-017 Web Share API (S)
+</div>
+</section>
+
+</div>
+
+<button class="btt" id="btt" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8593;</button>
+<script>
+window.addEventListener('scroll',()=>{document.getElementById('btt').classList.toggle('visible',window.scrollY>500)});
+</script>
+</body>
+</html>

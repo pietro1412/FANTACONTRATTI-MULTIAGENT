@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fantacontratti Dynasty — UI/UX Before & After Mockups</title>
+<style>
+  :root {
+    --bg-900: #0a0e1a;
+    --bg-800: #0f1629;
+    --bg-700: #151d35;
+    --bg-600: #1b2540;
+    --surface: #1e293b;
+    --surface-light: #263044;
+    --border: rgba(100,120,160,0.2);
+    --primary: #3b82f6;
+    --primary-dark: #2563eb;
+    --secondary: #22c55e;
+    --accent: #f59e0b;
+    --danger: #ef4444;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --text-dim: #64748b;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg-900); color:var(--text); font-family:'Inter','Segoe UI',system-ui,sans-serif; line-height:1.6; }
+
+  /* Header */
+  .hero { background:linear-gradient(135deg,var(--bg-800),var(--bg-700)); border-bottom:1px solid var(--border); padding:3rem 2rem; text-align:center; }
+  .hero h1 { font-size:2.5rem; font-weight:800; background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent; margin-bottom:.5rem; }
+  .hero p { color:var(--text-muted); font-size:1.1rem; max-width:700px; margin:0 auto; }
+  .hero .badge { display:inline-block; background:var(--primary); color:#fff; padding:.25rem .75rem; border-radius:999px; font-size:.8rem; font-weight:600; margin-top:1rem; }
+
+  /* Nav */
+  .toc { background:var(--bg-800); border-bottom:1px solid var(--border); padding:1rem 2rem; position:sticky; top:0; z-index:100; }
+  .toc-inner { max-width:1200px; margin:0 auto; display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+  .toc a { color:var(--text-muted); text-decoration:none; font-size:.8rem; padding:.3rem .6rem; border-radius:6px; transition:all .2s; border:1px solid transparent; }
+  .toc a:hover { color:#fff; background:var(--surface); border-color:var(--border); }
+  .toc .sprint-label { color:var(--accent); font-weight:700; font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; margin-left:.5rem; }
+
+  /* Container */
+  .container { max-width:1200px; margin:0 auto; padding:2rem 1.5rem; }
+
+  /* Sprint Header */
+  .sprint-header { margin:3rem 0 2rem; padding:1.5rem; background:linear-gradient(135deg,var(--bg-700),var(--bg-800)); border:1px solid var(--border); border-radius:16px; display:flex; align-items:center; gap:1rem; }
+  .sprint-header .num { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.2rem; color:#fff; }
+  .sprint-header .s1 { background:linear-gradient(135deg,var(--danger),#dc2626); }
+  .sprint-header .s2 { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); }
+  .sprint-header .s3 { background:linear-gradient(135deg,var(--accent),#d97706); }
+  .sprint-header .s4 { background:linear-gradient(135deg,var(--secondary),#16a34a); }
+  .sprint-header h2 { font-size:1.4rem; font-weight:700; }
+  .sprint-header .meta { color:var(--text-muted); font-size:.85rem; }
+
+  /* Task Card */
+  .task { margin-bottom:3rem; border:1px solid var(--border); border-radius:16px; overflow:hidden; background:var(--bg-800); }
+  .task-header { padding:1.25rem 1.5rem; display:flex; align-items:center; gap:1rem; border-bottom:1px solid var(--border); background:var(--bg-700); }
+  .task-id { font-weight:800; font-size:.9rem; padding:.2rem .6rem; border-radius:6px; color:#fff; }
+  .p1 { background:var(--danger); }
+  .p2 { background:var(--primary); }
+  .p3 { background:var(--secondary); }
+  .task-header h3 { font-size:1.1rem; font-weight:700; flex:1; }
+  .task-size { color:var(--text-muted); font-size:.8rem; background:var(--surface); padding:.2rem .5rem; border-radius:4px; }
+  .task-files { padding:.5rem 1.5rem; background:var(--bg-800); border-bottom:1px solid var(--border); }
+  .task-files code { font-size:.75rem; color:var(--accent); font-family:'JetBrains Mono',monospace; }
+
+  /* Before/After Grid */
+  .comparison { display:grid; grid-template-columns:1fr 1fr; min-height:200px; }
+  .comparison .before, .comparison .after { padding:1.5rem; position:relative; }
+  .comparison .before { background:var(--bg-900); border-right:1px solid var(--border); }
+  .comparison .after { background:linear-gradient(180deg,rgba(34,197,94,0.03),transparent); }
+  .comparison .label { position:absolute; top:.75rem; left:.75rem; font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; padding:.2rem .5rem; border-radius:4px; }
+  .comparison .before .label { background:rgba(239,68,68,0.15); color:var(--danger); }
+  .comparison .after .label { background:rgba(34,197,94,0.15); color:var(--secondary); }
+
+  /* Mock UI elements */
+  .mock { margin-top:1.5rem; }
+  .mock-phone { width:280px; margin:0 auto; background:var(--bg-900); border:2px solid var(--border); border-radius:24px; padding:12px; overflow:hidden; }
+  .mock-phone .screen { background:var(--bg-800); border-radius:16px; overflow:hidden; min-height:200px; }
+  .mock-bar { height:32px; background:var(--bg-700); display:flex; align-items:center; padding:0 12px; gap:8px; border-bottom:1px solid var(--border); }
+  .mock-bar .dot { width:6px; height:6px; border-radius:50%; }
+  .mock-bar .dot.r { background:#ef4444; }
+  .mock-bar .dot.y { background:#f59e0b; }
+  .mock-bar .dot.g { background:#22c55e; }
+  .mock-btn { display:inline-flex; align-items:center; justify-content:center; padding:8px 16px; border-radius:8px; font-size:.8rem; font-weight:600; border:none; cursor:default; }
+  .mock-btn.primary { background:var(--primary); color:#fff; }
+  .mock-btn.danger { background:var(--danger); color:#fff; }
+  .mock-btn.outline { background:transparent; border:1px solid var(--border); color:var(--text-muted); }
+  .mock-btn.disabled { opacity:.4; }
+  .mock-btn.success { background:var(--secondary); color:#fff; }
+  .mock-input { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:.8rem; width:100%; }
+  .mock-input.error { border-color:var(--danger); }
+  .mock-input.success { border-color:var(--secondary); }
+  .mock-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:8px; }
+  .mock-badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.7rem; font-weight:600; }
+  .mock-progress { height:8px; background:var(--surface); border-radius:999px; overflow:hidden; margin:4px 0; }
+  .mock-progress .fill { height:100%; border-radius:999px; }
+  .mock-text { color:var(--text-muted); font-size:.75rem; }
+  .mock-text.dim { color:var(--text-dim); }
+  .mock-text.white { color:#fff; }
+  .mock-text.sm { font-size:.65rem; }
+  .mock-text.lg { font-size:1rem; font-weight:700; color:#fff; }
+  .mock-text.danger { color:var(--danger); }
+  .mock-text.success { color:var(--secondary); }
+  .mock-text.accent { color:var(--accent); }
+  .mock-text.primary { color:var(--primary); }
+  .mock-flex { display:flex; align-items:center; gap:8px; }
+  .mock-flex.between { justify-content:space-between; }
+  .mock-flex.col { flex-direction:column; align-items:stretch; }
+  .mock-flex.wrap { flex-wrap:wrap; }
+  .mock-gap-4 { gap:4px; }
+  .mock-gap-12 { gap:12px; }
+  .mock-mt { margin-top:8px; }
+  .mock-mb { margin-bottom:8px; }
+  .mock-p { padding:12px; }
+  .mock-divider { height:1px; background:var(--border); margin:8px 0; }
+  .mock-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .mock-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .mock-skeleton { background:var(--surface-light); border-radius:4px; height:12px; }
+  .mock-tab { padding:6px 12px; font-size:.75rem; font-weight:600; border-bottom:2px solid transparent; color:var(--text-muted); cursor:default; }
+  .mock-tab.active { color:var(--primary); border-color:var(--primary); }
+  .mock-overlay { position:absolute; inset:0; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; border-radius:12px; }
+  .mock-modal { background:var(--bg-700); border:1px solid var(--border); border-radius:16px; padding:20px; width:85%; max-width:260px; text-align:center; }
+  .mock-confetti { position:absolute; top:10px; left:50%; transform:translateX(-50%); font-size:2rem; }
+  .mock-toast { position:absolute; bottom:12px; left:12px; right:12px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 12px; display:flex; align-items:center; gap:8px; }
+  .mock-icon { width:24px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:.7rem; flex-shrink:0; }
+  .w-full { width:100%; }
+  .text-center { text-align:center; }
+  .relative { position:relative; }
+
+  /* Description */
+  .task-desc { padding:1rem 1.5rem; border-top:1px solid var(--border); }
+  .task-desc p { font-size:.85rem; color:var(--text-muted); }
+  .task-desc strong { color:var(--text); }
+
+  /* Responsive */
+  @media(max-width:768px) {
+    .comparison { grid-template-columns:1fr; }
+    .comparison .before { border-right:none; border-bottom:1px solid var(--border); }
+    .hero h1 { font-size:1.8rem; }
+    .toc-inner { gap:.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>UI/UX Before &amp; After Mockups</h1>
+  <p>Fantacontratti Dynasty Platform — 26 miglioramenti proposti con confronto visuale dello stato attuale vs. lo stato target</p>
+  <div class="badge">Score Attuale: 3.5/5.0 → Target: 4.3/5.0</div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <div class="toc-inner">
+    <span class="sprint-label">Sprint 1:</span>
+    <a href="#t001">T-001</a><a href="#t002">T-002</a><a href="#t003">T-003</a><a href="#t004">T-004</a><a href="#t005">T-005</a><a href="#t011">T-011</a><a href="#t015">T-015</a><a href="#t016">T-016</a><a href="#t017">T-017</a>
+    <span class="sprint-label">Sprint 2:</span>
+    <a href="#t006">T-006</a><a href="#t008">T-008</a><a href="#t009">T-009</a><a href="#t010">T-010</a><a href="#t012">T-012</a><a href="#t013">T-013</a><a href="#t014">T-014</a>
+    <span class="sprint-label">Sprint 3:</span>
+    <a href="#t007">T-007</a><a href="#t018">T-018</a><a href="#t019">T-019</a><a href="#t020">T-020</a><a href="#t023">T-023</a>
+    <span class="sprint-label">Sprint 4:</span>
+    <a href="#t021">T-021</a><a href="#t022">T-022</a><a href="#t024">T-024</a><a href="#t025">T-025</a><a href="#t026">T-026</a>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ==================== SPRINT 1 ==================== -->
+<div class="sprint-header">
+  <div class="num s1">S1</div>
+  <div>
+    <h2>Sprint 1 — Protezioni Critiche</h2>
+    <div class="meta">~12h | 9 task | T-001, T-002, T-003, T-004, T-005, T-011, T-015, T-016, T-017</div>
+  </div>
+</div>
+
+<!-- T-001 -->
+<div class="task" id="t001">
+  <div class="task-header">
+    <span class="task-id p1">T-001</span>
+    <h3>Debounce e loading state su bid asta</h3>
+    <span class="task-size">XS ~1h</span>
+  </div>
+  <div class="task-files"><code>BidControls.tsx, MobileBottomBar.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-flex between mock-mb">
+            <span class="mock-text lg">Rilancio</span>
+            <span class="mock-text accent">Budget: 180</span>
+          </div>
+          <div class="mock-flex mock-gap-4">
+            <div class="mock-input" style="width:80px;text-align:center;">25</div>
+            <div class="mock-btn primary" style="flex:1;">Rilancia</div>
+            <div class="mock-btn primary" style="flex:1;">Rilancia</div>
+          </div>
+          <div class="mock-text dim mock-mt" style="font-size:.65rem;">
+            ⚠ Tap rapidi = bid multipli inviati.<br>
+            Nessun feedback durante invio.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-flex between mock-mb">
+            <span class="mock-text lg">Rilancio</span>
+            <span class="mock-text accent">Budget: 180</span>
+          </div>
+          <div class="mock-flex mock-gap-4">
+            <div class="mock-input" style="width:80px;text-align:center;">25</div>
+            <div class="mock-btn primary disabled" style="flex:1;">
+              <span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;margin-right:4px;animation:none;"></span>
+              Invio...
+            </div>
+          </div>
+          <div class="mock-text success mock-mt" style="font-size:.65rem;">
+            ✓ Debounce 1000ms attivo. Pulsante disabilitato durante invio.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-002 -->
+<div class="task" id="t002">
+  <div class="task-header">
+    <span class="task-id p1">T-002</span>
+    <h3>Conferma bid MAX e bid elevati</h3>
+    <span class="task-size">XS ~1h</span>
+  </div>
+  <div class="task-files"><code>BidControls.tsx, MobileBottomBar.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-flex mock-gap-4 mock-mb">
+            <div class="mock-btn primary" style="flex:1">+1</div>
+            <div class="mock-btn primary" style="flex:1">+5</div>
+            <div class="mock-btn danger" style="flex:1">MAX</div>
+          </div>
+          <div class="mock-text dim" style="font-size:.65rem;">
+            ⚠ Cliccando MAX si spende tutto il budget senza conferma.<br>
+            Nessun avviso per bid &gt; 75% del budget.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card relative" style="min-height:180px;">
+          <div class="mock-overlay">
+            <div class="mock-modal">
+              <div style="font-size:1.5rem;margin-bottom:8px;">⚠️</div>
+              <p class="mock-text white" style="font-size:.85rem;font-weight:600;margin-bottom:4px;">Bid MAX: 180 crediti</p>
+              <p class="mock-text" style="margin-bottom:12px;">Stai per usare tutto il budget rimanente. Confermi?</p>
+              <div class="mock-flex mock-gap-4">
+                <div class="mock-btn outline" style="flex:1">Annulla</div>
+                <div class="mock-btn danger" style="flex:1">Conferma</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-003 -->
+<div class="task" id="t003">
+  <div class="task-header">
+    <span class="task-id p1">T-003</span>
+    <h3>Blocco bid quando disconnesso</h3>
+    <span class="task-size">XS ~1h</span>
+  </div>
+  <div class="task-files"><code>BidControls.tsx, MobileBottomBar.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-flex between mock-mb">
+            <span class="mock-text" style="color:#ef4444;">● Disconnesso</span>
+          </div>
+          <div class="mock-flex mock-gap-4">
+            <div class="mock-input" style="width:80px;text-align:center;">25</div>
+            <div class="mock-btn primary" style="flex:1;">Rilancia</div>
+          </div>
+          <div class="mock-text dim mock-mt" style="font-size:.65rem;">
+            ⚠ Il pulsante resta cliccabile anche offline.<br>
+            Il bid va perso silenziosamente.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:8px 12px;margin-bottom:8px;">
+            <div class="mock-flex" style="gap:6px;">
+              <span style="color:#ef4444;">⚡</span>
+              <span class="mock-text danger" style="font-weight:600;">Connessione persa — riconnessione in corso...</span>
+            </div>
+          </div>
+          <div class="mock-flex mock-gap-4">
+            <div class="mock-input" style="width:80px;text-align:center;opacity:.4;">25</div>
+            <div class="mock-btn primary disabled" style="flex:1;">Rilancia</div>
+          </div>
+          <div class="mock-text success mock-mt" style="font-size:.65rem;">
+            ✓ Bid bloccato quando offline. Banner informativo visibile.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-004 -->
+<div class="task" id="t004">
+  <div class="task-header">
+    <span class="task-id p1">T-004</span>
+    <h3>Contrasto WCAG AA per testo su sfondo scuro</h3>
+    <span class="task-size">S ~2-4h</span>
+  </div>
+  <div class="task-files"><code>index.css, tailwind.config.js, tutti i file con text-gray-400/500/600</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card">
+          <p style="color:#64748b;font-size:.85rem;margin-bottom:6px;">text-gray-500 — ratio 1.8:1 ✗</p>
+          <p style="color:#9ca3af;font-size:.85rem;margin-bottom:6px;">text-gray-400 — ratio 3.2:1 ✗</p>
+          <p style="color:#6b7280;font-size:.85rem;margin-bottom:6px;">text-gray-500 su nav — ratio 1.6:1 ✗</p>
+          <div class="mock-divider"></div>
+          <p class="mock-text dim" style="font-size:.65rem;">⚠ Nessun testo secondario supera WCAG AA (4.5:1)</p>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card">
+          <p style="color:#cbd5e1;font-size:.85rem;margin-bottom:6px;">text-gray-300 — ratio 7.5:1 ✓</p>
+          <p style="color:#94a3b8;font-size:.85rem;margin-bottom:6px;">text-gray-400 updated — ratio 4.8:1 ✓</p>
+          <p style="color:#a8b5c8;font-size:.85rem;margin-bottom:6px;">nav links — ratio 5.2:1 ✓</p>
+          <div class="mock-divider"></div>
+          <p class="mock-text success" style="font-size:.65rem;">✓ Tutti i testi ≥ 4.5:1 per testo normale, ≥ 3:1 per testo grande</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-005 -->
+<div class="task" id="t005">
+  <div class="task-header">
+    <span class="task-id p1">T-005</span>
+    <h3>prefers-reduced-motion</h3>
+    <span class="task-size">XS ~1h</span>
+  </div>
+  <div class="task-files"><code>index.css</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
+            <div style="width:32px;height:32px;border:3px solid var(--primary);border-top-color:transparent;border-radius:50%;"></div>
+            <span class="mock-text">Spinner sempre animato</span>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
+            <div style="width:32px;height:8px;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:4px;"></div>
+            <span class="mock-text">Barre con transizione</span>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center;">
+            <div style="width:32px;height:32px;background:var(--accent);border-radius:8px;"></div>
+            <span class="mock-text">Glow + pulse su timer</span>
+          </div>
+          <div class="mock-text dim mock-mt" style="font-size:.65rem;">
+            ⚠ Nessuna media query prefers-reduced-motion.<br>
+            Utenti con disturbi vestibolari penalizzati.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div style="background:var(--surface-light);border-radius:8px;padding:10px;font-family:monospace;font-size:.7rem;color:var(--accent);line-height:1.8;">
+            @media (prefers-reduced-motion: reduce) {<br>
+            &nbsp;&nbsp;*, *::before, *::after {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;animation-duration: 0.01ms !important;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;transition-duration: 0.01ms !important;<br>
+            &nbsp;&nbsp;}<br>
+            }
+          </div>
+          <div class="mock-text success mock-mt" style="font-size:.65rem;">
+            ✓ Tutte le animazioni rispettano le preferenze utente
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-011 -->
+<div class="task" id="t011">
+  <div class="task-header">
+    <span class="task-id p2">T-011</span>
+    <h3>Budget progress bar visuale</h3>
+    <span class="task-size">XS ~1h</span>
+  </div>
+  <div class="task-files"><code>Nuovo BudgetBar.tsx, pagine con budget</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-flex between">
+            <span class="mock-text">Budget</span>
+            <span class="mock-text white" style="font-weight:700;">120 / 200</span>
+          </div>
+          <div class="mock-text dim mock-mt" style="font-size:.65rem;">
+            ⚠ Solo numero. Nessuna percezione visiva immediata della spesa.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-flex between mock-mb">
+            <span class="mock-text">Budget</span>
+            <span class="mock-text white" style="font-weight:700;">120 / 200</span>
+          </div>
+          <div class="mock-progress" style="height:10px;">
+            <div class="fill" style="width:60%;background:linear-gradient(90deg,var(--secondary),var(--accent));"></div>
+          </div>
+          <div class="mock-flex between" style="margin-top:4px;">
+            <span class="mock-text sm success">60% disponibile</span>
+            <span class="mock-text sm">Spesi: 80</span>
+          </div>
+        </div>
+        <div class="mock-card mock-mt">
+          <div class="mock-flex between mock-mb">
+            <span class="mock-text">Budget</span>
+            <span class="mock-text white" style="font-weight:700;">30 / 200</span>
+          </div>
+          <div class="mock-progress" style="height:10px;">
+            <div class="fill" style="width:15%;background:linear-gradient(90deg,var(--danger),#dc2626);"></div>
+          </div>
+          <div class="mock-flex between" style="margin-top:4px;">
+            <span class="mock-text sm danger">15% disponibile ⚠</span>
+            <span class="mock-text sm">Spesi: 170</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-015 -->
+<div class="task" id="t015">
+  <div class="task-header">
+    <span class="task-id p2">T-015</span>
+    <h3>Responsive padding form auth</h3>
+    <span class="task-size">XS ~1h</span>
+  </div>
+  <div class="task-files"><code>Login.tsx, Register.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-phone">
+          <div class="screen">
+            <div style="padding:32px;">
+              <div class="mock-text lg text-center mock-mb">Login</div>
+              <div class="mock-input mock-mb">Email</div>
+              <div style="height:8px;"></div>
+              <div class="mock-input mock-mb">Password</div>
+              <div style="height:8px;"></div>
+              <div class="mock-btn primary w-full text-center">Accedi</div>
+            </div>
+          </div>
+        </div>
+        <div class="mock-text dim text-center mock-mt" style="font-size:.65rem;">
+          ⚠ p-8 (32px) su 360px = solo 296px utili
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-phone">
+          <div class="screen">
+            <div style="padding:16px;">
+              <div class="mock-text lg text-center mock-mb">Login</div>
+              <div class="mock-input mock-mb">Email</div>
+              <div style="height:8px;"></div>
+              <div class="mock-input mock-mb">Password</div>
+              <div style="height:8px;"></div>
+              <div class="mock-btn primary w-full text-center">Accedi</div>
+            </div>
+          </div>
+        </div>
+        <div class="mock-text success text-center mock-mt" style="font-size:.65rem;">
+          ✓ p-4 sm:p-8 — 328px utili su mobile
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-016 -->
+<div class="task" id="t016">
+  <div class="task-header">
+    <span class="task-id p2">T-016</span>
+    <h3>Responsive grid CreateLeague</h3>
+    <span class="task-size">XS ~1h</span>
+  </div>
+  <div class="task-files"><code>CreateLeague.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-phone">
+          <div class="screen" style="padding:12px;">
+            <div class="mock-text white mock-mb" style="font-weight:600;">Slot Rosa</div>
+            <div class="mock-grid-2">
+              <div>
+                <div class="mock-text sm">Portieri</div>
+                <div class="mock-input" style="font-size:.6rem;">3</div>
+              </div>
+              <div>
+                <div class="mock-text sm">Difensori</div>
+                <div class="mock-input" style="font-size:.6rem;">8</div>
+              </div>
+              <div>
+                <div class="mock-text sm">Centrocampisti</div>
+                <div class="mock-input" style="font-size:.6rem;">8</div>
+              </div>
+              <div>
+                <div class="mock-text sm">Attaccanti</div>
+                <div class="mock-input" style="font-size:.6rem;">6</div>
+              </div>
+            </div>
+            <div class="mock-text dim mock-mt" style="font-size:.6rem;">⚠ Grid 2 colonne compresso su 360px</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-phone">
+          <div class="screen" style="padding:12px;">
+            <div class="mock-text white mock-mb" style="font-weight:600;">Slot Rosa</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div>
+                <div class="mock-text sm">Portieri</div>
+                <div class="mock-input">3</div>
+              </div>
+              <div>
+                <div class="mock-text sm">Difensori</div>
+                <div class="mock-input">8</div>
+              </div>
+              <div>
+                <div class="mock-text sm">Centrocampisti</div>
+                <div class="mock-input">8</div>
+              </div>
+              <div>
+                <div class="mock-text sm">Attaccanti</div>
+                <div class="mock-input">6</div>
+              </div>
+            </div>
+            <div class="mock-text success mock-mt" style="font-size:.6rem;">✓ 1 col su mobile, 2 col da sm:</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-017 -->
+<div class="task" id="t017">
+  <div class="task-header">
+    <span class="task-id p2">T-017</span>
+    <h3>Responsive profilo foto</h3>
+    <span class="task-size">XS ~1h</span>
+  </div>
+  <div class="task-files"><code>Profile.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-phone">
+          <div class="screen" style="padding:12px;">
+            <div style="display:flex;gap:12px;align-items:center;">
+              <div style="width:64px;height:64px;border-radius:50%;background:var(--primary);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+                <span style="font-size:1.5rem;">👤</span>
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div class="mock-text white" style="font-weight:600;">NomeUtenteLungo</div>
+                <div class="mock-text sm">email.molto.lunga@domain.com</div>
+                <div class="mock-btn primary mock-mt" style="font-size:.6rem;padding:4px 8px;">Cambia foto</div>
+              </div>
+            </div>
+            <div class="mock-text dim mock-mt" style="font-size:.6rem;">⚠ flex-row forza layout orizzontale, overflow su 360px</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-phone">
+          <div class="screen" style="padding:12px;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;">
+              <div style="width:72px;height:72px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;">
+                <span style="font-size:1.8rem;">👤</span>
+              </div>
+              <div>
+                <div class="mock-text white" style="font-weight:600;">NomeUtenteLungo</div>
+                <div class="mock-text sm">email.molto.lunga@domain.com</div>
+              </div>
+              <div class="mock-btn primary" style="font-size:.7rem;padding:6px 16px;">Cambia foto</div>
+            </div>
+            <div class="mock-text success mock-mt text-center" style="font-size:.6rem;">✓ flex-col su mobile, flex-row da sm:</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SPRINT 2 ==================== -->
+<div class="sprint-header">
+  <div class="num s2">S2</div>
+  <div>
+    <h2>Sprint 2 — Fondamenta UX</h2>
+    <div class="meta">~24h | 7 task | T-006, T-008, T-009, T-010, T-012, T-013, T-014</div>
+  </div>
+</div>
+
+<!-- T-006 -->
+<div class="task" id="t006">
+  <div class="task-header">
+    <span class="task-id p1">T-006</span>
+    <h3>Ristruttura pagina Contratti in tab</h3>
+    <span class="task-size">M ~4-8h</span>
+  </div>
+  <div class="task-files"><code>Contracts.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-text white mock-mb" style="font-weight:600;">Contratti — Vista unica</div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="background:rgba(34,197,94,0.1);padding:4px 8px;border-radius:4px;font-size:.65rem;color:#94a3b8;">🟢 Rinnovo confermato — Barella</div>
+            <div style="background:rgba(245,158,11,0.1);padding:4px 8px;border-radius:4px;font-size:.65rem;color:#94a3b8;">🟡 Bozza — Lautaro</div>
+            <div style="background:rgba(239,68,68,0.1);padding:4px 8px;border-radius:4px;font-size:.65rem;color:#94a3b8;">🔴 In scadenza — Calhanoglu</div>
+            <div style="background:rgba(59,130,246,0.1);padding:4px 8px;border-radius:4px;font-size:.65rem;color:#94a3b8;">🔵 Nuovo — Kvaratskhelia</div>
+            <div style="background:rgba(168,85,247,0.1);padding:4px 8px;border-radius:4px;font-size:.65rem;color:#94a3b8;">🟣 Svincolo — Acerbi</div>
+            <div style="background:rgba(107,114,128,0.1);padding:4px 8px;border-radius:4px;font-size:.65rem;color:#94a3b8;">⚪ Confermato — Bastoni</div>
+            <div style="background:rgba(236,72,153,0.1);padding:4px 8px;border-radius:4px;font-size:.65rem;color:#94a3b8;">🩷 Da vendere — Dumfries</div>
+          </div>
+          <div class="mock-text dim mock-mt" style="font-size:.6rem;">⚠ 7 stati diversi in una sola lista = overload cognitivo</div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card" style="padding:0;">
+          <!-- Tabs -->
+          <div style="display:flex;border-bottom:1px solid var(--border);">
+            <div class="mock-tab active">Rinnovi (4)</div>
+            <div class="mock-tab">Nuovi (2)</div>
+            <div class="mock-tab">Uscite (3)</div>
+          </div>
+          <!-- Summary bar -->
+          <div style="padding:8px 12px;background:rgba(59,130,246,0.05);border-bottom:1px solid var(--border);">
+            <div class="mock-flex between">
+              <span class="mock-text sm">Impatto rinnovi: <strong style="color:var(--danger);">-45 crediti</strong></span>
+              <span class="mock-text sm">Budget post: <strong style="color:var(--secondary);">135</strong></span>
+            </div>
+          </div>
+          <!-- List -->
+          <div style="padding:8px 12px;">
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <div style="background:var(--surface-light);padding:6px 8px;border-radius:6px;font-size:.7rem;display:flex;justify-content:space-between;">
+                <span style="color:#fff;">Barella — <span style="color:var(--secondary);">✓ Confermato</span></span>
+                <span style="color:var(--accent);">12/anno</span>
+              </div>
+              <div style="background:var(--surface-light);padding:6px 8px;border-radius:6px;font-size:.7rem;display:flex;justify-content:space-between;">
+                <span style="color:#fff;">Lautaro — <span style="color:var(--accent);">Bozza</span></span>
+                <span style="color:var(--accent);">15/anno</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mock-text success mock-mt" style="font-size:.6rem;">✓ Tab separano i contesti. Riepilogo impatto sempre visibile.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-008 -->
+<div class="task" id="t008">
+  <div class="task-header">
+    <span class="task-id p2">T-008</span>
+    <h3>Bidder visibile su mobile</h3>
+    <span class="task-size">XS ~1h</span>
+  </div>
+  <div class="task-files"><code>MobileBottomBar.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-phone">
+          <div class="screen">
+            <div style="padding:12px;">
+              <div class="text-center mock-mb">
+                <div class="mock-text accent" style="font-size:1.5rem;font-weight:800;">25</div>
+                <div class="mock-text sm">Prezzo corrente</div>
+              </div>
+              <div class="mock-flex mock-gap-4">
+                <div class="mock-btn primary" style="flex:1;font-size:.7rem;">+1</div>
+                <div class="mock-btn primary" style="flex:1;font-size:.7rem;">+5</div>
+                <div class="mock-btn danger" style="flex:1;font-size:.7rem;">MAX</div>
+              </div>
+              <div class="mock-text dim text-center mock-mt" style="font-size:.6rem;">⚠ Chi sta vincendo? Non visibile.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-phone">
+          <div class="screen">
+            <div style="padding:12px;">
+              <div class="text-center mock-mb">
+                <div class="mock-text accent" style="font-size:1.5rem;font-weight:800;">25</div>
+                <div class="mock-text sm">Prezzo corrente</div>
+                <div style="margin-top:4px;">
+                  <span class="mock-badge" style="background:rgba(59,130,246,0.2);color:var(--primary);">👤 FC Mario sta vincendo</span>
+                </div>
+              </div>
+              <div class="mock-flex mock-gap-4">
+                <div class="mock-btn primary" style="flex:1;font-size:.7rem;">+1</div>
+                <div class="mock-btn primary" style="flex:1;font-size:.7rem;">+5</div>
+                <div class="mock-btn danger" style="flex:1;font-size:.7rem;">MAX</div>
+              </div>
+              <div class="mock-text success text-center mock-mt" style="font-size:.6rem;">✓ Bidder corrente sempre visibile</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-009 -->
+<div class="task" id="t009">
+  <div class="task-header">
+    <span class="task-id p2">T-009</span>
+    <h3>Validazione inline form auth</h3>
+    <span class="task-size">S ~2-4h</span>
+  </div>
+  <div class="task-files"><code>Login.tsx, Register.tsx, ForgotPassword.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-text white mock-mb" style="font-weight:600;">Register</div>
+          <div class="mock-input mock-mb">Username</div>
+          <div style="height:6px;"></div>
+          <div class="mock-input mock-mb">Email</div>
+          <div style="height:6px;"></div>
+          <div class="mock-input mock-mb">Password</div>
+          <div style="height:6px;"></div>
+          <div class="mock-btn primary w-full text-center">Registrati</div>
+          <div style="margin-top:8px;padding:6px;background:rgba(239,68,68,0.1);border-radius:6px;">
+            <span class="mock-text danger" style="font-size:.7rem;">Errore durante la registrazione</span>
+          </div>
+          <div class="mock-text dim mock-mt" style="font-size:.6rem;">⚠ Feedback solo dopo submit. Messaggio generico.</div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-text white mock-mb" style="font-weight:600;">Register</div>
+          <div class="mock-input success mock-mb" style="border-width:2px;">Username ✓</div>
+          <div style="height:2px;"></div>
+          <div class="mock-input error" style="border-width:2px;">email-invalida</div>
+          <div class="mock-text danger" style="font-size:.6rem;margin:2px 0 6px;">Inserisci un indirizzo email valido</div>
+          <div class="mock-input mock-mb">Password</div>
+          <!-- Password strength -->
+          <div class="mock-flex mock-gap-4" style="margin:4px 0 6px;">
+            <div style="flex:1;height:3px;background:var(--danger);border-radius:2px;"></div>
+            <div style="flex:1;height:3px;background:var(--danger);border-radius:2px;"></div>
+            <div style="flex:1;height:3px;background:var(--surface-light);border-radius:2px;"></div>
+            <div style="flex:1;height:3px;background:var(--surface-light);border-radius:2px;"></div>
+          </div>
+          <div class="mock-text accent" style="font-size:.6rem;margin-bottom:6px;">Debole — aggiungi numeri e simboli</div>
+          <div class="mock-btn primary w-full text-center">Registrati</div>
+          <div class="mock-text success mock-mt" style="font-size:.6rem;">✓ Validazione on-blur + password strength</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-010 -->
+<div class="task" id="t010">
+  <div class="task-header">
+    <span class="task-id p2">T-010</span>
+    <h3>Quick actions su Dashboard card lega</h3>
+    <span class="task-size">S ~2-4h</span>
+  </div>
+  <div class="task-files"><code>Dashboard.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-flex between mock-mb">
+            <span class="mock-text white" style="font-weight:700;">Serie A Fantasy</span>
+            <span class="mock-badge" style="background:rgba(34,197,94,0.2);color:var(--secondary);font-size:.6rem;">ATTIVA</span>
+          </div>
+          <div class="mock-flex between">
+            <span class="mock-text sm">Budget: 120</span>
+            <span class="mock-text sm">8 membri</span>
+          </div>
+          <div class="mock-text dim mock-mt" style="font-size:.6rem;">⚠ Nessuna info su fase, rosa, prossime azioni</div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-flex between mock-mb">
+            <span class="mock-text white" style="font-weight:700;">Serie A Fantasy</span>
+            <div class="mock-flex mock-gap-4">
+              <span class="mock-badge" style="background:rgba(239,68,68,0.2);color:var(--danger);font-size:.6rem;animation:none;">● LIVE</span>
+              <span class="mock-badge" style="background:rgba(34,197,94,0.2);color:var(--secondary);font-size:.6rem;">ATTIVA</span>
+            </div>
+          </div>
+          <div class="mock-grid-3 mock-mb" style="gap:4px;">
+            <div style="text-align:center;padding:6px;background:var(--surface-light);border-radius:6px;">
+              <div class="mock-text accent" style="font-weight:700;font-size:.85rem;">120</div>
+              <div class="mock-text sm">Budget</div>
+            </div>
+            <div style="text-align:center;padding:6px;background:var(--surface-light);border-radius:6px;">
+              <div class="mock-text primary" style="font-weight:700;font-size:.85rem;">18/25</div>
+              <div class="mock-text sm">Rosa</div>
+            </div>
+            <div style="text-align:center;padding:6px;background:var(--surface-light);border-radius:6px;">
+              <div class="mock-text white" style="font-weight:700;font-size:.85rem;">8</div>
+              <div class="mock-text sm">Membri</div>
+            </div>
+          </div>
+          <div class="mock-flex mock-gap-4">
+            <div class="mock-btn primary" style="flex:1;font-size:.65rem;padding:6px;">Asta</div>
+            <div class="mock-btn outline" style="flex:1;font-size:.65rem;padding:6px;">Rosa</div>
+            <div class="mock-btn outline" style="flex:1;font-size:.65rem;padding:6px;">Finanze</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-012 -->
+<div class="task" id="t012">
+  <div class="task-header">
+    <span class="task-id p2">T-012</span>
+    <h3>Sorting colonne tabella utente</h3>
+    <span class="task-size">S ~2-4h</span>
+  </div>
+  <div class="task-files"><code>Rose.tsx, AllPlayers.tsx, Movements.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card" style="padding:0;overflow:hidden;">
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;font-size:.65rem;border-bottom:1px solid var(--border);">
+            <div style="padding:8px;color:var(--text-muted);font-weight:600;">Nome</div>
+            <div style="padding:8px;color:var(--text-muted);font-weight:600;">Pos</div>
+            <div style="padding:8px;color:var(--text-muted);font-weight:600;">Prezzo</div>
+            <div style="padding:8px;color:var(--text-muted);font-weight:600;">FVM</div>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;font-size:.65rem;">
+            <div style="padding:6px 8px;color:#fff;">Barella</div>
+            <div style="padding:6px 8px;">C</div>
+            <div style="padding:6px 8px;">25</div>
+            <div style="padding:6px 8px;">18</div>
+          </div>
+          <div class="mock-text dim" style="padding:6px 8px;font-size:.6rem;">⚠ Header non cliccabili. Nessun sorting.</div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card" style="padding:0;overflow:hidden;">
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;font-size:.65rem;border-bottom:1px solid var(--border);">
+            <div style="padding:8px;color:var(--text-muted);font-weight:600;">Nome ↕</div>
+            <div style="padding:8px;color:var(--text-muted);font-weight:600;">Pos ↕</div>
+            <div style="padding:8px;color:var(--primary);font-weight:600;">Prezzo ↓</div>
+            <div style="padding:8px;color:var(--text-muted);font-weight:600;">FVM ↕</div>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;font-size:.65rem;background:rgba(59,130,246,0.03);">
+            <div style="padding:6px 8px;color:#fff;">Lautaro</div>
+            <div style="padding:6px 8px;">A</div>
+            <div style="padding:6px 8px;color:var(--primary);font-weight:600;">35</div>
+            <div style="padding:6px 8px;">22</div>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;font-size:.65rem;">
+            <div style="padding:6px 8px;color:#fff;">Barella</div>
+            <div style="padding:6px 8px;">C</div>
+            <div style="padding:6px 8px;">25</div>
+            <div style="padding:6px 8px;">18</div>
+          </div>
+          <div class="mock-text success" style="padding:6px 8px;font-size:.6rem;">✓ Click su header per sort asc/desc</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-013 -->
+<div class="task" id="t013">
+  <div class="task-header">
+    <span class="task-id p2">T-013</span>
+    <h3>Input numerico touch-optimized per asta</h3>
+    <span class="task-size">S ~2-4h</span>
+  </div>
+  <div class="task-files"><code>BidControls.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-phone">
+          <div class="screen" style="padding:12px;">
+            <div class="mock-text white text-center mock-mb" style="font-weight:600;">Rilancio</div>
+            <div style="display:flex;gap:6px;align-items:center;justify-content:center;">
+              <div class="mock-input" style="width:60px;text-align:center;font-size:.8rem;">25</div>
+            </div>
+            <div class="mock-text dim text-center mock-mt" style="font-size:.6rem;">⚠ Input piccolo, type=text, tastiera alfanumerica</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-phone">
+          <div class="screen" style="padding:12px;">
+            <div class="mock-text white text-center mock-mb" style="font-weight:600;">Rilancio</div>
+            <div style="display:flex;gap:8px;align-items:center;justify-content:center;">
+              <div style="width:44px;height:44px;border-radius:12px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--primary);font-weight:700;">−</div>
+              <div style="width:70px;height:44px;border-radius:12px;background:var(--surface);border:2px solid var(--primary);display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff;font-weight:700;">25</div>
+              <div style="width:44px;height:44px;border-radius:12px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--primary);font-weight:700;">+</div>
+            </div>
+            <div class="mock-text success text-center mock-mt" style="font-size:.6rem;">✓ Pulsanti 44x44px + inputMode="numeric"</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-014 -->
+<div class="task" id="t014">
+  <div class="task-header">
+    <span class="task-id p2">T-014</span>
+    <h3>Empty state Rose con CTA</h3>
+    <span class="task-size">XS ~1h</span>
+  </div>
+  <div class="task-files"><code>Rose.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card text-center" style="padding:24px;">
+          <div style="font-size:2rem;margin-bottom:8px;">📋</div>
+          <div class="mock-text" style="font-size:.8rem;">Nessun giocatore in rosa</div>
+          <div class="mock-text dim mock-mt" style="font-size:.6rem;">⚠ Nessuna CTA, nessuna guida su come iniziare</div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card text-center" style="padding:24px;">
+          <div style="font-size:2.5rem;margin-bottom:8px;">⚽</div>
+          <div class="mock-text white" style="font-size:.9rem;font-weight:600;">La tua rosa e vuota!</div>
+          <div class="mock-text" style="font-size:.75rem;margin:6px 0 12px;">Acquista giocatori all'asta per costruire la tua squadra dei sogni.</div>
+          <div class="mock-flex" style="justify-content:center;gap:8px;">
+            <div class="mock-btn primary" style="font-size:.75rem;">Vai all'Asta</div>
+            <div class="mock-btn outline" style="font-size:.75rem;">Vedi Giocatori</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SPRINT 3 ==================== -->
+<div class="sprint-header">
+  <div class="num s3">S3</div>
+  <div>
+    <h2>Sprint 3 — Engagement &amp; Polish</h2>
+    <div class="meta">~30h | 5 task | T-007, T-018, T-019, T-020, T-023</div>
+  </div>
+</div>
+
+<!-- T-007 -->
+<div class="task" id="t007">
+  <div class="task-header">
+    <span class="task-id p2">T-007</span>
+    <h3>Celebrazione vittoria asta</h3>
+    <span class="task-size">S ~2-4h</span>
+  </div>
+  <div class="task-files"><code>CenterStage.tsx, AcknowledgmentPanel.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card text-center" style="padding:20px;">
+          <div class="mock-text white" style="font-weight:600;font-size:.85rem;">Giocatore assegnato</div>
+          <div class="mock-divider"></div>
+          <div class="mock-flex between" style="font-size:.75rem;">
+            <span class="mock-text">Barella</span>
+            <span class="mock-text">→ FC Mario</span>
+            <span class="mock-text accent">25 cr</span>
+          </div>
+          <div class="mock-text dim mock-mt" style="font-size:.6rem;">⚠ Nessuna celebrazione. Evento importante trattato come riga di log.</div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card relative text-center" style="padding:24px;border-color:var(--accent);background:linear-gradient(180deg,rgba(245,158,11,0.08),transparent);">
+          <div class="mock-confetti">🎉</div>
+          <div style="font-size:2rem;margin-bottom:4px;">🏆</div>
+          <div class="mock-text white" style="font-weight:800;font-size:1rem;">HAI VINTO!</div>
+          <div class="mock-text accent" style="font-weight:700;font-size:1.1rem;margin:4px 0;">Barella</div>
+          <div class="mock-text" style="font-size:.8rem;">Centrocampista — Inter</div>
+          <div class="mock-divider"></div>
+          <div class="mock-flex" style="justify-content:center;gap:16px;">
+            <div class="text-center">
+              <div class="mock-text accent" style="font-weight:700;">25</div>
+              <div class="mock-text sm">Costo</div>
+            </div>
+            <div class="text-center">
+              <div class="mock-text success" style="font-weight:700;">155</div>
+              <div class="mock-text sm">Budget residuo</div>
+            </div>
+          </div>
+          <div class="mock-text success mock-mt" style="font-size:.6rem;">✓ Confetti + vibration + animazione celebrativa</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-018 -->
+<div class="task" id="t018">
+  <div class="task-header">
+    <span class="task-id p2">T-018</span>
+    <h3>Notifiche real-time via Pusher</h3>
+    <span class="task-size">M ~4-8h</span>
+  </div>
+  <div class="task-files"><code>Notifications.tsx, PendingInvites.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-flex between mock-mb">
+            <span class="mock-text white" style="font-weight:600;">Notifiche</span>
+            <span class="mock-badge" style="background:var(--surface-light);color:var(--text-muted);font-size:.6rem;">Polling 30s</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="padding:6px 8px;background:var(--surface-light);border-radius:6px;font-size:.7rem;">
+              <span class="mock-text">Invito da Serie A Fantasy</span>
+              <span class="mock-text dim" style="float:right;">2min fa</span>
+            </div>
+          </div>
+          <div class="mock-text dim mock-mt" style="font-size:.6rem;">⚠ Polling ogni 30s. Ritardo medio 15s. Nessun suono.</div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-flex between mock-mb">
+            <span class="mock-text white" style="font-weight:600;">Notifiche</span>
+            <span class="mock-badge" style="background:rgba(34,197,94,0.2);color:var(--secondary);font-size:.6rem;">● Real-time</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="padding:6px 8px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:6px;font-size:.7rem;">
+              <div class="mock-flex between">
+                <span class="mock-text white" style="font-weight:600;">Nuovo invito!</span>
+                <span class="mock-text dim">ora</span>
+              </div>
+              <span class="mock-text sm">Serie A Fantasy ti ha invitato</span>
+            </div>
+            <div style="padding:6px 8px;background:var(--surface-light);border-radius:6px;font-size:.7rem;">
+              <div class="mock-flex between">
+                <span class="mock-text">Scambio proposto</span>
+                <span class="mock-text dim">5min fa</span>
+              </div>
+              <span class="mock-text sm">FC Mario vuole Barella</span>
+            </div>
+          </div>
+          <div class="mock-text success mock-mt" style="font-size:.6rem;">✓ Pusher WebSocket instant + fallback polling 5min</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-019 -->
+<div class="task" id="t019">
+  <div class="task-header">
+    <span class="task-id p2">T-019</span>
+    <h3>Onboarding wizard prima lega</h3>
+    <span class="task-size">M ~4-8h</span>
+  </div>
+  <div class="task-files"><code>Dashboard.tsx, CreateLeague.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card text-center" style="padding:20px;">
+          <div style="font-size:2rem;margin-bottom:8px;">🏟️</div>
+          <div class="mock-text white" style="font-weight:600;">Benvenuto!</div>
+          <div class="mock-text mock-mb" style="font-size:.75rem;">Non fai parte di nessuna lega</div>
+          <div class="mock-btn primary" style="font-size:.8rem;">Crea una Lega</div>
+          <div class="mock-text dim mock-mt" style="font-size:.6rem;">⚠ Un solo CTA. Nessun wizard. L'utente deve configurare tutto manualmente.</div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card" style="padding:0;">
+          <!-- Progress -->
+          <div style="padding:12px;border-bottom:1px solid var(--border);">
+            <div class="mock-flex between mock-mb" style="margin-bottom:4px;">
+              <span class="mock-text sm" style="color:var(--primary);font-weight:600;">Passo 2 di 4</span>
+              <span class="mock-text sm">Configurazione</span>
+            </div>
+            <div class="mock-progress" style="height:4px;">
+              <div class="fill" style="width:50%;background:var(--primary);"></div>
+            </div>
+          </div>
+          <!-- Step content -->
+          <div style="padding:16px;">
+            <div class="mock-text white mock-mb" style="font-weight:700;">Scegli un preset</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="padding:8px 12px;border:2px solid var(--primary);border-radius:8px;background:rgba(59,130,246,0.05);">
+                <div class="mock-flex between">
+                  <span class="mock-text white" style="font-weight:600;font-size:.8rem;">Classic (25 slot)</span>
+                  <span class="mock-badge" style="background:var(--primary);color:#fff;">Consigliato</span>
+                </div>
+                <span class="mock-text sm">3P + 8D + 8C + 6A — Budget 200</span>
+              </div>
+              <div style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;">
+                <div class="mock-text white" style="font-weight:600;font-size:.8rem;">Mantra (25 slot)</div>
+                <span class="mock-text sm">3P + 8D + 8C + 6A — Budget 500</span>
+              </div>
+              <div style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;">
+                <span class="mock-text white" style="font-weight:600;font-size:.8rem;">Custom</span>
+                <span class="mock-text sm">Configura manualmente</span>
+              </div>
+            </div>
+          </div>
+          <!-- Footer -->
+          <div style="padding:12px;border-top:1px solid var(--border);display:flex;gap:8px;">
+            <div class="mock-btn outline" style="flex:1;font-size:.75rem;">Indietro</div>
+            <div class="mock-btn primary" style="flex:1;font-size:.75rem;">Avanti</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-020 -->
+<div class="task" id="t020">
+  <div class="task-header">
+    <span class="task-id p2">T-020</span>
+    <h3>Suono e vibrazione in asta</h3>
+    <span class="task-size">S ~2-4h</span>
+  </div>
+  <div class="task-files"><code>Nuovo useAuctionSounds.ts, componenti asta</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-text white mock-mb" style="font-weight:600;">Feedback sensoriale in asta</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div class="mock-flex" style="gap:10px;">
+              <span style="font-size:1.2rem;">🔇</span>
+              <div>
+                <div class="mock-text" style="font-size:.75rem;">Nuovo bid ricevuto</div>
+                <div class="mock-text dim" style="font-size:.65rem;">Nessun suono</div>
+              </div>
+            </div>
+            <div class="mock-flex" style="gap:10px;">
+              <span style="font-size:1.2rem;">🔇</span>
+              <div>
+                <div class="mock-text" style="font-size:.75rem;">Timer quasi scaduto</div>
+                <div class="mock-text dim" style="font-size:.65rem;">Nessun suono</div>
+              </div>
+            </div>
+            <div class="mock-flex" style="gap:10px;">
+              <span style="font-size:1.2rem;">🔇</span>
+              <div>
+                <div class="mock-text" style="font-size:.75rem;">Giocatore vinto/perso</div>
+                <div class="mock-text dim" style="font-size:.65rem;">Nessun suono, nessuna vibrazione</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-flex between mock-mb">
+            <span class="mock-text white" style="font-weight:600;">Feedback sensoriale in asta</span>
+            <span class="mock-badge" style="background:rgba(59,130,246,0.2);color:var(--primary);">Toggle ON/OFF</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div class="mock-flex" style="gap:10px;">
+              <span style="font-size:1.2rem;">🔔</span>
+              <div>
+                <div class="mock-text white" style="font-size:.75rem;font-weight:600;">Nuovo bid ricevuto</div>
+                <div class="mock-text sm success">Suono "pop" + vibrazione breve 50ms</div>
+              </div>
+            </div>
+            <div class="mock-flex" style="gap:10px;">
+              <span style="font-size:1.2rem;">⏰</span>
+              <div>
+                <div class="mock-text white" style="font-size:.75rem;font-weight:600;">Timer &lt; 5 secondi</div>
+                <div class="mock-text sm accent">Tick-tock + vibrazione pattern [100,50,100]</div>
+              </div>
+            </div>
+            <div class="mock-flex" style="gap:10px;">
+              <span style="font-size:1.2rem;">🎵</span>
+              <div>
+                <div class="mock-text white" style="font-size:.75rem;font-weight:600;">Giocatore vinto!</div>
+                <div class="mock-text sm success">Fanfare + vibrazione lunga 200ms</div>
+              </div>
+            </div>
+            <div class="mock-flex" style="gap:10px;">
+              <span style="font-size:1.2rem;">📳</span>
+              <div>
+                <div class="mock-text white" style="font-size:.75rem;font-weight:600;">E il tuo turno</div>
+                <div class="mock-text sm primary">Buzz + vibrazione doppia</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-023 -->
+<div class="task" id="t023">
+  <div class="task-header">
+    <span class="task-id p3">T-023</span>
+    <h3>Breadcrumbs su mobile</h3>
+    <span class="task-size">S ~2-4h</span>
+  </div>
+  <div class="task-files"><code>Navigation.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-phone">
+          <div class="screen">
+            <div style="padding:8px 12px;background:var(--bg-700);border-bottom:1px solid var(--border);">
+              <div class="mock-flex between">
+                <span class="mock-text white" style="font-weight:700;font-size:.85rem;">Fantacontratti</span>
+                <span style="font-size:1rem;">☰</span>
+              </div>
+            </div>
+            <div style="padding:12px;">
+              <div class="mock-text white" style="font-weight:600;">Rosa</div>
+              <div class="mock-text dim mock-mt" style="font-size:.6rem;">⚠ Breadcrumb visibile solo su desktop (md:flex). Su mobile, l'utente non sa dove si trova.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-phone">
+          <div class="screen">
+            <div style="padding:8px 12px;background:var(--bg-700);border-bottom:1px solid var(--border);">
+              <div class="mock-flex between">
+                <span class="mock-text white" style="font-weight:700;font-size:.85rem;">Fantacontratti</span>
+                <span style="font-size:1rem;">☰</span>
+              </div>
+              <div style="margin-top:4px;display:flex;gap:4px;align-items:center;font-size:.65rem;">
+                <span style="color:var(--primary);">Serie A</span>
+                <span style="color:var(--text-dim);">›</span>
+                <span style="color:var(--text);">Rosa</span>
+              </div>
+            </div>
+            <div style="padding:12px;">
+              <div class="mock-text white" style="font-weight:600;">Rosa</div>
+              <div class="mock-text success mock-mt" style="font-size:.6rem;">✓ Breadcrumb compatto visibile su tutte le viewport</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SPRINT 4 ==================== -->
+<div class="sprint-header">
+  <div class="num s4">S4</div>
+  <div>
+    <h2>Sprint 4 — Delight &amp; Advanced</h2>
+    <div class="meta">~36h | 5 task | T-021, T-022, T-024, T-025, T-026</div>
+  </div>
+</div>
+
+<!-- T-021 -->
+<div class="task" id="t021">
+  <div class="task-header">
+    <span class="task-id p2">T-021</span>
+    <h3>Scambi: interfaccia do/ricevo migliorata</h3>
+    <span class="task-size">L ~1-2gg</span>
+  </div>
+  <div class="task-files"><code>Trades.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-text white mock-mb" style="font-weight:600;">Proponi Scambio</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div>
+              <div class="mock-text sm mock-mb" style="margin-bottom:2px;">Offri giocatori</div>
+              <div class="mock-input" style="font-size:.7rem;">Cerca giocatore...</div>
+            </div>
+            <div>
+              <div class="mock-text sm mock-mb" style="margin-bottom:2px;">Chiedi giocatori</div>
+              <div class="mock-input" style="font-size:.7rem;">Cerca giocatore...</div>
+            </div>
+            <div>
+              <div class="mock-text sm mock-mb" style="margin-bottom:2px;">Conguaglio</div>
+              <div class="mock-input" style="font-size:.7rem;">0</div>
+            </div>
+          </div>
+          <div class="mock-text dim mock-mt" style="font-size:.6rem;">⚠ Form lineare senza vista affiancata. Nessun impatto rosa visibile.</div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card" style="padding:0;">
+          <div style="padding:8px 12px;border-bottom:1px solid var(--border);">
+            <div class="mock-text white" style="font-weight:700;">Proponi Scambio</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;min-height:140px;">
+            <!-- Left: offri -->
+            <div style="padding:10px;border-right:1px solid var(--border);">
+              <div class="mock-text danger" style="font-weight:700;font-size:.75rem;margin-bottom:6px;">OFFRO</div>
+              <div style="padding:6px;background:rgba(239,68,68,0.05);border:1px dashed rgba(239,68,68,0.3);border-radius:6px;margin-bottom:4px;">
+                <div class="mock-flex" style="gap:6px;">
+                  <div style="width:24px;height:24px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:.6rem;">⚽</div>
+                  <div>
+                    <div class="mock-text white" style="font-size:.7rem;font-weight:600;">Barella</div>
+                    <div class="mock-text sm">C — 25cr</div>
+                  </div>
+                </div>
+              </div>
+              <div style="text-align:center;padding:4px;border:1px dashed var(--border);border-radius:6px;font-size:.6rem;color:var(--text-dim);">+ Aggiungi</div>
+            </div>
+            <!-- Right: chiedo -->
+            <div style="padding:10px;">
+              <div class="mock-text success" style="font-weight:700;font-size:.75rem;margin-bottom:6px;">CHIEDO</div>
+              <div style="padding:6px;background:rgba(34,197,94,0.05);border:1px dashed rgba(34,197,94,0.3);border-radius:6px;margin-bottom:4px;">
+                <div class="mock-flex" style="gap:6px;">
+                  <div style="width:24px;height:24px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:.6rem;">⚽</div>
+                  <div>
+                    <div class="mock-text white" style="font-size:.7rem;font-weight:600;">Lautaro</div>
+                    <div class="mock-text sm">A — 35cr</div>
+                  </div>
+                </div>
+              </div>
+              <div style="text-align:center;padding:4px;border:1px dashed var(--border);border-radius:6px;font-size:.6rem;color:var(--text-dim);">+ Aggiungi</div>
+            </div>
+          </div>
+          <!-- Impact bar -->
+          <div style="padding:8px 12px;border-top:1px solid var(--border);background:rgba(59,130,246,0.03);">
+            <div class="mock-flex between" style="font-size:.7rem;">
+              <span class="mock-text">Impatto rosa: <strong style="color:var(--secondary);">+1 A</strong> <strong style="color:var(--danger);">-1 C</strong></span>
+              <span class="mock-text">Budget: <strong style="color:var(--accent);">+10</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-022 -->
+<div class="task" id="t022">
+  <div class="task-header">
+    <span class="task-id p3">T-022</span>
+    <h3>Feed attivita su Dashboard</h3>
+    <span class="task-size">M ~4-8h</span>
+  </div>
+  <div class="task-files"><code>Dashboard.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card text-center" style="padding:20px;">
+          <div class="mock-text" style="font-size:.8rem;">Solo card lega nella dashboard</div>
+          <div class="mock-text dim mock-mt" style="font-size:.6rem;">⚠ Nessun feed di attivita. L'utente deve entrare in ogni lega per vedere cosa succede.</div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card" style="padding:0;">
+          <div style="padding:10px 12px;border-bottom:1px solid var(--border);">
+            <div class="mock-flex between">
+              <span class="mock-text white" style="font-weight:700;">Attivita Recenti</span>
+              <span class="mock-text sm primary" style="cursor:pointer;">Vedi tutto</span>
+            </div>
+          </div>
+          <div style="padding:8px 12px;display:flex;flex-direction:column;gap:6px;">
+            <div class="mock-flex" style="gap:10px;">
+              <div class="mock-icon" style="background:rgba(239,68,68,0.15);color:var(--danger);">🔴</div>
+              <div style="flex:1;">
+                <div class="mock-text white" style="font-size:.75rem;"><strong>Asta LIVE</strong> — Serie A Fantasy</div>
+                <div class="mock-text sm">Fase nominazione in corso</div>
+              </div>
+              <span class="mock-text dim" style="font-size:.6rem;">ora</span>
+            </div>
+            <div class="mock-divider" style="margin:2px 0;"></div>
+            <div class="mock-flex" style="gap:10px;">
+              <div class="mock-icon" style="background:rgba(59,130,246,0.15);color:var(--primary);">🔄</div>
+              <div style="flex:1;">
+                <div class="mock-text white" style="font-size:.75rem;">Scambio proposto da <strong>FC Mario</strong></div>
+                <div class="mock-text sm">Barella ↔ Lautaro + 10cr</div>
+              </div>
+              <span class="mock-text dim" style="font-size:.6rem;">15min</span>
+            </div>
+            <div class="mock-divider" style="margin:2px 0;"></div>
+            <div class="mock-flex" style="gap:10px;">
+              <div class="mock-icon" style="background:rgba(34,197,94,0.15);color:var(--secondary);">✅</div>
+              <div style="flex:1;">
+                <div class="mock-text white" style="font-size:.75rem;">Contratti consolidati</div>
+                <div class="mock-text sm">4 rinnovi, 2 svincoli</div>
+              </div>
+              <span class="mock-text dim" style="font-size:.6rem;">2h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-024 -->
+<div class="task" id="t024">
+  <div class="task-header">
+    <span class="task-id p3">T-024</span>
+    <h3>CommandPalette: recenti e contesto</h3>
+    <span class="task-size">S ~2-4h</span>
+  </div>
+  <div class="task-files"><code>CommandPalette.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card" style="padding:0;">
+          <div style="padding:10px 12px;border-bottom:1px solid var(--border);">
+            <div class="mock-input" style="font-size:.75rem;">Cerca comando... (Ctrl+K)</div>
+          </div>
+          <div style="padding:8px 12px;display:flex;flex-direction:column;gap:4px;">
+            <div class="mock-text dim" style="font-size:.65rem;font-weight:600;">NAVIGAZIONE</div>
+            <div style="padding:4px 8px;font-size:.7rem;color:var(--text);">Dashboard</div>
+            <div style="padding:4px 8px;font-size:.7rem;color:var(--text);">Rosa</div>
+            <div style="padding:4px 8px;font-size:.7rem;color:var(--text);">Contratti</div>
+          </div>
+          <div class="mock-text dim" style="padding:8px 12px;font-size:.6rem;">⚠ Nessuna sezione "Recenti". Nessun indicatore pagina attuale.</div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card" style="padding:0;">
+          <div style="padding:10px 12px;border-bottom:1px solid var(--border);">
+            <div class="mock-input" style="font-size:.75rem;">Cerca comando... (Ctrl+K)</div>
+          </div>
+          <div style="padding:8px 12px;display:flex;flex-direction:column;gap:4px;">
+            <div class="mock-text dim" style="font-size:.65rem;font-weight:600;">RECENTI</div>
+            <div style="padding:4px 8px;font-size:.7rem;color:var(--primary);background:rgba(59,130,246,0.05);border-radius:4px;">
+              🕐 Rosa — Serie A Fantasy
+            </div>
+            <div style="padding:4px 8px;font-size:.7rem;color:var(--text);">
+              🕐 Contratti — Serie A Fantasy
+            </div>
+            <div class="mock-divider" style="margin:4px 0;"></div>
+            <div class="mock-text dim" style="font-size:.65rem;font-weight:600;">NAVIGAZIONE</div>
+            <div style="padding:4px 8px;font-size:.7rem;display:flex;justify-content:space-between;">
+              <span style="color:var(--text);">Dashboard</span>
+              <span class="mock-badge" style="background:var(--primary);color:#fff;font-size:.55rem;">Sei qui</span>
+            </div>
+            <div style="padding:4px 8px;font-size:.7rem;color:var(--text);">Asta</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-025 -->
+<div class="task" id="t025">
+  <div class="task-header">
+    <span class="task-id p3">T-025</span>
+    <h3>Storico giocatore nel StatsModal</h3>
+    <span class="task-size">S ~2-4h</span>
+  </div>
+  <div class="task-files"><code>PlayerStatsModal.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-flex between mock-mb">
+            <span class="mock-text white" style="font-weight:700;">Barella</span>
+            <span class="mock-badge" style="background:rgba(16,185,129,0.2);color:#34d399;">C</span>
+          </div>
+          <div class="mock-grid-3" style="margin-bottom:8px;">
+            <div class="text-center">
+              <div class="mock-text accent" style="font-weight:700;">18</div>
+              <div class="mock-text sm">FVM</div>
+            </div>
+            <div class="text-center">
+              <div class="mock-text white" style="font-weight:700;">25</div>
+              <div class="mock-text sm">Prezzo</div>
+            </div>
+            <div class="text-center">
+              <div class="mock-text primary" style="font-weight:700;">Inter</div>
+              <div class="mock-text sm">Squadra</div>
+            </div>
+          </div>
+          <div class="mock-text dim" style="font-size:.6rem;">⚠ Solo stats attuali. Nessuno storico contratti/proprietari. Nessuna quick action.</div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card" style="padding:0;">
+          <div style="padding:10px 12px;">
+            <div class="mock-flex between">
+              <span class="mock-text white" style="font-weight:700;">Barella</span>
+              <span class="mock-badge" style="background:rgba(16,185,129,0.2);color:#34d399;">C — Inter</span>
+            </div>
+          </div>
+          <!-- Tabs -->
+          <div style="display:flex;border-bottom:1px solid var(--border);border-top:1px solid var(--border);">
+            <div class="mock-tab">Stats</div>
+            <div class="mock-tab active">Storico</div>
+            <div class="mock-tab">Radar</div>
+          </div>
+          <!-- History -->
+          <div style="padding:10px 12px;">
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div class="mock-flex between" style="font-size:.7rem;">
+                <span class="mock-text white">2025/26</span>
+                <span class="mock-text">FC Mario — <span style="color:var(--accent);">25cr</span> — Anno 2/3</span>
+              </div>
+              <div class="mock-flex between" style="font-size:.7rem;">
+                <span class="mock-text">2024/25</span>
+                <span class="mock-text dim">FC Mario — 20cr — Anno 1/3</span>
+              </div>
+              <div class="mock-flex between" style="font-size:.7rem;">
+                <span class="mock-text">2023/24</span>
+                <span class="mock-text dim">AC Luigi — 18cr — Anno 3/3</span>
+              </div>
+            </div>
+          </div>
+          <!-- Quick actions -->
+          <div style="padding:8px 12px;border-top:1px solid var(--border);display:flex;gap:6px;">
+            <div class="mock-btn primary" style="flex:1;font-size:.65rem;padding:6px;">Nomina in asta</div>
+            <div class="mock-btn outline" style="flex:1;font-size:.65rem;padding:6px;">Aggiungi a strategia</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-026 -->
+<div class="task" id="t026">
+  <div class="task-header">
+    <span class="task-id p3">T-026</span>
+    <h3>Calendario fasi lega visuale</h3>
+    <span class="task-size">M ~4-8h</span>
+  </div>
+  <div class="task-files"><code>Nuovo PhaseCalendar.tsx, LeagueDetail.tsx</code></div>
+  <div class="comparison">
+    <div class="before">
+      <span class="label">PRIMA</span>
+      <div class="mock">
+        <div class="mock-card">
+          <div class="mock-text white mock-mb" style="font-weight:600;">Fasi della lega</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span class="mock-badge" style="background:rgba(34,197,94,0.2);color:var(--secondary);">✓ Primo Mercato</span>
+            <span class="mock-badge" style="background:rgba(59,130,246,0.2);color:var(--primary);">● Contratti</span>
+            <span class="mock-badge" style="background:var(--surface-light);color:var(--text-dim);">Riparazione</span>
+            <span class="mock-badge" style="background:var(--surface-light);color:var(--text-dim);">Svincolati</span>
+          </div>
+          <div class="mock-text dim mock-mt" style="font-size:.6rem;">⚠ PhaseStepper solo orizzontale. Nessuna data/deadline. Nessuna timeline.</div>
+        </div>
+      </div>
+    </div>
+    <div class="after">
+      <span class="label">DOPO</span>
+      <div class="mock">
+        <div class="mock-card" style="padding:16px;">
+          <div class="mock-flex between mock-mb">
+            <span class="mock-text white" style="font-weight:700;">Timeline Stagione</span>
+            <span class="mock-text sm primary">2025/26</span>
+          </div>
+          <!-- Timeline -->
+          <div style="position:relative;padding-left:20px;">
+            <!-- Line -->
+            <div style="position:absolute;left:6px;top:4px;bottom:4px;width:2px;background:var(--border);"></div>
+            <!-- Phase 1: done -->
+            <div style="position:relative;margin-bottom:12px;">
+              <div style="position:absolute;left:-18px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--secondary);"></div>
+              <div class="mock-flex between">
+                <span class="mock-text white" style="font-size:.75rem;font-weight:600;">Primo Mercato</span>
+                <span class="mock-text sm success">Completato</span>
+              </div>
+              <span class="mock-text sm">15 Gen — 20 Gen</span>
+            </div>
+            <!-- Phase 2: active -->
+            <div style="position:relative;margin-bottom:12px;">
+              <div style="position:absolute;left:-18px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--primary);border:2px solid var(--primary);box-shadow:0 0 8px rgba(59,130,246,0.5);"></div>
+              <div class="mock-flex between">
+                <span class="mock-text white" style="font-size:.75rem;font-weight:700;">Contratti</span>
+                <span class="mock-badge" style="background:rgba(59,130,246,0.2);color:var(--primary);font-size:.55rem;">IN CORSO</span>
+              </div>
+              <span class="mock-text sm">21 Gen — <strong style="color:var(--accent);">28 Gen (3gg)</strong></span>
+            </div>
+            <!-- Phase 3: upcoming -->
+            <div style="position:relative;margin-bottom:12px;">
+              <div style="position:absolute;left:-18px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--surface-light);border:1px solid var(--border);"></div>
+              <div class="mock-flex between">
+                <span class="mock-text" style="font-size:.75rem;">Riparazione</span>
+                <span class="mock-text sm dim">Prossima</span>
+              </div>
+              <span class="mock-text sm dim">29 Gen — 2 Feb</span>
+            </div>
+            <!-- Phase 4 -->
+            <div style="position:relative;">
+              <div style="position:absolute;left:-18px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--surface-light);border:1px solid var(--border);"></div>
+              <div class="mock-text" style="font-size:.75rem;">Svincolati</div>
+              <span class="mock-text sm dim">3 Feb — 5 Feb</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div style="text-align:center;padding:3rem 1rem;border-top:1px solid var(--border);margin-top:3rem;">
+  <p class="mock-text" style="font-size:.9rem;">Fantacontratti Dynasty — UI/UX Review Report</p>
+  <p class="mock-text dim" style="font-size:.75rem;margin-top:4px;">26 task | 4 sprint | Score attuale 3.5/5.0 → Target 4.3/5.0</p>
+  <p class="mock-text dim" style="font-size:.7rem;margin-top:8px;">Generato il 2026-02-11 | Branch: test/e2e-session</p>
+</div>
+
+</div><!-- end container -->
+</body>
+</html>
