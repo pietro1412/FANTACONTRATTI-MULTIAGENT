@@ -37,7 +37,12 @@ const PORT = process.env.API_PORT || 3003
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  // In produzione usa FRONTEND_URL; in sviluppo accetta qualsiasi localhost
+  // (la porta del client Vite varia quando 5173 è occupata da altri progetti)
+  origin:
+    process.env.NODE_ENV === 'production'
+      ? process.env.FRONTEND_URL || 'http://localhost:5173'
+      : /^http:\/\/localhost:\d+$/,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
