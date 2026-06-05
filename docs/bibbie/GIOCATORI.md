@@ -130,17 +130,15 @@ Quando un giocatore cambia squadra nella realta:
 
 ### 5.1 Giocatore che Diventa ESTERO
 
-- In ogni lega dove e sotto contratto:
-  - Deve essere rilasciato (sia `draftReleased: true` che `draftExitDecision: 'RELEASE'`)
-  - Costo taglio: 0
-  - Indennizzo: valore impostato dall'admin di lega (min 0)
+- In ogni lega dove e sotto contratto, il manager sceglie in Fase 3 (Rinnovi):
+  - **RELEASE**: il giocatore esce dalla rosa. Costo taglio: 0. Indennizzo: valore impostato dall'admin di lega (min 0)
+  - **KEEP**: il giocatore resta in rosa. Nessun indennizzo. Il contratto prosegue normalmente e puo essere rinnovato o spalmato
 
 ### 5.2 Giocatore che Diventa RETROCESSO
 
-- In ogni lega dove e sotto contratto:
-  - Deve essere rilasciato
-  - Costo taglio: 0
-  - Indennizzo: nessuno
+- In ogni lega dove e sotto contratto, il manager sceglie in Fase 3 (Rinnovi):
+  - **RELEASE**: il giocatore esce dalla rosa gratuitamente. Costo taglio: 0. Nessun indennizzo
+  - **KEEP**: il giocatore resta in rosa. Il contratto prosegue normalmente e puo essere rinnovato o spalmato
 
 ### 5.3 Giocatore SVINCOLATO (nella Lega)
 
