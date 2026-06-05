@@ -1158,20 +1158,9 @@ export const svincolatiApi = {
   getTeams: () =>
     request('/api/svincolati/teams'),
 
-  // Get current auction status
-  getCurrentAuction: (leagueId: string) =>
-    request(`/api/leagues/${leagueId}/svincolati/current`),
-
   // Get auction history
   getHistory: (leagueId: string) =>
     request(`/api/leagues/${leagueId}/svincolati/history`),
-
-  // Start auction for a free agent (Admin)
-  startAuction: (leagueId: string, playerId: string, basePrice?: number) =>
-    request(`/api/leagues/${leagueId}/svincolati/auction`, {
-      method: 'POST',
-      body: JSON.stringify({ playerId, basePrice }),
-    }),
 
   // Bid on free agent auction
   bid: (auctionId: string, amount: number) =>
@@ -1179,10 +1168,6 @@ export const svincolatiApi = {
       method: 'POST',
       body: JSON.stringify({ amount }),
     }),
-
-  // Close free agent auction (Admin)
-  closeAuction: (auctionId: string) =>
-    request(`/api/svincolati/${auctionId}/close`, { method: 'PUT' }),
 
   // Trigger bot bidding simulation
   triggerBotBid: (auctionId: string) =>

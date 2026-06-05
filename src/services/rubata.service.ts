@@ -1035,94 +1035,13 @@ export async function getRubataBoard(
         const winningBid = auctionToClose.bids[0]
 
         if (winningBid) {
-          // Execute the rubata transfer
-          await prisma.$transaction(async (tx) => {
-            const seller = await tx.leagueMember.findUnique({
-              where: { id: auctionToClose.sellerId! },
-            })
-
-            if (!seller) throw new Error('Seller not found')
-
-            const rosterEntry = await tx.playerRoster.findFirst({
-              where: {
-                leagueMemberId: auctionToClose.sellerId!,
-                playerId: auctionToClose.playerId,
-                status: RosterStatus.ACTIVE,
-              },
-              include: { contract: true },
-            })
-
-            if (!rosterEntry) throw new Error('Roster entry not found')
-
-            // Decompose rubata price: PREZZO = OFFERTA + INGAGGIO (RUBATA.md §4.4)
-            const payment = auctionToClose.currentPrice
-            const contractSalary = rosterEntry.contract?.salary ?? 0
-            const offerta = payment - contractSalary
-
-            // Winner pays OFFERTA only (salary captured in monte ingaggi via contract transfer)
-            await tx.leagueMember.update({
-              where: { id: winningBid.bidderId },
-              data: { currentBudget: { decrement: offerta } },
-            })
-
-            // Seller receives OFFERTA (salary freed from monte ingaggi)
-            await tx.leagueMember.update({
-              where: { id: auctionToClose.sellerId! },
-              data: { currentBudget: { increment: offerta } },
-            })
-
-            await tx.playerRoster.update({
-              where: { id: rosterEntry.id },
-              data: {
-                leagueMemberId: winningBid.bidderId,
-                acquisitionType: 'RUBATA',
-                acquisitionPrice: payment,
-              },
-            })
-
-            if (rosterEntry.contract) {
-              await tx.playerContract.update({
-                where: { id: rosterEntry.contract.id },
-                data: { leagueMemberId: winningBid.bidderId },
-              })
-            }
-
-            await tx.auction.update({
-              where: { id: auctionToClose.id },
-              data: {
-                status: AuctionStatus.COMPLETED,
-                winnerId: winningBid.bidderId,
-                endsAt: new Date(),
-              },
-            })
-          })
-
-          // Record movement with contract info
-          const transferredRoster = await prisma.playerRoster.findFirst({
-            where: {
-              leagueMemberId: winningBid.bidderId,
-              playerId: auctionToClose.playerId,
-              status: RosterStatus.ACTIVE,
-            },
-            include: { contract: true },
-          })
-
-          await recordMovement({
+          // Execute the rubata transfer (shared with closeCurrentRubataAuction)
+          await applyRubataAuctionClose(
             leagueId,
-            playerId: auctionToClose.playerId,
-            movementType: 'RUBATA',
-            fromMemberId: auctionToClose.sellerId!,
-            toMemberId: winningBid.bidderId,
-            price: auctionToClose.currentPrice,
-            marketSessionId: activeSession.id,
-            auctionId: auctionToClose.id,
-            oldSalary: transferredRoster?.contract?.salary,
-            oldDuration: transferredRoster?.contract?.duration,
-            oldClause: transferredRoster?.contract?.rescissionClause,
-            newSalary: transferredRoster?.contract?.salary,
-            newDuration: transferredRoster?.contract?.duration,
-            newClause: transferredRoster?.contract?.rescissionClause,
-          })
+            activeSession.id,
+            auctionToClose,
+            winningBid.bidderId
+          )
 
           // Get seller info for pending ack
           const sellerInfo = await prisma.leagueMember.findUnique({
@@ -1914,6 +1833,128 @@ export async function goBackRubataPlayer(
   }
 }
 
+// ==================== SHARED RUBATA AUCTION CLOSE ====================
+
+// Minimal shape of a RUBATA auction needed to execute the end-of-auction transfer.
+interface RubataAuctionToClose {
+  id: string
+  playerId: string
+  sellerId: string | null
+  currentPrice: number
+}
+
+/**
+ * Executes the financial transfer for a closed RUBATA auction.
+ *
+ * Shared between the lazy auto-close inside getRubataBoard and the explicit
+ * closeCurrentRubataAuction. Behaviour (zero-sum, contract transfer, movement)
+ * is identical in both call sites — keep them unified here.
+ *
+ * Financial model (RUBATA.md §4.4): PREZZO = OFFERTA + INGAGGIO, so
+ *   OFFERTA = currentPrice - contractSalary
+ *   winner.currentBudget -= OFFERTA   (salary captured via contract transfer)
+ *   seller.currentBudget += OFFERTA   (salary freed from monte ingaggi)
+ * The contract is transferred (not recreated); the movement records old = new.
+ *
+ * Runs its own $transaction and records the movement afterwards (outside the
+ * transaction), matching the original inlined behaviour at both call sites.
+ */
+async function applyRubataAuctionClose(
+  leagueId: string,
+  marketSessionId: string,
+  auction: RubataAuctionToClose,
+  winnerId: string
+): Promise<void> {
+  // Execute the rubata transfer
+  await prisma.$transaction(async (tx) => {
+    const seller = await tx.leagueMember.findUnique({
+      where: { id: auction.sellerId! },
+    })
+
+    if (!seller) throw new Error('Seller not found')
+
+    const rosterEntry = await tx.playerRoster.findFirst({
+      where: {
+        leagueMemberId: auction.sellerId!,
+        playerId: auction.playerId,
+        status: RosterStatus.ACTIVE,
+      },
+      include: { contract: true },
+    })
+
+    if (!rosterEntry) throw new Error('Roster entry not found')
+
+    // Decompose rubata price: PREZZO = OFFERTA + INGAGGIO (RUBATA.md §4.4)
+    const payment = auction.currentPrice
+    const contractSalary = rosterEntry.contract?.salary ?? 0
+    const offerta = payment - contractSalary
+
+    // Winner pays OFFERTA only (salary captured in monte ingaggi via contract transfer)
+    await tx.leagueMember.update({
+      where: { id: winnerId },
+      data: { currentBudget: { decrement: offerta } },
+    })
+
+    // Seller receives OFFERTA (salary freed from monte ingaggi)
+    await tx.leagueMember.update({
+      where: { id: auction.sellerId! },
+      data: { currentBudget: { increment: offerta } },
+    })
+
+    await tx.playerRoster.update({
+      where: { id: rosterEntry.id },
+      data: {
+        leagueMemberId: winnerId,
+        acquisitionType: 'RUBATA',
+        acquisitionPrice: payment,
+      },
+    })
+
+    if (rosterEntry.contract) {
+      await tx.playerContract.update({
+        where: { id: rosterEntry.contract.id },
+        data: { leagueMemberId: winnerId },
+      })
+    }
+
+    await tx.auction.update({
+      where: { id: auction.id },
+      data: {
+        status: AuctionStatus.COMPLETED,
+        winnerId,
+        endsAt: new Date(),
+      },
+    })
+  })
+
+  // Record movement with contract info (old = new: contract transferred unchanged)
+  const transferredRoster = await prisma.playerRoster.findFirst({
+    where: {
+      leagueMemberId: winnerId,
+      playerId: auction.playerId,
+      status: RosterStatus.ACTIVE,
+    },
+    include: { contract: true },
+  })
+
+  await recordMovement({
+    leagueId,
+    playerId: auction.playerId,
+    movementType: 'RUBATA',
+    fromMemberId: auction.sellerId!,
+    toMemberId: winnerId,
+    price: auction.currentPrice,
+    marketSessionId,
+    auctionId: auction.id,
+    oldSalary: transferredRoster?.contract?.salary,
+    oldDuration: transferredRoster?.contract?.duration,
+    oldClause: transferredRoster?.contract?.rescissionClause,
+    newSalary: transferredRoster?.contract?.salary,
+    newDuration: transferredRoster?.contract?.duration,
+    newClause: transferredRoster?.contract?.rescissionClause,
+  })
+}
+
 // ==================== CLOSE CURRENT RUBATA AUCTION ====================
 
 // Called when timer expires or auction needs to be closed
@@ -1987,99 +2028,13 @@ export async function closeCurrentRubataAuction(
     return advanceRubataPlayer(leagueId, adminUserId)
   }
 
-  // Execute the rubata transfer
-  await prisma.$transaction(async (tx) => {
-    // Get seller
-    const seller = await tx.leagueMember.findUnique({
-      where: { id: activeAuction.sellerId! },
-    })
-
-    if (!seller) throw new Error('Seller not found')
-
-    // Get the roster entry
-    const rosterEntry = await tx.playerRoster.findFirst({
-      where: {
-        leagueMemberId: activeAuction.sellerId!,
-        playerId: activeAuction.playerId,
-        status: RosterStatus.ACTIVE,
-      },
-      include: { contract: true },
-    })
-
-    if (!rosterEntry) throw new Error('Roster entry not found')
-
-    const payment = activeAuction.currentPrice
-    // Seller receives only OFFERTA = currentPrice - salary
-    const contractSalary = rosterEntry.contract?.salary ?? 0
-    const sellerPayment = payment - contractSalary
-
-    // Winner pays OFFERTA only (salary captured in monte ingaggi via contract transfer)
-    await tx.leagueMember.update({
-      where: { id: winningBid.bidderId },
-      data: { currentBudget: { decrement: sellerPayment } },
-    })
-
-    // Update seller budget (increase by OFFERTA only)
-    await tx.leagueMember.update({
-      where: { id: activeAuction.sellerId! },
-      data: { currentBudget: { increment: sellerPayment } },
-    })
-
-    // Transfer roster to winner
-    await tx.playerRoster.update({
-      where: { id: rosterEntry.id },
-      data: {
-        leagueMemberId: winningBid.bidderId,
-        acquisitionType: 'RUBATA',
-        acquisitionPrice: payment,
-      },
-    })
-
-    // Transfer contract to winner
-    if (rosterEntry.contract) {
-      await tx.playerContract.update({
-        where: { id: rosterEntry.contract.id },
-        data: { leagueMemberId: winningBid.bidderId },
-      })
-    }
-
-    // Complete auction
-    await tx.auction.update({
-      where: { id: activeAuction.id },
-      data: {
-        status: AuctionStatus.COMPLETED,
-        winnerId: winningBid.bidderId,
-        endsAt: new Date(),
-      },
-    })
-  })
-
-  // Record movement with contract info
-  const transferredRoster2 = await prisma.playerRoster.findFirst({
-    where: {
-      leagueMemberId: winningBid.bidderId,
-      playerId: activeAuction.playerId,
-      status: RosterStatus.ACTIVE,
-    },
-    include: { contract: true },
-  })
-
-  await recordMovement({
+  // Execute the rubata transfer (shared with getRubataBoard auto-close)
+  await applyRubataAuctionClose(
     leagueId,
-    playerId: activeAuction.playerId,
-    movementType: 'RUBATA',
-    fromMemberId: activeAuction.sellerId!,
-    toMemberId: winningBid.bidderId,
-    price: activeAuction.currentPrice,
-    marketSessionId: activeSession.id,
-    auctionId: activeAuction.id,
-    oldSalary: transferredRoster2?.contract?.salary,
-    oldDuration: transferredRoster2?.contract?.duration,
-    oldClause: transferredRoster2?.contract?.rescissionClause,
-    newSalary: transferredRoster2?.contract?.salary,
-    newDuration: transferredRoster2?.contract?.duration,
-    newClause: transferredRoster2?.contract?.rescissionClause,
-  })
+    activeSession.id,
+    activeAuction,
+    winningBid.bidderId
+  )
 
   // Get seller info for pending ack
   const seller = await prisma.leagueMember.findUnique({

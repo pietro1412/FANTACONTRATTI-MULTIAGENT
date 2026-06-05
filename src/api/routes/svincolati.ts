@@ -3,10 +3,7 @@ import type { Request, Response } from 'express'
 import {
   getFreeAgents,
   getTeams,
-  startFreeAgentAuction,
   bidOnFreeAgent,
-  closeFreeAgentAuction,
-  getCurrentFreeAgentAuction,
   getFreeAgentsHistory,
   // Nuove funzioni a turni
   setSvincolatiTurnOrder,
@@ -90,24 +87,6 @@ router.get('/svincolati/teams', authMiddleware, async (_req: Request, res: Respo
 
 // ==================== AUCTION STATUS ====================
 
-// GET /api/leagues/:leagueId/svincolati/current - Get current auction status
-router.get('/leagues/:leagueId/svincolati/current', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const leagueId = req.params.leagueId as string
-    const result = await getCurrentFreeAgentAuction(leagueId, req.user!.userId)
-
-    if (!result.success) {
-      res.status(400).json(result)
-      return
-    }
-
-    res.json(result)
-  } catch (error) {
-    console.error('Get current auction error:', error)
-    res.status(500).json({ success: false, message: 'Errore interno del server' })
-  }
-})
-
 // GET /api/leagues/:leagueId/svincolati/history - Get auction history
 router.get('/leagues/:leagueId/svincolati/history', authMiddleware, async (req: Request, res: Response) => {
   try {
@@ -127,31 +106,6 @@ router.get('/leagues/:leagueId/svincolati/history', authMiddleware, async (req: 
 })
 
 // ==================== AUCTION MANAGEMENT ====================
-
-// POST /api/leagues/:leagueId/svincolati/auction - Start auction for a free agent (Admin)
-router.post('/leagues/:leagueId/svincolati/auction', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const leagueId = req.params.leagueId as string
-    const { playerId, basePrice } = req.body as { playerId?: string; basePrice?: number }
-
-    if (!playerId) {
-      res.status(400).json({ success: false, message: 'playerId richiesto' })
-      return
-    }
-
-    const result = await startFreeAgentAuction(leagueId, playerId, req.user!.userId, basePrice)
-
-    if (!result.success) {
-      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
-      return
-    }
-
-    res.status(201).json(result)
-  } catch (error) {
-    console.error('Start free agent auction error:', error)
-    res.status(500).json({ success: false, message: 'Errore interno del server' })
-  }
-})
 
 // POST /api/svincolati/:auctionId/bid - Bid on free agent auction
 router.post('/svincolati/:auctionId/bid', authMiddleware, async (req: Request, res: Response) => {
@@ -174,24 +128,6 @@ router.post('/svincolati/:auctionId/bid', authMiddleware, async (req: Request, r
     res.status(201).json(result)
   } catch (error) {
     console.error('Bid on free agent error:', error)
-    res.status(500).json({ success: false, message: 'Errore interno del server' })
-  }
-})
-
-// PUT /api/svincolati/:auctionId/close - Close free agent auction (Admin)
-router.put('/svincolati/:auctionId/close', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const auctionId = req.params.auctionId as string
-    const result = await closeFreeAgentAuction(auctionId, req.user!.userId)
-
-    if (!result.success) {
-      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
-      return
-    }
-
-    res.json(result)
-  } catch (error) {
-    console.error('Close free agent auction error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })
