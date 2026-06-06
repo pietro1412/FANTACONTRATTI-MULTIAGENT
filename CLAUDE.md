@@ -19,17 +19,19 @@
 
 ```bash
 # Sviluppo
-npm run dev              # API + Client in parallelo
-npm run dev:client       # Solo frontend
+npm run dev              # API + Client in parallelo (usa .env)
+npm run dev:local        # Come dev ma su DB locale Docker (.env.local) — uso tipico in sviluppo
+npm run dev:client       # Solo frontend (Vite)
 npm run dev:api          # Solo backend (hot reload)
 
 # Database
 npm run db:build-schema  # Merge schema modulari → schema.generated.prisma
 npm run db:generate      # Prisma generate client
+npm run db:local:setup   # Avvia DB Docker + push schema + seed (setup completo locale)
 npm run db:migrate       # Prisma migrate dev
 npm run db:push          # Prisma db push (no migration)
 npm run db:studio        # GUI database
-npm run db:seed          # Seed dati test
+npm run db:seed          # Seed players (utenti/lega test: scripts/init-production.ts)
 
 # Test
 npm run test             # Vitest watch mode
@@ -59,23 +61,19 @@ src/
 │   └── ui/               # Componenti UI riutilizzabili (Card, Button, etc.)
 ├── hooks/                # Custom React hooks (useAuth, useAuctionRoomState, etc.)
 ├── lib/                  # Librerie condivise
-├── modules/              # 🆕 Domain-driven modules (nuovo layer)
-│   ├── admin, auction, identity, league, movement,
-│   ├── prize, roster, rubata, svincolati, trade
-├── pages/                # 36 pagine React
-├── services/             # 29 service file (business logic backend)
+├── modules/              # Solo identity/ (isola DDD cablata: email, password-reset)
+├── pages/                # ~34 pagine React
+├── services/             # ~27 service file (business logic backend)
 ├── shared/               # Codice condiviso (domain, infrastructure, utils)
 ├── types/                # TypeScript types
 └── utils/                # Utility (JWT, password, helpers)
 ```
 
-### Due layer coesistenti
+### Architettura attiva
 
-Il progetto ha due architetture che coesistono:
-- **Vecchio**: `src/services/` + `src/pages/` + `src/components/` (la maggior parte del codice)
-- **Nuovo**: `src/modules/` (DDD, il target per nuovo codice)
+Il codice gira tutto sul layer **`src/services/` + `src/pages/` + `src/components/`** (più `src/api/routes/` per gli endpoint). È qui che va scritto il nuovo codice.
 
-**Regola**: il nuovo codice va in `src/modules/` quando possibile. Non spostare codice vecchio senza un task esplicito di migrazione.
+`src/modules/` conteneva un layer DDD sperimentale rimasto quasi tutto dead code: è stato rimosso (giugno 2026), resta solo `src/modules/identity/` — l'isola realmente cablata (email factory, user repository, bcrypt, use-case password-reset). Non reintrodurre moduli DDD senza un task esplicito.
 
 ## Convenzioni Codice
 
@@ -155,13 +153,15 @@ Esempi:
 - `feature/1.x-*` — feature web
 - `feature/2.x-*` — feature mobile
 
-## Credenziali Test (seed locale)
+## Credenziali Test (seed locale via `scripts/init-production.ts`)
 
 | Ruolo | Email | Password |
 |-------|-------|----------|
 | Super Admin | admin@fantacontratti.it | SuperAdmin2025! |
 | Admin Lega | pietro@test.it | Pietro2025! |
-| Manager 1-7 | manager[1-7]@test.it | Manager[1-7]2025! |
+| Manager | `<nome>@test.it` (michele, mirko, emmanuele, diego, marco, marcolino, emiliano) | `<Nome>2025!` |
+
+Es. `michele@test.it` / `Michele2025!`. La lega "Fantacontratti Test" viene creata già pronta con tutti i membri.
 
 ## Database
 
@@ -177,20 +177,19 @@ npm run db:push          # Applica al DB
 ## File Business Logic Critici
 
 Questi file contengono le regole di business core. **NON modificare senza conferma**:
-- `src/services/contract.service.ts` — Contratti, clausole, rinnovi, spalma
-- `src/services/rubata.service.ts` — Fase rubata (39 funzioni)
-- `src/services/svincolati.service.ts` — Fase svincolati (31 funzioni)
-- `src/services/auction.service.ts` — Motore asta (47 funzioni)
-- `src/services/indemnity-phase.service.ts` — Fase indennizzi
-- `src/services/prize-phase.service.ts` — Fase premi
+- `src/services/contract.service.ts` — Contratti, clausole, rinnovi, spalma, consolidamento, KEEP/RELEASE esteri/retrocessi
+- `src/services/rubata.service.ts` — Fase rubata
+- `src/services/svincolati.service.ts` — Fase svincolati
+- `src/services/auction.service.ts` — Motore asta (primo mercato, timer, reopen)
+- `src/services/prize-phase.service.ts` — Fase premi e definizione indennizzi
+
+> Nota: `indemnity-phase.service.ts` è stato svuotato (resta solo `autoReleaseRitiratiPlayers`); la logica indennizzi e KEEP/RELEASE vive ora in `contract.service.ts` (consolidamento) e `prize-phase.service.ts`.
 
 ## Problemi Noti (non introdurne di nuovi)
 
-- `ServiceResult` ridichiarata in 18 file → da consolidare in un tipo condiviso
 - Import path misti (`@/` vs `../`) → usare `@/` per nuovo codice
-- Global error handler non utilizzato (route handlers non chiamano `next(err)`)
-- ~36 `console.log` residui nei services → da rimuovere
-- `auction-room/` e `auction-room-v2/` coesistono → v2 è quella attiva
+- Global error handler presente (`src/api/index.ts`) ma non sfruttato: i route handler usano try/catch locale invece di `next(err)`
+- `auction-room/` (vecchia) e `auction-room-v2/` coesistono: la v2 è attiva (`AuctionRoomLayout`), ma `AuctionRoom.tsx` importa ancora 6 modali dalla vecchia → da consolidare
 
 ## Documenti di Riferimento
 
@@ -198,6 +197,6 @@ Gerarchia delle fonti di verità (in caso di conflitto, vince la fonte più in a
 
 - **Regole di gioco** → `docs/bibbie/` — **10 documenti** di regolamento ("Bibbie"). Ordine di lettura e dipendenze in `docs/bibbie/INDEX.md`.
 - **Architettura, convenzioni, comandi** → questo file (`CLAUDE.md`).
-- **Stato & roadmap** → `docs/PROJECT-STATUS.md` (stato tecnico consolidato, gap, roadmap).
+- **Stato & roadmap** → `docs/PROJECT-STATUS.md` (stato consolidato) + `docs/COMPLETAMENTO-BACKLOG.md` (backlog per fase di gioco: cosa fatto/rinviato).
 - **Storici** (solo reference, NON aggiornare) → `docs/SESSION-CONTEXT.md`, `docs/GAP-ANALYSIS-REPORT.md` (decisioni e gap fermi a febbraio 2026).
 - **Archivio** (obsoleto) → `docs/archive/` (es. `fantacontratti-prompt-v2-final.md`, schema DB superato).
