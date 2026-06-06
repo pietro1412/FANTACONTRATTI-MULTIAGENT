@@ -58,6 +58,8 @@ Nessun blocco critico al deploy, ma C1–C3 vanno chiusi prima di un release "fe
 
 Sintesi dai report in `docs/reviews/`. È **miglioramento**, non correttezza.
 
+> **Aggiornamento 2026-06-06 — Polish UX web COMPLETATO.** Triage fresco del report (baseline 17/02): quasi tutti i findings erano già chiusi dagli sprint UX mergiati (P0 responsive 375px, `alert/confirm`→`ConfirmDialog`, Toast, focus trap, @dnd-kit, BottomNavBar). Round residuo chiuso: creati `Textarea`/`Tabs`/`ErrorState` ui + adozione, `aria-hidden` sui separatori decorativi (gli 8 `text-gray-600` residui), `AuctionConfirmModal`→Modal shared. Dettaglio in `docs/COMPLETAMENTO-BACKLOG.md`. Restano incrementali: split `Contracts.tsx`, migrazione modali inline (~7 pagine), responsive fine. — *i punti sotto sono lo storico del report, non più lo stato attuale.*
+
 - **UX web** (score 3.5/5): debounce/conferma sulle aste, contrasto WCAG AA (`text-gray-500/600` sotto soglia), `prefers-reduced-motion`.
 - **Componenti duplicati**: `POSITION_COLORS` definito ×11, `alert()/confirm()` nativi ×23 → centralizzare in `ConfirmDialog`/`ToastProvider`.
 - **Mobile-web responsive**: layout rotti a 375px (Roster, Svincolati, Rose, Dashboard), `grid-cols-4` senza breakpoint, drag&drop HTML5 non-touch (→ @dnd-kit).

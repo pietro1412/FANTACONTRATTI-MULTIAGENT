@@ -60,9 +60,27 @@ Sprint A + Sprint B (feature di gioco) **completi e verdi**. Branch `feature/1.x
 
 **Rinviati a round dedicati post-merge (decisione utente):**
 - Formula indennizzo ESTERO (T4-2 / T5-A) — in attesa che l'utente fornisca la formula; oggi default 50.
-- Polish UX web (task separato): debounce/conferma aste, WCAG, componenti duplicati, responsive 375px.
+- ~~Polish UX web~~ → **completato 2026-06-06** (vedi sotto).
 - Revisione visiva fine delle UI di Sprint B (toggle lega, controfferta, indicatore, real-time svincolati).
 - Nice-to-have: OAuth, ordine chiamata random, admin-solo, stato fine mercato esplicito; hardening (test extra, transazioni).
+
+---
+
+## ✅ POLISH UX WEB — round completato 2026-06-06
+
+Triage fresco del report UX `docs/reviews/UX_AUDIT.md` (baseline 17/02/2026) contro il codice attuale: **gran parte dei findings era già stata chiusa** dagli sprint UX mergiati (tutti i P0 responsive 375px, `alert/confirm`→`ConfirmDialog`, Toast system, focus trapping, drag&drop→@dnd-kit, BottomNavBar). Residuo reale piccolo, scope "Ampio" scelto dall'utente:
+
+| ID | Esito |
+|----|-------|
+| #9 POSITION_COLORS | Già deduplicato: single source of truth in `PositionBadge.tsx`, i restanti sono alias di backward-compat (non toccati: rinominarli romperebbe i mock test per zero valore). |
+| #17 Textarea/Tabs | ✅ Creati `src/components/ui/Textarea.tsx` + `Tabs.tsx`. `Textarea` adottato in 8 file standalone + 3 modali; `Tabs` adottato in `Trades`. Lasciati 3 textarea con bordo semantico (ricorso/profezia) col loro stile. |
+| #11 WCAG contrasto | ✅ Gli 8 `text-gray-600` residui erano separatori decorativi (`·` `|` `›`) → marcati `aria-hidden` (fix corretto). I 605 `text-gray-500` (borderline, non FAIL) NON toccati in massa, per scelta. |
+| #10 Modal shared | ✅ Migrata `AuctionConfirmModal`. Le altre 3 del triage (`PlayerCompare`, `CounterOffer`, `Preference`) erano già migrate. |
+| #20 Retry pattern | ✅ Creato `src/components/ui/ErrorState.tsx`; adottato in `Roster` + `Rose` con retry reale. |
+
+**Verifica:** `tsc` 0 errori · 1696 test verdi (72 file) · ESLint exit 0 (nessun warning nuovo).
+
+**Lasciato a round incrementale (fuori scope polish):** split `Contracts.tsx` (#15, task dedicato); migrazione capillare delle modali inline sparse in ~7 pagine (epica ad alto rischio regressione); `ErrorState` in `ManagerDashboard` (carica inline in useEffect, servirebbe estrarre la funzione).
 
 ---
 
