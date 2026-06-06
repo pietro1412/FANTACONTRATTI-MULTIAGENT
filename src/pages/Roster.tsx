@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { auctionApi, leagueApi } from '../services/api'
 import { Button } from '../components/ui/Button'
+import { ErrorState } from '../components/ui/ErrorState'
 import { Navigation } from '../components/Navigation'
 import { POSITION_GRADIENTS } from '../components/ui/PositionBadge'
 import { getTeamLogo } from '../utils/teamLogos'
@@ -398,17 +399,12 @@ export function Roster({ leagueId, onNavigate }: RosterProps) {
 
   if (!rosterData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-5xl mb-4">😕</div>
-          <p className="text-xl text-danger-400">{error || 'Errore nel caricamento della rosa'}</p>
-          <button
-            onClick={() => { setError(null); void loadData(); }}
-            className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
-          >
-            Riprova
-          </button>
-        </div>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <ErrorState
+          icon="😕"
+          message={error || 'Errore nel caricamento della rosa'}
+          onRetry={() => { setError(null); void loadData(); }}
+        />
       </div>
     )
   }

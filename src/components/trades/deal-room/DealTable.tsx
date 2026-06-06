@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { getPlayerPhotoUrl } from '@/utils/player-images'
 import { getTeamLogo } from '@/utils/teamLogos'
+import { Textarea } from '@/components/ui/Textarea'
 import { POSITION_GRADIENTS } from '../../ui/PositionBadge'
 import { getRoleStyle } from '../utils'
 import type { RosterEntry, LeagueMember } from '../types'
@@ -495,11 +496,11 @@ export function DealTable(props: DealTableProps) {
       {/* Message */}
       <div className="px-4 py-3 border-b border-white/5">
         <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1.5 block">Messaggio (opzionale)</label>
-        <textarea
+        <Textarea
+          textareaSize="sm"
           value={message}
           onChange={e => { onMessageChange(e.target.value); }}
           rows={3}
-          className="w-full px-3 py-2.5 bg-surface-300 border border-white/10 rounded-lg text-white text-sm focus:border-primary-500 focus:outline-none placeholder:text-gray-500 resize-none"
           placeholder="Aggiungi un messaggio..."
         />
       </div>

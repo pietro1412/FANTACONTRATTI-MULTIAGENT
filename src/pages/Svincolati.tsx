@@ -1,5 +1,6 @@
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 
@@ -1236,10 +1237,9 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
                   <p className="text-sm text-danger-400 font-medium">
                     Indica il motivo per cui contesti questa conclusione d'asta
                   </p>
-                  <textarea
+                  <Textarea
                     value={appealContent}
                     onChange={e => { setAppealContent(e.target.value); }}
-                    className="w-full bg-surface-300 border border-danger-500/50 rounded-lg p-3 text-white placeholder-gray-500"
                     rows={3}
                     placeholder="Descrivi il motivo del ricorso..."
                     maxLength={500}

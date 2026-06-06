@@ -10,6 +10,7 @@ import { BottomSheet } from '../components/ui/BottomSheet'
 import { DealFinanceBar, DealRosterPanel, DealTable, DealMobileFooter } from '../components/trades/deal-room'
 import { PlayerStatsModal, type PlayerInfo } from '../components/PlayerStatsModal'
 import { useToast } from '@/components/ui/Toast'
+import { Tabs } from '@/components/ui/Tabs'
 import haptic from '../utils/haptics'
 import type { FinancialsData, TeamData } from '../components/finance/types'
 import {
@@ -621,73 +622,28 @@ export function Trades({ leagueId, onNavigate, highlightOfferId }: TradesProps) 
         />
 
         {/* === Tab Bar === */}
-        <div className="flex items-center gap-1 mt-3 mb-4 border-b border-surface-50/20">
-          <button
-            onClick={() => { setActiveTab('create'); }}
-            className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
-              activeTab === 'create'
-                ? 'border-primary-500 text-primary-400'
-                : 'border-transparent text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="hidden sm:inline">Nuova Offerta</span>
-            <span className="sm:hidden">Nuova</span>
-          </button>
-          <button
-            onClick={() => { setActiveTab('received'); }}
-            className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
-              activeTab === 'received'
-                ? 'border-accent-500 text-accent-400'
-                : 'border-transparent text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            Ricevute
-            {receivedOffers.length > 0 && (
-              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                activeTab === 'received' ? 'bg-accent-500/20 text-accent-400' : 'bg-surface-300 text-gray-400'
-              }`}>
-                {receivedOffers.length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => { setActiveTab('sent'); }}
-            className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
-              activeTab === 'sent'
-                ? 'border-primary-500 text-primary-400'
-                : 'border-transparent text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            Inviate
-            {sentOffers.length > 0 && (
-              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                activeTab === 'sent' ? 'bg-primary-500/20 text-primary-400' : 'bg-surface-300 text-gray-400'
-              }`}>
-                {sentOffers.length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => { setActiveTab('history'); }}
-            className={`flex items-center gap-1.5 px-4 py-3 text-sm md:text-base font-semibold border-b-2 transition-colors ${
-              activeTab === 'history'
-                ? 'border-gray-400 text-gray-300'
-                : 'border-transparent text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            Concluse
-            {tradeHistory.length > 0 && (
-              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                activeTab === 'history' ? 'bg-gray-500/20 text-gray-300' : 'bg-surface-300 text-gray-400'
-              }`}>
-                {tradeHistory.length}
-              </span>
-            )}
-          </button>
-        </div>
+        <Tabs
+          className="mt-3 mb-4"
+          ariaLabel="Sezioni scambi"
+          value={activeTab}
+          onChange={(id) => { setActiveTab(id as typeof activeTab); }}
+          tabs={[
+            {
+              id: 'create',
+              label: 'Nuova Offerta',
+              mobileLabel: 'Nuova',
+              accent: 'primary',
+              icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              ),
+            },
+            { id: 'received', label: 'Ricevute', accent: 'accent', badge: receivedOffers.length },
+            { id: 'sent', label: 'Inviate', accent: 'primary', badge: sentOffers.length },
+            { id: 'history', label: 'Concluse', accent: 'gray', badge: tradeHistory.length },
+          ]}
+        />
 
         {/* Load error with retry */}
         {loadError && (

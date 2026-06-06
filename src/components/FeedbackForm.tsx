@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Textarea } from '@/components/ui/Textarea'
 import { feedbackApi } from '../services/api'
 
 interface FeedbackFormProps {
@@ -132,16 +133,15 @@ export function FeedbackForm({ leagueId, pageContext, onSuccess, onCancel }: Fee
         <label htmlFor="feedback-description" className="block text-sm font-medium text-gray-300 mb-2">
           Descrizione <span className="text-danger-400">*</span>
         </label>
-        <textarea
+        <Textarea
           id="feedback-description"
           value={description}
           onChange={e => { setDescription(e.target.value); }}
           placeholder="Fornisci tutti i dettagli utili: cosa stavi facendo, cosa ti aspettavi, cosa e' successo invece..."
           maxLength={5000}
           rows={6}
-          className="w-full px-4 py-3 bg-surface-300/50 border border-surface-50/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 resize-none"
+          showCharCount
         />
-        <p className="text-xs text-gray-500 mt-1 text-right">{description.length}/5000</p>
       </div>
 
       {/* Error */}

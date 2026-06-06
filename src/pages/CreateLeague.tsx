@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react'
 import { leagueApi, superadminApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
 import { NumberStepper } from '../components/ui/NumberStepper'
 import { Navigation } from '../components/Navigation'
 
@@ -199,11 +200,10 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                     <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wide">
                       Descrizione (opzionale)
                     </label>
-                    <textarea
+                    <Textarea
                       value={description}
                       onChange={e => { setDescription(e.target.value); }}
                       placeholder="Una breve descrizione della lega..."
-                      className="w-full px-4 py-3 text-base bg-surface-300 border-2 border-surface-50/30 rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200"
                       rows={3}
                       maxLength={500}
                     />

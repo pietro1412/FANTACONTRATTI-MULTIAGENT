@@ -1,3 +1,4 @@
+import { Modal } from '../ui/Modal'
 import { Button } from '../ui/Button'
 
 interface AuctionConfirmModalProps {
@@ -16,8 +17,15 @@ export function AuctionConfirmModal({
   onCancel,
 }: AuctionConfirmModalProps) {
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-surface-200 rounded-2xl p-8 max-w-md w-full border border-surface-50/20 shadow-2xl">
+    <Modal
+      isOpen={true}
+      onClose={onCancel}
+      size="md"
+      showCloseButton={false}
+      closeOnBackdrop={!isCreating}
+      closeOnEscape={!isCreating}
+    >
+      <div className="p-8">
         <div className="text-center mb-6">
           <div className={`w-20 h-20 rounded-full ${isRegularMarket ? 'bg-gradient-to-br from-primary-500 to-primary-700' : 'bg-gradient-to-br from-secondary-500 to-secondary-700'} flex items-center justify-center mx-auto mb-4 shadow-lg`}>
             <span className="text-4xl">{isRegularMarket ? '\uD83D\uDD04' : '\uD83C\uDFC1'}</span>
@@ -65,6 +73,6 @@ export function AuctionConfirmModal({
           </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }

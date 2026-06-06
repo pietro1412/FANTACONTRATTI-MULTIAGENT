@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button } from '../ui/Button'
+import { Textarea } from '@/components/ui/Textarea'
 import type { Member, Appeal } from './types'
 
 export interface AdminMembersTabProps {
@@ -268,8 +269,8 @@ export function AdminMembersTab({
                       <div className="border-t border-surface-50/20 pt-3 mt-3">
                         {selectedAppealId === appeal.id ? (
                           <div className="space-y-3">
-                            <textarea
-                              className="w-full bg-surface-400 border border-surface-50/20 rounded-lg px-3 py-2 text-white placeholder-gray-500 text-sm"
+                            <Textarea
+                              textareaSize="sm"
                               placeholder="Nota di risoluzione (opzionale)"
                               rows={2}
                               value={resolutionNote}

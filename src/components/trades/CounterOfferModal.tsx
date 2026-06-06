@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '../ui/Modal'
 import { Button } from '../ui/Button'
+import { Textarea } from '../ui/Textarea'
 import { tradeApi } from '../../services/api'
 import { getRoleStyle } from './utils'
 import type { TradeOffer, RosterEntry } from './types'
@@ -232,11 +233,12 @@ export function CounterOfferModal({
 
             <label className="block text-xs text-gray-400">
               Messaggio (opzionale)
-              <textarea
+              <Textarea
+                textareaSize="sm"
                 value={message}
                 onChange={e => { setMessage(e.target.value) }}
                 rows={2}
-                className="mt-1 w-full px-3 py-2 rounded-lg bg-surface-300 border border-surface-50/20 text-white text-sm focus:outline-none focus:border-primary-500 resize-none"
+                className="mt-1 resize-none"
                 placeholder="Aggiungi un messaggio alla controfferta..."
               />
             </label>

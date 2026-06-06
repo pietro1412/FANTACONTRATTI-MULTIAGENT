@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/Toast'
+import { Textarea } from '@/components/ui/Textarea'
 import { feedbackApi } from '../services/api'
 
 interface FeedbackResponse {
@@ -289,12 +290,12 @@ export function FeedbackDetail({ feedbackId, isAdmin, onBack, onUpdated }: Feedb
       {isAdmin && (
         <div className="bg-surface-300/30 rounded-xl p-4 border border-surface-50/20">
           <h4 className="text-sm font-semibold text-white mb-3">Aggiungi Risposta</h4>
-          <textarea
+          <Textarea
             value={responseContent}
             onChange={e => { setResponseContent(e.target.value); }}
             placeholder="Scrivi una risposta..."
             rows={4}
-            className="w-full px-4 py-3 bg-surface-300/50 border border-surface-50/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none mb-3"
+            className="mb-3"
           />
           <div className="flex items-center gap-4">
             <div className="flex-1">

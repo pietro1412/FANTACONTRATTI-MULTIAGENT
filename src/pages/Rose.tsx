@@ -5,6 +5,7 @@ import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { POSITION_COLORS } from '../components/ui/PositionBadge'
 import { BottomSheet } from '../components/ui/BottomSheet'
+import { ErrorState } from '../components/ui/ErrorState'
 import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
 import { SlidersHorizontal, PanelRightClose, PanelRightOpen } from 'lucide-react'
 import { SkeletonPlayerRow } from '../components/ui/Skeleton'
@@ -321,9 +322,10 @@ export function Rose({ onNavigate }: RoseProps) {
       <div className="min-h-screen">
         <Navigation currentPage="rose" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
         <main className="max-w-[1600px] mx-auto px-4 py-8">
-          <div className="text-center text-gray-400 py-20">
-            Errore nel caricamento delle rose
-          </div>
+          <ErrorState
+            message="Errore nel caricamento delle rose"
+            onRetry={() => { void loadData(); }}
+          />
         </main>
       </div>
     )

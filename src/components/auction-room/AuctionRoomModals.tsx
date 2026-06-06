@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Button } from '../ui/Button'
+import { Textarea } from '../ui/Textarea'
 import { POSITION_NAMES } from '../ui/PositionBadge'
 import { getTeamLogo } from '../../utils/teamLogos'
 import { POSITION_COLORS } from '../../types/auctionroom.types'
@@ -253,10 +254,10 @@ export function AcknowledgmentModal({
           </div>
 
           {/* Profezia opzionale */}
-          <textarea
+          <Textarea
             value={prophecyContent}
             onChange={e => { setProphecyContent(e.target.value); }}
-            className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-3 text-white placeholder-gray-500 mb-4"
+            className="mb-4"
             rows={2}
             placeholder="Profezia (opzionale)..."
             maxLength={500}

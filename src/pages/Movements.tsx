@@ -10,6 +10,7 @@ import { ChevronDown, SlidersHorizontal } from 'lucide-react'
 import { SkeletonPlayerRow } from '../components/ui/Skeleton'
 import { MOVEMENT_TYPE_LABELS, MOVEMENT_TYPE_SHORT, MOVEMENT_TYPE_COLORS } from '../utils/movement-constants'
 import { POSITION_TEXT_COLORS } from '../components/ui/PositionBadge'
+import { Textarea } from '@/components/ui/Textarea'
 
 interface MovementsProps {
   leagueId: string
@@ -466,11 +467,11 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                         {/* Add Prophecy */}
                         {canAdd && (
                           <div>
-                            <textarea
+                            <Textarea
+                              textareaSize="sm"
                               value={prophecyContent}
                               onChange={(e) => { setProphecyContent(e.target.value); }}
                               placeholder="Scrivi una profezia..."
-                              className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-500/50"
                               rows={2}
                               maxLength={500}
                             />
@@ -624,11 +625,11 @@ export function Movements({ leagueId, onNavigate }: MovementsProps) {
                               {/* Add Prophecy */}
                               {canAdd && (
                                 <div className="mt-2">
-                                  <textarea
+                                  <Textarea
+                                    textareaSize="sm"
                                     value={prophecyContent}
                                     onChange={(e) => { setProphecyContent(e.target.value); }}
                                     placeholder="Scrivi una profezia..."
-                                    className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-500/50"
                                     rows={2}
                                     maxLength={500}
                                   />

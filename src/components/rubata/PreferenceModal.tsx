@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/Modal'
+import { Textarea } from '@/components/ui/Textarea'
 import { Button } from '../ui/Button'
 import { getTeamLogo } from '../../utils/teamLogos'
 
@@ -189,13 +190,15 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
 
           {/* Notes */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Note private</label>
-            <textarea
+            <label className="block text-sm text-gray-400 mb-1" htmlFor="preference-notes">Note private</label>
+            <Textarea
+              id="preference-notes"
+              textareaSize="sm"
               value={formData.notes}
               onChange={e => { setFormData(p => ({ ...p, notes: e.target.value })); }}
               placeholder="Appunti personali..."
               rows={3}
-              className="w-full px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-white placeholder-gray-500 focus:border-indigo-500/50 focus:outline-none resize-none"
+              className="resize-none"
             />
           </div>
         </div>
