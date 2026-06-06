@@ -142,7 +142,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
                 <TeamLogo team={player.playerTeam} />
               </div>
               <span className="text-sm text-gray-400">{player.playerTeam}</span>
-              <span className="text-gray-600">·</span>
+              <span className="text-gray-600" aria-hidden="true">·</span>
               <span className="text-sm text-gray-500">di {ownerLabel}</span>
             </div>
           </div>

@@ -113,9 +113,9 @@ export const BoardRow = memo(function BoardRow({
   const contractInline = (passedStyle: boolean) => (
     <span className="flex items-center gap-0.5 text-xs whitespace-nowrap">
       <span className={passedStyle ? 'text-gray-500' : 'text-accent-400'}>Ing {player.contractSalary}M</span>
-      <span className="text-gray-600 mx-0.5">&middot;</span>
+      <span className="text-gray-600 mx-0.5" aria-hidden="true">&middot;</span>
       <span className={passedStyle ? 'text-gray-500' : durationColor}>{player.contractDuration}s</span>
-      <span className="text-gray-600 mx-0.5">&middot;</span>
+      <span className="text-gray-600 mx-0.5" aria-hidden="true">&middot;</span>
       <span className={passedStyle ? 'text-gray-500' : 'text-purple-400'}>Cl {player.contractClause}M</span>
     </span>
   )
@@ -339,13 +339,13 @@ export const BoardRow = memo(function BoardRow({
 
           {(isCurrent || isExpanded) ? (
             <>
-              <span className="text-gray-600 text-[10px]">&middot;</span>
+              <span className="text-gray-600 text-[10px]" aria-hidden="true">&middot;</span>
               {contractInline(isPassed)}
               {strategyIndicators()}
               {strategyButton()}
             </>
           ) : (
-            <span className="text-gray-600 text-[10px] ml-0.5">&#8250;</span>
+            <span className="text-gray-600 text-[10px] ml-0.5" aria-hidden="true">&#8250;</span>
           )}
         </div>
       </div>

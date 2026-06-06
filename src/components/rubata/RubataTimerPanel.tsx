@@ -173,13 +173,13 @@ export function RubataTimerPanel({
                   {stats && (
                     <div className="flex items-center gap-2 mt-0.5 text-[11px]">
                       <span className="text-gray-400" title="Presenze">{stats.appearances} pres</span>
-                      <span className="text-gray-600">|</span>
+                      <span className="text-gray-600" aria-hidden="true">|</span>
                       <span className="text-gray-400" title="Gol">{stats.totalGoals} gol</span>
-                      <span className="text-gray-600">|</span>
+                      <span className="text-gray-600" aria-hidden="true">|</span>
                       <span className="text-gray-400" title="Assist">{stats.totalAssists} ass</span>
                       {stats.avgRating != null && (
                         <>
-                          <span className="text-gray-600">|</span>
+                          <span className="text-gray-600" aria-hidden="true">|</span>
                           <span className={`font-bold ${ratingColor(stats.avgRating)}`} title="Media voto">
                             MV {stats.avgRating.toFixed(2)}
                           </span>
