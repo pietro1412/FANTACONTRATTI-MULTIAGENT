@@ -24,6 +24,8 @@ test-results/
 .env.local
 .env.*.local
 .env.vercel
+.env._backup
+.env.*.backup
 
 # Logs
 logs/

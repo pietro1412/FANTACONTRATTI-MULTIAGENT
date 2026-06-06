@@ -3,6 +3,8 @@
 > Documento di stato consolidato e roadmap. Source of truth operativa per "dove siamo e cosa manca".
 > Generato: 2026-06-05 — verificato su branch `feature/1.x-gap-analysis`.
 > Affianca `docs/SESSION-CONTEXT.md` (storico decisioni, fermo a 2026-02-06).
+>
+> **Aggiornamento 2026-06-06:** Sprint A e Sprint B (feature di gioco) COMPLETATI e verdi. I gap "C1–C4" descritti sotto sono risolti o erano dead code — lo stato corrente è in `docs/COMPLETAMENTO-BACKLOG.md`. Rinviati a round dedicati post-merge: **formula indennizzo ESTERO** (in attesa input) e **Polish UX web**.
 
 ---
 

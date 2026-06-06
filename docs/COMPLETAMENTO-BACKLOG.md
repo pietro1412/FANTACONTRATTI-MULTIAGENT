@@ -50,7 +50,19 @@ Prossimo → **Sprint B** (feature decise) e **Sprint C** (formula indennizzo + 
 
 > Note operative:
 > - `db:push` del campo `isPublic` va eseguito sul DB (locale e prod) prima dell'uso reale.
-> - Test flaky ricorrente: `SuperAdmin.test.tsx > uses initialTab prop` (passa isolato, fallisce a volte nella suite) — da stabilizzare.
+> - ✅ Test flaky `SuperAdmin.test.tsx > uses initialTab prop` STABILIZZATO (assertion avvolta in `waitFor`).
+
+---
+
+## ✅ STATO 2026-06-06 — pronto al merge in `main`
+
+Sprint A + Sprint B (feature di gioco) **completi e verdi**. Branch `feature/1.x-gap-analysis` è 28 commit avanti `main`, 0 indietro → merge **fast-forward** senza conflitti.
+
+**Rinviati a round dedicati post-merge (decisione utente):**
+- Formula indennizzo ESTERO (T4-2 / T5-A) — in attesa che l'utente fornisca la formula; oggi default 50.
+- Polish UX web (task separato): debounce/conferma aste, WCAG, componenti duplicati, responsive 375px.
+- Revisione visiva fine delle UI di Sprint B (toggle lega, controfferta, indicatore, real-time svincolati).
+- Nice-to-have: OAuth, ordine chiamata random, admin-solo, stato fine mercato esplicito; hardening (test extra, transazioni).
 
 ---
 

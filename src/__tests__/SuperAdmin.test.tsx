@@ -281,8 +281,12 @@ describe('SuperAdmin', () => {
       expect(screen.getByText('Pannello Super Admin')).toBeInTheDocument()
     })
 
-    // Leagues tab should load leagues
-    expect(mockGetLeagues).toHaveBeenCalled()
+    // Leagues tab should load leagues. The data-loading effect is a passive
+    // effect that runs after the header commit, so assert via waitFor to avoid
+    // a race between the header rendering and the effect firing loadLeagues().
+    await waitFor(() => {
+      expect(mockGetLeagues).toHaveBeenCalled()
+    })
   })
 
   it('loads players stats on mount', async () => {
