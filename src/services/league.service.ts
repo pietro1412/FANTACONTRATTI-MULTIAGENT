@@ -143,6 +143,88 @@ export async function getLeaguesByUser(userId: string): Promise<ServiceResult> {
   }
 }
 
+/**
+ * Aggregated per-league signals for the dashboard hub ("Hub Leghe").
+ * Read-only counts only (no heavy enrichment): current phase + attention signals.
+ * Keyed by leagueId; the frontend merges this with getLeaguesByUser.
+ * NOTE: does NOT include "tocca a te" (turn detection) — tracked separately.
+ */
+export interface DashboardLeagueSummary {
+  phase: { type: string; currentPhase: string | null } | null
+  tradeOffersReceived: number
+  isAdmin: boolean
+  pendingJoinRequests: number
+  pendingAppeals: number
+  needsConsolidation: boolean
+}
+
+export async function getDashboardSummary(userId: string): Promise<ServiceResult> {
+  const memberships = await prisma.leagueMember.findMany({
+    where: { userId, status: MemberStatus.ACTIVE },
+    select: { id: true, leagueId: true, role: true },
+  })
+
+  const now = new Date()
+  const summaries: Record<string, DashboardLeagueSummary> = {}
+
+  await Promise.all(
+    memberships.map(async (m) => {
+      const activeSession = await prisma.marketSession.findFirst({
+        where: { leagueId: m.leagueId, status: 'ACTIVE' },
+        select: { id: true, type: true, currentPhase: true },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      const isAdmin = m.role === MemberRole.ADMIN
+
+      const [tradeOffersReceived, pendingJoinRequests, pendingAppeals, consolidation] = await Promise.all([
+        activeSession
+          ? prisma.tradeOffer.count({
+              where: {
+                receiverId: userId,
+                status: TradeStatus.PENDING,
+                marketSessionId: activeSession.id,
+                expiresAt: { gte: now },
+              },
+            })
+          : Promise.resolve(0),
+        isAdmin
+          ? prisma.leagueMember.count({
+              where: { leagueId: m.leagueId, status: MemberStatus.PENDING },
+            })
+          : Promise.resolve(0),
+        isAdmin
+          ? prisma.auctionAppeal.count({
+              where: { auction: { leagueId: m.leagueId }, status: 'PENDING' },
+            })
+          : Promise.resolve(0),
+        activeSession && activeSession.currentPhase === 'CONTRATTI'
+          ? prisma.contractConsolidation.findUnique({
+              where: { sessionId_memberId: { sessionId: activeSession.id, memberId: m.id } },
+              select: { id: true },
+            })
+          : Promise.resolve(null),
+      ])
+
+      const needsConsolidation =
+        !!activeSession && activeSession.currentPhase === 'CONTRATTI' && !consolidation
+
+      summaries[m.leagueId] = {
+        phase: activeSession
+          ? { type: activeSession.type, currentPhase: activeSession.currentPhase }
+          : null,
+        tradeOffersReceived,
+        isAdmin,
+        pendingJoinRequests,
+        pendingAppeals,
+        needsConsolidation,
+      }
+    })
+  )
+
+  return { success: true, data: { summaries } }
+}
+
 export async function getLeagueById(leagueId: string, userId: string): Promise<ServiceResult> {
   const league = await prisma.league.findUnique({
     where: { id: leagueId },

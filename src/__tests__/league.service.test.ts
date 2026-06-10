@@ -25,6 +25,7 @@ const { mockPrisma, MockPrismaClient } = vi.hoisted(() => {
       create: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
+      count: vi.fn(),
     },
     user: {
       findUnique: vi.fn(),
@@ -39,12 +40,17 @@ const { mockPrisma, MockPrismaClient } = vi.hoisted(() => {
     },
     contractConsolidation: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
     },
     contractHistory: {
       findMany: vi.fn(),
     },
     tradeOffer: {
       findMany: vi.fn(),
+      count: vi.fn(),
+    },
+    auctionAppeal: {
+      count: vi.fn(),
     },
     rubataPreference: {
       groupBy: vi.fn(),
@@ -72,7 +78,7 @@ vi.mock('@prisma/client', () => ({
     SUSPENDED: 'SUSPENDED',
   },
   JoinType: { CREATOR: 'CREATOR', INVITE: 'INVITE', REQUEST: 'REQUEST' },
-  TradeStatus: { ACCEPTED: 'ACCEPTED' },
+  TradeStatus: { ACCEPTED: 'ACCEPTED', PENDING: 'PENDING' },
 }))
 
 // Mock player-stats.service to avoid real DB calls
@@ -799,6 +805,86 @@ describe('League Service', () => {
 
       expect(result.success).toBe(false)
       expect(result.message).toBe('Non autorizzato')
+    })
+  })
+
+  // ==================== getDashboardSummary ====================
+
+  describe('getDashboardSummary', () => {
+    it('returns phase + admin signals for an admin in an active league', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-1', leagueId: 'league-1', role: 'ADMIN' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue({
+        id: 'sess-1', type: 'MERCATO_RICORRENTE', currentPhase: 'OFFERTE_PRE_RINNOVO',
+      })
+      mockPrisma.tradeOffer.count.mockResolvedValue(2)
+      mockPrisma.leagueMember.count.mockResolvedValue(1) // pending join requests
+      mockPrisma.auctionAppeal.count.mockResolvedValue(0)
+
+      const result = await leagueService.getDashboardSummary('user-1')
+
+      expect(result.success).toBe(true)
+      const summaries = (result.data as { summaries: Record<string, unknown> }).summaries
+      expect(summaries['league-1']).toEqual({
+        phase: { type: 'MERCATO_RICORRENTE', currentPhase: 'OFFERTE_PRE_RINNOVO' },
+        tradeOffersReceived: 2,
+        isAdmin: true,
+        pendingJoinRequests: 1,
+        pendingAppeals: 0,
+        needsConsolidation: false,
+      })
+    })
+
+    it('does not count admin-only signals for a non-admin member', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-2', leagueId: 'league-2', role: 'MANAGER' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue({
+        id: 'sess-2', type: 'MERCATO_RICORRENTE', currentPhase: 'OFFERTE_PRE_RINNOVO',
+      })
+      mockPrisma.tradeOffer.count.mockResolvedValue(0)
+
+      const result = await leagueService.getDashboardSummary('user-2')
+
+      const summaries = (result.data as { summaries: Record<string, { isAdmin: boolean; pendingJoinRequests: number; pendingAppeals: number }> }).summaries
+      expect(summaries['league-2'].isAdmin).toBe(false)
+      expect(summaries['league-2'].pendingJoinRequests).toBe(0)
+      expect(summaries['league-2'].pendingAppeals).toBe(0)
+      // admin-only counts must not be queried for a non-admin
+      expect(mockPrisma.leagueMember.count).not.toHaveBeenCalled()
+      expect(mockPrisma.auctionAppeal.count).not.toHaveBeenCalled()
+    })
+
+    it('flags needsConsolidation in CONTRATTI phase when member has not consolidated', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-3', leagueId: 'league-3', role: 'MANAGER' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue({
+        id: 'sess-3', type: 'MERCATO_RICORRENTE', currentPhase: 'CONTRATTI',
+      })
+      mockPrisma.tradeOffer.count.mockResolvedValue(0)
+      mockPrisma.contractConsolidation.findUnique.mockResolvedValue(null) // not consolidated
+
+      const result = await leagueService.getDashboardSummary('user-3')
+
+      const summaries = (result.data as { summaries: Record<string, { needsConsolidation: boolean }> }).summaries
+      expect(summaries['league-3'].needsConsolidation).toBe(true)
+    })
+
+    it('returns null phase and zero signals when there is no active session', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-4', leagueId: 'league-4', role: 'MANAGER' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue(null)
+
+      const result = await leagueService.getDashboardSummary('user-4')
+
+      const summaries = (result.data as { summaries: Record<string, { phase: unknown; tradeOffersReceived: number; needsConsolidation: boolean }> }).summaries
+      expect(summaries['league-4'].phase).toBeNull()
+      expect(summaries['league-4'].tradeOffersReceived).toBe(0)
+      expect(summaries['league-4'].needsConsolidation).toBe(false)
+      expect(mockPrisma.tradeOffer.count).not.toHaveBeenCalled()
     })
   })
 })

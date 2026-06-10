@@ -195,6 +195,9 @@ export const leagueApi = {
 
   getAll: () => request('/api/leagues'),
 
+  // Per-league attention signals for the dashboard hub (phase + counts)
+  getDashboardSummary: () => request('/api/leagues/dashboard-summary'),
+
   getById: (id: string) => request(`/api/leagues/${id}`),
 
   getByInviteCode: (code: string) => request(`/api/leagues/join/${code}`),

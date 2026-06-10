@@ -4,6 +4,7 @@ import { createLeagueSchema, updateLeagueSchema } from '../../utils/validation'
 import {
   createLeague,
   getLeaguesByUser,
+  getDashboardSummary,
   getLeagueById,
   getLeagueByInviteCode,
   requestJoinLeague,
@@ -60,6 +61,18 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     res.json(result)
   } catch (error) {
     console.error('Get leagues error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/dashboard-summary - Per-league attention signals for the hub (requires auth)
+// IMPORTANT: must stay before any '/:id' route to avoid being captured by it.
+router.get('/dashboard-summary', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const result = await getDashboardSummary(req.user!.userId)
+    res.json(result)
+  } catch (error) {
+    console.error('Dashboard summary error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })
