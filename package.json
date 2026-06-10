@@ -14,6 +14,7 @@
     "postinstall": "prisma generate --schema=prisma/schema.generated.prisma",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "preview": "vite preview",
     "test": "vitest",
