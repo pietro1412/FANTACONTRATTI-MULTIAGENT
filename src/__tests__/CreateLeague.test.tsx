@@ -62,6 +62,7 @@ vi.mock('../components/ui/NumberStepper', () => ({
 // Mock API
 const mockCreate = vi.fn()
 const mockGetStatus = vi.fn()
+const mockInviteCreate = vi.fn()
 
 vi.mock('../services/api', () => ({
   leagueApi: {
@@ -70,6 +71,9 @@ vi.mock('../services/api', () => ({
   },
   superadminApi: {
     getStatus: (...args: unknown[]) => mockGetStatus(...args),
+  },
+  inviteApi: {
+    create: (...args: unknown[]) => mockInviteCreate(...args),
   },
   tradeApi: {
     getReceived: vi.fn().mockResolvedValue({ success: true, data: [] }),
@@ -146,7 +150,7 @@ describe('CreateLeague', () => {
     })
 
     expect(screen.getByText('ABC123')).toBeInTheDocument()
-    expect(screen.getByText('Condividi questo codice con i tuoi amici')).toBeInTheDocument()
+    expect(screen.getByText('Oppure condividi il codice invito')).toBeInTheDocument()
   })
 
   it('shows error message on failed creation', async () => {
@@ -227,6 +231,68 @@ describe('CreateLeague', () => {
 
     // Default: P=3, D=8, C=8, A=6 = 25
     expect(screen.getByText('25')).toBeInTheDocument()
+  })
+
+  it('sends a manager invite from the success step', async () => {
+    const user = userEvent.setup()
+    mockCreate.mockResolvedValue({ success: true, data: { id: 'league-1', inviteCode: 'ABC123' } })
+    mockInviteCreate.mockResolvedValue({ success: true })
+
+    render(<CreateLeague onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Crea una Nuova Lega')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByLabelText('Nome Lega'), 'Lega Champions')
+    await user.type(screen.getByLabelText('Nome della tua Squadra'), 'FC Test')
+    await user.click(screen.getByText('Crea Lega'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Lega Creata!')).toBeInTheDocument()
+    })
+
+    // Invite block is present
+    expect(screen.getByText('Invita manager')).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Email o username'), 'michele@test.it')
+    await user.click(screen.getByText('Invia invito'))
+
+    await waitFor(() => {
+      expect(mockInviteCreate).toHaveBeenCalledWith('league-1', 'michele@test.it')
+    })
+
+    // Sent invite appears in the list
+    await waitFor(() => {
+      expect(screen.getByText('michele@test.it')).toBeInTheDocument()
+    })
+  })
+
+  it('shows an error when a manager invite fails', async () => {
+    const user = userEvent.setup()
+    mockCreate.mockResolvedValue({ success: true, data: { id: 'league-1', inviteCode: 'ABC123' } })
+    mockInviteCreate.mockResolvedValue({ success: false, message: 'Utente "ghost" non trovato' })
+
+    render(<CreateLeague onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Crea una Nuova Lega')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByLabelText('Nome Lega'), 'Lega Champions')
+    await user.type(screen.getByLabelText('Nome della tua Squadra'), 'FC Test')
+    await user.click(screen.getByText('Crea Lega'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Invita manager')).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByLabelText('Email o username'), 'ghost')
+    await user.click(screen.getByText('Invia invito'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Utente "ghost" non trovato')).toBeInTheDocument()
+    })
   })
 
   it('navigates to dashboard after success when "Vai alla Dashboard" is clicked', async () => {
