@@ -848,9 +848,9 @@ describe('League Service', () => {
       const result = await leagueService.getDashboardSummary('user-2')
 
       const summaries = (result.data as { summaries: Record<string, { isAdmin: boolean; pendingJoinRequests: number; pendingAppeals: number }> }).summaries
-      expect(summaries['league-2'].isAdmin).toBe(false)
-      expect(summaries['league-2'].pendingJoinRequests).toBe(0)
-      expect(summaries['league-2'].pendingAppeals).toBe(0)
+      expect(summaries['league-2']?.isAdmin).toBe(false)
+      expect(summaries['league-2']?.pendingJoinRequests).toBe(0)
+      expect(summaries['league-2']?.pendingAppeals).toBe(0)
       // admin-only counts must not be queried for a non-admin
       expect(mockPrisma.leagueMember.count).not.toHaveBeenCalled()
       expect(mockPrisma.auctionAppeal.count).not.toHaveBeenCalled()
@@ -869,7 +869,7 @@ describe('League Service', () => {
       const result = await leagueService.getDashboardSummary('user-3')
 
       const summaries = (result.data as { summaries: Record<string, { needsConsolidation: boolean }> }).summaries
-      expect(summaries['league-3'].needsConsolidation).toBe(true)
+      expect(summaries['league-3']?.needsConsolidation).toBe(true)
     })
 
     it('returns null phase and zero signals when there is no active session', async () => {
@@ -881,9 +881,9 @@ describe('League Service', () => {
       const result = await leagueService.getDashboardSummary('user-4')
 
       const summaries = (result.data as { summaries: Record<string, { phase: unknown; tradeOffersReceived: number; needsConsolidation: boolean }> }).summaries
-      expect(summaries['league-4'].phase).toBeNull()
-      expect(summaries['league-4'].tradeOffersReceived).toBe(0)
-      expect(summaries['league-4'].needsConsolidation).toBe(false)
+      expect(summaries['league-4']?.phase).toBeNull()
+      expect(summaries['league-4']?.tradeOffersReceived).toBe(0)
+      expect(summaries['league-4']?.needsConsolidation).toBe(false)
       expect(mockPrisma.tradeOffer.count).not.toHaveBeenCalled()
     })
   })
