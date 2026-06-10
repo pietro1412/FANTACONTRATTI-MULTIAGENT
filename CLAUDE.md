@@ -50,6 +50,15 @@ npm run build:api        # esbuild → api/index.mjs
 npm run deploy:main      # Backup + merge develop → main + push
 ```
 
+### Dev server — gestione autonoma (Claude)
+
+**Claude riavvia autonomamente il dev server quando serve, senza chiedere conferma** (es. dopo modifiche allo schema Prisma, o se l'API è caduta/non risponde). Azione a basso rischio e autorizzata in modo permanente.
+
+- **Porte locali**: API `:3003` · client Vite `:5174` (la `5173` è occupata da un altro progetto, Vite non fa fallback) · DB Docker `fantacontratti-db` `:5433` (`.env.local`).
+- **Avvio**: `npm run dev:local` fa partire l'API con `.env.local`; il client Vite va lanciato a parte: `npx vite --port 5174`.
+- **Riavvio della sola API** (chirurgico): terminare il processo `tsx watch` in ascolto su `:3003` (incluso il parent tree) e rilanciare in background `bash scripts/with-env.sh .env.local npx tsx watch src/api/index.ts`, lasciando Vite intatto.
+- **Client Prisma stale (#29)**: `tsx watch` NON ricarica `@prisma/client` rigenerato → dopo `db:generate`/modifiche schema, **riavviare il processo API** per evitare errori tipo "Unknown argument" da client in memoria vecchio.
+
 ## Architettura
 
 ```
