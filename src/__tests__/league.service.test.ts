@@ -52,6 +52,9 @@ const { mockPrisma, MockPrismaClient } = vi.hoisted(() => {
     auctionAppeal: {
       count: vi.fn(),
     },
+    auction: {
+      count: vi.fn(),
+    },
     rubataPreference: {
       groupBy: vi.fn(),
       count: vi.fn(),
@@ -833,6 +836,8 @@ describe('League Service', () => {
         pendingJoinRequests: 1,
         pendingAppeals: 0,
         needsConsolidation: false,
+        isYourTurn: false,
+        turnTarget: null,
       })
     })
 
@@ -885,6 +890,127 @@ describe('League Service', () => {
       expect(summaries['league-4']?.tradeOffersReceived).toBe(0)
       expect(summaries['league-4']?.needsConsolidation).toBe(false)
       expect(mockPrisma.tradeOffer.count).not.toHaveBeenCalled()
+    })
+
+    // ---- "Tocca a te" (turn detection) ----
+
+    it('flags isYourTurn in PRIMO_MERCATO when it is the member turn and no active auction', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-5', leagueId: 'league-5', role: 'MANAGER' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue({
+        id: 'sess-5',
+        type: 'PRIMO_MERCATO',
+        currentPhase: 'ASTA_LIBERA',
+        turnOrder: ['mem-other', 'mem-5', 'mem-third'],
+        currentTurnIndex: 1,
+        svincolatiTurnOrder: null,
+        svincolatiCurrentTurnIndex: null,
+        svincolatiState: null,
+      })
+      mockPrisma.tradeOffer.count.mockResolvedValue(0)
+      mockPrisma.auction.count.mockResolvedValue(0) // no active auction
+
+      const result = await leagueService.getDashboardSummary('user-5')
+
+      const summaries = (result.data as { summaries: Record<string, { isYourTurn: boolean; turnTarget: unknown }> }).summaries
+      expect(summaries['league-5']?.isYourTurn).toBe(true)
+      expect(summaries['league-5']?.turnTarget).toEqual({ kind: 'auction', sessionId: 'sess-5' })
+    })
+
+    it('does not flag isYourTurn in PRIMO_MERCATO when it is another member turn', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-6', leagueId: 'league-6', role: 'MANAGER' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue({
+        id: 'sess-6',
+        type: 'PRIMO_MERCATO',
+        currentPhase: 'ASTA_LIBERA',
+        turnOrder: ['mem-other', 'mem-6'],
+        currentTurnIndex: 0, // points to mem-other, not mem-6
+        svincolatiTurnOrder: null,
+        svincolatiCurrentTurnIndex: null,
+        svincolatiState: null,
+      })
+      mockPrisma.tradeOffer.count.mockResolvedValue(0)
+      mockPrisma.auction.count.mockResolvedValue(0)
+
+      const result = await leagueService.getDashboardSummary('user-6')
+
+      const summaries = (result.data as { summaries: Record<string, { isYourTurn: boolean; turnTarget: unknown }> }).summaries
+      expect(summaries['league-6']?.isYourTurn).toBe(false)
+      expect(summaries['league-6']?.turnTarget).toBeNull()
+    })
+
+    it('does not flag isYourTurn in PRIMO_MERCATO when an auction is already ACTIVE', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-7', leagueId: 'league-7', role: 'MANAGER' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue({
+        id: 'sess-7',
+        type: 'PRIMO_MERCATO',
+        currentPhase: 'ASTA_LIBERA',
+        turnOrder: ['mem-7'],
+        currentTurnIndex: 0, // would be mem-7's turn...
+        svincolatiTurnOrder: null,
+        svincolatiCurrentTurnIndex: null,
+        svincolatiState: null,
+      })
+      mockPrisma.tradeOffer.count.mockResolvedValue(0)
+      mockPrisma.auction.count.mockResolvedValue(1) // ...but bidding is underway
+
+      const result = await leagueService.getDashboardSummary('user-7')
+
+      const summaries = (result.data as { summaries: Record<string, { isYourTurn: boolean }> }).summaries
+      expect(summaries['league-7']?.isYourTurn).toBe(false)
+    })
+
+    it('flags isYourTurn in ASTA_SVINCOLATI when state is READY_CHECK and it is the member turn', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-8', leagueId: 'league-8', role: 'MANAGER' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue({
+        id: 'sess-8',
+        type: 'MERCATO_RICORRENTE',
+        currentPhase: 'ASTA_SVINCOLATI',
+        turnOrder: null,
+        currentTurnIndex: null,
+        svincolatiTurnOrder: ['mem-other', 'mem-8'],
+        svincolatiCurrentTurnIndex: 1,
+        svincolatiState: 'READY_CHECK',
+      })
+      mockPrisma.tradeOffer.count.mockResolvedValue(0)
+
+      const result = await leagueService.getDashboardSummary('user-8')
+
+      const summaries = (result.data as { summaries: Record<string, { isYourTurn: boolean; turnTarget: unknown }> }).summaries
+      expect(summaries['league-8']?.isYourTurn).toBe(true)
+      expect(summaries['league-8']?.turnTarget).toEqual({ kind: 'svincolati', sessionId: 'sess-8' })
+      // svincolati does not need the active-auction query
+      expect(mockPrisma.auction.count).not.toHaveBeenCalled()
+    })
+
+    it('does not flag isYourTurn in RUBATA (not reconstructible as a single turn-holder)', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-9', leagueId: 'league-9', role: 'MANAGER' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue({
+        id: 'sess-9',
+        type: 'MERCATO_RICORRENTE',
+        currentPhase: 'RUBATA',
+        turnOrder: null,
+        currentTurnIndex: null,
+        svincolatiTurnOrder: null,
+        svincolatiCurrentTurnIndex: null,
+        svincolatiState: null,
+      })
+      mockPrisma.tradeOffer.count.mockResolvedValue(0)
+
+      const result = await leagueService.getDashboardSummary('user-9')
+
+      const summaries = (result.data as { summaries: Record<string, { isYourTurn: boolean; turnTarget: unknown }> }).summaries
+      expect(summaries['league-9']?.isYourTurn).toBe(false)
+      expect(summaries['league-9']?.turnTarget).toBeNull()
     })
   })
 })

@@ -147,7 +147,6 @@ export async function getLeaguesByUser(userId: string): Promise<ServiceResult> {
  * Aggregated per-league signals for the dashboard hub ("Hub Leghe").
  * Read-only counts only (no heavy enrichment): current phase + attention signals.
  * Keyed by leagueId; the frontend merges this with getLeaguesByUser.
- * NOTE: does NOT include "tocca a te" (turn detection) — tracked separately.
  */
 export interface DashboardLeagueSummary {
   phase: { type: string; currentPhase: string | null } | null
@@ -156,6 +155,73 @@ export interface DashboardLeagueSummary {
   pendingJoinRequests: number
   pendingAppeals: number
   needsConsolidation: boolean
+  // "Tocca a te": it is the user's turn to act in an auction phase.
+  // Computed conservatively — true ONLY when the turn-holder is unambiguous.
+  isYourTurn: boolean
+  // Where to send the user when it is their turn (sessionId needed for 'auction' route).
+  turnTarget: { kind: 'auction' | 'rubata' | 'svincolati'; sessionId: string } | null
+}
+
+/**
+ * Conservative "tocca a te" detection for the dashboard hub.
+ *
+ * Returns a turn target ONLY when we are confident it is the user's turn to ACT.
+ * Any ambiguity (unparseable JSON, out-of-range index, non-clear state) → null.
+ *
+ * Engine coverage:
+ * - PRIMO_MERCATO / ASTA_LIBERA: it is the user's turn to NOMINATE when
+ *   turnOrder[currentTurnIndex] === memberId AND there is no ACTIVE Auction for
+ *   the session (an active auction means the bidding round is underway, not a
+ *   nomination moment). This is a strict subset of the real nominator logic in
+ *   auction.service.ts (which may skip members with full roles / low budget),
+ *   so it never produces a false positive.
+ * - ASTA_SVINCOLATI: it is the user's turn to NOMINATE when svincolatiState is
+ *   READY_CHECK and svincolatiTurnOrder[svincolatiCurrentTurnIndex] === memberId.
+ * - RUBATA: NOT reconstructible as a single turn-holder (the board entry's
+ *   memberId is the player OWNER, who does not act; the steal is forced and any
+ *   other manager may bid). Always null — intentionally conservative.
+ */
+function detectYourTurn(
+  session: {
+    id: string
+    type: string
+    currentPhase: string | null
+    turnOrder: unknown
+    currentTurnIndex: number | null
+    svincolatiTurnOrder: unknown
+    svincolatiCurrentTurnIndex: number | null
+    svincolatiState: string | null
+  },
+  memberId: string,
+  hasActiveAuction: boolean
+): { kind: 'auction' | 'rubata' | 'svincolati'; sessionId: string } | null {
+  const turnHolderAt = (order: unknown, index: number | null): string | null => {
+    if (!Array.isArray(order)) return null
+    if (typeof index !== 'number' || index < 0 || index >= order.length) return null
+    const holder = order[index]
+    return typeof holder === 'string' ? holder : null
+  }
+
+  // PRIMO MERCATO — nomination moment for the turn-holder
+  if (session.type === 'PRIMO_MERCATO' || session.currentPhase === 'ASTA_LIBERA') {
+    if (hasActiveAuction) return null // bidding round underway, not a nomination
+    if (turnHolderAt(session.turnOrder, session.currentTurnIndex) === memberId) {
+      return { kind: 'auction', sessionId: session.id }
+    }
+    return null
+  }
+
+  // ASTA SVINCOLATI — nomination moment for the turn-holder
+  if (session.currentPhase === 'ASTA_SVINCOLATI') {
+    if (session.svincolatiState !== 'READY_CHECK') return null
+    if (turnHolderAt(session.svincolatiTurnOrder, session.svincolatiCurrentTurnIndex) === memberId) {
+      return { kind: 'svincolati', sessionId: session.id }
+    }
+    return null
+  }
+
+  // RUBATA and everything else → not reconstructible with certainty
+  return null
 }
 
 export async function getDashboardSummary(userId: string): Promise<ServiceResult> {
@@ -171,13 +237,27 @@ export async function getDashboardSummary(userId: string): Promise<ServiceResult
     memberships.map(async (m) => {
       const activeSession = await prisma.marketSession.findFirst({
         where: { leagueId: m.leagueId, status: 'ACTIVE' },
-        select: { id: true, type: true, currentPhase: true },
+        select: {
+          id: true,
+          type: true,
+          currentPhase: true,
+          turnOrder: true,
+          currentTurnIndex: true,
+          svincolatiTurnOrder: true,
+          svincolatiCurrentTurnIndex: true,
+          svincolatiState: true,
+        },
         orderBy: { createdAt: 'desc' },
       })
 
       const isAdmin = m.role === MemberRole.ADMIN
 
-      const [tradeOffersReceived, pendingJoinRequests, pendingAppeals, consolidation] = await Promise.all([
+      // Active auction is only relevant for the PRIMO_MERCATO nomination check.
+      const needsAuctionCheck =
+        !!activeSession &&
+        (activeSession.type === 'PRIMO_MERCATO' || activeSession.currentPhase === 'ASTA_LIBERA')
+
+      const [tradeOffersReceived, pendingJoinRequests, pendingAppeals, consolidation, activeAuctionCount] = await Promise.all([
         activeSession
           ? prisma.tradeOffer.count({
               where: {
@@ -204,10 +284,19 @@ export async function getDashboardSummary(userId: string): Promise<ServiceResult
               select: { id: true },
             })
           : Promise.resolve(null),
+        needsAuctionCheck
+          ? prisma.auction.count({
+              where: { marketSessionId: activeSession.id, status: 'ACTIVE' },
+            })
+          : Promise.resolve(0),
       ])
 
       const needsConsolidation =
         !!activeSession && activeSession.currentPhase === 'CONTRATTI' && !consolidation
+
+      const turnTarget = activeSession
+        ? detectYourTurn(activeSession, m.id, activeAuctionCount > 0)
+        : null
 
       summaries[m.leagueId] = {
         phase: activeSession
@@ -218,6 +307,8 @@ export async function getDashboardSummary(userId: string): Promise<ServiceResult
         pendingJoinRequests,
         pendingAppeals,
         needsConsolidation,
+        isYourTurn: turnTarget !== null,
+        turnTarget,
       }
     })
   )

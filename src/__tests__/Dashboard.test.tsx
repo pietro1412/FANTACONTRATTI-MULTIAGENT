@@ -233,6 +233,39 @@ describe('Dashboard', () => {
     expect(mockOnNavigate).toHaveBeenCalledWith('trades', { leagueId: 'l1' })
   })
 
+  it('surfaces a "tocca a te" turn signal and navigates to the auction room', async () => {
+    mockGetDashboardSummary.mockResolvedValue({
+      success: true,
+      data: {
+        summaries: {
+          l1: {
+            phase: { type: 'PRIMO_MERCATO', currentPhase: 'ASTA_LIBERA' },
+            tradeOffersReceived: 0,
+            isAdmin: true,
+            pendingJoinRequests: 0,
+            pendingAppeals: 0,
+            needsConsolidation: false,
+            isYourTurn: true,
+            turnTarget: { kind: 'auction', sessionId: 'sess-1' },
+          },
+        },
+      },
+    })
+
+    render(<Dashboard onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Richiede la tua attenzione')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('🔴 Tocca a te')).toBeInTheDocument()
+    expect(screen.getByText('È il tuo turno')).toBeInTheDocument()
+
+    const cta = screen.getByText('Entra →')
+    await userEvent.click(cta)
+    expect(mockOnNavigate).toHaveBeenCalledWith('auction', { leagueId: 'l1', sessionId: 'sess-1' })
+  })
+
   it('opens search modal when "Cerca Leghe" button is clicked', async () => {
     const user = userEvent.setup()
 

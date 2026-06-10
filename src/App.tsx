@@ -125,6 +125,16 @@ function DashboardWrapper() {
     else if (page === 'leagueDetail' && params?.leagueId) void navigate(`/leagues/${params.leagueId}`)
     else if (page === 'inviteDetail' && params?.token) void navigate(`/invite/${params.token}`)
     else if (page === 'login') void navigate('/login')
+    // League-scoped attention shortcuts from the hub (require leagueId in params)
+    else if (page === 'auction' && params?.leagueId) void navigate(`/leagues/${params.leagueId}/auction/${params.sessionId ?? ''}`)
+    else if (page === 'rubata' && params?.leagueId) void navigate(`/leagues/${params.leagueId}/rubata`)
+    else if (page === 'svincolati' && params?.leagueId) void navigate(`/leagues/${params.leagueId}/svincolati`)
+    else if (page === 'trades' && params?.leagueId) void navigate(`/leagues/${params.leagueId}/trades`)
+    else if (page === 'contracts' && params?.leagueId) void navigate(`/leagues/${params.leagueId}/contracts`)
+    else if (page === 'adminPanel' && params?.leagueId) {
+      const tab = params.tab ? `?tab=${params.tab}` : ''
+      void navigate(`/leagues/${params.leagueId}/admin${tab}`)
+    }
     else if (page === 'superadmin') {
       if (params?.tab) void navigate(`/superadmin?tab=${params.tab}`)
       else void navigate('/superadmin')

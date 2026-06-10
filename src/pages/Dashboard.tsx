@@ -38,6 +38,8 @@ interface LeagueSummary {
   pendingJoinRequests: number
   pendingAppeals: number
   needsConsolidation: boolean
+  isYourTurn: boolean
+  turnTarget: { kind: 'auction' | 'rubata' | 'svincolati'; sessionId: string } | null
 }
 
 function getTimeAgo(dateStr: string): string {
@@ -90,7 +92,7 @@ function phaseLabel(summary?: LeagueSummary): string | null {
   return PHASE_LABELS[summary.phase.currentPhase] || summary.phase.currentPhase
 }
 
-type ActionTone = 'info' | 'warn' | 'admin'
+type ActionTone = 'urgent' | 'info' | 'warn' | 'admin'
 
 interface DashAction {
   key: string
@@ -105,6 +107,7 @@ interface DashAction {
 }
 
 const TONE_CHIP: Record<ActionTone, string> = {
+  urgent: 'bg-danger-500/15 text-danger-400 border border-danger-500/40',
   info: 'bg-primary-500/15 text-primary-400 border border-primary-500/40',
   warn: 'bg-accent-500/15 text-accent-400 border border-accent-500/40',
   admin: 'bg-purple-500/15 text-purple-400 border border-purple-500/40',
@@ -118,6 +121,38 @@ function buildActions(
   const out: DashAction[] = []
   if (!summary) return out
   const leagueId = ld.league.id
+
+  // Highest priority: it is the user's turn to act in an auction phase.
+  if (summary.isYourTurn) {
+    const target = summary.turnTarget
+    const sub =
+      target?.kind === 'svincolati'
+        ? 'tocca a te nominare un giocatore svincolato'
+        : target?.kind === 'rubata'
+          ? 'tocca a te nella rubata'
+          : 'tocca a te nominare un giocatore'
+    out.push({
+      key: 'your-turn',
+      chip: '🔴 Tocca a te',
+      emoji: '🔴',
+      text: 'È il tuo turno',
+      sub,
+      tone: 'urgent',
+      ctaLabel: 'Entra →',
+      ctaVariant: 'primary',
+      go: () => {
+        if (target?.kind === 'auction') {
+          onNavigate('auction', { leagueId, sessionId: target.sessionId })
+        } else if (target?.kind === 'rubata') {
+          onNavigate('rubata', { leagueId })
+        } else if (target?.kind === 'svincolati') {
+          onNavigate('svincolati', { leagueId })
+        } else {
+          onNavigate('leagueDetail', { leagueId })
+        }
+      },
+    })
+  }
 
   if (summary.tradeOffersReceived > 0) {
     const n = summary.tradeOffersReceived
@@ -214,9 +249,14 @@ function AttentionCard({
   const primary = actions[0]
   const ph = phaseLabel(summary)
   const phaseText = ph ?? (league.status === 'DRAFT' ? 'In preparazione · in attesa di avvio' : '—')
+  const isUrgent = primary?.tone === 'urgent'
 
   return (
-    <div className="relative bg-surface-200 rounded-2xl border border-surface-50/30 p-4 overflow-hidden flex flex-col shadow-lg">
+    <div
+      className={`relative bg-surface-200 rounded-2xl border p-4 overflow-hidden flex flex-col shadow-lg ${
+        isUrgent ? 'border-danger-500/60 ring-1 ring-danger-500/40' : 'border-surface-50/30'
+      }`}
+    >
       <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${identity.gradient}`} aria-hidden="true" />
 
       <div className="flex items-center gap-3 mb-3">
