@@ -215,7 +215,7 @@ function buildActions(
 
 function RoleTag({ role }: { role: string }) {
   return role === 'ADMIN' ? (
-    <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-400 border border-purple-500/30">
+    <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-accent-500/15 text-accent-400 border border-accent-500/30">
       Presidente
     </span>
   ) : (
