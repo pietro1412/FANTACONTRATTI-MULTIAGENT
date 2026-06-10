@@ -6,6 +6,10 @@ interface ApiResponse<T = unknown> {
   message?: string
   data?: T
   errors?: Array<{ message: string; path?: string[] }>
+  // Set to true when a 401 could NOT be recovered via token refresh: the session
+  // is truly expired. Lets callers distinguish "sessione scaduta" (401) from a
+  // genuine "risorsa non trovata" (404). See test-session 2026-06-07 #8.
+  authExpired?: boolean
 }
 
 // Fire-and-forget frontend log — uses fetch directly to avoid recursive loops with request()
@@ -73,6 +77,9 @@ async function request<T>(
         // Retry the request
         return await request(endpoint, options)
       }
+      // Refresh failed → session is truly expired. Flag it so callers don't
+      // mistake the 401 for a 404 "risorsa non trovata".
+      return { ...data, authExpired: true }
     }
 
     return data
@@ -82,7 +89,22 @@ async function request<T>(
   }
 }
 
+// Single-flight guard: concurrent 401s must share ONE refresh call. Otherwise
+// parallel refreshes send the same (rotating) refresh token, the 2nd is seen as
+// reuse, and the backend revokes the whole token family (test-session 2026-06-07 #7).
+let refreshPromise: Promise<boolean> | null = null
+
 async function refreshAccessToken(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise
+  refreshPromise = doRefreshAccessToken()
+  try {
+    return await refreshPromise
+  } finally {
+    refreshPromise = null
+  }
+}
+
+async function doRefreshAccessToken(): Promise<boolean> {
   try {
     const response = await fetch(`${API_URL}/api/auth/refresh`, {
       method: 'POST',
@@ -676,6 +698,13 @@ export const auctionApi = {
     request(`/api/appeals/${appealId}/resolve`, {
       method: 'PUT',
       body: JSON.stringify({ decision, resolutionNote }),
+    }),
+
+  // Reopen a completed auction (Admin): cancels the assignment, refunds budget,
+  // removes the movement and reverts the auction to ACTIVE from the last bid.
+  reopenAuction: (leagueId: string, auctionId: string) =>
+    request(`/api/${leagueId}/auctions/${auctionId}/reopen`, {
+      method: 'POST',
     }),
 
   // Test utilities

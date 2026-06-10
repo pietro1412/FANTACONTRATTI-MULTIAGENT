@@ -51,6 +51,58 @@ describe('pusher.service (extra coverage)', () => {
     mockTrigger.mockResolvedValue({})
   })
 
+  // ==================== triggerAuctionStateChanged (test-session #15) ====================
+
+  describe('triggerAuctionStateChanged', () => {
+    it('should expose the AUCTION_STATE_CHANGED event name', async () => {
+      const mod = await freshImport()
+      expect(mod.PUSHER_EVENTS.AUCTION_STATE_CHANGED).toBe('auction-state-changed')
+    })
+
+    it('should trigger auction-state-changed with reason and enriched timestamp', async () => {
+      const mod = await freshImport()
+
+      const data = {
+        sessionId: 'session-abc',
+        auctionId: 'auction-1',
+        reason: 'acknowledgment-progress',
+        timestamp: new Date().toISOString(),
+      }
+
+      const result = await mod.triggerAuctionStateChanged('session-abc', data)
+
+      expect(result).toBe(true)
+      expect(mockTrigger).toHaveBeenCalledWith(
+        'auction-session-abc',
+        mod.PUSHER_EVENTS.AUCTION_STATE_CHANGED,
+        expect.objectContaining({
+          sessionId: 'session-abc',
+          auctionId: 'auction-1',
+          reason: 'acknowledgment-progress',
+          serverTimestamp: expect.any(Number),
+        })
+      )
+    })
+
+    it('should allow a null auctionId', async () => {
+      const mod = await freshImport()
+
+      const result = await mod.triggerAuctionStateChanged('session-xyz', {
+        sessionId: 'session-xyz',
+        auctionId: null,
+        reason: 'appeal-submitted',
+        timestamp: new Date().toISOString(),
+      })
+
+      expect(result).toBe(true)
+      expect(mockTrigger).toHaveBeenCalledWith(
+        'auction-session-xyz',
+        mod.PUSHER_EVENTS.AUCTION_STATE_CHANGED,
+        expect.objectContaining({ auctionId: null, reason: 'appeal-submitted' })
+      )
+    })
+  })
+
   // ==================== triggerPauseRequested (line 295) ====================
 
   describe('triggerPauseRequested', () => {

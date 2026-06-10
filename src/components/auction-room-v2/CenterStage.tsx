@@ -127,9 +127,7 @@ export function CenterStage(props: CenterStageProps) {
         <div className="border-t border-white/10">
           <AdminControlsPanel
             isAdmin={props.isAdmin}
-            timerSetting={props.timerSetting}
             hasAuction={!!props.auction}
-            onUpdateTimer={props.onUpdateTimer}
             onBotNominate={props.onBotNominate}
             onBotConfirmNomination={props.onBotConfirmNomination}
             onBotBid={props.onBotBid}

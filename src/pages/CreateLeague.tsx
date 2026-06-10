@@ -223,7 +223,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                         label="Max Partecipanti"
                         value={maxParticipants}
                         onChange={setMaxParticipants}
-                        min={2}
+                        min={6}
                         max={20}
                         error={fieldErrors.maxParticipants}
                       />
@@ -312,9 +312,10 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                       <NumberStepper
                         value={goalkeeperSlots}
                         onChange={setGoalkeeperSlots}
-                        min={1}
+                        min={3}
                         max={5}
                         size="sm"
+                        error={fieldErrors.goalkeeperSlots}
                       />
                       <p className="text-xs text-amber-400 mt-2">Portieri</p>
                     </div>
@@ -326,9 +327,10 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                       <NumberStepper
                         value={defenderSlots}
                         onChange={setDefenderSlots}
-                        min={3}
+                        min={8}
                         max={12}
                         size="sm"
+                        error={fieldErrors.defenderSlots}
                       />
                       <p className="text-xs text-blue-400 mt-2">Difensori</p>
                     </div>
@@ -340,9 +342,10 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                       <NumberStepper
                         value={midfielderSlots}
                         onChange={setMidfielderSlots}
-                        min={3}
+                        min={8}
                         max={12}
                         size="sm"
+                        error={fieldErrors.midfielderSlots}
                       />
                       <p className="text-xs text-emerald-400 mt-2">Centrocampisti</p>
                     </div>
@@ -354,9 +357,10 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                       <NumberStepper
                         value={forwardSlots}
                         onChange={setForwardSlots}
-                        min={2}
+                        min={6}
                         max={8}
                         size="sm"
+                        error={fieldErrors.forwardSlots}
                       />
                       <p className="text-xs text-red-400 mt-2">Attaccanti</p>
                     </div>

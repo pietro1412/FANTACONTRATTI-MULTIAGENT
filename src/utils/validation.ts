@@ -52,12 +52,12 @@ export const createLeagueSchema = z.object({
   name: z.string().min(3, 'Nome lega deve essere di almeno 3 caratteri').max(50, 'Nome lega troppo lungo'),
   description: z.string().max(500, 'Descrizione troppo lunga').optional(),
   teamName: z.string().min(2, 'Nome squadra deve essere di almeno 2 caratteri').max(30, 'Nome squadra troppo lungo'),
-  maxParticipants: z.number().int().min(2).max(20).default(8),
+  maxParticipants: z.number().int().min(6, 'Il numero di partecipanti deve essere almeno 6').max(20, 'Il numero di partecipanti non può superare 20').default(8),
   initialBudget: z.number().int().min(100).max(10000).default(500),
-  goalkeeperSlots: z.number().int().min(1).max(5).default(3),
-  defenderSlots: z.number().int().min(3).max(12).default(8),
-  midfielderSlots: z.number().int().min(3).max(12).default(8),
-  forwardSlots: z.number().int().min(2).max(8).default(6),
+  goalkeeperSlots: z.number().int().min(3, 'Gli slot portiere devono essere almeno 3').max(5).default(3),
+  defenderSlots: z.number().int().min(8, 'Gli slot difensore devono essere almeno 8').max(12).default(8),
+  midfielderSlots: z.number().int().min(8, 'Gli slot centrocampo devono essere almeno 8').max(12).default(8),
+  forwardSlots: z.number().int().min(6, 'Gli slot attacco devono essere almeno 6').max(8).default(6),
   isPublic: z.boolean().optional().default(false),
 })
 

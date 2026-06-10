@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '../ui/Button'
 import { Textarea } from '../ui/Textarea'
 import { POSITION_NAMES } from '../ui/PositionBadge'
@@ -28,8 +28,6 @@ interface AcknowledgmentModalProps {
   error: string
   onAcknowledge: (hasProphecy: boolean, isAppeal?: boolean) => void
   onSimulateAppeal: () => void
-  onNavigate: (page: string, params?: Record<string, string>) => void
-  leagueId: string
 }
 
 interface WaitingModalProps {
@@ -43,8 +41,8 @@ interface AppealReviewModalProps {
   appealStatus: AppealStatus | null
   pendingAck: PendingAcknowledgment | null
   isAdmin: boolean
-  onNavigate: (page: string, params?: Record<string, string>) => void
-  leagueId: string
+  resolvingAppealId: string | null
+  onResolveAppeal: (appealId: string, decision: 'ACCEPTED' | 'REJECTED', resolutionNote?: string) => void
 }
 
 interface AppealAckModalProps {
@@ -161,8 +159,6 @@ export function AcknowledgmentModal({
   error,
   onAcknowledge,
   onSimulateAppeal,
-  onNavigate,
-  leagueId,
 }: AcknowledgmentModalProps) {
   // T-007: Celebration confetti when auction is won
   const celebratedRef = useRef<string | null>(null)
@@ -280,16 +276,16 @@ export function AcknowledgmentModal({
             </div>
           )}
 
-          {/* Bottoni Azione */}
-          <div className="flex gap-3">
-            <Button
-              onClick={() => { onAcknowledge(!!prophecyContent.trim()); }}
-              disabled={ackSubmitting}
-              className="flex-1 bg-secondary-500 hover:bg-secondary-600 text-white font-bold py-3"
-            >
-              {ackSubmitting ? 'Invio...' : 'Conferma'}
-            </Button>
-            {!isAppealMode ? (
+          {/* Bottoni Azione — conferma e ricorso sono mutuamente esclusivi (test-session #10) */}
+          {!isAppealMode ? (
+            <div className="flex gap-3">
+              <Button
+                onClick={() => { onAcknowledge(!!prophecyContent.trim()); }}
+                disabled={ackSubmitting}
+                className="flex-1 bg-secondary-500 hover:bg-secondary-600 text-white font-bold py-3"
+              >
+                {ackSubmitting ? 'Invio...' : 'Conferma'}
+              </Button>
               <Button
                 onClick={() => { setIsAppealMode(true); }}
                 disabled={ackSubmitting}
@@ -298,7 +294,17 @@ export function AcknowledgmentModal({
               >
                 Ricorso
               </Button>
-            ) : (
+            </div>
+          ) : (
+            <div className="flex gap-3">
+              <Button
+                onClick={() => { setIsAppealMode(false); setAppealContent(''); }}
+                disabled={ackSubmitting}
+                variant="outline"
+                className="flex-1 border-surface-50/40 text-gray-300 hover:bg-surface-300 py-3"
+              >
+                Annulla richiesta ricorso
+              </Button>
               <Button
                 onClick={() => { onAcknowledge(false, true); }}
                 disabled={ackSubmitting || !appealContent.trim()}
@@ -306,8 +312,8 @@ export function AcknowledgmentModal({
               >
                 {ackSubmitting ? 'Invio...' : 'Invia Ricorso'}
               </Button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Admin: Simula ricorso */}
           {isAdmin && (
@@ -315,14 +321,12 @@ export function AcknowledgmentModal({
               {error && (
                 <div className="mt-3 p-2 bg-danger-500/20 border border-danger-500/50 rounded text-danger-400 text-xs">
                   {error}
+                  {/* #13: la gestione ricorsi avviene inline (pannello Azioni Admin /
+                      AppealReviewModal), non più reindirizzando alla pagina admin. */}
                   {error.includes('PENDING') && (
-                    <Button
-                      onClick={() => { onNavigate('admin', { leagueId, tab: 'appeals' }); }}
-                      size="sm"
-                      className="w-full mt-2 bg-danger-500 hover:bg-danger-600 text-white text-xs"
-                    >
-                      Gestisci Ricorsi
-                    </Button>
+                    <p className="mt-2 text-gray-300">
+                      Gestisci i ricorsi dal pannello &quot;Azioni Admin&quot; o dalla schermata di revisione del ricorso.
+                    </p>
                   )}
                 </div>
               )}
@@ -375,12 +379,17 @@ export function AppealReviewModal({
   appealStatus,
   pendingAck,
   isAdmin,
-  onNavigate,
-  leagueId,
+  resolvingAppealId,
+  onResolveAppeal,
 }: AppealReviewModalProps) {
+  const [resolutionNote, setResolutionNote] = useState('')
+
   if (!(appealStatus?.auctionStatus === 'APPEAL_REVIEW' || pendingAck?.status === 'APPEAL_REVIEW')) {
     return null
   }
+
+  const appealId = appealStatus?.appeal?.id
+  const isResolving = !!appealId && resolvingAppealId === appealId
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -432,19 +441,43 @@ export function AppealReviewModal({
             </div>
           )}
 
-          <div className="text-center py-4">
-            <div className="w-10 h-10 border-4 border-danger-500/30 border-t-danger-500 rounded-full animate-spin mx-auto mb-3"></div>
-            <p className="text-gray-400">In attesa della decisione dell'admin...</p>
-          </div>
-
-          {/* Admin button */}
-          {isAdmin && (
-            <Button
-              onClick={() => { onNavigate('admin', { leagueId, tab: 'appeals' }); }}
-              className="w-full bg-danger-500 hover:bg-danger-600 text-white font-bold py-3"
-            >
-              Gestisci Ricorso
-            </Button>
+          {/* Admin risolve il ricorso INLINE (Accetta/Rifiuta), senza lasciare
+              la maschera asta (#13). I non-admin restano in attesa. */}
+          {isAdmin && appealId ? (
+            <div className="mt-2">
+              <textarea
+                value={resolutionNote}
+                onChange={e => { setResolutionNote(e.target.value); }}
+                className="w-full bg-surface-300 border border-surface-50/30 rounded-lg p-3 text-white placeholder-gray-500 mb-3"
+                rows={2}
+                placeholder="Nota per la decisione (opzionale)..."
+                maxLength={500}
+              />
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => { onResolveAppeal(appealId, 'ACCEPTED', resolutionNote.trim() || undefined); }}
+                  disabled={isResolving}
+                  className="flex-1 bg-secondary-500 hover:bg-secondary-600 text-white font-bold py-3"
+                >
+                  {isResolving ? 'Attendi...' : 'Accetta ricorso'}
+                </Button>
+                <Button
+                  onClick={() => { onResolveAppeal(appealId, 'REJECTED', resolutionNote.trim() || undefined); }}
+                  disabled={isResolving}
+                  className="flex-1 bg-danger-500 hover:bg-danger-600 text-white font-bold py-3"
+                >
+                  {isResolving ? 'Attendi...' : 'Rifiuta ricorso'}
+                </Button>
+              </div>
+              <p className="text-[11px] text-gray-500 mt-2 text-center">
+                Accetta: annulla l&apos;aggiudicazione e riapre l&apos;asta. Rifiuta: conferma la transazione.
+              </p>
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <div className="w-10 h-10 border-4 border-danger-500/30 border-t-danger-500 rounded-full animate-spin mx-auto mb-3"></div>
+              <p className="text-gray-400">In attesa della decisione dell'admin...</p>
+            </div>
           )}
         </div>
       </div>
@@ -462,28 +495,11 @@ export function AppealAckModal({
   onAcknowledgeAppealDecision,
   onForceAllAppealAcks,
 }: AppealAckModalProps) {
-  const autoAckedRef = useRef(false)
-
+  // #17: niente auto-ack né force-all automatico dell'admin. Ogni utente
+  // (ricorrente, altri DG, admin) deve poter LEGGERE l'esito del ricorso e
+  // confermare manualmente con "Ho preso visione". L'admin mantiene il bottone
+  // [TEST] di forzatura, ma solo come click esplicito.
   const isVisible = appealStatus?.auctionStatus === 'AWAITING_APPEAL_ACK' || pendingAck?.status === 'AWAITING_APPEAL_ACK'
-
-  // Reset auto-ack flag when modal becomes invisible
-  useEffect(() => {
-    if (!isVisible) {
-      autoAckedRef.current = false
-    }
-  }, [isVisible])
-
-  // Admin auto-ack: automatically acknowledge and force all when modal opens
-  useEffect(() => {
-    if (!isAdmin || autoAckedRef.current) return
-    if (!isVisible) return
-    autoAckedRef.current = true
-    // Auto-ack own, then force all
-    if (!appealStatus?.userHasAcked) {
-      onAcknowledgeAppealDecision()
-    }
-    setTimeout(() => { onForceAllAppealAcks(); }, 500)
-  }, [isAdmin, isVisible, appealStatus?.userHasAcked, onAcknowledgeAppealDecision, onForceAllAppealAcks])
 
   if (!isVisible) {
     return null
@@ -596,31 +612,25 @@ export function AwaitingResumeModal({
   onReadyToResume,
   onForceAllReadyResume,
 }: AwaitingResumeModalProps) {
-  const autoReadyRef = useRef(false)
   const isVisible = appealStatus?.auctionStatus === 'AWAITING_RESUME' || pendingAck?.status === 'AWAITING_RESUME'
 
-  // Reset auto-ready flag when modal becomes invisible
-  useEffect(() => {
-    if (!isVisible) {
-      autoReadyRef.current = false
-    }
-  }, [isVisible])
-
-  // Admin auto-ready: automatically mark ready and force all when modal opens
-  useEffect(() => {
-    if (!isAdmin || autoReadyRef.current) return
-    if (!isVisible) return
-    autoReadyRef.current = true
-    // Auto-ready own, then force all
-    if (!appealStatus?.userIsReady) {
-      onReadyToResume()
-    }
-    setTimeout(() => { onForceAllReadyResume(); }, 500)
-  }, [isAdmin, isVisible, appealStatus?.userIsReady, onReadyToResume, onForceAllReadyResume])
+  // Nessun auto-ready/auto-force dell'admin: il ready-check deve attendere che
+  // OGNI manager clicchi "SONO PRONTO" manualmente, così tutti hanno consapevolezza
+  // della ripresa (prima la modale spariva subito e il timer ripartiva). L'admin
+  // mantiene il bottone [TEST] "Forza Tutti Pronti" per i test. (test-session #31)
 
   if (!isVisible) {
     return null
   }
+
+  // Messaggio differenziato: ricorso accolto vs annullo movimento admin (#29)
+  const resumePlayerName = (appealStatus?.player || pendingAck?.player)?.name
+  const resumeMessage =
+    appealStatus?.resumeReason === 'movement-reverted'
+      ? `L'admin ha annullato l'ultimo movimento. Si riparte dall'ultima offerta valida${
+          resumePlayerName ? ` per ${resumePlayerName}` : ''
+        }.`
+      : "Il ricorso è stato accolto. L'asta riprenderà dall'ultima offerta valida."
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -656,7 +666,7 @@ export function AwaitingResumeModal({
 
           <div className="bg-warning-500/10 border border-warning-500/30 rounded-lg p-4 mb-4 text-center">
             <p className="text-warning-400 font-medium">
-              Il ricorso è stato accolto. L'asta riprenderà dall'ultima offerta valida.
+              {resumeMessage}
             </p>
           </div>
 

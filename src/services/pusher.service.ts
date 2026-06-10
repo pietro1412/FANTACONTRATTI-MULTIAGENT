@@ -11,6 +11,7 @@ export interface BidPlacedData {
   auctionId: string
   memberId: string
   memberName: string
+  teamName: string | null // team name of the bidder (#25) — null if not set
   amount: number
   playerId: string
   playerName: string
@@ -58,6 +59,28 @@ export interface AuctionStartedData {
   auctionType: string
   nominatorId: string
   nominatorName: string
+  timestamp: string
+}
+
+export interface AuctionResumedData {
+  sessionId: string
+  auctionId: string
+  timestamp: string
+}
+
+/**
+ * Generic phase-transition signal for the PRIMO_MERCATO auction flow.
+ * Emitted at every state transition not already covered by a dedicated event
+ * (timer-expiry close, acknowledgment progress, appeal submit/resolve, appeal
+ * decision-ack progress). Clients react by reloading the full relevant state
+ * (auction + pendingAck + appealStatus + managers/roster), so a client that
+ * missed a granular event still realigns instantly instead of waiting for the
+ * polling fallback. `reason` is informational only. (test-session #15)
+ */
+export interface AuctionStateChangedData {
+  sessionId: string
+  auctionId: string | null
+  reason: string
   timestamp: string
 }
 
@@ -162,6 +185,8 @@ export const PUSHER_EVENTS = {
   NOMINATION_CONFIRMED: 'nomination-confirmed',
   MEMBER_READY: 'member-ready',
   AUCTION_STARTED: 'auction-started',
+  AUCTION_RESUMED: 'auction-resumed',
+  AUCTION_STATE_CHANGED: 'auction-state-changed',
   AUCTION_CLOSED: 'auction-closed',
   TIMER_UPDATE: 'timer-update',
   // Rubata events
@@ -265,6 +290,32 @@ export async function triggerAuctionStarted(
   data: AuctionStartedData
 ): Promise<boolean> {
   return triggerEvent(sessionId, PUSHER_EVENTS.AUCTION_STARTED, data)
+}
+
+/**
+ * Trigger when an auction resumes from AWAITING_RESUME (all DGs ready after an
+ * accepted appeal, or admin manual resume). Lets every client close the
+ * "Pronto a Riprendere?" modal in real-time instead of waiting for polling.
+ */
+export async function triggerAuctionResumed(
+  sessionId: string,
+  data: AuctionResumedData
+): Promise<boolean> {
+  return triggerEvent(sessionId, PUSHER_EVENTS.AUCTION_RESUMED, data)
+}
+
+/**
+ * Trigger a generic phase-transition for the auction flow. Lets every client
+ * reload the full relevant state on transitions without a dedicated event
+ * (timer-expiry close, acknowledgment progress, appeal submit/resolve, appeal
+ * decision-ack progress), so no client lags behind the polling fallback.
+ * (test-session #15)
+ */
+export async function triggerAuctionStateChanged(
+  sessionId: string,
+  data: AuctionStateChangedData
+): Promise<boolean> {
+  return triggerEvent(sessionId, PUSHER_EVENTS.AUCTION_STATE_CHANGED, data)
 }
 
 /**

@@ -77,18 +77,11 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
     setIsLoading(false)
   }
 
-  async function handleAccept(invite: PendingInvite) {
-    setActionLoading(invite.id)
-    const res = await inviteApi.accept(invite.token)
-    if (res.success) {
-      // Remove from list and navigate to the league
-      setInvites(prev => prev.filter(i => i.id !== invite.id))
-      setIsOpen(false)
-      onNavigate('leagueDetail', { leagueId: invite.leagueId })
-    } else {
-      toast.error(res.message || 'Errore nell\'accettare l\'invito')
-    }
-    setActionLoading(null)
+  function handleAccept(invite: PendingInvite) {
+    // L'accettazione richiede il nome squadra (obbligatorio lato backend):
+    // si apre la pagina di dettaglio dove l'utente lo inserisce e conferma.
+    setIsOpen(false)
+    onNavigate('inviteDetail', { token: invite.token })
   }
 
   async function handleReject(invite: PendingInvite) {
@@ -211,17 +204,11 @@ export function PendingInvites({ onNavigate }: PendingInvitesProps) {
                       <div className="flex flex-col gap-2">
                         <div className="flex gap-2">
                           <button
-                            onClick={() => { void handleAccept(invite) }}
+                            onClick={() => { handleAccept(invite) }}
                             disabled={isProcessing}
                             className="flex-1 px-3 py-1.5 text-xs font-medium bg-secondary-500 hover:bg-secondary-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {isProcessing ? (
-                              <span className="flex items-center justify-center gap-1">
-                                <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
-                              </span>
-                            ) : (
-                              'Accetta'
-                            )}
+                            Accetta
                           </button>
                           <button
                             onClick={() => { void handleReject(invite) }}

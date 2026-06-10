@@ -35,6 +35,20 @@ export async function createLeague(userId: string, input: CreateLeagueInput & { 
     return { success: false, message: 'Il numero minimo non può essere maggiore del massimo' }
   }
 
+  // Validazione slot ruolo: i default sono i minimi (si possono aumentare, non diminuire)
+  if (input.goalkeeperSlots < 3) {
+    return { success: false, message: 'Gli slot portiere devono essere almeno 3' }
+  }
+  if (input.defenderSlots < 8) {
+    return { success: false, message: 'Gli slot difensore devono essere almeno 8' }
+  }
+  if (input.midfielderSlots < 8) {
+    return { success: false, message: 'Gli slot centrocampo devono essere almeno 8' }
+  }
+  if (input.forwardSlots < 6) {
+    return { success: false, message: 'Gli slot attacco devono essere almeno 6' }
+  }
+
   // Validate team name for creator
   if (!input.teamName || input.teamName.trim().length < 2) {
     return { success: false, message: 'Il nome della squadra è obbligatorio (minimo 2 caratteri)' }

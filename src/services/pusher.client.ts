@@ -8,6 +8,7 @@ export interface BidPlacedData {
   auctionId: string;
   memberId: string;
   memberName: string;
+  teamName: string | null; // team name of the bidder (#25) — null if not set
   amount: number;
   playerId: string;
   playerName: string;
@@ -55,6 +56,19 @@ export interface AuctionStartedData {
   auctionType: string;
   nominatorId: string;
   nominatorName: string;
+  timestamp: string;
+}
+
+export interface AuctionResumedData {
+  sessionId: string;
+  auctionId: string;
+  timestamp: string;
+}
+
+export interface AuctionStateChangedData {
+  sessionId: string;
+  auctionId: string | null;
+  reason: string;
   timestamp: string;
 }
 
@@ -198,6 +212,8 @@ export interface AuctionEventHandlers {
   onNominationConfirmed?: (data: NominationConfirmedData) => void;
   onMemberReady?: (data: MemberReadyData) => void;
   onAuctionStarted?: (data: AuctionStartedData) => void;
+  onAuctionResumed?: (data: AuctionResumedData) => void;
+  onAuctionStateChanged?: (data: AuctionStateChangedData) => void;
   onAuctionClosed?: (data: AuctionClosedData) => void;
   onTimerUpdate?: (data: TimerUpdateData) => void;
   // Rubata events
@@ -291,6 +307,14 @@ export function subscribeToAuction(
 
   if (handlers.onAuctionStarted) {
     channel.bind('auction-started', handlers.onAuctionStarted);
+  }
+
+  if (handlers.onAuctionResumed) {
+    channel.bind('auction-resumed', handlers.onAuctionResumed);
+  }
+
+  if (handlers.onAuctionStateChanged) {
+    channel.bind('auction-state-changed', handlers.onAuctionStateChanged);
   }
 
   if (handlers.onAuctionClosed) {
@@ -404,6 +428,12 @@ export function unbindAuctionHandlers(
     if (handlers.onAuctionStarted) {
       channel.unbind('auction-started', handlers.onAuctionStarted);
     }
+    if (handlers.onAuctionResumed) {
+      channel.unbind('auction-resumed', handlers.onAuctionResumed);
+    }
+    if (handlers.onAuctionStateChanged) {
+      channel.unbind('auction-state-changed', handlers.onAuctionStateChanged);
+    }
     if (handlers.onAuctionClosed) {
       channel.unbind('auction-closed', handlers.onAuctionClosed);
     }
@@ -461,6 +491,8 @@ export interface UsePusherAuctionOptions {
   onNominationConfirmed?: (data: NominationConfirmedData) => void;
   onMemberReady?: (data: MemberReadyData) => void;
   onAuctionStarted?: (data: AuctionStartedData) => void;
+  onAuctionResumed?: (data: AuctionResumedData) => void;
+  onAuctionStateChanged?: (data: AuctionStateChangedData) => void;
   onAuctionClosed?: (data: AuctionClosedData) => void;
   onTimerUpdate?: (data: TimerUpdateData) => void;
   // Rubata events
@@ -537,6 +569,8 @@ export function usePusherAuction(
       onNominationConfirmed: (data) => handlersRef.current.onNominationConfirmed?.(data),
       onMemberReady: (data) => handlersRef.current.onMemberReady?.(data),
       onAuctionStarted: (data) => handlersRef.current.onAuctionStarted?.(data),
+      onAuctionResumed: (data) => handlersRef.current.onAuctionResumed?.(data),
+      onAuctionStateChanged: (data) => handlersRef.current.onAuctionStateChanged?.(data),
       onAuctionClosed: (data) => handlersRef.current.onAuctionClosed?.(data),
       onTimerUpdate: (data) => handlersRef.current.onTimerUpdate?.(data),
       // Rubata events
