@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FantaContratti — Hub Leghe · v3 AUDACE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Archivo+Expanded:wght@700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0e1116; --paper:#f4f1ea; --paper2:#ebe7dd; --card:#ffffff;
+    --line:#1c1f26; --hair:rgba(14,17,22,.1);
+    --pitch:#16a34a; --pitch-d:#15803d;
+    --flame:#ff5a1f; --flame-d:#e23e00;
+    --gold:#caa24a;
+    --blue:#2563eb;
+    --dim:#5b6470; --faint:#8a929d;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Archivo',system-ui,sans-serif;background:#22252b;color:var(--ink);-webkit-font-smoothing:antialiased;padding:24px}
+  .mono{font-family:'Space Mono',monospace}
+  .exp{font-family:'Archivo Expanded','Archivo',sans-serif}
+  h1.page{font-size:13px;font-weight:700;color:#8a929d;letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px}
+  .frames{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start}
+  .frame-label{font-size:11px;font-weight:900;letter-spacing:.2em;color:var(--flame);text-transform:uppercase;margin-bottom:10px}
+
+  .app{background:var(--paper);border-radius:24px;overflow:hidden;border:3px solid var(--ink)}
+
+  /* ===== HEADER ===== */
+  .hdr{display:flex;align-items:center;background:var(--ink);color:var(--paper);padding:0}
+  .hdr .brand{display:flex;align-items:center;gap:12px;padding:16px 20px;border-right:1px solid rgba(255,255,255,.12)}
+  .crest{width:38px;height:38px;border-radius:10px;background:var(--flame);display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+  .brand .nm{line-height:1.1}
+  .brand .nm .a{font-size:14px;font-weight:900;letter-spacing:.02em}
+  .brand .nm .b{font-size:9px;color:#8a929d;text-transform:uppercase;letter-spacing:.16em}
+  .hdr .title{padding:0 20px;font-family:'Archivo Expanded';font-size:15px;font-weight:900;letter-spacing:.02em;text-transform:uppercase}
+  .hdr .sp{margin-left:auto}
+  .hdr .who{display:flex;align-items:center;gap:9px;padding:0 16px;font-size:12px;border-left:1px solid rgba(255,255,255,.12)}
+  .hdr .who .av{width:30px;height:30px;border-radius:9px;background:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:12px}
+  .hdr .who b{color:#fff}
+  .hdr .acts{display:flex;gap:9px;padding:0 18px 0 14px;border-left:1px solid rgba(255,255,255,.12);align-items:center}
+  .btn-ghost{border:1.5px solid rgba(255,255,255,.3);background:transparent;color:var(--paper);font-weight:800;font-size:12px;padding:9px 14px;border-radius:11px;cursor:pointer}
+  .btn-solid{border:none;background:var(--flame);color:#fff;font-weight:900;font-size:12px;padding:10px 16px;border-radius:11px;cursor:pointer;box-shadow:0 4px 0 var(--flame-d)}
+
+  /* section strip */
+  .strip{display:flex;align-items:baseline;justify-content:space-between;padding:18px 24px 0}
+  .strip h2{font-family:'Archivo Expanded';font-size:20px;font-weight:900;letter-spacing:-.01em}
+  .strip .sub{font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+
+  /* ===== HERO (most urgent) ===== */
+  .hero{margin:14px 24px 0;background:var(--ink);color:#fff;border-radius:20px;padding:26px 28px;position:relative;overflow:hidden;display:flex;align-items:center;gap:26px}
+  .hero::after{content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(255,90,31,.35),transparent 70%)}
+  .hero .mono-mark{width:104px;height:104px;border-radius:22px;background:linear-gradient(135deg,#3a2f6e,#1f1840);border:3px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:900;flex-shrink:0;position:relative;z-index:1}
+  .hero .core{flex:1;position:relative;z-index:1}
+  .hero .flag{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#fff;background:var(--flame);padding:5px 12px;border-radius:20px;margin-bottom:12px;animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,90,31,.55)}50%{box-shadow:0 0 0 9px rgba(255,90,31,0)}}
+  .hero .flag .pip{width:7px;height:7px;border-radius:50%;background:#fff}
+  .hero .h-tt{font-family:'Archivo Expanded';font-size:34px;font-weight:900;line-height:1.02;letter-spacing:-.02em}
+  .hero .h-tt em{font-style:normal;color:var(--gold)}
+  .hero .h-line{display:flex;gap:18px;margin-top:14px;font-size:12px;color:#c9cfd8;font-weight:600;flex-wrap:wrap}
+  .hero .h-line .chip{display:inline-flex;align-items:center;gap:6px}
+  .hero .h-line .tag{font-family:'Space Mono';color:#fff;font-weight:700}
+  .hero .h-line .role{background:rgba(37,99,235,.25);border:1.5px solid var(--blue);color:#9bbcff;padding:2px 9px;border-radius:14px;font-weight:800;font-size:11px}
+  .hero .cta{position:relative;z-index:1;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:9px}
+  .hero .cta .big{border:none;background:var(--flame);color:#fff;font-family:'Archivo Expanded';font-weight:900;font-size:18px;letter-spacing:.01em;padding:18px 26px;border-radius:16px;cursor:pointer;box-shadow:0 6px 0 var(--flame-d);text-transform:uppercase;white-space:nowrap}
+  .hero .cta .meta{font-size:11px;color:#8a929d;font-weight:700}
+  .hero .cta .meta b{color:var(--gold);font-family:'Space Mono'}
+
+  /* ===== MISSION LIST ===== */
+  .list{padding:18px 24px 8px;display:flex;flex-direction:column;gap:10px}
+  .row{display:flex;align-items:center;gap:0;background:var(--card);border:2.5px solid var(--ink);border-radius:16px;overflow:hidden}
+  .row.action{box-shadow:5px 5px 0 var(--flame)}
+  .row.admin{box-shadow:5px 5px 0 var(--blue)}
+  .row.done{opacity:.55;border-style:dashed;box-shadow:none}
+  .r-mark{width:62px;align-self:stretch;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff;flex-shrink:0}
+  .r-mark.e2e{background:linear-gradient(135deg,#3a2f6e,#1f1840)}
+  .r-mark.fct{background:linear-gradient(135deg,#0e5a3a,#0a3d28)}
+  .r-mark.fin{background:linear-gradient(135deg,#7a4a12,#4d2e08)}
+  .r-mark.vet{background:linear-gradient(135deg,#3a3f47,#23262b)}
+  .r-id{padding:12px 16px;min-width:188px;border-right:1px solid var(--hair)}
+  .r-id .nm{font-size:16px;font-weight:900;letter-spacing:-.01em;line-height:1.05}
+  .r-id .role{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:13px}
+  .role.pres{background:rgba(202,162,74,.18);color:#7a5d1a;border:1.5px solid var(--gold)}
+  .role.dg{background:rgba(37,99,235,.12);color:var(--blue);border:1.5px solid rgba(37,99,235,.4)}
+  .r-phase{padding:12px 18px;min-width:200px;border-right:1px solid var(--hair)}
+  .r-phase .l{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.12em;font-weight:800;margin-bottom:4px}
+  .r-phase .v{font-size:14px;font-weight:800;display:flex;align-items:center;gap:7px}
+  .r-phase .v .live{width:7px;height:7px;border-radius:50%;background:var(--pitch);box-shadow:0 0 0 3px rgba(22,163,74,.25);flex-shrink:0}
+  .r-phase .v .live.amber{background:var(--gold);box-shadow:0 0 0 3px rgba(202,162,74,.25)}
+  .r-phase .sub{font-size:10px;color:var(--dim);margin-top:3px;font-family:'Space Mono'}
+  .r-signal{flex:1;padding:12px 18px;border-right:1px solid var(--hair);min-width:0}
+  .r-signal .l{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.12em;font-weight:800;margin-bottom:5px}
+  .sig{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:800;padding:5px 11px;border-radius:11px}
+  .sig.urgent{background:var(--flame);color:#fff}
+  .sig.warn{background:rgba(255,90,31,.13);color:var(--flame-d);border:1.5px solid rgba(255,90,31,.4)}
+  .sig.admin{background:rgba(37,99,235,.13);color:var(--blue);border:1.5px solid rgba(37,99,235,.4)}
+  .sig.calm{background:var(--paper2);color:var(--dim);font-weight:700;border:1.5px solid var(--hair)}
+  .sig .b{font-family:'Space Mono';font-weight:700}
+  .r-cta{padding:12px 18px;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .cta-btn{border:none;font-weight:900;font-size:13px;padding:12px 18px;border-radius:13px;cursor:pointer;white-space:nowrap;font-family:'Archivo Expanded';text-transform:uppercase;letter-spacing:.01em}
+  .cta-btn.flame{background:var(--flame);color:#fff;box-shadow:0 4px 0 var(--flame-d)}
+  .cta-btn.blue{background:var(--blue);color:#fff;box-shadow:0 4px 0 #1d4ed8}
+  .cta-btn.dark{background:var(--ink);color:#fff}
+  .cta-btn.ghost{background:transparent;color:var(--ink);border:2px solid var(--ink);box-shadow:none;padding:10px 16px}
+  .cta-sub{font-size:10px;color:var(--faint);font-weight:700;font-family:'Space Mono'}
+  .r-cta .mini-row{display:flex;gap:6px}
+  .mini{border:1.5px solid var(--ink);background:transparent;font-weight:800;font-size:11px;padding:7px 11px;border-radius:10px;cursor:pointer}
+
+  .ftr{padding:6px 24px 22px;display:flex;justify-content:space-between;align-items:center}
+  .ftr .legend{display:flex;gap:16px;font-size:10px;color:var(--dim);font-weight:700}
+  .ftr .legend span{display:inline-flex;align-items:center;gap:6px}
+  .sq{width:11px;height:11px;border-radius:3px}
+  .add-card{border:2.5px dashed var(--hair);background:transparent;border-radius:13px;padding:11px 18px;font-weight:900;font-size:13px;color:var(--dim);cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+
+  /* ===== MOBILE ===== */
+  .phone{width:375px;border:3px solid var(--ink);border-radius:34px;background:var(--ink);padding:9px;box-shadow:0 30px 70px rgba(0,0,0,.6)}
+  .pin{background:var(--paper);border-radius:26px;overflow:hidden;height:812px;position:relative;display:flex;flex-direction:column}
+  .m-hdr{background:var(--ink);color:#fff;display:flex;align-items:center;gap:10px;padding:13px 15px;flex-shrink:0}
+  .m-hdr .who{flex:1;min-width:0;line-height:1.15}
+  .m-hdr .who .a{font-size:13px;font-weight:900}
+  .m-hdr .who .b{font-size:9px;color:#8a929d;text-transform:uppercase;letter-spacing:.12em}
+  .m-hdr .uav{width:32px;height:32px;border-radius:9px;background:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:12px;flex-shrink:0}
+  .m-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+  .m-strip{display:flex;align-items:baseline;justify-content:space-between}
+  .m-strip h2{font-family:'Archivo Expanded';font-size:18px;font-weight:900}
+  .m-strip .s{font-size:10px;color:var(--dim);font-weight:800;text-transform:uppercase}
+
+  .m-hero{background:var(--ink);color:#fff;border-radius:18px;padding:18px;position:relative;overflow:hidden}
+  .m-hero::after{content:"";position:absolute;right:-50px;top:-50px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(255,90,31,.35),transparent 70%)}
+  .m-hero .flag{position:relative;z-index:1;display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;background:var(--flame);padding:5px 11px;border-radius:18px;margin-bottom:11px}
+  .m-hero .flag .pip{width:6px;height:6px;border-radius:50%;background:#fff}
+  .m-hero .tt{position:relative;z-index:1;font-family:'Archivo Expanded';font-size:23px;font-weight:900;line-height:1.04;letter-spacing:-.02em}
+  .m-hero .tt em{font-style:normal;color:var(--gold)}
+  .m-hero .ln{position:relative;z-index:1;display:flex;gap:12px;margin-top:11px;font-size:11px;color:#c9cfd8;font-weight:600;flex-wrap:wrap}
+  .m-hero .ln .role{background:rgba(37,99,235,.25);border:1px solid var(--blue);color:#9bbcff;padding:1px 8px;border-radius:12px;font-weight:800}
+  .m-hero .ln .tag{font-family:'Space Mono';color:#fff}
+  .m-hero .big{position:relative;z-index:1;width:100%;margin-top:15px;border:none;background:var(--flame);color:#fff;font-family:'Archivo Expanded';font-weight:900;font-size:16px;padding:15px;border-radius:14px;text-transform:uppercase;box-shadow:0 5px 0 var(--flame-d)}
+
+  .m-mlbl{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:var(--faint);margin-top:2px}
+  .m-row{background:var(--card);border:2.5px solid var(--ink);border-radius:15px;padding:13px;overflow:hidden}
+  .m-row.warn{box-shadow:4px 4px 0 var(--flame)}
+  .m-row.admin{box-shadow:4px 4px 0 var(--blue)}
+  .m-row.done{opacity:.55;border-style:dashed;box-shadow:none}
+  .m-rtop{display:flex;align-items:center;gap:11px}
+  .m-mark{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;color:#fff;flex-shrink:0}
+  .m-mark.fct{background:linear-gradient(135deg,#0e5a3a,#0a3d28)} .m-mark.fin{background:linear-gradient(135deg,#7a4a12,#4d2e08)} .m-mark.vet{background:linear-gradient(135deg,#3a3f47,#23262b)}
+  .m-rid{flex:1;min-width:0}
+  .m-rid .nm{font-size:15px;font-weight:900;line-height:1.05}
+  .m-rid .ph{font-size:11px;color:var(--dim);font-weight:700;margin-top:2px;display:flex;align-items:center;gap:6px}
+  .m-rid .ph .live{width:6px;height:6px;border-radius:50%;background:var(--pitch);flex-shrink:0}
+  .m-rid .ph .live.amber{background:var(--gold)}
+  .m-rrole{font-size:9px;font-weight:900;text-transform:uppercase;padding:3px 8px;border-radius:11px;flex-shrink:0}
+  .m-rrole.pres{background:rgba(202,162,74,.18);color:#7a5d1a;border:1px solid var(--gold)}
+  .m-rrole.dg{background:rgba(37,99,235,.12);color:var(--blue);border:1px solid rgba(37,99,235,.4)}
+  .m-sig{margin-top:11px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .m-sig .sig{font-size:12px}
+  .m-cta{border:none;font-weight:900;font-size:12px;padding:10px 14px;border-radius:11px;font-family:'Archivo Expanded';text-transform:uppercase;flex-shrink:0}
+  .m-cta.flame{background:var(--flame);color:#fff} .m-cta.blue{background:var(--blue);color:#fff} .m-cta.ghost{background:transparent;border:2px solid var(--ink);color:var(--ink)}
+  .m-add{border:2.5px dashed var(--hair);background:transparent;border-radius:14px;padding:13px;font-weight:900;font-size:13px;color:var(--dim);width:100%}
+</style>
+</head>
+<body>
+<h1 class="page">FantaContratti — Hub Leghe &nbsp;·&nbsp; v3 AUDACE (mission list broadcast · hub orientato all'azione)</h1>
+
+<div class="frames">
+
+  <!-- ============ DESKTOP ============ -->
+  <div>
+    <div class="frame-label">Desktop</div>
+    <div style="width:980px">
+      <div class="app">
+
+        <!-- HEADER -->
+        <div class="hdr">
+          <div class="brand"><div class="crest">FC</div><div class="nm"><div class="a">FANTACONTRATTI</div><div class="b">Dynasty Platform</div></div></div>
+          <div class="title">Le mie Leghe</div>
+          <div class="sp"></div>
+          <div class="who"><div class="av">DI</div><span>Ciao <b>Diego</b></span></div>
+          <div class="acts">
+            <button class="btn-ghost">Cerca Leghe</button>
+            <button class="btn-solid">+ Crea Nuova Lega</button>
+          </div>
+        </div>
+
+        <!-- urgent banner heading -->
+        <div class="strip">
+          <h2>Tocca a te</h2>
+          <div class="sub">4 leghe · 1 richiede azione immediata</div>
+        </div>
+
+        <!-- HERO -->
+        <div class="hero">
+          <div class="mono-mark">E2</div>
+          <div class="core">
+            <span class="flag"><span class="pip"></span>Il tuo turno · ora</span>
+            <div class="h-tt">Tocca a te in <em>Lega test E2E</em>.<br>L'asta ti aspetta.</div>
+            <div class="h-line">
+              <span class="chip"><span class="role">Direttore Generale</span></span>
+              <span class="chip">Primo Mercato · <span class="tag">Asta in corso</span></span>
+              <span class="chip">Budget residuo <span class="tag">700 M</span></span>
+              <span class="chip">8/8 manager · <span class="tag">in sala</span></span>
+            </div>
+          </div>
+          <div class="cta">
+            <button class="big">Entra nell'asta →</button>
+            <span class="meta">tempo per chiamare: <b>0:24</b></span>
+          </div>
+        </div>
+
+        <!-- MISSION LIST -->
+        <div class="list">
+
+          <!-- Fantacontratti Test: ACTIVE, DG, offerte scambio -->
+          <div class="row action">
+            <div class="r-mark fct">FC</div>
+            <div class="r-id">
+              <div class="nm">Fantacontratti<br>Test</div>
+              <span class="role dg">Direttore Gen.</span>
+            </div>
+            <div class="r-phase">
+              <div class="l">Fase corrente</div>
+              <div class="v"><span class="live amber"></span>Offerte pre-rinnovo</div>
+              <div class="sub">8/8 · budget 500 M</div>
+            </div>
+            <div class="r-signal">
+              <div class="l">Cosa devi fare ora</div>
+              <span class="sig warn">⇄ <span class="b">2</span> offerte di scambio ricevute</span>
+            </div>
+            <div class="r-cta">
+              <button class="cta-btn flame">Valuta offerte</button>
+              <span class="cta-sub">entra in lega →</span>
+            </div>
+          </div>
+
+          <!-- Lega Finale: DRAFT, Presidente, richiesta adesione -->
+          <div class="row admin">
+            <div class="r-mark fin">LF</div>
+            <div class="r-id">
+              <div class="nm">Lega Finale</div>
+              <span class="role pres">★ Presidente</span>
+            </div>
+            <div class="r-phase">
+              <div class="l">Stato lega</div>
+              <div class="v">In preparazione</div>
+              <div class="sub">2/8 membri · in attesa di avvio</div>
+            </div>
+            <div class="r-signal">
+              <div class="l">Richiede il Presidente</div>
+              <span class="sig admin">⚑ <span class="b">1</span> richiesta di adesione</span>
+            </div>
+            <div class="r-cta">
+              <button class="cta-btn blue">Pannello Admin</button>
+              <div class="mini-row">
+                <button class="mini">Avvia lega</button>
+                <button class="mini">Invita</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lega Veterani 2024: COMPLETED, DG, de-enfatizzata -->
+          <div class="row done">
+            <div class="r-mark vet">V2</div>
+            <div class="r-id">
+              <div class="nm">Lega Veterani<br>2024</div>
+              <span class="role dg">Direttore Gen.</span>
+            </div>
+            <div class="r-phase">
+              <div class="l">Stato lega</div>
+              <div class="v">Completata</div>
+              <div class="sub">10/10 · stagione chiusa</div>
+            </div>
+            <div class="r-signal">
+              <div class="l">Esito finale</div>
+              <span class="sig calm">🏆 3° posto su 10</span>
+            </div>
+            <div class="r-cta">
+              <button class="cta-btn ghost">Storico →</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="ftr">
+          <div class="legend">
+            <span><span class="sq" style="background:var(--flame)"></span>azione richiesta</span>
+            <span><span class="sq" style="background:var(--blue)"></span>compito da Presidente</span>
+            <span><span class="sq" style="background:var(--paper2);border:1px solid var(--hair)"></span>archiviata</span>
+          </div>
+          <button class="add-card">+ Unisciti a un'altra lega</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MOBILE ============ -->
+  <div>
+    <div class="frame-label">Mobile · 375px</div>
+    <div class="phone"><div class="pin">
+
+      <div class="m-hdr">
+        <div class="crest" style="width:32px;height:32px;font-size:11px">FC</div>
+        <div class="who"><div class="a">Le mie Leghe</div><div class="b">FantaContratti</div></div>
+        <div class="m-money" style="text-align:right;line-height:1.2;font-size:10px;color:#8a929d;font-weight:800">CERCA</div>
+        <div class="uav">DI</div>
+      </div>
+
+      <div class="m-body">
+
+        <div class="m-strip">
+          <h2>Tocca a te</h2>
+          <div class="s">4 leghe</div>
+        </div>
+
+        <!-- HERO urgente -->
+        <div class="m-hero">
+          <span class="flag"><span class="pip"></span>Il tuo turno · ora</span>
+          <div class="tt">Tocca a te in <em>Lega test E2E</em>. L'asta ti aspetta.</div>
+          <div class="ln">
+            <span class="role">DG</span>
+            <span>Asta in corso · <span class="tag">700 M</span></span>
+            <span>chiama tra <span class="tag">0:24</span></span>
+          </div>
+          <button class="big">Entra nell'asta →</button>
+        </div>
+
+        <div class="m-mlbl">Le altre leghe · per urgenza</div>
+
+        <!-- Fantacontratti Test -->
+        <div class="m-row warn">
+          <div class="m-rtop">
+            <div class="m-mark fct">FC</div>
+            <div class="m-rid">
+              <div class="nm">Fantacontratti Test</div>
+              <div class="ph"><span class="live amber"></span>Offerte pre-rinnovo · 8/8 · 500 M</div>
+            </div>
+            <span class="m-rrole dg">DG</span>
+          </div>
+          <div class="m-sig">
+            <span class="sig warn">⇄ <span class="b">2</span> offerte di scambio</span>
+            <button class="m-cta flame">Valuta</button>
+          </div>
+        </div>
+
+        <!-- Lega Finale -->
+        <div class="m-row admin">
+          <div class="m-rtop">
+            <div class="m-mark fin">LF</div>
+            <div class="m-rid">
+              <div class="nm">Lega Finale</div>
+              <div class="ph">In preparazione · 2/8 membri</div>
+            </div>
+            <span class="m-rrole pres">★ Pres.</span>
+          </div>
+          <div class="m-sig">
+            <span class="sig admin">⚑ <span class="b">1</span> richiesta adesione</span>
+            <button class="m-cta blue">Admin</button>
+          </div>
+        </div>
+
+        <!-- Lega Veterani 2024 -->
+        <div class="m-row done">
+          <div class="m-rtop">
+            <div class="m-mark vet">V2</div>
+            <div class="m-rid">
+              <div class="nm">Lega Veterani 2024</div>
+              <div class="ph">Completata · 10/10</div>
+            </div>
+            <span class="m-rrole dg">DG</span>
+          </div>
+          <div class="m-sig">
+            <span class="sig calm">🏆 3° posto</span>
+            <button class="m-cta ghost">Storico</button>
+          </div>
+        </div>
+
+        <button class="m-add">+ Crea / Unisciti a una lega</button>
+
+      </div>
+
+    </div></div>
+  </div>
+
+</div>
+</body>
+</html>

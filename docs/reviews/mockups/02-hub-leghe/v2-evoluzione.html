@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FantaContratti — Hub Leghe · v2 EVOLUZIONE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* === v2 EVOLUZIONE — dark ripensato (palette più fredda/profonda di Stadium Nights) === */
+  :root{
+    --bg:#0b0f14; --bg2:#0f151c;
+    --card:#141b24; --card2:#1a232e; --card3:#202c39;
+    --line:rgba(148,163,184,.12); --line2:rgba(148,163,184,.22);
+    --blue:#38bdf8; --blue-d:#0ea5e9; --indigo:#6366f1;
+    --green:#34d399; --green-d:#10b981;
+    --gold:#fbbf24; --gold-d:#f59e0b;
+    --red:#f87171; --red-d:#ef4444;
+    --violet:#a78bfa;
+    --txt:#e8edf2; --dim:#94a3b8; --faint:#5d6b7a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#16202c,#0b0f14);color:var(--txt);-webkit-font-smoothing:antialiased;padding:24px}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .display{font-family:'Sora',system-ui,sans-serif}
+  h1.page{font-size:13px;font-weight:700;color:var(--faint);letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px}
+  .frames{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start}
+  .frame-label{font-size:11px;font-weight:800;letter-spacing:.18em;color:var(--blue);text-transform:uppercase;margin-bottom:10px}
+
+  /* ===== PAGE HEADER ===== */
+  .pagehead{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+  .pagehead .tt{flex:1;min-width:0}
+  .pagehead .tt h2{font-family:'Sora';font-size:26px;font-weight:800;line-height:1.05;letter-spacing:-.01em}
+  .pagehead .tt p{font-size:12px;color:var(--dim);margin-top:4px}
+  .pagehead .tt p b{color:var(--gold)}
+  .search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:9px 14px;width:230px;color:var(--faint);font-size:13px}
+  .search input{flex:1;background:transparent;border:none;outline:none;color:var(--txt);font-size:13px;font-family:'Inter'}
+  .btn-create{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(180deg,var(--blue),var(--blue-d));color:#04121c;border:none;border-radius:13px;padding:11px 18px;font-family:'Sora';font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 10px 26px rgba(56,189,248,.25)}
+
+  /* ===== SECTION LABELS ===== */
+  .seclabel{display:flex;align-items:center;gap:10px;margin:6px 0 12px}
+  .seclabel .ic{width:26px;height:26px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px}
+  .seclabel .ic.attn{background:rgba(248,113,113,.14);color:var(--red);box-shadow:0 0 0 1px rgba(248,113,113,.3)}
+  .seclabel .ic.calm{background:var(--card3);color:var(--dim)}
+  .seclabel h3{font-family:'Sora';font-size:13px;font-weight:700;letter-spacing:.02em}
+  .seclabel .sub{font-size:11px;color:var(--faint)}
+  .seclabel .pill{margin-left:auto;font-size:11px;font-family:'JetBrains Mono';color:var(--dim);background:var(--card);border:1px solid var(--line);border-radius:20px;padding:3px 11px}
+
+  /* ===== ATTENTION RAIL (to-do per lega) ===== */
+  .rail{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:26px}
+  .todo{position:relative;background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line2);border-radius:18px;padding:16px;overflow:hidden;display:flex;flex-direction:column}
+  /* left accent strip carries lega identity color */
+  .todo::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--ac,var(--blue))}
+  .todo.urgent{border-color:rgba(248,113,113,.4);box-shadow:0 0 0 1px rgba(248,113,113,.15),0 16px 40px rgba(0,0,0,.4)}
+  .todo.urgent::after{content:"";position:absolute;inset:0;background:radial-gradient(360px 140px at 100% 0,rgba(248,113,113,.12),transparent);pointer-events:none}
+
+  .todo-top{display:flex;align-items:center;gap:11px;margin-bottom:13px}
+  .mono-crest{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-family:'Sora';font-weight:800;font-size:15px;color:#04121c;flex-shrink:0}
+  .todo-top .id{flex:1;min-width:0}
+  .todo-top .id .nm{font-family:'Sora';font-size:15px;font-weight:700;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .todo-top .id .rl{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--dim);margin-top:3px}
+  .role-tag{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:6px}
+  .role-tag.pres{background:rgba(167,139,250,.16);color:var(--violet);border:1px solid rgba(167,139,250,.3)}
+  .role-tag.dg{background:rgba(56,189,248,.14);color:var(--blue);border:1px solid rgba(56,189,248,.28)}
+
+  .urgency{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:800;padding:5px 10px;border-radius:20px;flex-shrink:0}
+  .urgency.live{background:rgba(248,113,113,.14);color:var(--red);border:1px solid rgba(248,113,113,.35)}
+  .urgency.pip{position:relative}
+  .urgency .blink{width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 0 3px rgba(248,113,113,.25);animation:pulse 1.4s infinite}
+  .urgency.info{background:rgba(56,189,248,.12);color:var(--blue);border:1px solid rgba(56,189,248,.3)}
+  .urgency.admin{background:rgba(167,139,250,.14);color:var(--violet);border:1px solid rgba(167,139,250,.32)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+  /* phase + progress */
+  .phase{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--dim);margin-bottom:4px}
+  .phase .ph{font-weight:600;color:var(--txt)}
+  .ptrack{height:5px;border-radius:5px;background:var(--bg);overflow:hidden;margin:7px 0 13px}
+  .ptrack i{display:block;height:100%;border-radius:5px}
+
+  /* CTA = puntuale, the action */
+  .cta-line{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:10px;margin-bottom:13px}
+  .cta-line .em{font-size:18px;line-height:1;flex-shrink:0}
+  .cta-line .tx{flex:1;font-size:12.5px;font-weight:600;line-height:1.25;color:var(--txt)}
+  .cta-line .tx small{display:block;font-size:10.5px;font-weight:400;color:var(--faint);margin-top:2px}
+
+  .todo-foot{margin-top:auto;display:flex;align-items:center;gap:9px}
+  .meta-budget{flex:1;min-width:0}
+  .meta-budget .l{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em}
+  .meta-budget .v{font-size:16px;font-weight:800;font-family:'JetBrains Mono';color:var(--gold);line-height:1.1}
+  .act{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:11px;padding:10px 16px;font-family:'Sora';font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .act.go{background:linear-gradient(180deg,#34d399,#059669);color:#03130c;box-shadow:0 8px 20px rgba(16,185,129,.28)}
+  .act.go.danger{background:linear-gradient(180deg,#fb7185,#e11d48);color:#fff;box-shadow:0 8px 22px rgba(225,29,72,.35)}
+  .act.info{background:linear-gradient(180deg,var(--blue),var(--blue-d));color:#04121c}
+  .act.ghost{background:var(--card3);color:var(--txt);border:1px solid var(--line2)}
+  .act.admin{background:linear-gradient(180deg,#a78bfa,#7c3aed);color:#fff;box-shadow:0 8px 20px rgba(124,58,237,.3)}
+
+  /* ===== CALM GRID (tutte le leghe) ===== */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .lcard{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px;display:flex;flex-direction:column;transition:.2s}
+  .lcard.done{opacity:.72}
+  .lcard-top{display:flex;align-items:center;gap:11px;margin-bottom:13px}
+  .lcard .id{flex:1;min-width:0}
+  .lcard .id .nm{font-family:'Sora';font-size:14px;font-weight:700;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lcard .id .rl{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--dim);margin-top:3px}
+  .statebadge{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:7px;flex-shrink:0}
+  .statebadge.active{background:rgba(52,211,153,.14);color:var(--green);border:1px solid rgba(52,211,153,.3)}
+  .statebadge.completed{background:rgba(148,163,184,.12);color:var(--dim);border:1px solid var(--line2)}
+
+  .lrow{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:7px}
+  .lrow .k{color:var(--faint)}
+  .lrow .vv{font-weight:600;color:var(--txt)}
+  .result-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--gold);background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);border-radius:9px;padding:6px 10px;margin:2px 0 12px}
+  .lcard-foot{margin-top:auto;display:flex;gap:8px}
+  .lcard-foot .act{flex:1;font-size:12px;padding:9px 12px}
+
+  /* ===== MOBILE ===== */
+  .phone{width:375px;border:1px solid #1e2935;border-radius:34px;background:#06090d;padding:11px;box-shadow:0 30px 70px rgba(0,0,0,.7)}
+  .pin{background:radial-gradient(500px 280px at 50% -8%,#16202c,#0b0f14);border-radius:25px;overflow:hidden;height:812px;position:relative;display:flex;flex-direction:column}
+  .m-head{padding:14px 14px 10px}
+  .m-head .row1{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .m-head h2{font-family:'Sora';font-size:20px;font-weight:800;flex:1}
+  .m-iconbtn{width:36px;height:36px;border-radius:11px;background:var(--card);border:1px solid var(--line);color:var(--dim);display:flex;align-items:center;justify-content:center;font-size:16px}
+  .m-create{width:36px;height:36px;border-radius:11px;background:linear-gradient(180deg,var(--blue),var(--blue-d));color:#04121c;border:none;font-size:22px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .m-search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 13px;color:var(--faint);font-size:13px}
+  .m-body{flex:1;overflow-y:auto;padding:12px 14px 20px}
+  .m-seclabel{display:flex;align-items:center;gap:9px;margin:4px 0 11px}
+  .m-seclabel .ic{width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px}
+  .m-seclabel h3{font-family:'Sora';font-size:12px;font-weight:700;flex:1}
+  .m-seclabel .pill{font-size:10px;font-family:'JetBrains Mono';color:var(--dim);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:2px 9px}
+  .m-todo{position:relative;background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line2);border-radius:16px;padding:14px;margin-bottom:11px;overflow:hidden}
+  .m-todo::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--ac,var(--blue))}
+  .m-todo.urgent{border-color:rgba(248,113,113,.4);box-shadow:0 0 0 1px rgba(248,113,113,.14)}
+  .m-lcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px;margin-bottom:11px}
+  .m-lcard.done{opacity:.72}
+</style>
+</head>
+<body>
+<h1 class="page">FantaContratti — Hub Leghe &nbsp;·&nbsp; v2 EVOLUZIONE (to-do list per lega · attenzione in cima · griglia calma sotto)</h1>
+
+<div class="frames">
+
+  <!-- ============ DESKTOP ============ -->
+  <div>
+    <div class="frame-label">Desktop</div>
+    <div style="width:980px">
+
+      <!-- page header -->
+      <div class="pagehead">
+        <div class="crest mono-crest" style="width:44px;height:44px;background:linear-gradient(135deg,var(--blue),var(--indigo))">DC</div>
+        <div class="tt">
+          <h2>Le mie Leghe</h2>
+          <p>Ciao <b>Diego</b> — <b style="color:var(--red)">2 leghe richiedono la tua attenzione</b> · 4 leghe totali</p>
+        </div>
+        <div class="search">🔍 <input placeholder="Cerca leghe…" value=""></div>
+        <button class="btn-create">＋ Crea Nuova Lega</button>
+      </div>
+
+      <!-- ===== ATTENTION SECTION ===== -->
+      <div class="seclabel">
+        <span class="ic attn">⚡</span>
+        <h3>Richiede la tua attenzione</h3>
+        <span class="sub">azioni in sospeso, ordinate per urgenza</span>
+        <span class="pill">3 azioni</span>
+      </div>
+
+      <div class="rail">
+
+        <!-- 1 · URGENT · Lega test E2E · DG · asta tuo turno -->
+        <div class="todo urgent" style="--ac:#f43f5e">
+          <div class="todo-top">
+            <div class="mono-crest" style="background:linear-gradient(135deg,#fb7185,#e11d48)">E2</div>
+            <div class="id">
+              <div class="nm">Lega test E2E</div>
+              <div class="rl"><span class="role-tag dg">DG</span> 8/8 manager</div>
+            </div>
+            <span class="urgency live"><span class="blink"></span>TOCCA A TE</span>
+          </div>
+          <div class="phase"><span>🏟️</span><span class="ph">Primo Mercato · Asta in corso</span></div>
+          <div class="ptrack"><i style="width:46%;background:linear-gradient(90deg,#fb7185,#f59e0b)"></i></div>
+          <div class="cta-line">
+            <span class="em">🔴</span>
+            <span class="tx">È il tuo turno di chiamata
+              <small>Il timer dell'asta sta scorrendo — entra ora</small>
+            </span>
+          </div>
+          <div class="todo-foot">
+            <div class="meta-budget"><div class="l">Budget</div><div class="v">700<span style="font-size:11px;color:var(--faint)"> M</span></div></div>
+            <button class="act go danger">Entra nell'asta →</button>
+          </div>
+        </div>
+
+        <!-- 2 · INFO · Fantacontratti Test · DG · 2 offerte scambio -->
+        <div class="todo" style="--ac:#38bdf8">
+          <div class="todo-top">
+            <div class="mono-crest" style="background:linear-gradient(135deg,#38bdf8,#6366f1)">FC</div>
+            <div class="id">
+              <div class="nm">Fantacontratti Test</div>
+              <div class="rl"><span class="role-tag dg">DG</span> 8/8 manager</div>
+            </div>
+            <span class="urgency info">📨 2 NUOVE</span>
+          </div>
+          <div class="phase"><span>🤝</span><span class="ph">Offerte pre-rinnovo</span></div>
+          <div class="ptrack"><i style="width:28%;background:linear-gradient(90deg,#38bdf8,#6366f1)"></i></div>
+          <div class="cta-line">
+            <span class="em">📨</span>
+            <span class="tx">2 offerte di scambio da valutare
+              <small>da Mirko e Marco · scadono tra 2 giorni</small>
+            </span>
+          </div>
+          <div class="todo-foot">
+            <div class="meta-budget"><div class="l">Budget</div><div class="v">500<span style="font-size:11px;color:var(--faint)"> M</span></div></div>
+            <button class="act info">Valuta offerte →</button>
+          </div>
+        </div>
+
+        <!-- 3 · ADMIN · Lega Finale · Presidente · DRAFT · 1 richiesta adesione -->
+        <div class="todo" style="--ac:#a78bfa">
+          <div class="todo-top">
+            <div class="mono-crest" style="background:linear-gradient(135deg,#a78bfa,#7c3aed)">LF</div>
+            <div class="id">
+              <div class="nm">Lega Finale</div>
+              <div class="rl"><span class="role-tag pres">PRESIDENTE</span> 2/8 membri</div>
+            </div>
+            <span class="urgency admin">👑 ADMIN</span>
+          </div>
+          <div class="phase"><span>🛠️</span><span class="ph">In preparazione · in attesa di avvio</span></div>
+          <div class="ptrack"><i style="width:12%;background:linear-gradient(90deg,#a78bfa,#7c3aed)"></i></div>
+          <div class="cta-line">
+            <span class="em">🙋</span>
+            <span class="tx">1 richiesta di adesione da approvare
+              <small>servono ancora 6 membri per avviare</small>
+            </span>
+          </div>
+          <div class="todo-foot">
+            <button class="act admin" style="flex:1">Pannello Admin</button>
+            <button class="act ghost">Invita</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ===== CALM SECTION (all leagues) ===== -->
+      <div class="seclabel">
+        <span class="ic calm">📚</span>
+        <h3>Tutte le mie leghe</h3>
+        <span class="sub">vista completa, anche senza azioni in corso</span>
+        <span class="pill">4 leghe</span>
+      </div>
+
+      <div class="grid">
+
+        <!-- Lega test E2E (also here, calm rep) -->
+        <div class="lcard">
+          <div class="lcard-top">
+            <div class="mono-crest" style="width:38px;height:38px;background:linear-gradient(135deg,#fb7185,#e11d48)">E2</div>
+            <div class="id"><div class="nm">Lega test E2E</div><div class="rl"><span class="role-tag dg">DG</span> 8/8</div></div>
+            <span class="statebadge active">● Attiva</span>
+          </div>
+          <div class="lrow"><span class="k">Fase</span><span class="vv">Asta in corso</span></div>
+          <div class="ptrack"><i style="width:46%;background:linear-gradient(90deg,#34d399,#10b981)"></i></div>
+          <div class="lrow" style="margin-top:9px"><span class="k">Budget</span><span class="vv mono" style="color:var(--gold)">700 M</span></div>
+          <div class="lcard-foot"><button class="act go">Entra</button></div>
+        </div>
+
+        <!-- Fantacontratti Test -->
+        <div class="lcard">
+          <div class="lcard-top">
+            <div class="mono-crest" style="width:38px;height:38px;background:linear-gradient(135deg,#38bdf8,#6366f1)">FC</div>
+            <div class="id"><div class="nm">Fantacontratti Test</div><div class="rl"><span class="role-tag dg">DG</span> 8/8</div></div>
+            <span class="statebadge active">● Attiva</span>
+          </div>
+          <div class="lrow"><span class="k">Fase</span><span class="vv">Offerte pre-rinnovo</span></div>
+          <div class="ptrack"><i style="width:28%;background:linear-gradient(90deg,#34d399,#10b981)"></i></div>
+          <div class="lrow" style="margin-top:9px"><span class="k">Budget</span><span class="vv mono" style="color:var(--gold)">500 M</span></div>
+          <div class="lcard-foot"><button class="act go">Entra</button></div>
+        </div>
+
+        <!-- Lega Finale (DRAFT) -->
+        <div class="lcard">
+          <div class="lcard-top">
+            <div class="mono-crest" style="width:38px;height:38px;background:linear-gradient(135deg,#a78bfa,#7c3aed)">LF</div>
+            <div class="id"><div class="nm">Lega Finale</div><div class="rl"><span class="role-tag pres">PRESIDENTE</span></div></div>
+            <span class="statebadge" style="background:rgba(167,139,250,.12);color:var(--violet);border:1px solid rgba(167,139,250,.28)">◌ In preparazione</span>
+          </div>
+          <div class="lrow"><span class="k">Membri</span><span class="vv mono">2 / 8</span></div>
+          <div class="ptrack"><i style="width:25%;background:linear-gradient(90deg,#a78bfa,#7c3aed)"></i></div>
+          <div class="lrow" style="margin-top:9px"><span class="k">Stato</span><span class="vv">In attesa di avvio</span></div>
+          <div class="lcard-foot">
+            <button class="act admin" style="flex:1.3">Pannello Admin</button>
+            <button class="act ghost">Invita</button>
+          </div>
+        </div>
+
+        <!-- Lega Veterani 2024 (COMPLETED) -->
+        <div class="lcard done">
+          <div class="lcard-top">
+            <div class="mono-crest" style="width:38px;height:38px;background:linear-gradient(135deg,#64748b,#334155)">V2</div>
+            <div class="id"><div class="nm">Lega Veterani 2024</div><div class="rl"><span class="role-tag dg">DG</span> 10/10</div></div>
+            <span class="statebadge completed">✓ Completata</span>
+          </div>
+          <div class="result-chip">🏆 Esito finale: 3° posto</div>
+          <div class="lrow"><span class="k">Stagione</span><span class="vv">2024 · conclusa</span></div>
+          <div class="lcard-foot"><button class="act ghost" style="flex:1">📊 Storico</button></div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ MOBILE ============ -->
+  <div>
+    <div class="frame-label">Mobile · 375px</div>
+    <div class="phone"><div class="pin">
+
+      <div class="m-head">
+        <div class="row1">
+          <h2>Le mie Leghe</h2>
+          <div class="m-iconbtn">🔍</div>
+          <button class="m-create">＋</button>
+        </div>
+        <div class="m-search">🔍 <span>Cerca leghe…</span></div>
+      </div>
+
+      <div class="m-body">
+
+        <!-- attention first -->
+        <div class="m-seclabel">
+          <span class="ic" style="background:rgba(248,113,113,.14);color:var(--red)">⚡</span>
+          <h3>Richiede la tua attenzione</h3>
+          <span class="pill">3</span>
+        </div>
+
+        <!-- 1 URGENT -->
+        <div class="m-todo urgent" style="--ac:#f43f5e">
+          <div class="todo-top">
+            <div class="mono-crest" style="width:38px;height:38px;background:linear-gradient(135deg,#fb7185,#e11d48)">E2</div>
+            <div class="id"><div class="nm">Lega test E2E</div><div class="rl"><span class="role-tag dg">DG</span> 8/8</div></div>
+            <span class="urgency live"><span class="blink"></span>TOCCA A TE</span>
+          </div>
+          <div class="phase" style="margin-top:11px"><span>🏟️</span><span class="ph">Asta in corso</span></div>
+          <div class="ptrack"><i style="width:46%;background:linear-gradient(90deg,#fb7185,#f59e0b)"></i></div>
+          <div class="cta-line"><span class="em">🔴</span><span class="tx">È il tuo turno di chiamata<small>Il timer sta scorrendo · Budget 700 M</small></span></div>
+          <button class="act go danger" style="width:100%;padding:13px">Entra nell'asta →</button>
+        </div>
+
+        <!-- 2 INFO -->
+        <div class="m-todo" style="--ac:#38bdf8">
+          <div class="todo-top">
+            <div class="mono-crest" style="width:38px;height:38px;background:linear-gradient(135deg,#38bdf8,#6366f1)">FC</div>
+            <div class="id"><div class="nm">Fantacontratti Test</div><div class="rl"><span class="role-tag dg">DG</span> 8/8</div></div>
+            <span class="urgency info">📨 2</span>
+          </div>
+          <div class="phase" style="margin-top:11px"><span>🤝</span><span class="ph">Offerte pre-rinnovo</span></div>
+          <div class="ptrack"><i style="width:28%;background:linear-gradient(90deg,#38bdf8,#6366f1)"></i></div>
+          <div class="cta-line"><span class="em">📨</span><span class="tx">2 offerte di scambio da valutare<small>da Mirko e Marco · Budget 500 M</small></span></div>
+          <button class="act info" style="width:100%;padding:13px">Valuta offerte →</button>
+        </div>
+
+        <!-- 3 ADMIN -->
+        <div class="m-todo" style="--ac:#a78bfa">
+          <div class="todo-top">
+            <div class="mono-crest" style="width:38px;height:38px;background:linear-gradient(135deg,#a78bfa,#7c3aed)">LF</div>
+            <div class="id"><div class="nm">Lega Finale</div><div class="rl"><span class="role-tag pres">PRESIDENTE</span> 2/8</div></div>
+            <span class="urgency admin">👑</span>
+          </div>
+          <div class="phase" style="margin-top:11px"><span>🛠️</span><span class="ph">In preparazione</span></div>
+          <div class="ptrack"><i style="width:12%;background:linear-gradient(90deg,#a78bfa,#7c3aed)"></i></div>
+          <div class="cta-line"><span class="em">🙋</span><span class="tx">1 richiesta di adesione da approvare<small>servono 6 membri per avviare</small></span></div>
+          <div style="display:flex;gap:8px">
+            <button class="act admin" style="flex:1.4;padding:13px">Pannello Admin</button>
+            <button class="act ghost" style="padding:13px">Invita</button>
+          </div>
+        </div>
+
+        <!-- calm section -->
+        <div class="m-seclabel" style="margin-top:20px">
+          <span class="ic" style="background:var(--card3);color:var(--dim)">📚</span>
+          <h3>Tutte le mie leghe</h3>
+          <span class="pill">4</span>
+        </div>
+
+        <div class="m-lcard">
+          <div class="lcard-top">
+            <div class="mono-crest" style="width:34px;height:34px;font-size:13px;background:linear-gradient(135deg,#fb7185,#e11d48)">E2</div>
+            <div class="id"><div class="nm">Lega test E2E</div><div class="rl"><span class="role-tag dg">DG</span> 8/8 · 700 M</div></div>
+            <span class="statebadge active">● Attiva</span>
+          </div>
+          <div class="lrow" style="margin-bottom:0"><span class="k">Asta in corso</span><button class="act go" style="padding:7px 14px;font-size:12px">Entra</button></div>
+        </div>
+
+        <div class="m-lcard">
+          <div class="lcard-top">
+            <div class="mono-crest" style="width:34px;height:34px;font-size:13px;background:linear-gradient(135deg,#38bdf8,#6366f1)">FC</div>
+            <div class="id"><div class="nm">Fantacontratti Test</div><div class="rl"><span class="role-tag dg">DG</span> 8/8 · 500 M</div></div>
+            <span class="statebadge active">● Attiva</span>
+          </div>
+          <div class="lrow" style="margin-bottom:0"><span class="k">Offerte pre-rinnovo</span><button class="act go" style="padding:7px 14px;font-size:12px">Entra</button></div>
+        </div>
+
+        <div class="m-lcard">
+          <div class="lcard-top">
+            <div class="mono-crest" style="width:34px;height:34px;font-size:13px;background:linear-gradient(135deg,#a78bfa,#7c3aed)">LF</div>
+            <div class="id"><div class="nm">Lega Finale</div><div class="rl"><span class="role-tag pres">PRESIDENTE</span> 2/8</div></div>
+            <span class="statebadge" style="background:rgba(167,139,250,.12);color:var(--violet);border:1px solid rgba(167,139,250,.28)">◌ Prep.</span>
+          </div>
+          <div class="lrow" style="margin-bottom:0"><span class="k">In attesa di avvio</span><button class="act admin" style="padding:7px 14px;font-size:12px">Admin</button></div>
+        </div>
+
+        <div class="m-lcard done">
+          <div class="lcard-top">
+            <div class="mono-crest" style="width:34px;height:34px;font-size:13px;background:linear-gradient(135deg,#64748b,#334155)">V2</div>
+            <div class="id"><div class="nm">Lega Veterani 2024</div><div class="rl"><span class="role-tag dg">DG</span> 10/10</div></div>
+            <span class="statebadge completed">✓ Fine</span>
+          </div>
+          <div class="lrow" style="margin-bottom:0"><span class="k">🏆 3° posto</span><button class="act ghost" style="padding:7px 14px;font-size:12px">Storico</button></div>
+        </div>
+
+      </div>
+
+    </div></div>
+  </div>
+
+</div>
+</body>
+</html>
