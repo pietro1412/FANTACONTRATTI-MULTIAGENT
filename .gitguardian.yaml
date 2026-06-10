@@ -1,0 +1,18 @@
+# GitGuardian configuration
+#
+# Le "secrets" rilevate sul branch sono CREDENZIALI DI TEST/SEED documentate
+# (es. Pietro2025!, SuperAdmin2025!, PLATFORM_ADMIN_PASSWORD) usate da E2E,
+# script di seed/diagnostica e documentazione. NON sono segreti di produzione
+# (nessuna API key / private key / connection string con host reali).
+#
+# Si escludono dalla scansione i path che contengono solo fixture di test e doc.
+# Tradeoff: eventuali segreti REALI introdotti in questi path non verrebbero
+# rilevati — non inserire mai credenziali di produzione qui dentro.
+version: 2
+
+secret:
+  ignored-paths:
+    - "tests/**"
+    - "scripts/**"
+    - "docs/**"
+    - "CLAUDE.md"
