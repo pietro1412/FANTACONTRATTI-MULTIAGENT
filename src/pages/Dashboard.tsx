@@ -14,6 +14,7 @@ interface League {
   id: string
   name: string
   status: string
+  maxParticipants?: number
   members: Array<{ id: string; role: string }>
 }
 
@@ -29,6 +30,16 @@ interface LeagueData {
   league: League
 }
 
+// Per-league signals from GET /api/leagues/dashboard-summary (see league.service.ts)
+interface LeagueSummary {
+  phase: { type: string; currentPhase: string | null } | null
+  tradeOffersReceived: number
+  isAdmin: boolean
+  pendingJoinRequests: number
+  pendingAppeals: number
+  needsConsolidation: boolean
+}
+
 function getTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
@@ -40,20 +51,363 @@ function getTimeAgo(dateStr: string): string {
   return `${days}g fa`
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: 'In preparazione',
-  ACTIVE: 'Attiva',
-  COMPLETED: 'Completata',
+// ---- Identità lega: monogramma + colore deterministico dal nome ----
+const IDENTITY_GRADIENTS = [
+  'from-primary-500 to-indigo-600',
+  'from-secondary-500 to-emerald-700',
+  'from-accent-500 to-amber-700',
+  'from-rose-500 to-red-700',
+  'from-violet-500 to-purple-700',
+  'from-cyan-500 to-blue-700',
+]
+
+function getIdentity(name: string): { initials: string; gradient: string } {
+  const words = name.trim().split(/\s+/).filter(Boolean)
+  const first = words[0] ?? ''
+  const second = words[1] ?? ''
+  const initials = (words.length >= 2 ? first.charAt(0) + second.charAt(0) : name.slice(0, 2)).toUpperCase()
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0
+  const gradient = IDENTITY_GRADIENTS[hash % IDENTITY_GRADIENTS.length] ?? 'from-primary-500 to-indigo-600'
+  return { initials, gradient }
 }
 
-const MEMBERSHIP_STATUS_LABELS: Record<string, string> = {
-  ACTIVE: 'Membro',
-  PENDING: 'In attesa di approvazione',
+const PHASE_LABELS: Record<string, string> = {
+  ASTA_LIBERA: 'Asta in corso',
+  OFFERTE_PRE_RINNOVO: 'Offerte pre-rinnovo',
+  PREMI: 'Fase premi',
+  CONTRATTI: 'Rinnovo contratti',
+  RUBATA: 'Rubata',
+  ASTA_SVINCOLATI: 'Asta svincolati',
+  OFFERTE_POST_ASTA_SVINCOLATI: 'Offerte post-svincolati',
+}
+
+function phaseLabel(summary?: LeagueSummary): string | null {
+  if (!summary?.phase?.currentPhase) return null
+  if (summary.phase.type === 'PRIMO_MERCATO' && summary.phase.currentPhase === 'ASTA_LIBERA') {
+    return 'Primo Mercato · Asta'
+  }
+  return PHASE_LABELS[summary.phase.currentPhase] || summary.phase.currentPhase
+}
+
+type ActionTone = 'info' | 'warn' | 'admin'
+
+interface DashAction {
+  key: string
+  chip: string
+  emoji: string
+  text: string
+  sub?: string
+  tone: ActionTone
+  ctaLabel: string
+  ctaVariant: 'primary' | 'accent'
+  go: () => void
+}
+
+const TONE_CHIP: Record<ActionTone, string> = {
+  info: 'bg-primary-500/15 text-primary-400 border border-primary-500/40',
+  warn: 'bg-accent-500/15 text-accent-400 border border-accent-500/40',
+  admin: 'bg-purple-500/15 text-purple-400 border border-purple-500/40',
+}
+
+function buildActions(
+  ld: LeagueData,
+  summary: LeagueSummary | undefined,
+  onNavigate: DashboardProps['onNavigate']
+): DashAction[] {
+  const out: DashAction[] = []
+  if (!summary) return out
+  const leagueId = ld.league.id
+
+  if (summary.tradeOffersReceived > 0) {
+    const n = summary.tradeOffersReceived
+    out.push({
+      key: 'trades',
+      chip: `📨 ${n}`,
+      emoji: '📨',
+      text: `${n} ${n === 1 ? 'offerta di scambio' : 'offerte di scambio'} da valutare`,
+      tone: 'info',
+      ctaLabel: 'Valuta offerte →',
+      ctaVariant: 'primary',
+      go: () => { onNavigate('trades', { leagueId }) },
+    })
+  }
+
+  if (summary.needsConsolidation) {
+    out.push({
+      key: 'consolidation',
+      chip: '📝 Consolida',
+      emoji: '📝',
+      text: 'Consolidamento contratti da completare',
+      sub: 'la fase contratti è aperta',
+      tone: 'warn',
+      ctaLabel: 'Vai ai contratti →',
+      ctaVariant: 'accent',
+      go: () => { onNavigate('contracts', { leagueId }) },
+    })
+  }
+
+  if (summary.isAdmin && summary.pendingJoinRequests > 0) {
+    const n = summary.pendingJoinRequests
+    out.push({
+      key: 'requests',
+      chip: `🙋 ${n}`,
+      emoji: '🙋',
+      text: `${n} ${n === 1 ? 'richiesta di adesione' : 'richieste di adesione'} da approvare`,
+      tone: 'admin',
+      ctaLabel: 'Pannello Admin',
+      ctaVariant: 'accent',
+      go: () => { onNavigate('adminPanel', { leagueId, tab: 'members' }) },
+    })
+  }
+
+  if (summary.isAdmin && summary.pendingAppeals > 0) {
+    const n = summary.pendingAppeals
+    out.push({
+      key: 'appeals',
+      chip: `⚖ ${n}`,
+      emoji: '⚖️',
+      text: `${n} ${n === 1 ? 'ricorso' : 'ricorsi'} da gestire`,
+      tone: 'admin',
+      ctaLabel: 'Gestisci ricorsi',
+      ctaVariant: 'accent',
+      go: () => { onNavigate('adminPanel', { leagueId, tab: 'appeals' }) },
+    })
+  }
+
+  return out
+}
+
+function RoleTag({ role }: { role: string }) {
+  return role === 'ADMIN' ? (
+    <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-400 border border-purple-500/30">
+      Presidente
+    </span>
+  ) : (
+    <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary-500/15 text-primary-400 border border-primary-500/30">
+      DG
+    </span>
+  )
+}
+
+function Crest({ identity, size = 'md' }: { identity: { initials: string; gradient: string }; size?: 'sm' | 'md' }) {
+  const dim = size === 'sm' ? 'w-9 h-9 text-xs' : 'w-11 h-11 text-sm'
+  return (
+    <div className={`${dim} rounded-xl bg-gradient-to-br ${identity.gradient} flex items-center justify-center font-bold text-white flex-shrink-0 shadow-lg`}>
+      {identity.initials}
+    </div>
+  )
+}
+
+// ---- Attention card (rotaia "Richiede la tua attenzione") ----
+function AttentionCard({
+  ld,
+  summary,
+  actions,
+}: {
+  ld: LeagueData
+  summary?: LeagueSummary
+  actions: DashAction[]
+}) {
+  const { league, membership } = ld
+  const identity = getIdentity(league.name)
+  const primary = actions[0]
+  const ph = phaseLabel(summary)
+  const phaseText = ph ?? (league.status === 'DRAFT' ? 'In preparazione · in attesa di avvio' : '—')
+
+  return (
+    <div className="relative bg-surface-200 rounded-2xl border border-surface-50/30 p-4 overflow-hidden flex flex-col shadow-lg">
+      <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${identity.gradient}`} aria-hidden="true" />
+
+      <div className="flex items-center gap-3 mb-3">
+        <Crest identity={identity} />
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-white leading-tight truncate">{league.name}</p>
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-400 mt-1">
+            <RoleTag role={membership.role} />
+            {league.members.length}{league.maxParticipants ? `/${league.maxParticipants}` : ''} manager
+          </span>
+        </div>
+        {primary && (
+          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${TONE_CHIP[primary.tone]}`}>
+            {primary.chip}
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
+        <span aria-hidden="true">📍</span>
+        <span className="font-medium text-gray-200">{phaseText}</span>
+      </div>
+
+      {primary && (
+        <div className="bg-surface-300 border border-surface-50/20 rounded-xl p-3 flex items-start gap-2.5 mb-3">
+          <span className="text-lg leading-none flex-shrink-0" aria-hidden="true">{primary.emoji}</span>
+          <span className="text-[13px] font-semibold text-white leading-snug">
+            {primary.text}
+            {actions.length > 1 && (
+              <span className="block text-[11px] font-normal text-gray-400 mt-0.5">
+                e altre {actions.length - 1} azioni in sospeso
+              </span>
+            )}
+            {primary.sub && actions.length === 1 && (
+              <span className="block text-[11px] font-normal text-gray-500 mt-0.5">{primary.sub}</span>
+            )}
+          </span>
+        </div>
+      )}
+
+      <div className="mt-auto flex items-center gap-3">
+        {league.status === 'ACTIVE' && (
+          <div className="flex-1 min-w-0">
+            <p className="text-[9px] text-gray-500 uppercase tracking-wide">Budget</p>
+            <p className="text-base font-bold font-mono text-accent-400 leading-tight">{membership.currentBudget}M</p>
+          </div>
+        )}
+        {primary && (
+          <Button
+            variant={primary.ctaVariant}
+            size="sm"
+            className={league.status === 'ACTIVE' ? '' : 'flex-1'}
+            onClick={() => { primary.go() }}
+          >
+            {primary.ctaLabel}
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ---- Calm card (griglia "Tutte le mie leghe") ----
+function LeagueCard({
+  ld,
+  summary,
+  onNavigate,
+  onCancel,
+  cancelling,
+}: {
+  ld: LeagueData
+  summary?: LeagueSummary
+  onNavigate: DashboardProps['onNavigate']
+  onCancel: (e: React.MouseEvent, leagueId: string) => void
+  cancelling: boolean
+}) {
+  const { league, membership } = ld
+  const identity = getIdentity(league.name)
+  const isPending = membership.status === 'PENDING'
+  const isAdmin = membership.role === 'ADMIN'
+  const ph = phaseLabel(summary)
+
+  const stateBadge = isPending ? (
+    <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">⏳ In attesa</span>
+  ) : league.status === 'ACTIVE' ? (
+    <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-secondary-500/15 text-secondary-400 border border-secondary-500/30">● Attiva</span>
+  ) : league.status === 'DRAFT' ? (
+    <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-violet-500/15 text-violet-400 border border-violet-500/30">◌ In preparazione</span>
+  ) : (
+    <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded bg-surface-50/20 text-gray-400 border border-surface-50/30">✓ Completata</span>
+  )
+
+  const clickable = !isPending && league.status !== 'COMPLETED'
+
+  return (
+    <div
+      className={`bg-surface-200 rounded-2xl border p-4 flex flex-col transition-all ${
+        isPending ? 'border-amber-500/30' : 'border-surface-50/20'
+      } ${league.status === 'COMPLETED' ? 'opacity-75' : ''} ${
+        clickable ? 'hover:border-primary-500/40 hover:shadow-glow cursor-pointer group' : ''
+      }`}
+      onClick={() => { if (clickable) onNavigate('leagueDetail', { leagueId: league.id }) }}
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <Crest identity={identity} size="sm" />
+        <div className="flex-1 min-w-0">
+          <p className={`font-bold leading-tight truncate ${isPending ? 'text-amber-200' : 'text-white group-hover:text-primary-400 transition-colors'}`}>
+            {league.name}
+          </p>
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-400 mt-1">
+            <RoleTag role={membership.role} />
+            {league.members.length}{league.maxParticipants ? `/${league.maxParticipants}` : ''}
+          </span>
+        </div>
+        {stateBadge}
+      </div>
+
+      {/* Body coerente con lo stato */}
+      {isPending ? (
+        <div className="text-sm text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 mb-3">
+          Richiesta di adesione in attesa di approvazione
+        </div>
+      ) : league.status === 'ACTIVE' ? (
+        <>
+          <div className="flex items-center justify-between text-xs mb-3">
+            <span className="text-gray-500">Fase</span>
+            <span className="font-medium text-gray-200">{ph ?? '—'}</span>
+          </div>
+          <div className="flex items-center justify-between text-xs mb-3">
+            <span className="text-gray-500">Budget</span>
+            <span className="font-mono font-bold text-accent-400">{membership.currentBudget}M</span>
+          </div>
+        </>
+      ) : league.status === 'DRAFT' ? (
+        <>
+          <div className="flex items-center justify-between text-xs mb-3">
+            <span className="text-gray-500">Membri</span>
+            <span className="font-mono font-medium text-gray-200">
+              {league.members.length}{league.maxParticipants ? ` / ${league.maxParticipants}` : ''}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-xs mb-3">
+            <span className="text-gray-500">Stato</span>
+            <span className="font-medium text-gray-200">In attesa di avvio</span>
+          </div>
+        </>
+      ) : (
+        <div className="text-sm text-gray-400 bg-surface-300 border border-surface-50/20 rounded-lg px-3 py-2 mb-3">
+          Stagione conclusa
+        </div>
+      )}
+
+      {/* Footer azioni coerenti con lo stato */}
+      <div className="mt-auto flex gap-2" onClick={(e) => { e.stopPropagation() }}>
+        {isPending ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+            onClick={(e) => { onCancel(e, league.id) }}
+            disabled={cancelling}
+          >
+            {cancelling ? 'Annullando...' : '✕ Annulla Richiesta'}
+          </Button>
+        ) : league.status === 'COMPLETED' ? (
+          <Button variant="ghost" size="sm" className="w-full" onClick={() => { onNavigate('history', { leagueId: league.id }) }}>
+            📊 Storico
+          </Button>
+        ) : league.status === 'DRAFT' && isAdmin ? (
+          <>
+            <Button variant="accent" size="sm" className="flex-1" onClick={() => { onNavigate('adminPanel', { leagueId: league.id }) }}>
+              Pannello Admin
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => { onNavigate('adminPanel', { leagueId: league.id, tab: 'members' }) }}>
+              Invita
+            </Button>
+          </>
+        ) : (
+          <Button variant="outline" size="sm" className="w-full" onClick={() => { onNavigate('leagueDetail', { leagueId: league.id }) }}>
+            Entra nella Lega →
+          </Button>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export function Dashboard({ onNavigate }: DashboardProps) {
   const { confirm: confirmDialog } = useConfirmDialog()
   const [leagues, setLeagues] = useState<LeagueData[]>([])
+  const [summaries, setSummaries] = useState<Record<string, LeagueSummary>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [showSearchModal, setShowSearchModal] = useState(false)
@@ -126,7 +480,17 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
   async function loadLeagues() {
     try {
-      const response = await leagueApi.getAll()
+      // Leagues + per-league attention signals in parallel (summary failure is non-blocking)
+      const [response, summaryRes] = await Promise.all([
+        leagueApi.getAll(),
+        leagueApi.getDashboardSummary(),
+      ])
+
+      if (summaryRes.success && summaryRes.data) {
+        const data = summaryRes.data as { summaries?: Record<string, LeagueSummary> }
+        setSummaries(data.summaries || {})
+      }
+
       if (response.success && response.data) {
         const leagueData = response.data as LeagueData[]
         setLeagues(leagueData)
@@ -165,6 +529,19 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     setIsLoading(false)
   }
 
+  // Derive attention leagues (membership ACTIVE with at least one pending action) vs the calm full list
+  const attention = leagues
+    .filter(ld => ld.membership.status === 'ACTIVE')
+    .map(ld => ({ ld, actions: buildActions(ld, summaries[ld.league.id], onNavigate) }))
+    .filter(item => item.actions.length > 0)
+
+  const CALM_RANK: Record<string, number> = { ACTIVE: 0, DRAFT: 1, COMPLETED: 3 }
+  const calm = [...leagues].sort((a, b) => {
+    const ra = a.membership.status === 'PENDING' ? 2 : (CALM_RANK[a.league.status] ?? 4)
+    const rb = b.membership.status === 'PENDING' ? 2 : (CALM_RANK[b.league.status] ?? 4)
+    return ra - rb
+  })
+
   return (
     <div className="min-h-screen">
       <Navigation currentPage="dashboard" onNavigate={onNavigate} />
@@ -175,7 +552,11 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           <div>
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1">Le mie Leghe</h2>
             <p className="text-gray-400">
-              {isSuperAdmin ? 'Sei un superadmin - usa il pannello di controllo per gestire la piattaforma' : 'Gestisci le tue leghe fantasy'}
+              {isSuperAdmin
+                ? 'Sei un superadmin - usa il pannello di controllo per gestire la piattaforma'
+                : attention.length > 0
+                  ? <>Hai <b className="text-danger-400">{attention.length} {attention.length === 1 ? 'lega che richiede' : 'leghe che richiedono'} la tua attenzione</b> · {leagues.length} totali</>
+                  : 'Gestisci le tue leghe fantasy'}
             </p>
           </div>
           {!isSuperAdmin && (
@@ -271,158 +652,48 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             )}
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {leagues.map(({ membership, league }) => {
-              const isPending = membership.status === 'PENDING'
-
-              return (
-                <div
-                  key={league.id}
-                  className={`bg-surface-200 rounded-xl border overflow-hidden transition-all duration-300 ${
-                    isPending
-                      ? 'border-amber-500/40 bg-gradient-to-b from-amber-500/5 to-transparent'
-                      : 'border-surface-50/20'
-                  } ${
-                    isSuperAdmin
-                      ? 'opacity-75'
-                      : isPending
-                        ? ''
-                        : 'hover:border-primary-500/40 hover:shadow-glow cursor-pointer group'
-                  }`}
-                  onClick={() => { if (!isSuperAdmin && !isPending) onNavigate('leagueDetail', { leagueId: league.id }); }}
-                >
-                  {/* Pending Banner (#49) */}
-                  {isPending && (
-                    <div className="bg-amber-500/20 border-b border-amber-500/30 px-4 py-2 flex items-center gap-2">
-                      <span className="text-amber-400 animate-pulse">⏳</span>
-                      <span className="text-amber-400 text-sm font-medium">
-                        {MEMBERSHIP_STATUS_LABELS.PENDING}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Card Header */}
-                  <div className="bg-gradient-to-r from-surface-300 to-surface-200 p-5 border-b border-surface-50/20">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center shadow-lg ${
-                          isPending
-                            ? 'bg-gradient-to-br from-amber-500 to-amber-700'
-                            : 'bg-gradient-to-br from-primary-500 to-primary-700'
-                        }`}>
-                          <span className="text-xl">{isPending ? '⏳' : '🏟️'}</span>
-                        </div>
-                        <div>
-                          <h3 className={`text-xl font-bold transition-colors ${
-                            isPending ? 'text-amber-200' : 'text-white group-hover:text-primary-400'
-                          }`}>
-                            {league.name}
-                          </h3>
-                          <p className="text-sm text-gray-400">{league.members.length} DG</p>
-                        </div>
-                      </div>
-                      {!isPending && (
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            membership.role === 'ADMIN'
-                              ? 'bg-accent-500/20 text-accent-400 border border-accent-500/40'
-                              : 'bg-surface-50/20 text-gray-400 border border-surface-50/30'
-                          }`}
-                        >
-                          {membership.role === 'ADMIN' ? 'Presidente' : 'DG'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Card Body */}
-                  <div className="p-5">
-                    <div className="grid grid-cols-2 gap-4 mb-5">
-                      <div className="bg-surface-300 rounded-lg p-4 text-center">
-                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Stato Lega</p>
-                        <p className={`text-base font-bold ${
-                          league.status === 'ACTIVE' ? 'text-secondary-400' :
-                          league.status === 'DRAFT' ? 'text-accent-400' : 'text-gray-400'
-                        }`}>
-                          {STATUS_LABELS[league.status] || league.status}
-                        </p>
-                      </div>
-                      <div className="bg-surface-300 rounded-lg p-4 text-center">
-                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
-                          {isPending ? 'Stato' : 'Budget'}
-                        </p>
-                        {isPending ? (
-                          <p className="text-base font-bold text-amber-400">In attesa</p>
-                        ) : (
-                          <div>
-                            <p className={`text-base font-bold ${
-                              membership.currentBudget > 200 ? 'text-secondary-400' :
-                              membership.currentBudget > 50 ? 'text-accent-400' : 'text-danger-400'
-                            }`}>
-                              {membership.currentBudget}M
-                            </p>
-                            {/* T-011: Budget progress bar */}
-                            <div className="mt-2 h-1.5 bg-surface-400 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all ${
-                                  membership.currentBudget > 200 ? 'bg-secondary-400' :
-                                  membership.currentBudget > 50 ? 'bg-accent-400' : 'bg-danger-400'
-                                }`}
-                                style={{ width: `${Math.min(100, Math.max(5, (membership.currentBudget / 500) * 100))}%` }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* T-010: Quick action buttons */}
-                    {!isPending && !isSuperAdmin && league.status === 'ACTIVE' && (
-                      <div className="flex gap-2 mb-4">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onNavigate('rose', { leagueId: league.id }) }}
-                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-surface-300 hover:bg-surface-100 text-gray-300 hover:text-white text-xs font-medium transition-colors border border-surface-50/20"
-                        >
-                          <span>📋</span> Rosa
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onNavigate('contracts', { leagueId: league.id }) }}
-                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-surface-300 hover:bg-surface-100 text-gray-300 hover:text-white text-xs font-medium transition-colors border border-surface-50/20"
-                        >
-                          <span>📝</span> Contratti
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onNavigate('financials', { leagueId: league.id }) }}
-                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-surface-300 hover:bg-surface-100 text-gray-300 hover:text-white text-xs font-medium transition-colors border border-surface-50/20"
-                        >
-                          <span>💰</span> Finanze
-                        </button>
-                      </div>
-                    )}
-
-                    {isSuperAdmin ? (
-                      <p className="text-center text-gray-500 text-sm">
-                        I superadmin non possono partecipare alle leghe
-                      </p>
-                    ) : isPending ? (
-                      <Button
-                        variant="outline"
-                        className="w-full border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
-                        onClick={(e) => { void handleCancelRequest(e, league.id) }}
-                        disabled={cancellingLeagueId === league.id}
-                      >
-                        {cancellingLeagueId === league.id ? 'Annullando...' : '✕ Annulla Richiesta'}
-                      </Button>
-                    ) : (
-                      <Button variant="outline" className="w-full">
-                        Entra nella Lega →
-                      </Button>
-                    )}
-                  </div>
+          <>
+            {/* ===== Richiede la tua attenzione ===== */}
+            {attention.length > 0 && (
+              <section className="mb-10">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="w-7 h-7 rounded-lg bg-danger-500/15 text-danger-400 border border-danger-500/30 flex items-center justify-center">⚡</span>
+                  <h3 className="text-lg font-bold text-white">Richiede la tua attenzione</h3>
+                  <span className="ml-auto text-xs font-mono text-gray-400 bg-surface-200 border border-surface-50/20 rounded-full px-3 py-1">
+                    {attention.length} {attention.length === 1 ? 'lega' : 'leghe'}
+                  </span>
                 </div>
-              )
-            })}
-          </div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {attention.map(({ ld, actions }) => (
+                    <AttentionCard key={ld.league.id} ld={ld} summary={summaries[ld.league.id]} actions={actions} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* ===== Tutte le mie leghe ===== */}
+            <section>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-7 h-7 rounded-lg bg-surface-300 text-gray-400 border border-surface-50/20 flex items-center justify-center">📚</span>
+                <h3 className="text-lg font-bold text-white">Tutte le mie leghe</h3>
+                <span className="ml-auto text-xs font-mono text-gray-400 bg-surface-200 border border-surface-50/20 rounded-full px-3 py-1">
+                  {leagues.length} {leagues.length === 1 ? 'lega' : 'leghe'}
+                </span>
+              </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {calm.map(ld => (
+                  <LeagueCard
+                    key={ld.league.id}
+                    ld={ld}
+                    summary={summaries[ld.league.id]}
+                    onNavigate={onNavigate}
+                    onCancel={(e, id) => { void handleCancelRequest(e, id) }}
+                    cancelling={cancellingLeagueId === ld.league.id}
+                  />
+                ))}
+              </div>
+            </section>
+          </>
         )}
 
         {/* T-022: Activity Feed */}

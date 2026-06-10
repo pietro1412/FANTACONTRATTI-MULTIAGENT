@@ -57,10 +57,12 @@ const mockGetAll = vi.fn()
 const mockGetStatus = vi.fn()
 const mockGetLeagueMovements = vi.fn()
 const mockCancelRequest = vi.fn()
+const mockGetDashboardSummary = vi.fn()
 
 vi.mock('../services/api', () => ({
   leagueApi: {
     getAll: (...args: unknown[]) => mockGetAll(...args),
+    getDashboardSummary: (...args: unknown[]) => mockGetDashboardSummary(...args),
     cancelRequest: (...args: unknown[]) => mockCancelRequest(...args),
     getPendingRequests: vi.fn().mockResolvedValue({ success: true, data: [] }),
   },
@@ -97,6 +99,7 @@ describe('Dashboard', () => {
     vi.clearAllMocks()
     mockGetStatus.mockResolvedValue({ success: true, data: { isSuperAdmin: false } })
     mockGetAll.mockResolvedValue({ success: true, data: sampleLeagues })
+    mockGetDashboardSummary.mockResolvedValue({ success: true, data: { summaries: {} } })
     mockGetLeagueMovements.mockResolvedValue({ success: true, data: { movements: [] } })
   })
 
@@ -197,8 +200,37 @@ describe('Dashboard', () => {
     render(<Dashboard onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('In attesa di approvazione')).toBeInTheDocument()
+      expect(screen.getByText(/in attesa di approvazione/i)).toBeInTheDocument()
     })
+  })
+
+  it('surfaces a league with trade offers in the attention section', async () => {
+    mockGetDashboardSummary.mockResolvedValue({
+      success: true,
+      data: {
+        summaries: {
+          l1: {
+            phase: { type: 'MERCATO_RICORRENTE', currentPhase: 'OFFERTE_PRE_RINNOVO' },
+            tradeOffersReceived: 2,
+            isAdmin: true,
+            pendingJoinRequests: 0,
+            pendingAppeals: 0,
+            needsConsolidation: false,
+          },
+        },
+      },
+    })
+
+    render(<Dashboard onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Richiede la tua attenzione')).toBeInTheDocument()
+    })
+
+    // Primary CTA for the trade-offers signal
+    const cta = screen.getByText('Valuta offerte →')
+    await userEvent.click(cta)
+    expect(mockOnNavigate).toHaveBeenCalledWith('trades', { leagueId: 'l1' })
   })
 
   it('opens search modal when "Cerca Leghe" button is clicked', async () => {
