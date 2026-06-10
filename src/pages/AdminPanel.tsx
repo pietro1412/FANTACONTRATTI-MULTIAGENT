@@ -13,6 +13,7 @@ import type { League, Member, MarketSession, Invite, ConsolidationStatus, Appeal
 const AdminPhasesTab = lazy(() => import('../components/admin/AdminPhasesTab').then(m => ({ default: m.AdminPhasesTab })))
 const AdminMembersTab = lazy(() => import('../components/admin/AdminMembersTab').then(m => ({ default: m.AdminMembersTab })))
 const AdminRequestsTab = lazy(() => import('../components/admin/AdminRequestsTab').then(m => ({ default: m.AdminRequestsTab })))
+const AdminAppealsTab = lazy(() => import('../components/admin/AdminAppealsTab').then(m => ({ default: m.AdminAppealsTab })))
 const AdminExportTab = lazy(() => import('../components/admin/AdminExportTab').then(m => ({ default: m.AdminExportTab })))
 
 interface AdminPanelProps {
@@ -24,7 +25,7 @@ interface AdminPanelProps {
 const TABS = [
   { id: 'phases', label: 'Fasi & Stato', icon: '🎯' },
   { id: 'members', label: 'Gestione Membri', icon: '👥' },
-  { id: 'requests', label: 'Richieste', icon: '📨' },
+  { id: 'appeals', label: 'Ricorsi', icon: '⚖️' },
   { id: 'export', label: 'Export Dati', icon: '📤' },
 ] as const
 
@@ -52,15 +53,16 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       case 'overview':
       case 'sessions':
         return 'phases'
+      // Gestione Membri ora include le richieste di adesione e gli inviti
       case 'members':
-      case 'appeals':
-        return 'members'
+      case 'requests':
       case 'invites':
-        return 'requests'
+        return 'members'
+      case 'appeals':
+        return 'appeals'
       case 'export':
         return 'export'
       case 'phases':
-      case 'requests':
         return tab
       default:
         return 'phases'
@@ -118,7 +120,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   }, [leagueId])
 
   useEffect(() => {
-    if (activeTab === 'members') {
+    if (activeTab === 'appeals') {
       void loadAppeals()
     }
   }, [activeTab, leagueId, appealFilter])
@@ -469,7 +471,9 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   const activeSession = sessions.find(s => s.status === 'ACTIVE')
   const pendingMembers = members.filter(m => m.status === 'PENDING')
   const activeMembers = members.filter(m => m.status === 'ACTIVE')
+  // Badge "Gestione Membri": richieste di adesione pendenti + inviti in attesa
   const requestsBadge = pendingMembers.length + invites.length
+  const pendingAppealsBadge = appeals.filter(a => a.status === 'PENDING').length
 
   return (
     <div className="min-h-screen">
@@ -519,9 +523,14 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
               <span>{tab.icon}</span>
               <span>{tab.label}</span>
               {tab.id === 'members' && <span className="bg-surface-300 px-1.5 py-0.5 rounded-full text-xs">{activeMembers.length}</span>}
-              {tab.id === 'requests' && requestsBadge > 0 && (
+              {tab.id === 'members' && requestsBadge > 0 && (
                 <span className="bg-accent-500/20 text-accent-400 px-1.5 py-0.5 rounded-full text-xs font-bold border border-accent-500/40">
                   {requestsBadge}
+                </span>
+              )}
+              {tab.id === 'appeals' && pendingAppealsBadge > 0 && (
+                <span className="bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full text-xs font-bold border border-amber-500/40">
+                  {pendingAppealsBadge}
                 </span>
               )}
             </button>
@@ -551,11 +560,31 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
             )}
 
             {activeTab === 'members' && (
-              <AdminMembersTab
-                activeMembers={activeMembers}
+              <div className="space-y-6">
+                <AdminMembersTab
+                  activeMembers={activeMembers}
+                  isSubmitting={isSubmitting}
+                  confirmKick={(memberId, username) => void confirmKick(memberId, username)}
+                  handleCompleteWithTestUsers={() => void handleCompleteWithTestUsers()}
+                />
+                <AdminRequestsTab
+                  pendingMembers={pendingMembers}
+                  invites={invites}
+                  newInviteEmail={newInviteEmail}
+                  setNewInviteEmail={setNewInviteEmail}
+                  inviteDuration={inviteDuration}
+                  setInviteDuration={setInviteDuration}
+                  isSubmitting={isSubmitting}
+                  handleMemberAction={(memberId, action) => void handleMemberAction(memberId, action)}
+                  handleCreateInvite={() => void handleCreateInvite()}
+                  handleCancelInvite={(inviteId) => void handleCancelInvite(inviteId)}
+                />
+              </div>
+            )}
+
+            {activeTab === 'appeals' && (
+              <AdminAppealsTab
                 isSubmitting={isSubmitting}
-                confirmKick={(memberId, username) => void confirmKick(memberId, username)}
-                handleCompleteWithTestUsers={() => void handleCompleteWithTestUsers()}
                 appeals={appeals}
                 isLoadingAppeals={isLoadingAppeals}
                 appealFilter={appealFilter}
@@ -566,21 +595,6 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                 setSelectedAppealId={setSelectedAppealId}
                 handleResolveAppeal={(appealId, decision) => void handleResolveAppeal(appealId, decision)}
                 handleSimulateAppeal={() => void handleSimulateAppeal()}
-              />
-            )}
-
-            {activeTab === 'requests' && (
-              <AdminRequestsTab
-                pendingMembers={pendingMembers}
-                invites={invites}
-                newInviteEmail={newInviteEmail}
-                setNewInviteEmail={setNewInviteEmail}
-                inviteDuration={inviteDuration}
-                setInviteDuration={setInviteDuration}
-                isSubmitting={isSubmitting}
-                handleMemberAction={(memberId, action) => void handleMemberAction(memberId, action)}
-                handleCreateInvite={() => void handleCreateInvite()}
-                handleCancelInvite={(inviteId) => void handleCancelInvite(inviteId)}
               />
             )}
 

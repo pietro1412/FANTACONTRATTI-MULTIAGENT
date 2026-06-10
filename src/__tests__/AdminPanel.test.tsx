@@ -69,6 +69,7 @@ vi.mock('../hooks/useSwipeGesture', () => ({
 let capturedPhasesProps: Record<string, unknown> = {}
 let capturedMembersProps: Record<string, unknown> = {}
 let capturedRequestsProps: Record<string, unknown> = {}
+let capturedAppealsProps: Record<string, unknown> = {}
 let capturedExportProps: Record<string, unknown> = {}
 
 // Mock lazy-loaded tab components
@@ -94,6 +95,14 @@ vi.mock('../components/admin/AdminRequestsTab', () => ({
     const pendingMembers = props.pendingMembers as Array<{ id: string }>
     const invites = props.invites as Array<{ id: string }>
     return <div data-testid="requests-tab">Requests Tab - {pendingMembers.length} pending, {invites.length} invites</div>
+  },
+}))
+
+vi.mock('../components/admin/AdminAppealsTab', () => ({
+  AdminAppealsTab: (props: Record<string, unknown>) => {
+    capturedAppealsProps = props
+    const appeals = props.appeals as Array<{ id: string }>
+    return <div data-testid="appeals-tab">Appeals Tab - {appeals.length} appeals</div>
   },
 }))
 
@@ -192,6 +201,7 @@ describe('AdminPanel', () => {
     capturedPhasesProps = {}
     capturedMembersProps = {}
     capturedRequestsProps = {}
+    capturedAppealsProps = {}
     capturedExportProps = {}
 
     mockGetById.mockResolvedValue({
@@ -276,7 +286,7 @@ describe('AdminPanel', () => {
     })
 
     expect(screen.getByText('Gestione Membri')).toBeInTheDocument()
-    expect(screen.getByText('Richieste')).toBeInTheDocument()
+    expect(screen.getByText('Ricorsi')).toBeInTheDocument()
     expect(screen.getByText('Export Dati')).toBeInTheDocument()
   })
 
@@ -306,19 +316,37 @@ describe('AdminPanel', () => {
     })
   })
 
-  it('switches to requests tab when clicked', async () => {
+  it('shows requests (pending members + invites) inside the members tab', async () => {
     const user = userEvent.setup()
 
     render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Richieste')).toBeInTheDocument()
+      expect(screen.getByText('Gestione Membri')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByText('Richieste'))
+    await user.click(screen.getByText('Gestione Membri'))
+
+    // Both members and requests sections render together in the merged tab
+    await waitFor(() => {
+      expect(screen.getByTestId('members-tab')).toBeInTheDocument()
+      expect(screen.getByTestId('requests-tab')).toBeInTheDocument()
+    })
+  })
+
+  it('switches to appeals tab when clicked', async () => {
+    const user = userEvent.setup()
+
+    render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByTestId('requests-tab')).toBeInTheDocument()
+      expect(screen.getByText('Ricorsi')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText('Ricorsi'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('appeals-tab')).toBeInTheDocument()
     })
   })
 
@@ -354,17 +382,19 @@ describe('AdminPanel', () => {
     expect(badge!.textContent).toBe('2')
   })
 
-  it('shows requests badge when there are pending members and invites', async () => {
+  it('shows requests badge on the members tab when there are pending members and invites', async () => {
     render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      // 1 pending member + 1 pending invite = badge of 2
       expect(screen.getByText('Pannello Amministratore')).toBeInTheDocument()
     })
 
-    // The requests badge shows requestsBadge = pendingMembers.length + invites.length = 1 + 1 = 2
-    // But '2' is already the members count. Let's just verify the tab exists.
-    expect(screen.getByText('Richieste')).toBeInTheDocument()
+    // requestsBadge = pendingMembers.length + invites.length = 1 + 1 = 2, shown as accent badge on the members tab
+    const membersTabButton = screen.getByText('Gestione Membri').closest('button')
+    expect(membersTabButton).toBeTruthy()
+    const accentBadge = membersTabButton!.querySelector('span.bg-accent-500\\/20')
+    expect(accentBadge).toBeTruthy()
+    expect(accentBadge!.textContent).toBe('2')
   })
 
   it('maps old tab IDs to new ones — "market" maps to "phases"', async () => {
@@ -375,10 +405,20 @@ describe('AdminPanel', () => {
     })
   })
 
-  it('maps old tab ID "invites" to "requests"', async () => {
+  it('maps old tab ID "invites" to "members" (merged tab)', async () => {
     render(<AdminPanel leagueId="league1" initialTab="invites" onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
+      expect(screen.getByTestId('requests-tab')).toBeInTheDocument()
+      expect(screen.getByTestId('members-tab')).toBeInTheDocument()
+    })
+  })
+
+  it('maps old tab ID "requests" to "members" (merged tab)', async () => {
+    render(<AdminPanel leagueId="league1" initialTab="requests" onNavigate={mockOnNavigate} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('members-tab')).toBeInTheDocument()
       expect(screen.getByTestId('requests-tab')).toBeInTheDocument()
     })
   })
@@ -431,12 +471,11 @@ describe('AdminPanel', () => {
     })
   })
 
-  it('maps old tab ID "appeals" to "members"', async () => {
+  it('maps tab ID "appeals" to the dedicated appeals tab', async () => {
     render(<AdminPanel leagueId="league1" initialTab="appeals" onNavigate={mockOnNavigate} />)
 
-    // "appeals" maps to "members" tab
     await waitFor(() => {
-      expect(screen.getByTestId('members-tab')).toBeInTheDocument()
+      expect(screen.getByTestId('appeals-tab')).toBeInTheDocument()
     })
   })
 
@@ -481,7 +520,6 @@ describe('AdminPanel', () => {
     // Only ACTIVE members (m1 and m2), not PENDING (m3)
     expect(activeMembers).toHaveLength(2)
     expect(capturedMembersProps.isSubmitting).toBe(false)
-    expect(capturedMembersProps.appeals).toEqual([])
   })
 
   it('passes correct pending members and invites to AdminRequestsTab', async () => {
@@ -489,10 +527,10 @@ describe('AdminPanel', () => {
     render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Richieste')).toBeInTheDocument()
+      expect(screen.getByText('Gestione Membri')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByText('Richieste'))
+    await user.click(screen.getByText('Gestione Membri'))
 
     await waitFor(() => {
       expect(screen.getByTestId('requests-tab')).toBeInTheDocument()
@@ -504,15 +542,15 @@ describe('AdminPanel', () => {
     expect(invites).toHaveLength(1) // sampleInvites has 1
   })
 
-  it('loads appeals when switching to members tab', async () => {
+  it('loads appeals when switching to appeals tab', async () => {
     const user = userEvent.setup()
     render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Gestione Membri')).toBeInTheDocument()
+      expect(screen.getByText('Ricorsi')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByText('Gestione Membri'))
+    await user.click(screen.getByText('Ricorsi'))
 
     await waitFor(() => {
       expect(mockGetAppeals).toHaveBeenCalledWith('league1', undefined)
@@ -661,21 +699,21 @@ describe('AdminPanel', () => {
     })
   })
 
-  it('handles handleSimulateAppeal from members tab', async () => {
+  it('handles handleSimulateAppeal from appeals tab', async () => {
     const user = userEvent.setup()
     render(<AdminPanel leagueId="league1" onNavigate={mockOnNavigate} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Gestione Membri')).toBeInTheDocument()
+      expect(screen.getByText('Ricorsi')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByText('Gestione Membri'))
+    await user.click(screen.getByText('Ricorsi'))
 
     await waitFor(() => {
-      expect(screen.getByTestId('members-tab')).toBeInTheDocument()
+      expect(screen.getByTestId('appeals-tab')).toBeInTheDocument()
     })
 
-    const handleSimulateAppeal = capturedMembersProps.handleSimulateAppeal as () => void
+    const handleSimulateAppeal = capturedAppealsProps.handleSimulateAppeal as () => void
     handleSimulateAppeal()
 
     await waitFor(() => {
@@ -782,10 +820,10 @@ describe('AdminPanel', () => {
       expect(screen.getByText('Pannello Amministratore')).toBeInTheDocument()
     })
 
-    // Requests tab button should not have an accent badge since requestsBadge = 0
-    const requestsTabButton = screen.getByText('Richieste').closest('button')
-    expect(requestsTabButton).toBeTruthy()
-    const accentBadge = requestsTabButton!.querySelector('span.bg-accent-500\\/20')
+    // Members tab button should not have an accent (requests) badge since requestsBadge = 0
+    const membersTabButton = screen.getByText('Gestione Membri').closest('button')
+    expect(membersTabButton).toBeTruthy()
+    const accentBadge = membersTabButton!.querySelector('span.bg-accent-500\\/20')
     expect(accentBadge).toBeNull()
   })
 
