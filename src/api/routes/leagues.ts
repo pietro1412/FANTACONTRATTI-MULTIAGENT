@@ -14,6 +14,7 @@ import {
   updateLeague,
   updateLeagueImage,
   removeLeagueImage,
+  getLeagueIdentity,
   startLeague,
   leaveLeague,
   cancelJoinRequest,
@@ -201,6 +202,22 @@ router.delete('/:id/image', authMiddleware, async (req: Request, res: Response) 
     res.json(result)
   } catch (error) {
     console.error('Remove league image error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:id/identity - Lightweight league identity (name + image) for the header
+router.get('/:id/identity', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const result = await getLeagueIdentity(id, req.user!.userId)
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 404).json(result)
+      return
+    }
+    res.json(result)
+  } catch (error) {
+    console.error('Get league identity error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

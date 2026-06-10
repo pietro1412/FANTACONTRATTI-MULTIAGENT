@@ -191,6 +191,7 @@ export const leagueApi = {
     forwardSlots?: number
     requireEvenNumber?: boolean
     isPublic?: boolean
+    imageUrl?: string
   }) => request('/api/leagues', { method: 'POST', body: JSON.stringify(data) }),
 
   getAll: () => request('/api/leagues'),
@@ -211,6 +212,10 @@ export const leagueApi = {
 
   removeImage: (id: string) =>
     request(`/api/leagues/${id}/image`, { method: 'DELETE' }),
+
+  // Lightweight league identity (name + image) for the navigation header
+  getIdentity: (id: string) =>
+    request<{ id: string; name: string; imageUrl: string | null }>(`/api/leagues/${id}/identity`),
 
   requestJoin: (id: string, teamName: string) =>
     request(`/api/leagues/${id}/join`, { method: 'POST', body: JSON.stringify({ teamName }) }),

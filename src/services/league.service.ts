@@ -54,10 +54,16 @@ export async function createLeague(userId: string, input: CreateLeagueInput & { 
     return { success: false, message: 'Il nome della squadra è obbligatorio (minimo 2 caratteri)' }
   }
 
+  // Optional league logo: if provided, must be a base64 image data URL
+  if (input.imageUrl && !input.imageUrl.startsWith('data:image/')) {
+    return { success: false, message: 'Formato immagine non valido' }
+  }
+
   const league = await prisma.league.create({
     data: {
       name: input.name,
       description: input.description,
+      imageUrl: input.imageUrl || null,
       minParticipants,
       maxParticipants,
       initialBudget: input.initialBudget,
@@ -1001,6 +1007,30 @@ export async function removeLeagueImage(leagueId: string, userId: string): Promi
   })
 
   return { success: true, message: 'Immagine della lega rimossa' }
+}
+
+/**
+ * Lightweight league identity (name + image) for the navigation header.
+ * Member-only; returns just what the header needs (no heavy includes).
+ */
+export async function getLeagueIdentity(leagueId: string, userId: string): Promise<ServiceResult> {
+  const membership = await prisma.leagueMember.findFirst({
+    where: { leagueId, userId, status: MemberStatus.ACTIVE },
+    select: { id: true },
+  })
+  if (!membership) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const league = await prisma.league.findUnique({
+    where: { id: leagueId },
+    select: { id: true, name: true, imageUrl: true },
+  })
+  if (!league) {
+    return { success: false, message: 'Lega non trovata' }
+  }
+
+  return { success: true, data: league }
 }
 
 export async function getAllRosters(leagueId: string, userId: string): Promise<ServiceResult> {

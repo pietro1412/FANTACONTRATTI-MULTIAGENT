@@ -59,6 +59,8 @@ export const createLeagueSchema = z.object({
   midfielderSlots: z.number().int().min(8, 'Gli slot centrocampo devono essere almeno 8').max(12).default(8),
   forwardSlots: z.number().int().min(6, 'Gli slot attacco devono essere almeno 6').max(8).default(6),
   isPublic: z.boolean().optional().default(false),
+  // Logo lega opzionale (base64 data URL); max ~500KB una volta codificato
+  imageUrl: z.string().max(700000, 'Immagine troppo grande (max 500KB)').optional(),
 })
 
 export const updateLeagueSchema = createLeagueSchema.partial()

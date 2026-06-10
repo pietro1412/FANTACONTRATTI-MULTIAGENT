@@ -29,6 +29,7 @@ vi.mock('../services/api', () => ({
   },
   leagueApi: {
     getPendingRequests: vi.fn().mockResolvedValue({ success: true, data: [] }),
+    getIdentity: vi.fn().mockResolvedValue({ success: true, data: { id: 'l1', name: 'Lega Test', imageUrl: null } }),
   },
 }))
 

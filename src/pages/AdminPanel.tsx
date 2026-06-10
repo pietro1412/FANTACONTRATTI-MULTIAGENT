@@ -397,6 +397,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       const res = await leagueApi.updateImage(leagueId, base64)
       if (res.success) {
         setSuccess('Immagine della lega aggiornata!')
+        window.dispatchEvent(new CustomEvent('league-identity-updated', { detail: { leagueId } }))
         void loadData()
       } else {
         setError(res.message || 'Errore nel caricamento dell\'immagine')
@@ -415,6 +416,7 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     const res = await leagueApi.removeImage(leagueId)
     if (res.success) {
       setSuccess('Immagine della lega rimossa')
+      window.dispatchEvent(new CustomEvent('league-identity-updated', { detail: { leagueId } }))
       void loadData()
     } else {
       setError(res.message || 'Errore nella rimozione dell\'immagine')
@@ -534,33 +536,27 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
         <div className="max-w-[1600px] mx-auto px-6 py-6">
           <div className="flex justify-between items-end">
             <div className="flex items-center gap-5">
-              <div className="flex flex-col items-center gap-1.5">
+              <div className="relative flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => leagueImageInputRef.current?.click()}
                   disabled={isSubmitting}
-                  title="Cambia immagine della lega"
+                  title={league?.imageUrl ? 'Cambia il logo della lega' : 'Carica il logo della lega'}
                   className="group relative w-16 h-16 rounded-xl overflow-hidden bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-glow-gold focus:outline-none focus:ring-2 focus:ring-accent-400"
                 >
                   {league?.imageUrl ? (
-                    <img src={league.imageUrl} alt={`Immagine ${league.name}`} className="w-full h-full object-cover" />
+                    <img src={league.imageUrl} alt={`Logo ${league.name}`} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-3xl">⚙️</span>
+                    <span className="text-3xl">🏆</span>
                   )}
                   <span className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] font-semibold text-white">
-                    Cambia
+                    {league?.imageUrl ? 'Cambia' : 'Carica'}
                   </span>
                 </button>
-                {league?.imageUrl && (
-                  <button
-                    type="button"
-                    onClick={() => { void handleRemoveLeagueImage() }}
-                    disabled={isSubmitting}
-                    className="text-[10px] text-danger-400 hover:text-danger-300 disabled:opacity-50"
-                  >
-                    Rimuovi
-                  </button>
-                )}
+                {/* Always-visible edit affordance */}
+                <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary-500 border-2 border-surface-200 flex items-center justify-center shadow-md text-[11px] pointer-events-none">
+                  📷
+                </span>
                 <input
                   ref={leagueImageInputRef}
                   type="file"
@@ -572,6 +568,27 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
               <div>
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Pannello Amministratore</h1>
                 <p className="text-gray-400 mt-1">{league?.name}</p>
+                {/* Explicit, discoverable logo controls */}
+                <div className="flex items-center gap-3 mt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => leagueImageInputRef.current?.click()}
+                    disabled={isSubmitting}
+                    className="text-xs font-medium text-primary-400 hover:text-primary-300 disabled:opacity-50 flex items-center gap-1"
+                  >
+                    📷 {league?.imageUrl ? 'Cambia logo' : 'Carica logo lega'}
+                  </button>
+                  {league?.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => { void handleRemoveLeagueImage() }}
+                      disabled={isSubmitting}
+                      className="text-xs text-danger-400 hover:text-danger-300 disabled:opacity-50"
+                    >
+                      Rimuovi
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
             <div className="px-4 py-2 bg-accent-500/20 text-accent-400 rounded-full text-sm font-bold border border-accent-500/40">

@@ -1086,4 +1086,63 @@ describe('League Service', () => {
       expect(mockPrisma.league.update).not.toHaveBeenCalled()
     })
   })
+
+  // ==================== getLeagueIdentity ====================
+
+  describe('getLeagueIdentity', () => {
+    it('returns id/name/imageUrl for a member', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ id: 'mem-1' })
+      mockPrisma.league.findUnique.mockResolvedValue({ id: 'league-1', name: 'Lega', imageUrl: 'data:image/png;base64,x' })
+
+      const result = await leagueService.getLeagueIdentity('league-1', 'user-1')
+
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual({ id: 'league-1', name: 'Lega', imageUrl: 'data:image/png;base64,x' })
+    })
+
+    it('rejects a non-member', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue(null)
+
+      const result = await leagueService.getLeagueIdentity('league-1', 'stranger')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Non autorizzato')
+      expect(mockPrisma.league.findUnique).not.toHaveBeenCalled()
+    })
+  })
+
+  // ==================== createLeague with optional logo ====================
+
+  describe('createLeague (logo)', () => {
+    const baseInput = {
+      name: 'Lega Logo',
+      maxParticipants: 8,
+      initialBudget: 200,
+      goalkeeperSlots: 3,
+      defenderSlots: 8,
+      midfielderSlots: 8,
+      forwardSlots: 6,
+      teamName: 'My Team',
+      isPublic: false,
+    }
+
+    it('persists a valid image data URL', async () => {
+      mockPrisma.league.create.mockResolvedValue({ id: 'l1', name: 'Lega Logo', inviteCode: 'l1', members: [] })
+
+      const result = await leagueService.createLeague('user-1', { ...baseInput, imageUrl: 'data:image/png;base64,abc' })
+
+      expect(result.success).toBe(true)
+      expect(mockPrisma.league.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ imageUrl: 'data:image/png;base64,abc' }) })
+      )
+    })
+
+    it('rejects an invalid image format', async () => {
+      const result = await leagueService.createLeague('user-1', { ...baseInput, imageUrl: 'http://example.com/x.png' })
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Formato immagine non valido')
+      expect(mockPrisma.league.create).not.toHaveBeenCalled()
+    })
+  })
 })
