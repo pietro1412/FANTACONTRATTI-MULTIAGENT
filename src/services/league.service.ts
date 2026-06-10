@@ -949,6 +949,60 @@ export async function updateLeague(
   }
 }
 
+/**
+ * Admin-only: set the league image (base64 data URL). Mirrors updateProfilePhoto.
+ */
+export async function updateLeagueImage(
+  leagueId: string,
+  userId: string,
+  imageData: string
+): Promise<ServiceResult> {
+  const admin = await prisma.leagueMember.findFirst({
+    where: { leagueId, userId, role: MemberRole.ADMIN, status: MemberStatus.ACTIVE },
+  })
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (!imageData) {
+    return { success: false, message: 'Nessuna immagine fornita' }
+  }
+  if (!imageData.startsWith('data:image/')) {
+    return { success: false, message: 'Formato immagine non valido' }
+  }
+  // Max ~500KB once base64-encoded (same threshold as profile photo)
+  if (imageData.length > 700000) {
+    return { success: false, message: 'Immagine troppo grande (max 500KB)' }
+  }
+
+  const league = await prisma.league.update({
+    where: { id: leagueId },
+    data: { imageUrl: imageData },
+    select: { id: true, name: true, imageUrl: true },
+  })
+
+  return { success: true, message: 'Immagine della lega aggiornata', data: league }
+}
+
+/**
+ * Admin-only: remove the league image.
+ */
+export async function removeLeagueImage(leagueId: string, userId: string): Promise<ServiceResult> {
+  const admin = await prisma.leagueMember.findFirst({
+    where: { leagueId, userId, role: MemberRole.ADMIN, status: MemberStatus.ACTIVE },
+  })
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  await prisma.league.update({
+    where: { id: leagueId },
+    data: { imageUrl: null },
+  })
+
+  return { success: true, message: 'Immagine della lega rimossa' }
+}
+
 export async function getAllRosters(leagueId: string, userId: string): Promise<ServiceResult> {
   // Verify user is member of league
   const membership = await prisma.leagueMember.findFirst({

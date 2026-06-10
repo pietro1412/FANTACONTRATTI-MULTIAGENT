@@ -205,6 +205,13 @@ export const leagueApi = {
   update: (id: string, data: Record<string, unknown>) =>
     request(`/api/leagues/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
+  // League image (admin only): base64 data URL
+  updateImage: (id: string, imageData: string) =>
+    request(`/api/leagues/${id}/image`, { method: 'PUT', body: JSON.stringify({ imageData }) }),
+
+  removeImage: (id: string) =>
+    request(`/api/leagues/${id}/image`, { method: 'DELETE' }),
+
   requestJoin: (id: string, teamName: string) =>
     request(`/api/leagues/${id}/join`, { method: 'POST', body: JSON.stringify({ teamName }) }),
 

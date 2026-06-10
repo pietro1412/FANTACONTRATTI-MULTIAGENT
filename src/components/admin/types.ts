@@ -2,6 +2,7 @@ export interface League {
   id: string
   name: string
   description?: string
+  imageUrl?: string | null
   maxParticipants: number
   minParticipants: number
   requireEvenNumber: boolean

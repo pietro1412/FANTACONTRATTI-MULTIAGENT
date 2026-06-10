@@ -14,6 +14,7 @@ interface League {
   id: string
   name: string
   status: string
+  imageUrl?: string | null
   maxParticipants?: number
   members: Array<{ id: string; role: string }>
 }
@@ -225,8 +226,15 @@ function RoleTag({ role }: { role: string }) {
   )
 }
 
-function Crest({ identity, size = 'md' }: { identity: { initials: string; gradient: string }; size?: 'sm' | 'md' }) {
+function Crest({ identity, size = 'md', imageUrl, name }: { identity: { initials: string; gradient: string }; size?: 'sm' | 'md'; imageUrl?: string | null; name?: string }) {
   const dim = size === 'sm' ? 'w-9 h-9 text-xs' : 'w-11 h-11 text-sm'
+  if (imageUrl) {
+    return (
+      <div className={`${dim} rounded-xl overflow-hidden flex-shrink-0 shadow-lg`}>
+        <img src={imageUrl} alt={name ? `Immagine ${name}` : 'Immagine lega'} className="w-full h-full object-cover" />
+      </div>
+    )
+  }
   return (
     <div className={`${dim} rounded-xl bg-gradient-to-br ${identity.gradient} flex items-center justify-center font-bold text-white flex-shrink-0 shadow-lg`}>
       {identity.initials}
@@ -260,7 +268,7 @@ function AttentionCard({
       <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${identity.gradient}`} aria-hidden="true" />
 
       <div className="flex items-center gap-3 mb-3">
-        <Crest identity={identity} />
+        <Crest identity={identity} imageUrl={league.imageUrl} name={league.name} />
         <div className="flex-1 min-w-0">
           <p className="font-bold text-white leading-tight truncate">{league.name}</p>
           <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-400 mt-1">
@@ -361,7 +369,7 @@ function LeagueCard({
       onClick={() => { if (clickable) onNavigate('leagueDetail', { leagueId: league.id }) }}
     >
       <div className="flex items-center gap-3 mb-3">
-        <Crest identity={identity} size="sm" />
+        <Crest identity={identity} size="sm" imageUrl={league.imageUrl} name={league.name} />
         <div className="flex-1 min-w-0">
           <p className={`font-bold leading-tight truncate ${isPending ? 'text-amber-200' : 'text-white group-hover:text-primary-400 transition-colors'}`}>
             {league.name}

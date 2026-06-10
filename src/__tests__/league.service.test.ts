@@ -1013,4 +1013,77 @@ describe('League Service', () => {
       expect(summaries['league-9']?.turnTarget).toBeNull()
     })
   })
+
+  // ==================== updateLeagueImage / removeLeagueImage ====================
+
+  describe('updateLeagueImage', () => {
+    const validImage = 'data:image/png;base64,iVBORw0KGgo='
+
+    it('updates the image when caller is admin and data is valid', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ id: 'mem-1', role: 'ADMIN' })
+      mockPrisma.league.update.mockResolvedValue({ id: 'league-1', name: 'Lega', imageUrl: validImage })
+
+      const result = await leagueService.updateLeagueImage('league-1', 'admin-1', validImage)
+
+      expect(result.success).toBe(true)
+      expect(mockPrisma.league.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'league-1' }, data: { imageUrl: validImage } })
+      )
+    })
+
+    it('rejects when caller is not admin', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue(null)
+
+      const result = await leagueService.updateLeagueImage('league-1', 'not-admin', validImage)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Non autorizzato')
+      expect(mockPrisma.league.update).not.toHaveBeenCalled()
+    })
+
+    it('rejects an invalid image format', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ id: 'mem-1', role: 'ADMIN' })
+
+      const result = await leagueService.updateLeagueImage('league-1', 'admin-1', 'not-an-image')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Formato immagine non valido')
+      expect(mockPrisma.league.update).not.toHaveBeenCalled()
+    })
+
+    it('rejects an image over the size limit', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ id: 'mem-1', role: 'ADMIN' })
+      const huge = 'data:image/png;base64,' + 'A'.repeat(700001)
+
+      const result = await leagueService.updateLeagueImage('league-1', 'admin-1', huge)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toContain('troppo grande')
+      expect(mockPrisma.league.update).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('removeLeagueImage', () => {
+    it('removes the image when caller is admin', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ id: 'mem-1', role: 'ADMIN' })
+      mockPrisma.league.update.mockResolvedValue({ id: 'league-1' })
+
+      const result = await leagueService.removeLeagueImage('league-1', 'admin-1')
+
+      expect(result.success).toBe(true)
+      expect(mockPrisma.league.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'league-1' }, data: { imageUrl: null } })
+      )
+    })
+
+    it('rejects when caller is not admin', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue(null)
+
+      const result = await leagueService.removeLeagueImage('league-1', 'not-admin')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Non autorizzato')
+      expect(mockPrisma.league.update).not.toHaveBeenCalled()
+    })
+  })
 })

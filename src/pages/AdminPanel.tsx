@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import * as XLSX from 'xlsx'
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/Modal'
@@ -114,6 +114,9 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   // Roster incomplete modal state
   const [showRosterIncompleteModal, setShowRosterIncompleteModal] = useState(false)
   const [rosterIncompleteDetails, setRosterIncompleteDetails] = useState<string>('')
+
+  // League image upload
+  const leagueImageInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     void loadData()
@@ -372,6 +375,53 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     setIsSubmitting(false)
   }
 
+  function handleLeagueImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setError('Il file deve essere un\'immagine')
+      return
+    }
+    // Max 500KB (same threshold as profile photo)
+    if (file.size > 500 * 1024) {
+      setError('L\'immagine deve essere inferiore a 500KB')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      const base64 = event.target?.result as string
+      setError('')
+      setSuccess('')
+      setIsSubmitting(true)
+      const res = await leagueApi.updateImage(leagueId, base64)
+      if (res.success) {
+        setSuccess('Immagine della lega aggiornata!')
+        void loadData()
+      } else {
+        setError(res.message || 'Errore nel caricamento dell\'immagine')
+      }
+      setIsSubmitting(false)
+    }
+    reader.readAsDataURL(file)
+    // allow re-selecting the same file later
+    e.target.value = ''
+  }
+
+  async function handleRemoveLeagueImage() {
+    setError('')
+    setSuccess('')
+    setIsSubmitting(true)
+    const res = await leagueApi.removeImage(leagueId)
+    if (res.success) {
+      setSuccess('Immagine della lega rimossa')
+      void loadData()
+    } else {
+      setError(res.message || 'Errore nella rimozione dell\'immagine')
+    }
+    setIsSubmitting(false)
+  }
+
   function exportToExcel() {
     const headers = ['Username', 'Team', 'Ruolo', 'Stato', 'Budget']
     const rows = members.map(m => [
@@ -484,8 +534,40 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
         <div className="max-w-[1600px] mx-auto px-6 py-6">
           <div className="flex justify-between items-end">
             <div className="flex items-center gap-5">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-glow-gold">
-                <span className="text-3xl">⚙️</span>
+              <div className="flex flex-col items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => leagueImageInputRef.current?.click()}
+                  disabled={isSubmitting}
+                  title="Cambia immagine della lega"
+                  className="group relative w-16 h-16 rounded-xl overflow-hidden bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-glow-gold focus:outline-none focus:ring-2 focus:ring-accent-400"
+                >
+                  {league?.imageUrl ? (
+                    <img src={league.imageUrl} alt={`Immagine ${league.name}`} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-3xl">⚙️</span>
+                  )}
+                  <span className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] font-semibold text-white">
+                    Cambia
+                  </span>
+                </button>
+                {league?.imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => { void handleRemoveLeagueImage() }}
+                    disabled={isSubmitting}
+                    className="text-[10px] text-danger-400 hover:text-danger-300 disabled:opacity-50"
+                  >
+                    Rimuovi
+                  </button>
+                )}
+                <input
+                  ref={leagueImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleLeagueImageChange}
+                />
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Pannello Amministratore</h1>

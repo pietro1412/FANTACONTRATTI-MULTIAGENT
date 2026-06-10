@@ -851,6 +851,8 @@ model League {
   id               String   @id @default(cuid())
   name             String
   description      String?
+  // Immagine/logo della lega (base64 data URL o path), caricata dall'admin
+  imageUrl         String?
 
   // Vincoli partecipanti
   minParticipants  Int      @default(6)
