@@ -1,6 +1,7 @@
 import { test, expect, chromium, type BrowserContext, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import type { PrismaClient } from '@prisma/client'
 
 /**
  * E2E — F4 fase PREMI dalla UI admin.
@@ -27,7 +28,7 @@ function readDatabaseUrl(): string | undefined {
     return raw.match(/^\s*DATABASE_URL\s*=\s*"?([^"\r\n]+)"?/m)?.[1]
   } catch { return undefined }
 }
-async function withPrisma<T>(fn: (p: import('@prisma/client').PrismaClient) => Promise<T>): Promise<T> {
+async function withPrisma<T>(fn: (p: PrismaClient) => Promise<T>): Promise<T> {
   const url = readDatabaseUrl()
   if (!url) throw new Error('DATABASE_URL non trovata')
   const { PrismaClient } = await import('@prisma/client')
@@ -147,7 +148,7 @@ test.describe('F4 fase Premi — UI admin', () => {
     let errors = 0
     for (const m of post) if (m.currentBudget - (preMap.get(m.id) ?? 0) !== 110) errors++
     expect(errors, 'tutti i budget accreditati di +110 (base)').toBe(0)
-    // eslint-disable-next-line no-console
+     
     console.log(`[F4] Finalize: ${post.length} budget accreditati +110. config.isFinalized=true`)
   })
 })

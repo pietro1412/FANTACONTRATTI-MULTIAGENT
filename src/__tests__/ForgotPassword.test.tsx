@@ -13,6 +13,7 @@ vi.mock('react-router-dom', () => ({
 // Mock Turnstile (external widget)
 vi.mock('../components/ui/Turnstile', () => ({
   Turnstile: ({ onVerify }: { onVerify: (token: string) => void }) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { useEffect } = require('react')
     useEffect(() => { onVerify('mock-turnstile-token') }, [onVerify])
     return null

@@ -53,8 +53,8 @@ vi.mock('../components/ui/NumberStepper', () => ({
     <div data-testid={`stepper-${label || 'unnamed'}`}>
       {label && <span>{label}</span>}
       <span data-testid="stepper-value">{value}</span>
-      <button data-testid="stepper-decrement" onClick={() => onChange(Math.max(min ?? 0, value - (step ?? 1)))}>-</button>
-      <button data-testid="stepper-increment" onClick={() => onChange(Math.min(max ?? 999, value + (step ?? 1)))}>+</button>
+      <button data-testid="stepper-decrement" onClick={() => { onChange(Math.max(min ?? 0, value - (step ?? 1))); }}>-</button>
+      <button data-testid="stepper-increment" onClick={() => { onChange(Math.min(max ?? 999, value + (step ?? 1))); }}>+</button>
     </div>
   ),
 }))

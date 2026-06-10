@@ -1,6 +1,7 @@
 import { test, expect, chromium, type BrowserContext, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import type { PrismaClient } from '@prisma/client'
 
 /**
  * E2E — F6 fase RUBATA: setup admin (ordine + generazione tabellone) dalla UI.
@@ -25,7 +26,7 @@ function readDatabaseUrl(): string | undefined {
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL
   try { return readFileSync(resolve(process.cwd(), '.env.local'), 'utf8').match(/^\s*DATABASE_URL\s*=\s*"?([^"\r\n]+)"?/m)?.[1] } catch { return undefined }
 }
-async function withPrisma<T>(fn: (p: import('@prisma/client').PrismaClient) => Promise<T>): Promise<T> {
+async function withPrisma<T>(fn: (p: PrismaClient) => Promise<T>): Promise<T> {
   const url = readDatabaseUrl()
   if (!url) throw new Error('DATABASE_URL non trovata')
   const { PrismaClient } = await import('@prisma/client')
@@ -102,7 +103,7 @@ test.describe('F6 fase Rubata — setup admin (ordine + tabellone) UI', () => {
     // rubataOrder persistito sul DB (tutti gli 8 membri)
     await expect.poll(async () => {
       const s = await withPrisma((p) => p.marketSession.findUnique({ where: { id: sessionId }, select: { rubataOrder: true } }))
-      return Array.isArray(s?.rubataOrder) ? (s!.rubataOrder as unknown[]).length : 0
+      return Array.isArray(s?.rubataOrder) ? (s.rubataOrder as unknown[]).length : 0
     }, { timeout: 10000 }).toBe(8)
   })
 
@@ -117,11 +118,11 @@ test.describe('F6 fase Rubata — setup admin (ordine + tabellone) UI', () => {
     }, { timeout: 12000 }).toBe('READY_CHECK')
     const boardLen = await withPrisma(async (p) => {
       const s = await p.marketSession.findUnique({ where: { id: sessionId }, select: { rubataBoard: true } })
-      return Array.isArray(s?.rubataBoard) ? (s!.rubataBoard as unknown[]).length : 0
+      return Array.isArray(s?.rubataBoard) ? (s.rubataBoard as unknown[]).length : 0
     })
     const activeContracts = await withPrisma((p) => p.playerContract.count({ where: { roster: { leagueMember: { leagueId: LEAGUE_ID }, status: 'ACTIVE' }, duration: { gt: 0 } } }))
     expect(boardLen, 'board con tutti i contratti attivi').toBe(activeContracts)
-    // eslint-disable-next-line no-console
+     
     console.log(`[F6] Tabellone generato: ${boardLen} giocatori, stato READY_CHECK`)
   })
 })

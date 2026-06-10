@@ -44,7 +44,7 @@ describe('Rubata budget deduction', () => {
     // Winner bilancio change = -(budgetDecrement + salary) = -(46 + 4) = -50
     const winnerBilancioChange = -(winnerBudgetDecrement + salary)
     // Seller bilancio change = +(sellerPayment + salary) = +(46 + 4) = +50
-    const sellerBilancioChange = +(sellerPayment + salary)
+    const sellerBilancioChange = (sellerPayment + salary)
 
     expect(winnerBilancioChange).toBe(-price)
     expect(sellerBilancioChange).toBe(price)

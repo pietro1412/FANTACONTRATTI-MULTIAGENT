@@ -1,6 +1,7 @@
 import { test, expect, chromium, type BrowserContext, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import type { PrismaClient } from '@prisma/client'
 
 /**
  * E2E — F3 Scambi: flusso UI + SINCRONIA real-time con TRE utenti reali.
@@ -52,7 +53,7 @@ type BudgetSnap = { id: string; currentBudget: number }
 let rosterSnap: RosterSnap[] = []
 let budgetSnap: BudgetSnap[] = []
 
-async function withPrisma<T>(fn: (prisma: import('@prisma/client').PrismaClient) => Promise<T>): Promise<T> {
+async function withPrisma<T>(fn: (prisma: PrismaClient) => Promise<T>): Promise<T> {
   const url = readDatabaseUrl()
   if (!url) throw new Error('DATABASE_URL non trovata (né env né .env.local)')
   const { PrismaClient } = await import('@prisma/client')
@@ -136,7 +137,7 @@ async function timeToVisible(page: Page, factory: () => ReturnType<Page['locator
 const results: Array<{ step: string; seconds: number }> = []
 function record(step: string, seconds: number) {
   results.push({ step, seconds })
-  // eslint-disable-next-line no-console
+   
   console.log(`[SYNC] ${step}: ${seconds.toFixed(2)}s — ${seconds <= 4 ? 'PASS (≤4s)' : 'WARN (>4s)'}`)
 }
 
@@ -161,7 +162,7 @@ test.describe('F3 Scambi — UI + sincronia real-time (3 utenti reali)', () => {
   })
 
   test.afterAll(async () => {
-    // eslint-disable-next-line no-console
+     
     console.log('\n========== RIEPILOGO SINCRONIA F3 ==========')
     for (const r of results) console.log(`  ${r.seconds <= 4 ? '✓' : '⚠'} ${r.step}: ${r.seconds.toFixed(2)}s`)
     console.log('============================================\n')
@@ -242,7 +243,7 @@ test.describe('F3 Scambi — UI + sincronia real-time (3 utenti reali)', () => {
       if (!s) return false
       const accepted = await prisma.tradeOffer.count({ where: { marketSessionId: s.id, status: 'ACCEPTED' } })
       const movs = await prisma.playerMovement.count({ where: { marketSessionId: s.id, movementType: 'TRADE' } })
-      // eslint-disable-next-line no-console
+       
       console.log(`[DB] trade ACCEPTED=${accepted}, movimenti TRADE=${movs}`)
       return accepted >= 1 && movs >= 2
     })

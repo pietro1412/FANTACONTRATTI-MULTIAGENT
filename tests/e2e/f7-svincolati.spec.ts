@@ -1,6 +1,7 @@
 import { test, expect, chromium, type BrowserContext, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import type { PrismaClient } from '@prisma/client'
 
 /**
  * E2E — F7 fase ASTA_SVINCOLATI: setup admin (ordine turni) dalla UI.
@@ -24,7 +25,7 @@ function readDatabaseUrl(): string | undefined {
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL
   try { return readFileSync(resolve(process.cwd(), '.env.local'), 'utf8').match(/^\s*DATABASE_URL\s*=\s*"?([^"\r\n]+)"?/m)?.[1] } catch { return undefined }
 }
-async function withPrisma<T>(fn: (p: import('@prisma/client').PrismaClient) => Promise<T>): Promise<T> {
+async function withPrisma<T>(fn: (p: PrismaClient) => Promise<T>): Promise<T> {
   const url = readDatabaseUrl()
   if (!url) throw new Error('DATABASE_URL non trovata')
   const { PrismaClient } = await import('@prisma/client')
@@ -97,11 +98,11 @@ test.describe('F7 fase Svincolati — setup admin (ordine turni) UI', () => {
     // svincolatiTurnOrder (8 membri) + stato READY_CHECK sul DB
     await expect.poll(async () => {
       const s = await withPrisma((p) => p.marketSession.findUnique({ where: { id: sessionId }, select: { svincolatiTurnOrder: true } }))
-      return Array.isArray(s?.svincolatiTurnOrder) ? (s!.svincolatiTurnOrder as unknown[]).length : 0
+      return Array.isArray(s?.svincolatiTurnOrder) ? (s.svincolatiTurnOrder as unknown[]).length : 0
     }, { timeout: 12000 }).toBe(8)
     const state = await withPrisma((p) => p.marketSession.findUnique({ where: { id: sessionId }, select: { svincolatiState: true } }))
     expect(state?.svincolatiState).toBe('READY_CHECK')
-    // eslint-disable-next-line no-console
+     
     console.log('[F7] Ordine turni svincolati impostato (8 membri), stato READY_CHECK')
   })
 })

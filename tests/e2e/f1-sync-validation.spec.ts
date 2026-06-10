@@ -189,7 +189,7 @@ async function prepareCleanNominationState(): Promise<void> {
       }
     }
 
-    // eslint-disable-next-line no-console
+     
     console.log(
       `[SETUP] Stato pulito: ${createdAcks} ack completati, nomina pendente azzerata, ${releasedP} portieri di Emiliano liberati, turno → Mirko (index ${mirkoIndex}, ruolo P).`
     )
@@ -241,7 +241,7 @@ async function timeToVisible(
   const start = Date.now()
   const deadline = start + timeoutMs
   let lastNudge = start
-  // eslint-disable-next-line no-constant-condition
+   
   while (true) {
     const count = await locatorFactory().count()
     if (count > 0) {
@@ -274,7 +274,7 @@ function record(step: string, seconds: number, note?: string) {
   const pass = seconds <= 4
   results.push({ step, observedSeconds: seconds, pass, note })
   // Log leggibile nel report Playwright
-  // eslint-disable-next-line no-console
+   
   console.log(
     `[SYNC] ${step}: ${seconds.toFixed(2)}s — ${pass ? 'PASS (≤4s)' : 'FAIL (>4s)'}${note ? ` — ${note}` : ''}`
   )
@@ -319,7 +319,7 @@ test.describe('F1 Primo Mercato — sincronia real-time (2 utenti reali)', () =>
             } catch {
               /* ignore */
             }
-            // eslint-disable-next-line no-console
+             
             console.log(`[NET ${label}] ${res.status()} ${url.replace(BASE, '')} → ${body}`)
           }
         })
@@ -328,15 +328,15 @@ test.describe('F1 Primo Mercato — sincronia real-time (2 utenti reali)', () =>
   })
 
   test.afterAll(async () => {
-    // eslint-disable-next-line no-console
+     
     console.log('\n========== RIEPILOGO SINCRONIA F1 ==========')
     for (const r of results) {
-      // eslint-disable-next-line no-console
+       
       console.log(
         `${r.pass ? '✓' : '✗'} ${r.step}: ${r.observedSeconds.toFixed(2)}s${r.note ? ` (${r.note})` : ''}`
       )
     }
-    // eslint-disable-next-line no-console
+     
     console.log('============================================\n')
     await ctxMirko?.close()
     await ctxEmiliano?.close()

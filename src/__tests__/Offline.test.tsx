@@ -25,7 +25,7 @@ describe('Offline Page', () => {
   it('calls window.location.reload when retry button is clicked', async () => {
     const reloadMock = vi.fn()
     Object.defineProperty(window, 'location', {
-      value: { ...window.location, reload: reloadMock },
+      value: Object.assign({}, window.location, { reload: reloadMock }),
       writable: true,
     })
 

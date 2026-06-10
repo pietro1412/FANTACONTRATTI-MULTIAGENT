@@ -1,6 +1,7 @@
 import { test, expect, chromium, type BrowserContext, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import type { PrismaClient } from '@prisma/client'
 
 /**
  * E2E — F5 fase CONTRATTI: consolidamento dalla UI.
@@ -27,7 +28,7 @@ function readDatabaseUrl(): string | undefined {
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL
   try { return readFileSync(resolve(process.cwd(), '.env.local'), 'utf8').match(/^\s*DATABASE_URL\s*=\s*"?([^"\r\n]+)"?/m)?.[1] } catch { return undefined }
 }
-async function withPrisma<T>(fn: (p: import('@prisma/client').PrismaClient) => Promise<T>): Promise<T> {
+async function withPrisma<T>(fn: (p: PrismaClient) => Promise<T>): Promise<T> {
   const url = readDatabaseUrl()
   if (!url) throw new Error('DATABASE_URL non trovata')
   const { PrismaClient } = await import('@prisma/client')
@@ -106,7 +107,7 @@ test.describe('F5 fase Contratti — consolidamento UI', () => {
     }, { timeout: 15000 }).toBe(true)
     // La UI riflette il lock: il bottone "Consolida" sparisce (reso solo se non consolidato)
     await expect(mgr.getByRole('button', { name: /^Consolida$/i })).toHaveCount(0, { timeout: 10000 })
-    // eslint-disable-next-line no-console
+     
     console.log('[F5] Consolidamento Diego registrato sul DB + bottone Consolida rimosso dalla UI')
   })
 })

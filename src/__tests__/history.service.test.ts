@@ -149,7 +149,7 @@ interface SearchPlayersData {
   players: Array<{
     id: string
     isActive: boolean
-    currentOwner: unknown | null
+    currentOwner: unknown
   }>
 }
 

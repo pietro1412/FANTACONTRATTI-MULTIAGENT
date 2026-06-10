@@ -43,7 +43,7 @@ test.describe('F8 trasversali — Storico Movimenti (read-only)', () => {
     await expect(mgr.getByRole('heading', { name: /Storico Movimenti/i })).toBeVisible({ timeout: 20000 })
     // Ci sono movimenti reali (apertura F2) → NON deve comparire l'empty state
     await expect(mgr.getByText(/Nessun movimento registrato/i)).toHaveCount(0, { timeout: 10000 })
-    // eslint-disable-next-line no-console
+     
     console.log('[F8] Pagina Storico Movimenti renderizzata con dati (no empty state)')
   })
 })

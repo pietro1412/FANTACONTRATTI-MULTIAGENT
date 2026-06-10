@@ -1007,7 +1007,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                                 )
                               }}
                               isExpanded={expandedRowIds.has(player.rosterId)}
-                              onToggleExpand={() => toggleExpandRow(player.rosterId)}
+                              onToggleExpand={() => { toggleExpandRow(player.rosterId); }}
                             />
                           </div>
                         )
@@ -1045,7 +1045,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                               )
                             }}
                             isExpanded={expandedRowIds.has(player.rosterId)}
-                            onToggleExpand={() => toggleExpandRow(player.rosterId)}
+                            onToggleExpand={() => { toggleExpandRow(player.rosterId); }}
                           />
                         )
                       })}
