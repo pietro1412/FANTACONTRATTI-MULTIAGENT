@@ -2,11 +2,10 @@ import { useState } from 'react'
 import { BottomSheet } from '../ui/BottomSheet'
 import { FinancialDashboard } from './FinancialDashboard'
 import { MyPortfolio } from './MyPortfolio'
-import type { ManagersStatusData, ManagerData, FirstMarketStatus, MyRosterSlots } from '../../types/auctionroom.types'
+import type { ManagersStatusData, ManagerData, MyRosterSlots } from '../../types/auctionroom.types'
 
 interface MobileSidePanelProps {
   managersStatus: ManagersStatusData | null
-  firstMarketStatus: FirstMarketStatus | null
   onSelectManager: (m: ManagerData) => void
   myRosterSlots: MyRosterSlots | null
   budget: number
@@ -15,7 +14,6 @@ interface MobileSidePanelProps {
 
 export function MobileSidePanel({
   managersStatus,
-  firstMarketStatus,
   onSelectManager,
   myRosterSlots,
   budget,
@@ -29,7 +27,7 @@ export function MobileSidePanel({
       <div className="flex gap-2 lg:hidden">
         <button
           onClick={() => { setSheet('managers'); }}
-          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-900/80 backdrop-blur-xl rounded-xl border border-white/10 text-sms font-medium text-gray-300 active:scale-95 transition-transform min-h-[44px]"
+          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-surface-200 rounded-xl border border-surface-50 text-sms font-medium text-gray-300 active:scale-95 transition-transform min-h-[44px]"
         >
           <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -42,7 +40,7 @@ export function MobileSidePanel({
         </button>
         <button
           onClick={() => { setSheet('roster'); }}
-          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-900/80 backdrop-blur-xl rounded-xl border border-white/10 text-sms font-medium text-gray-300 active:scale-95 transition-transform min-h-[44px]"
+          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-surface-200 rounded-xl border border-surface-50 text-sms font-medium text-gray-300 active:scale-95 transition-transform min-h-[44px]"
         >
           <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -67,7 +65,6 @@ export function MobileSidePanel({
         <div className="p-2">
           <FinancialDashboard
             managersStatus={managersStatus}
-            firstMarketStatus={firstMarketStatus}
             onSelectManager={(m) => { onSelectManager(m); setSheet(null) }}
             currentBidderUsername={currentBidderUsername}
           />

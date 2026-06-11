@@ -36,7 +36,7 @@ function SlotPlayerPhoto({ apiFootballId, playerName, position, posGradient }: {
       <img
         src={photoUrl}
         alt={playerName}
-        className="w-6 h-6 rounded-full object-cover bg-slate-700 flex-shrink-0"
+        className="w-6 h-6 rounded-full object-cover bg-surface-100 flex-shrink-0"
         onError={() => { setImgError(true); }}
       />
     )
@@ -66,7 +66,7 @@ export function MyPortfolio({ myRosterSlots, budget: _budget }: MyPortfolioProps
 
   if (!myRosterSlots) {
     return (
-      <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl p-4">
+      <div className="bg-surface-200 border border-surface-50 rounded-xl p-4">
         <div className="w-6 h-6 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto"></div>
       </div>
     )
@@ -79,9 +79,9 @@ export function MyPortfolio({ myRosterSlots, budget: _budget }: MyPortfolioProps
   )
 
   return (
-    <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden h-full flex flex-col">
+    <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden h-full flex flex-col">
       {/* Header */}
-      <div className="p-3 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+      <div className="p-3 border-b border-surface-50 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -176,7 +176,7 @@ export function MyPortfolio({ myRosterSlots, budget: _budget }: MyPortfolioProps
       </div>
 
       {/* Footer: budget spent */}
-      <div className="px-3 py-2 border-t border-white/10 flex-shrink-0 flex items-center justify-between">
+      <div className="px-3 py-2 border-t border-surface-50 flex-shrink-0 flex items-center justify-between">
         <span className="text-sm text-gray-400">Budget speso</span>
         <span className="text-sms font-mono font-bold text-accent-400">{totalSpent}M</span>
       </div>

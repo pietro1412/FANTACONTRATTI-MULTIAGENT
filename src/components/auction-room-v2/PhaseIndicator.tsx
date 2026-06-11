@@ -32,7 +32,7 @@ export function PhaseIndicator({ currentPhase, compact }: PhaseIndicatorProps) {
             className={`px-2 py-0.5 rounded-full text-sm font-bold border transition-all ${
               active
                 ? `${colors.bg} ${colors.text} ${colors.border}`
-                : 'bg-slate-800/50 text-gray-500 border-white/5'
+                : 'bg-surface-300/50 text-gray-500 border-surface-50/60'
             }`}
           >
             {compact ? colors.label.charAt(0) : colors.label}

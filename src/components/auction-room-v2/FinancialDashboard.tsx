@@ -1,9 +1,8 @@
-import type { ManagersStatusData, ManagerData, FirstMarketStatus } from '../../types/auctionroom.types'
+import type { ManagersStatusData, ManagerData } from '../../types/auctionroom.types'
 import { ManagerRow, computeManagerMaxBid } from './ManagerRow'
 
 interface FinancialDashboardProps {
   managersStatus: ManagersStatusData | null
-  firstMarketStatus: FirstMarketStatus | null
   onSelectManager: (m: ManagerData) => void
   currentBidderUsername?: string | null
 }
@@ -13,10 +12,10 @@ function isRoleFull(m: ManagerData, currentRole: string): boolean {
   return slot ? slot.filled >= slot.total : false
 }
 
-export function FinancialDashboard({ managersStatus, firstMarketStatus, onSelectManager, currentBidderUsername }: FinancialDashboardProps) {
+export function FinancialDashboard({ managersStatus, onSelectManager, currentBidderUsername }: FinancialDashboardProps) {
   if (!managersStatus) {
     return (
-      <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl p-4">
+      <div className="bg-surface-200 border border-surface-50 rounded-xl p-4">
         <div className="w-6 h-6 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto"></div>
       </div>
     )
@@ -40,9 +39,9 @@ export function FinancialDashboard({ managersStatus, firstMarketStatus, onSelect
   const leagueSize = managersStatus.managers.length
 
   return (
-    <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden h-full flex flex-col">
+    <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden h-full flex flex-col">
       {/* Header */}
-      <div className="p-3 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+      <div className="p-3 border-b border-surface-50 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center">
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -51,32 +50,27 @@ export function FinancialDashboard({ managersStatus, firstMarketStatus, onSelect
           </div>
           <h3 className="font-black text-white text-sm uppercase tracking-wide">Manager</h3>
         </div>
-        <span className="text-sm text-gray-400 font-semibold bg-slate-800/60 px-2 py-0.5 rounded-full">
+        <span className="text-sm text-gray-400 font-semibold bg-surface-300/60 px-2 py-0.5 rounded-full">
           Lega a {leagueSize}
         </span>
       </div>
 
       {/* Manager Cards */}
       <div className="overflow-y-auto flex-1 p-2 space-y-1.5">
-        {sortedManagers.map(m => {
-          const turnIndex = firstMarketStatus?.turnOrder?.indexOf(m.id) ?? -1
-          return (
-            <ManagerRow
-              key={m.id}
-              manager={m}
-              turnIndex={turnIndex}
-              isCurrent={m.isCurrentTurn}
-              isMe={m.id === managersStatus.myId}
-              onClick={() => { onSelectManager(m); }}
-              currentRole={currentRole}
-              isHolding={m.username === currentBidderUsername}
-            />
-          )
-        })}
+        {sortedManagers.map(m => (
+          <ManagerRow
+            key={m.id}
+            manager={m}
+            isMe={m.id === managersStatus.myId}
+            onClick={() => { onSelectManager(m); }}
+            currentRole={currentRole}
+            isHolding={m.username === currentBidderUsername}
+          />
+        ))}
       </div>
 
       {/* Sorting note */}
-      <div className="px-3 py-2 border-t border-white/10 flex-shrink-0">
+      <div className="px-3 py-2 border-t border-surface-50 flex-shrink-0">
         <p className="text-sm text-gray-500 leading-snug">
           Ordinati per offerta max · chi detiene l&apos;offerta è in cima
         </p>

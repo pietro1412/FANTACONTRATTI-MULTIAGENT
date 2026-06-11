@@ -53,7 +53,7 @@ export function BidControls({
   }
 
   return (
-    <div className={`space-y-2 ${compact ? '' : 'bg-slate-800/40 backdrop-blur rounded-xl p-4 border border-white/5'}`}>
+    <div className={`space-y-2 ${compact ? '' : 'bg-surface-300/40 rounded-xl p-4 border border-surface-50/60'}`}>
       {/* T-003: Connection lost banner */}
       {!isConnected && (
         <div className="rounded-lg p-2.5 bg-red-500/10 border border-red-500/30 flex items-center gap-2">
@@ -77,7 +77,7 @@ export function BidControls({
           <div className="flex gap-2">
             <button
               onClick={() => { setShowMaxConfirm(false); }}
-              className="flex-1 py-2 rounded-lg text-sm font-bold bg-slate-700/50 text-gray-300 hover:bg-slate-700/70 border border-white/10 min-h-[44px]"
+              className="flex-1 py-2 rounded-lg text-sm font-bold bg-surface-100/50 text-gray-300 hover:bg-surface-100/70 border border-surface-50 min-h-[44px]"
             >
               Annulla
             </button>
@@ -102,7 +102,7 @@ export function BidControls({
               disabled={isDisabled || budget < newBid}
               className={`py-2 rounded-lg text-sm font-bold font-mono transition-all min-h-[44px] ${
                 isDisabled || budget < newBid
-                  ? 'bg-slate-700/30 text-gray-500 cursor-not-allowed'
+                  ? 'bg-surface-100/30 text-gray-500 cursor-not-allowed'
                   : 'bg-sky-500/20 text-sky-400 border border-sky-500/30 active:scale-95 hover:bg-sky-500/30'
               }`}
             >
@@ -116,7 +116,7 @@ export function BidControls({
           disabled={isDisabled || budget < bidNum + 1}
           className={`py-2 rounded-lg text-sm font-bold font-mono transition-all min-h-[44px] col-span-1 ${
             isDisabled || budget < bidNum + 1
-              ? 'bg-slate-700/30 text-gray-500 cursor-not-allowed'
+              ? 'bg-surface-100/30 text-gray-500 cursor-not-allowed'
               : 'bg-gradient-to-r from-red-500 to-orange-500 text-white active:scale-95 hover:from-red-400 hover:to-orange-400 shadow-lg shadow-red-500/20'
           }`}
         >
@@ -133,7 +133,7 @@ export function BidControls({
           disabled={isDisabled || !budget}
           className={`py-2 rounded-lg text-sm font-bold font-mono transition-all min-h-[44px] col-span-2 ${
             isDisabled || !budget
-              ? 'bg-slate-700/30 text-gray-500 cursor-not-allowed'
+              ? 'bg-surface-100/30 text-gray-500 cursor-not-allowed'
               : 'bg-accent-500 text-dark-900 active:scale-95 hover:bg-accent-400'
           }`}
         >
@@ -147,7 +147,7 @@ export function BidControls({
           type="button"
           onClick={() => { setBidAmount(String(Math.max(currentPrice + 1, bidNum - 1))); }}
           disabled={isDisabled || bidNum <= currentPrice + 1}
-          className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-slate-700/50 text-white hover:bg-slate-700/70 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] border border-white/5 active:scale-95 transition-transform"
+          className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-surface-100/50 text-white hover:bg-surface-100/70 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] border border-surface-50/60 active:scale-95 transition-transform"
         >
           -
         </button>
@@ -158,7 +158,7 @@ export function BidControls({
             value={bidAmount}
             onChange={e => { setBidAmount(e.target.value); }}
             disabled={isDisabled}
-            className="flex-1 bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2 text-white text-center font-mono focus:border-sky-500 focus:outline-none"
+            className="flex-1 bg-surface-300/60 border border-surface-50 rounded-lg px-3 py-2 text-white text-center font-mono focus:border-sky-500 focus:outline-none"
             placeholder="Importo..."
             data-bid-input="true"
           />
@@ -169,7 +169,7 @@ export function BidControls({
             value={bidAmount}
             onChange={e => { setBidAmount(e.target.value); }}
             disabled={isDisabled}
-            className="flex-1 text-sml text-center bg-slate-800/60 border-white/10 text-white font-mono"
+            className="flex-1 text-sml text-center bg-surface-300/60 border-surface-50 text-white font-mono"
             placeholder="Importo..."
             data-bid-input="true"
           />
@@ -178,7 +178,7 @@ export function BidControls({
           type="button"
           onClick={() => { setBidAmount(String(bidNum + 1)); }}
           disabled={isDisabled || bidNum + 1 > budget}
-          className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-slate-700/50 text-white hover:bg-slate-700/70 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] border border-white/5 active:scale-95 transition-transform"
+          className="w-12 h-12 shrink-0 flex items-center justify-center rounded-lg bg-surface-100/50 text-white hover:bg-surface-100/70 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] border border-surface-50/60 active:scale-95 transition-transform"
         >
           +
         </button>

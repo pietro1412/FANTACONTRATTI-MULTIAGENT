@@ -16,7 +16,7 @@ export function WaitingPanel({ currentTurnManager, marketProgress }: WaitingPane
       {/* Mystery card — mimics BiddingPanel layout */}
       <div className="lg:grid lg:grid-cols-2 lg:gap-4 space-y-4 lg:space-y-0">
         {/* Left: Mystery Player Card */}
-        <div className="relative rounded-xl border border-white/10 bg-slate-800/40 overflow-hidden p-5">
+        <div className="relative rounded-xl border border-surface-50 bg-surface-300/40 overflow-hidden p-5">
           <div className="flex items-center gap-4">
             {/* Mystery photo */}
             <div className={`w-20 h-20 rounded-xl bg-gradient-to-br ${posGradient} flex items-center justify-center flex-shrink-0 opacity-60`}>
@@ -43,7 +43,7 @@ export function WaitingPanel({ currentTurnManager, marketProgress }: WaitingPane
 
         {/* Right: Waiting Price Box */}
         <div className="flex flex-col items-center justify-center">
-          <div className="relative rounded-xl p-5 text-center w-full border-2 border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-900/80 overflow-hidden">
+          <div className="relative rounded-xl p-5 text-center w-full border-2 border-surface-50 bg-gradient-to-br from-surface-300/50 to-surface-200 overflow-hidden">
             <p className="text-sm text-gray-500 uppercase tracking-wider font-bold mb-2">Prossima Offerta</p>
             <p className="text-smxl lg:text-smxl font-mono font-black text-white/10 mb-3 select-none">
               ?

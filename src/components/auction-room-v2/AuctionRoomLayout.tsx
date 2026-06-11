@@ -30,6 +30,8 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
         onExit={props.onNavigate && props.leagueId ? () => { props.onNavigate!('leagueDetail', { leagueId: props.leagueId! }); } : undefined}
         isAdmin={props.isAdmin}
         teamInitial={teamInitial}
+        teamName={myManager?.teamName || myManager?.username}
+        leagueSize={props.managersStatus?.managers.length}
         onRequestPause={props.onRequestPause}
         pauseRequest={props.pauseRequest}
         dismissPauseRequest={props.dismissPauseRequest}
@@ -39,12 +41,12 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
       <RoleProgressRail
         marketProgress={props.marketProgress}
         isPrimoMercato={props.isPrimoMercato}
+        myRosterSlots={props.myRosterSlots}
       />
 
       {/* Mobile: side panel triggers */}
       <MobileSidePanel
         managersStatus={props.managersStatus}
-        firstMarketStatus={props.firstMarketStatus}
         onSelectManager={props.onSelectManager}
         myRosterSlots={props.myRosterSlots}
         budget={props.membership?.currentBudget || 0}
@@ -58,7 +60,6 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
           <div className="sticky top-4">
             <FinancialDashboard
               managersStatus={props.managersStatus}
-              firstMarketStatus={props.firstMarketStatus}
               onSelectManager={props.onSelectManager}
               currentBidderUsername={props.auction?.bids[0]?.bidder.user.username ?? null}
             />

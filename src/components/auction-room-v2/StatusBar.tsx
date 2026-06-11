@@ -13,6 +13,8 @@ interface StatusBarProps {
   onExit?: () => void
   isAdmin: boolean
   teamInitial?: string
+  teamName?: string | null
+  leagueSize?: number
   onRequestPause?: () => void
   pauseRequest?: { username: string; type: string } | null
   dismissPauseRequest?: () => void
@@ -43,6 +45,8 @@ export function StatusBar({
   onExit,
   isAdmin,
   teamInitial = 'FC',
+  teamName,
+  leagueSize,
   onRequestPause,
   pauseRequest,
   dismissPauseRequest,
@@ -51,51 +55,64 @@ export function StatusBar({
   const maxBid = computeMaxBid(budget, myRosterSlots)
 
   return (
-    <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 flex items-center gap-3 flex-wrap min-h-[64px]">
-      {/* Team Logo Circle + Title */}
+    <div className="bg-surface-200 border border-surface-50 rounded-xl px-4 py-3 flex items-center gap-3 flex-wrap min-h-[64px]">
+      {/* Team identity */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-sky-500/20 flex-shrink-0">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0">
           {teamInitial}
         </div>
         <div className="flex flex-col">
           <h1 className="text-sm sm:text-base font-black text-white tracking-wide leading-tight">
-            ASTA LIVE
+            {teamName || 'ASTA LIVE'}
           </h1>
-          <div className="flex items-center gap-2 mt-0.5">
-            {/* Connection dot */}
-            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isConnected ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`} />
-            {!isConnected && <span className="text-sm text-yellow-400">{connectionStatus}</span>}
-            {/* Turn info */}
-            {currentTurnManager && (
-              <span className="text-sm text-gray-400">
-                {isMyTurn ? (
-                  <span className="text-accent-400 font-bold">IL TUO TURNO</span>
-                ) : (
-                  <>Chiamata di: <strong className="text-primary-400">{currentTurnManager.username}</strong></>
-                )}
-              </span>
-            )}
-          </div>
+          <span className="text-sm text-gray-500 leading-tight">
+            Asta Primo Mercato{leagueSize ? ` · ${leagueSize} squadre` : ''}
+          </span>
         </div>
       </div>
+
+      {/* Connection pill */}
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-semibold border ${
+        isConnected
+          ? 'bg-secondary-500/10 border-secondary-500/30 text-secondary-400'
+          : 'bg-amber-500/10 border-amber-500/30 text-amber-400 animate-pulse'
+      }`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-secondary-400' : 'bg-amber-400'}`} />
+        {isConnected ? 'Connesso' : connectionStatus}
+      </span>
+
+      {/* Turn chip */}
+      {currentTurnManager && (
+        isMyTurn ? (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-bold border bg-accent-500/15 border-accent-500/40 text-accent-400 uppercase tracking-wide">
+            Tocca a te
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm border bg-surface-300 border-surface-50 text-gray-400 uppercase tracking-wide font-semibold">
+            Chiamata di <strong className="text-white normal-case">{currentTurnManager.username}</strong>
+          </span>
+        )
+      )}
 
       {/* Budget + Max Bid + Actions — pushed right */}
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
         {/* Budget */}
         <div className="flex flex-col items-end">
           <span className="text-sm text-gray-500 uppercase tracking-wider font-semibold leading-none">Budget</span>
-          <span className="text-sml sm:text-2xl font-mono font-black gradient-text-gold leading-tight">{budget}</span>
+          <span className="budget-display text-sml sm:text-2xl font-black text-white leading-tight">
+            {budget}<span className="text-sm text-gray-500 font-semibold">M</span>
+          </span>
         </div>
 
         {/* Max Bid Box — the one number that decides a raise, highlighted gold */}
         {maxBid !== null && (
           <>
-            <div className="w-px h-8 bg-white/10 hidden sm:block" />
-            <div className="border border-accent-500/50 bg-accent-500/10 rounded-lg px-2.5 py-1.5 flex flex-col items-center shadow-glow-gold">
-              <span className="text-sm text-accent-300 uppercase font-semibold leading-none">Offerta Max</span>
-              <span className={`text-lg font-mono font-bold leading-tight ${
+            <div className="w-px h-8 bg-surface-50 hidden sm:block" />
+            <div className="border border-accent-500/50 bg-accent-500/10 rounded-lg px-3 py-1.5 flex flex-col items-center shadow-glow-gold">
+              <span className="text-sm text-accent-300 uppercase font-bold tracking-wider leading-none">Offerta Max</span>
+              <span className={`budget-display text-sml sm:text-2xl font-black leading-tight ${
                 maxBid <= 10 ? 'text-red-400' : maxBid <= 50 ? 'text-amber-400' : 'text-accent-400'
-              }`}>{maxBid}</span>
+              }`}>{maxBid}<span className="text-sm font-semibold opacity-70">M</span></span>
             </div>
           </>
         )}
@@ -127,7 +144,7 @@ export function StatusBar({
           {onExit && (
             <button
               onClick={onExit}
-              className="p-2 rounded-lg bg-slate-700/50 border border-white/10 text-gray-400 hover:text-white hover:bg-slate-700/80 transition-colors"
+              className="p-2 rounded-lg bg-surface-100/50 border border-surface-50 text-gray-400 hover:text-white hover:bg-surface-100/80 transition-colors"
               title="Esci dalla sala"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -36,7 +36,7 @@ function getAgeBg(age: number | null | undefined): string {
 }
 
 function getMvColor(mv: number | null | undefined): { text: string; bg: string; border: string } {
-  if (mv == null) return { text: 'text-gray-400', bg: 'bg-slate-700/40', border: '' }
+  if (mv == null) return { text: 'text-gray-400', bg: 'bg-surface-100/40', border: '' }
   if (mv >= 7.0) return { text: 'text-emerald-400', bg: 'bg-emerald-500/15', border: 'border border-emerald-500/30' }
   if (mv >= 6.5) return { text: 'text-green-400', bg: 'bg-green-500/15', border: 'border border-green-500/30' }
   if (mv >= 6.0) return { text: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border border-sky-500/20' }
@@ -60,7 +60,7 @@ export function PlayerCard({ name, team, position, quotation, age, apiFootballId
           <img
             src={photoUrl}
             alt={name}
-            className="w-7 h-7 rounded-full object-cover bg-slate-700 flex-shrink-0"
+            className="w-7 h-7 rounded-full object-cover bg-surface-100 flex-shrink-0"
             onError={() => { setImgError(true); }}
           />
         ) : (
@@ -74,8 +74,81 @@ export function PlayerCard({ name, team, position, quotation, age, apiFootballId
     )
   }
 
+  // Large size: vertical centered layout — the lot on stage
+  if (size === 'lg') {
+    const initials = name
+      .split(/\s+/)
+      .map(w => w.charAt(0))
+      .slice(0, 2)
+      .join('')
+      .toUpperCase()
+    const ringColor: Record<string, string> = {
+      P: 'border-amber-400/60',
+      D: 'border-blue-400/60',
+      C: 'border-emerald-400/60',
+      A: 'border-red-400/60',
+    }
+    return (
+      <div className="rounded-2xl bg-surface-300 border border-surface-50 h-full flex flex-col items-center justify-center text-center p-5">
+        {photoUrl && !imgError ? (
+          <img
+            src={photoUrl}
+            alt={name}
+            className={`w-24 h-24 rounded-full object-cover bg-surface-100 border-2 ${ringColor[position] || 'border-surface-50'}`}
+            onError={() => { setImgError(true); }}
+          />
+        ) : (
+          <span className={`w-24 h-24 rounded-full bg-surface-200 border-2 ${ringColor[position] || 'border-surface-50'} flex items-center justify-center font-display text-3xl font-black text-white`}>
+            {initials}
+          </span>
+        )}
+
+        <p className="font-display text-2xl lg:text-3xl font-black text-white mt-3 leading-tight">{name}</p>
+
+        <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
+          <span className={`text-sms font-bold px-2.5 py-0.5 rounded-full border ${posBg}`}>{posName}</span>
+          <span className="w-5 h-5 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
+            <img src={getTeamLogo(team)} alt={team} className="w-3.5 h-3.5 object-contain" />
+          </span>
+          <span className="text-sm text-gray-400">{team}</span>
+          {age != null && age > 0 && (
+            <>
+              <span className="text-gray-500">·</span>
+              <span className={`text-sm font-semibold ${getAgeColor(age)}`}>{age} anni</span>
+            </>
+          )}
+        </div>
+
+        {quotation != null && quotation > 0 && (
+          <div className="mt-3 pt-3 border-t border-surface-50 w-full flex items-center justify-center gap-2">
+            <span className="text-sm text-gray-500 uppercase tracking-widest font-semibold">Quotazione</span>
+            <span className="stat-number text-sml font-black text-accent-400">{quotation}M</span>
+          </div>
+        )}
+
+        {hasStats && (
+          <div className="grid grid-cols-4 divide-x divide-surface-50 mt-3 pt-3 border-t border-surface-50 w-full">
+            {([
+              { value: appearances, label: 'Presenze' },
+              { value: goals, label: 'Gol' },
+              { value: assists, label: 'Assist' },
+              { value: avgRating, label: 'Fantamedia', color: mvColor.text },
+            ] as const).map(stat => (
+              stat.value != null && (
+                <div key={stat.label} className="px-1">
+                  <p className={`stat-number text-sml font-black ${('color' in stat && stat.color) || 'text-white'}`}>{stat.value}</p>
+                  <p className="text-sm text-gray-500 uppercase tracking-wide font-semibold">{stat.label}</p>
+                </div>
+              )
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-white/10 h-full">
+    <div className="relative overflow-hidden rounded-2xl bg-surface-200 border border-surface-50 h-full">
       <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${posGradient}`} />
       <div className="relative p-4">
         {/* Horizontal layout: photo left, info right */}
@@ -85,18 +158,18 @@ export function PlayerCard({ name, team, position, quotation, age, apiFootballId
             <img
               src={photoUrl}
               alt={name}
-              className={`rounded-xl object-cover bg-slate-700 flex-shrink-0 ${size === 'lg' ? 'w-20 h-20' : 'w-16 h-16'}`}
+              className={`rounded-xl object-cover bg-surface-100 flex-shrink-0 w-16 h-16`}
               onError={() => { setImgError(true); }}
             />
           ) : (
-            <span className={`rounded-xl bg-gradient-to-br ${posGradient} flex items-center justify-center text-2xl font-bold text-white flex-shrink-0 ${size === 'lg' ? 'w-20 h-20' : 'w-16 h-16'}`}>
+            <span className={`rounded-xl bg-gradient-to-br ${posGradient} flex items-center justify-center text-2xl font-bold text-white flex-shrink-0 w-16 h-16`}>
               {position}
             </span>
           )}
 
           {/* Info */}
           <div className="flex-1 min-w-0">
-            <p className={`font-display font-black text-white uppercase truncate ${size === 'lg' ? 'text-2xl' : 'text-base'}`}>{name}</p>
+            <p className={`font-display font-black text-white uppercase truncate text-base`}>{name}</p>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
                 <img src={getTeamLogo(team)} alt={team} className="w-3.5 h-3.5 object-contain" />
@@ -128,19 +201,19 @@ export function PlayerCard({ name, team, position, quotation, age, apiFootballId
         {hasStats && (
           <div className="grid grid-cols-4 gap-2 mt-3">
             {appearances != null && (
-              <div className="bg-slate-700/40 rounded-lg p-2 text-center">
+              <div className="bg-surface-100/40 rounded-lg p-2 text-center">
                 <p className="text-sm text-gray-500 uppercase font-semibold">Presenze</p>
                 <p className="text-sm font-mono font-bold text-white">{appearances}</p>
               </div>
             )}
             {goals != null && (
-              <div className="bg-slate-700/40 rounded-lg p-2 text-center">
+              <div className="bg-surface-100/40 rounded-lg p-2 text-center">
                 <p className="text-sm text-gray-500 uppercase font-semibold">Gol</p>
                 <p className="text-sm font-mono font-bold text-white">{goals}</p>
               </div>
             )}
             {assists != null && (
-              <div className="bg-slate-700/40 rounded-lg p-2 text-center">
+              <div className="bg-surface-100/40 rounded-lg p-2 text-center">
                 <p className="text-sm text-gray-500 uppercase font-semibold">Assist</p>
                 <p className="text-sm font-mono font-bold text-white">{assists}</p>
               </div>

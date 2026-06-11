@@ -34,7 +34,7 @@ function getAgeBadge(age: number | null | undefined): { text: string; bg: string
 }
 
 function getMvColor(mv: number | null | undefined): { text: string; bg: string; border: string } {
-  if (mv == null) return { text: 'text-gray-400', bg: 'bg-slate-700/40', border: '' }
+  if (mv == null) return { text: 'text-gray-400', bg: 'bg-surface-100/40', border: '' }
   if (mv >= 7.0) return { text: 'text-emerald-400', bg: 'bg-emerald-500/15', border: 'border border-emerald-500/30' }
   if (mv >= 6.5) return { text: 'text-green-400', bg: 'bg-green-500/15', border: 'border border-green-500/30' }
   if (mv >= 6.0) return { text: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border border-sky-500/20' }
@@ -131,12 +131,12 @@ export function NominationPanel({
                     ? role === 'TUTTI'
                       ? 'bg-white/10 text-white border-white/30'
                       : POSITION_FILTER_COLORS[role as keyof typeof POSITION_FILTER_COLORS] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'
-                    : 'bg-slate-800/40 text-gray-500 border-white/5 hover:border-white/15'
+                    : 'bg-surface-300/40 text-gray-500 border-surface-50/60 hover:border-white/15'
                 }`}
               >
                 {role === 'TUTTI' ? 'TUTTI' : (POSITION_NAMES[role as keyof typeof POSITION_NAMES] || role).slice(0, 3).toUpperCase()}
                 {isCurrentAuctionRole && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-accent-500 animate-pulse border-2 border-slate-900" />
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-accent-500 animate-pulse border-2 border-surface-200" />
                 )}
               </button>
             )
@@ -155,12 +155,12 @@ export function NominationPanel({
             placeholder="Nome giocatore, squadra..."
             value={searchQuery}
             onChange={e => { onSearchChange(e.target.value); }}
-            className="w-full bg-slate-800/60 backdrop-blur border border-white/10 text-white rounded-lg pl-8 pr-3 py-1.5 text-sms placeholder-gray-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 focus:outline-none transition-colors"
+            className="w-full bg-surface-300/60 border border-surface-50 text-white rounded-lg pl-8 pr-3 py-1.5 text-sms placeholder-gray-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500/50 focus:outline-none transition-colors"
           />
         </div>
 
         {/* View mode toggle (desktop only) */}
-        <div className="hidden lg:flex gap-0.5 flex-shrink-0 bg-slate-800/40 rounded-lg p-0.5 border border-white/5">
+        <div className="hidden lg:flex gap-0.5 flex-shrink-0 bg-surface-300/40 rounded-lg p-0.5 border border-surface-50/60">
           <button
             onClick={() => { setViewMode('card'); }}
             className={`p-1.5 rounded-md transition-all ${
@@ -196,14 +196,14 @@ export function NominationPanel({
       </div>
 
       {/* Row 2: Team logos horizontal strip */}
-      <div className="flex items-center gap-1 mb-3 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-slate-700">
+      <div className="flex items-center gap-1 mb-3 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-surface-100">
         {/* "All" button */}
         <button
           onClick={() => { onTeamChange(''); }}
           className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-sm font-bold border transition-all ${
             !selectedTeam
               ? 'bg-sky-500/20 text-sky-400 border-sky-500/40'
-              : 'bg-slate-800/40 text-gray-500 border-white/5 hover:border-white/15'
+              : 'bg-surface-300/40 text-gray-500 border-surface-50/60 hover:border-white/15'
           }`}
         >
           TUTTE
@@ -215,7 +215,7 @@ export function NominationPanel({
             className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center border transition-all ${
               selectedTeam === team.name
                 ? 'bg-white/15 border-sky-500/50 ring-1 ring-sky-500/30'
-                : 'bg-slate-800/30 border-white/5 hover:border-white/20 opacity-60 hover:opacity-100'
+                : 'bg-surface-300/30 border-surface-50/60 hover:border-white/20 opacity-60 hover:opacity-100'
             }`}
             title={`${team.name} (${team.playerCount})`}
           >
@@ -231,7 +231,7 @@ export function NominationPanel({
         const focalAgeBadge = getAgeBadge(focalPlayer.age)
         const hasDetailedStats = focalPlayer.appearances != null || focalPlayer.goals != null || focalPlayer.assists != null || focalPlayer.avgRating != null
         return (
-          <div className="mb-4 rounded-xl border border-sky-500/30 bg-slate-800/60 backdrop-blur overflow-hidden">
+          <div className="mb-4 rounded-xl border border-sky-500/30 bg-surface-300/60 overflow-hidden">
             <div className="p-4">
               <div className="flex items-start gap-4">
                 {/* Player photo large */}
@@ -239,7 +239,7 @@ export function NominationPanel({
                   <img
                     src={focalPhotoUrl}
                     alt={focalPlayer.name}
-                    className="w-20 h-20 rounded-xl object-cover bg-slate-700 flex-shrink-0"
+                    className="w-20 h-20 rounded-xl object-cover bg-surface-100 flex-shrink-0"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement
                       target.style.display = 'none'
@@ -297,19 +297,19 @@ export function NominationPanel({
               {hasDetailedStats && (
                 <div className="grid grid-cols-4 gap-2 mt-3">
                   {focalPlayer.appearances != null && (
-                    <div className="bg-slate-700/40 rounded-lg p-2 text-center">
+                    <div className="bg-surface-100/40 rounded-lg p-2 text-center">
                       <p className="text-sm text-gray-500 uppercase font-semibold">Presenze</p>
                       <p className="text-sm font-mono font-bold text-white">{focalPlayer.appearances}</p>
                     </div>
                   )}
                   {focalPlayer.goals != null && (
-                    <div className="bg-slate-700/40 rounded-lg p-2 text-center">
+                    <div className="bg-surface-100/40 rounded-lg p-2 text-center">
                       <p className="text-sm text-gray-500 uppercase font-semibold">Gol</p>
                       <p className="text-sm font-mono font-bold text-white">{focalPlayer.goals}</p>
                     </div>
                   )}
                   {focalPlayer.assists != null && (
-                    <div className="bg-slate-700/40 rounded-lg p-2 text-center">
+                    <div className="bg-surface-100/40 rounded-lg p-2 text-center">
                       <p className="text-sm text-gray-500 uppercase font-semibold">Assist</p>
                       <p className="text-sm font-mono font-bold text-white">{focalPlayer.assists}</p>
                     </div>
@@ -328,7 +328,7 @@ export function NominationPanel({
             </div>
 
             {/* Action buttons */}
-            <div className="flex border-t border-white/10">
+            <div className="flex border-t border-surface-50">
               {!disabled && (
                 <button
                   onClick={handleNominate}
@@ -342,7 +342,7 @@ export function NominationPanel({
               )}
               <button
                 onClick={() => { setFocalPlayer(null); }}
-                className="flex-1 px-4 py-3 bg-slate-700/40 text-sm font-semibold text-gray-400 hover:bg-slate-700/60 hover:text-white transition-all flex items-center justify-center gap-1.5 border-l border-white/10"
+                className="flex-1 px-4 py-3 bg-surface-100/40 text-sm font-semibold text-gray-400 hover:bg-surface-100/60 hover:text-white transition-all flex items-center justify-center gap-1.5 border-l border-surface-50"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -374,7 +374,7 @@ export function NominationPanel({
                     className={`relative rounded-xl p-3 text-left transition-all border group ${
                       isSelected
                         ? 'bg-sky-500/10 border-sky-500/40 ring-1 ring-sky-500/30'
-                        : 'bg-slate-800/40 border-white/5 hover:border-sky-500/40 hover:scale-[1.02]'
+                        : 'bg-surface-300/40 border-surface-50/60 hover:border-sky-500/40 hover:scale-[1.02]'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -383,7 +383,7 @@ export function NominationPanel({
                         <img
                           src={photoUrl}
                           alt={player.name}
-                          className="w-12 h-12 rounded-xl object-cover bg-slate-700 flex-shrink-0"
+                          className="w-12 h-12 rounded-xl object-cover bg-surface-100 flex-shrink-0"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement
                             target.style.display = 'none'
@@ -429,7 +429,7 @@ export function NominationPanel({
             {viewMode === 'table' && (
               <table className="hidden lg:table w-full">
                 <thead>
-                  <tr className="bg-slate-800/50 text-sm text-gray-500 uppercase tracking-wider font-semibold">
+                  <tr className="bg-surface-300/50 text-sm text-gray-500 uppercase tracking-wider font-semibold">
                     <th className="py-2 px-3 text-left w-10"></th>
                     <th className="py-2 px-3 text-left">Nome</th>
                     <th className="py-2 px-3 text-left">Squadra</th>
@@ -452,10 +452,10 @@ export function NominationPanel({
                       <tr
                         key={player.id}
                         onClick={() => { handlePlayerClick(player); }}
-                        className={`border-b border-white/5 cursor-pointer transition-colors ${
+                        className={`border-b border-surface-50/60 cursor-pointer transition-colors ${
                           isSelected
                             ? 'bg-sky-500/10 border-sky-500/30'
-                            : 'hover:bg-slate-800/30'
+                            : 'hover:bg-surface-300/30'
                         }`}
                       >
                         {/* Photo + Badge */}
@@ -465,7 +465,7 @@ export function NominationPanel({
                               <img
                                 src={photoUrl}
                                 alt={player.name}
-                                className="w-10 h-10 rounded-full object-cover bg-slate-700"
+                                className="w-10 h-10 rounded-full object-cover bg-surface-100"
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement
                                   target.style.display = 'none'

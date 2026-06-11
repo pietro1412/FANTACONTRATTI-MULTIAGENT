@@ -46,7 +46,7 @@ export function ReadyCheckPanel({
 
         {/* Right: Ready Check Controls */}
         <div className="flex flex-col items-center justify-center">
-          <div className="relative rounded-xl p-5 text-center w-full border-2 border-sky-500/20 bg-gradient-to-br from-slate-800/50 to-slate-900/80 overflow-hidden">
+          <div className="relative rounded-xl p-5 text-center w-full border-2 border-sky-500/20 bg-gradient-to-br from-surface-300/50 to-surface-200 overflow-hidden">
             <p className="text-sm text-sky-400 uppercase tracking-wider font-bold mb-3">Conferma Pronti</p>
 
             {/* Ready Progress */}
@@ -58,7 +58,7 @@ export function ReadyCheckPanel({
             </div>
 
             {/* Progress bar */}
-            <div className="w-full bg-slate-700/50 rounded-full h-2 mb-4">
+            <div className="w-full bg-surface-100/50 rounded-full h-2 mb-4">
               <div
                 className="h-2 rounded-full bg-gradient-to-r from-sky-500 to-accent-500 transition-all duration-500"
                 style={{ width: `${readyStatus.totalMembers > 0 ? (readyStatus.readyCount / readyStatus.totalMembers) * 100 : 0}%` }}
