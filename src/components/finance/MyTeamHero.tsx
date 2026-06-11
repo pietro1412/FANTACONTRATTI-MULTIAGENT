@@ -71,7 +71,7 @@ export function MyTeamHero({
           {/* 3 key stats */}
           <div className="grid grid-cols-3 gap-3 border-t border-surface-50 pt-4 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Budget totale</div>
+              <div className="micro-label">Budget totale</div>
               <div className="stat-number mt-1 text-2xl text-white md:text-[27px]">
                 {team.budget}
                 <span className="text-sm font-medium text-gray-400">M</span>
@@ -79,7 +79,7 @@ export function MyTeamHero({
               <div className="mt-1 text-[11px] text-gray-500">{budgetRank}&deg; su {teamsCount} in lega</div>
             </div>
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Monte ingaggi</div>
+              <div className="micro-label">Monte ingaggi</div>
               <div className="stat-number mt-1 text-2xl text-white md:text-[27px]">
                 {team.annualContractCost}
                 <span className="text-sm font-medium text-gray-400">M/anno</span>
@@ -89,7 +89,7 @@ export function MyTeamHero({
               </div>
             </div>
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Slot rosa</div>
+              <div className="micro-label">Slot rosa</div>
               <div className="stat-number mt-1 text-2xl text-white md:text-[27px]">
                 {team.slotCount}
                 <span className="text-sm font-medium text-gray-400">/{team.maxSlots}</span>

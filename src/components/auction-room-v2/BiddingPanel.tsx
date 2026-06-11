@@ -178,7 +178,7 @@ export function BiddingPanel({
       {auction.bids.length > 0 && (
         <div className="border-t border-surface-50 pt-3">
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sms text-gray-400 font-medium uppercase tracking-wide">Ultimi rilanci</h4>
+            <h4 className="micro-label">Ultimi rilanci</h4>
             <span className="text-sm text-gray-500 font-mono">{auction.bids.length} offerte</span>
           </div>
           <div className="flex gap-1.5 overflow-x-auto pb-1">

@@ -31,7 +31,7 @@ export function RoleProgressRail({ marketProgress, isPrimoMercato, myRosterSlots
             <span key={role} className="flex items-center gap-1 sm:gap-1.5">
               {i > 0 && <span className="text-gray-600 text-sm">›</span>}
               <span
-                className={`px-2 py-1 rounded-lg text-sm font-bold border flex items-center gap-1 ${
+                className={`px-2.5 py-1 rounded-full text-sm font-bold border flex items-center gap-1 ${
                   isActive
                     ? POSITION_FILTER_COLORS[role] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'
                     : isDone
@@ -61,7 +61,7 @@ export function RoleProgressRail({ marketProgress, isPrimoMercato, myRosterSlots
       <div className="ml-auto flex items-center gap-2 min-w-[140px] flex-1 sm:flex-none sm:w-56">
         <span className="text-sm text-gray-500 uppercase tracking-wide font-semibold flex-shrink-0 hidden sm:inline">Slot lega</span>
         <div className="flex-1 h-1.5 bg-surface-100 rounded-full overflow-hidden">
-          <div className="h-full rounded-full bg-primary-500" style={{ width: `${progressPercent}%` }} />
+          <div className="h-full rounded-full progress-gradient" style={{ width: `${progressPercent}%` }} />
         </div>
         <span className="stat-number text-sm text-gray-300 flex-shrink-0">
           {marketProgress.filledSlots}/{marketProgress.totalSlots}

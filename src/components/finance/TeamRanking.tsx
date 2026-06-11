@@ -60,7 +60,7 @@ export function TeamRanking({ teams, hasFinancialDetails, onTeamClick, myTeamId 
                   isNegative
                     ? 'bg-gradient-to-r from-danger-600 to-danger-400'
                     : isMe
-                      ? 'bg-gradient-to-r from-accent-600 to-accent-400'
+                      ? 'progress-gradient'
                       : 'bg-gradient-to-r from-primary-600 to-primary-500'
                 }`}
                 style={{ width: `${barWidth}%` }}

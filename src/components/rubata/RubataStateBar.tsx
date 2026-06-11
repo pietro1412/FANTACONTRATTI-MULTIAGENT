@@ -49,6 +49,7 @@ export const RubataStateBar = memo(function RubataStateBar({
   const config = getStateConfig(rubataState)
   const isUrgent = timerDisplay !== null && timerDisplay < 10
   const timerLabel = rubataState === 'AUCTION' ? 'per rilanciare' : 'per decidere'
+  const isLive = rubataState === 'OFFERING' || rubataState === 'AUCTION'
 
   const progressPct = progressStats && progressStats.totalPlayers > 0
     ? Math.min(100, Math.round(((progressStats.currentIndex + 1) / progressStats.totalPlayers) * 100))
@@ -59,8 +60,14 @@ export const RubataStateBar = memo(function RubataStateBar({
       {/* Phase + turn */}
       <div className="flex flex-col gap-0.5 min-w-0 flex-1">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${config.dotColor} ${rubataState === 'AUCTION' ? 'animate-pulse' : ''}`} />
-          <span className="text-xs sm:text-sm font-display font-bold text-white uppercase tracking-wide truncate">
+          <span
+            className={`flex-shrink-0 ${
+              isLive
+                ? `dot-live ${rubataState === 'AUCTION' ? 'bg-danger-400 shadow-[0_0_8px_theme(colors.danger.400)] animate-pulse' : ''}`
+                : `w-2 h-2 rounded-full ${config.dotColor}`
+            }`}
+          />
+          <span className="text-[13px] sm:text-[15px] font-display font-bold text-white uppercase tracking-wide truncate">
             {config.label}
           </span>
         </div>
@@ -80,7 +87,7 @@ export const RubataStateBar = memo(function RubataStateBar({
             aria-live={isUrgent ? 'assertive' : 'off'}
             aria-label={`${timerDisplay} secondi rimanenti`}
             className={`timer-sport text-[36px] sm:text-[44px] leading-none tabular-nums ${
-              isUrgent ? 'text-danger-400 animate-pulse' : 'text-accent-300'
+              isUrgent ? 'text-danger-400 animate-pulse' : 'text-accent-400'
             }`}
           >
             {formatTimer(timerDisplay)}
@@ -103,9 +110,9 @@ export const RubataStateBar = memo(function RubataStateBar({
           />
         </div>
         {progressStats && (
-          <div className="w-20 sm:w-28 h-1 rounded-full bg-surface-50/30 overflow-hidden">
+          <div className="w-20 sm:w-28 h-1 rounded-full bg-surface-50 overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-primary-500 to-accent-500 transition-all duration-500"
+              className="h-full rounded-full progress-gradient transition-all duration-500"
               style={{ width: `${progressPct}%` }}
             />
           </div>

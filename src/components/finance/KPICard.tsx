@@ -32,7 +32,7 @@ export function KPICard({ title, value, subtitle, description, progress, progres
   return (
     <div className={`bg-surface-300/50 rounded-lg p-3 md:p-4 border ${VARIANT_STYLES[variant]}`}>
       <div className="flex items-center gap-1 mb-1">
-        <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">{title}</div>
+        <div className="micro-label">{title}</div>
         {description && (
           <div className="relative">
             <button

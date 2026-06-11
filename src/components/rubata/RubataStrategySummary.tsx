@@ -167,7 +167,7 @@ export function RubataStrategySummary({
         className="w-full p-3 md:p-4 flex items-center justify-between hover:bg-surface-300/30 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-white">Strategie</span>
+          <span className="micro-label">Strategie</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-400 font-mono">
             {configured}/{total}
           </span>

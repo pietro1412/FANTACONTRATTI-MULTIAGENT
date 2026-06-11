@@ -45,7 +45,7 @@ export function AdminActionsPanel({
   return (
     <div className="bg-surface-200 rounded-xl border border-accent-500/30 overflow-hidden">
       <div className="px-3 py-2 border-b border-surface-50/60 flex items-center justify-between">
-        <span className="flex items-center gap-2 text-sm font-bold text-accent-400 uppercase tracking-wide">
+        <span className="micro-label flex items-center gap-2">
           <span aria-hidden="true">⚙️</span>
           Azioni Admin
         </span>

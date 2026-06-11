@@ -45,6 +45,14 @@ function semestriLabel(n: number): string {
   return n === 1 ? '1 semestre' : `${n} semestri`
 }
 
+/** Mockup v2 role badge colors: P oro, D blu, C verde, A rosso (bg /14, border /40) */
+const ROLE_BADGE_COLORS: Record<string, string> = {
+  P: 'bg-accent-500/[0.14] text-accent-400 border border-accent-500/40',
+  D: 'bg-primary-500/[0.14] text-primary-400 border border-primary-500/40',
+  C: 'bg-secondary-500/[0.14] text-secondary-400 border border-secondary-500/40',
+  A: 'bg-danger-500/[0.14] text-danger-400 border border-danger-500/40',
+}
+
 export const HeroPlayerCard = memo(function HeroPlayerCard({
   player,
   rubataState,
@@ -76,11 +84,11 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
   return (
     <div
       ref={heroRef as React.RefObject<HTMLDivElement>}
-      className="mb-3 bg-surface-200 border border-accent-500/70 rounded-xl shadow-glow-gold overflow-hidden"
+      className="mb-3 bg-surface-200 arena-gold rounded-xl overflow-hidden"
     >
       <div className="p-4">
         {/* Arena tag */}
-        <p className="text-[11px] font-mono font-bold uppercase tracking-[0.12em] text-accent-400 mb-3">
+        <p className="micro-label text-accent-400 mb-3">
           {rubataState === 'AUCTION' ? 'Asta al rilancio' : 'Sul piatto — vuoi rubarlo?'}
         </p>
 
@@ -94,7 +102,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
             />
           ) : (
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-display font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
+            <div className={`w-[46px] h-[46px] rounded-[10px] flex items-center justify-center text-xl font-display font-extrabold flex-shrink-0 ${ROLE_BADGE_COLORS[player.playerPosition] ?? POSITION_COLORS[player.playerPosition] ?? ''}`}>
               {player.playerPosition}
             </div>
           )}
@@ -112,7 +120,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
                   apiFootballId: player.playerApiFootballId,
                   computedStats: player.playerComputedStats,
                 }); }}
-                className="text-xl sm:text-2xl font-display font-bold text-white hover:text-accent-300 truncate leading-tight"
+                className="text-2xl sm:text-[28px] font-display font-bold text-white hover:text-accent-300 truncate leading-tight"
                 title="Clicca per vedere statistiche"
               >
                 {player.playerName}
@@ -132,7 +140,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
                   <span>{player.playerAge} anni</span>
                 </>
               )}
-              <span className="inline-flex items-center gap-1.5 ml-1 pl-1 pr-2.5 py-0.5 rounded-full bg-surface-300 border border-surface-50/30 text-xs text-gray-400">
+              <span className="inline-flex items-center gap-1.5 ml-1 pl-1 pr-3 py-1 rounded-full bg-surface-300 border border-surface-50 text-xs text-gray-400">
                 <Monogram name={ownerName} size="xs" />
                 dalla rosa di <b className="text-gray-200 font-semibold">{ownerName}</b>
               </span>
@@ -163,7 +171,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
         {/* Costo rubata — protagonista */}
         <div className="mt-3 flex items-center gap-4 flex-wrap rounded-xl border border-accent-500/40 bg-surface-300 px-4 py-3">
           <div className="flex flex-col">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-accent-400">Costo rubata</span>
+            <span className="micro-label text-accent-400">Costo rubata</span>
             <span className="stat-number text-[44px] sm:text-[54px] leading-none text-accent-300">{player.rubataPrice}M</span>
           </div>
           <span className="stat-number text-2xl text-gray-600" aria-hidden="true">=</span>
@@ -187,7 +195,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
               <span className="w-5 h-5 rounded-full bg-secondary-500 text-dark-300 flex items-center justify-center text-xs font-bold flex-shrink-0" aria-hidden="true">✓</span>
               <span className="text-gray-300">
                 <b className="text-secondary-400 font-bold">Te lo puoi permettere.</b>{' '}
-                Bilancio dopo la rubata: <b className="font-mono text-secondary-400">{residuoAfter}M</b> su {myResiduo}M
+                Bilancio dopo la rubata: <b className="font-mono text-secondary-400">{residuoAfter}M</b> su <span className="font-mono">{myResiduo}M</span>
               </span>
             </div>
           ) : (
@@ -195,7 +203,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
               <span className="w-5 h-5 rounded-full bg-danger-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0" aria-hidden="true">!</span>
               <span className="text-gray-300">
                 <b className="text-danger-400 font-bold">Non te lo puoi permettere.</b>{' '}
-                Ti mancano <b className="font-mono text-danger-400">{Math.abs(residuoAfter)}M</b> sul tuo bilancio di {myResiduo}M
+                Ti mancano <b className="font-mono text-danger-400">{Math.abs(residuoAfter)}M</b> sul tuo bilancio di <span className="font-mono">{myResiduo}M</span>
               </span>
             </div>
           )
@@ -230,7 +238,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
         {/* During AUCTION — current bid big */}
         {rubataState === 'AUCTION' && activeAuction && (
           <div className="mt-3 rounded-xl border border-danger-500/50 bg-surface-300 px-3 py-3 text-center">
-            <p className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-gray-500">Offerta attuale</p>
+            <p className="micro-label">Offerta attuale</p>
             <p
               className="stat-number text-[56px] md:text-[40px] leading-none text-accent-300 mt-1"
               aria-live="polite"

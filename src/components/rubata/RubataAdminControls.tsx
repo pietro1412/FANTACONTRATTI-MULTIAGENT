@@ -18,7 +18,7 @@ export function BudgetPanel({ memberBudgets }: BudgetPanelProps) {
   return (
     <div className="bg-surface-200 rounded-2xl border border-primary-500/50 overflow-hidden sticky top-20">
       <div className="p-3 border-b border-surface-50/20 bg-primary-500/10">
-        <h3 className="font-bold text-primary-400 text-sm">Bilancio</h3>
+        <h3 className="micro-label">Bilancio</h3>
       </div>
       <div className="p-2 space-y-1">
         {memberBudgets.map((mb, idx) => (
@@ -69,7 +69,7 @@ export function TimerSettingsPanel({
   return (
     <div className="bg-surface-200 rounded-2xl border border-accent-500/50 overflow-hidden">
       <div className="p-3 border-b border-surface-50/20 bg-accent-500/10">
-        <h3 className="font-bold text-accent-400">Timer</h3>
+        <h3 className="micro-label">Timer</h3>
       </div>
       <div className="p-3 space-y-3">
         <div>
@@ -160,7 +160,7 @@ export function BotSimulationPanel({
   return (
     <div className="bg-surface-200 rounded-2xl border border-passion-500/50 overflow-hidden">
       <div className="p-4 border-b border-surface-50/20 bg-passion-500/10">
-        <h3 className="font-bold text-passion-400">Simula Bot</h3>
+        <h3 className="micro-label">Simula Bot</h3>
       </div>
       <div className="p-4 space-y-3">
         <div>
@@ -265,7 +265,7 @@ export function GameFlowPanel({
   return (
     <div className="bg-surface-200 rounded-2xl border border-primary-500/50 overflow-hidden">
       <div className="p-3 border-b border-surface-50/20 bg-primary-500/10">
-        <h3 className="font-bold text-primary-400 text-sm">Conduzione</h3>
+        <h3 className="micro-label">Conduzione</h3>
       </div>
       <div className="p-3 flex flex-wrap gap-2">
         {showStart && (
@@ -320,7 +320,7 @@ export function CompleteRubataPanel({
   return (
     <div className="bg-surface-200 rounded-2xl border border-danger-500/40 overflow-hidden">
       <div className="p-3 border-b border-surface-50/20 bg-danger-500/5">
-        <h3 className="font-bold text-danger-400">Completa fase</h3>
+        <h3 className="micro-label">Completa fase</h3>
       </div>
       <div className="p-3">
         <p className="text-xs text-gray-400 mb-3">Completa la rubata con transazioni casuali (30% rubate)</p>

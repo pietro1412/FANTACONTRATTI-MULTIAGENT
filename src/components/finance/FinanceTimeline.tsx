@@ -212,7 +212,7 @@ export function FinanceTimeline({ leagueId, data, initialMemberId, onBack }: Fin
           {/* Trend chart */}
           {chartData.length > 1 && (
             <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
-              <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider mb-3">
+              <div className="micro-label mb-3">
                 Andamento Bilancio nel Tempo
               </div>
               <div style={{ height: 220 }}>

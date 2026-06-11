@@ -27,7 +27,7 @@ export const RubataRivalsStrip = memo(function RubataRivalsStrip({
 
   return (
     <div className="bg-surface-200 rounded-xl border border-surface-50/20 px-3 py-2.5">
-      <h3 className="text-[10px] font-mono font-bold uppercase tracking-[0.13em] text-gray-500 mb-2">
+      <h3 className="micro-label block mb-2">
         {title} — bilancio ≥ {cost}M
       </h3>
       <div className="flex flex-wrap gap-1.5">
@@ -37,7 +37,7 @@ export const RubataRivalsStrip = memo(function RubataRivalsStrip({
           return (
             <span
               key={mb.memberId}
-              className={`inline-flex items-center gap-1.5 rounded-full border border-surface-50/30 bg-surface-300 pl-1 pr-2.5 py-1 ${
+              className={`inline-flex items-center gap-1.5 rounded-full border border-surface-50 bg-surface-300 pl-1 pr-3 py-1 ${
                 canPay ? '' : 'opacity-40'
               }`}
             >

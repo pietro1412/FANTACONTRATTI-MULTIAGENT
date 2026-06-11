@@ -62,7 +62,7 @@ export function StatusBar({
           {teamInitial}
         </div>
         <div className="flex flex-col">
-          <h1 className="text-sm sm:text-base font-black text-white tracking-wide leading-tight">
+          <h1 className="text-sm sm:text-base font-display font-black text-white tracking-wide leading-tight">
             {teamName || 'ASTA LIVE'}
           </h1>
           <span className="text-sm text-gray-500 leading-tight">
@@ -77,7 +77,10 @@ export function StatusBar({
           ? 'bg-secondary-500/10 border-secondary-500/30 text-secondary-400'
           : 'bg-amber-500/10 border-amber-500/30 text-amber-400 animate-pulse'
       }`}>
-        <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-secondary-400' : 'bg-amber-400'}`} />
+        <span className={isConnected
+          ? 'dot-live bg-secondary-500 shadow-[0_0_8px_theme(colors.secondary.500)]'
+          : 'w-1.5 h-1.5 rounded-full bg-amber-400'
+        } />
         {isConnected ? 'Connesso' : connectionStatus}
       </span>
 

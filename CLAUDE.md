@@ -113,6 +113,7 @@ Il codice gira tutto sul layer **`src/services/` + `src/pages/` + `src/component
 - Tema "Stadium Nights": palette in `tailwind.config.js` + classi font in `src/index.css` (`.stat-number`, `.timer-sport`, `.budget-display` = Oswald)
 - **Superfici: SOLO token del tema** — `surface-*`/`dark-*` per sfondi e bordi (body `surface-400`, card `surface-200`, elevated `surface-300`, hover `surface-100`, bordi `surface-50`). **VIETATO `slate-*`** (grigio bluastro fuori palette, bonificato 2026-06-11) e niente glassmorphism (`/80 + backdrop-blur`) sulle card
 - Accenti semantici: `primary` blu, `secondary` verde campo, `accent` oro (= Presidente), `danger` rosso, `warning` ambra
+- **Linguaggio tipografico ufficiale** (dal mockup rubata v2, adottato 2026-06-11 per tutta la piattaforma): titoli/nomi/badge in **Outfit** (`font-display`); timer e numeroni in **Oswald** (`.stat-number`/`.timer-sport`/`.budget-display`, cifre tabulari); **header di pannello/sezione in `.micro-label`** (JetBrains Mono 10.5px uppercase tracking largo); cifre tabellari in `font-mono`. Componenti condivisi in `index.css`: `.dot-live` (pallino live con glow), `.arena-gold` (card della zona-decisione: bordo oro + doppio anello), `.progress-gradient` (barre avanzamento blu→oro), chip a pillola `rounded-full` con monogramma. Raggi card 12-14px (`rounded-xl`/`rounded-2xl`)
 
 ### Naming
 | Dove | Convenzione | Esempio |

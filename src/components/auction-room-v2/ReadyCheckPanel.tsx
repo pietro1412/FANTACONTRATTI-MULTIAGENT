@@ -48,7 +48,7 @@ export function ReadyCheckPanel({
         {/* Right: Ready Check Controls */}
         <div className="flex flex-col items-center justify-center">
           <div className="relative rounded-xl p-5 text-center w-full border-2 border-sky-500/20 bg-gradient-to-br from-surface-300/50 to-surface-200 overflow-hidden">
-            <p className="text-sm text-sky-400 uppercase tracking-wider font-bold mb-3">Conferma Pronti</p>
+            <p className="micro-label mb-3">Conferma Pronti</p>
 
             {/* Ready Progress */}
             <div className="mb-4">

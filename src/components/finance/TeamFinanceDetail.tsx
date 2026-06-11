@@ -170,7 +170,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Donut: cost by position */}
         <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
-          <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider mb-3">
+          <div className="micro-label mb-3">
             Costi per Ruolo
           </div>
           <div className="flex flex-col md:flex-row items-center gap-4">
@@ -223,7 +223,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
 
         {/* Top 5 heaviest contracts */}
         <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
-          <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider mb-3">
+          <div className="micro-label mb-3">
             Top 5 Contratti Piu Pesanti
           </div>
           <div className="space-y-2">
@@ -263,7 +263,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
 
         {/* Clause scatter chart */}
         <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
-          <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider mb-3">
+          <div className="micro-label mb-3">
             Clausole Rescissorie
           </div>
           {clauseData.length > 0 ? (
@@ -318,7 +318,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
           onClick={() => { toggleSection('roster'); }}
           className="w-full flex items-center justify-between p-3 md:p-4 text-left md:cursor-default"
         >
-          <span className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider font-medium">
+          <span className="micro-label">
             Rosa Completa - {team.teamName}
           </span>
           <span className="md:hidden text-gray-500 text-xs">

@@ -448,7 +448,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             {/* Order Management */}
             <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
               <div className="p-5 border-b border-surface-50/20">
-                <h3 className="text-lg font-bold text-white">
+                <h3 className="micro-label">
                   Ordine Rubata
                 </h3>
                 <p className="text-sm text-gray-400 mt-1">Trascina i manager per impostare l'ordine dei turni</p>
@@ -484,7 +484,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             {/* Timer Settings */}
             <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
               <div className="p-5 border-b border-surface-50/20">
-                <h3 className="text-lg font-bold text-white">
+                <h3 className="micro-label">
                   Impostazioni Timer
                 </h3>
               </div>
@@ -756,7 +756,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 if (rubataState === 'OFFERING' && watchlistAlert) {
                   return (
                     <div className="flex items-center gap-2.5 rounded-xl border border-accent-500/40 bg-accent-500/10 px-3 py-2 animate-[fadeIn_0.3s_ease-out]">
-                      <span className="text-[9px] font-mono font-bold text-dark-300 bg-accent-400 rounded px-1.5 py-px tracking-wider flex-shrink-0">WATCHLIST</span>
+                      <span className="text-[11px] font-mono font-bold text-dark-300 bg-accent-400 rounded-[5px] px-2 py-0.5 tracking-[0.05em] flex-shrink-0">WATCHLIST</span>
                       <p className="text-sm text-gray-300 flex-1 min-w-0 truncate">
                         <b className="text-accent-300">{watchlistAlert}</b> è sul piatto — è nella tua watchlist.
                       </p>
@@ -862,7 +862,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 {/* Board header with search + filters */}
                 <div className="p-3 md:p-4 border-b border-surface-50/20 shrink-0 space-y-2 md:space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-base md:text-lg font-bold text-white">
+                    <h3 className="micro-label">
                       <span className="hidden sm:inline">Tabellone Rubata</span>
                       <span className="sm:hidden">Tabellone</span>
                     </h3>
@@ -898,7 +898,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         <span className="hidden sm:inline">Confronta</span>
                         <span className="sm:hidden">VS</span>
                       </button>
-                      <span className="text-xs md:text-sm text-gray-400 whitespace-nowrap">
+                      <span className="text-xs font-mono text-gray-500 whitespace-nowrap">
                         {isFiltered ? `${filteredBoard?.length ?? 0}/` : ''}{boardData?.totalPlayers}
                       </span>
                     </div>
@@ -1315,7 +1315,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 className="w-full px-3 py-1.5 flex items-center justify-between"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-[9px] text-gray-500 uppercase font-medium">Budget</span>
+                  <span className="micro-label">Budget</span>
                   {myBudget && (
                     <span className={`font-bold text-sm ${
                       myBudget.residuo < 0 ? 'text-danger-400' : myBudget.residuo < 50 ? 'text-warning-400' : 'text-accent-400'
@@ -1330,7 +1330,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               /* Expanded: full grid */
               <div className="px-3 py-2">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[9px] text-gray-500 uppercase font-medium">Bilancio</span>
+                  <span className="micro-label">Bilancio</span>
                   <button
                     type="button"
                     onClick={() => { setMobileBudgetExpanded(false); }}

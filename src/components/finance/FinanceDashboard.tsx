@@ -16,7 +16,7 @@ interface FinanceDashboardProps {
 function LeagueKpi({ label, value, unit, note }: { label: string; value: string; unit?: string; note?: string }) {
   return (
     <div className="rounded-xl border border-surface-50/60 bg-surface-200 p-3.5 md:p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{label}</div>
+      <div className="micro-label">{label}</div>
       <div className="stat-number mt-1.5 text-2xl leading-none text-white">
         {value}
         {unit && <span className="ml-0.5 text-[13px] font-medium text-gray-400">{unit}</span>}

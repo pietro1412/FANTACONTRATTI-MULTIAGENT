@@ -13,7 +13,7 @@ export function ContractExpiryGantt({ players }: ContractExpiryGanttProps) {
   if (activePlayers.length === 0) {
     return (
       <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
-        <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider mb-3">Scadenze Contrattuali</div>
+        <div className="micro-label mb-3">Scadenze Contrattuali</div>
         <div className="text-sm text-gray-500 text-center py-4">Nessun contratto attivo</div>
       </div>
     )
@@ -42,7 +42,7 @@ export function ContractExpiryGantt({ players }: ContractExpiryGanttProps) {
 
   return (
     <div className="bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
-      <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider mb-3">
+      <div className="micro-label mb-3">
         Scadenze Contrattuali
       </div>
 

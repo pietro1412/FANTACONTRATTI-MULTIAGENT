@@ -54,7 +54,7 @@ export function RubataActivityFeed({ board }: RubataActivityFeedProps) {
         className="w-full flex items-center justify-between px-4 py-3 bg-surface-300/50 hover:bg-surface-300/80 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <span className="text-base font-bold text-white">Rubate</span>
+          <span className="micro-label">Rubate</span>
           <span className="px-2 py-0.5 text-xs font-bold bg-danger-500/20 text-danger-400 rounded-full">
             {stolenPlayers.length}
           </span>

@@ -298,6 +298,7 @@
     font-family: 'Oswald', 'Inter', sans-serif;
     font-weight: 700;
     letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
   }
 
   /* Large timer display in sport style */
@@ -305,12 +306,49 @@
     font-family: 'Oswald', 'Inter', sans-serif;
     font-weight: 700;
     letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
   }
 
   /* Budget display style */
   .budget-display {
     font-family: 'Oswald', 'Inter', sans-serif;
     font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ============================================================
+     Linguaggio mockup v2 (rubata) — componenti di tema condivisi
+     ============================================================ */
+
+  /* Panel/section micro header: JetBrains Mono uppercase wide-tracked */
+  .micro-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: #8b919d; /* gray-500 */
+  }
+
+  /* Live indicator dot with glow (use bg-* token for color) */
+  .dot-live {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: #f59e0b;
+    box-shadow: 0 0 8px #f59e0b;
+  }
+
+  /* Golden arena: the decision zone card (border + double ring shadow) */
+  .arena-gold {
+    border: 1px solid #f59e0b;
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.15), 0 12px 40px rgba(245, 158, 11, 0.06);
+  }
+
+  /* Progress fill with the theme gradient (blu stadio -> oro trofeo) */
+  .progress-gradient {
+    background: linear-gradient(90deg, #3b82f6, #f59e0b);
   }
 }
 
