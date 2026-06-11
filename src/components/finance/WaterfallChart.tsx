@@ -1,6 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
-import { type TeamData } from './types'
+import { type TeamData, CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_ITEM_STYLE, CHART_AXIS_TICK } from './types'
 
 interface WaterfallChartProps {
   team: TeamData
@@ -160,15 +160,15 @@ export function WaterfallChart({ team }: WaterfallChartProps) {
             <CartesianGrid strokeDasharray="3 3" stroke="#2d3139" />
             <XAxis
               dataKey="name"
-              tick={{ fill: '#9ca3af', fontSize: 9 }}
+              tick={{ ...CHART_AXIS_TICK, fontSize: 11 }}
               interval={0}
               angle={-25}
               textAnchor="end"
               height={60}
             />
-            <YAxis tick={{ fill: '#9ca3af', fontSize: 10 }} />
+            <YAxis tick={CHART_AXIS_TICK} />
             <Tooltip
-              contentStyle={{ backgroundColor: '#1a1c20', border: '1px solid #2d3139', borderRadius: 8, fontSize: 12 }}
+              contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={CHART_TOOLTIP_ITEM_STYLE}
               formatter={((_value: number, _name: string, props: { payload: { displayValue: number } }) => {
                 const dv = props.payload.displayValue
                 return [`${dv >= 0 ? '+' : ''}${dv}M`, '']

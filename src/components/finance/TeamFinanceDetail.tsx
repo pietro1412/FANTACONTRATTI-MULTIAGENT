@@ -8,6 +8,7 @@ import {
   type TeamData, type FinancialsData,
   getTeamBalance, getHealthStatus,
   POSITION_CHART_COLORS, POSITION_NAMES, POSITION_COLORS,
+  CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_ITEM_STYLE, CHART_AXIS_TICK,
 } from './types'
 
 interface TeamFinanceDetailProps {
@@ -18,7 +19,6 @@ interface TeamFinanceDetailProps {
   onNavigateToTimeline: (memberId: string) => void
 }
 
-const TOOLTIP_STYLE = { backgroundColor: '#1a1c20', border: '1px solid #2d3139', borderRadius: 8, fontSize: 12 }
 
 export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onNavigateToTimeline }: TeamFinanceDetailProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
@@ -187,7 +187,7 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
                     stroke="rgba(0,0,0,0.3)"
                   />
                   <Tooltip
-                    contentStyle={TOOLTIP_STYLE}
+                    contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={CHART_TOOLTIP_ITEM_STYLE}
                     formatter={((value: number) => [`${value}M`, '']) as Formatter<number, string>}
                   />
                 </PieChart>
@@ -276,19 +276,19 @@ export function TeamFinanceDetail({ team, data, onBack, onNavigateToPlayers, onN
                       type="number"
                       dataKey="x"
                       name="Ingaggio"
-                      tick={{ fill: '#9ca3af', fontSize: 10 }}
-                      label={{ value: 'Ingaggio', position: 'insideBottom', offset: -2, fill: '#6b7280', fontSize: 10 }}
+                      tick={CHART_AXIS_TICK}
+                      label={{ value: 'Ingaggio', position: 'insideBottom', offset: -2, fill: '#6b7280', fontSize: 12 }}
                     />
                     <YAxis
                       type="number"
                       dataKey="y"
                       name="Clausola"
-                      tick={{ fill: '#9ca3af', fontSize: 10 }}
-                      label={{ value: 'Clausola', angle: -90, position: 'insideLeft', fill: '#6b7280', fontSize: 10 }}
+                      tick={CHART_AXIS_TICK}
+                      label={{ value: 'Clausola', angle: -90, position: 'insideLeft', fill: '#6b7280', fontSize: 12 }}
                     />
                     <ZAxis type="number" dataKey="z" range={[40, 200]} name="Durata" />
                     <Tooltip
-                      contentStyle={TOOLTIP_STYLE}
+                      contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={CHART_TOOLTIP_ITEM_STYLE}
                       formatter={((value: number, name: string) => [
                         `${value}M`,
                         name

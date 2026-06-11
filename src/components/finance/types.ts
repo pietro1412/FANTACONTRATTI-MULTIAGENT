@@ -159,17 +159,26 @@ export const CHART_COLORS = {
   axis: '#9ca3af',         // gray-400
   muted: '#8b919d',        // gray-500
   neutralLine: '#4b5563',  // gray-700 (linee non evidenziate)
-  tooltipBg: '#1a1c20',    // surface-200
-  tooltipBorder: '#2d3139',
+  tooltipBg: '#252830',    // surface-100 — lighter than the card so the tooltip stands out
+  tooltipBorder: '#3d434c',
 } as const
 
-// Recharts tooltip style shared across finance charts
+// Recharts tooltip styles shared across finance charts.
+// Recharts defaults render dark text: labelStyle/itemStyle MUST be passed too.
 export const CHART_TOOLTIP_STYLE = {
   backgroundColor: CHART_COLORS.tooltipBg,
   border: `1px solid ${CHART_COLORS.tooltipBorder}`,
   borderRadius: 8,
-  fontSize: 12,
+  fontSize: 13,
+  color: '#f9fafb',
+  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)',
 } as const
+
+export const CHART_TOOLTIP_LABEL_STYLE = { color: '#f9fafb', fontWeight: 700 } as const
+export const CHART_TOOLTIP_ITEM_STYLE = { color: '#e5e7eb' } as const
+
+// Axis tick style: readable size (was 9-10px)
+export const CHART_AXIS_TICK = { fill: CHART_COLORS.axis, fontSize: 12 } as const
 
 // Humanized labels for market session phases (no raw enums in UI)
 export const SESSION_PHASE_LABELS: Record<string, string> = {

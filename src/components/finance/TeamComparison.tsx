@@ -10,7 +10,7 @@ import {
   type FinancialsData, type LeagueTotals,
   getTeamBalance,
   computeLeagueTotals,
-  CHART_COLORS, CHART_TOOLTIP_STYLE,
+  CHART_COLORS, CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_AXIS_TICK,
 } from './types'
 
 interface TrendPoint {
@@ -51,7 +51,7 @@ function TeamAxisTick({ x = 0, y = 0, payload, highlight }: TeamAxisTickProps) {
       x={x}
       y={y + 12}
       textAnchor="middle"
-      fontSize={11}
+      fontSize={12}
       fontWeight={isMe ? 800 : 600}
       fill={isMe ? CHART_COLORS.accentLight : CHART_COLORS.axis}
     >
@@ -140,9 +140,9 @@ export function TeamComparison({ data, myTeamId, trends }: TeamComparisonProps) 
                   tick={<TeamAxisTick highlight={myShortName} />}
                   interval={0}
                 />
-                <YAxis tick={{ fill: CHART_COLORS.axis, fontSize: 10 }} />
+                <YAxis tick={CHART_AXIS_TICK} />
                 <Tooltip
-                  contentStyle={CHART_TOOLTIP_STYLE}
+                  contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                   itemStyle={{ color: '#fff' }}
                   cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                   formatter={((value: number, name: string) => [`${value}M`, COMPOSITION_LABELS[name] ?? name]) as Formatter<number, string>}
@@ -202,10 +202,10 @@ export function TeamComparison({ data, myTeamId, trends }: TeamComparisonProps) 
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendsChartData.data} margin={{ left: 0, right: 10, top: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
-                  <XAxis dataKey="date" tick={{ fill: CHART_COLORS.axis, fontSize: 10 }} />
-                  <YAxis tick={{ fill: CHART_COLORS.axis, fontSize: 10 }} />
+                  <XAxis dataKey="date" tick={CHART_AXIS_TICK} />
+                  <YAxis tick={CHART_AXIS_TICK} />
                   <Tooltip
-                    contentStyle={CHART_TOOLTIP_STYLE}
+                    contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE}
                     itemStyle={{ color: '#fff' }}
                     formatter={((value: number) => [`${value}M`, '']) as Formatter<number, string>}
                   />

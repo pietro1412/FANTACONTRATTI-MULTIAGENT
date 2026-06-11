@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
 import { leagueApi } from '../../services/api'
-import { type FinancialsData, POSITION_COLORS } from './types'
+import { type FinancialsData, POSITION_COLORS, CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_ITEM_STYLE, CHART_AXIS_TICK } from './types'
 
 interface FinanceTimelineProps {
   leagueId: string
@@ -69,7 +69,6 @@ const EVENT_DOT_COLORS: Record<string, string> = {
   green: 'bg-green-400',
 }
 
-const TOOLTIP_STYLE = { backgroundColor: '#1a1c20', border: '1px solid #2d3139', borderRadius: 8, fontSize: 12 }
 
 export function FinanceTimeline({ leagueId, data, initialMemberId, onBack }: FinanceTimelineProps) {
   // Auto-select first team if no initialMemberId provided
@@ -220,10 +219,10 @@ export function FinanceTimeline({ leagueId, data, initialMemberId, onBack }: Fin
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#2d3139" />
-                    <XAxis dataKey="name" tick={{ fill: '#9ca3af', fontSize: 10 }} />
-                    <YAxis tick={{ fill: '#9ca3af', fontSize: 10 }} />
+                    <XAxis dataKey="name" tick={CHART_AXIS_TICK} />
+                    <YAxis tick={CHART_AXIS_TICK} />
                     <Tooltip
-                      contentStyle={TOOLTIP_STYLE}
+                      contentStyle={CHART_TOOLTIP_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={CHART_TOOLTIP_ITEM_STYLE}
                       formatter={((value: number, name: string) => [
                         `${value}M`,
                         name === 'bilancio' ? 'Bilancio' : name === 'budget' ? 'Budget' : 'Ingaggi',
