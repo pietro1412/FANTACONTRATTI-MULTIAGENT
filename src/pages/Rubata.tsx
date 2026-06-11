@@ -555,6 +555,36 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 progressStats={progressStats}
               />
 
+              {/* Official admin controls on top (test/simulation panels stay at the bottom) */}
+              {isAdmin && (
+                <div className="hidden lg:block space-y-4">
+                  <GameFlowPanel
+                    rubataState={rubataState ?? null}
+                    isSubmitting={isSubmitting}
+                    currentIndex={boardData?.currentIndex ?? null}
+                    onStartRubata={() => void handleStartRubata()}
+                    onPause={() => void handlePause()}
+                    onResume={() => void handleResume()}
+                    onAdvance={() => void handleAdvance()}
+                    onGoBack={() => void handleGoBack()}
+                    onCloseAuction={() => void handleCloseAuction()}
+                  />
+                  <TimerSettingsPanel
+                    offerTimer={offerTimer}
+                    setOfferTimer={setOfferTimer}
+                    auctionTimer={auctionTimer}
+                    setAuctionTimer={setAuctionTimer}
+                    isSubmitting={isSubmitting}
+                    onUpdateTimers={() => void handleUpdateTimers()}
+                  />
+                  <CompleteRubataPanel
+                    rubataState={rubataState ?? null}
+                    isSubmitting={isSubmitting}
+                    onCompleteRubata={() => void handleCompleteRubata()}
+                  />
+                </div>
+              )}
+
               {/* Dynamic content based on rubataState */}
 
               {/* OFFERING: HeroPlayerCard with VOGLIO RUBARE */}
@@ -784,28 +814,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 />
               </div>
 
-              {/* Admin-only panels — desktop in action zone */}
+              {/* Admin test/simulation panels — desktop, bottom of action zone */}
               {isAdmin && (
                 <div className="hidden lg:block space-y-4">
-                  <GameFlowPanel
-                    rubataState={rubataState ?? null}
-                    isSubmitting={isSubmitting}
-                    currentIndex={boardData?.currentIndex ?? null}
-                    onStartRubata={() => void handleStartRubata()}
-                    onPause={() => void handlePause()}
-                    onResume={() => void handleResume()}
-                    onAdvance={() => void handleAdvance()}
-                    onGoBack={() => void handleGoBack()}
-                    onCloseAuction={() => void handleCloseAuction()}
-                  />
-                  <TimerSettingsPanel
-                    offerTimer={offerTimer}
-                    setOfferTimer={setOfferTimer}
-                    auctionTimer={auctionTimer}
-                    setAuctionTimer={setAuctionTimer}
-                    isSubmitting={isSubmitting}
-                    onUpdateTimers={() => void handleUpdateTimers()}
-                  />
                   <BotSimulationPanel
                     rubataState={rubataState ?? null}
                     activeAuction={activeAuction ?? null}
@@ -819,11 +830,6 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     isSubmitting={isSubmitting}
                     onSimulateOffer={() => void handleSimulateOffer()}
                     onSimulateBid={() => void handleSimulateBid()}
-                  />
-                  <CompleteRubataPanel
-                    rubataState={rubataState ?? null}
-                    isSubmitting={isSubmitting}
-                    onCompleteRubata={() => void handleCompleteRubata()}
                   />
                 </div>
               )}
@@ -1143,12 +1149,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
           maxHeight="85vh"
         >
           <div className="p-4 space-y-4">
-            {/* Budget Panel - visible to all */}
-            {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && (
-              <BudgetPanel memberBudgets={boardData.memberBudgets} />
-            )}
-
-            {/* Admin-only panels */}
+            {/* Official admin controls first */}
             {isAdmin && (<>
               <GameFlowPanel
                 rubataState={rubataState ?? null}
@@ -1169,6 +1170,20 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 isSubmitting={isSubmitting}
                 onUpdateTimers={() => void handleUpdateTimers()}
               />
+              <CompleteRubataPanel
+                rubataState={rubataState ?? null}
+                isSubmitting={isSubmitting}
+                onCompleteRubata={() => void handleCompleteRubata()}
+              />
+            </>)}
+
+            {/* Budget Panel - visible to all */}
+            {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && (
+              <BudgetPanel memberBudgets={boardData.memberBudgets} />
+            )}
+
+            {/* Admin test/simulation panels last */}
+            {isAdmin && (<>
               <BotSimulationPanel
                 rubataState={rubataState ?? null}
                 activeAuction={activeAuction ?? null}
@@ -1182,11 +1197,6 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 isSubmitting={isSubmitting}
                 onSimulateOffer={() => void handleSimulateOffer()}
                 onSimulateBid={() => void handleSimulateBid()}
-              />
-              <CompleteRubataPanel
-                rubataState={rubataState ?? null}
-                isSubmitting={isSubmitting}
-                onCompleteRubata={() => void handleCompleteRubata()}
               />
             </>)}
           </div>
