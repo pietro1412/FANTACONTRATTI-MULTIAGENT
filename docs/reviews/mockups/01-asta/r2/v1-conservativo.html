@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asta Primo Mercato — R2 · v1 Riordino Conservativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* ============ Stadium Nights tokens ============ */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830; --line:#2d3139;
+    --primary:#3b82f6; --primary-deep:#2563eb; --primary-soft:rgba(59,130,246,.14);
+    --green:#22c55e; --green-deep:#16a34a;
+    --gold:#f59e0b; --gold-lt:#fbbf24;
+    --danger:#ef4444; --danger-lt:#f87171;
+    --info:#38bdf8;
+    --txt:#f9fafb; --txt-2:#9ca3af; --txt-3:#8b919d;
+    --glow-blu:rgba(59,130,246,.3); --glow-oro:rgba(245,158,11,.3); --glow-rosso:rgba(239,68,68,.3);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased;padding:28px}
+  .num{font-family:'Oswald',sans-serif;font-weight:600}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .disp{font-family:'Outfit',sans-serif}
+
+  h1.page{font-size:13px;font-weight:700;color:var(--txt-3);letter-spacing:.14em;text-transform:uppercase;margin-bottom:20px}
+  .frames{display:flex;flex-direction:column;gap:48px;align-items:flex-start}
+  .frame-label{font-size:11px;font-weight:800;letter-spacing:.2em;color:var(--gold-lt);text-transform:uppercase;margin-bottom:12px}
+
+  /* ================= DESKTOP ================= */
+  .desktop{width:1340px;background:var(--bg);border:1px solid var(--line);border-radius:18px;padding:18px}
+
+  /* --- status bar slim --- */
+  .topbar{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--card);border:1px solid var(--line);border-radius:13px}
+  .crest{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#4338ca);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:13px;color:#fff;flex-shrink:0;box-shadow:0 0 12px var(--glow-blu)}
+  .team-id{line-height:1.15}
+  .team-id .nm{font-family:'Outfit',sans-serif;font-size:14px;font-weight:700}
+  .team-id .sub{font-size:10px;color:var(--txt-3)}
+  .conn{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--txt-2);padding:5px 10px;border:1px solid var(--line);border-radius:8px;background:var(--elev)}
+  .conn .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px rgba(34,197,94,.6)}
+  .turn{display:flex;align-items:center;gap:8px;padding:5px 12px;border-radius:8px;background:var(--primary-soft);border:1px solid rgba(59,130,246,.3)}
+  .turn .lbl{font-size:10px;color:var(--txt-2);text-transform:uppercase;letter-spacing:.08em}
+  .turn .who{font-size:13px;font-weight:700;color:var(--txt)}
+  .topbar .spacer{margin-left:auto}
+  .kpi{display:flex;flex-direction:column;align-items:flex-end;line-height:1;padding:0 14px}
+  .kpi .lbl{font-size:9px;font-weight:700;color:var(--txt-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+  .kpi .val{font-family:'Oswald',sans-serif;font-weight:600;font-size:26px;letter-spacing:.01em}
+  .kpi.max{border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.1);border-radius:10px;padding:7px 14px;box-shadow:0 0 16px var(--glow-oro)}
+  .kpi.max .lbl{color:var(--gold-lt)}
+  .kpi.max .val{font-size:30px;color:var(--gold-lt)}
+
+  /* --- roles progress row --- */
+  .rolesbar{display:flex;align-items:center;gap:7px;margin-top:10px;padding:0 4px}
+  .rp{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 12px;border-radius:8px;border:1px solid var(--line);background:var(--elev);color:var(--txt-3)}
+  .rp.done{color:var(--green);border-color:rgba(34,197,94,.3)}
+  .rp.active{background:rgba(34,197,94,.14);color:var(--txt);border-color:rgba(34,197,94,.5);box-shadow:0 0 10px rgba(34,197,94,.18)}
+  .rp.active .tag{font-size:9px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.08em}
+  .rp .arrow{color:var(--txt-3);font-size:11px}
+  .rolesbar .fill{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--txt-2)}
+  .fillbar{width:130px;height:6px;border-radius:3px;background:var(--elev);border:1px solid var(--line);overflow:hidden}
+  .fillbar i{display:block;height:100%;width:44.5%;background:linear-gradient(90deg,var(--primary-deep),var(--primary));border-radius:3px}
+  .fill .n{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;color:var(--txt)}
+
+  /* --- main grid: center dominante --- */
+  .grid{display:grid;grid-template-columns:252px minmax(0,1fr) 252px;gap:16px;margin-top:14px;align-items:start}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .panel>h3{font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--txt-2);padding:12px 14px 9px;border-bottom:1px solid var(--line)}
+
+  /* --- CENTER STAGE --- */
+  .stage{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.45)}
+  .stage-head{display:flex;justify-content:space-between;align-items:center;padding:9px 18px;background:var(--elev);border-bottom:1px solid var(--line)}
+  .stage-head .l{font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--green)}
+  .stage-head .r{font-size:11px;color:var(--txt-3)}
+  .stage-body{padding:20px}
+  .hero{display:grid;grid-template-columns:1fr 1.1fr;gap:18px;align-items:stretch}
+
+  /* player card */
+  .pcard{background:linear-gradient(165deg,var(--hover),var(--elev));border:1px solid var(--line);border-radius:14px;padding:20px 18px;display:flex;flex-direction:column;align-items:center;text-align:center}
+  .pphoto{width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg,#1e3a8a,#111827);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:30px;font-weight:800;color:#fff;border:3px solid var(--green);box-shadow:0 0 18px rgba(34,197,94,.25);margin-bottom:12px}
+  .pname{font-family:'Outfit',sans-serif;font-size:30px;font-weight:800;line-height:1.05;letter-spacing:-.01em}
+  .pmeta{display:flex;gap:9px;align-items:center;justify-content:center;margin-top:9px;font-size:13px;color:var(--txt-2)}
+  .pos-badge{font-size:11px;font-weight:800;padding:3px 9px;border-radius:7px;letter-spacing:.04em}
+  .pos-C{background:rgba(34,197,94,.18);color:var(--green)}
+  .quota{margin-top:12px;font-size:11px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.1em}
+  .quota b{font-family:'Oswald',sans-serif;font-size:18px;font-weight:600;color:var(--txt);margin-left:6px}
+  .pstats{display:flex;gap:0;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);width:100%}
+  .pstat{flex:1;text-align:center}
+  .pstat+.pstat{border-left:1px solid var(--line)}
+  .pstat .n{font-family:'Oswald',sans-serif;font-size:20px;font-weight:600}
+  .pstat .l{font-size:9px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+
+  /* price / timer / bid box */
+  .pricebox{border:1px solid rgba(239,68,68,.45);background:linear-gradient(165deg,rgba(127,29,29,.18),var(--elev));border-radius:14px;padding:18px;display:flex;flex-direction:column;box-shadow:0 0 28px rgba(239,68,68,.12)}
+  .pb-top{display:flex;align-items:center;gap:18px}
+  .ring{width:96px;height:96px;border-radius:50%;background:conic-gradient(var(--danger) 0 27%, var(--line) 27% 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:pulse 1s ease-in-out infinite}
+  .ring i{width:80px;height:80px;border-radius:50%;background:var(--elev);display:flex;flex-direction:column;align-items:center;justify-content:center;font-style:normal}
+  .ring .t{font-family:'Oswald',sans-serif;font-size:36px;font-weight:700;color:var(--danger-lt);line-height:1}
+  .ring .u{font-size:9px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.1em}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--glow-rosso)}50%{box-shadow:0 0 0 9px rgba(239,68,68,0)}}
+  .pb-price{flex:1;min-width:0}
+  .pb-price .lbl{font-size:10px;font-weight:700;color:var(--txt-2);text-transform:uppercase;letter-spacing:.12em}
+  .pb-price .val{font-family:'Oswald',sans-serif;font-size:62px;font-weight:700;line-height:1;color:var(--txt);letter-spacing:.01em}
+  .pb-price .val small{font-size:26px;font-weight:600;color:var(--txt-2);margin-left:3px}
+  .holder{display:inline-flex;align-items:center;gap:7px;margin-top:7px;font-size:13px;font-weight:700;padding:4px 12px;border-radius:8px;background:var(--primary-soft);color:#93c5fd;border:1px solid rgba(59,130,246,.35)}
+  .holder .av{width:18px;height:18px;border-radius:50%;background:var(--primary-deep);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  /* bid controls */
+  .bidrow{display:flex;gap:10px;margin-top:18px}
+  .bidinput{flex:1;height:58px;border-radius:11px;background:var(--bg);border:1px solid var(--line);color:var(--txt);font-family:'Oswald',sans-serif;font-size:28px;font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center}
+  .bidinput small{font-size:14px;color:var(--txt-3);margin-left:4px}
+  .bidbtn{flex:1.5;height:58px;border-radius:11px;border:none;background:linear-gradient(180deg,var(--green),var(--green-deep));color:#052e12;font-family:'Outfit',sans-serif;font-size:19px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 18px rgba(34,197,94,.35)}
+  .quick{display:flex;gap:8px;margin-top:10px}
+  .qb{flex:1;height:36px;border-radius:9px;background:var(--hover);border:1px solid var(--line);color:var(--txt-2);font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .pb-hint{margin-top:10px;font-size:11px;color:var(--txt-3);text-align:center}
+  .pb-hint b{color:var(--gold-lt)}
+
+  /* bid history */
+  .hist{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+  .hist h4{font-size:10px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;font-weight:700}
+  .hgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .hrow{display:flex;align-items:center;justify-content:space-between;font-size:12px;padding:7px 10px;border-radius:9px;background:var(--elev);border:1px solid transparent;color:var(--txt-2)}
+  .hrow.top{background:var(--primary-soft);border-color:rgba(59,130,246,.3);color:var(--txt)}
+  .hrow .amt{font-family:'JetBrains Mono',monospace;font-weight:700;color:#93c5fd}
+
+  /* --- LEFT: Manager --- */
+  .mgr{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:10px;margin:5px 8px 0;background:var(--elev);border:1px solid transparent}
+  .mgr:last-child{margin-bottom:8px}
+  .mgr .av{width:30px;height:30px;border-radius:50%;background:var(--hover);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;color:var(--txt-2)}
+  .mgr .info{flex:1;min-width:0}
+  .mgr .nm{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mgr .sl{font-size:10px;color:var(--txt-3);margin-top:1px}
+  .mgr .fin{text-align:right;line-height:1.15}
+  .mgr .max{font-family:'Oswald',sans-serif;font-size:17px;font-weight:600;color:var(--txt)}
+  .mgr .max small{font-size:10px;color:var(--txt-3);font-family:'Inter',sans-serif;font-weight:600}
+  .mgr .bud{font-size:10px;color:var(--txt-3)}
+  .mgr .bud b{font-family:'JetBrains Mono',monospace;color:var(--txt-2);font-weight:700}
+  .mgr.holder-row{background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.4);box-shadow:0 0 12px rgba(59,130,246,.12)}
+  .mgr.holder-row .av{background:var(--primary-deep);color:#fff;border-color:transparent}
+  .mgr.holder-row .max{color:#93c5fd}
+  .mgr.me-row{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.3)}
+  .mgr.me-row .av{background:rgba(245,158,11,.25);color:var(--gold-lt);border-color:transparent}
+  .mgr.me-row .max{color:var(--gold-lt)}
+  .mgr.out{opacity:.38}
+  .mgr .chip{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:5px;margin-left:5px;vertical-align:2px}
+  .chip.lead{background:var(--primary-deep);color:#fff}
+  .chip.io{background:rgba(245,158,11,.25);color:var(--gold-lt)}
+  .chip.full{background:var(--hover);color:var(--txt-3);border:1px solid var(--line)}
+  .legend{font-size:10px;color:var(--txt-3);padding:9px 14px 12px;border-top:1px solid var(--line);margin-top:8px}
+
+  /* --- RIGHT: La mia rosa --- */
+  .rgrp{padding:9px 12px 2px}
+  .rgrp .gh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .rgrp .gh .t{font-size:11px;font-weight:800;letter-spacing:.04em}
+  .rgrp .gh .c{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--txt-3)}
+  .rgrp .gh .c.ok{color:var(--green)}
+  .t-P{color:var(--gold-lt)} .t-D{color:#60a5fa} .t-C{color:var(--green)} .t-A{color:var(--danger-lt)}
+  .srow{display:flex;align-items:center;gap:8px;font-size:12px;padding:5px 8px;border-radius:8px;background:var(--elev);margin-bottom:4px}
+  .srow .rb{width:18px;height:18px;border-radius:5px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;color:#0a0a0b;flex-shrink:0}
+  .rb-P{background:var(--gold)} .rb-D{background:var(--primary)} .rb-C{background:var(--green)} .rb-A{background:var(--danger)}
+  .srow .pn{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+  .srow .pn small{color:var(--txt-3);font-weight:500}
+  .srow .pr{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--txt-2)}
+  .srow.empty{background:transparent;border:1px dashed var(--line);color:var(--txt-3);justify-content:center;font-size:11px;padding:5px}
+  .srow.empty.now{border-color:rgba(34,197,94,.5);color:var(--green);background:rgba(34,197,94,.06)}
+  .roster-foot{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-top:1px solid var(--line);margin-top:7px;font-size:11px;color:var(--txt-3)}
+  .roster-foot b{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;color:var(--txt)}
+
+  /* ================= MOBILE ================= */
+  .phone{width:390px;border:1px solid var(--line);border-radius:34px;background:var(--elev);padding:10px;box-shadow:0 28px 70px rgba(0,0,0,.6)}
+  .phone-inner{background:var(--bg);border-radius:26px;overflow:hidden;display:flex;flex-direction:column;height:812px;position:relative}
+  .m-top{display:flex;align-items:center;gap:9px;padding:12px 14px 9px;background:var(--card);border-bottom:1px solid var(--line)}
+  .m-top .crest{width:32px;height:32px;font-size:11px}
+  .m-turn{flex:1;min-width:0;line-height:1.2}
+  .m-turn .l{font-size:9px;color:var(--txt-3);text-transform:uppercase;letter-spacing:.06em}
+  .m-turn .v{font-size:12px;font-weight:700}
+  .m-kpi{text-align:right;line-height:1;padding:0 7px}
+  .m-kpi .l{font-size:8px;font-weight:700;color:var(--txt-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
+  .m-kpi .v{font-family:'Oswald',sans-serif;font-size:19px;font-weight:600}
+  .m-kpi.max{border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.1);border-radius:9px;padding:5px 9px}
+  .m-kpi.max .l{color:var(--gold-lt)}
+  .m-kpi.max .v{color:var(--gold-lt);font-size:21px}
+  .m-roles{display:flex;align-items:center;gap:5px;padding:8px 14px;background:var(--card);border-bottom:1px solid var(--line)}
+  .m-roles .rp{font-size:10px;padding:3px 8px}
+  .m-roles .cnt{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--txt-2)}
+  .m-tabs{display:flex;gap:6px;padding:10px 14px 0}
+  .m-tab{flex:1;text-align:center;font-size:12px;font-weight:700;padding:8px 0;border-radius:10px;background:var(--elev);color:var(--txt-3);border:1px solid var(--line)}
+  .m-tab.on{background:var(--primary-soft);color:#93c5fd;border-color:rgba(59,130,246,.4)}
+  .m-body{flex:1;overflow:hidden;padding:12px 14px 0}
+  .m-hero{background:linear-gradient(165deg,var(--hover),var(--elev));border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;align-items:center;text-align:center}
+  .m-hero .pphoto{width:62px;height:62px;font-size:22px;margin-bottom:9px;border-width:2px}
+  .m-hero .pname{font-size:23px}
+  .m-hero .pmeta{font-size:12px;margin-top:6px}
+  .m-hero .pstats{margin-top:11px;padding-top:11px}
+  .m-hero .pstat .n{font-size:17px}
+  .m-mgr-peek{margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  .m-mgr-peek h5{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-3);margin-bottom:7px}
+  .m-peek-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:4px 0}
+  .m-peek-row .who{font-weight:700}
+  .m-peek-row .who .chip{font-size:8px;font-weight:800;text-transform:uppercase;padding:2px 5px;border-radius:4px;margin-left:5px}
+  .m-peek-row .mx{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--txt-2);font-size:11px}
+  .m-peek-row.faded{opacity:.4}
+  /* fixed bid bar */
+  .m-bidbar{position:absolute;left:0;right:0;bottom:0;background:rgba(17,18,20,.98);border-top:1px solid rgba(239,68,68,.4);padding:10px 14px 16px;box-shadow:0 -10px 30px rgba(0,0,0,.55)}
+  .m-status{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .m-ring{width:52px;height:52px;border-radius:50%;background:conic-gradient(var(--danger) 0 27%, var(--line) 27% 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:pulse 1s ease-in-out infinite}
+  .m-ring i{width:42px;height:42px;border-radius:50%;background:var(--elev);display:flex;align-items:center;justify-content:center;font-style:normal;font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;color:var(--danger-lt)}
+  .m-price{flex:1;line-height:1}
+  .m-price .l{font-size:9px;font-weight:700;color:var(--txt-2);text-transform:uppercase;letter-spacing:.1em}
+  .m-price .v{font-family:'Oswald',sans-serif;font-size:34px;font-weight:700}
+  .m-price .v small{font-size:15px;color:var(--txt-2)}
+  .m-price .h{font-size:11px;color:#93c5fd;font-weight:600;margin-top:3px}
+  .m-quick{display:flex;flex-direction:column;gap:4px}
+  .m-qb{height:24px;min-width:44px;border-radius:7px;background:var(--hover);border:1px solid var(--line);color:var(--txt-2);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 8px}
+  .m-bidrow{display:flex;gap:8px}
+  .m-step{width:48px;height:52px;border-radius:11px;background:var(--hover);border:1px solid var(--line);color:var(--txt);font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  .m-input{flex:1;height:52px;border-radius:11px;background:var(--bg);border:1px solid var(--line);color:var(--txt);font-family:'Oswald',sans-serif;font-size:24px;font-weight:600;display:flex;align-items:center;justify-content:center}
+  .m-input small{font-size:12px;color:var(--txt-3);margin-left:3px}
+  .m-bid{flex:1.35;height:52px;border-radius:11px;border:none;background:linear-gradient(180deg,var(--green),var(--green-deep));color:#052e12;font-family:'Outfit',sans-serif;font-size:16px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(34,197,94,.35)}
+</style>
+</head>
+<body>
+<h1 class="page">FantaContratti — Asta Primo Mercato · R2 · v1 Riordino Conservativo</h1>
+
+<div class="frames">
+
+  <!-- ============================================================ DESKTOP -->
+  <div>
+    <div class="frame-label">Desktop · 1440px</div>
+    <div class="desktop">
+
+      <!-- status bar -->
+      <div class="topbar">
+        <div class="crest">DI</div>
+        <div class="team-id">
+          <div class="nm">Diego FC</div>
+          <div class="sub">Lega Fantacontratti · 8 squadre</div>
+        </div>
+        <div class="conn"><span class="dot"></span>Connesso</div>
+        <div class="turn"><span class="lbl">Chiamata di</span><span class="who">Mirko</span></div>
+        <div class="spacer"></div>
+        <div class="kpi">
+          <span class="lbl">Budget</span>
+          <span class="val">187<small style="font-size:13px;color:var(--txt-3)">M</small></span>
+        </div>
+        <div class="kpi max">
+          <span class="lbl">Offerta max</span>
+          <span class="val">121<small style="font-size:14px">M</small></span>
+        </div>
+      </div>
+
+      <!-- roles progress -->
+      <div class="rolesbar">
+        <span class="rp done">P ✓ <small style="font-weight:500;color:var(--txt-3)">3/3</small></span>
+        <span class="arrow rp" style="border:none;background:none;padding:0">›</span>
+        <span class="rp done">D ✓ <small style="font-weight:500;color:var(--txt-3)">8/8</small></span>
+        <span class="arrow rp" style="border:none;background:none;padding:0">›</span>
+        <span class="rp active">C <span class="tag">in corso</span> <small style="font-weight:600;color:var(--txt-2)">2/6</small></span>
+        <span class="arrow rp" style="border:none;background:none;padding:0">›</span>
+        <span class="rp">A <small style="font-weight:500">0/6</small></span>
+        <div class="fill">
+          <span>Slot lega</span>
+          <span class="fillbar"><i></i></span>
+          <span class="n">89/200</span>
+        </div>
+      </div>
+
+      <!-- main grid -->
+      <div class="grid">
+
+        <!-- LEFT · Manager -->
+        <div class="panel">
+          <h3>Manager</h3>
+          <div class="mgr holder-row">
+            <div class="av">MI</div>
+            <div class="info">
+              <div class="nm">Michele<span class="chip lead">Offerta</span></div>
+              <div class="sl">Slot C 3/6</div>
+            </div>
+            <div class="fin">
+              <div class="max">98<small> max</small></div>
+              <div class="bud">budget <b>154</b></div>
+            </div>
+          </div>
+          <div class="mgr">
+            <div class="av">MK</div>
+            <div class="info">
+              <div class="nm">Mirko</div>
+              <div class="sl">Slot C 2/6</div>
+            </div>
+            <div class="fin">
+              <div class="max">144<small> max</small></div>
+              <div class="bud">budget <b>201</b></div>
+            </div>
+          </div>
+          <div class="mgr me-row">
+            <div class="av">DI</div>
+            <div class="info">
+              <div class="nm">Diego<span class="chip io">Io</span></div>
+              <div class="sl">Slot C 2/6</div>
+            </div>
+            <div class="fin">
+              <div class="max">121<small> max</small></div>
+              <div class="bud">budget <b>187</b></div>
+            </div>
+          </div>
+          <div class="mgr">
+            <div class="av">MA</div>
+            <div class="info">
+              <div class="nm">Marco</div>
+              <div class="sl">Slot C 5/6</div>
+            </div>
+            <div class="fin">
+              <div class="max">120<small> max</small></div>
+              <div class="bud">budget <b>176</b></div>
+            </div>
+          </div>
+          <div class="mgr">
+            <div class="av">EM</div>
+            <div class="info">
+              <div class="nm">Emiliano</div>
+              <div class="sl">Slot C 3/6</div>
+            </div>
+            <div class="fin">
+              <div class="max">95<small> max</small></div>
+              <div class="bud">budget <b>143</b></div>
+            </div>
+          </div>
+          <div class="mgr">
+            <div class="av">PI</div>
+            <div class="info">
+              <div class="nm">Pietro</div>
+              <div class="sl">Slot C 4/6</div>
+            </div>
+            <div class="fin">
+              <div class="max">77<small> max</small></div>
+              <div class="bud">budget <b>118</b></div>
+            </div>
+          </div>
+          <div class="mgr">
+            <div class="av">EE</div>
+            <div class="info">
+              <div class="nm">Emmanuele</div>
+              <div class="sl">Slot C 4/6</div>
+            </div>
+            <div class="fin">
+              <div class="max">41<small> max</small></div>
+              <div class="bud">budget <b>89</b></div>
+            </div>
+          </div>
+          <div class="mgr out">
+            <div class="av">ML</div>
+            <div class="info">
+              <div class="nm">Marcolino<span class="chip full">Slot pieni</span></div>
+              <div class="sl">Slot C 6/6 — non può rilanciare</div>
+            </div>
+            <div class="fin">
+              <div class="max">—</div>
+              <div class="bud">budget <b>62</b></div>
+            </div>
+          </div>
+          <div class="legend">Ordinati per offerta max · chi detiene l'offerta in cima</div>
+        </div>
+
+        <!-- CENTER · stage -->
+        <div class="stage">
+          <div class="stage-head">
+            <span class="l">All'asta · Centrocampisti</span>
+            <span class="r">Chiamato da Mirko · base 36M</span>
+          </div>
+          <div class="stage-body">
+            <div class="hero">
+
+              <!-- player -->
+              <div class="pcard">
+                <div class="pphoto">NB</div>
+                <div class="pname">Nicolò Barella</div>
+                <div class="pmeta">
+                  <span class="pos-badge pos-C">C</span>
+                  <span>Inter</span>
+                  <span>·</span>
+                  <span>27 anni</span>
+                </div>
+                <div class="quota">Quotazione<b>36M</b></div>
+                <div class="pstats">
+                  <div class="pstat"><div class="n">34</div><div class="l">Presenze</div></div>
+                  <div class="pstat"><div class="n">6</div><div class="l">Gol</div></div>
+                  <div class="pstat"><div class="n">8</div><div class="l">Assist</div></div>
+                  <div class="pstat"><div class="n">7.2</div><div class="l">Fantamedia</div></div>
+                </div>
+              </div>
+
+              <!-- price + timer + bid -->
+              <div class="pricebox">
+                <div class="pb-top">
+                  <div class="ring"><i><span class="t">8</span><span class="u">sec</span></i></div>
+                  <div class="pb-price">
+                    <div class="lbl">Offerta corrente</div>
+                    <div class="val">42<small>M</small></div>
+                    <div class="holder"><span class="av">MI</span>offerta di Michele</div>
+                  </div>
+                </div>
+                <div class="bidrow">
+                  <div class="bidinput">43<small>M</small></div>
+                  <button class="bidbtn">Rilancia</button>
+                </div>
+                <div class="quick">
+                  <span class="qb">+1</span>
+                  <span class="qb">+5</span>
+                  <span class="qb">+10</span>
+                </div>
+                <div class="pb-hint">La tua offerta max: <b>121M</b> · ti restano 4 slot C da riempire</div>
+              </div>
+            </div>
+
+            <!-- history -->
+            <div class="hist">
+              <h4>Ultimi rilanci</h4>
+              <div class="hgrid">
+                <div class="hrow top"><span>Michele</span><span class="amt">42M</span></div>
+                <div class="hrow"><span>Mirko</span><span class="amt">41M</span></div>
+                <div class="hrow"><span>Michele</span><span class="amt">40M</span></div>
+                <div class="hrow"><span>Diego (io)</span><span class="amt">38M</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT · La mia rosa -->
+        <div class="panel">
+          <h3>La mia rosa</h3>
+
+          <div class="rgrp">
+            <div class="gh"><span class="t t-P">Portieri</span><span class="c ok">3/3 ✓</span></div>
+            <div class="srow"><span class="rb rb-P">P</span><span class="pn">Maignan <small>· Milan</small></span><span class="pr">24M</span></div>
+            <div class="srow"><span class="rb rb-P">P</span><span class="pn">Carnesecchi <small>· Atalanta</small></span><span class="pr">8M</span></div>
+            <div class="srow"><span class="rb rb-P">P</span><span class="pn">Falcone <small>· Lecce</small></span><span class="pr">4M</span></div>
+          </div>
+
+          <div class="rgrp">
+            <div class="gh"><span class="t t-D">Difensori</span><span class="c ok">8/8 ✓</span></div>
+            <div class="srow"><span class="rb rb-D">D</span><span class="pn">Bastoni <small>· Inter</small></span><span class="pr">22M</span></div>
+            <div class="srow"><span class="rb rb-D">D</span><span class="pn">Dimarco <small>· Inter</small></span><span class="pr">19M</span></div>
+            <div class="srow"><span class="rb rb-D">D</span><span class="pn">Bremer <small>· Juventus</small></span><span class="pr">18M</span></div>
+            <div class="srow"><span class="rb rb-D">D</span><span class="pn">Calafiori <small>· Bologna</small></span><span class="pr">16M</span></div>
+            <div class="srow"><span class="rb rb-D">D</span><span class="pn">Di Lorenzo <small>· Napoli</small></span><span class="pr">14M</span></div>
+            <div class="srow"><span class="rb rb-D">D</span><span class="pn">Buongiorno <small>· Torino</small></span><span class="pr">13M</span></div>
+            <div class="srow"><span class="rb rb-D">D</span><span class="pn">Cambiaso <small>· Juventus</small></span><span class="pr">9M</span></div>
+            <div class="srow"><span class="rb rb-D">D</span><span class="pn">Udogie <small>· Tottenham</small></span><span class="pr">7M</span></div>
+          </div>
+
+          <div class="rgrp">
+            <div class="gh"><span class="t t-C">Centrocampisti</span><span class="c">2/6</span></div>
+            <div class="srow"><span class="rb rb-C">C</span><span class="pn">Koopmeiners <small>· Atalanta</small></span><span class="pr">31M</span></div>
+            <div class="srow"><span class="rb rb-C">C</span><span class="pn">Pellegrini <small>· Roma</small></span><span class="pr">28M</span></div>
+            <div class="srow empty now">Slot libero — in asta ora</div>
+            <div class="srow empty">Slot libero</div>
+            <div class="srow empty">Slot libero</div>
+            <div class="srow empty">Slot libero</div>
+          </div>
+
+          <div class="rgrp">
+            <div class="gh"><span class="t t-A">Attaccanti</span><span class="c">0/6</span></div>
+            <div class="srow empty">Slot libero</div>
+            <div class="srow empty">Slot libero</div>
+            <div class="srow empty">Slot libero</div>
+            <div class="srow empty">Slot libero</div>
+            <div class="srow empty">Slot libero</div>
+            <div class="srow empty">Slot libero</div>
+          </div>
+
+          <div class="roster-foot">
+            <span>Budget speso</span>
+            <b>213M</b>
+          </div>
+        </div>
+
+      </div><!-- /grid -->
+    </div><!-- /desktop -->
+  </div>
+
+  <!-- ============================================================ MOBILE -->
+  <div>
+    <div class="frame-label">Mobile · 390px</div>
+    <div class="phone">
+      <div class="phone-inner">
+
+        <!-- top -->
+        <div class="m-top">
+          <div class="crest">DI</div>
+          <div class="m-turn">
+            <div class="l">Chiamata di</div>
+            <div class="v">Mirko</div>
+          </div>
+          <div class="m-kpi">
+            <div class="l">Budget</div>
+            <div class="v">187<small style="font-size:11px;color:var(--txt-3)">M</small></div>
+          </div>
+          <div class="m-kpi max">
+            <div class="l">Off. max</div>
+            <div class="v">121<small style="font-size:12px">M</small></div>
+          </div>
+        </div>
+
+        <!-- roles -->
+        <div class="m-roles">
+          <span class="rp done">P ✓</span>
+          <span class="rp done">D ✓</span>
+          <span class="rp active">C <small style="font-weight:600;color:var(--txt-2)">2/6</small></span>
+          <span class="rp">A</span>
+          <span class="cnt">89/200</span>
+        </div>
+
+        <!-- tabs -->
+        <div class="m-tabs">
+          <div class="m-tab on">Asta</div>
+          <div class="m-tab">Manager</div>
+          <div class="m-tab">Rosa</div>
+        </div>
+
+        <!-- scrollable content -->
+        <div class="m-body">
+          <div class="m-hero">
+            <div class="pphoto">NB</div>
+            <div class="pname">Nicolò Barella</div>
+            <div class="pmeta">
+              <span class="pos-badge pos-C">C</span>
+              <span>Inter</span>
+              <span>·</span>
+              <span>27 anni</span>
+              <span>·</span>
+              <span>Quot. <b style="color:var(--txt)">36M</b></span>
+            </div>
+            <div class="pstats">
+              <div class="pstat"><div class="n">34</div><div class="l">Pres.</div></div>
+              <div class="pstat"><div class="n">6</div><div class="l">Gol</div></div>
+              <div class="pstat"><div class="n">8</div><div class="l">Assist</div></div>
+              <div class="pstat"><div class="n">7.2</div><div class="l">FM</div></div>
+            </div>
+          </div>
+
+          <div class="m-mgr-peek">
+            <h5>Chi può rilanciare</h5>
+            <div class="m-peek-row">
+              <span class="who">Michele<span class="chip lead">Offerta</span></span>
+              <span class="mx">max 98M</span>
+            </div>
+            <div class="m-peek-row">
+              <span class="who">Mirko</span>
+              <span class="mx">max 144M</span>
+            </div>
+            <div class="m-peek-row">
+              <span class="who">Diego<span class="chip io">Io</span></span>
+              <span class="mx">max 121M</span>
+            </div>
+            <div class="m-peek-row">
+              <span class="who" style="font-weight:500;color:var(--txt-2)">+ altri 4 manager</span>
+              <span class="mx"></span>
+            </div>
+            <div class="m-peek-row faded">
+              <span class="who">Marcolino<span class="chip full">Slot pieni</span></span>
+              <span class="mx">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- fixed bid bar -->
+        <div class="m-bidbar">
+          <div class="m-status">
+            <div class="m-ring"><i>8</i></div>
+            <div class="m-price">
+              <div class="l">Offerta corrente</div>
+              <div class="v">42<small>M</small></div>
+              <div class="h">offerta di Michele</div>
+            </div>
+            <div class="m-quick">
+              <span class="m-qb">+1</span>
+              <span class="m-qb">+5</span>
+              <span class="m-qb">+10</span>
+            </div>
+          </div>
+          <div class="m-bidrow">
+            <div class="m-step">−</div>
+            <div class="m-input">43<small>M</small></div>
+            <div class="m-step">+</div>
+            <div class="m-bid">Rilancia</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

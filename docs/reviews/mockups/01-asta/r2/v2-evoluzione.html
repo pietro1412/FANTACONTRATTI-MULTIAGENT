@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asta Primo Mercato — R2 · v2 Evoluzione · Stadium Nights</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0b;
+    --card:#1a1c20;
+    --elev:#111214;
+    --hover:#252830;
+    --line:#2d3139;
+    --blue:#3b82f6; --blue-d:#2563eb;
+    --green:#22c55e; --green-d:#16a34a;
+    --gold:#f59e0b; --gold-l:#fbbf24;
+    --red:#ef4444; --red-l:#f87171;
+    --info:#38bdf8;
+    --txt:#f9fafb; --dim:#9ca3af; --faint:#8b919d;
+    --glow-blue:rgba(59,130,246,.3);
+    --glow-gold:rgba(245,158,11,.3);
+    --glow-red:rgba(239,68,68,.3);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased;padding:28px}
+  .mono{font-family:'JetBrains Mono',monospace}
+  h1.page{font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin-bottom:20px}
+  .frames{display:flex;flex-direction:column;gap:48px;align-items:flex-start}
+  .frame-label{font-size:11px;font-weight:800;letter-spacing:.18em;color:var(--info);text-transform:uppercase;margin-bottom:12px;font-family:'Outfit',sans-serif}
+  .frame.desktop{width:1340px}
+
+  /* ============ COMMAND BAR ============ */
+  .cmd{display:flex;align-items:center;gap:16px;background:linear-gradient(180deg,#1e2126,var(--card));border:1px solid var(--line);border-radius:18px;padding:14px 18px}
+  .crest{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--blue),var(--blue-d));display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:15px;color:#fff;flex-shrink:0;box-shadow:0 6px 18px var(--glow-blue)}
+  .cmd .who .l{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+  .cmd .who .n{font-family:'Outfit',sans-serif;font-size:17px;font-weight:700;line-height:1.25}
+  .live{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--green);background:rgba(34,197,94,.1);padding:6px 13px;border-radius:20px;border:1px solid rgba(34,197,94,.3)}
+  .live .pip{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(34,197,94,.2)}
+  .cmd .sp{margin-left:auto}
+  .stat-cluster{display:flex;gap:10px;align-items:center}
+  .stat-card{background:var(--elev);border:1px solid var(--line);border-radius:14px;padding:8px 18px;text-align:center;min-width:104px}
+  .stat-card .l{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+  .stat-card .v{font-family:'Oswald',sans-serif;font-size:26px;font-weight:600;line-height:1.15}
+  .stat-card .v small{font-size:14px;color:var(--dim);font-weight:500}
+  .stat-card.budget .v{color:var(--gold-l)}
+  .stat-card.max{border-color:rgba(59,130,246,.55);background:rgba(59,130,246,.08);box-shadow:0 0 0 1px rgba(59,130,246,.15),0 8px 22px var(--glow-blue)}
+  .stat-card.max .v{color:var(--blue)}
+  .ibtn{width:40px;height:40px;border-radius:12px;background:var(--elev);border:1px solid var(--line);color:var(--faint);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer}
+  .ibtn:hover{background:var(--hover)}
+
+  /* ============ ROLE RAIL ============ */
+  .rail{display:flex;gap:10px;align-items:stretch;margin-top:12px}
+  .seg{flex:1;display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 14px}
+  .seg.done{opacity:.72}
+  .seg.todo{opacity:.42}
+  .seg.active{border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.08);box-shadow:0 0 0 1px rgba(245,158,11,.18),0 8px 22px var(--glow-gold)}
+  .seg .ic{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#0a0a0b;font-family:'Outfit',sans-serif;flex-shrink:0}
+  .seg.P .ic{background:var(--gold-l)} .seg.D .ic{background:var(--blue)} .seg.C .ic{background:var(--green)} .seg.A .ic{background:var(--red-l)}
+  .seg .t{font-size:12px;font-weight:700}
+  .seg .s{font-size:10px;color:var(--faint)}
+  .seg .c{margin-left:auto;font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--dim)}
+  .seg.active .c{color:var(--gold-l)}
+  .seg .ck{margin-left:auto;font-size:12px;color:var(--green);font-weight:700;font-family:'JetBrains Mono',monospace}
+  .rail .total{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;align-items:center;background:var(--elev);border:1px solid var(--line);border-radius:13px;padding:8px 18px;min-width:108px}
+  .rail .total .v{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--txt)}
+  .rail .total .l{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+
+  /* ============ MAIN LAYOUT ============ */
+  .layout{display:grid;grid-template-columns:1fr 332px;gap:16px;margin-top:16px;align-items:stretch}
+
+  /* ---- arena ---- */
+  .arena{background:linear-gradient(180deg,#1e2126,var(--card));border:1px solid var(--line);border-radius:20px;overflow:hidden;position:relative}
+  .arena::before{content:"";position:absolute;inset:0;background:radial-gradient(640px 240px at 68% -8%,rgba(239,68,68,.10),transparent 70%);pointer-events:none}
+  .arena-grid{display:grid;grid-template-columns:336px 1fr;position:relative;height:100%}
+  .pcol{justify-content:center}
+
+  .pcol{padding:26px 24px;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;text-align:center}
+  .pphoto{width:104px;height:104px;border-radius:26px;background:linear-gradient(135deg,var(--hover),var(--elev));border:2px solid rgba(34,197,94,.45);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:40px;font-weight:800;color:var(--txt);margin-bottom:16px;box-shadow:0 14px 34px rgba(0,0,0,.5)}
+  .pname{font-family:'Outfit',sans-serif;font-size:30px;font-weight:800;line-height:1.08;letter-spacing:-.01em}
+  .pmeta{display:flex;gap:9px;align-items:center;justify-content:center;margin-top:10px;font-size:13px;color:var(--dim);flex-wrap:wrap}
+  .pmeta .dot{width:3px;height:3px;border-radius:50%;background:var(--faint)}
+  .posb{font-size:11px;font-weight:800;padding:4px 11px;border-radius:8px;font-family:'Outfit',sans-serif;letter-spacing:.04em}
+  .posb.C{background:rgba(34,197,94,.16);color:var(--green);border:1px solid rgba(34,197,94,.35)}
+  .pstats{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:20px;width:100%}
+  .ps{background:var(--elev);border:1px solid var(--line);border-radius:12px;padding:10px 8px}
+  .ps .n{font-family:'Oswald',sans-serif;font-size:21px;font-weight:600}
+  .ps .l{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em;margin-top:1px;font-weight:600}
+
+  /* ---- bid column ---- */
+  .bcol{padding:26px 28px 20px;display:flex;flex-direction:column;justify-content:center}
+  .topbid{display:flex;align-items:center;gap:24px}
+  .ring{position:relative;width:112px;height:112px;flex-shrink:0}
+  .ring svg{transform:rotate(-90deg);display:block}
+  .ring .t{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:34px;font-weight:600;color:var(--red-l)}
+  .priceblock .l{font-size:10px;color:var(--red-l);text-transform:uppercase;letter-spacing:.16em;font-weight:700}
+  .priceblock .v{font-family:'Oswald',sans-serif;font-size:70px;font-weight:700;line-height:1;color:var(--txt);letter-spacing:.01em}
+  .priceblock .v small{font-size:26px;color:var(--dim);font-weight:500;margin-left:2px}
+  .priceblock .holder{display:inline-flex;align-items:center;gap:7px;margin-top:6px;font-size:13px;color:var(--dim)}
+  .priceblock .holder .hb{display:inline-flex;align-items:center;gap:6px;background:var(--elev);border:1px solid var(--line);border-radius:18px;padding:3px 11px 3px 4px;font-weight:600;color:var(--txt);font-size:12px}
+  .priceblock .holder .hb .av{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800}
+
+  .bidrow{display:flex;gap:10px;margin-top:24px}
+  .quick{width:74px;height:60px;border-radius:14px;background:var(--elev);border:1px solid var(--line);color:var(--info);font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;cursor:pointer}
+  .quick:hover{background:var(--hover);border-color:var(--info)}
+  .bidinput{width:148px;height:60px;border-radius:14px;background:var(--bg);border:1px solid var(--line);color:var(--txt);font-family:'Oswald',sans-serif;font-size:30px;font-weight:600;text-align:center}
+  .bidbtn{flex:1;height:60px;border-radius:14px;border:none;background:linear-gradient(180deg,var(--green),var(--green-d));color:#04150a;font-family:'Outfit',sans-serif;font-size:19px;font-weight:800;letter-spacing:.02em;cursor:pointer;box-shadow:0 12px 30px rgba(34,197,94,.35)}
+  .bidbtn:hover{filter:brightness(1.07)}
+  .reserve{margin-top:16px;border-top:1px solid var(--line);padding-top:12px;font-size:12px;color:var(--faint);display:flex;align-items:center;gap:8px}
+  .reserve .ic{color:var(--gold-l)}
+  .reserve b{color:var(--gold-l);font-weight:700}
+  .reserve strong{color:var(--blue);font-weight:700}
+
+  /* ---- right column ---- */
+  .side{display:flex;flex-direction:column;gap:14px}
+  .panel{background:linear-gradient(180deg,#1e2126,var(--card));border:1px solid var(--line);border-radius:18px;overflow:hidden}
+  .p-head{padding:14px 16px 11px;border-bottom:1px solid var(--line)}
+  .p-head h3{font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;letter-spacing:.01em}
+  .p-head p{font-size:11px;color:var(--faint);margin-top:2px}
+  .th-list{padding:10px;display:flex;flex-direction:column;gap:7px}
+  .threat{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:13px;background:var(--elev);border:1px solid var(--line)}
+  .threat.top{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.07);box-shadow:0 0 0 1px rgba(239,68,68,.12),0 6px 18px var(--glow-red)}
+  .threat .av{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;color:#fff;font-family:'Outfit',sans-serif}
+  .av.mi{background:linear-gradient(135deg,#ef4444,#b91c1c)}
+  .av.ma{background:linear-gradient(135deg,#f59e0b,#b45309)}
+  .av.mc{background:linear-gradient(135deg,#8b5cf6,#6d28d9)}
+  .av.em{background:linear-gradient(135deg,#14b8a6,#0f766e)}
+  .av.pi{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
+  .av.en{background:linear-gradient(135deg,#64748b,#475569)}
+  .av.mo{background:linear-gradient(135deg,#52525b,#3f3f46)}
+  .threat .info{flex:1;min-width:0}
+  .threat .nm{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px}
+  .threat .meta{font-size:10.5px;color:var(--faint);margin-top:1px}
+  .tag{font-size:8.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:2px 7px;border-radius:6px}
+  .tag.danger{background:rgba(239,68,68,.16);color:var(--red-l);border:1px solid rgba(239,68,68,.35)}
+  .tag.holds{background:rgba(59,130,246,.14);color:var(--blue);border:1px solid rgba(59,130,246,.35)}
+  .threat .mx{text-align:right;flex-shrink:0}
+  .threat .mx .n{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700}
+  .threat .mx .l{font-size:8px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;margin-top:1px}
+  .threat.top .mx .n{color:var(--red-l)}
+  .th-div{display:flex;align-items:center;gap:9px;padding:5px 4px 2px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .th-div::before,.th-div::after{content:"";flex:1;height:1px;background:var(--line)}
+  .threat.out{opacity:.4}
+  .threat.out .mx .n{color:var(--dim)}
+  .threat.out.full .nm span{text-decoration:line-through}
+
+  /* rosa C */
+  .chips{padding:12px;display:flex;flex-wrap:wrap;gap:8px}
+  .chip{display:inline-flex;align-items:center;gap:8px;background:var(--elev);border:1px solid var(--line);border-radius:11px;padding:7px 12px;font-size:12px;font-weight:600}
+  .chip .pos{width:18px;height:18px;border-radius:6px;background:rgba(34,197,94,.16);color:var(--green);font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  .chip .pr{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--gold-l);font-weight:700}
+  .chip.empty{border-style:dashed;border-color:#3a3f49;background:transparent;color:var(--faint);font-weight:500;font-size:11.5px}
+  .p-foot{padding:11px 16px;border-top:1px solid var(--line);font-size:11.5px;color:var(--dim);display:flex;justify-content:space-between}
+  .p-foot b{font-family:'JetBrains Mono',monospace;color:var(--txt)}
+
+  /* ============ MOBILE ============ */
+  .phone{width:390px;border:1px solid var(--line);border-radius:38px;background:#060607;padding:12px;box-shadow:0 30px 70px rgba(0,0,0,.75)}
+  .screen{background:var(--bg);border-radius:28px;overflow:hidden;position:relative;display:flex;flex-direction:column;height:792px}
+  .m-scroll{flex:1;overflow:hidden;padding:14px 14px 0;display:flex;flex-direction:column;gap:11px}
+
+  .m-cmd{display:flex;align-items:center;gap:10px}
+  .m-cmd .crest{width:36px;height:36px;border-radius:11px;font-size:12px}
+  .m-cmd .who .l{font-size:8.5px}
+  .m-cmd .who .n{font-size:14px}
+  .m-cmd .live{margin-left:auto;font-size:10px;padding:4px 10px}
+  .m-stats{display:flex;gap:8px}
+  .m-stats .stat-card{flex:1;padding:7px 10px;min-width:0}
+  .m-stats .stat-card .v{font-size:21px}
+  .m-rail{display:flex;gap:6px}
+  .m-seg{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 4px;font-size:10px;font-weight:700}
+  .m-seg .b{width:17px;height:17px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#0a0a0b;font-family:'Outfit',sans-serif}
+  .m-seg.done{opacity:.6}
+  .m-seg.todo{opacity:.4}
+  .m-seg.active{border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.08)}
+  .m-seg .cc{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--dim)}
+  .m-seg.active .cc{color:var(--gold-l)}
+
+  .m-hero{background:linear-gradient(180deg,#1e2126,var(--card));border:1px solid var(--line);border-radius:18px;padding:16px;position:relative;overflow:hidden}
+  .m-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(300px 140px at 80% -10%,rgba(239,68,68,.12),transparent 70%);pointer-events:none}
+  .m-hero .row{display:flex;align-items:center;gap:13px;position:relative}
+  .m-hero .pphoto{width:62px;height:62px;border-radius:17px;font-size:23px;margin:0}
+  .m-hero .pname{font-size:21px}
+  .m-hero .pmeta{justify-content:flex-start;margin-top:5px;font-size:11.5px;gap:7px}
+  .m-hero .posb{font-size:9.5px;padding:3px 8px}
+  .m-hero .pstats{grid-template-columns:repeat(4,1fr);gap:7px;margin-top:13px}
+  .m-hero .ps{padding:7px 4px;text-align:center}
+  .m-hero .ps .n{font-size:16px}
+  .m-hero .ps .l{font-size:8px}
+  .m-holder{display:flex;align-items:center;gap:8px;margin-top:12px;position:relative;font-size:11.5px;color:var(--dim)}
+  .m-holder .hb{display:inline-flex;align-items:center;gap:6px;background:var(--elev);border:1px solid var(--line);border-radius:16px;padding:3px 10px 3px 4px;font-weight:600;color:var(--txt);font-size:11px}
+  .m-holder .hb .av{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800}
+
+  .m-threat{background:var(--card);border:1px solid rgba(239,68,68,.4);border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 6px 18px var(--glow-red)}
+  .m-threat .ic{width:30px;height:30px;border-radius:9px;background:rgba(239,68,68,.14);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .m-threat .tx .l{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--red-l)}
+  .m-threat .tx .v{font-size:12.5px;font-weight:600;color:var(--txt);margin-top:2px}
+  .m-threat .tx .v b{font-family:'JetBrains Mono',monospace;color:var(--red-l)}
+  .m-threat .more{margin-left:auto;font-size:10px;color:var(--faint);font-weight:600;white-space:nowrap}
+
+  .m-rosa{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 14px}
+  .m-rosa .t{font-size:11px;font-weight:700;color:var(--dim);margin-bottom:8px;display:flex;justify-content:space-between}
+  .m-rosa .t b{font-family:'JetBrains Mono',monospace;color:var(--txt)}
+  .m-rosa .chips{padding:0;gap:6px}
+  .m-rosa .chip{padding:5px 9px;font-size:11px}
+  .m-rosa .chip .pr{font-size:10.5px}
+  .m-rosa .chip.empty{font-size:10.5px}
+
+  .fade{height:26px;background:linear-gradient(180deg,transparent,var(--bg));margin-top:-26px;position:relative;z-index:2;flex-shrink:0}
+
+  .dock{flex-shrink:0;background:linear-gradient(180deg,#1e2126,#16181c);border-top:1px solid var(--line);padding:12px 14px 16px;position:relative;z-index:3;box-shadow:0 -14px 34px rgba(0,0,0,.55)}
+  .dock .row1{display:flex;align-items:center;gap:14px}
+  .dock .ring{width:58px;height:58px}
+  .dock .ring .t{font-size:19px}
+  .dock .pb .l{font-size:8.5px;color:var(--red-l);letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+  .dock .pb .v{font-family:'Oswald',sans-serif;font-size:40px;font-weight:700;line-height:1;color:var(--txt)}
+  .dock .pb .v small{font-size:17px;color:var(--dim);font-weight:500}
+  .dock .pb .h{font-size:10.5px;color:var(--dim);margin-top:2px}
+  .dock .pb .h b{color:var(--txt)}
+  .dock .mymax{margin-left:auto;text-align:right}
+  .dock .mymax .l{font-size:8.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+  .dock .mymax .v{font-family:'Oswald',sans-serif;font-size:21px;font-weight:600;color:var(--blue)}
+  .dock .row2{display:flex;gap:8px;margin-top:11px}
+  .dock .quick{width:52px;height:52px;font-size:14px;border-radius:12px}
+  .dock .bidinput{width:74px;height:52px;font-size:23px;border-radius:12px}
+  .dock .bidbtn{height:52px;font-size:15px;border-radius:12px}
+</style>
+</head>
+<body>
+
+<h1 class="page">01 · Asta — Round 2 · v2 Evoluzione · palette Stadium Nights</h1>
+
+<div class="frames">
+
+  <!-- ============================================================ DESKTOP -->
+  <div class="frame desktop">
+    <div class="frame-label">Desktop · 1440px</div>
+
+    <!-- command bar -->
+    <div class="cmd">
+      <div class="crest">DG</div>
+      <div class="who">
+        <div class="l">Real Diego · Lega Fantacontratti</div>
+        <div class="n">Asta · Primo Mercato</div>
+      </div>
+      <span class="live"><span class="pip"></span>LIVE</span>
+      <div class="sp"></div>
+      <div class="stat-cluster">
+        <div class="stat-card budget">
+          <div class="l">Budget</div>
+          <div class="v">187<small>M</small></div>
+        </div>
+        <div class="stat-card max">
+          <div class="l">Offerta max</div>
+          <div class="v">121<small>M</small></div>
+        </div>
+      </div>
+      <button class="ibtn" title="Pausa">&#10073;&#10073;</button>
+      <button class="ibtn" title="Esci">&#10005;</button>
+    </div>
+
+    <!-- role rail -->
+    <div class="rail">
+      <div class="seg P done">
+        <div class="ic">P</div>
+        <div><div class="t">Portieri</div><div class="s">Completato</div></div>
+        <div class="ck">24/24 ✓</div>
+      </div>
+      <div class="seg D done">
+        <div class="ic">D</div>
+        <div><div class="t">Difensori</div><div class="s">Completato</div></div>
+        <div class="ck">64/64 ✓</div>
+      </div>
+      <div class="seg C active">
+        <div class="ic">C</div>
+        <div><div class="t">Centrocampisti</div><div class="s">In corso · tocca a Michele</div></div>
+        <div class="c">17/48</div>
+      </div>
+      <div class="seg A todo">
+        <div class="ic">A</div>
+        <div><div class="t">Attaccanti</div><div class="s">A seguire</div></div>
+        <div class="c">0/48</div>
+      </div>
+      <div class="total">
+        <div class="v">89/200</div>
+        <div class="l">Giocatori assegnati</div>
+      </div>
+    </div>
+
+    <!-- main -->
+    <div class="layout">
+
+      <!-- ARENA -->
+      <div class="arena">
+        <div class="arena-grid">
+          <!-- player -->
+          <div class="pcol">
+            <div class="pphoto">NB</div>
+            <div class="pname">Nicolò Barella</div>
+            <div class="pmeta">
+              <span class="posb C">C · Centrocampista</span>
+              <span>Inter</span><span class="dot"></span>
+              <span>27 anni</span><span class="dot"></span>
+              <span>Quot. <b class="mono" style="color:var(--txt)">36M</b></span>
+            </div>
+            <div class="pstats">
+              <div class="ps"><div class="n">34</div><div class="l">Presenze</div></div>
+              <div class="ps"><div class="n">6</div><div class="l">Gol</div></div>
+              <div class="ps"><div class="n">8</div><div class="l">Assist</div></div>
+              <div class="ps"><div class="n" style="color:var(--gold-l)">7.2</div><div class="l">Fantamedia</div></div>
+            </div>
+          </div>
+
+          <!-- bid -->
+          <div class="bcol">
+            <div class="topbid">
+              <div class="ring">
+                <svg width="112" height="112" viewBox="0 0 112 112">
+                  <circle cx="56" cy="56" r="49" fill="none" stroke="#2d3139" stroke-width="8"/>
+                  <circle cx="56" cy="56" r="49" fill="none" stroke="#ef4444" stroke-width="8"
+                          stroke-linecap="round" stroke-dasharray="307.9" stroke-dashoffset="225.8"
+                          style="filter:drop-shadow(0 0 6px rgba(239,68,68,.5))"/>
+                </svg>
+                <div class="t">8s</div>
+              </div>
+              <div class="priceblock">
+                <div class="l">Offerta corrente</div>
+                <div class="v">42<small>M</small></div>
+                <div class="holder">offerta di
+                  <span class="hb"><span class="av">MC</span>Michele</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bidrow">
+              <button class="quick">+1</button>
+              <button class="quick">+5</button>
+              <button class="quick">+10</button>
+              <input class="bidinput" value="43" readonly>
+              <button class="bidbtn">RILANCIA A 43M</button>
+            </div>
+
+            <div class="reserve">
+              <span class="ic">&#9432;</span>
+              <span>Riserva: <b>8M</b> trattenuti per 4 slot vuoti &rarr; la tua offerta max è <strong>121M</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIDE -->
+      <div class="side">
+
+        <!-- chi può superarti -->
+        <div class="panel">
+          <div class="p-head">
+            <h3>Chi può superarti</h3>
+            <p>Su Barella · ordinati per offerta massima</p>
+          </div>
+          <div class="th-list">
+            <div class="threat top">
+              <div class="av mi">MK</div>
+              <div class="info">
+                <div class="nm">Mirko <span class="tag danger">Minaccia</span></div>
+                <div class="meta">Slot C 2/6 · budget 201M</div>
+              </div>
+              <div class="mx"><div class="n">144</div><div class="l">Max bid</div></div>
+            </div>
+            <div class="threat">
+              <div class="av ma">MA</div>
+              <div class="info">
+                <div class="nm">Marco</div>
+                <div class="meta">Slot C 5/6 · budget 176M</div>
+              </div>
+              <div class="mx"><div class="n">120</div><div class="l">Max bid</div></div>
+            </div>
+            <div class="threat">
+              <div class="av mc">MC</div>
+              <div class="info">
+                <div class="nm">Michele <span class="tag holds">Offerta sua</span></div>
+                <div class="meta">Slot C 3/6 · budget 154M</div>
+              </div>
+              <div class="mx"><div class="n">98</div><div class="l">Max bid</div></div>
+            </div>
+            <div class="threat">
+              <div class="av em">EM</div>
+              <div class="info">
+                <div class="nm">Emiliano</div>
+                <div class="meta">Slot C 3/6 · budget 143M</div>
+              </div>
+              <div class="mx"><div class="n">95</div><div class="l">Max bid</div></div>
+            </div>
+            <div class="threat">
+              <div class="av pi">PT</div>
+              <div class="info">
+                <div class="nm">Pietro</div>
+                <div class="meta">Slot C 4/6 · budget 118M</div>
+              </div>
+              <div class="mx"><div class="n">77</div><div class="l">Max bid</div></div>
+            </div>
+
+            <div class="th-div">Fuori gioco</div>
+
+            <div class="threat out">
+              <div class="av en">EN</div>
+              <div class="info">
+                <div class="nm">Emmanuele</div>
+                <div class="meta">Non può superare · max 41 &lt; 42</div>
+              </div>
+              <div class="mx"><div class="n">41</div><div class="l">Max bid</div></div>
+            </div>
+            <div class="threat out full">
+              <div class="av mo">ML</div>
+              <div class="info">
+                <div class="nm"><span>Marcolino</span></div>
+                <div class="meta">Slot C 6/6 pieni</div>
+              </div>
+              <div class="mx"><div class="n">—</div><div class="l">Escluso</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- la mia rosa C -->
+        <div class="panel">
+          <div class="p-head">
+            <h3>La mia rosa C · 2/6</h3>
+            <p>Centrocampisti già acquistati</p>
+          </div>
+          <div class="chips">
+            <span class="chip"><span class="pos">C</span>Pellegrini <span class="pr">28M</span></span>
+            <span class="chip"><span class="pos">C</span>Koopmeiners <span class="pr">31M</span></span>
+            <span class="chip empty">+ Slot libero</span>
+            <span class="chip empty">+ Slot libero</span>
+            <span class="chip empty">+ Slot libero</span>
+            <span class="chip empty">+ Slot libero</span>
+          </div>
+          <div class="p-foot">
+            <span>Speso finora</span><b>124M</b>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ MOBILE -->
+  <div class="frame mobile">
+    <div class="frame-label">Mobile · 390px</div>
+    <div class="phone">
+      <div class="screen">
+
+        <div class="m-scroll">
+          <!-- mini command bar -->
+          <div class="m-cmd">
+            <div class="crest">DG</div>
+            <div class="who">
+              <div class="l">Real Diego</div>
+              <div class="n">Asta · Primo Mercato</div>
+            </div>
+            <span class="live"><span class="pip"></span>LIVE</span>
+          </div>
+
+          <!-- budget / max -->
+          <div class="m-stats">
+            <div class="stat-card budget">
+              <div class="l">Budget</div>
+              <div class="v">187<small>M</small></div>
+            </div>
+            <div class="stat-card max">
+              <div class="l">Offerta max</div>
+              <div class="v">121<small>M</small></div>
+            </div>
+          </div>
+
+          <!-- role rail -->
+          <div class="m-rail">
+            <div class="m-seg done"><span class="b" style="background:var(--gold-l)">P</span><span class="cc">24/24</span></div>
+            <div class="m-seg done"><span class="b" style="background:var(--blue)">D</span><span class="cc">64/64</span></div>
+            <div class="m-seg active"><span class="b" style="background:var(--green)">C</span><span class="cc">17/48</span></div>
+            <div class="m-seg todo"><span class="b" style="background:var(--red-l)">A</span><span class="cc">0/48</span></div>
+          </div>
+
+          <!-- player hero -->
+          <div class="m-hero">
+            <div class="row">
+              <div class="pphoto">NB</div>
+              <div>
+                <div class="pname">Nicolò Barella</div>
+                <div class="pmeta">
+                  <span class="posb C">C</span>
+                  <span>Inter</span><span class="dot"></span>
+                  <span>27 anni</span><span class="dot"></span>
+                  <span>Quot. 36M</span>
+                </div>
+              </div>
+            </div>
+            <div class="pstats">
+              <div class="ps"><div class="n">34</div><div class="l">Pres</div></div>
+              <div class="ps"><div class="n">6</div><div class="l">Gol</div></div>
+              <div class="ps"><div class="n">8</div><div class="l">Assist</div></div>
+              <div class="ps"><div class="n" style="color:var(--gold-l)">7.2</div><div class="l">FM</div></div>
+            </div>
+            <div class="m-holder">offerta di
+              <span class="hb"><span class="av">MC</span>Michele</span>
+            </div>
+          </div>
+
+          <!-- threat strip -->
+          <div class="m-threat">
+            <div class="ic">&#9888;</div>
+            <div class="tx">
+              <div class="l">Possono superarti</div>
+              <div class="v">Mirko <b>144</b> · Marco <b>120</b> · Michele <b>98</b></div>
+            </div>
+            <div class="more">+2 altri</div>
+          </div>
+
+          <!-- rosa C -->
+          <div class="m-rosa">
+            <div class="t"><span>La mia rosa C · 2/6</span><b>speso 124M</b></div>
+            <div class="chips">
+              <span class="chip"><span class="pos">C</span>Pellegrini <span class="pr">28M</span></span>
+              <span class="chip"><span class="pos">C</span>Koopmeiners <span class="pr">31M</span></span>
+              <span class="chip empty">+ 4 slot liberi</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="fade"></div>
+
+        <!-- DOCK -->
+        <div class="dock">
+          <div class="row1">
+            <div class="ring">
+              <svg width="58" height="58" viewBox="0 0 58 58">
+                <circle cx="29" cy="29" r="24" fill="none" stroke="#2d3139" stroke-width="5"/>
+                <circle cx="29" cy="29" r="24" fill="none" stroke="#ef4444" stroke-width="5"
+                        stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="110.6"
+                        style="filter:drop-shadow(0 0 5px rgba(239,68,68,.5))"/>
+              </svg>
+              <div class="t">8s</div>
+            </div>
+            <div class="pb">
+              <div class="l">Offerta corrente</div>
+              <div class="v">42<small>M</small></div>
+              <div class="h">di <b>Michele</b></div>
+            </div>
+            <div class="mymax">
+              <div class="l">Tua max</div>
+              <div class="v">121M</div>
+            </div>
+          </div>
+          <div class="row2">
+            <button class="quick">+1</button>
+            <button class="quick">+5</button>
+            <input class="bidinput" value="43" readonly>
+            <button class="bidbtn">RILANCIA · 43M</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
