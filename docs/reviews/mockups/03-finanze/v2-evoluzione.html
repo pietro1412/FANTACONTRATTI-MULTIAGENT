@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FantaContratti — Finanze · v2 EVOLUZIONE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   v2 EVOLUZIONE — Finanze & Storia · palette Stadium Nights
+   Zona 1: La mia cassa (dominante) · Zona 2: La lega ·
+   Zona 3: Registro movimenti UNIFICATO (ex 3 viste)
+   ============================================================ */
+:root{
+  --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830; --line:#2d3139;
+  --blue:#3b82f6; --green:#22c55e; --gold:#f59e0b; --gold2:#fbbf24;
+  --red:#ef4444; --red2:#f87171;
+  --txt:#f9fafb; --dim:#9ca3af; --faint:#8b919d;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased;padding:28px}
+.mono{font-family:'JetBrains Mono',monospace}
+h1.page{font-size:13px;font-weight:700;color:var(--faint);letter-spacing:.12em;text-transform:uppercase;margin-bottom:18px}
+.frames{display:flex;flex-direction:column;gap:44px;align-items:flex-start}
+.frame-label{font-size:11px;font-weight:800;letter-spacing:.18em;color:var(--blue);text-transform:uppercase;margin-bottom:10px;font-family:'Outfit'}
+
+/* ===================== DESKTOP FRAME ===================== */
+.desk{width:1340px;background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:28px 32px 36px;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+
+/* ---- page header ---- */
+.phead{display:flex;align-items:flex-end;gap:18px;margin-bottom:24px}
+.phead .crumb{font-size:11px;color:var(--faint);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px}
+.phead h2{font-family:'Outfit';font-size:30px;font-weight:800;letter-spacing:-.01em;line-height:1}
+.phead .sub{font-size:13px;color:var(--dim);margin-top:7px}
+.phead .tt{flex:1}
+.session{display:inline-flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 16px;font-family:'Outfit';font-size:14px;font-weight:600;color:var(--txt);cursor:pointer}
+.session .lab{font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:1px}
+.session .car{color:var(--faint);font-size:11px}
+
+/* ---- section label ---- */
+.zlabel{display:flex;align-items:baseline;gap:10px;margin:0 0 12px}
+.zlabel .zt{font-family:'Outfit';font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--txt)}
+.zlabel .zs{font-size:12px;color:var(--faint)}
+.zlabel .zr{margin-left:auto;font-size:12px;color:var(--blue);font-weight:600;cursor:pointer}
+
+/* =========== ZONA 1 — LA MIA CASSA =========== */
+.z1{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;margin-bottom:10px}
+.cassa{background:linear-gradient(160deg,#16221a 0%,var(--card) 55%);border:1px solid #234232;border-radius:18px;padding:24px 26px 22px;position:relative;overflow:hidden}
+.cassa::after{content:"";position:absolute;top:-60px;right:-40px;width:260px;height:200px;background:radial-gradient(closest-side,rgba(34,197,94,.13),transparent);pointer-events:none}
+.cassa .k{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.cassa .big{font-family:'Oswald';font-size:62px;font-weight:700;line-height:1.02;color:var(--green);letter-spacing:.01em;margin:6px 0 2px}
+.cassa .big small{font-size:30px;font-weight:600;color:#16a34a;margin-left:2px}
+.cassa .bigsub{font-size:13px;color:var(--dim);margin-bottom:16px}
+.formula{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-family:'JetBrains Mono';font-size:13.5px;margin-bottom:14px}
+.formula .t{padding:5px 10px;border-radius:8px;background:var(--elev);border:1px solid var(--line);font-weight:600}
+.formula .t small{display:block;font-family:'Inter';font-size:9.5px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;margin-top:1px}
+.formula .t.tot{color:var(--txt)}
+.formula .t.neg{color:var(--red2)}
+.formula .t.res{color:var(--gold2)}
+.formula .t.ok{color:var(--green);border-color:#234232;background:#13201a}
+.formula .op{color:var(--faint);font-weight:700}
+.compbar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--elev);border:1px solid var(--line)}
+.compbar i{display:block;height:100%}
+.compbar .c1{width:66.3%;background:#3f4754}
+.compbar .c2{width:4.3%;background:var(--gold)}
+.compbar .c3{width:29.4%;background:var(--green)}
+.compleg{display:flex;gap:18px;margin-top:9px;font-size:11px;color:var(--faint)}
+.compleg b{color:var(--dim);font-weight:600}
+.compleg .dot{display:inline-block;width:8px;height:8px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+.statcol{display:grid;grid-template-rows:1fr 1fr 1fr;gap:12px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:14px}
+.stat .ic{width:38px;height:38px;border-radius:11px;background:var(--elev);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.stat .tx{flex:1;min-width:0}
+.stat .l{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--faint)}
+.stat .v{font-family:'Oswald';font-size:25px;font-weight:600;line-height:1.15;color:var(--txt)}
+.stat .v small{font-family:'Inter';font-size:12px;font-weight:500;color:var(--faint);margin-left:4px}
+.stat .hint{font-size:11px;color:var(--faint);margin-top:1px}
+.stat.warn{border-color:#4a3413;background:linear-gradient(150deg,#221a0d,var(--card) 70%);cursor:pointer}
+.stat.warn .v{color:var(--gold2)}
+.stat.warn .ic{background:#221a0d;border-color:#4a3413}
+.stat .go{color:var(--gold2);font-size:14px;font-weight:700;flex-shrink:0}
+
+.vincoli{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 18px;display:flex;align-items:center;gap:10px;margin-bottom:30px;flex-wrap:wrap}
+.vincoli .vt{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-right:4px;white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:7px;background:var(--elev);border:1px solid #4a3413;border-radius:10px;padding:6px 11px;font-size:12.5px;font-weight:600;color:var(--txt)}
+.chip .rl{font-size:9px;font-weight:800;width:16px;height:16px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;color:#0a0a0b}
+.chip .pr{font-family:'JetBrains Mono';font-size:12px;font-weight:700;color:var(--gold2)}
+.chip.claus{border-color:#374151;margin-left:auto}
+.chip.claus .tag{font-size:9.5px;font-weight:800;letter-spacing:.06em;color:var(--faint);text-transform:uppercase}
+.chip.claus .pr{color:var(--txt)}
+.rl.P{background:#fbbf24}.rl.D{background:#4ade80}.rl.C{background:#60a5fa}.rl.A{background:#f87171}
+
+/* =========== ZONA 2 — LA LEGA =========== */
+.z2{margin-bottom:30px}
+.legasum{display:flex;gap:10px;margin-bottom:14px}
+.lsum{display:inline-flex;align-items:baseline;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:7px 15px;font-size:12px;color:var(--faint)}
+.lsum b{font-family:'JetBrains Mono';font-size:13.5px;font-weight:700;color:var(--txt)}
+.ranking{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.rhead{display:grid;grid-template-columns:44px 170px 1fr 110px 110px 92px;gap:14px;align-items:center;padding:11px 20px;border-bottom:1px solid var(--line);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.rhead .num{text-align:right}
+.rrow{display:grid;grid-template-columns:44px 170px 1fr 110px 110px 92px;gap:14px;align-items:center;padding:11px 20px;border-bottom:1px solid #222529}
+.rrow:last-child{border-bottom:none}
+.rrow .pos{font-family:'JetBrains Mono';font-size:13px;font-weight:700;color:var(--faint)}
+.rrow .mg{display:flex;align-items:center;gap:10px;min-width:0}
+.ava{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Outfit';font-weight:800;font-size:13px;color:#0a0a0b;flex-shrink:0}
+.rrow .nm{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bart{height:9px;border-radius:5px;background:var(--elev);border:1px solid #222529;overflow:hidden}
+.bart i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#1d4ed8,var(--blue))}
+.rrow .bil{font-family:'JetBrains Mono';font-size:17px;font-weight:800;text-align:right;color:var(--txt)}
+.rrow .bil small{font-size:11px;font-weight:600;color:var(--faint)}
+.rrow .ing{font-family:'JetBrains Mono';font-size:12.5px;font-weight:600;text-align:right;color:var(--faint)}
+.rrow .spark{display:flex;justify-content:flex-end}
+.rrow.me{background:linear-gradient(90deg,rgba(245,158,11,.10),rgba(245,158,11,.03));box-shadow:inset 3px 0 0 var(--gold)}
+.rrow.me .nm{color:var(--gold2)}
+.rrow.me .bil{color:var(--gold2)}
+.rrow.me .bart i{background:linear-gradient(90deg,var(--gold),var(--gold2))}
+.youtag{font-size:8.5px;font-weight:800;letter-spacing:.08em;background:var(--gold);color:#0a0a0b;border-radius:5px;padding:2px 6px;margin-left:8px;vertical-align:2px}
+
+/* =========== ZONA 3 — REGISTRO MOVIMENTI =========== */
+.filters{display:flex;gap:8px;margin-bottom:16px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:8px 16px;font-size:13px;font-weight:600;color:var(--dim);cursor:pointer}
+.pill .n{font-family:'JetBrains Mono';font-size:11px;font-weight:700;color:var(--faint)}
+.pill.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.pill.on .n{color:#dbeafe}
+.filters .src{margin-left:auto;font-size:11.5px;color:var(--faint)}
+
+.daygrp{margin-bottom:20px}
+.dayhead{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.dayhead .d{font-family:'Outfit';font-size:13px;font-weight:700;letter-spacing:.03em;color:var(--txt);text-transform:uppercase}
+.dayhead .ph{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold2);background:#221a0d;border:1px solid #4a3413;border-radius:7px;padding:3px 9px}
+.dayhead .ph.rub{color:var(--red2);background:#220f0f;border-color:#4a1d1d}
+.dayhead .ph.rin{color:#4ade80;background:#0f1d14;border-color:#1d4429}
+.dayhead .ln{flex:1;height:1px;background:var(--line)}
+
+.feed{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.mrow{display:grid;grid-template-columns:96px 1fr 280px 150px;gap:16px;align-items:center;padding:14px 20px;border-bottom:1px solid #222529}
+.mrow:last-child,.mrow.haspro:last-of-type{border-bottom:none}
+.mrow.me{box-shadow:inset 3px 0 0 var(--gold)}
+.badge{font-family:'Outfit';font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;text-align:center;border-radius:8px;padding:6px 0;border:1px solid}
+.badge.asta{color:var(--gold2);background:#221a0d;border-color:#4a3413}
+.badge.rubata{color:var(--red2);background:#220f0f;border-color:#4a1d1d}
+.badge.scambio{color:#93c5fd;background:#0f1626;border-color:#1e3a5f}
+.badge.rinnovo{color:#4ade80;background:#0f1d14;border-color:#1d4429}
+.badge.taglio{color:var(--dim);background:var(--elev);border-color:var(--line)}
+.mrow .pl{display:flex;align-items:center;gap:10px;min-width:0}
+.mrow .pl .nm{font-size:14.5px;font-weight:700;white-space:nowrap}
+.mrow .pl .tm{font-size:12px;color:var(--faint)}
+.flow{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);min-width:0}
+.flow b{color:var(--txt);font-weight:600}
+.flow .arr{color:var(--faint);font-size:12px}
+.flow .meD b{color:var(--gold2)}
+.mrow .prc{text-align:right}
+.mrow .prc .v{font-family:'JetBrains Mono';font-size:18px;font-weight:800;color:var(--txt)}
+.mrow .prc .v.gain{color:var(--green)}
+.mrow .prc .v.cost{color:var(--red2)}
+.mrow .prc .s{font-size:10.5px;color:var(--faint);margin-top:1px}
+.pro{grid-column:1 / -1;display:flex;align-items:baseline;gap:9px;background:var(--elev);border:1px solid #222529;border-radius:10px;padding:8px 14px;margin-top:-2px}
+.pro .em{font-size:13px;flex-shrink:0}
+.pro .q{font-size:12.5px;font-style:italic;color:var(--dim);line-height:1.4}
+.pro .au{font-size:11px;color:var(--faint);font-style:normal;white-space:nowrap}
+.pro .au b{color:var(--txt);font-weight:600}
+.pro .au .who{color:var(--gold2)}
+.mrow.haspro{grid-template-rows:auto auto;row-gap:9px;padding-bottom:12px}
+
+/* ===================== MOBILE FRAME ===================== */
+.phone{width:412px;border:1px solid var(--line);border-radius:36px;background:#050506;padding:11px;box-shadow:0 24px 70px rgba(0,0,0,.6)}
+.pin{background:var(--bg);border-radius:26px;overflow:hidden;display:flex;flex-direction:column;width:390px}
+.m-head{padding:18px 16px 12px;display:flex;align-items:center;gap:10px}
+.m-head .tt h3{font-family:'Outfit';font-size:20px;font-weight:800;line-height:1}
+.m-head .tt p{font-size:11px;color:var(--faint);margin-top:3px}
+.m-head .tt{flex:1}
+.m-sess{font-family:'Outfit';font-size:11.5px;font-weight:700;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 11px;color:var(--txt);white-space:nowrap}
+.m-sess i{font-style:normal;color:var(--faint);font-size:10px}
+
+.m-cassa{margin:0 14px 12px;background:linear-gradient(160deg,#16221a 0%,var(--card) 60%);border:1px solid #234232;border-radius:18px;padding:18px 18px 16px;position:relative;overflow:hidden}
+.m-cassa::after{content:"";position:absolute;top:-50px;right:-30px;width:180px;height:150px;background:radial-gradient(closest-side,rgba(34,197,94,.14),transparent)}
+.m-cassa .k{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.m-cassa .big{font-family:'Oswald';font-size:48px;font-weight:700;line-height:1.05;color:var(--green);margin:4px 0 1px}
+.m-cassa .big small{font-size:22px;font-weight:600;color:#16a34a}
+.m-cassa .frm{font-family:'JetBrains Mono';font-size:11.5px;color:var(--dim);margin-bottom:12px}
+.m-cassa .frm .neg{color:var(--red2)}.m-cassa .frm .res{color:var(--gold2)}
+.m-stats{display:grid;grid-template-columns:1fr 1fr 1.25fr;gap:8px}
+.m-stat{background:rgba(10,10,11,.45);border:1px solid var(--line);border-radius:11px;padding:9px 10px}
+.m-stat .l{font-size:8.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.m-stat .v{font-family:'Oswald';font-size:18px;font-weight:600;color:var(--txt);margin-top:2px}
+.m-stat .v small{font-family:'Inter';font-size:10px;color:var(--faint);font-weight:500}
+.m-stat.warn{border-color:#4a3413}.m-stat.warn .v{color:var(--gold2)}
+.m-vinc{display:flex;gap:8px;overflow:hidden;margin:0 14px 18px;padding-bottom:2px}
+.m-vinc .chip{flex-shrink:0;font-size:11.5px;padding:6px 10px}
+
+.m-zlab{display:flex;align-items:baseline;gap:8px;margin:0 16px 9px}
+.m-zlab .zt{font-family:'Outfit';font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.m-zlab .zs{font-size:10.5px;color:var(--faint)}
+.m-zlab .zr{margin-left:auto;font-size:11px;color:var(--blue);font-weight:600}
+
+.m-rank{margin:0 14px 18px;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.m-rrow{display:grid;grid-template-columns:22px 86px 1fr 56px;gap:9px;align-items:center;padding:9px 13px;border-bottom:1px solid #222529}
+.m-rrow:last-child{border-bottom:none}
+.m-rrow .pos{font-family:'JetBrains Mono';font-size:11px;font-weight:700;color:var(--faint)}
+.m-rrow .nm{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-rrow .bart{height:7px}
+.m-rrow .bil{font-family:'JetBrains Mono';font-size:13.5px;font-weight:800;text-align:right}
+.m-rrow .bil small{font-size:9.5px;color:var(--faint);font-weight:600}
+.m-rrow.me{background:linear-gradient(90deg,rgba(245,158,11,.12),rgba(245,158,11,.03));box-shadow:inset 3px 0 0 var(--gold)}
+.m-rrow.me .nm,.m-rrow.me .bil{color:var(--gold2)}
+.m-rrow.me .bart i{background:linear-gradient(90deg,var(--gold),var(--gold2))}
+.m-sum{display:flex;gap:6px;margin:0 14px 10px;flex-wrap:wrap}
+.m-sum .lsum{padding:5px 11px;font-size:10.5px}
+.m-sum .lsum b{font-size:11.5px}
+
+.m-filters{position:sticky;top:0;z-index:5;display:flex;gap:6px;padding:10px 14px;background:rgba(10,10,11,.92);border-top:1px solid var(--line);border-bottom:1px solid var(--line);backdrop-filter:blur(8px);overflow:hidden}
+.m-filters .pill{padding:6px 12px;font-size:11.5px;flex-shrink:0}
+.m-feed{padding:12px 14px 20px;display:flex;flex-direction:column;gap:10px}
+.m-day{font-family:'Outfit';font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);margin:6px 2px 0;display:flex;align-items:center;gap:8px}
+.m-day b{color:var(--txt)}
+.m-day .ln{flex:1;height:1px;background:var(--line)}
+.mcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.mcard.me{box-shadow:inset 3px 0 0 var(--gold)}
+.mcard .top{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.mcard .badge{font-size:9px;padding:4px 9px;flex-shrink:0}
+.mcard .nm{font-size:13.5px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mcard .nm .tm{font-size:10.5px;color:var(--faint);font-weight:500}
+.mcard .prc{font-family:'JetBrains Mono';font-size:15px;font-weight:800;flex-shrink:0}
+.mcard .prc.cost{color:var(--red2)}.mcard .prc.gain{color:var(--green)}
+.mcard .fl{font-size:11.5px;color:var(--dim)}
+.mcard .fl b{color:var(--txt);font-weight:600}
+.mcard .fl .meD{color:var(--gold2);font-weight:700}
+.mcard .fl .arr{color:var(--faint)}
+.mcard .fl .s{color:var(--faint);font-size:10.5px}
+.mcard .pro{margin-top:8px;padding:7px 11px}
+.mcard .pro .q{font-size:11.5px}
+.mcard .pro .au{font-size:10px}
+</style>
+</head>
+<body>
+
+<h1 class="page">FantaContratti · Sezione Finanze &amp; Storia · Mockup v2 — EVOLUZIONE</h1>
+
+<div class="frames">
+
+<!-- ====================================================== -->
+<!-- DESKTOP -->
+<!-- ====================================================== -->
+<div>
+  <div class="frame-label">Desktop · 1440px</div>
+  <div class="desk">
+
+    <!-- header -->
+    <div class="phead">
+      <div class="tt">
+        <div class="crumb">Lega Fantacontratti Test · 8 squadre</div>
+        <h2>Finanze</h2>
+        <div class="sub">La tua cassa, la lega e il registro movimenti — tutto in una pagina.</div>
+      </div>
+      <button class="session">
+        <span><span class="lab">Sessione</span>Primo Mercato 2025/26</span>
+        <span class="car">▾</span>
+      </button>
+    </div>
+
+    <!-- ============ ZONA 1 — LA MIA CASSA ============ -->
+    <div class="zlabel">
+      <span class="zt">La mia cassa</span>
+      <span class="zs">Diego · aggiornata a oggi, 11 giugno</span>
+    </div>
+
+    <div class="z1">
+      <div class="cassa">
+        <div class="k">Bilancio disponibile</div>
+        <div class="big">55<small>M</small></div>
+        <div class="bigsub">quanto puoi spendere adesso, slot di riserva già accantonati</div>
+        <div class="formula">
+          <span class="t tot">187<small>Budget</small></span>
+          <span class="op">−</span>
+          <span class="t neg">124<small>Ingaggi</small></span>
+          <span class="op">−</span>
+          <span class="t res">8<small>Riserva slot</small></span>
+          <span class="op">=</span>
+          <span class="t ok">55<small>Disponibili</small></span>
+        </div>
+        <div class="compbar"><i class="c1"></i><i class="c2"></i><i class="c3"></i></div>
+        <div class="compleg">
+          <span><span class="dot" style="background:#3f4754"></span>Ingaggi <b>124M</b></span>
+          <span><span class="dot" style="background:var(--gold)"></span>Riserva <b>8M</b></span>
+          <span><span class="dot" style="background:var(--green)"></span>Disponibile <b>55M</b></span>
+        </div>
+      </div>
+
+      <div class="statcol">
+        <div class="stat">
+          <div class="ic">💸</div>
+          <div class="tx">
+            <div class="l">Monte ingaggi</div>
+            <div class="v">124M<small>/anno</small></div>
+          </div>
+          <div class="hint">66% del budget</div>
+        </div>
+        <div class="stat">
+          <div class="ic">👥</div>
+          <div class="tx">
+            <div class="l">Slot rosa</div>
+            <div class="v">18<small>/ 25</small></div>
+          </div>
+          <div class="hint">7 liberi</div>
+        </div>
+        <div class="stat warn">
+          <div class="ic">⏳</div>
+          <div class="tx">
+            <div class="l">Scadenze giugno</div>
+            <div class="v">4<small>contratti</small></div>
+            <div class="hint">decidi entro il 30 giugno</div>
+          </div>
+          <div class="go">→</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="vincoli">
+      <span class="vt">I miei prossimi vincoli</span>
+      <span class="chip"><span class="rl C">C</span>Pellegrini <span class="pr">28M</span></span>
+      <span class="chip"><span class="rl D">D</span>Cambiaso <span class="pr">9M</span></span>
+      <span class="chip"><span class="rl D">D</span>Udogie <span class="pr">7M</span></span>
+      <span class="chip"><span class="rl P">P</span>Falcone <span class="pr">4M</span></span>
+      <span class="chip claus"><span class="tag">Clausola più pesante</span><span class="rl C">C</span>Barella <span class="pr">84M</span></span>
+    </div>
+
+    <!-- ============ ZONA 2 — LA LEGA ============ -->
+    <div class="z2">
+      <div class="zlabel">
+        <span class="zt">La lega</span>
+        <span class="zs">classifica dei bilanci, sessione in corso</span>
+      </div>
+      <div class="legasum">
+        <span class="lsum">Media bilanci <b>142M</b></span>
+        <span class="lsum">Volume scambi <b>340M</b></span>
+        <span class="lsum">Contratti attivi <b>178</b></span>
+      </div>
+      <div class="ranking">
+        <div class="rhead">
+          <span>#</span><span>Manager</span><span>Bilancio</span>
+          <span class="num">Bilancio</span><span class="num">Ingaggi /anno</span><span class="num">Trend</span>
+        </div>
+        <div class="rrow">
+          <span class="pos">1</span>
+          <span class="mg"><span class="ava" style="background:#60a5fa">M</span><span class="nm">Mirko</span></span>
+          <span class="bart"><i style="width:100%"></i></span>
+          <span class="bil">201<small>M</small></span>
+          <span class="ing">138M</span>
+          <span class="spark"><svg width="64" height="20" viewBox="0 0 64 20" fill="none"><polyline points="0,6 12,5 24,6 36,4 48,5 56,12 64,13" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="rrow me">
+          <span class="pos">2</span>
+          <span class="mg"><span class="ava" style="background:var(--gold2)">D</span><span class="nm">Diego<span class="youtag">TU</span></span></span>
+          <span class="bart"><i style="width:93%"></i></span>
+          <span class="bil">187<small>M</small></span>
+          <span class="ing">124M</span>
+          <span class="spark"><svg width="64" height="20" viewBox="0 0 64 20" fill="none"><polyline points="0,15 12,13 24,14 36,10 48,11 56,7 64,5" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="rrow">
+          <span class="pos">3</span>
+          <span class="mg"><span class="ava" style="background:#4ade80">M</span><span class="nm">Marco</span></span>
+          <span class="bart"><i style="width:88%"></i></span>
+          <span class="bil">176<small>M</small></span>
+          <span class="ing">118M</span>
+          <span class="spark"><svg width="64" height="20" viewBox="0 0 64 20" fill="none"><polyline points="0,14 12,15 24,13 36,14 48,12 56,4 64,3" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="rrow">
+          <span class="pos">4</span>
+          <span class="mg"><span class="ava" style="background:#a78bfa">M</span><span class="nm">Michele</span></span>
+          <span class="bart"><i style="width:77%"></i></span>
+          <span class="bil">154<small>M</small></span>
+          <span class="ing">109M</span>
+          <span class="spark"><svg width="64" height="20" viewBox="0 0 64 20" fill="none"><polyline points="0,10 12,9 24,11 36,10 48,10 56,9 64,10" stroke="#8b919d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="rrow">
+          <span class="pos">5</span>
+          <span class="mg"><span class="ava" style="background:#f472b6">E</span><span class="nm">Emiliano</span></span>
+          <span class="bart"><i style="width:71%"></i></span>
+          <span class="bil">143<small>M</small></span>
+          <span class="ing">102M</span>
+          <span class="spark"><svg width="64" height="20" viewBox="0 0 64 20" fill="none"><polyline points="0,8 12,9 24,8 36,10 48,9 56,12 64,12" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="rrow">
+          <span class="pos">6</span>
+          <span class="mg"><span class="ava" style="background:#34d399">P</span><span class="nm">Pietro</span></span>
+          <span class="bart"><i style="width:59%"></i></span>
+          <span class="bil">118<small>M</small></span>
+          <span class="ing">95M</span>
+          <span class="spark"><svg width="64" height="20" viewBox="0 0 64 20" fill="none"><polyline points="0,7 12,8 24,7 36,9 48,10 56,13 64,14" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="rrow">
+          <span class="pos">7</span>
+          <span class="mg"><span class="ava" style="background:#fb923c">E</span><span class="nm">Emmanuele</span></span>
+          <span class="bart"><i style="width:44%"></i></span>
+          <span class="bil">89<small>M</small></span>
+          <span class="ing">87M</span>
+          <span class="spark"><svg width="64" height="20" viewBox="0 0 64 20" fill="none"><polyline points="0,6 12,7 24,9 36,8 48,11 56,12 64,14" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="rrow">
+          <span class="pos">8</span>
+          <span class="mg"><span class="ava" style="background:#94a3b8">M</span><span class="nm">Marcolino</span></span>
+          <span class="bart"><i style="width:31%"></i></span>
+          <span class="bil">62<small>M</small></span>
+          <span class="ing">71M</span>
+          <span class="spark"><svg width="64" height="20" viewBox="0 0 64 20" fill="none"><polyline points="0,5 12,7 24,8 36,10 48,11 56,14 64,16" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ ZONA 3 — REGISTRO MOVIMENTI ============ -->
+    <div class="zlabel">
+      <span class="zt">Registro movimenti</span>
+      <span class="zs">aste, rubate, scambi, rinnovi e tagli — un solo posto, niente duplicati</span>
+      <span class="zr">Esporta CSV</span>
+    </div>
+
+    <div class="filters">
+      <span class="pill on">Tutti <span class="n">8</span></span>
+      <span class="pill">Aste <span class="n">3</span></span>
+      <span class="pill">Rubate <span class="n">1</span></span>
+      <span class="pill">Scambi <span class="n">1</span></span>
+      <span class="pill">Rinnovi <span class="n">2</span></span>
+      <span class="pill">Tagli <span class="n">1</span></span>
+      <span class="src">Sessione: Primo Mercato 2025/26</span>
+    </div>
+
+    <!-- OGGI -->
+    <div class="daygrp">
+      <div class="dayhead"><span class="d">Oggi · 11 giugno</span><span class="ph">Asta Svincolati</span><span class="ln"></span></div>
+      <div class="feed">
+        <div class="mrow">
+          <span class="badge asta">Asta</span>
+          <span class="pl"><span class="rl P" style="width:18px;height:18px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#0a0a0b">P</span><span class="nm">Leali</span><span class="tm">Genoa</span></span>
+          <span class="flow">Svincolati <span class="arr">→</span> <b>Pietro</b></span>
+          <span class="prc"><div class="v">10M</div><div class="s">×2 anni · 5M/anno</div></span>
+        </div>
+        <div class="mrow haspro">
+          <span class="badge asta">Asta</span>
+          <span class="pl"><span class="rl C" style="width:18px;height:18px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#0a0a0b">C</span><span class="nm">Colpani</span><span class="tm">Fiorentina</span></span>
+          <span class="flow">Svincolati <span class="arr">→</span> <b>Emmanuele</b></span>
+          <span class="prc"><div class="v">18M</div><div class="s">×3 anni · 6M/anno</div></span>
+          <div class="pro"><span class="em">🔮</span><span class="q">"Quest'anno è da dieci assist, fidatevi."</span><span class="au">— <b>Emmanuele</b> · <span class="who">compratore</span></span></div>
+        </div>
+        <div class="mrow">
+          <span class="badge asta">Asta</span>
+          <span class="pl"><span class="rl A" style="width:18px;height:18px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#0a0a0b">A</span><span class="nm">Krstović</span><span class="tm">Lecce</span></span>
+          <span class="flow">Svincolati <span class="arr">→</span> <b>Michele</b></span>
+          <span class="prc"><div class="v">22M</div><div class="s">×2 anni · 11M/anno</div></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- IERI -->
+    <div class="daygrp">
+      <div class="dayhead"><span class="d">Ieri · 10 giugno</span><span class="ph rub">Rubata</span><span class="ln"></span></div>
+      <div class="feed">
+        <div class="mrow haspro">
+          <span class="badge rubata">Rubata</span>
+          <span class="pl"><span class="rl A" style="width:18px;height:18px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#0a0a0b">A</span><span class="nm">Lautaro</span><span class="tm">Inter</span></span>
+          <span class="flow"><b>Marco</b> <span class="arr">→</span> <b>Mirko</b></span>
+          <span class="prc"><div class="v">85M</div><div class="s">clausola pagata</div></span>
+          <div class="pro"><span class="em">🔮</span><span class="q">"Capocannoniere, segnatevelo."</span><span class="au">— <b>Mirko</b> · <span class="who">compratore</span></span></div>
+          <div class="pro"><span class="em">🔮</span><span class="q">"L'ho venduto al picco."</span><span class="au">— <b>Marco</b> · <span class="who">venditore</span></span></div>
+        </div>
+        <div class="mrow me">
+          <span class="badge scambio">Scambio</span>
+          <span class="pl"><span class="rl C" style="width:18px;height:18px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#0a0a0b">C</span><span class="nm">Koopmeiners + 20M</span><span class="tm">Juventus</span></span>
+          <span class="flow"><span class="meD"><b>Diego</b></span> <span class="arr">⇄</span> <b>Emiliano</b></span>
+          <span class="prc"><div class="v">⇄ Zaccagni</div><div class="s">conguaglio 20M a Emiliano</div></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8 GIUGNO -->
+    <div class="daygrp">
+      <div class="dayhead"><span class="d">8 giugno</span><span class="ph rin">Rinnovi &amp; Tagli</span><span class="ln"></span></div>
+      <div class="feed">
+        <div class="mrow me">
+          <span class="badge rinnovo">Rinnovo</span>
+          <span class="pl"><span class="rl C" style="width:18px;height:18px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#0a0a0b">C</span><span class="nm">Barella</span><span class="tm">Inter</span></span>
+          <span class="flow"><span class="meD"><b>Diego</b></span> <span class="arr">·</span> rinnovo ×2 anni</span>
+          <span class="prc"><div class="v gain">42 → 48M</div><div class="s">ingaggio annuo · ×2</div></span>
+        </div>
+        <div class="mrow">
+          <span class="badge rinnovo">Rinnovo</span>
+          <span class="pl"><span class="rl D" style="width:18px;height:18px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#0a0a0b">D</span><span class="nm">Bremer</span><span class="tm">Juventus</span></span>
+          <span class="flow"><b>Pietro</b> <span class="arr">·</span> rinnovo ×1 anno</span>
+          <span class="prc"><div class="v gain">21 → 24M</div><div class="s">ingaggio annuo · ×1</div></span>
+        </div>
+        <div class="mrow">
+          <span class="badge taglio">Taglio</span>
+          <span class="pl"><span class="rl A" style="width:18px;height:18px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#0a0a0b">A</span><span class="nm">Zapata</span><span class="tm">Torino</span></span>
+          <span class="flow"><b>Marcolino</b> <span class="arr">→</span> svincolato</span>
+          <span class="prc"><div class="v cost">−12M</div><div class="s">costo taglio</div></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ====================================================== -->
+<!-- MOBILE -->
+<!-- ====================================================== -->
+<div>
+  <div class="frame-label">Mobile · 390px</div>
+  <div class="phone">
+    <div class="pin">
+
+      <div class="m-head">
+        <div class="tt">
+          <h3>Finanze</h3>
+          <p>Lega Fantacontratti Test · 8 squadre</p>
+        </div>
+        <span class="m-sess">Primo Mercato 25/26 <i>▾</i></span>
+      </div>
+
+      <!-- hero cassa -->
+      <div class="m-cassa">
+        <div class="k">Bilancio disponibile</div>
+        <div class="big">55<small>M</small></div>
+        <div class="frm">187 budget − <span class="neg">124 ingaggi</span> − <span class="res">8 riserva</span></div>
+        <div class="m-stats">
+          <div class="m-stat"><div class="l">Ingaggi</div><div class="v">124M<small>/anno</small></div></div>
+          <div class="m-stat"><div class="l">Slot</div><div class="v">18<small>/25</small></div></div>
+          <div class="m-stat warn"><div class="l">Scadenze giu</div><div class="v">4 <small>contratti →</small></div></div>
+        </div>
+      </div>
+
+      <!-- vincoli -->
+      <div class="m-vinc">
+        <span class="chip"><span class="rl C">C</span>Pellegrini <span class="pr">28M</span></span>
+        <span class="chip"><span class="rl D">D</span>Cambiaso <span class="pr">9M</span></span>
+        <span class="chip"><span class="rl D">D</span>Udogie <span class="pr">7M</span></span>
+        <span class="chip"><span class="rl P">P</span>Falcone <span class="pr">4M</span></span>
+      </div>
+
+      <!-- classifica -->
+      <div class="m-zlab"><span class="zt">La lega</span><span class="zs">bilanci</span><span class="zr">Dettagli →</span></div>
+      <div class="m-sum">
+        <span class="lsum">Media <b>142M</b></span>
+        <span class="lsum">Scambi <b>340M</b></span>
+        <span class="lsum">Contratti <b>178</b></span>
+      </div>
+      <div class="m-rank">
+        <div class="m-rrow"><span class="pos">1</span><span class="nm">Mirko</span><span class="bart"><i style="width:100%"></i></span><span class="bil">201<small>M</small></span></div>
+        <div class="m-rrow me"><span class="pos">2</span><span class="nm">Diego · TU</span><span class="bart"><i style="width:93%"></i></span><span class="bil">187<small>M</small></span></div>
+        <div class="m-rrow"><span class="pos">3</span><span class="nm">Marco</span><span class="bart"><i style="width:88%"></i></span><span class="bil">176<small>M</small></span></div>
+        <div class="m-rrow"><span class="pos">4</span><span class="nm">Michele</span><span class="bart"><i style="width:77%"></i></span><span class="bil">154<small>M</small></span></div>
+        <div class="m-rrow"><span class="pos">5</span><span class="nm">Emiliano</span><span class="bart"><i style="width:71%"></i></span><span class="bil">143<small>M</small></span></div>
+        <div class="m-rrow"><span class="pos">6</span><span class="nm">Pietro</span><span class="bart"><i style="width:59%"></i></span><span class="bil">118<small>M</small></span></div>
+        <div class="m-rrow"><span class="pos">7</span><span class="nm">Emmanuele</span><span class="bart"><i style="width:44%"></i></span><span class="bil">89<small>M</small></span></div>
+        <div class="m-rrow"><span class="pos">8</span><span class="nm">Marcolino</span><span class="bart"><i style="width:31%"></i></span><span class="bil">62<small>M</small></span></div>
+      </div>
+
+      <!-- filtri sticky -->
+      <div class="m-filters">
+        <span class="pill on">Tutti</span>
+        <span class="pill">Aste</span>
+        <span class="pill">Rubate</span>
+        <span class="pill">Scambi</span>
+        <span class="pill">Rinnovi</span>
+        <span class="pill">Tagli</span>
+      </div>
+
+      <!-- feed -->
+      <div class="m-feed">
+        <div class="m-day"><b>Oggi</b> · Asta Svincolati<span class="ln"></span></div>
+        <div class="mcard">
+          <div class="top"><span class="badge asta">Asta</span><span class="nm">Leali <span class="tm">P · Genoa</span></span><span class="prc">10M</span></div>
+          <div class="fl">Svincolati <span class="arr">→</span> <b>Pietro</b> <span class="s">· ×2 anni</span></div>
+        </div>
+        <div class="mcard">
+          <div class="top"><span class="badge asta">Asta</span><span class="nm">Colpani <span class="tm">C · Fiorentina</span></span><span class="prc">18M</span></div>
+          <div class="fl">Svincolati <span class="arr">→</span> <b>Emmanuele</b> <span class="s">· ×3 anni</span></div>
+          <div class="pro"><span class="em">🔮</span><span class="q">"Quest'anno è da dieci assist."</span><span class="au">— <b>Emmanuele</b></span></div>
+        </div>
+        <div class="mcard">
+          <div class="top"><span class="badge asta">Asta</span><span class="nm">Krstović <span class="tm">A · Lecce</span></span><span class="prc">22M</span></div>
+          <div class="fl">Svincolati <span class="arr">→</span> <b>Michele</b> <span class="s">· ×2 anni</span></div>
+        </div>
+
+        <div class="m-day"><b>Ieri</b> · Rubata<span class="ln"></span></div>
+        <div class="mcard">
+          <div class="top"><span class="badge rubata">Rubata</span><span class="nm">Lautaro <span class="tm">A · Inter</span></span><span class="prc">85M</span></div>
+          <div class="fl"><b>Marco</b> <span class="arr">→</span> <b>Mirko</b> <span class="s">· clausola pagata</span></div>
+          <div class="pro"><span class="em">🔮</span><span class="q">"Capocannoniere, segnatevelo."</span><span class="au">— <b>Mirko</b></span></div>
+        </div>
+        <div class="mcard me">
+          <div class="top"><span class="badge scambio">Scambio</span><span class="nm">Koopmeiners + 20M</span><span class="prc">⇄</span></div>
+          <div class="fl"><span class="meD">Diego</span> <span class="arr">⇄</span> <b>Emiliano</b> <span class="s">· per Zaccagni</span></div>
+        </div>
+
+        <div class="m-day"><b>8 giu</b> · Rinnovi &amp; Tagli<span class="ln"></span></div>
+        <div class="mcard me">
+          <div class="top"><span class="badge rinnovo">Rinnovo</span><span class="nm">Barella <span class="tm">C · Inter</span></span><span class="prc gain">42→48M</span></div>
+          <div class="fl"><span class="meD">Diego</span> <span class="s">· ingaggio annuo · ×2 anni</span></div>
+        </div>
+        <div class="mcard">
+          <div class="top"><span class="badge taglio">Taglio</span><span class="nm">Zapata <span class="tm">A · Torino</span></span><span class="prc cost">−12M</span></div>
+          <div class="fl"><b>Marcolino</b> <span class="arr">→</span> svincolato <span class="s">· costo taglio</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

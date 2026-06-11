@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FantaContratti — Finanze &amp; Storia · v3 AUDACE — Sala operativa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830; --line:#2d3139;
+    --blue:#3b82f6; --green:#22c55e; --gold:#f59e0b; --gold2:#fbbf24;
+    --red:#ef4444; --orange:#ea580c;
+    --txt:#f9fafb; --dim:#9ca3af; --faint:#8b919d;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased;padding:28px}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .osw{font-family:'Oswald',sans-serif}
+  h1.page{font-size:13px;font-weight:700;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin-bottom:18px}
+  .frames{display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start}
+  .frame-label{font-size:11px;font-weight:800;letter-spacing:.22em;color:var(--gold2);text-transform:uppercase;margin-bottom:10px}
+
+  .app{width:1340px;background:var(--bg);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+
+  /* ===== topbar ===== */
+  .topbar{display:flex;align-items:center;gap:14px;padding:14px 26px;border-bottom:1px solid var(--line);background:var(--elev)}
+  .crest{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--blue),#1d4ed8);display:flex;align-items:center;justify-content:center;font-family:'Outfit';font-weight:900;font-size:13px;color:#fff;flex-shrink:0}
+  .topbar .ttl{font-family:'Outfit';font-weight:800;font-size:17px;letter-spacing:.01em}
+  .topbar .ttl small{display:block;font-family:'Inter';font-weight:600;font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.16em;margin-top:1px}
+  .live{display:inline-flex;align-items:center;gap:7px;margin-left:10px;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--green);border:1px solid rgba(34,197,94,.35);background:rgba(34,197,94,.08);padding:5px 11px;border-radius:999px}
+  .live .pip{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 1.8s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+  .topbar .sp{margin-left:auto}
+  .lnk-storico{font-size:12px;font-weight:600;color:var(--dim);text-decoration:none;border-bottom:1px dotted var(--faint);padding-bottom:1px}
+  .who{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--dim);margin-left:20px}
+  .who .av{width:30px;height:30px;border-radius:9px;background:var(--gold);color:#0a0a0b;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px}
+  .who b{color:var(--txt)}
+
+  /* ===== CRUSCOTTO (strip) ===== */
+  .dash{background:var(--elev);border-bottom:1px solid var(--line);padding:30px 34px 28px;display:flex;align-items:stretch;gap:0}
+  .dash .main-num{padding-right:42px;border-right:1px solid var(--line)}
+  .kicker{font-size:11px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+  .big-balance{font-family:'Oswald';font-weight:700;font-size:78px;line-height:.95;color:var(--green);letter-spacing:.01em}
+  .big-balance .unit{font-size:34px;font-weight:500;color:rgba(34,197,94,.65);margin-left:4px}
+  .formula{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--dim);margin-top:10px}
+  .formula b{color:var(--txt);font-weight:700}
+  .dash .secondaries{display:flex;flex:1;align-items:stretch}
+  .sec{flex:1;padding:6px 0 0 42px;display:flex;flex-direction:column;justify-content:center}
+  .sec + .sec{border-left:1px solid var(--line)}
+  .sec .lbl{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+  .sec .num{font-family:'Oswald';font-weight:600;font-size:46px;line-height:1.05;color:var(--txt);margin-top:6px}
+  .sec .num .u{font-size:20px;font-weight:400;color:var(--dim);margin-left:3px}
+  .sec .note{font-size:11px;color:var(--dim);margin-top:5px}
+  .sec.warn .num{color:var(--gold2);animation:warnpulse 2s infinite}
+  @keyframes warnpulse{0%,100%{text-shadow:0 0 0 rgba(251,191,36,0)}50%{text-shadow:0 0 22px rgba(251,191,36,.55)}}
+  .sec .slotbar{display:flex;gap:3px;margin-top:9px}
+  .sec .slotbar i{width:9px;height:14px;border-radius:2px;background:var(--blue)}
+  .sec .slotbar i.off{background:var(--hover)}
+
+  /* ===== SCADENZE ===== */
+  .deadlines{padding:22px 34px 6px}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:14px}
+  .sec-head h2{font-family:'Outfit';font-weight:800;font-size:18px;letter-spacing:.01em}
+  .sec-head .tag{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--gold2);border:1px solid rgba(245,158,11,.4);background:rgba(245,158,11,.08);padding:4px 10px;border-radius:999px}
+  .sec-head .right{margin-left:auto;font-size:12px;color:var(--dim)}
+  .sec-head .right b{font-family:'JetBrains Mono',monospace;color:var(--gold2);font-weight:700}
+  .dl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .dl-card{background:var(--card);border:1px solid rgba(245,158,11,.45);border-left:4px solid var(--gold);border-radius:14px;padding:16px 18px;position:relative}
+  .dl-card .pos{position:absolute;top:14px;right:14px;font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--faint);border:1px solid var(--line);border-radius:6px;padding:2px 7px}
+  .dl-card .nm{font-family:'Outfit';font-weight:800;font-size:17px}
+  .dl-card .ing{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--dim);margin-top:3px}
+  .dl-card .ing b{color:var(--txt);font-weight:700}
+  .dl-card .cd{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;font-weight:700;color:var(--gold2)}
+  .dl-card .cd .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);animation:blink 1.8s infinite}
+  .dl-card .cta{display:inline-block;margin-top:13px;font-size:12px;font-weight:700;color:#0a0a0b;background:var(--gold2);border-radius:8px;padding:8px 13px;text-decoration:none}
+
+  /* ===== MAIN GRID ===== */
+  .main{display:grid;grid-template-columns:60fr 40fr;gap:0;margin-top:18px;border-top:1px solid var(--line)}
+
+  /* ---- RADAR ---- */
+  .radar{padding:24px 30px 30px 34px;border-right:1px solid var(--line)}
+  .trend-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0 20px}
+  .trend{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 16px;display:flex;align-items:center;gap:12px}
+  .trend .arr{font-size:20px;line-height:1}
+  .trend.up .arr{color:var(--green)} .trend.down .arr{color:var(--red)} .trend.flat .arr{color:var(--blue);font-size:14px}
+  .trend .t-num{font-family:'Oswald';font-weight:600;font-size:24px;line-height:1}
+  .trend.up .t-num{color:var(--green)} .trend.down .t-num{color:var(--red)} .trend.flat .t-num{color:var(--blue)}
+  .trend .t-lbl{font-size:11px;color:var(--dim);line-height:1.35}
+  .trend .t-lbl b{color:var(--txt);display:block;font-size:12px}
+
+  .board{display:flex;flex-direction:column;gap:8px}
+  .row{display:grid;grid-template-columns:34px 1fr 96px;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 18px 12px 14px}
+  .row .rk{font-family:'Oswald';font-weight:600;font-size:18px;color:var(--faint);text-align:center}
+  .row .id .nm{font-family:'Outfit';font-weight:700;font-size:15px}
+  .row .id .mi{font-size:11px;color:var(--faint);margin-top:2px}
+  .row .id .mi b{color:var(--dim);font-weight:600}
+  .row .bar{height:7px;border-radius:99px;background:var(--hover);margin-top:8px;overflow:hidden}
+  .row .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#1d4ed8,var(--blue))}
+  .row .val{font-family:'Oswald';font-weight:600;font-size:30px;text-align:right;line-height:1}
+  .row .val .u{font-size:15px;font-weight:400;color:var(--faint);margin-left:2px}
+  /* riga TU invertita */
+  .row.me{background:#f9fafb;border:2px solid var(--gold2);box-shadow:0 0 0 3px rgba(251,191,36,.18)}
+  .row.me .rk{color:#6b7280}
+  .row.me .id .nm{color:#0a0a0b}
+  .row.me .id .nm .you{font-size:10px;font-weight:800;letter-spacing:.12em;color:#0a0a0b;background:var(--gold2);border-radius:5px;padding:2px 7px;margin-right:8px;vertical-align:2px}
+  .row.me .id .mi{color:#4b5563}
+  .row.me .id .mi b{color:#1f2937}
+  .row.me .bar{background:#e5e7eb}
+  .row.me .bar i{background:linear-gradient(90deg,#b45309,var(--gold))}
+  .row.me .val{color:#0a0a0b}
+  .row.me .val .u{color:#6b7280}
+
+  /* ---- TICKER ---- */
+  .ticker{padding:24px 34px 30px 30px;background:var(--elev)}
+  .tk-counter{display:flex;align-items:baseline;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:16px 0 18px}
+  .tk-counter .n{font-family:'Oswald';font-weight:700;font-size:34px;color:var(--blue);line-height:1}
+  .tk-counter .l{font-size:12px;color:var(--dim);font-weight:600}
+  .day{margin-bottom:18px}
+  .day-h{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  .day-h .d{font-family:'Outfit';font-weight:800;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--txt)}
+  .day-h .ph{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .day-h .ln{flex:1;height:1px;background:var(--line)}
+  .ev{display:grid;grid-template-columns:92px 1fr 64px;gap:10px;align-items:center;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:7px}
+  .badge{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;text-align:center;border-radius:6px;padding:5px 0}
+  .b-rubata{color:#fecaca;background:rgba(239,68,68,.16);border:1px solid rgba(239,68,68,.45)}
+  .b-svinc{color:#bbf7d0;background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.4)}
+  .b-scambio{color:#bfdbfe;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.45)}
+  .b-rinnovo{color:#fde68a;background:rgba(245,158,11,.13);border:1px solid rgba(245,158,11,.45)}
+  .b-taglio{color:#fdba74;background:rgba(234,88,12,.15);border:1px solid rgba(234,88,12,.5)}
+  .ev .tx{font-size:13px;line-height:1.4;color:var(--dim)}
+  .ev .tx b{color:var(--txt);font-weight:700}
+  .ev .tx .pos{font-size:10px;font-weight:700;color:var(--faint)}
+  .ev .pr{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:14px;text-align:right;color:var(--txt)}
+  .ev .pr small{font-weight:400;color:var(--faint);font-size:11px}
+  .ev.mine{border-color:rgba(251,191,36,.5)}
+  .quote{border-left:3px solid var(--gold);background:rgba(245,158,11,.06);border-radius:0 10px 10px 0;padding:10px 14px;margin:2px 0 8px 14px;font-style:italic;font-size:13px;color:var(--gold2);line-height:1.45}
+  .quote .au{display:block;font-style:normal;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-top:5px}
+
+  /* ============================================================= */
+  /* ===== MOBILE ===== */
+  .m-app{width:390px;background:var(--bg);border:1px solid var(--line);border-radius:28px;overflow:hidden}
+  .m-top{display:flex;align-items:center;gap:10px;padding:14px 18px;background:var(--elev);border-bottom:1px solid var(--line)}
+  .m-top .crest{width:28px;height:28px;font-size:11px;border-radius:8px}
+  .m-top .ttl{font-family:'Outfit';font-weight:800;font-size:14px}
+  .m-top .lnk-storico{margin-left:auto;font-size:11px}
+  .m-dash{background:var(--elev);border-bottom:1px solid var(--line);padding:20px 18px 18px;text-align:center}
+  .m-dash .kicker{margin-bottom:2px}
+  .m-dash .big-balance{font-size:64px}
+  .m-dash .big-balance .unit{font-size:26px}
+  .m-dash .formula{font-size:10.5px;margin-top:6px}
+  .m-secs{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+  .m-secs .sec{padding:0 8px;text-align:center;justify-content:flex-start}
+  .m-secs .sec + .sec{border-left:1px solid var(--line)}
+  .m-secs .num{font-size:28px;margin-top:3px}
+  .m-secs .num .u{font-size:13px}
+  .m-secs .lbl{font-size:9px;letter-spacing:.12em}
+  .m-secs .note{font-size:10px}
+  .m-pad{padding:18px 16px}
+  .m-pad .sec-head h2{font-size:15px}
+  .m-pad .sec-head{margin-bottom:10px}
+  .m-dl{display:flex;flex-direction:column;gap:10px}
+  .m-dl .dl-card{padding:13px 15px}
+  .m-dl .dl-row{display:flex;align-items:center;justify-content:space-between}
+  .m-dl .nm{font-size:15px}
+  .m-board .row{grid-template-columns:26px 1fr 72px;padding:10px 13px 10px 9px;gap:10px}
+  .m-board .row .val{font-size:23px}
+  .m-board .row .id .nm{font-size:13px}
+  .m-board .row .id .mi{font-size:10px}
+  .m-trend{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+  .m-trend .trend{padding:10px 14px}
+  .m-trend .t-num{font-size:20px}
+  .m-ticker{background:var(--elev);border-top:1px solid var(--line);padding:18px 16px 24px}
+  .m-ticker .tk-counter{margin:12px 0 14px;padding:11px 15px}
+  .m-ticker .tk-counter .n{font-size:26px}
+  .m-ticker .ev{grid-template-columns:74px 1fr 56px;padding:8px 10px}
+  .m-ticker .ev .tx{font-size:12px}
+  .m-ticker .ev .pr{font-size:12px}
+  .m-ticker .badge{font-size:8px}
+  .m-ticker .quote{font-size:12px;margin-left:8px}
+</style>
+</head>
+<body>
+
+<h1 class="page">FantaContratti · Mockup 03 — Finanze &amp; Storia · v3 AUDACE «Sala operativa finanziaria»</h1>
+
+<div class="frames">
+
+  <!-- ============================ DESKTOP ============================ -->
+  <div>
+    <div class="frame-label">Desktop · 1440px</div>
+    <div class="app">
+
+      <div class="topbar">
+        <div class="crest">FC</div>
+        <div class="ttl">Sala operativa finanziaria
+          <small>Fantacontratti Test · Stagione 2026/27</small>
+        </div>
+        <span class="live"><span class="pip"></span>Dati live · 11 giu</span>
+        <div class="sp"></div>
+        <a class="lnk-storico" href="#">Storico sessioni →</a>
+        <div class="who"><span class="av">D</span><span>Sei <b>Diego</b></span></div>
+      </div>
+
+      <!-- CRUSCOTTO -->
+      <div class="dash">
+        <div class="main-num">
+          <div class="kicker">Bilancio disponibile</div>
+          <div class="big-balance osw">55<span class="unit">M</span></div>
+          <div class="formula">budget <b>187</b> − ingaggi <b>124</b> − riserva <b>8</b></div>
+        </div>
+        <div class="secondaries">
+          <div class="sec">
+            <div class="lbl">Monte ingaggi</div>
+            <div class="num osw">124<span class="u">M/anno</span></div>
+            <div class="note">66% del budget impegnato</div>
+          </div>
+          <div class="sec">
+            <div class="lbl">Rosa</div>
+            <div class="num osw">18<span class="u">/25 slot</span></div>
+            <div class="slotbar">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i>
+            </div>
+          </div>
+          <div class="sec warn">
+            <div class="lbl">Scadenze giugno</div>
+            <div class="num osw">4<span class="u">contratti</span></div>
+            <div class="note">48M/anno di ingaggi in bilico</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCADENZE -->
+      <div class="deadlines">
+        <div class="sec-head">
+          <h2>Contratti in scadenza</h2>
+          <span class="tag">Azione richiesta</span>
+          <div class="right">Clausola più alta in rosa: <b>Barella · 84M</b></div>
+        </div>
+        <div class="dl-grid">
+          <div class="dl-card">
+            <span class="pos">C</span>
+            <div class="nm">Pellegrini</div>
+            <div class="ing mono">ingaggio <b>28M</b>/anno</div>
+            <div class="cd"><span class="dot"></span>giugno · tra 19 giorni</div>
+            <a class="cta" href="#">Pianifica rinnovo</a>
+          </div>
+          <div class="dl-card">
+            <span class="pos">D</span>
+            <div class="nm">Cambiaso</div>
+            <div class="ing mono">ingaggio <b>9M</b>/anno</div>
+            <div class="cd"><span class="dot"></span>giugno · tra 19 giorni</div>
+            <a class="cta" href="#">Pianifica rinnovo</a>
+          </div>
+          <div class="dl-card">
+            <span class="pos">D</span>
+            <div class="nm">Udogie</div>
+            <div class="ing mono">ingaggio <b>7M</b>/anno</div>
+            <div class="cd"><span class="dot"></span>giugno · tra 19 giorni</div>
+            <a class="cta" href="#">Pianifica rinnovo</a>
+          </div>
+          <div class="dl-card">
+            <span class="pos">P</span>
+            <div class="nm">Falcone</div>
+            <div class="ing mono">ingaggio <b>4M</b>/anno</div>
+            <div class="cd"><span class="dot"></span>giugno · tra 19 giorni</div>
+            <a class="cta" href="#">Pianifica rinnovo</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN: RADAR + TICKER -->
+      <div class="main">
+
+        <!-- RADAR LEGA -->
+        <div class="radar">
+          <div class="sec-head">
+            <h2>Radar lega</h2>
+            <div class="right">classifica bilanci disponibili · 8 squadre</div>
+          </div>
+
+          <div class="trend-row">
+            <div class="trend up">
+              <span class="arr">▲</span>
+              <div><div class="t-num osw">+34M</div><div class="t-lbl"><b>Mirko</b>nell'ultima fase</div></div>
+            </div>
+            <div class="trend down">
+              <span class="arr">▼</span>
+              <div><div class="t-num osw">−58M</div><div class="t-lbl"><b>Marcolino</b>nell'ultima fase</div></div>
+            </div>
+            <div class="trend flat">
+              <span class="arr">●</span>
+              <div><div class="t-num osw">142M</div><div class="t-lbl"><b>Media lega</b>bilancio disponibile</div></div>
+            </div>
+          </div>
+
+          <div class="board">
+            <div class="row">
+              <div class="rk osw">1</div>
+              <div class="id">
+                <div class="nm">Mirko</div>
+                <div class="mi">ingaggi <b>142M/anno</b> · <b>4</b> slot liberi</div>
+                <div class="bar"><i style="width:100%"></i></div>
+              </div>
+              <div class="val osw">201<span class="u">M</span></div>
+            </div>
+            <div class="row me">
+              <div class="rk osw">2</div>
+              <div class="id">
+                <div class="nm"><span class="you">TU</span>Diego</div>
+                <div class="mi">ingaggi <b>124M/anno</b> · <b>7</b> slot liberi</div>
+                <div class="bar"><i style="width:93%"></i></div>
+              </div>
+              <div class="val osw">187<span class="u">M</span></div>
+            </div>
+            <div class="row">
+              <div class="rk osw">3</div>
+              <div class="id">
+                <div class="nm">Marco</div>
+                <div class="mi">ingaggi <b>131M/anno</b> · <b>5</b> slot liberi</div>
+                <div class="bar"><i style="width:88%"></i></div>
+              </div>
+              <div class="val osw">176<span class="u">M</span></div>
+            </div>
+            <div class="row">
+              <div class="rk osw">4</div>
+              <div class="id">
+                <div class="nm">Michele</div>
+                <div class="mi">ingaggi <b>118M/anno</b> · <b>6</b> slot liberi</div>
+                <div class="bar"><i style="width:77%"></i></div>
+              </div>
+              <div class="val osw">154<span class="u">M</span></div>
+            </div>
+            <div class="row">
+              <div class="rk osw">5</div>
+              <div class="id">
+                <div class="nm">Emiliano</div>
+                <div class="mi">ingaggi <b>127M/anno</b> · <b>3</b> slot liberi</div>
+                <div class="bar"><i style="width:71%"></i></div>
+              </div>
+              <div class="val osw">143<span class="u">M</span></div>
+            </div>
+            <div class="row">
+              <div class="rk osw">6</div>
+              <div class="id">
+                <div class="nm">Pietro</div>
+                <div class="mi">ingaggi <b>109M/anno</b> · <b>8</b> slot liberi</div>
+                <div class="bar"><i style="width:59%"></i></div>
+              </div>
+              <div class="val osw">118<span class="u">M</span></div>
+            </div>
+            <div class="row">
+              <div class="rk osw">7</div>
+              <div class="id">
+                <div class="nm">Emmanuele</div>
+                <div class="mi">ingaggi <b>96M/anno</b> · <b>9</b> slot liberi</div>
+                <div class="bar"><i style="width:44%"></i></div>
+              </div>
+              <div class="val osw">89<span class="u">M</span></div>
+            </div>
+            <div class="row">
+              <div class="rk osw">8</div>
+              <div class="id">
+                <div class="nm">Marcolino</div>
+                <div class="mi">ingaggi <b>88M/anno</b> · <b>11</b> slot liberi</div>
+                <div class="bar"><i style="width:31%"></i></div>
+              </div>
+              <div class="val osw">62<span class="u">M</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TICKER MERCATO -->
+        <div class="ticker">
+          <div class="sec-head">
+            <h2>Ticker mercato</h2>
+            <div class="right">tutte le operazioni della lega</div>
+          </div>
+
+          <div class="tk-counter">
+            <span class="n osw">340M</span>
+            <span class="l">mossi questa stagione · 47 operazioni</span>
+          </div>
+
+          <div class="day">
+            <div class="day-h"><span class="d">Oggi</span><span class="ph">· fase svincolati</span><span class="ln"></span></div>
+            <div class="ev">
+              <span class="badge b-svinc">Svincolati</span>
+              <span class="tx"><b>Leali</b> <span class="pos">(P)</span> → <b>Pietro</b></span>
+              <span class="pr">10M</span>
+            </div>
+          </div>
+
+          <div class="day">
+            <div class="day-h"><span class="d">Ieri</span><span class="ph">· fase rubata</span><span class="ln"></span></div>
+            <div class="ev">
+              <span class="badge b-rubata">Rubata</span>
+              <span class="tx"><b>Lautaro</b> <span class="pos">(A)</span> · Marco → <b>Mirko</b></span>
+              <span class="pr">85M</span>
+            </div>
+            <div class="quote">«Capocannoniere, segnatevelo.»<span class="au">Profezia di Mirko</span></div>
+            <div class="quote">«L'ho venduto al picco.»<span class="au">Profezia di Marco</span></div>
+            <div class="ev mine">
+              <span class="badge b-scambio">Scambio</span>
+              <span class="tx"><b>Koopmeiners</b> + 20M · <b>Diego</b> → Emiliano per <b>Zaccagni</b></span>
+              <span class="pr">20M</span>
+            </div>
+          </div>
+
+          <div class="day">
+            <div class="day-h"><span class="d">8 giu</span><span class="ph">· rinnovi e tagli</span><span class="ln"></span></div>
+            <div class="ev">
+              <span class="badge b-rinnovo">Rinnovo</span>
+              <span class="tx"><b>Barella</b> · Michele · 42 → <b>48M</b> × 2 anni</span>
+              <span class="pr">48M<br><small>/anno</small></span>
+            </div>
+            <div class="ev">
+              <span class="badge b-taglio">Taglio</span>
+              <span class="tx"><b>Zapata</b> · svincolato da <b>Marcolino</b></span>
+              <span class="pr">12M</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================ MOBILE ============================ -->
+  <div>
+    <div class="frame-label">Mobile · 390px</div>
+    <div class="m-app">
+
+      <div class="m-top">
+        <div class="crest">FC</div>
+        <div class="ttl">Finanze</div>
+        <a class="lnk-storico" href="#">Storico →</a>
+      </div>
+
+      <!-- cruscotto compresso -->
+      <div class="m-dash">
+        <div class="kicker">Bilancio disponibile</div>
+        <div class="big-balance osw">55<span class="unit">M</span></div>
+        <div class="formula">budget <b>187</b> − ingaggi <b>124</b> − riserva <b>8</b></div>
+        <div class="m-secs">
+          <div class="sec">
+            <div class="lbl">Ingaggi</div>
+            <div class="num osw">124<span class="u">M</span></div>
+            <div class="note">/anno</div>
+          </div>
+          <div class="sec">
+            <div class="lbl">Rosa</div>
+            <div class="num osw">18<span class="u">/25</span></div>
+            <div class="note">slot</div>
+          </div>
+          <div class="sec warn">
+            <div class="lbl">Scadenze</div>
+            <div class="num osw">4</div>
+            <div class="note">giugno</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- scadenze -->
+      <div class="m-pad">
+        <div class="sec-head"><h2>Contratti in scadenza</h2><span class="tag">4</span></div>
+        <div class="m-dl">
+          <div class="dl-card">
+            <div class="dl-row">
+              <div>
+                <div class="nm">Pellegrini <span class="pos" style="position:static;margin-left:6px">C</span></div>
+                <div class="ing mono">ingaggio <b>28M</b>/anno</div>
+              </div>
+              <a class="cta" href="#" style="margin-top:0">Rinnova</a>
+            </div>
+            <div class="cd"><span class="dot"></span>giugno · tra 19 giorni</div>
+          </div>
+          <div class="dl-card">
+            <div class="dl-row">
+              <div>
+                <div class="nm">Cambiaso <span class="pos" style="position:static;margin-left:6px">D</span></div>
+                <div class="ing mono">ingaggio <b>9M</b>/anno</div>
+              </div>
+              <a class="cta" href="#" style="margin-top:0">Rinnova</a>
+            </div>
+            <div class="cd"><span class="dot"></span>giugno · tra 19 giorni</div>
+          </div>
+          <div class="dl-card">
+            <div class="dl-row">
+              <div>
+                <div class="nm">Udogie <span class="pos" style="position:static;margin-left:6px">D</span></div>
+                <div class="ing mono">ingaggio <b>7M</b>/anno</div>
+              </div>
+              <a class="cta" href="#" style="margin-top:0">Rinnova</a>
+            </div>
+            <div class="cd"><span class="dot"></span>giugno · tra 19 giorni</div>
+          </div>
+          <div class="dl-card">
+            <div class="dl-row">
+              <div>
+                <div class="nm">Falcone <span class="pos" style="position:static;margin-left:6px">P</span></div>
+                <div class="ing mono">ingaggio <b>4M</b>/anno</div>
+              </div>
+              <a class="cta" href="#" style="margin-top:0">Rinnova</a>
+            </div>
+            <div class="cd"><span class="dot"></span>giugno · tra 19 giorni</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- radar -->
+      <div class="m-pad" style="padding-top:4px">
+        <div class="sec-head"><h2>Radar lega</h2></div>
+        <div class="m-trend">
+          <div class="trend up"><span class="arr">▲</span><div><div class="t-num osw">+34M</div><div class="t-lbl"><b>Mirko</b>ultima fase</div></div></div>
+          <div class="trend down"><span class="arr">▼</span><div><div class="t-num osw">−58M</div><div class="t-lbl"><b>Marcolino</b>ultima fase</div></div></div>
+        </div>
+        <div class="board m-board">
+          <div class="row">
+            <div class="rk osw">1</div>
+            <div class="id"><div class="nm">Mirko</div><div class="mi">142M/anno · 4 slot</div><div class="bar"><i style="width:100%"></i></div></div>
+            <div class="val osw">201<span class="u">M</span></div>
+          </div>
+          <div class="row me">
+            <div class="rk osw">2</div>
+            <div class="id"><div class="nm"><span class="you">TU</span>Diego</div><div class="mi">124M/anno · 7 slot</div><div class="bar"><i style="width:93%"></i></div></div>
+            <div class="val osw">187<span class="u">M</span></div>
+          </div>
+          <div class="row">
+            <div class="rk osw">3</div>
+            <div class="id"><div class="nm">Marco</div><div class="mi">131M/anno · 5 slot</div><div class="bar"><i style="width:88%"></i></div></div>
+            <div class="val osw">176<span class="u">M</span></div>
+          </div>
+          <div class="row">
+            <div class="rk osw">4</div>
+            <div class="id"><div class="nm">Michele</div><div class="mi">118M/anno · 6 slot</div><div class="bar"><i style="width:77%"></i></div></div>
+            <div class="val osw">154<span class="u">M</span></div>
+          </div>
+          <div class="row">
+            <div class="rk osw">5</div>
+            <div class="id"><div class="nm">Emiliano</div><div class="mi">127M/anno · 3 slot</div><div class="bar"><i style="width:71%"></i></div></div>
+            <div class="val osw">143<span class="u">M</span></div>
+          </div>
+          <div class="row">
+            <div class="rk osw">6</div>
+            <div class="id"><div class="nm">Pietro</div><div class="mi">109M/anno · 8 slot</div><div class="bar"><i style="width:59%"></i></div></div>
+            <div class="val osw">118<span class="u">M</span></div>
+          </div>
+          <div class="row">
+            <div class="rk osw">7</div>
+            <div class="id"><div class="nm">Emmanuele</div><div class="mi">96M/anno · 9 slot</div><div class="bar"><i style="width:44%"></i></div></div>
+            <div class="val osw">89<span class="u">M</span></div>
+          </div>
+          <div class="row">
+            <div class="rk osw">8</div>
+            <div class="id"><div class="nm">Marcolino</div><div class="mi">88M/anno · 11 slot</div><div class="bar"><i style="width:31%"></i></div></div>
+            <div class="val osw">62<span class="u">M</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ticker -->
+      <div class="m-ticker">
+        <div class="sec-head"><h2>Ticker mercato</h2></div>
+        <div class="tk-counter"><span class="n osw">340M</span><span class="l">mossi · 47 operazioni</span></div>
+
+        <div class="day">
+          <div class="day-h"><span class="d">Oggi</span><span class="ph">· svincolati</span><span class="ln"></span></div>
+          <div class="ev">
+            <span class="badge b-svinc">Svincolati</span>
+            <span class="tx"><b>Leali</b> <span class="pos">(P)</span> → <b>Pietro</b></span>
+            <span class="pr">10M</span>
+          </div>
+        </div>
+
+        <div class="day">
+          <div class="day-h"><span class="d">Ieri</span><span class="ph">· rubata</span><span class="ln"></span></div>
+          <div class="ev">
+            <span class="badge b-rubata">Rubata</span>
+            <span class="tx"><b>Lautaro</b> <span class="pos">(A)</span> · Marco → <b>Mirko</b></span>
+            <span class="pr">85M</span>
+          </div>
+          <div class="quote">«Capocannoniere, segnatevelo.»<span class="au">Profezia di Mirko</span></div>
+          <div class="quote">«L'ho venduto al picco.»<span class="au">Profezia di Marco</span></div>
+          <div class="ev mine">
+            <span class="badge b-scambio">Scambio</span>
+            <span class="tx"><b>Koopmeiners</b> + 20M · <b>Diego</b> → Emiliano per <b>Zaccagni</b></span>
+            <span class="pr">20M</span>
+          </div>
+        </div>
+
+        <div class="day">
+          <div class="day-h"><span class="d">8 giu</span><span class="ph">· rinnovi e tagli</span><span class="ln"></span></div>
+          <div class="ev">
+            <span class="badge b-rinnovo">Rinnovo</span>
+            <span class="tx"><b>Barella</b> · Michele · 42 → <b>48M</b> × 2</span>
+            <span class="pr">48M</span>
+          </div>
+          <div class="ev">
+            <span class="badge b-taglio">Taglio</span>
+            <span class="tx"><b>Zapata</b> · da <b>Marcolino</b></span>
+            <span class="pr">12M</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
