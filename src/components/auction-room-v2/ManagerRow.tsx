@@ -58,17 +58,18 @@ export function ManagerRow({ manager: m, isMe, onClick, currentRole, isHolding }
       {/* Name + status */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 min-w-0">
-          <p className={`text-sms font-bold truncate ${
+          <p className={`text-sms font-bold truncate min-w-[3.5rem] ${
             isMe ? 'text-accent-400' : 'text-gray-200'
           }`}>
             {m.teamName || m.username}
           </p>
-          {isMe && (
+          {isMe && isHolding ? (
+            <span className="px-1.5 py-px rounded text-sm font-bold bg-primary-500/20 text-primary-400 uppercase flex-shrink-0">Offerta tua</span>
+          ) : isMe ? (
             <span className="px-1.5 py-px rounded text-sm font-bold bg-accent-500/20 text-accent-400 uppercase flex-shrink-0">io</span>
-          )}
-          {isHolding && (
+          ) : isHolding ? (
             <span className="px-1.5 py-px rounded text-sm font-bold bg-primary-500/20 text-primary-400 uppercase flex-shrink-0">Offerta</span>
-          )}
+          ) : null}
         </div>
         <p className="text-sm text-gray-500 truncate">
           {roleSlot
