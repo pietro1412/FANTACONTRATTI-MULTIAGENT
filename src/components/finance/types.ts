@@ -130,14 +130,14 @@ export function getHealthStatus(balance: number): HealthStatus {
 }
 
 export const HEALTH_COLORS: Record<HealthStatus, string> = {
-  good: 'text-green-400',
-  warning: 'text-amber-400',
+  good: 'text-secondary-400',
+  warning: 'text-warning-400',
   critical: 'text-danger-400',
 }
 
 export const HEALTH_BG_COLORS: Record<HealthStatus, string> = {
-  good: 'bg-green-500/20',
-  warning: 'bg-amber-500/20',
+  good: 'bg-secondary-500/20',
+  warning: 'bg-warning-500/20',
   critical: 'bg-danger-500/20',
 }
 
@@ -145,6 +145,63 @@ export const HEALTH_LABELS: Record<HealthStatus, string> = {
   good: 'OK',
   warning: 'Attenzione',
   critical: 'Critico',
+}
+
+// Centralized Stadium Nights hex tokens for recharts (single source for chart colors)
+export const CHART_COLORS = {
+  primary: '#3b82f6',      // primary-500 (blu stadio)
+  primaryDark: '#2563eb',  // primary-600
+  secondary: '#22c55e',    // secondary-500 (verde campo)
+  accent: '#f59e0b',       // accent-500 (oro trofeo)
+  accentLight: '#fbbf24',  // accent-400
+  danger: '#ef4444',       // danger-500
+  grid: '#2d3139',         // surface-50 (bordi)
+  axis: '#9ca3af',         // gray-400
+  muted: '#8b919d',        // gray-500
+  neutralLine: '#4b5563',  // gray-700 (linee non evidenziate)
+  tooltipBg: '#1a1c20',    // surface-200
+  tooltipBorder: '#2d3139',
+} as const
+
+// Recharts tooltip style shared across finance charts
+export const CHART_TOOLTIP_STYLE = {
+  backgroundColor: CHART_COLORS.tooltipBg,
+  border: `1px solid ${CHART_COLORS.tooltipBorder}`,
+  borderRadius: 8,
+  fontSize: 12,
+} as const
+
+// Humanized labels for market session phases (no raw enums in UI)
+export const SESSION_PHASE_LABELS: Record<string, string> = {
+  ASTA_LIBERA: 'Asta libera',
+  OFFERTE_PRE_RINNOVO: 'Offerte pre-rinnovo',
+  PREMI: 'Premi',
+  CONTRATTI: 'Contratti',
+  CALCOLO_INDENNIZZI: 'Calcolo indennizzi',
+  RUBATA: 'Rubata',
+  ASTA_SVINCOLATI: 'Asta svincolati',
+  OFFERTE_POST_ASTA_SVINCOLATI: 'Offerte post-asta',
+}
+
+export function formatPhaseLabel(phase: string | null | undefined): string {
+  if (!phase) return ''
+  return SESSION_PHASE_LABELS[phase] ?? phase.replaceAll('_', ' ').toLowerCase()
+}
+
+const MONTH_SHORT_IT = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'] as const
+
+// Humanized session label: "Primo Mercato 2025/26", "Mercato Riparazione · Gen 2026"
+export function formatSessionLabel(session: SessionInfo): string {
+  const date = new Date(session.createdAt)
+  const year = date.getFullYear()
+  const month = date.getMonth()
+  if (session.sessionType === 'PRIMO_MERCATO') {
+    // Football season: July-June
+    const startYear = month >= 6 ? year : year - 1
+    const endShort = String((startYear + 1) % 100).padStart(2, '0')
+    return `Primo Mercato ${startYear}/${endShort}`
+  }
+  return `Mercato Riparazione · ${MONTH_SHORT_IT[month] ?? ''} ${year}`
 }
 
 // Position chart colors (hex for recharts)

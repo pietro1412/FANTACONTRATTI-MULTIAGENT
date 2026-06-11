@@ -1,167 +1,114 @@
 import { useMemo } from 'react'
-import { PieChart, Pie, ResponsiveContainer, Tooltip } from 'recharts'
-import type { Formatter } from 'recharts/types/component/DefaultTooltipContent'
-import { KPICard, SectionHeader } from './KPICard'
-import { LandscapeHint } from '../ui/LandscapeHint'
-import { HealthIndicator, HealthIndicatorCompact } from './HealthIndicator'
+import { SectionTitle } from './KPICard'
+import { MyTeamHero } from './MyTeamHero'
+import { TeamRanking } from './TeamRanking'
 import { type FinancialsData, type LeagueTotals, computeLeagueTotals } from './types'
 
 interface FinanceDashboardProps {
   data: FinancialsData
+  myTeamId?: string
+  onTeamClick: (memberId: string) => void
+  onNavigateToRoster: () => void
+  onShowMovements: () => void
 }
 
-export function FinanceDashboard({ data }: FinanceDashboardProps) {
+// Small demoted KPI card for league-level aggregates
+function LeagueKpi({ label, value, unit, note }: { label: string; value: string; unit?: string; note?: string }) {
+  return (
+    <div className="rounded-xl border border-surface-50/60 bg-surface-200 p-3.5 md:p-4">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{label}</div>
+      <div className="stat-number mt-1.5 text-2xl leading-none text-white">
+        {value}
+        {unit && <span className="ml-0.5 text-[13px] font-medium text-gray-400">{unit}</span>}
+      </div>
+      {note && <div className="mt-1.5 text-[11px] text-gray-500">{note}</div>}
+    </div>
+  )
+}
+
+export function FinanceDashboard({ data, myTeamId, onTeamClick, onNavigateToRoster, onShowMovements }: FinanceDashboardProps) {
   const totals: LeagueTotals = useMemo(() => computeLeagueTotals(data), [data])
 
-  const budgetPct = totals.totalBudget > 0
-    ? Math.round(((totals.totalBudget - totals.totalAcquisitions) / totals.totalBudget) * 100)
+  const teamsCount = data.teams.length
+  const myTeam = useMemo(
+    () => (myTeamId ? data.teams.find(t => t.memberId === myTeamId) : undefined),
+    [data.teams, myTeamId]
+  )
+
+  const avgBudget = teamsCount > 0
+    ? Math.round(data.teams.reduce((sum, t) => sum + t.budget, 0) / teamsCount)
+    : 0
+  const avgContracts = teamsCount > 0
+    ? Math.round(data.teams.reduce((sum, t) => sum + t.annualContractCost, 0) / teamsCount)
     : 0
 
-  const salaryPct = totals.totalBudget > 0
-    ? Math.round((totals.totalContracts / totals.totalBudget) * 100)
-    : 0
-
-  const slotPct = totals.maxTotalSlots > 0
-    ? Math.round((totals.totalSlots / totals.maxTotalSlots) * 100)
-    : 0
-
-  const distributionData = [
-    { name: 'Budget Residuo', value: Math.max(0, totals.totalBudget - totals.totalAcquisitions - totals.totalContracts), color: '#3b82f6', fill: '#3b82f6' },
-    { name: 'Monte Ingaggi', value: totals.totalContracts, color: '#f59e0b', fill: '#f59e0b' },
-    { name: 'Speso Aste', value: totals.totalAcquisitions, color: '#ea580c', fill: '#ea580c' },
-    ...(totals.totalReleaseCosts ? [{ name: 'Tagli', value: totals.totalReleaseCosts, color: '#ef4444', fill: '#ef4444' }] : []),
-    ...(totals.hasTradeData ? [{ name: 'Scambi', value: totals.totalTradeBudgetIn, color: '#8b5cf6', fill: '#8b5cf6' }] : []),
-  ].filter(d => d.value > 0)
+  const budgetRank = useMemo(() => {
+    if (!myTeam) return 0
+    const sorted = [...data.teams].sort((a, b) => b.budget - a.budget)
+    return sorted.findIndex(t => t.memberId === myTeam.memberId) + 1
+  }, [data.teams, myTeam])
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      {/* Row 1: Main KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
-        <KPICard
-          title="Budget Totale"
-          description="Somma dei crediti liquidi disponibili di tutte le squadre. Calcolato come budget iniziale meno i costi di acquisto all'asta."
-          value={`${totals.totalBudget - totals.totalAcquisitions}M`}
-          subtitle={`su ${totals.totalBudget}M iniziali`}
-          progress={budgetPct}
-          progressColor="bg-primary-500"
+    <div className="space-y-5 md:space-y-7">
+      {/* Hero: la mia squadra */}
+      {myTeam && (
+        <MyTeamHero
+          team={myTeam}
+          leagueName={data.leagueName}
+          teamsCount={teamsCount}
+          budgetRank={budgetRank}
+          hasFinancialDetails={totals.hasFinancialDetails}
+          onNavigateToRoster={onNavigateToRoster}
+          onShowMovements={onShowMovements}
         />
-        <KPICard
-          title="Monte Ingaggi"
-          description="Somma di tutti gli ingaggi annuali dei giocatori sotto contratto nella lega. La barra indica il peso degli ingaggi rispetto al budget iniziale."
-          value={`${totals.totalContracts}M`}
-          subtitle={`${salaryPct}% del budget`}
-          progress={salaryPct}
-          progressColor={salaryPct > 40 ? 'bg-danger-500' : salaryPct > 25 ? 'bg-amber-500' : 'bg-green-500'}
-        />
-        <KPICard
-          title="Bilancio Totale"
-          description="Somma dei bilanci di tutte le squadre (Budget - Ingaggi). Un valore positivo indica margine di manovra complessivo nella lega."
-          value={`${totals.totalBalance >= 0 ? '+' : ''}${totals.totalBalance}M`}
-          variant={totals.totalBalance > 0 ? 'success' : totals.totalBalance < 0 ? 'danger' : 'default'}
-        />
-        <KPICard
-          title="Liquidita Media"
-          description="Media del bilancio (Budget - Ingaggi) per squadra. Min e max mostrano la forbice tra la squadra con piu risorse e quella con meno."
-          value={`${Math.round(totals.liquidityAvg)}M/team`}
-          subtitle={`min: ${totals.liquidityMin}  max: ${totals.liquidityMax}`}
-        />
-      </div>
+      )}
 
-      {/* Row 2: Secondary KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
-        <KPICard
-          title="Speso in Aste"
-          description="Totale crediti spesi per acquistare giocatori nelle aste. Include primo mercato e mercati ricorrenti."
-          value={`${totals.totalAcquisitions}M`}
-          subtitle={totals.totalBudget > 0 ? `${Math.round((totals.totalAcquisitions / totals.totalBudget) * 100)}% del budget` : undefined}
+      {/* League KPIs (demoted) */}
+      <section>
+        <SectionTitle
+          title="La lega in numeri"
+          subtitle="Valori medi e volumi della sessione visualizzata"
         />
-        <KPICard
-          title="Volume Scambi"
-          description="Totale crediti trasferiti nelle operazioni di scambio (trade) tra squadre."
-          value={`${totals.totalTradeBudgetIn}M`}
-          subtitle={totals.hasTradeData ? `crediti trasferiti` : 'nessuno scambio'}
-        />
-        <KPICard
-          title="Tagli Totali"
-          description="Somma dei costi di taglio giocatori nella lega. Costo taglio = arrotonda per eccesso (ingaggio x durata residua / 2)."
-          value={totals.totalReleaseCosts !== null ? `${totals.totalReleaseCosts}M` : '-'}
-          subtitle={totals.totalReleaseCosts !== null
-            ? `media ${(totals.totalReleaseCosts / Math.max(1, data.teams.length)).toFixed(1)}/team`
-            : undefined}
-          variant={totals.totalReleaseCosts !== null && totals.totalReleaseCosts > 0 ? 'danger' : 'default'}
-        />
-        <KPICard
-          title="Giocatori"
-          description="Numero totale di giocatori sotto contratto rispetto agli slot massimi disponibili nella lega."
-          value={`${totals.totalSlots} / ${totals.maxTotalSlots}`}
-          subtitle={`${slotPct}% rosa piena \u00B7 ${totals.maxTotalSlots - totals.totalSlots} slot liberi`}
-          progress={slotPct}
-          progressColor="bg-secondary-500"
-        />
-      </div>
-
-      {/* Row 3: Distribution chart + Health indicator */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {/* Distribution pie chart */}
-        <div className="lg:col-span-3 bg-surface-300/50 rounded-lg p-3 md:p-4 border border-surface-50/10">
-          <SectionHeader
-            title="Distribuzione Budget Lega"
-            description="Come e suddiviso il budget complessivo della lega tra residuo, ingaggi, acquisti alle aste, tagli e scambi."
+        <div className="grid grid-cols-2 gap-2 md:gap-3.5 lg:grid-cols-4">
+          <LeagueKpi
+            label="Budget medio per squadra"
+            value={`${avgBudget}`}
+            unit="M"
+            note={myTeam ? `il tuo: ${myTeam.budget}M` : undefined}
           />
-          <LandscapeHint />
-          <div className="flex flex-col md:flex-row items-center gap-4">
-            <div className="w-full md:w-1/2" style={{ height: 200 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={distributionData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={85}
-                    dataKey="value"
-                    stroke="rgba(0,0,0,0.3)"
-                    strokeWidth={1}
-                  />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#1a1c20', border: '1px solid #2d3139', borderRadius: 8, fontSize: 12 }}
-                    itemStyle={{ color: '#fff' }}
-                    formatter={((value: number) => [`${value}M`, '']) as Formatter<number, string>}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex flex-wrap md:flex-col gap-2 md:gap-3 text-xs md:text-sm">
-              {distributionData.map((d, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded" style={{ backgroundColor: d.color }} />
-                  <span className="text-gray-400">{d.name}</span>
-                  <span className="text-white font-medium">{d.value}M</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <LeagueKpi
+            label="Monte ingaggi medio"
+            value={`${avgContracts}`}
+            unit="M/anno"
+            note={myTeam ? `il tuo: ${myTeam.annualContractCost}M/anno` : undefined}
+          />
+          <LeagueKpi
+            label="Volume scambi"
+            value={`${totals.totalTradeBudgetIn}`}
+            unit="M"
+            note={totals.hasTradeData ? 'crediti trasferiti negli scambi' : 'nessuno scambio in sessione'}
+          />
+          <LeagueKpi
+            label="Giocatori sotto contratto"
+            value={`${totals.totalSlots}`}
+            note={`su ${totals.maxTotalSlots} slot totali di lega`}
+          />
         </div>
+      </section>
 
-        {/* Health indicator */}
-        <div className="lg:col-span-2">
-          {/* Desktop */}
-          <div className="hidden md:block">
-            <HealthIndicator
-              teams={data.teams}
-              hasFinancialDetails={totals.hasFinancialDetails}
-              giniIndex={totals.giniIndex}
-            />
-          </div>
-          {/* Mobile */}
-          <div className="md:hidden">
-            <HealthIndicatorCompact
-              teams={data.teams}
-              hasFinancialDetails={totals.hasFinancialDetails}
-            />
-          </div>
-        </div>
-      </div>
+      {/* Balance ranking */}
+      <section>
+        <SectionTitle
+          title="Classifica bilanci"
+          subtitle="Bilancio disponibile per squadra (budget − ingaggi) — la tua riga è evidenziata"
+        />
+        <TeamRanking
+          teams={data.teams}
+          hasFinancialDetails={totals.hasFinancialDetails}
+          myTeamId={myTeamId}
+          onTeamClick={onTeamClick}
+        />
+      </section>
     </div>
   )
 }

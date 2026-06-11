@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Navigation } from '../components/Navigation'
+import { useAuth } from '../hooks/useAuth'
 import { PullToRefresh } from '../components/PullToRefresh'
 import { ShareButton } from '../components/ShareButton'
 import { leagueApi } from '../services/api'
@@ -32,6 +33,7 @@ interface LeagueFinancialsProps {
 }
 
 export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinancialsProps) {
+  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<FinancialsData | null>(null)
@@ -117,6 +119,17 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
 
   // Get active tab key from current view
   const activeTab = view.level === 'dettaglio' ? 'squadre' : view.level
+
+  // My team (for the hero and highlighted rows), matched by username
+  const myTeamId = data?.teams.find(t => t.username === user?.username)?.memberId
+
+  // Human-readable session pill label (no PM/MR acronyms, no raw enum phases)
+  const formatSessionLabel = (session: { sessionType: string; currentPhase: string | null; createdAt: string }) => {
+    const typeLabel = session.sessionType === 'PRIMO_MERCATO' ? 'Primo Mercato' : 'Mercato Riparazione'
+    const date = new Date(session.createdAt)
+    const when = date.toLocaleDateString('it-IT', { month: 'short', year: 'numeric' })
+    return `${typeLabel} · ${when}`
+  }
 
   if (loading) {
     return (
@@ -235,8 +248,7 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
                       : 'bg-surface-300/50 text-gray-400 hover:text-white hover:bg-surface-300'
                   }`}
                 >
-                  {session.sessionType === 'PRIMO_MERCATO' ? 'PM' : 'MR'}
-                  {session.currentPhase ? ` ${session.currentPhase}` : ''}
+                  {formatSessionLabel(session)}
                 </button>
               ))}
             </div>
@@ -274,14 +286,20 @@ export default function LeagueFinancials({ leagueId, onNavigate }: LeagueFinanci
 
         {/* Level 1: Panoramica */}
         {view.level === 'panoramica' && (
-          <FinanceDashboard data={data} />
+          <FinanceDashboard
+            data={data}
+            myTeamId={myTeamId}
+            onTeamClick={handleTeamClick}
+            onNavigateToRoster={() => { onNavigate('roster', { leagueId }); }}
+            onShowMovements={() => { setView({ level: 'movimenti' }); }}
+          />
         )}
 
         {/* Level 2: Confronto Squadre */}
         {view.level === 'squadre' && (
           <TeamComparison
             data={data}
-            onTeamClick={handleTeamClick}
+            myTeamId={myTeamId}
             trends={trendsData}
           />
         )}
