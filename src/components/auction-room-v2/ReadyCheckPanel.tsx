@@ -1,5 +1,6 @@
 import { Button } from '../ui/Button'
 import { PlayerCard } from './PlayerCard'
+import { MemberReadyChips } from './MemberReadyChips'
 import type { ReadyStatus } from '../../types/auctionroom.types'
 
 interface ReadyCheckPanelProps {
@@ -132,40 +133,16 @@ export function ReadyCheckPanel({
         </div>
       </div>
 
-      {/* Members list below */}
+      {/* Members lobby below */}
       {readyStatus.nominatorConfirmed && (
         <div className="mt-3">
-          <ReadyMembersList readyMembers={readyStatus.readyMembers} pendingMembers={readyStatus.pendingMembers} />
+          <MemberReadyChips
+            done={readyStatus.readyMembers}
+            pending={readyStatus.pendingMembers}
+            doneLabel="pronto"
+          />
         </div>
       )}
-    </div>
-  )
-}
-
-function ReadyMembersList({ readyMembers, pendingMembers }: {
-  readyMembers: { id: string; username: string }[]
-  pendingMembers: { id: string; username: string }[]
-}) {
-  return (
-    <div className="bg-surface-300/50 rounded-lg p-3">
-      <div className="grid grid-cols-2 gap-2 text-sm">
-        <div>
-          <p className="text-secondary-400 font-semibold mb-1 text-sms">Pronti</p>
-          {readyMembers.length > 0 ? (
-            readyMembers.map(m => <p key={m.id} className="text-gray-300 text-sms">{m.username}</p>)
-          ) : (
-            <p className="text-gray-500 italic text-sms">Nessuno</p>
-          )}
-        </div>
-        <div>
-          <p className="text-amber-400 font-semibold mb-1 text-sms">In attesa</p>
-          {pendingMembers.length > 0 ? (
-            pendingMembers.map(m => <p key={m.id} className="text-gray-400 text-sms">{m.username}</p>)
-          ) : (
-            <p className="text-gray-500 italic text-sms">Nessuno</p>
-          )}
-        </div>
-      </div>
     </div>
   )
 }

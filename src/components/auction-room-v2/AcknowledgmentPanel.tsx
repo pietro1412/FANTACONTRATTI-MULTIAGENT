@@ -1,3 +1,4 @@
+import { MemberReadyChips } from './MemberReadyChips'
 import type { PendingAcknowledgment } from '../../types/auctionroom.types'
 
 interface AcknowledgmentPanelProps {
@@ -50,22 +51,11 @@ export function AcknowledgmentPanel({
 
       {/* Members status */}
       {(pendingAck.acknowledgedMembers.length > 0 || pendingAck.pendingMembers.length > 0) && (
-        <div className="bg-surface-300/50 rounded-lg p-3">
-          <div className="grid grid-cols-2 gap-2 text-sms">
-            <div className="text-left">
-              <p className="text-teal-400 font-semibold mb-1">Confermato</p>
-              {pendingAck.acknowledgedMembers.map(m => (
-                <p key={m.id} className="text-gray-300">{m.username}</p>
-              ))}
-            </div>
-            <div className="text-left">
-              <p className="text-amber-400 font-semibold mb-1">In attesa</p>
-              {pendingAck.pendingMembers.map(m => (
-                <p key={m.id} className="text-gray-400">{m.username}</p>
-              ))}
-            </div>
-          </div>
-        </div>
+        <MemberReadyChips
+          done={pendingAck.acknowledgedMembers}
+          pending={pendingAck.pendingMembers}
+          doneLabel="confermato"
+        />
       )}
 
       {/* Actions */}
