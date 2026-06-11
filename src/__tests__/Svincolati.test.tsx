@@ -1312,8 +1312,8 @@ describe('Svincolati', () => {
     expect(screen.getByText('Gigi Buffon')).toBeInTheDocument()
     expect(screen.getByText('Paolo Maldini')).toBeInTheDocument()
     expect(screen.getByText('Andrea Pirlo')).toBeInTheDocument()
-    // Position with no players shows "Nessuno"
-    expect(screen.getByText('Nessuno')).toBeInTheDocument()
+    // Position with no players shows the free-slots placeholder
+    expect(screen.getAllByText(/slot liber/).length).toBeGreaterThan(0)
   })
 
   // ---- Success message display in auction room ----

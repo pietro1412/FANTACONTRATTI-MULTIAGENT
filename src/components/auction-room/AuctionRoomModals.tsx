@@ -4,13 +4,31 @@ import { Textarea } from '../ui/Textarea'
 import { POSITION_NAMES } from '../ui/PositionBadge'
 import { getTeamLogo } from '../../utils/teamLogos'
 import { POSITION_COLORS } from '../../types/auctionroom.types'
-import type { ManagerData, PendingAcknowledgment, AppealStatus } from '../../types/auctionroom.types'
+import type { PendingAcknowledgment, AppealStatus } from '../../types/auctionroom.types'
 import { celebrateWin, celebrateBigWin } from '../../utils/confetti'
 
 // ─── Props Interfaces ────────────────────────────────────────────────
 
+/** Structural subset shared by auction-room ManagerData and svincolati SelectedManagerData */
+export interface ManagerDetailData {
+  username: string
+  teamName?: string | null
+  currentBudget: number
+  slotsFilled: number
+  totalSlots: number
+  slotsByPosition: Record<'P' | 'D' | 'C' | 'A', { filled: number; total: number }>
+  roster: Array<{
+    id: string
+    position: string
+    playerName: string
+    playerTeam: string
+    acquisitionPrice: number
+    contract?: { salary: number; duration: number; rescissionClause: number } | null
+  }>
+}
+
 interface ManagerDetailModalProps {
-  selectedManager: ManagerData | null
+  selectedManager: ManagerDetailData | null
   onClose: () => void
 }
 
@@ -65,78 +83,95 @@ interface AwaitingResumeModalProps {
 
 // ─── 1. Manager Detail Modal ─────────────────────────────────────────
 
+const MODAL_POS_STYLES: Record<string, { bg: string; border: string; text: string }> = {
+  P: { bg: 'bg-amber-500/15', border: 'border-amber-500/40', text: 'text-amber-400' },
+  D: { bg: 'bg-blue-500/15', border: 'border-blue-500/40', text: 'text-blue-400' },
+  C: { bg: 'bg-emerald-500/15', border: 'border-emerald-500/40', text: 'text-emerald-400' },
+  A: { bg: 'bg-red-500/15', border: 'border-red-500/40', text: 'text-red-400' },
+}
+
 export function ManagerDetailModal({ selectedManager, onClose }: ManagerDetailModalProps) {
   if (!selectedManager) return null
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50/20" onClick={e => { e.stopPropagation(); }}>
-        <div className="p-6">
+      <div className="bg-surface-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-surface-50" onClick={e => { e.stopPropagation(); }}>
+        <div className="p-5">
+          {/* Header: monogram + identity */}
           <div className="flex justify-between items-start mb-4">
-            <div>
-              <h2 className="text-xl font-bold text-white">{selectedManager.username}</h2>
-              {selectedManager.teamName && <p className="text-gray-400">{selectedManager.teamName}</p>}
-            </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">×</button>
-          </div>
-          <div className="flex gap-4 mb-6">
-            <div className="bg-surface-300 rounded-lg px-4 py-3 flex-1 text-center">
-              <p className="text-xs text-gray-400 uppercase">Budget</p>
-              <p className="text-2xl font-bold text-accent-400">{selectedManager.currentBudget}</p>
-            </div>
-            <div className="bg-surface-300 rounded-lg px-4 py-3 flex-1 text-center">
-              <p className="text-xs text-gray-400 uppercase">Rosa</p>
-              <p className="text-2xl font-bold text-white">{selectedManager.slotsFilled}/{selectedManager.totalSlots}</p>
-            </div>
-          </div>
-          {(['P', 'D', 'C', 'A'] as const).map(pos => {
-            const slot = selectedManager.slotsByPosition[pos]
-            const posPlayers = selectedManager.roster.filter(r => r.position === pos)
-            return (
-              <div key={pos} className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-6 h-6 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos] ?? ''} flex items-center justify-center text-xs font-bold text-white`}>{pos}</span>
-                    <span className="text-gray-300">{POSITION_NAMES[pos]}</span>
-                  </div>
-                  <span className={`text-sm font-bold ${slot.filled >= slot.total ? 'text-secondary-400' : 'text-gray-500'}`}>{slot.filled}/{slot.total}</span>
-                </div>
-                {posPlayers.length > 0 ? (
-                  <table className="w-full text-xs ml-2">
-                    <thead>
-                      <tr className="text-gray-500 text-[10px] uppercase">
-                        <th className="text-left font-medium pb-1">Giocatore</th>
-                        <th className="text-center font-medium pb-1 w-14">Prezzo</th>
-                        <th className="text-center font-medium pb-1 w-12">Ing.</th>
-                        <th className="text-center font-medium pb-1 w-10">Dur.</th>
-                        <th className="text-center font-medium pb-1 w-14">Claus.</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {posPlayers.map(p => (
-                        <tr key={p.id} className="border-t border-surface-50/10">
-                          <td className="py-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-4 h-4 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
-                                <img src={getTeamLogo(p.playerTeam)} alt={p.playerTeam} className="w-3 h-3 object-contain" />
-                              </div>
-                              <span className="text-gray-200 truncate">{p.playerName}</span>
-                            </div>
-                          </td>
-                          <td className="text-center text-accent-400 font-bold">{p.acquisitionPrice}</td>
-                          <td className="text-center text-white">{p.contract?.salary ?? '-'}</td>
-                          <td className="text-center text-white">{p.contract?.duration ?? '-'}</td>
-                          <td className="text-center text-primary-400">{p.contract?.rescissionClause ?? '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p className="text-gray-400 italic text-sm ml-8">Nessuno</p>
-                )}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0">
+                {selectedManager.username.slice(0, 2).toUpperCase()}
               </div>
-            )
-          })}
+              <div>
+                <h2 className="text-xl font-bold text-white leading-tight">{selectedManager.teamName || selectedManager.username}</h2>
+                {selectedManager.teamName && <p className="text-sm text-gray-400">{selectedManager.username}</p>}
+              </div>
+            </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl leading-none">×</button>
+          </div>
+
+          {/* Stat boxes */}
+          <div className="flex gap-3 mb-5">
+            <div className="bg-surface-300 border border-surface-50 rounded-lg px-4 py-2.5 flex-1 text-center">
+              <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold">Budget</p>
+              <p className="budget-display text-2xl font-black text-accent-400">
+                {selectedManager.currentBudget}<span className="text-sm text-gray-500 font-semibold">M</span>
+              </p>
+            </div>
+            <div className="bg-surface-300 border border-surface-50 rounded-lg px-4 py-2.5 flex-1 text-center">
+              <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold">Rosa</p>
+              <p className="stat-number text-2xl font-black text-white">{selectedManager.slotsFilled}/{selectedManager.totalSlots}</p>
+            </div>
+          </div>
+
+          {/* Roster rows — same language as "La mia rosa" */}
+          <div className="space-y-4">
+            {(['P', 'D', 'C', 'A'] as const).map(pos => {
+              const slot = selectedManager.slotsByPosition[pos]
+              const posPlayers = selectedManager.roster.filter(r => r.position === pos)
+              const style = MODAL_POS_STYLES[pos] ?? { bg: 'bg-gray-500/15', border: 'border-gray-500/40', text: 'text-gray-400' }
+              const freeSlots = Math.max(0, slot.total - slot.filled)
+              return (
+                <div key={pos}>
+                  {/* Position header */}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-5 h-5 rounded-full bg-gradient-to-br ${POSITION_COLORS[pos] ?? ''} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>{pos}</span>
+                      <span className="text-sm font-bold text-gray-300 uppercase">{POSITION_NAMES[pos]}</span>
+                    </div>
+                    <span className={`text-sm font-mono font-bold ${slot.filled >= slot.total ? 'text-green-400' : 'text-gray-500'}`}>{slot.filled}/{slot.total}</span>
+                  </div>
+
+                  {/* Player rows */}
+                  <div className="space-y-1">
+                    {posPlayers.map(p => (
+                      <div
+                        key={p.id}
+                        className={`flex items-center gap-2 ${style.bg} border ${style.border} rounded-lg px-2 py-1.5`}
+                      >
+                        <span className="w-4 h-4 bg-white/80 rounded flex items-center justify-center flex-shrink-0">
+                          <img src={getTeamLogo(p.playerTeam)} alt={p.playerTeam} className="w-3 h-3 object-contain" />
+                        </span>
+                        <span className="flex-1 min-w-0 text-sm text-gray-200 font-semibold truncate">{p.playerName}</span>
+                        {p.contract && (
+                          <span className="text-sm font-mono text-gray-500 flex-shrink-0" title={`Ingaggio ${p.contract.salary}M · Durata ${p.contract.duration} anni · Clausola ${p.contract.rescissionClause}M`}>
+                            ing {p.contract.salary} · {p.contract.duration}a · <span className="text-primary-400">cl {p.contract.rescissionClause}</span>
+                          </span>
+                        )}
+                        <span className={`text-sms font-mono font-bold flex-shrink-0 ${style.text}`}>{p.acquisitionPrice}M</span>
+                      </div>
+                    ))}
+                    {freeSlots > 0 && (
+                      <div className={`flex items-center justify-center rounded-lg px-2 py-1.5 border border-dashed ${style.border} opacity-40`}>
+                        <span className="text-sm text-gray-400">{freeSlots} slot liber{freeSlots === 1 ? 'o' : 'i'}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>

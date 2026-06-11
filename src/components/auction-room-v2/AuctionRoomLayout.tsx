@@ -54,7 +54,7 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
       />
 
       {/* Desktop: narrow side columns, dominant center stage / Mobile: single column */}
-      <div className="lg:grid lg:grid-cols-[260px_minmax(0,1fr)_280px] lg:gap-4">
+      <div className="lg:grid lg:grid-cols-[300px_minmax(0,1fr)_280px] lg:gap-4">
         {/* Left: Managers (desktop only) */}
         <div className="hidden lg:block">
           <div className="sticky top-4">
