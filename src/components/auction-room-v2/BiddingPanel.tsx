@@ -82,9 +82,9 @@ export function BiddingPanel({
           </div>
         </div>
 
-        {/* Right: Timer (left) + Price (right) in ONE unified box */}
-        <div className="flex">
-          <div className={`relative rounded-xl p-5 w-full border-2 overflow-hidden flex items-center ${
+        {/* Right column: ONE decision zone — price/timer box with bid controls right under it */}
+        <div className="flex flex-col gap-3">
+          <div className={`relative rounded-xl p-5 w-full flex-1 border-2 overflow-hidden flex items-center ${
             isTimerCritical
               ? 'border-red-500/50 bg-gradient-to-br from-red-950/30 to-slate-900/80'
               : 'border-sky-500/30 bg-gradient-to-br from-slate-800/50 to-slate-900/80'
@@ -132,79 +132,74 @@ export function BiddingPanel({
               )}
             </div>
           </div>
+
+          {/* Bid controls inside the decision zone — hidden on mobile (MobileBottomBar handles it) */}
+          <div className="hidden lg:block">
+            {isRoleFull ? (
+              <div className="rounded-xl p-4 bg-amber-500/10 border border-amber-500/30 text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <svg className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-amber-400 font-bold text-sm">Slot Ruolo Completo</span>
+                </div>
+                <p className="text-gray-400 text-sms">
+                  Hai completato tutti gli slot per questo ruolo ({roleSlot?.filled}/{roleSlot?.total}). Non puoi fare offerte.
+                </p>
+              </div>
+            ) : (
+              <>
+                <BidControls
+                  bidAmount={bidAmount}
+                  setBidAmount={setBidAmount}
+                  onPlaceBid={onPlaceBid}
+                  currentPrice={auction.currentPrice}
+                  isTimerExpired={isTimerExpired}
+                  budget={membership?.currentBudget || 0}
+                  isBidding={isBidding}
+                  isConnected={isConnected}
+                />
+                {myMaxBid !== null && roleSlotsLeft !== null && (
+                  <p className="mt-1.5 text-sm text-gray-400 text-center">
+                    La tua offerta max: <span className="font-mono font-bold text-accent-400">{myMaxBid}M</span>
+                    {' '}· ti restano <span className="font-bold text-gray-300">{roleSlotsLeft}</span> slot {auctionRole}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Bid Controls - Hidden on mobile (MobileBottomBar handles it) */}
-      <div className="hidden lg:block">
-        {isRoleFull ? (
-          <div className="rounded-xl p-4 bg-amber-500/10 border border-amber-500/30 text-center">
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <svg className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              <span className="text-amber-400 font-bold text-sm">Slot Ruolo Completo</span>
-            </div>
-            <p className="text-gray-400 text-sms">
-              Hai completato tutti gli slot per questo ruolo ({roleSlot?.filled}/{roleSlot?.total}). Non puoi fare offerte.
-            </p>
-          </div>
-        ) : (
-          <>
-            <BidControls
-              bidAmount={bidAmount}
-              setBidAmount={setBidAmount}
-              onPlaceBid={onPlaceBid}
-              currentPrice={auction.currentPrice}
-              isTimerExpired={isTimerExpired}
-              budget={membership?.currentBudget || 0}
-              isBidding={isBidding}
-              isConnected={isConnected}
-            />
-            {myMaxBid !== null && roleSlotsLeft !== null && (
-              <p className="mt-1.5 text-sm text-gray-400 text-center">
-                La tua offerta max: <span className="font-mono font-bold text-accent-400">{myMaxBid}M</span>
-                {' '}· ti restano <span className="font-bold text-gray-300">{roleSlotsLeft}</span> slot {auctionRole}
-              </p>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Bid History */}
+      {/* Last bids — compact horizontal strip */}
       {auction.bids.length > 0 && (
         <div className="border-t border-white/10 pt-3">
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sms text-gray-400 font-medium">Storico Offerte</h4>
+            <h4 className="text-sms text-gray-400 font-medium uppercase tracking-wide">Ultimi rilanci</h4>
             <span className="text-sm text-gray-500 font-mono">{auction.bids.length} offerte</span>
           </div>
-          <div className="space-y-1 max-h-32 overflow-y-auto">
-            {auction.bids.map((bid, i) => (
-              <div
-                key={bid.id}
-                className={`flex items-center justify-between py-1.5 px-2 rounded-lg text-sms ${
-                  i === 0
-                    ? 'bg-sky-500/15 border border-sky-500/25'
-                    : 'bg-slate-800/40'
-                }`}
-              >
-                <span className={`${i === 0 ? 'text-white font-medium' : 'text-gray-300'} ${
-                  bid.bidder.user.username === currentUsername ? 'text-secondary-400' : ''
-                }`}>
-                  {bid.bidder.user.username}
-                  {bid.bidder.teamName && <span className="text-gray-500 ml-1">({bid.bidder.teamName})</span>}
-                  {bid.bidder.user.username === currentUsername && ' (tu)'}
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {auction.bids.slice(0, 12).map((bid, i) => {
+              const isMine = bid.bidder.user.username === currentUsername
+              return (
+                <span
+                  key={bid.id}
+                  title={new Date(bid.placedAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sms whitespace-nowrap flex-shrink-0 ${
+                    i === 0
+                      ? 'bg-sky-500/15 border border-sky-500/30 text-white font-medium'
+                      : 'bg-slate-800/40 text-gray-400'
+                  }`}
+                >
+                  <span className={isMine ? 'text-secondary-400 font-semibold' : ''}>
+                    {bid.bidder.user.username}{isMine && ' (tu)'}
+                  </span>
+                  <span className={`font-mono font-bold ${i === 0 ? 'text-sky-400' : 'text-gray-300'}`}>
+                    {bid.amount}M
+                  </span>
                 </span>
-                <div className="flex items-center gap-2">
-                  <span className={`font-mono font-bold ${i === 0 ? 'text-sky-400' : 'text-white'}`}>
-                    {bid.amount}
-                  </span>
-                  <span className="text-sm text-gray-400 font-mono">
-                    {new Date(bid.placedAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                  </span>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}

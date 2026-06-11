@@ -96,7 +96,7 @@ export function PlayerCard({ name, team, position, quotation, age, apiFootballId
 
           {/* Info */}
           <div className="flex-1 min-w-0">
-            <p className={`font-black text-white uppercase truncate ${size === 'lg' ? 'text-lg' : 'text-base'}`}>{name}</p>
+            <p className={`font-display font-black text-white uppercase truncate ${size === 'lg' ? 'text-2xl' : 'text-base'}`}>{name}</p>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               <div className="w-5 h-5 bg-white/90 rounded flex items-center justify-center flex-shrink-0">
                 <img src={getTeamLogo(team)} alt={team} className="w-3.5 h-3.5 object-contain" />

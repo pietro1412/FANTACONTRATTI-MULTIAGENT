@@ -65,9 +65,9 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
           </div>
         </div>
 
-        {/* Center: Main Stage */}
+        {/* Center: Main Stage — the decision zone always on top; admin tools below it */}
         <div className="space-y-3 min-w-0">
-          {/* Admin actions panel — visible only to league admin */}
+          <CenterStage {...props} />
           {props.isAdmin && (
             <AdminActionsPanel
               canCloseAuction={props.auction?.status === 'ACTIVE'}
@@ -81,7 +81,6 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
               onUpdateTimer={props.onUpdateTimer}
             />
           )}
-          <CenterStage {...props} />
         </div>
 
         {/* Right: My Portfolio (desktop only) */}
