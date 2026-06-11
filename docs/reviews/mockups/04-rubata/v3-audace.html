@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fase Rubata — v3 Audace · Il tavolo della rapina</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ===== Stadium Nights tokens ===== */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elevated:#111214; --hover:#252830; --border:#2d3139;
+    --primary:#3b82f6; --secondary:#22c55e; --secondary-deep:#15803d;
+    --gold:#f59e0b; --gold-light:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+    --inter:'Inter',sans-serif; --outfit:'Outfit',sans-serif; --oswald:'Oswald',sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--t1);font-family:var(--inter);padding:48px 40px 80px;}
+
+  h1.page{font-family:var(--outfit);font-weight:800;font-size:28px;letter-spacing:-.02em;margin-bottom:6px}
+  .page-sub{color:var(--t3);font-size:14px;margin-bottom:40px}
+  .page-sub strong{color:var(--gold-light);font-weight:600}
+
+  .frames{display:flex;flex-direction:column;gap:56px;align-items:flex-start}
+  .frame-label{font-family:var(--mono);font-size:12px;color:var(--t3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px}
+  .frame{border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--bg);box-shadow:0 24px 64px rgba(0,0,0,.55)}
+  .frame.desktop{width:1340px}
+  .frame.mobile{width:390px}
+
+  /* ====================================================== */
+  /* TOPBAR DI REGIA                                         */
+  /* ====================================================== */
+  .regia{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:24px;
+    background:var(--elevated);border-bottom:2px solid var(--border);padding:14px 28px;}
+  .regia-left{display:flex;flex-direction:column;gap:6px}
+  .phase-tag{display:inline-flex;align-items:center;gap:10px;font-family:var(--outfit);font-weight:700;font-size:15px;letter-spacing:.10em;text-transform:uppercase}
+  .live-dot{width:10px;height:10px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 4px rgba(239,68,68,.18)}
+  .banco{font-size:13px;color:var(--t2)}
+  .banco b{color:var(--gold-light);font-family:var(--outfit);font-weight:700;letter-spacing:.04em}
+  .banco .mono{font-family:var(--mono);color:var(--t3);font-size:12px}
+
+  .regia-center{text-align:center}
+  .timer-big{font-family:var(--oswald);font-weight:700;font-size:60px;line-height:1;letter-spacing:.04em;
+    font-variant-numeric:tabular-nums;color:var(--t1)}
+  .timer-big .warn{color:var(--gold-light)}
+  .timer-cap{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--t3);margin-top:2px}
+
+  .regia-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+  .board-progress{display:flex;align-items:baseline;gap:10px}
+  .board-progress .num{font-family:var(--oswald);font-weight:600;font-size:30px;line-height:1;color:var(--t1)}
+  .board-progress .num span{color:var(--t3);font-size:20px}
+  .board-progress .cap{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--t3)}
+  .progress-rail{width:220px;height:5px;background:var(--hover);border-radius:3px;overflow:hidden}
+  .progress-rail i{display:block;height:100%;width:36%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:3px}
+  .admin-strip{display:flex;align-items:center;gap:8px}
+  .admin-strip .cap{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--t3);margin-right:4px}
+  .abtn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--card);
+    display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+  .abtn:hover{background:var(--hover)}
+  .abtn svg{width:14px;height:14px;fill:var(--t2)}
+  .abtn.close svg{fill:var(--danger)}
+
+  /* ====================================================== */
+  /* STAGE 55 / BOARD 45                                     */
+  /* ====================================================== */
+  .table{display:grid;grid-template-columns:55fr 45fr;min-height:640px}
+
+  /* ----- PALCO: la refurtiva sotto i riflettori ----- */
+  .stage{position:relative;background:
+    radial-gradient(ellipse 70% 55% at 50% 12%, rgba(245,158,11,.10), transparent 65%),
+    radial-gradient(ellipse 90% 70% at 50% 40%, rgba(26,28,32,.9), var(--bg) 80%);
+    border-right:1px solid var(--border);padding:42px 48px 32px;display:flex;flex-direction:column;align-items:center;text-align:center}
+  .spot-cap{font-family:var(--mono);font-size:12px;letter-spacing:.30em;text-transform:uppercase;color:var(--gold-light);
+    border:1px solid rgba(245,158,11,.4);border-radius:999px;padding:6px 18px;background:rgba(245,158,11,.08)}
+  .loot-name{font-family:var(--oswald);font-weight:700;font-size:44px;line-height:1.05;letter-spacing:.02em;text-transform:uppercase;margin-top:22px}
+  .loot-meta{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:10px;font-size:14px;color:var(--t2)}
+  .role-chip{font-family:var(--mono);font-weight:700;font-size:12px;color:#0a0a0b;background:var(--danger);
+    border-radius:6px;padding:2px 8px}
+  .vault{margin-top:14px;font-size:14px;color:var(--t3)}
+  .vault b{color:var(--t1);font-family:var(--outfit);font-weight:700;letter-spacing:.10em}
+  .vault .mg{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--hover);border:1px solid var(--border);
+    align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--t1);vertical-align:-5px;margin-right:6px}
+
+  /* cartellino del prezzo */
+  .price-tag{margin-top:30px;background:var(--card);border:1px solid var(--border);border-radius:18px;
+    padding:22px 54px 18px;position:relative;box-shadow:0 18px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(249,250,251,.05)}
+  .price-tag::before{content:"";position:absolute;top:-7px;left:50%;transform:translateX(-50%);
+    width:38px;height:14px;background:var(--bg);border:1px solid var(--border);border-radius:999px}
+  .price-cap{font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--t3)}
+  .price-main{font-family:var(--oswald);font-weight:700;font-size:72px;line-height:1;color:var(--gold-light);
+    font-variant-numeric:tabular-nums;margin-top:4px}
+  .price-split{display:flex;gap:26px;justify-content:center;margin-top:12px;padding-top:12px;border-top:1px dashed var(--border)}
+  .price-split div{font-family:var(--mono);font-size:13px;color:var(--t2)}
+  .price-split b{color:var(--t1);font-weight:600}
+
+  .steal-btn{margin-top:32px;font-family:var(--outfit);font-weight:800;font-size:24px;letter-spacing:.10em;text-transform:uppercase;
+    color:#04110a;background:linear-gradient(180deg,#34d670,var(--secondary));border:none;border-radius:16px;
+    padding:22px 84px;cursor:pointer;
+    box-shadow:0 7px 0 var(--secondary-deep), 0 20px 44px rgba(34,197,94,.30)}
+  .steal-btn:hover{filter:brightness(1.06)}
+  .steal-sub{margin-top:14px;font-size:12px;color:var(--t3)}
+  .steal-sub b{color:var(--t2);font-family:var(--mono)}
+
+  /* chi può permetterselo */
+  .afford{margin-top:auto;padding-top:30px;width:100%}
+  .afford-cap{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--t3);margin-bottom:14px}
+  .afford-row{display:flex;justify-content:center;gap:22px}
+  .buyer{display:flex;flex-direction:column;align-items:center;gap:6px;width:64px}
+  .buyer .mg{width:44px;height:44px;border-radius:50%;background:var(--card);border:2px solid var(--border);
+    display:flex;align-items:center;justify-content:center;font-family:var(--outfit);font-weight:700;font-size:15px;color:var(--t1)}
+  .buyer .nm{font-size:11px;color:var(--t2);font-weight:600}
+  .buyer .bd{font-family:var(--mono);font-size:11px;color:var(--t3)}
+  .buyer.me .mg{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.22)}
+  .buyer.me .nm{color:var(--primary)}
+  .buyer.out{opacity:.32}
+  .buyer.out .mg{border-style:dashed}
+  .buyer.out .bd{text-decoration:line-through}
+
+  /* ----- TABELLONE DI BORSA ----- */
+  .board{background:var(--elevated);display:flex;flex-direction:column}
+  .board-head{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:2px solid var(--border)}
+  .board-head h2{font-family:var(--outfit);font-weight:700;font-size:15px;letter-spacing:.12em;text-transform:uppercase}
+  .board-tally{display:flex;gap:14px;font-family:var(--mono);font-size:12px}
+  .board-tally .ok{color:var(--secondary)}
+  .board-tally .pass{color:var(--t3)}
+
+  .board-rows{flex:1;overflow:hidden}
+  .brow{display:grid;grid-template-columns:44px 1fr 42px 76px;align-items:center;gap:10px;
+    padding:9px 18px 9px 14px;border-bottom:1px solid #1d2025;font-size:14px;border-left:3px solid transparent}
+  .brow .pos{font-family:var(--mono);font-size:12px;color:var(--t3);text-align:right;padding-right:4px}
+  .brow .who{display:flex;align-items:center;gap:8px;min-width:0}
+  .brow .nm{font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brow .rl{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--bg);border-radius:4px;padding:1px 5px;flex:none}
+  .rl.P{background:var(--gold-light)} .rl.D{background:var(--secondary)} .rl.C{background:var(--primary)} .rl.A{background:var(--danger)}
+  .brow .own{width:26px;height:26px;border-radius:50%;background:var(--hover);border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;font-weight:700;color:var(--t2);justify-self:center}
+  .brow .val{font-family:var(--mono);font-size:14px;font-weight:600;text-align:right;color:var(--t1);font-variant-numeric:tabular-nums}
+  .brow .st{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+
+  .brow.done{opacity:.5}
+  .brow.done .st{color:var(--t3)}
+  .brow.stolen .st{color:var(--secondary)}
+  .brow.stolen{opacity:.75}
+
+  .brow.current{background:var(--t1);border-left-color:var(--gold);opacity:1}
+  .brow.current .pos,.brow.current .nm,.brow.current .val{color:var(--bg)}
+  .brow.current .own{background:#e5e7eb;border-color:#cbd0d6;color:#1a1c20}
+  .brow.current .st{color:var(--passion);font-weight:700}
+
+  .brow.next{border-left-color:var(--gold)}
+  .brow.next .pos{color:var(--gold-light)}
+  .brow.mine{border-left-color:var(--primary)}
+  .brow.mine.next{border-left-color:var(--primary)}
+  .brow .flag{font-family:var(--mono);font-size:9px;letter-spacing:.08em;border-radius:4px;padding:1px 5px;flex:none}
+  .flag.mio{color:var(--primary);border:1px solid rgba(59,130,246,.5)}
+  .flag.watch{color:var(--gold-light);border:1px solid rgba(245,158,11,.5)}
+
+  .board-foot{padding:10px 22px;border-top:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--t3);
+    display:flex;justify-content:space-between}
+  .board-foot b{color:var(--t2)}
+
+  /* ----- TICKER BOTTINO ----- */
+  .ticker{display:flex;align-items:center;gap:0;background:var(--elevated);border-top:2px solid var(--border);height:52px;overflow:hidden}
+  .ticker-cap{flex:none;height:100%;display:flex;align-items:center;padding:0 22px;background:var(--card);border-right:1px solid var(--border);
+    font-family:var(--outfit);font-weight:700;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-light)}
+  .ticker-items{display:flex;align-items:center;gap:36px;padding:0 28px;white-space:nowrap;font-size:14px}
+  .ticker-items .tk b{color:var(--t1);font-weight:600}
+  .ticker-items .tk{color:var(--t2)}
+  .tk .arr{color:var(--gold-light);font-family:var(--mono);padding:0 4px}
+  .tk .amt{font-family:var(--mono);color:var(--gold-light);font-weight:600}
+  .tk.sum{color:var(--t3);font-size:12px;font-family:var(--mono)}
+
+  /* ====================================================== */
+  /* MOBILE — stato AUCTION                                  */
+  /* ====================================================== */
+  .m-regia{display:flex;align-items:center;justify-content:space-between;background:var(--elevated);
+    border-bottom:2px solid var(--border);padding:12px 16px}
+  .m-phase{display:flex;flex-direction:column;gap:3px}
+  .m-phase .tag{display:flex;align-items:center;gap:7px;font-family:var(--outfit);font-weight:700;font-size:12px;letter-spacing:.10em;text-transform:uppercase}
+  .m-phase .live-dot{width:8px;height:8px;box-shadow:0 0 0 3px rgba(239,68,68,.18)}
+  .m-phase .sub{font-size:11px;color:var(--t3)}
+  .m-timer{font-family:var(--oswald);font-weight:700;font-size:34px;line-height:1;font-variant-numeric:tabular-nums;color:var(--gold-light)}
+  .m-prog{font-family:var(--mono);font-size:11px;color:var(--t3);text-align:right}
+
+  .m-stage{background:
+    radial-gradient(ellipse 90% 50% at 50% 0%, rgba(245,158,11,.10), transparent 70%), var(--bg);
+    padding:24px 18px 20px;text-align:center;border-bottom:1px solid var(--border)}
+  .m-cap{font-family:var(--mono);font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold-light)}
+  .m-name{font-family:var(--oswald);font-weight:700;font-size:30px;text-transform:uppercase;letter-spacing:.02em;margin-top:8px}
+  .m-meta{font-size:12px;color:var(--t2);margin-top:5px}
+  .m-bid{margin-top:18px}
+  .m-bid .cap{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--t3)}
+  .m-bid .amt{font-family:var(--oswald);font-weight:700;font-size:64px;line-height:1;color:var(--gold-light);font-variant-numeric:tabular-nums}
+  .m-bid .by{font-size:14px;color:var(--t2);margin-top:6px}
+  .m-bid .by b{color:var(--t1);font-family:var(--outfit);font-weight:700;letter-spacing:.06em}
+  .m-base{margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--t3)}
+
+  .m-board{background:var(--elevated)}
+  .m-board .board-head{padding:12px 16px}
+  .m-board .board-head h2{font-size:12px}
+  .m-board .brow{grid-template-columns:34px 1fr 64px;padding:8px 14px 8px 10px;font-size:13px}
+  .m-board .brow .own{display:none}
+  .m-board .brow .val{font-size:13px}
+
+  .m-dock{display:flex;align-items:center;gap:12px;background:var(--elevated);border-top:2px solid var(--border);padding:14px 16px 18px}
+  .m-pass{flex:none;font-family:var(--outfit);font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--t2);background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 18px;cursor:pointer}
+  .m-raise{flex:1;font-family:var(--outfit);font-weight:800;font-size:19px;letter-spacing:.10em;text-transform:uppercase;
+    color:#04110a;background:linear-gradient(180deg,#34d670,var(--secondary));border:none;border-radius:14px;padding:18px 10px;cursor:pointer;
+    box-shadow:0 5px 0 var(--secondary-deep), 0 14px 30px rgba(34,197,94,.28)}
+  .m-raise small{display:block;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:none;margin-top:2px;color:#0b3d22}
+</style>
+</head>
+<body>
+
+<h1 class="page">Fase Rubata — v3 · Audace strutturale</h1>
+<p class="page-sub">Concetto: <strong>il tavolo della rapina</strong> — broadcast da heist, leggibile a 2 metri. Topbar di regia, palco con la refurtiva, tabellone di borsa, ticker del bottino. Palette Stadium Nights di produzione.</p>
+
+<div class="frames">
+
+  <!-- ============================ DESKTOP ============================ -->
+  <div>
+    <div class="frame-label">Desktop · 1440px</div>
+    <div class="frame desktop">
+
+      <!-- TOPBAR DI REGIA -->
+      <header class="regia">
+        <div class="regia-left">
+          <span class="phase-tag"><span class="live-dot"></span>Fase Rubata · Live</span>
+          <span class="banco">al banco: <b>MIRKO</b> <span class="mono">· turno 5/8</span></span>
+        </div>
+        <div class="regia-center">
+          <div class="timer-big">00:<span class="warn">42</span></div>
+          <div class="timer-cap">alla chiamata</div>
+        </div>
+        <div class="regia-right">
+          <div class="board-progress">
+            <span class="cap">board</span>
+            <span class="num">23<span>/64</span></span>
+          </div>
+          <div class="progress-rail"><i></i></div>
+          <div class="admin-strip">
+            <span class="cap">regia</span>
+            <button class="abtn" title="Pausa"><svg viewBox="0 0 16 16"><path d="M4 2h3v12H4zM9 2h3v12H9z"/></svg></button>
+            <button class="abtn" title="Avanti"><svg viewBox="0 0 16 16"><path d="M2 2l8 6-8 6zM11 2h3v12h-3z"/></svg></button>
+            <button class="abtn close" title="Chiudi fase"><svg viewBox="0 0 16 16"><path d="M3.5 2L8 6.5 12.5 2 14 3.5 9.5 8l4.5 4.5-1.5 1.5L8 9.5 3.5 14 2 12.5 6.5 8 2 3.5z"/></svg></button>
+          </div>
+        </div>
+      </header>
+
+      <!-- TAVOLO: PALCO 55 + TABELLONE 45 -->
+      <div class="table">
+
+        <!-- PALCO -->
+        <section class="stage">
+          <span class="spot-cap">Sul piatto</span>
+          <h2 class="loot-name">Lautaro Martínez</h2>
+          <div class="loot-meta">
+            <span class="role-chip">A</span>
+            <span>Inter</span><span>·</span><span>27 anni</span>
+          </div>
+          <p class="vault">dalla cassaforte di <span class="mg">MA</span><b>MARCO</b></p>
+
+          <div class="price-tag">
+            <div class="price-cap">prezzo della rapina</div>
+            <div class="price-main">48M</div>
+            <div class="price-split">
+              <div>clausola <b>36M</b></div>
+              <div>ingaggio <b>12M</b> <span>(6M × 2 anni)</span></div>
+            </div>
+          </div>
+
+          <button class="steal-btn">Voglio rubare</button>
+          <p class="steal-sub">il tuo budget: <b>611M</b> — dopo il colpo: <b>563M</b></p>
+
+          <div class="afford">
+            <div class="afford-cap">Chi può permetterselo</div>
+            <div class="afford-row">
+              <div class="buyer"><span class="mg">PI</span><span class="nm">Pietro</span><span class="bd">955M</span></div>
+              <div class="buyer"><span class="mg">ML</span><span class="nm">Marcolino</span><span class="bd">930M</span></div>
+              <div class="buyer"><span class="mg">MI</span><span class="nm">Michele</span><span class="bd">898M</span></div>
+              <div class="buyer"><span class="mg">MK</span><span class="nm">Mirko</span><span class="bd">826M</span></div>
+              <div class="buyer me"><span class="mg">DI</span><span class="nm">Diego · tu</span><span class="bd">611M</span></div>
+              <div class="buyer out"><span class="mg">EM</span><span class="nm">Emmanuele</span><span class="bd">31M</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TABELLONE -->
+        <aside class="board">
+          <div class="board-head">
+            <h2>Tabellone</h2>
+            <div class="board-tally"><span class="ok">2 rubati</span><span class="pass">20 passati</span></div>
+          </div>
+          <div class="board-rows">
+            <div class="brow done">
+              <span class="pos">19</span>
+              <span class="who"><span class="rl D">D</span><span class="nm">Theo Hernández</span></span>
+              <span class="own">MA</span>
+              <span class="st" style="text-align:right">passato</span>
+            </div>
+            <div class="brow stolen">
+              <span class="pos">20</span>
+              <span class="who"><span class="rl C">C</span><span class="nm">Zaccagni</span></span>
+              <span class="own">EI</span>
+              <span class="st" style="text-align:right">rubato 28M</span>
+            </div>
+            <div class="brow done">
+              <span class="pos">21</span>
+              <span class="who"><span class="rl D">D</span><span class="nm">Dimarco</span></span>
+              <span class="own">MA</span>
+              <span class="st" style="text-align:right">passato</span>
+            </div>
+            <div class="brow done">
+              <span class="pos">22</span>
+              <span class="who"><span class="rl A">A</span><span class="nm">Lukaku</span></span>
+              <span class="own">MI</span>
+              <span class="st" style="text-align:right">passato</span>
+            </div>
+            <div class="brow current">
+              <span class="pos">23</span>
+              <span class="who"><span class="rl A">A</span><span class="nm">Lautaro Martínez</span></span>
+              <span class="own">MA</span>
+              <span class="st" style="text-align:right">sul piatto</span>
+            </div>
+            <div class="brow next mine">
+              <span class="pos">24</span>
+              <span class="who"><span class="rl C">C</span><span class="nm">Barella</span><span class="flag mio">MIO</span></span>
+              <span class="own">DI</span>
+              <span class="val">44M</span>
+            </div>
+            <div class="brow next">
+              <span class="pos">25</span>
+              <span class="who"><span class="rl A">A</span><span class="nm">Leao</span><span class="flag watch">WATCH</span></span>
+              <span class="own">MI</span>
+              <span class="val">41M</span>
+            </div>
+            <div class="brow next">
+              <span class="pos">26</span>
+              <span class="who"><span class="rl P">P</span><span class="nm">Maignan</span></span>
+              <span class="own">MK</span>
+              <span class="val">38M</span>
+            </div>
+            <div class="brow">
+              <span class="pos">27</span>
+              <span class="who"><span class="rl C">C</span><span class="nm">Koopmeiners</span></span>
+              <span class="own">PI</span>
+              <span class="val">35M</span>
+            </div>
+            <div class="brow">
+              <span class="pos">28</span>
+              <span class="who"><span class="rl A">A</span><span class="nm">Kean</span></span>
+              <span class="own">ML</span>
+              <span class="val">22M</span>
+            </div>
+            <div class="brow">
+              <span class="pos">29</span>
+              <span class="who"><span class="rl C">C</span><span class="nm">Calhanoglu</span></span>
+              <span class="own">EM</span>
+              <span class="val">33M</span>
+            </div>
+            <div class="brow">
+              <span class="pos">30</span>
+              <span class="who"><span class="rl D">D</span><span class="nm">Bremer</span></span>
+              <span class="own">MA</span>
+              <span class="val">26M</span>
+            </div>
+            <div class="brow">
+              <span class="pos">31</span>
+              <span class="who"><span class="rl D">D</span><span class="nm">Di Lorenzo</span></span>
+              <span class="own">MI</span>
+              <span class="val">24M</span>
+            </div>
+            <div class="brow">
+              <span class="pos">32</span>
+              <span class="who"><span class="rl A">A</span><span class="nm">Vlahovic</span></span>
+              <span class="own">PI</span>
+              <span class="val">45M</span>
+            </div>
+          </div>
+          <div class="board-foot">
+            <span>filo <b style="color:var(--primary)">blu</b> = miei · bordo <b style="color:var(--gold-light)">ambra</b> = in arrivo</span>
+            <span><b>41</b> ancora sul board</span>
+          </div>
+        </aside>
+      </div>
+
+      <!-- TICKER BOTTINO -->
+      <footer class="ticker">
+        <div class="ticker-cap">Bottino di giornata</div>
+        <div class="ticker-items">
+          <span class="tk"><b>Leao</b>: Michele <span class="arr">&rarr;</span> Mirko per <span class="amt">67M</span></span>
+          <span class="tk"><b>Zaccagni</b>: Emiliano <span class="arr">&rarr;</span> Marco per <span class="amt">28M</span></span>
+          <span class="tk sum">2 colpi · 95M movimentati</span>
+        </div>
+      </footer>
+
+    </div>
+  </div>
+
+  <!-- ============================ MOBILE ============================ -->
+  <div>
+    <div class="frame-label">Mobile · 390px — stato asta al rilancio</div>
+    <div class="frame mobile">
+
+      <header class="m-regia">
+        <div class="m-phase">
+          <span class="tag"><span class="live-dot"></span>Asta in corso</span>
+          <span class="sub">banco: Mirko · 5/8</span>
+        </div>
+        <div>
+          <div class="m-timer">00:18</div>
+          <div class="m-prog">board 23/64</div>
+        </div>
+      </header>
+
+      <section class="m-stage">
+        <span class="m-cap">Sul piatto</span>
+        <h2 class="m-name">Lautaro Martínez</h2>
+        <p class="m-meta">A · Inter · dalla cassaforte di MARCO</p>
+        <div class="m-bid">
+          <div class="cap">offerta attuale</div>
+          <div class="amt">52M</div>
+          <div class="by">di <b>MIRKO</b></div>
+        </div>
+        <p class="m-base">base 48M (clausola 36 + ingaggio 12) · tuo budget 611M</p>
+      </section>
+
+      <section class="m-board">
+        <div class="board-head">
+          <h2>Tabellone</h2>
+          <div class="board-tally"><span class="ok">2 rubati</span><span class="pass">20 passati</span></div>
+        </div>
+        <div class="brow current">
+          <span class="pos">23</span>
+          <span class="who"><span class="rl A">A</span><span class="nm">Lautaro Martínez</span></span>
+          <span class="st" style="text-align:right">in asta</span>
+        </div>
+        <div class="brow next mine">
+          <span class="pos">24</span>
+          <span class="who"><span class="rl C">C</span><span class="nm">Barella</span><span class="flag mio">MIO</span></span>
+          <span class="val">44M</span>
+        </div>
+        <div class="brow next">
+          <span class="pos">25</span>
+          <span class="who"><span class="rl A">A</span><span class="nm">Leao</span><span class="flag watch">WATCH</span></span>
+          <span class="val">41M</span>
+        </div>
+        <div class="brow next">
+          <span class="pos">26</span>
+          <span class="who"><span class="rl P">P</span><span class="nm">Maignan</span></span>
+          <span class="val">38M</span>
+        </div>
+        <div class="brow">
+          <span class="pos">27</span>
+          <span class="who"><span class="rl C">C</span><span class="nm">Koopmeiners</span></span>
+          <span class="val">35M</span>
+        </div>
+      </section>
+
+      <footer class="m-dock">
+        <button class="m-pass">Lascio</button>
+        <button class="m-raise">Rilancia 53M<small>resterebbero 558M</small></button>
+      </footer>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

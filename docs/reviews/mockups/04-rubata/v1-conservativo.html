@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FantaContratti — Fase Rubata · v1 RIORDINO CONSERVATIVO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* === Stadium Nights tokens === */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elevated:#111214; --hover:#252830; --line:#2d3139;
+    --primary:#3b82f6; --primary-soft:rgba(59,130,246,.14);
+    --green:#22c55e; --green-soft:rgba(34,197,94,.12);
+    --gold:#f59e0b; --gold-2:#fbbf24; --gold-soft:rgba(245,158,11,.12);
+    --danger:#ef4444;
+    --txt:#f9fafb; --txt-dim:#9ca3af; --txt-faint:#8b919d;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:#050506;color:var(--txt);-webkit-font-smoothing:antialiased;padding:24px}
+  .num{font-family:'Oswald',sans-serif}
+  .mono{font-family:'JetBrains Mono',monospace}
+  svg{display:block;flex-shrink:0}
+  h1.page{font-size:14px;font-weight:700;color:var(--txt-faint);letter-spacing:.1em;text-transform:uppercase;margin-bottom:18px}
+  .frames{display:flex;flex-direction:column;gap:48px;align-items:flex-start}
+  .frame-label{font-size:11px;font-weight:800;letter-spacing:.18em;color:var(--gold-2);text-transform:uppercase;margin-bottom:10px}
+
+  /* ============ DESKTOP FRAME ============ */
+  .screen{width:1340px;background:var(--bg);border:1px solid var(--line);border-radius:18px;padding:28px 36px 36px}
+
+  /* Page header */
+  .pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px}
+  .pagehead h2{font-family:'Outfit',sans-serif;font-size:26px;font-weight:800;letter-spacing:-.01em}
+  .pagehead .sub{font-size:13px;color:var(--txt-dim);margin-top:4px}
+  .pagehead .sub b{color:var(--txt);font-weight:700}
+  .turnpill{display:inline-flex;align-items:center;gap:9px;height:38px;padding:0 16px;border-radius:10px;background:var(--card);border:1px solid var(--line);font-size:13px;font-weight:700;color:var(--txt-dim)}
+  .turnpill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(34,197,94,.18)}
+  .turnpill b{color:var(--txt)}
+
+  /* ===== Admin row — collassata, in alto (posizione invariata) ===== */
+  .adminbar{display:flex;align-items:center;gap:14px;background:var(--elevated);border:1px solid var(--line);border-radius:12px;padding:9px 16px;margin-bottom:20px}
+  .adminbar .tag{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-2);background:var(--gold-soft);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:3px 8px}
+  .adminbar .crumbs{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--txt-dim)}
+  .adminbar .crumbs .sep{color:var(--line)}
+  .adminbar .spacer{flex:1}
+  .btn-danger-outline{height:32px;padding:0 14px;border-radius:9px;border:1px solid rgba(239,68,68,.5);background:transparent;color:#f87171;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+  .adminbar .chev{color:var(--txt-faint);cursor:pointer;display:flex;align-items:center}
+
+  /* ===== Layout 2 colonne: azione 40% / tabellone 60% ===== */
+  .cols2{display:grid;grid-template-columns:500px 1fr;gap:22px;align-items:start}
+
+  /* ===== UNICA barra di stato ===== */
+  .statusbar{background:linear-gradient(135deg,#1a1c20 0%,#1d1a14 100%);border:1px solid rgba(245,158,11,.4);border-radius:14px;padding:16px 18px}
+  .statusbar .row1{display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .statusbar .state{min-width:0}
+  .statusbar .eyebrow{font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-2);display:flex;align-items:center;gap:7px}
+  .statusbar .eyebrow .pulse{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px rgba(245,158,11,.22)}
+  .statusbar .statetext{font-family:'Outfit',sans-serif;font-size:17px;font-weight:700;margin-top:5px;line-height:1.25}
+  .statusbar .timer{font-family:'Oswald',sans-serif;font-size:44px;font-weight:600;line-height:1;color:var(--gold-2);letter-spacing:.02em;text-align:right}
+  .statusbar .timer small{display:block;font-family:'Inter',sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-faint);margin-top:4px;text-align:right}
+  .statusbar .row2{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:13px;padding-top:11px;border-top:1px solid rgba(45,49,57,.7)}
+  .statusbar .progress{font-size:12px;font-weight:600;color:var(--txt-dim)}
+  .statusbar .progress b{color:var(--txt);font-family:'JetBrains Mono',monospace;font-size:12.5px}
+  .steps{display:flex;align-items:center;gap:6px}
+  .steps .sd{width:7px;height:7px;border-radius:50%;background:var(--line)}
+  .steps .sd.done{background:var(--green)}
+  .steps .sd.cur{width:9px;height:9px;background:var(--gold);box-shadow:0 0 0 3px rgba(245,158,11,.25)}
+  .steps .slabel{font-size:10.5px;font-weight:700;color:var(--txt-faint);letter-spacing:.06em;text-transform:uppercase;margin-left:5px}
+
+  /* ===== Card decisione OFFERING ===== */
+  .offercard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 22px 20px;margin-top:14px}
+  .offercard .who{display:flex;align-items:center;gap:14px}
+  .rolebadge{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:17px;font-weight:800;flex-shrink:0}
+  .role-A{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.35)}
+  .role-C{background:var(--primary-soft);color:#93c5fd;border:1px solid rgba(59,130,246,.35)}
+  .role-D{background:var(--green-soft);color:#4ade80;border:1px solid rgba(34,197,94,.35)}
+  .role-P{background:var(--gold-soft);color:var(--gold-2);border:1px solid rgba(245,158,11,.35)}
+  .offercard .pname{font-family:'Outfit',sans-serif;font-size:24px;font-weight:800;line-height:1.1}
+  .offercard .pmeta{font-size:12.5px;color:var(--txt-dim);margin-top:3px}
+  .offercard .pmeta b{color:var(--txt);font-weight:700}
+  /* costo scomposto e dominante */
+  .costbox{background:var(--elevated);border:1px solid rgba(245,158,11,.35);border-radius:13px;padding:16px 18px;margin-top:16px}
+  .costbox .clabel{font-size:10.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--txt-faint)}
+  .costbox .cmath{display:flex;align-items:baseline;gap:10px;margin-top:8px;flex-wrap:wrap}
+  .costbox .ctotal{font-family:'Oswald',sans-serif;font-size:42px;font-weight:600;line-height:1;color:var(--gold-2)}
+  .costbox .ctotal small{font-size:22px;font-weight:500}
+  .costbox .cbreak{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--txt-dim);font-weight:500}
+  .costbox .cbreak b{color:var(--txt);font-weight:700}
+  .btn-steal{width:100%;height:50px;margin-top:16px;border:none;border-radius:12px;background:linear-gradient(90deg,#22c55e,#16a34a);color:#06210f;font-family:'Inter',sans-serif;font-size:15px;font-weight:800;letter-spacing:.04em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px}
+  .btn-pass{width:100%;height:38px;margin-top:9px;border:1px solid var(--line);border-radius:11px;background:transparent;color:var(--txt-dim);font-family:'Inter',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer}
+  .afterbal{font-size:12px;color:var(--txt-faint);text-align:center;margin-top:11px}
+  .afterbal b{font-family:'JetBrains Mono',monospace;color:var(--txt-dim);font-weight:700}
+
+  /* ===== Banner contestuale UNICO ===== */
+  .ctxbanner{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 15px;margin-top:14px}
+  .ctxbanner .ic{width:28px;height:28px;border-radius:8px;background:var(--gold-soft);color:var(--gold-2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .ctxbanner .tx{font-size:12.5px;line-height:1.45;color:var(--txt-dim)}
+  .ctxbanner .tx b{color:var(--txt);font-weight:700}
+  .ctxbanner a{color:#93c5fd;font-weight:700;font-size:12.5px;text-decoration:none;white-space:nowrap;margin-left:auto}
+
+  /* ===== Budget + feed demoted ===== */
+  .lowgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  .lowcard{background:var(--elevated);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .lowcard .ll{font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-faint)}
+  .lowcard .lv{font-family:'Oswald',sans-serif;font-size:26px;font-weight:600;margin-top:7px;line-height:1}
+  .lowcard .lv small{font-size:13px;color:var(--txt-dim);font-weight:500}
+  .lowcard .ln{font-size:11px;color:var(--txt-faint);margin-top:5px}
+  .feed{background:var(--elevated);border:1px solid var(--line);border-radius:12px;padding:13px 16px 11px;margin-top:14px}
+  .feed .ll{font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-faint);margin-bottom:9px}
+  .fev{display:flex;align-items:baseline;gap:9px;padding:6px 0;font-size:12px;color:var(--txt-dim);line-height:1.4}
+  .fev + .fev{border-top:1px solid rgba(45,49,57,.5)}
+  .fev .ft{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--txt-faint);flex-shrink:0;width:38px}
+  .fev b{color:var(--txt);font-weight:700}
+  .fev .stolen{color:#4ade80;font-weight:700}
+  .fev .nooff{color:var(--txt-faint)}
+
+  /* ===== Tabellone ===== */
+  .boardwrap{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .boardhead{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 20px 13px;border-bottom:1px solid var(--line)}
+  .boardhead .stitle{font-family:'Outfit',sans-serif;font-size:16px;font-weight:700}
+  .boardhead .stitle small{display:block;font-family:'Inter',sans-serif;font-size:11.5px;font-weight:500;color:var(--txt-faint);margin-top:2px}
+  .filters{display:flex;gap:6px;align-items:center}
+  .fchip{height:30px;padding:0 13px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--txt-dim);font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .fchip.active{background:var(--primary-soft);border-color:rgba(59,130,246,.45);color:#93c5fd}
+  .fchip .star{color:var(--gold-2)}
+  .fdiv{width:1px;height:18px;background:var(--line);margin:0 4px}
+
+  .prow{display:grid;grid-template-columns:46px 1fr 200px;gap:14px;align-items:center;padding:11px 20px;border-left:3px solid transparent}
+  .prow + .prow{border-top:1px solid rgba(45,49,57,.55)}
+  .prow .idx{font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:700;color:var(--txt-faint);text-align:center}
+  .prow .l1{display:flex;align-items:center;gap:9px;min-width:0}
+  .prow .l1 .nm{font-size:14px;font-weight:700;white-space:nowrap}
+  .prow .l1 .rb{width:22px;height:22px;border-radius:6px;font-size:11px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;flex-shrink:0}
+  .prow .l1 .club{font-size:12px;color:var(--txt-dim);white-space:nowrap}
+  .prow .l1 .owner{font-size:12px;color:var(--txt-faint);white-space:nowrap}
+  .prow .l1 .star{color:var(--gold-2);margin-left:2px}
+  .prow .l2{grid-column:2;display:flex;align-items:baseline;gap:12px;margin-top:2px}
+  .prow .cost{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--gold-2)}
+  .prow .contract{font-size:12px;color:var(--txt-faint)}
+  .prow .right{grid-row:1 / span 2;grid-column:3;text-align:right}
+  .prow .costbig{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--gold-2)}
+  .prow .costbig small{font-size:11px;color:var(--txt-faint);font-weight:500}
+  .prow .rstate{font-size:11px;color:var(--txt-faint);margin-top:3px}
+  /* riga compatta a 2 livelli reale: livello1 + livello2 dentro la colonna centrale */
+  .prow .mid{min-width:0}
+  .prow .mid .l2x{display:flex;align-items:baseline;gap:12px;margin-top:3px;font-size:12px}
+  .prow .mid .l2x .cost{font-size:12px}
+  /* righe già processate */
+  .prow.donerow{opacity:.62}
+  .prow.donerow .outcome{font-size:11px;font-weight:700;margin-top:3px}
+  .prow .outcome.ok{color:#4ade80}
+  .prow .outcome.skip{color:var(--txt-faint)}
+  /* riga sul piatto ORA */
+  .prow.now{background:linear-gradient(90deg,rgba(245,158,11,.1),rgba(245,158,11,.02));border-left:3px solid var(--gold)}
+  .prow.now .nm{color:var(--gold-2)}
+  .nowtag{font-size:9px;font-weight:800;letter-spacing:.1em;background:var(--gold);color:#1a1206;border-radius:6px;padding:2.5px 7px;text-transform:uppercase;margin-left:4px}
+  /* i miei giocatori */
+  .prow.mine{background:linear-gradient(90deg,rgba(59,130,246,.07),transparent);border-left:3px solid rgba(59,130,246,.6)}
+  .minetag{font-size:9px;font-weight:800;letter-spacing:.1em;background:var(--primary-soft);color:#93c5fd;border:1px solid rgba(59,130,246,.4);border-radius:6px;padding:2px 7px;text-transform:uppercase;margin-left:4px}
+  .boardfoot{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border-top:1px solid var(--line);font-size:11.5px;font-weight:600;color:var(--txt-faint)}
+
+  /* ============ MOBILE FRAME ============ */
+  .phone{width:390px;height:844px;background:var(--bg);border:1px solid var(--line);border-radius:28px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+  .m-status{background:linear-gradient(135deg,#1a1c20 0%,#1d1a14 100%);border-bottom:1px solid rgba(245,158,11,.4);padding:14px 16px 12px}
+  .m-status .r1{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .m-status .eyebrow{font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--gold-2);display:flex;align-items:center;gap:6px}
+  .m-status .eyebrow .pulse{width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 2.5px rgba(245,158,11,.22)}
+  .m-status .statetext{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;margin-top:3px}
+  .m-status .timer{font-family:'Oswald',sans-serif;font-size:34px;font-weight:600;line-height:1;color:var(--gold-2)}
+  .m-status .r2{display:flex;align-items:center;justify-content:space-between;margin-top:9px;padding-top:8px;border-top:1px solid rgba(45,49,57,.7);font-size:11px;font-weight:600;color:var(--txt-dim)}
+  .m-status .r2 b{font-family:'JetBrains Mono',monospace;color:var(--txt)}
+
+  .m-scroll{flex:1;overflow:hidden;padding:14px 14px 110px}
+  /* card asta */
+  .aucard{background:var(--card);border:1px solid rgba(245,158,11,.4);border-radius:16px;padding:18px 18px 16px}
+  .aucard .who{display:flex;align-items:center;gap:11px}
+  .aucard .pname{font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;line-height:1.1}
+  .aucard .pmeta{font-size:11.5px;color:var(--txt-dim);margin-top:2px}
+  .aucard .pmeta b{color:var(--txt)}
+  .aucard .bidnow{background:var(--elevated);border:1px solid var(--line);border-radius:13px;padding:14px 16px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .aucard .bl{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--txt-faint)}
+  .aucard .bv{font-family:'Oswald',sans-serif;font-size:44px;font-weight:600;line-height:1;color:var(--gold-2);margin-top:5px}
+  .aucard .bv small{font-size:22px;font-weight:500}
+  .aucard .bidder{text-align:right}
+  .aucard .bidder .bn{font-size:13px;font-weight:700;color:var(--txt)}
+  .aucard .bidder .bt{font-size:11px;color:var(--txt-faint);margin-top:2px}
+  .aucard .limit{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;color:var(--txt-faint);margin-top:11px}
+  .aucard .limit b{font-family:'JetBrains Mono',monospace;color:var(--txt-dim);font-weight:700}
+  /* mini board mobile */
+  .m-bhead{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 9px}
+  .m-bhead .t{font-family:'Outfit',sans-serif;font-size:14px;font-weight:700}
+  .m-bhead .c{font-size:11px;color:var(--txt-faint);font-weight:600}
+  .mrow{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 13px;display:flex;align-items:center;gap:10px;border-left:3px solid transparent}
+  .mrow + .mrow{margin-top:8px}
+  .mrow .rb{width:22px;height:22px;border-radius:6px;font-size:11px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;flex-shrink:0}
+  .mrow .mid{flex:1;min-width:0}
+  .mrow .nm{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .mrow .sub{font-size:11px;color:var(--txt-faint);margin-top:2px}
+  .mrow .cost{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--gold-2);text-align:right}
+  .mrow .cost small{display:block;font-size:9.5px;color:var(--txt-faint);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-top:2px}
+  .mrow.mine{border-left:3px solid rgba(59,130,246,.6);background:linear-gradient(90deg,rgba(59,130,246,.07),var(--card))}
+  .mrow .star{color:var(--gold-2)}
+  .m-fade{position:absolute;left:0;right:0;bottom:96px;height:54px;background:linear-gradient(180deg,rgba(10,10,11,0),#0a0a0b);pointer-events:none}
+  /* barra rilancio fissa */
+  .bidbar{position:absolute;left:0;right:0;bottom:0;background:var(--elevated);border-top:1px solid var(--line);padding:14px 14px 18px;display:flex;align-items:center;gap:10px}
+  .stepbtn{width:46px;height:50px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--txt);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .bidval{flex:0 0 92px;height:50px;border-radius:12px;background:var(--card);border:1px solid rgba(245,158,11,.45);display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .bidval .v{font-family:'Oswald',sans-serif;font-size:21px;font-weight:600;color:var(--gold-2);line-height:1}
+  .bidval .l{font-size:8.5px;font-weight:700;letter-spacing:.1em;color:var(--txt-faint);text-transform:uppercase;margin-top:2px}
+  .btn-raise{flex:1;height:50px;border:none;border-radius:12px;background:linear-gradient(90deg,#22c55e,#16a34a);color:#06210f;font-family:'Inter',sans-serif;font-size:14.5px;font-weight:800;letter-spacing:.05em;cursor:pointer}
+</style>
+</head>
+<body>
+
+<h1 class="page">FantaContratti · Fase Rubata · v1 — Riordino conservativo</h1>
+
+<div class="frames">
+
+<!-- ====================== DESKTOP ====================== -->
+<div>
+  <div class="frame-label">Desktop · 1440px</div>
+  <div class="screen">
+
+    <!-- Page header -->
+    <div class="pagehead">
+      <div>
+        <h2>Fase Rubata</h2>
+        <div class="sub">Lega <b>Fantacontratti Test</b> · stagione 2026/27 · sei <b>Diego</b></div>
+      </div>
+      <div class="turnpill"><span class="dot"></span>Turno di <b>Mirko</b> · 5° di 8</div>
+    </div>
+
+    <!-- Admin: UNA riga collassata, resta in alto -->
+    <div class="adminbar">
+      <span class="tag">Admin</span>
+      <div class="crumbs">Conduzione <span class="sep">·</span> Timer <span class="sep">·</span> Completa fase</div>
+      <div class="spacer"></div>
+      <button class="btn-danger-outline">Completa Rubata</button>
+      <span class="chev">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+    </div>
+
+    <div class="cols2">
+
+      <!-- ========= COLONNA AZIONE (sx) ========= -->
+      <div>
+
+        <!-- Unica barra di stato: stato + timer + progresso + stepper -->
+        <div class="statusbar">
+          <div class="row1">
+            <div class="state">
+              <div class="eyebrow"><span class="pulse"></span>Sul piatto ora</div>
+              <div class="statetext">Lautaro Martínez — decidi se rubare</div>
+            </div>
+            <div>
+              <div class="timer">00:42</div>
+              <div class="timer"><small>per offrire</small></div>
+            </div>
+          </div>
+          <div class="row2">
+            <div class="progress">Tabellone · giocatore <b>23 / 64</b></div>
+            <div class="steps">
+              <span class="sd done"></span><span class="sd done"></span><span class="sd done"></span>
+              <span class="sd cur"></span>
+              <span class="sd"></span><span class="sd"></span><span class="sd"></span>
+              <span class="slabel">Offerte</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card decisione OFFERING -->
+        <div class="offercard">
+          <div class="who">
+            <span class="rolebadge role-A">A</span>
+            <div>
+              <div class="pname">Lautaro Martínez</div>
+              <div class="pmeta">Attaccante · Inter · 27 anni · di <b>Marco</b></div>
+            </div>
+          </div>
+
+          <div class="costbox">
+            <div class="clabel">Costo per rubarlo</div>
+            <div class="cmath">
+              <span class="ctotal">48<small>M</small></span>
+              <span class="cbreak"><b>36M</b> clausola + <b>12M</b> ingaggio/anno · contratto 2 anni</span>
+            </div>
+          </div>
+
+          <button class="btn-steal">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v8"/><path d="m16 6-4 4-4-4"/><rect x="4" y="14" width="16" height="8" rx="2"/></svg>
+            VOGLIO RUBARE
+          </button>
+          <button class="btn-pass">Lascio passare</button>
+          <div class="afterbal">Il tuo bilancio dopo: <b>563M</b> (oggi 611M)</div>
+        </div>
+
+        <!-- UN solo banner contestuale -->
+        <div class="ctxbanner">
+          <span class="ic">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.26L21.5 9.27l-4.75 4.39L17.8 20.5 12 17.27 6.2 20.5l1.05-6.84L2.5 9.27l6.6-1.01L12 2z"/></svg>
+          </span>
+          <div class="tx">Hai <b>3 giocatori in watchlist</b> nei prossimi 10 del tabellone</div>
+          <a href="#">Vedi strategie</a>
+        </div>
+
+        <!-- Budget demoted -->
+        <div class="lowgrid">
+          <div class="lowcard">
+            <div class="ll">Il tuo budget</div>
+            <div class="lv num">611<small>M</small></div>
+            <div class="ln">impegnato in ingaggi: 184M/anno</div>
+          </div>
+          <div class="lowcard">
+            <div class="ll">Rubate in questo giro</div>
+            <div class="lv num">2<small> su 64</small></div>
+            <div class="ln">spesa totale lega: 92M</div>
+          </div>
+        </div>
+
+        <!-- Feed demoted -->
+        <div class="feed">
+          <div class="ll">Ultimi eventi</div>
+          <div class="fev"><span class="ft">21:42</span><span><b>Mirko</b> <span class="stolen">ha rubato</span> Thuram a <b>Emiliano</b> per 44M</span></div>
+          <div class="fev"><span class="ft">21:38</span><span>Dimarco: <span class="nooff">nessuna offerta</span> — resta a <b>Pietro</b></span></div>
+          <div class="fev"><span class="ft">21:31</span><span><b>Michele</b> <span class="stolen">ha rubato</span> Zirkzee a <b>Marcolino</b> per 28M (asta, 4 rilanci)</span></div>
+        </div>
+
+      </div>
+
+      <!-- ========= TABELLONE (dx) ========= -->
+      <div class="boardwrap">
+        <div class="boardhead">
+          <div class="stitle">Tabellone<small>64 giocatori · ordine di chiamata</small></div>
+          <div class="filters">
+            <button class="fchip active">Tutti</button>
+            <button class="fchip">P</button>
+            <button class="fchip">D</button>
+            <button class="fchip">C</button>
+            <button class="fchip">A</button>
+            <span class="fdiv"></span>
+            <button class="fchip">Miei</button>
+            <button class="fchip"><span class="star">★</span>Watchlist</button>
+          </div>
+        </div>
+
+        <!-- già processati -->
+        <div class="prow donerow">
+          <div class="idx">21</div>
+          <div class="mid">
+            <div class="l1"><span class="rb role-A">A</span><span class="nm">Marcus Thuram</span><span class="club">Inter</span><span class="owner">era di Emiliano</span></div>
+            <div class="outcome ok">Rubato da Mirko per 44M</div>
+          </div>
+          <div class="right"><div class="costbig">44<small>M</small></div><div class="rstate">chiuso</div></div>
+        </div>
+        <div class="prow donerow">
+          <div class="idx">22</div>
+          <div class="mid">
+            <div class="l1"><span class="rb role-D">D</span><span class="nm">Federico Dimarco</span><span class="club">Inter</span><span class="owner">di Pietro</span></div>
+            <div class="outcome skip">Nessuna offerta — resta a Pietro</div>
+          </div>
+          <div class="right"><div class="costbig">31<small>M</small></div><div class="rstate">chiuso</div></div>
+        </div>
+
+        <!-- SUL PIATTO ORA -->
+        <div class="prow now">
+          <div class="idx">23</div>
+          <div class="mid">
+            <div class="l1"><span class="rb role-A">A</span><span class="nm">Lautaro Martínez</span><span class="club">Inter</span><span class="owner">di Marco</span><span class="nowtag">Sul piatto ora</span></div>
+            <div class="l2x"><span class="cost">Costo rubata 48M</span><span class="contract">ingaggio 12M · 2 anni</span></div>
+          </div>
+          <div class="right"><div class="costbig">48<small>M</small></div><div class="rstate">offerte aperte · 00:42</div></div>
+        </div>
+
+        <!-- prossimi -->
+        <div class="prow mine">
+          <div class="idx">24</div>
+          <div class="mid">
+            <div class="l1"><span class="rb role-C">C</span><span class="nm">Nicolò Barella</span><span class="club">Inter</span><span class="owner">di Diego</span><span class="minetag">Mio</span></div>
+            <div class="l2x"><span class="cost">Costo rubata 45M</span><span class="contract">ingaggio 11M · 3 anni</span></div>
+          </div>
+          <div class="right"><div class="costbig">45<small>M</small></div><div class="rstate">prossimo</div></div>
+        </div>
+        <div class="prow">
+          <div class="idx">25</div>
+          <div class="mid">
+            <div class="l1"><span class="rb role-A">A</span><span class="nm">Rafael Leão</span><span class="club">Milan</span><span class="owner">di Michele</span><span class="star">★</span></div>
+            <div class="l2x"><span class="cost">Costo rubata 41M</span><span class="contract">ingaggio 10M · 2 anni</span></div>
+          </div>
+          <div class="right"><div class="costbig">41<small>M</small></div><div class="rstate">in watchlist</div></div>
+        </div>
+        <div class="prow">
+          <div class="idx">26</div>
+          <div class="mid">
+            <div class="l1"><span class="rb role-P">P</span><span class="nm">Mike Maignan</span><span class="club">Milan</span><span class="owner">di Pietro</span></div>
+            <div class="l2x"><span class="cost">Costo rubata 38M</span><span class="contract">ingaggio 9M · 2 anni</span></div>
+          </div>
+          <div class="right"><div class="costbig">38<small>M</small></div><div class="rstate">in coda</div></div>
+        </div>
+        <div class="prow">
+          <div class="idx">27</div>
+          <div class="mid">
+            <div class="l1"><span class="rb role-C">C</span><span class="nm">Teun Koopmeiners</span><span class="club">Atalanta</span><span class="owner">di Emiliano</span></div>
+            <div class="l2x"><span class="cost">Costo rubata 35M</span><span class="contract">ingaggio 8M · 3 anni</span></div>
+          </div>
+          <div class="right"><div class="costbig">35<small>M</small></div><div class="rstate">in coda</div></div>
+        </div>
+        <div class="prow">
+          <div class="idx">28</div>
+          <div class="mid">
+            <div class="l1"><span class="rb role-A">A</span><span class="nm">Moise Kean</span><span class="club">Fiorentina</span><span class="owner">di Marcolino</span></div>
+            <div class="l2x"><span class="cost">Costo rubata 22M</span><span class="contract">ingaggio 6M · 1 anno</span></div>
+          </div>
+          <div class="right"><div class="costbig">22<small>M</small></div><div class="rstate">in coda</div></div>
+        </div>
+        <div class="prow">
+          <div class="idx">29</div>
+          <div class="mid">
+            <div class="l1"><span class="rb role-A">A</span><span class="nm">Mattia Zaccagni</span><span class="club">Lazio</span><span class="owner">di Mirko</span><span class="star">★</span></div>
+            <div class="l2x"><span class="cost">Costo rubata 26M</span><span class="contract">ingaggio 7M · 2 anni</span></div>
+          </div>
+          <div class="right"><div class="costbig">26<small>M</small></div><div class="rstate">in watchlist</div></div>
+        </div>
+        <div class="prow">
+          <div class="idx">30</div>
+          <div class="mid">
+            <div class="l1"><span class="rb role-A">A</span><span class="nm">Ademola Lookman</span><span class="club">Atalanta</span><span class="owner">di Michele</span></div>
+            <div class="l2x"><span class="cost">Costo rubata 39M</span><span class="contract">ingaggio 10M · 2 anni</span></div>
+          </div>
+          <div class="right"><div class="costbig">39<small>M</small></div><div class="rstate">in coda</div></div>
+        </div>
+        <div class="prow mine">
+          <div class="idx">31</div>
+          <div class="mid">
+            <div class="l1"><span class="rb role-D">D</span><span class="nm">Alessandro Bastoni</span><span class="club">Inter</span><span class="owner">di Diego</span><span class="minetag">Mio</span></div>
+            <div class="l2x"><span class="cost">Costo rubata 33M</span><span class="contract">ingaggio 8M · 3 anni</span></div>
+          </div>
+          <div class="right"><div class="costbig">33<small>M</small></div><div class="rstate">in coda</div></div>
+        </div>
+        <div class="prow">
+          <div class="idx">32</div>
+          <div class="mid">
+            <div class="l1"><span class="rb role-P">P</span><span class="nm">Michele Di Gregorio</span><span class="club">Juventus</span><span class="owner">di Marcolino</span></div>
+            <div class="l2x"><span class="cost">Costo rubata 24M</span><span class="contract">ingaggio 6M · 2 anni</span></div>
+          </div>
+          <div class="right"><div class="costbig">24<small>M</small></div><div class="rstate">in coda</div></div>
+        </div>
+
+        <div class="boardfoot">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          Mostra i restanti 32 giocatori
+        </div>
+      </div>
+
+    </div><!-- /cols2 -->
+  </div><!-- /screen -->
+</div>
+
+<!-- ====================== MOBILE ====================== -->
+<div>
+  <div class="frame-label">Mobile · 390px — stato Asta al rilancio</div>
+  <div class="phone">
+
+    <!-- barra stato compatta -->
+    <div class="m-status">
+      <div class="r1">
+        <div>
+          <div class="eyebrow"><span class="pulse"></span>Asta in corso</div>
+          <div class="statetext">Lautaro Martínez</div>
+        </div>
+        <div class="timer">00:18</div>
+      </div>
+      <div class="r2">
+        <span>Tabellone · giocatore <b>23 / 64</b></span>
+        <span>Turno di <b>Mirko</b> · 5° di 8</span>
+      </div>
+    </div>
+
+    <div class="m-scroll">
+
+      <!-- card asta -->
+      <div class="aucard">
+        <div class="who">
+          <span class="rolebadge role-A">A</span>
+          <div>
+            <div class="pname">Lautaro Martínez</div>
+            <div class="pmeta">Attaccante · Inter · di <b>Marco</b></div>
+          </div>
+        </div>
+        <div class="bidnow">
+          <div>
+            <div class="bl">Offerta attuale</div>
+            <div class="bv">52<small>M</small></div>
+          </div>
+          <div class="bidder">
+            <div class="bn">di Mirko</div>
+            <div class="bt">3° rilancio</div>
+          </div>
+        </div>
+        <div class="limit">
+          <span>Puoi rilanciare fino a <b>81M</b></span>
+          <span>bilancio dopo a 54M: <b>557M</b></span>
+        </div>
+      </div>
+
+      <!-- tabellone che scorre sotto -->
+      <div class="m-bhead">
+        <div class="t">Prossimi sul tabellone</div>
+        <div class="c">23 / 64</div>
+      </div>
+
+      <div class="mrow mine">
+        <span class="rb role-C">C</span>
+        <div class="mid">
+          <div class="nm">Nicolò Barella <span class="minetag">Mio</span></div>
+          <div class="sub">Inter · di Diego · ingaggio 11M · 3 anni</div>
+        </div>
+        <div class="cost">45M<small>rubata</small></div>
+      </div>
+      <div class="mrow">
+        <span class="rb role-A">A</span>
+        <div class="mid">
+          <div class="nm">Rafael Leão <span class="star">★</span></div>
+          <div class="sub">Milan · di Michele · ingaggio 10M · 2 anni</div>
+        </div>
+        <div class="cost">41M<small>rubata</small></div>
+      </div>
+      <div class="mrow">
+        <span class="rb role-P">P</span>
+        <div class="mid">
+          <div class="nm">Mike Maignan</div>
+          <div class="sub">Milan · di Pietro · ingaggio 9M · 2 anni</div>
+        </div>
+        <div class="cost">38M<small>rubata</small></div>
+      </div>
+      <div class="mrow">
+        <span class="rb role-C">C</span>
+        <div class="mid">
+          <div class="nm">Teun Koopmeiners</div>
+          <div class="sub">Atalanta · di Emiliano · ingaggio 8M · 3 anni</div>
+        </div>
+        <div class="cost">35M<small>rubata</small></div>
+      </div>
+      <div class="mrow">
+        <span class="rb role-A">A</span>
+        <div class="mid">
+          <div class="nm">Moise Kean</div>
+          <div class="sub">Fiorentina · di Marcolino · ingaggio 6M · 1 anno</div>
+        </div>
+        <div class="cost">22M<small>rubata</small></div>
+      </div>
+
+    </div>
+
+    <div class="m-fade"></div>
+
+    <!-- barra rilancio fissa -->
+    <div class="bidbar">
+      <button class="stepbtn" aria-label="Diminuisci">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <div class="bidval"><span class="v">54M</span><span class="l">tua offerta</span></div>
+      <button class="stepbtn" aria-label="Aumenta">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="btn-raise">RILANCIA</button>
+    </div>
+
+  </div><!-- /phone -->
+</div>
+
+</div><!-- /frames -->
+
+</body>
+</html>
