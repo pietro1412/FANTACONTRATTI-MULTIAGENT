@@ -71,10 +71,6 @@ vi.mock('../components/PlayerStatsModal', () => ({
   ),
 }))
 
-vi.mock('../components/rubata/RubataStepper', () => ({
-  RubataStepper: () => <div data-testid="rubata-stepper">Stepper</div>,
-}))
-
 vi.mock('../components/rubata/PreferenceModal', () => ({
   PreferenceModal: () => <div data-testid="preference-modal">PreferenceModal</div>,
 }))
@@ -437,6 +433,9 @@ vi.mock('lucide-react', () => ({
   Settings: () => <span data-testid="settings-icon">Settings</span>,
   Search: () => <span data-testid="search-icon">Search</span>,
   X: () => <span data-testid="x-icon">X</span>,
+  Swords: () => <span data-testid="swords-icon">Swords</span>,
+  ChevronDown: () => <span data-testid="chevron-down-icon">ChevronDown</span>,
+  ChevronUp: () => <span data-testid="chevron-up-icon">ChevronUp</span>,
 }))
 
 import { Rubata } from '../pages/Rubata'
@@ -564,7 +563,7 @@ describe('Rubata', () => {
   })
 
   // ---- Board is set: Stepper and Timer panels shown ----
-  it('renders board view with action bar and stepper when order is set', () => {
+  it('renders board view with unified state bar when order is set', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
@@ -574,7 +573,6 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByTestId('rubata-stepper')).toBeInTheDocument()
     expect(screen.getByTestId('rubata-state-bar')).toBeInTheDocument()
     expect(screen.getByText('Tabellone Rubata')).toBeInTheDocument()
   })
@@ -662,7 +660,8 @@ describe('Rubata', () => {
   })
 
   // ---- Admin: Budget panel renders ----
-  it('renders admin panels (budget, timer, simulation) when admin and board active', () => {
+  it('renders admin panels (budget, timer, simulation) when admin and board active', async () => {
+    const user = userEvent.setup()
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
@@ -677,11 +676,15 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // Desktop panels
+    // Always-visible panels
     expect(screen.getAllByTestId('budget-panel').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByTestId('bot-simulation-panel').length).toBeGreaterThanOrEqual(1)
+
+    // Official panels are collapsed to one row - expand on demand
+    expect(screen.queryByTestId('game-flow-panel')).not.toBeInTheDocument()
+    await user.click(screen.getByLabelText('Espandi controlli admin'))
     expect(screen.getAllByTestId('game-flow-panel').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByTestId('timer-settings-panel').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByTestId('bot-simulation-panel').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByTestId('complete-rubata-panel').length).toBeGreaterThanOrEqual(1)
   })
 
@@ -1046,8 +1049,8 @@ describe('Rubata', () => {
     expect(images.length).toBe(0)
   })
 
-  // ---- Board: "Mio" label for own player in strategy column ----
-  it('shows "Mio" label for own player in strategy column', () => {
+  // ---- Board: "tua rosa" label for own player ----
+  it('shows "tua rosa" label for own player', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
@@ -1058,7 +1061,7 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getAllByText('Mio').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(/tua rosa/).length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Board: preference indicators in strategy column ----
@@ -1182,8 +1185,8 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // Shows delta price "(+12M)" next to stolen player (stolenPrice 20 - rubataPrice 8 = 12)
-    expect(screen.getAllByText('(+12M)').length).toBeGreaterThanOrEqual(1)
+    // Shows the outcome with the final stolen price
+    expect(screen.getAllByText(/Rubato da Thief99 per 20M/).length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Scroll to current player button ----
@@ -1539,7 +1542,7 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getAllByText('Neo').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('FC Fantastica').length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Board: contract duration color coding ----
@@ -1551,16 +1554,16 @@ describe('Rubata', () => {
     hookOverrides = {
       isRubataPhase: true,
       isOrderSet: true,
-      boardData: { totalPlayers: 3, currentIndex: 3, memberBudgets: [] },
+      boardData: { totalPlayers: 3, currentIndex: 0, memberBudgets: [] },
       board: [d1, d2, d4],
     }
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // Contract durations in mobile view have "s" suffix
-    expect(screen.getAllByText('1s').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('2s').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('4s').length).toBeGreaterThanOrEqual(1)
+    // Contract durations are spelled out, no abbreviations
+    expect(screen.getAllByText(/1 semestre/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(/2 semestri/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(/4 semestri/).length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- BottomSheet: admin panels inside the sheet ----
@@ -1588,15 +1591,15 @@ describe('Rubata', () => {
     expect(sheet).toBeInTheDocument()
 
     // Inside the BottomSheet, admin panels should be rendered
-    // Budget, Timer, Bot Simulation, and CompleteRubata panels
+    // (desktop official panels are collapsed by default, so at least the sheet copy exists)
     const budgetPanels = screen.getAllByTestId('budget-panel')
     expect(budgetPanels.length).toBeGreaterThanOrEqual(2) // desktop + bottom sheet
     const timerPanels = screen.getAllByTestId('timer-settings-panel')
-    expect(timerPanels.length).toBeGreaterThanOrEqual(2)
+    expect(timerPanels.length).toBeGreaterThanOrEqual(1)
     const botPanels = screen.getAllByTestId('bot-simulation-panel')
     expect(botPanels.length).toBeGreaterThanOrEqual(2)
     const completePanels = screen.getAllByTestId('complete-rubata-panel')
-    expect(completePanels.length).toBeGreaterThanOrEqual(2)
+    expect(completePanels.length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Mobile Budget Footer: expanded state shows "Chiudi" ----

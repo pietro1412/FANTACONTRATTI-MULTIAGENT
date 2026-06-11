@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { Settings, Search, X } from 'lucide-react'
+import { Settings, Search, X, Swords, ChevronDown, ChevronUp } from 'lucide-react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useRubataState } from '../hooks/useRubataState'
 import { Button } from '../components/ui/Button'
@@ -8,7 +8,6 @@ import { BottomSheet } from '../components/ui/BottomSheet'
 import { Navigation } from '../components/Navigation'
 import { ContractModifierModal } from '../components/ContractModifier'
 import { PlayerStatsModal } from '../components/PlayerStatsModal'
-import { RubataStepper } from '../components/rubata/RubataStepper'
 import { PreferenceModal } from '../components/rubata/PreferenceModal'
 import {
   PendingAckModal,
@@ -31,6 +30,7 @@ import { BoardViewToggle } from '../components/rubata/BoardViewToggle'
 import { PendingAckBanner } from '../components/rubata/PendingAckBanner'
 import { CircularTimer } from '../components/rubata/CircularTimer'
 import { RubataBidPanel } from '../components/rubata/RubataBidPanel'
+import { RubataRivalsStrip } from '../components/rubata/RubataRivalsStrip'
 import { RubataActivityFeed } from '../components/rubata/RubataActivityFeed'
 import { RubataStrategySummary } from '../components/rubata/RubataStrategySummary'
 import { BoardRow } from '../components/rubata/BoardRow'
@@ -174,9 +174,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
   const [adminSheetOpen, setAdminSheetOpen] = useState(false)
   const [bidSheetOpen, setBidSheetOpen] = useState(false)
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    try { return !localStorage.getItem('rubata_onboarding_dismissed') } catch { return true }
-  })
+  // Official admin panels collapsed to one row (mockup v2)
+  const [adminPanelsExpanded, setAdminPanelsExpanded] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [positionFilter, setPositionFilter] = useState<string | null>(null)
   const [chipFilter, setChipFilter] = useState<'miei' | 'watchlist' | 'sul_piatto' | null>(null)
@@ -185,8 +184,6 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
   const [comparePlayerIds, setComparePlayerIds] = useState<string[]>([])
   const [showCompareModal, setShowCompareModal] = useState(false)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
-  // P1-1: Expandable rows for mobile density
-  const [expandedRowIds, setExpandedRowIds] = useState<Set<string>>(new Set())
   // Dashboard mode: board view toggle
   const [boardViewMode, setBoardViewMode] = useState<'upcoming' | 'all'>('upcoming')
 
@@ -296,14 +293,10 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     setSelectedPlayerForStats(info as Parameters<typeof setSelectedPlayerForStats>[0])
   }, [setSelectedPlayerForStats])
 
-  const toggleExpandRow = useCallback((rosterId: string) => {
-    setExpandedRowIds(prev => {
-      const next = new Set(prev)
-      if (next.has(rosterId)) next.delete(rosterId)
-      else next.add(rosterId)
-      return next
-    })
-  }, [])
+  // Bilancio residuo del manager corrente (affordability check nella HeroPlayerCard)
+  const myResiduo = useMemo(() => {
+    return boardData?.memberBudgets?.find(mb => mb.memberId === myMemberId)?.residuo ?? null
+  }, [boardData?.memberBudgets, myMemberId])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -341,7 +334,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2.5 md:gap-5">
                 <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-danger-500 to-danger-700 flex items-center justify-center shadow-glow flex-shrink-0">
-                  <span className="text-xl md:text-2xl">⚔️</span>
+                  <Swords className="w-5 h-5 md:w-7 md:h-7 text-white" aria-hidden="true" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -443,7 +436,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
         {/* Fase non RUBATA */}
         {!isRubataPhase && (
           <EmptyState
-            icon="🎯"
+            icon=""
             title="Fase RUBATA non attiva"
             description="La fase rubata inizierà dopo il consolidamento dei contratti. Attendi che l'admin della lega passi alla fase RUBATA."
           />
@@ -455,8 +448,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             {/* Order Management */}
             <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
               <div className="p-5 border-b border-surface-50/20">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <span className="text-xl">📋</span>
+                <h3 className="text-lg font-bold text-white">
                   Ordine Rubata
                 </h3>
                 <p className="text-sm text-gray-400 mt-1">Trascina i manager per impostare l'ordine dei turni</p>
@@ -492,8 +484,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
             {/* Timer Settings */}
             <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden">
               <div className="p-5 border-b border-surface-50/20">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <span className="text-xl">⏱️</span>
+                <h3 className="text-lg font-bold text-white">
                   Impostazioni Timer
                 </h3>
               </div>
@@ -535,7 +526,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
         {/* Fase RUBATA ma ordine non impostato - Vista per non-admin */}
         {isRubataPhase && !isOrderSet && !isAdmin && (
           <EmptyState
-            icon="⏳"
+            icon=""
             title="In attesa dell'ordine rubata"
             description="L'admin della lega sta impostando l'ordine di rubata. Una volta confermato, potrai vedere il tabellone e partecipare alle aste."
           />
@@ -546,78 +537,103 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
           <div className="lg:grid lg:grid-cols-5 lg:gap-4">
             {/* === ZONA AZIONE (left on desktop, top on mobile) === */}
             <div className="lg:col-span-2 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto mb-4 lg:mb-0 space-y-3">
-              {/* State Bar — always visible */}
+              {/* State Bar — unified (fase + turno + timer + progresso) */}
               <RubataStateBar
                 rubataState={rubataState ?? 'WAITING'}
                 timerDisplay={timerDisplay}
-                timerTotal={rubataState === 'AUCTION' ? auctionTimer : offerTimer}
                 isPusherConnected={isPusherConnected}
                 progressStats={progressStats}
               />
 
-              {/* Official admin controls on top (test/simulation panels stay at the bottom) */}
+              {/* Official admin controls — collapsed to one row, expand on demand */}
               {isAdmin && (
-                <div className="hidden lg:block space-y-4">
-                  <GameFlowPanel
-                    rubataState={rubataState ?? null}
-                    isSubmitting={isSubmitting}
-                    currentIndex={boardData?.currentIndex ?? null}
-                    onStartRubata={() => void handleStartRubata()}
-                    onPause={() => void handlePause()}
-                    onResume={() => void handleResume()}
-                    onAdvance={() => void handleAdvance()}
-                    onGoBack={() => void handleGoBack()}
-                    onCloseAuction={() => void handleCloseAuction()}
-                  />
-                  <TimerSettingsPanel
-                    offerTimer={offerTimer}
-                    setOfferTimer={setOfferTimer}
-                    auctionTimer={auctionTimer}
-                    setAuctionTimer={setAuctionTimer}
-                    isSubmitting={isSubmitting}
-                    onUpdateTimers={() => void handleUpdateTimers()}
-                  />
-                  <CompleteRubataPanel
-                    rubataState={rubataState ?? null}
-                    isSubmitting={isSubmitting}
-                    onCompleteRubata={() => void handleCompleteRubata()}
-                  />
+                <div className="hidden lg:block bg-surface-300 rounded-xl border border-surface-50/20 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => { setAdminPanelsExpanded(prev => !prev); }}
+                    aria-expanded={adminPanelsExpanded}
+                    aria-label={adminPanelsExpanded ? 'Comprimi controlli admin' : 'Espandi controlli admin'}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-surface-100/40 transition-colors"
+                  >
+                    <span className="text-[10px] font-mono font-bold text-primary-400 border border-primary-500/40 rounded px-1.5 py-px tracking-wider">ADMIN</span>
+                    <span className="text-xs text-gray-400 truncate">Conduzione · Timer · Completa fase</span>
+                    <span className="ml-auto text-gray-500">
+                      {adminPanelsExpanded ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
+                    </span>
+                  </button>
+                  {adminPanelsExpanded && (
+                    <div className="p-2 space-y-3 border-t border-surface-50/20">
+                      <GameFlowPanel
+                        rubataState={rubataState ?? null}
+                        isSubmitting={isSubmitting}
+                        currentIndex={boardData?.currentIndex ?? null}
+                        onStartRubata={() => void handleStartRubata()}
+                        onPause={() => void handlePause()}
+                        onResume={() => void handleResume()}
+                        onAdvance={() => void handleAdvance()}
+                        onGoBack={() => void handleGoBack()}
+                        onCloseAuction={() => void handleCloseAuction()}
+                      />
+                      <TimerSettingsPanel
+                        offerTimer={offerTimer}
+                        setOfferTimer={setOfferTimer}
+                        auctionTimer={auctionTimer}
+                        setAuctionTimer={setAuctionTimer}
+                        isSubmitting={isSubmitting}
+                        onUpdateTimers={() => void handleUpdateTimers()}
+                      />
+                      <CompleteRubataPanel
+                        rubataState={rubataState ?? null}
+                        isSubmitting={isSubmitting}
+                        onCompleteRubata={() => void handleCompleteRubata()}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Dynamic content based on rubataState */}
 
-              {/* OFFERING: HeroPlayerCard with VOGLIO RUBARE */}
+              {/* OFFERING: HeroPlayerCard (arena di decisione) + rivali */}
               {rubataState === 'OFFERING' && currentPlayer && (
-                <HeroPlayerCard
-                  player={currentPlayer}
-                  rubataState={rubataState}
-                  timerDisplay={timerDisplay}
-                  timerTotal={offerTimer}
-                  canMakeOffer={!!canMakeOffer}
-                  isSubmitting={isSubmitting}
-                  myMemberId={myMemberId}
-                  preference={preferencesMap.get(currentPlayer.playerId)}
-                  activeAuction={activeAuction ?? null}
-                  onMakeOffer={() => void handleMakeOffer()}
-                  onPlayerStatsClick={handlePlayerStatsClick}
-                  onOpenPrefsModal={openPrefsModal}
-                  canEditPreferences={canEditPreferences}
-                  heroRef={currentPlayerRef as React.RefObject<HTMLDivElement>}
-                />
+                <>
+                  <HeroPlayerCard
+                    player={currentPlayer}
+                    rubataState={rubataState}
+                    canMakeOffer={!!canMakeOffer}
+                    isSubmitting={isSubmitting}
+                    myMemberId={myMemberId}
+                    myResiduo={myResiduo}
+                    preference={preferencesMap.get(currentPlayer.playerId)}
+                    activeAuction={activeAuction ?? null}
+                    onMakeOffer={() => void handleMakeOffer()}
+                    onPlayerStatsClick={handlePlayerStatsClick}
+                    onOpenPrefsModal={openPrefsModal}
+                    canEditPreferences={canEditPreferences}
+                    heroRef={currentPlayerRef as React.RefObject<HTMLDivElement>}
+                  />
+                  {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && (
+                    <RubataRivalsStrip
+                      memberBudgets={boardData.memberBudgets}
+                      cost={currentPlayer.rubataPrice}
+                      ownerMemberId={currentPlayer.memberId}
+                      myMemberId={myMemberId}
+                      title="Chi altro può rubarlo"
+                    />
+                  )}
+                </>
               )}
 
-              {/* AUCTION: HeroPlayerCard + BidPanel inline (visible on all sizes) */}
+              {/* AUCTION: HeroPlayerCard + BidPanel inline + rivali */}
               {rubataState === 'AUCTION' && currentPlayer && (
                 <>
                   <HeroPlayerCard
                     player={currentPlayer}
                     rubataState={rubataState}
-                    timerDisplay={timerDisplay}
-                    timerTotal={auctionTimer}
                     canMakeOffer={!!canMakeOffer}
                     isSubmitting={isSubmitting}
                     myMemberId={myMemberId}
+                    myResiduo={myResiduo}
                     preference={preferencesMap.get(currentPlayer.playerId)}
                     activeAuction={activeAuction ?? null}
                     onMakeOffer={() => void handleMakeOffer()}
@@ -635,10 +651,19 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         setBidAmount={setBidAmount}
                         isSubmitting={isSubmitting}
                         onBid={() => void handleBid()}
-                        myBudget={boardData?.memberBudgets?.find(mb => mb.memberId === myMemberId)?.residuo}
+                        myBudget={myResiduo}
                         myMaxBid={preferencesMap.get(activeAuction.player.id)?.maxBid}
                       />
                     </div>
+                  )}
+                  {activeAuction && boardData?.memberBudgets && boardData.memberBudgets.length > 0 && (
+                    <RubataRivalsStrip
+                      memberBudgets={boardData.memberBudgets}
+                      cost={activeAuction.currentPrice + 1}
+                      ownerMemberId={activeAuction.sellerId}
+                      myMemberId={myMemberId}
+                      title="Chi può ancora rilanciare"
+                    />
                   )}
                 </>
               )}
@@ -648,11 +673,10 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 <HeroPlayerCard
                   player={currentPlayer}
                   rubataState={rubataState}
-                  timerDisplay={timerDisplay}
-                  timerTotal={offerTimer}
                   canMakeOffer={!!canMakeOffer}
                   isSubmitting={isSubmitting}
                   myMemberId={myMemberId}
+                  myResiduo={myResiduo}
                   preference={preferencesMap.get(currentPlayer.playerId)}
                   activeAuction={activeAuction ?? null}
                   onMakeOffer={() => void handleMakeOffer()}
@@ -668,11 +692,10 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 <HeroPlayerCard
                   player={currentPlayer}
                   rubataState={rubataState}
-                  timerDisplay={timerDisplay}
-                  timerTotal={offerTimer}
                   canMakeOffer={!!canMakeOffer}
                   isSubmitting={isSubmitting}
                   myMemberId={myMemberId}
+                  myResiduo={myResiduo}
                   preference={preferencesMap.get(currentPlayer.playerId)}
                   activeAuction={activeAuction ?? null}
                   onMakeOffer={() => void handleMakeOffer()}
@@ -720,72 +743,58 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 />
               )}
 
-              {/* WAITING / PREVIEW: Strategy preparation banner */}
-              {(rubataState === 'WAITING' || rubataState === 'PREVIEW') && board && board.length > 0 && (() => {
-                const totalEligible = board.filter(p => p.memberId !== myMemberId).length
-                const configured = Array.from(preferencesMap.values()).filter(p => p.isWatchlist || p.isAutoPass || p.maxBid || p.priority || p.notes).length
-                const pct = totalEligible > 0 ? Math.round((configured / totalEligible) * 100) : 0
-                return (
-                  <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-xl px-4 py-3 flex items-center gap-3 flex-wrap">
-                    <span className="text-lg">🎯</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-indigo-300">Prepara le tue strategie!</p>
-                      <p className="text-xs text-indigo-400/70">Imposta watchlist, budget max e priorita' prima che inizi la rubata</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-1.5 bg-surface-300 rounded-full overflow-hidden">
-                        <div className="h-full bg-indigo-500 transition-all" style={{ width: `${pct}%` }} />
-                      </div>
-                      <span className="text-xs text-indigo-400 font-mono">{configured}/{totalEligible}</span>
-                    </div>
-                  </div>
-                )
-              })()}
-
               {/* COMPLETED: completion message */}
               {rubataState === 'COMPLETED' && (
                 <div className="bg-secondary-500/10 border border-secondary-500/30 rounded-xl px-4 py-4 text-center">
-                  <span className="text-3xl mb-2 block">✅</span>
                   <p className="text-sm font-bold text-secondary-300">Fase Rubata completata!</p>
                   <p className="text-xs text-secondary-400/70 mt-1">Tutti i giocatori sono stati processati.</p>
                 </div>
               )}
 
-              {/* D4: Watchlist alert — shown when a watchlisted player is "sul piatto" */}
-              {watchlistAlert && rubataState === 'OFFERING' && (
-                <div className="bg-indigo-500/20 border border-indigo-500/40 rounded-xl px-4 py-3 flex items-center gap-3 animate-[fadeIn_0.3s_ease-out]">
-                  <span className="text-2xl animate-pulse">🔔</span>
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-indigo-300">{watchlistAlert} è SUL PIATTO!</p>
-                    <p className="text-xs text-indigo-400/70">Questo giocatore è nella tua watchlist</p>
-                  </div>
-                  <button
-                    onClick={dismissWatchlistAlert}
-                    className="text-xs text-indigo-400 hover:text-white px-2 py-1 rounded bg-indigo-500/20 flex-shrink-0"
-                  >
-                    OK
-                  </button>
-                </div>
-              )}
-
-              {/* Onboarding tooltip — first visit only, shown during OFFERING */}
-              {showOnboarding && rubataState === 'OFFERING' && (
-                <div className="bg-primary-500/10 border border-primary-500/30 rounded-xl px-4 py-3 flex items-center gap-3 animate-[fadeIn_0.3s_ease-out]">
-                  <span className="text-2xl flex-shrink-0">💡</span>
-                  <p className="text-sm text-primary-300 flex-1">
-                    Quando un giocatore e' <strong>SUL PIATTO</strong>, clicca <strong>VOGLIO RUBARE</strong> per avviare un'asta. Puoi anche impostare strategie (watchlist, budget max) cliccando sul giocatore.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setShowOnboarding(false)
-                      try { localStorage.setItem('rubata_onboarding_dismissed', '1') } catch { /* noop */ }
-                    }}
-                    className="text-xs text-primary-400 hover:text-white px-2 py-1 rounded bg-primary-500/20 flex-shrink-0"
-                  >
-                    OK
-                  </button>
-                </div>
-              )}
+              {/* UNICO banner contestuale (mockup v2): watchlist sul piatto > watchlist in arrivo > preparazione strategie */}
+              {(() => {
+                if (rubataState === 'OFFERING' && watchlistAlert) {
+                  return (
+                    <div className="flex items-center gap-2.5 rounded-xl border border-accent-500/40 bg-accent-500/10 px-3 py-2 animate-[fadeIn_0.3s_ease-out]">
+                      <span className="text-[9px] font-mono font-bold text-dark-300 bg-accent-400 rounded px-1.5 py-px tracking-wider flex-shrink-0">WATCHLIST</span>
+                      <p className="text-sm text-gray-300 flex-1 min-w-0 truncate">
+                        <b className="text-accent-300">{watchlistAlert}</b> è sul piatto — è nella tua watchlist.
+                      </p>
+                      <button
+                        onClick={dismissWatchlistAlert}
+                        className="text-xs text-accent-400 hover:text-white px-2 py-1 rounded bg-accent-500/20 flex-shrink-0"
+                      >
+                        OK
+                      </button>
+                    </div>
+                  )
+                }
+                if (rubataState === 'OFFERING' && board && boardData?.currentIndex != null) {
+                  const upcoming = board.slice(boardData.currentIndex + 1, boardData.currentIndex + 6)
+                  const wlUpcoming = upcoming.filter(p => p.memberId !== myMemberId && preferencesMap.get(p.playerId)?.isWatchlist).length
+                  if (wlUpcoming === 0) return null
+                  return (
+                    <div className="flex items-center gap-2.5 rounded-xl border border-primary-500/30 bg-primary-500/10 px-3 py-2">
+                      <p className="text-sm text-gray-300 flex-1 min-w-0">
+                        <b className="text-primary-400">{wlUpcoming}</b> della tua watchlist nei prossimi 5 giocatori.
+                      </p>
+                    </div>
+                  )
+                }
+                if ((rubataState === 'WAITING' || rubataState === 'PREVIEW') && board && board.length > 0) {
+                  const totalEligible = board.filter(p => p.memberId !== myMemberId).length
+                  const configured = Array.from(preferencesMap.values()).filter(p => p.isWatchlist || p.isAutoPass || p.maxBid || p.priority || p.notes).length
+                  return (
+                    <div className="flex items-center gap-2.5 rounded-xl border border-primary-500/30 bg-primary-500/10 px-3 py-2 flex-wrap">
+                      <p className="text-sm text-primary-300 flex-1 min-w-0">
+                        Prepara le tue strategie prima che inizi la rubata.
+                      </p>
+                      <span className="text-xs text-primary-400 font-mono flex-shrink-0">{configured}/{totalEligible}</span>
+                    </div>
+                  )
+                }
+                return null
+              })()}
 
               {/* Budget Panel — desktop in action zone */}
               {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && (
@@ -833,9 +842,6 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   />
                 </div>
               )}
-
-              {/* Desktop-only full stepper */}
-              <RubataStepper currentState={rubataState ?? null} className="hidden lg:block" />
             </div>
 
             {/* === TABELLONE (right on desktop, below on mobile) === */}
@@ -856,8 +862,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 {/* Board header with search + filters */}
                 <div className="p-3 md:p-4 border-b border-surface-50/20 shrink-0 space-y-2 md:space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-base md:text-lg font-bold text-white flex items-center gap-1.5 md:gap-2">
-                      <span className="text-lg md:text-xl">📋</span>
+                    <h3 className="text-base md:text-lg font-bold text-white">
                       <span className="hidden sm:inline">Tabellone Rubata</span>
                       <span className="sm:hidden">Tabellone</span>
                     </h3>
@@ -890,7 +895,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         }`}
                         title="Confronta giocatori"
                       >
-                        ⚖️ <span className="hidden sm:inline">Confronta</span>
+                        <span className="hidden sm:inline">Confronta</span>
+                        <span className="sm:hidden">VS</span>
                       </button>
                       <span className="text-xs md:text-sm text-gray-400 whitespace-nowrap">
                         {isFiltered ? `${filteredBoard?.length ?? 0}/` : ''}{boardData?.totalPlayers}
@@ -940,9 +946,9 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
                     {/* Quick chips */}
                     {([
-                      { key: 'miei' as const, label: 'Miei', icon: '👤' },
-                      { key: 'watchlist' as const, label: 'Watchlist', icon: '👁️' },
-                      { key: 'sul_piatto' as const, label: 'Rimanenti', icon: '🎯' },
+                      { key: 'miei' as const, label: 'Miei' },
+                      { key: 'watchlist' as const, label: 'Watchlist' },
+                      { key: 'sul_piatto' as const, label: 'Rimanenti' },
                     ]).map(chip => (
                       <button
                         key={chip.key}
@@ -953,8 +959,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                             : 'bg-surface-300 text-gray-400 hover:text-white border border-surface-50/20'
                         }`}
                       >
-                        <span>{chip.icon}</span>
-                        <span className="hidden sm:inline">{chip.label}</span>
+                        {chip.label}
                       </button>
                     ))}
 
@@ -1012,8 +1017,6 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                                     : prev.length < 3 ? [...prev, player.playerId] : prev
                                 )
                               }}
-                              isExpanded={expandedRowIds.has(player.rosterId)}
-                              onToggleExpand={() => { toggleExpandRow(player.rosterId); }}
                             />
                           </div>
                         )
@@ -1050,8 +1053,6 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                                   : prev.length < 3 ? [...prev, player.playerId] : prev
                               )
                             }}
-                            isExpanded={expandedRowIds.has(player.rosterId)}
-                            onToggleExpand={() => { toggleExpandRow(player.rosterId); }}
                           />
                         )
                       })}
@@ -1082,7 +1083,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
         {/* D5: Floating compare bar */}
         {compareMode && comparePlayerIds.length > 0 && (
-          <div className="fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 z-50 bg-surface-200/95 backdrop-blur-sm border border-primary-500/40 rounded-full px-3 py-1.5 md:px-4 md:py-2 flex items-center gap-2 md:gap-3 shadow-lg animate-[fadeIn_0.2s_ease-out]">
+          <div className="fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 z-50 bg-surface-200 border border-primary-500/40 rounded-full px-3 py-1.5 md:px-4 md:py-2 flex items-center gap-2 md:gap-3 shadow-lg animate-[fadeIn_0.2s_ease-out]">
             <span className="text-xs md:text-sm text-gray-300">
               <span className="font-bold text-primary-400">{comparePlayerIds.length}</span>/3
             </span>
@@ -1091,7 +1092,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               disabled={comparePlayerIds.length < 2}
               className="px-2.5 py-1 md:px-3 md:py-1.5 rounded-full text-xs md:text-sm font-bold bg-primary-500 text-white hover:bg-primary-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
-              ⚖️ <span className="hidden sm:inline">Confronta</span>
+              Confronta
             </button>
             <button
               onClick={() => { setComparePlayerIds([]); }}
@@ -1204,45 +1205,76 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
       </main>
 
-      {/* Mobile Auction Bottom Bar — fixed during AUCTION on mobile */}
+      {/* Mobile Auction Dock — fixed during AUCTION on mobile (mockup v2: [-][importo][+][RILANCIA]) */}
       {activeAuction && rubataState === 'AUCTION' && (() => {
-        const quickBidAmount = activeAuction.currentPrice + 1
+        const minBid = activeAuction.currentPrice + 1
+        const isSeller = activeAuction.sellerId === myMemberId
+        const myMaxBid = preferencesMap.get(activeAuction.player.id)?.maxBid
+        const dockBid = Math.max(bidAmount, minBid)
         return (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-danger-900/95 via-surface-200/95 to-danger-900/95 backdrop-blur-sm border-t-2 border-danger-500 shadow-lg shadow-black/40">
-          <div className="px-3 py-2 flex items-center gap-3">
-            {/* Circular timer */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-300 border-t-2 border-danger-500 shadow-lg shadow-black/40">
+          {/* Intel row: player, current price, strategy limit */}
+          <button
+            type="button"
+            onClick={() => { setBidSheetOpen(true); }}
+            className="w-full px-3 pt-2 flex items-center gap-2 text-left"
+            title="Apri pannello completo"
+          >
             {timerDisplay !== null && (
               <CircularTimer seconds={timerDisplay} totalSeconds={auctionTimer} size="sm" />
             )}
-            {/* Current price — tap to open full panel */}
-            <button
-              type="button"
-              onClick={() => { setBidSheetOpen(true); }}
-              className="flex-1 min-w-0 text-left"
-            >
-              <p className="text-[10px] text-gray-400 uppercase truncate">{activeAuction.player.name}</p>
-              <p className="text-lg font-bold font-mono text-primary-400">{activeAuction.currentPrice}M</p>
-            </button>
-            {/* One-tap quick bid: +1M */}
-            {activeAuction.sellerId !== myMemberId && (
-              <Button
-                onClick={() => void handleQuickBid(quickBidAmount)}
-                disabled={isSubmitting}
-                className="text-sm py-2 px-4 whitespace-nowrap"
+            <span className="flex-1 min-w-0">
+              <span className="block text-[10px] text-gray-500 uppercase truncate">
+                {activeAuction.player.name} — offerta attuale <b className="text-accent-300 font-mono">{activeAuction.currentPrice}M</b>
+              </span>
+              {myMaxBid != null && (
+                <span className="block text-[11px] text-primary-400 truncate">
+                  Il tuo limite di strategia: <b className="font-mono">{myMaxBid}M</b>
+                </span>
+              )}
+            </span>
+            <span className="p-1 text-gray-400" aria-hidden="true">•••</span>
+          </button>
+
+          {/* Dock controls */}
+          {!isSeller ? (
+            <div className="px-3 py-2 flex items-stretch gap-2">
+              <button
+                type="button"
+                onClick={() => { setBidAmount(prev => Math.max(minBid, prev - 1)); }}
+                disabled={dockBid <= minBid}
+                aria-label="Diminuisci offerta"
+                className="w-12 rounded-xl bg-surface-200 border border-surface-50/30 text-white text-2xl font-bold disabled:opacity-30 active:scale-95 transition-all"
               >
-                +1M RILANCIA
-              </Button>
-            )}
-            {/* Expand full panel */}
-            <button
-              type="button"
-              onClick={() => { setBidSheetOpen(true); }}
-              className="p-2 text-gray-400 hover:text-white"
-              title="Pannello completo"
-            >
-              •••
-            </button>
-          </div>
+                −
+              </button>
+              <div className="flex flex-col items-center justify-center w-[86px] rounded-xl bg-surface-200 border border-accent-500">
+                <span className="stat-number text-2xl text-accent-300 leading-none">{dockBid}M</span>
+                <span className="text-[9px] text-gray-500 uppercase tracking-wider mt-0.5">tua offerta</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setBidAmount(prev => Math.max(minBid, prev) + 1); }}
+                disabled={isSubmitting}
+                aria-label="Aumenta offerta"
+                className="w-12 rounded-xl bg-surface-200 border border-surface-50/30 text-white text-2xl font-bold disabled:opacity-30 active:scale-95 transition-all"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleQuickBid(dockBid)}
+                disabled={isSubmitting || dockBid <= activeAuction.currentPrice}
+                className="flex-1 rounded-xl py-3 font-display font-extrabold uppercase tracking-wide text-dark-300 bg-gradient-to-b from-secondary-400 to-secondary-500 shadow-glow-green disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] transition-all"
+              >
+                Rilancia
+              </button>
+            </div>
+          ) : (
+            <p className="px-3 py-2.5 text-center text-xs text-gray-400">
+              Sei il proprietario — non puoi rilanciare
+            </p>
+          )}
         </div>
         )
       })()}
@@ -1274,7 +1306,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
       {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && isRubataPhase && isOrderSet && rubataState !== 'AUCTION' && (() => {
         const myBudget = boardData.memberBudgets.find(mb => mb.memberId === myMemberId)
         return (
-          <div className="md:hidden fixed bottom-0 left-0 right-0 bg-surface-200/95 backdrop-blur-sm border-t border-surface-50/30 z-40 shadow-lg shadow-black/30">
+          <div className="md:hidden fixed bottom-0 left-0 right-0 bg-surface-200 border-t border-surface-50/30 z-40 shadow-lg shadow-black/30">
             {!mobileBudgetExpanded ? (
               /* Compact: single row with own budget */
               <button

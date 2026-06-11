@@ -3,15 +3,8 @@ import { useParams } from 'react-router-dom'
 import { rubataApi, leagueApi } from '../services/api'
 import { AUTO_TAG_DEFS, type AutoTagId } from '../services/player-stats.service'
 
-// Watchlist categories (#219)
-const WATCHLIST_CATEGORIES = {
-  DA_RUBARE: { label: 'Da Rubare', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: 'T' },
-  SOTTO_OSSERVAZIONE: { label: 'Osservazione', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: 'O' },
-  POTENZIALE_ACQUISTO: { label: 'Pot. Acquisto', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: 'A' },
-  SCAMBIO: { label: 'Scambio', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: 'S' },
-  DA_VENDERE: { label: 'Da Vendere', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', icon: 'V' },
-} as const
-type WatchlistCategoryId = keyof typeof WATCHLIST_CATEGORIES
+// Watchlist categories (#219) — tassonomia condivisa con la pagina Rubata
+import { WATCHLIST_CATEGORIES, type WatchlistCategoryId } from '@/types/watchlist.types'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
 import { getPlayerPhotoUrl } from '../utils/player-images'
@@ -25,20 +18,20 @@ const PLAYER_CHART_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#a855f7']
 // Age color coding - younger is better
 function getAgeColor(age: number | null | undefined): string {
   if (age === null || age === undefined) return 'text-gray-500'
-  if (age < 20) return 'text-emerald-400 font-bold' // Very young - excellent
-  if (age < 25) return 'text-green-400' // Young - good
-  if (age < 30) return 'text-yellow-400' // Prime - neutral
-  if (age < 35) return 'text-orange-400' // Aging - caution
-  return 'text-red-400' // Old - warning
+  if (age < 20) return 'text-secondary-400 font-bold' // Very young - excellent
+  if (age < 25) return 'text-secondary-400' // Young - good
+  if (age < 30) return 'text-warning-400' // Prime - neutral
+  if (age < 35) return 'text-passion-400' // Aging - caution
+  return 'text-danger-400' // Old - warning
 }
 
 function getAgeBgColor(age: number | null | undefined): string {
   if (age === null || age === undefined) return 'bg-gray-500/20 text-gray-400'
-  if (age < 20) return 'bg-emerald-500/20 text-emerald-400 font-bold'
-  if (age < 25) return 'bg-green-500/20 text-green-400'
-  if (age < 30) return 'bg-yellow-500/20 text-yellow-400'
-  if (age < 35) return 'bg-orange-500/20 text-orange-400'
-  return 'bg-red-500/20 text-red-400'
+  if (age < 20) return 'bg-secondary-500/20 text-secondary-400 font-bold'
+  if (age < 25) return 'bg-secondary-500/20 text-secondary-400'
+  if (age < 30) return 'bg-warning-500/20 text-warning-400'
+  if (age < 35) return 'bg-passion-500/20 text-passion-400'
+  return 'bg-danger-500/20 text-danger-400'
 }
 
 interface StrategyPlayer {
@@ -756,7 +749,6 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         <div className="mb-4">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-              <span className="text-2xl">👥</span>
               Giocatori
             </h1>
           </div>
@@ -784,7 +776,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
               {/* === 3-LEVEL FILTER LAYOUT === */}
 
               {/* LEVEL 1: Data View Toggle (sticky) */}
-              <div className="sticky top-0 z-10 p-2 border-b border-surface-50/20 bg-surface-300/80 backdrop-blur-sm">
+              <div className="sticky top-0 z-10 p-2 border-b border-surface-50/20 bg-surface-300">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex gap-1 bg-surface-400/50 rounded-lg p-0.5">
                     <button
@@ -796,29 +788,29 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       }`}
                       title="Vista contratti"
                     >
-                      📋 Contratti
+                      Contratti
                     </button>
                     <button
                       onClick={() => { setDataViewMode('stats'); }}
                       className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                         dataViewMode === 'stats'
-                          ? 'bg-cyan-500 text-white shadow-md'
+                          ? 'bg-info-500 text-white shadow-md'
                           : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
                       }`}
                       title="Vista statistiche"
                     >
-                      📊 Stats
+                      Stats
                     </button>
                     <button
                       onClick={() => { setDataViewMode('merge'); }}
                       className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                         dataViewMode === 'merge'
-                          ? 'bg-violet-500 text-white shadow-md'
+                          ? 'bg-primary-600 text-white shadow-md'
                           : 'text-gray-400 hover:text-white hover:bg-surface-300/50'
                       }`}
                       title="Vista mista contratti e statistiche"
                     >
-                      🔀 Contratti e Stats
+                      Contratti e Stats
                     </button>
                   </div>
                   <div className="text-sm text-gray-400">
@@ -839,7 +831,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     }`}
                     title="La mia rosa"
                   >
-                    <span>🏠 La Mia Rosa</span>
+                    <span>La Mia Rosa</span>
                     <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
                       viewMode === 'myRoster' ? 'bg-white/20' : 'bg-primary-500/20 text-primary-400'
                     }`}>
@@ -850,14 +842,14 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     onClick={() => { setViewMode('owned'); setOwnerFilter('ALL'); }}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                       viewMode === 'owned'
-                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                        ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
                         : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
                     }`}
                     title="Giocatori di altri manager"
                   >
-                    <span>👥 Altre Rose</span>
+                    <span>Altre Rose</span>
                     <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                      viewMode === 'owned' ? 'bg-white/20' : 'bg-blue-500/20 text-blue-400'
+                      viewMode === 'owned' ? 'bg-white/20' : 'bg-primary-500/20 text-primary-400'
                     }`}>
                       {strategiesData?.players.filter(p => p.memberId !== myMemberId).length || 0}
                     </span>
@@ -866,14 +858,14 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     onClick={() => { setViewMode('svincolati'); setOwnerFilter('ALL'); }}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                       viewMode === 'svincolati'
-                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
+                        ? 'bg-secondary-500 text-white shadow-lg shadow-secondary-500/25'
                         : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
                     }`}
                     title="Giocatori svincolati"
                   >
-                    <span>🆓 Svincolati</span>
+                    <span>Svincolati</span>
                     <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                      viewMode === 'svincolati' ? 'bg-white/20' : 'bg-emerald-500/20 text-emerald-400'
+                      viewMode === 'svincolati' ? 'bg-white/20' : 'bg-secondary-500/20 text-secondary-400'
                     }`}>
                       {svincolatiData?.players.length || 0}
                     </span>
@@ -882,14 +874,14 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     onClick={() => { setViewMode('all'); setOwnerFilter('ALL'); }}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                       viewMode === 'all'
-                        ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/25'
+                        ? 'bg-passion-500 text-white shadow-lg shadow-passion-500/25'
                         : 'bg-surface-300/70 text-gray-400 hover:text-white hover:bg-surface-300'
                     }`}
                     title="Tutti i giocatori"
                   >
-                    <span>🌐 Tutti</span>
+                    <span>Tutti</span>
                     <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                      viewMode === 'all' ? 'bg-white/20' : 'bg-purple-500/20 text-purple-400'
+                      viewMode === 'all' ? 'bg-white/20' : 'bg-passion-500/20 text-passion-400'
                     }`}>
                       {(strategiesData?.players.length || 0) + (svincolatiData?.players.length || 0)}
                     </span>
@@ -903,7 +895,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                     }`}
                     title="Overview watchlist e priorità"
                   >
-                    <span>📋 Overview</span>
+                    <span>Overview</span>
                   </button>
                 </div>
               </div>
@@ -969,20 +961,20 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       type="text"
                       value={searchQuery}
                       onChange={(e) => { setSearchQuery(e.target.value); }}
-                      placeholder="🔍 Cerca giocatore..."
+                      placeholder="Cerca giocatore..."
                       className="w-full px-2 py-1.5 bg-surface-300 border border-surface-50/30 rounded-lg text-white text-xs"
                     />
                   </div>
 
                   {/* Strategy filter */}
-                  <label className="flex items-center gap-2 cursor-pointer px-2.5 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors flex-shrink-0">
+                  <label className="flex items-center gap-2 cursor-pointer px-2.5 py-1.5 rounded-lg bg-primary-500/10 border border-primary-500/20 hover:bg-primary-500/20 transition-colors flex-shrink-0">
                     <input
                       type="checkbox"
                       checked={showOnlyWithStrategy}
                       onChange={(e) => { setShowOnlyWithStrategy(e.target.checked); }}
-                      className="w-4 h-4 rounded bg-surface-300 border-indigo-500/50 text-indigo-500 focus:ring-indigo-500"
+                      className="w-4 h-4 rounded bg-surface-300 border-primary-500/50 text-primary-500 focus:ring-primary-500"
                     />
-                    <span className="text-xs text-indigo-300 whitespace-nowrap font-medium">⭐ Strategia</span>
+                    <span className="text-xs text-primary-300 whitespace-nowrap font-medium">Strategia</span>
                   </label>
 
                   {/* Compare button (#187) */}
@@ -993,11 +985,11 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         disabled={selectedForCompare.size < 2}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           selectedForCompare.size >= 2
-                            ? 'bg-cyan-500 text-white hover:bg-cyan-600'
-                            : 'bg-cyan-500/30 text-cyan-400/50 cursor-not-allowed'
+                            ? 'bg-info-500 text-white hover:bg-info-600'
+                            : 'bg-info-500/30 text-info-400/50 cursor-not-allowed'
                         }`}
                       >
-                        📊 Confronta ({selectedForCompare.size})
+                        Confronta ({selectedForCompare.size})
                       </button>
                       <button
                         onClick={clearComparison}
@@ -1052,7 +1044,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                     <div className="text-[10px] text-gray-500">{player.playerTeam} {player.type === 'svincolato' ? '(Svincolato)' : `(${(player as StrategyPlayerWithPreference).ownerUsername || ''})`}</div>
                                   </div>
                                   {local.priority > 0 && (
-                                    <span className="text-purple-400 text-xs font-bold">{'★'.repeat(local.priority)}</span>
+                                    <span className="text-accent-400 text-xs font-bold">{'★'.repeat(local.priority)}</span>
                                   )}
                                   {local.maxBid && (
                                     <span className="text-accent-400 text-xs font-bold">{local.maxBid}M</span>
@@ -1080,8 +1072,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   })}
 
                   {/* Top Priority Players */}
-                  <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
-                    <h3 className="font-semibold text-base text-purple-400 mb-3">Top Priorità</h3>
+                  <div className="rounded-xl border border-accent-500/30 bg-accent-500/10 p-4">
+                    <h3 className="font-semibold text-base text-accent-400 mb-3">Top Priorità</h3>
                     {(() => {
                       const allWithPriority: DisplayPlayer[] = []
                       strategiesData?.players.forEach(p => {
@@ -1123,7 +1115,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                   <div className="text-sm font-medium text-white truncate">{player.playerName}</div>
                                   <div className="text-[10px] text-gray-500">{player.playerTeam}</div>
                                 </div>
-                                <span className="text-purple-400 text-sm font-bold">{'★'.repeat(local.priority)}</span>
+                                <span className="text-accent-400 text-sm font-bold">{'★'.repeat(local.priority)}</span>
                                 {local.maxBid && (
                                   <span className="text-accent-400 text-xs font-bold">{local.maxBid}M</span>
                                 )}
@@ -1151,7 +1143,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   const isMyRoster = player.type === 'myRoster'
 
                   return (
-                    <div key={player.playerId} className={`bg-surface-300/30 rounded-lg p-3 border ${selectedForCompare.has(player.playerId) ? 'border-cyan-500/50 bg-cyan-500/10' : isMyRoster ? 'border-primary-500/30 bg-primary-500/5' : hasStrategy ? 'border-indigo-500/30 bg-indigo-500/5' : isSvincolato ? 'border-emerald-500/20' : 'border-surface-50/10'}`}>
+                    <div key={player.playerId} className={`bg-surface-300/30 rounded-lg p-3 border ${selectedForCompare.has(player.playerId) ? 'border-info-500/50 bg-info-500/10' : isMyRoster ? 'border-primary-500/30 bg-primary-500/5' : hasStrategy ? 'border-primary-500/30 bg-primary-500/5' : isSvincolato ? 'border-secondary-500/20' : 'border-surface-50/10'}`}>
                       {/* Header: Checkbox + Photo + Player + Svincolato badge */}
                       <div className="flex items-center gap-2 mb-2">
                         {/* Compare checkbox (#187) */}
@@ -1159,7 +1151,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           type="checkbox"
                           checked={selectedForCompare.has(player.playerId)}
                           onChange={() => { togglePlayerForCompare(player.playerId); }}
-                          className="w-5 h-5 rounded bg-surface-300 border-cyan-500/50 text-cyan-500 focus:ring-cyan-500 flex-shrink-0"
+                          className="w-5 h-5 rounded bg-surface-300 border-info-500/50 text-info-500 focus:ring-info-500 flex-shrink-0"
                         />
                         {/* Player Photo with Team Logo Badge - increased size #186 */}
                         <div className="relative flex-shrink-0">
@@ -1238,7 +1230,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         <div>
                           <span className="text-gray-500">Prop: </span>
                           {isSvincolato ? (
-                            <span className="text-emerald-400">Svincolato</span>
+                            <span className="text-secondary-400">Svincolato</span>
                           ) : isMyRoster ? (
                             <span className="text-primary-400">La Mia Rosa</span>
                           ) : (
@@ -1251,7 +1243,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         <div className="grid grid-cols-2 gap-2 text-center text-xs mb-3">
                           <div className="bg-surface-300/50 rounded p-1.5">
                             <div className="text-gray-500 text-[10px] uppercase">Clausola</div>
-                            <div className="text-orange-400 font-medium">{player.contractClause}M</div>
+                            <div className="text-passion-400 font-medium">{player.contractClause}M</div>
                           </div>
                           <div className="bg-surface-300/50 rounded p-1.5">
                             <div className="text-gray-500 text-[10px] uppercase">Rubata</div>
@@ -1263,9 +1255,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       {/* Stats info - only for stats/merge view (using computedStats) */}
                       {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
                         <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3">
-                          <div className="bg-cyan-500/10 rounded p-1.5 border border-cyan-500/20">
+                          <div className="bg-info-500/10 rounded p-1.5 border border-info-500/20">
                             <div className="text-gray-500 text-[10px] uppercase">Rating</div>
-                            <div className="text-cyan-400 font-semibold">
+                            <div className="text-info-400 font-semibold">
                               {player.playerComputedStats?.avgRating != null
                                 ? player.playerComputedStats.avgRating.toFixed(1)
                                 : '-'}
@@ -1286,7 +1278,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         </div>
                       )}
                       {/* Strategy Section - always visible */}
-                      <div className="bg-indigo-500/10 rounded-lg p-2 border border-indigo-500/20">
+                      <div className="bg-primary-500/10 rounded-lg p-2 border border-primary-500/20">
                         <div className="flex items-center gap-2 mb-2">
                           {/* Max Bid */}
                           <div className="flex items-center gap-1">
@@ -1298,7 +1290,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           {/* Priority - increased size #186 */}
                           <div className="flex items-center gap-0.5 ml-auto">
                             {[1, 2, 3, 4, 5].map(star => (
-                              <button key={star} onClick={() => { updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star); }} className={`w-8 h-8 min-h-[44px] min-w-[44px] text-xl flex items-center justify-center ${local.priority >= star ? 'text-purple-400' : 'text-gray-500'}`}>★</button>
+                              <button key={star} onClick={() => { updateLocalStrategy(player.playerId, 'priority', local.priority === star ? 0 : star); }} className={`w-8 h-8 min-h-[44px] min-w-[44px] text-xl flex items-center justify-center ${local.priority >= star ? 'text-accent-400' : 'text-gray-500'}`}>★</button>
                             ))}
                           </div>
                         </div>
@@ -1334,7 +1326,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   <thead className="bg-surface-300/50">
                     {/* Group headers */}
                     <tr className="text-[10px] text-gray-500 uppercase border-b border-surface-50/20">
-                      <th className="w-10 py-1 px-2 bg-cyan-500/10">📊</th>
+                      <th className="w-10 py-1 px-2 bg-info-500/10"></th>
                       <th colSpan={5} className="text-left py-1 px-3 bg-surface-300/30">
                         Giocatore
                       </th>
@@ -1344,26 +1336,26 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         </th>
                       )}
                       {dataViewMode === 'contracts' && (
-                        <th className="text-center py-1 px-3 bg-cyan-500/10 border-l border-surface-50/20">Stat</th>
+                        <th className="text-center py-1 px-3 bg-info-500/10 border-l border-surface-50/20">Stat</th>
                       )}
                       {(dataViewMode === 'stats' || dataViewMode === 'merge') && (
-                        <th colSpan={dataViewMode === 'stats' ? STATS_COLUMNS.length : MERGE_STATS_KEYS.length} className="text-center py-1 px-3 bg-cyan-500/10 border-l border-surface-50/20">
+                        <th colSpan={dataViewMode === 'stats' ? STATS_COLUMNS.length : MERGE_STATS_KEYS.length} className="text-center py-1 px-3 bg-info-500/10 border-l border-surface-50/20">
                           Statistiche
                         </th>
                       )}
-                      <th colSpan={4} className="text-center py-1 px-3 bg-indigo-500/10 border-l border-surface-50/20">
+                      <th colSpan={4} className="text-center py-1 px-3 bg-primary-500/10 border-l border-surface-50/20">
                         Strategia
                       </th>
                     </tr>
                     {/* Column headers */}
                     <tr className="text-xs text-gray-400 uppercase">
                       {/* Compare checkbox header (#187) */}
-                      <th className="w-10 p-2 text-center bg-cyan-500/5">
+                      <th className="w-10 p-2 text-center bg-info-500/5">
                         <input
                           type="checkbox"
                           checked={selectedForCompare.size > 0}
                           onChange={() => { if (selectedForCompare.size > 0) clearComparison(); }}
-                          className="w-4 h-4 rounded bg-surface-300 border-cyan-500/50 text-cyan-500 focus:ring-cyan-500"
+                          className="w-4 h-4 rounded bg-surface-300 border-info-500/50 text-info-500 focus:ring-info-500"
                         />
                       </th>
                       <SortableHeader field="position" label="R" className="w-10 p-2 text-center" />
@@ -1376,12 +1368,12 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         <>
                           <th className="text-center p-2 text-accent-400 border-l border-surface-50/20">Ing.</th>
                           <th className="text-center p-2">Dur.</th>
-                          <th className="text-center p-2 text-orange-400">Cls</th>
+                          <th className="text-center p-2 text-passion-400">Cls</th>
                           <SortableHeader field="rubata" label="Rub." className="text-center p-2" />
                         </>
                       )}
                       {dataViewMode === 'contracts' && (
-                        <th className="text-center p-2 text-cyan-400 border-l border-surface-50/20" title="Rating medio">Rat</th>
+                        <th className="text-center p-2 text-info-400 border-l border-surface-50/20" title="Rating medio">Rat</th>
                       )}
                       {/* Stats columns */}
                       {dataViewMode === 'stats' && STATS_COLUMNS.map((col, idx) => (
@@ -1395,10 +1387,10 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         </th>
                       ))}
                       {/* Strategy columns */}
-                      <th className="text-center p-2 bg-indigo-500/5 border-l border-surface-50/20">Max</th>
-                      <th className="text-center p-2 bg-indigo-500/5">★</th>
-                      <th className="text-left p-2 bg-indigo-500/5">Note</th>
-                      <th className="text-center p-2 bg-indigo-500/5">Cat.</th>
+                      <th className="text-center p-2 bg-primary-500/5 border-l border-surface-50/20">Max</th>
+                      <th className="text-center p-2 bg-primary-500/5">★</th>
+                      <th className="text-left p-2 bg-primary-500/5">Note</th>
+                      <th className="text-center p-2 bg-primary-500/5">Cat.</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1415,16 +1407,16 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         <tr
                           key={player.playerId}
                           className={`border-t border-surface-50/10 transition-colors ${
-                            selectedForCompare.has(player.playerId) ? 'bg-cyan-500/10' : isMyRoster ? 'bg-primary-500/5' : hasStrategy ? 'bg-indigo-500/5' : isSvincolato ? 'bg-emerald-500/5' : ''
+                            selectedForCompare.has(player.playerId) ? 'bg-info-500/10' : isMyRoster ? 'bg-primary-500/5' : hasStrategy ? 'bg-primary-500/5' : isSvincolato ? 'bg-secondary-500/5' : ''
                           } hover:bg-surface-300/30`}
                         >
                           {/* Compare checkbox (#187) */}
-                          <td className="p-2 text-center bg-cyan-500/5">
+                          <td className="p-2 text-center bg-info-500/5">
                             <input
                               type="checkbox"
                               checked={selectedForCompare.has(player.playerId)}
                               onChange={() => { togglePlayerForCompare(player.playerId); }}
-                              className="w-4 h-4 rounded bg-surface-300 border-cyan-500/50 text-cyan-500 focus:ring-cyan-500"
+                              className="w-4 h-4 rounded bg-surface-300 border-info-500/50 text-info-500 focus:ring-info-500"
                             />
                           </td>
 
@@ -1515,7 +1507,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           <td className="p-2">
                             {isSvincolato ? (
                               <div className="min-w-0">
-                                <div className="font-medium text-emerald-400 text-sm">Svincolato</div>
+                                <div className="font-medium text-secondary-400 text-sm">Svincolato</div>
                               </div>
                             ) : player.type === 'myRoster' ? (
                               <div className="min-w-0">
@@ -1559,7 +1551,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                 {isSvincolato ? (
                                   <span className="text-gray-400">-</span>
                                 ) : (
-                                  <span className="text-orange-400 font-medium">{player.contractClause}M</span>
+                                  <span className="text-passion-400 font-medium">{player.contractClause}M</span>
                                 )}
                               </td>
 
@@ -1576,7 +1568,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
                           {/* Rating column in contracts view */}
                           {dataViewMode === 'contracts' && (
-                            <td className="p-2 text-center text-xs text-cyan-400 border-l border-surface-50/10">
+                            <td className="p-2 text-center text-xs text-info-400 border-l border-surface-50/10">
                               {player.playerComputedStats?.avgRating != null
                                 ? player.playerComputedStats.avgRating.toFixed(1)
                                 : '-'}
@@ -1622,7 +1614,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
 
                           {/* === STRATEGY SECTION === */}
                           {/* Offerta Max */}
-                          <td className="p-2 text-center bg-indigo-500/5 border-l border-surface-50/10">
+                          <td className="p-2 text-center bg-primary-500/5 border-l border-surface-50/10">
                             <div className="flex items-center justify-center gap-1">
                               <button
                                 type="button"
@@ -1640,8 +1632,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                 value={local.maxBid}
                                 onChange={(e) => { updateLocalStrategy(player.playerId, 'maxBid', e.target.value); }}
                                 placeholder="-"
-                                className={`w-10 px-1 py-0.5 bg-surface-300/50 border rounded text-white text-center text-xs font-medium focus:border-blue-500 focus:outline-none placeholder:text-gray-500 ${
-                                  isSaving ? 'border-blue-500/50' : local.isDirty ? 'border-yellow-500/50' : 'border-surface-50/30'
+                                className={`w-10 px-1 py-0.5 bg-surface-300/50 border rounded text-white text-center text-xs font-medium focus:border-primary-500 focus:outline-none placeholder:text-gray-500 ${
+                                  isSaving ? 'border-primary-500/50' : local.isDirty ? 'border-warning-500/50' : 'border-surface-50/30'
                                 }`}
                               />
                               <button
@@ -1658,7 +1650,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           </td>
 
                           {/* Priority - increased size #186 */}
-                          <td className="p-2 text-center bg-indigo-500/5">
+                          <td className="p-2 text-center bg-primary-500/5">
                             <div className="flex items-center justify-center gap-0.5">
                               {[1, 2, 3, 4, 5].map(star => (
                                 <button
@@ -1670,7 +1662,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                                   }}
                                   className={`w-5 h-5 text-sm transition-colors ${
                                     local.priority >= star
-                                      ? 'text-purple-400 hover:text-purple-300'
+                                      ? 'text-accent-400 hover:text-accent-300'
                                       : 'text-gray-500 hover:text-gray-300'
                                   }`}
                                 >
@@ -1681,24 +1673,24 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           </td>
 
                           {/* Notes */}
-                          <td className="p-2 bg-indigo-500/5">
+                          <td className="p-2 bg-primary-500/5">
                             <input
                               type="text"
                               value={local.notes}
                               onChange={(e) => { updateLocalStrategy(player.playerId, 'notes', e.target.value); }}
                               placeholder="Note..."
-                              className={`w-full min-w-[60px] px-1 py-0.5 bg-surface-300/50 border rounded text-white text-xs focus:border-blue-500 focus:outline-none placeholder:text-gray-500 ${
-                                isSaving ? 'border-blue-500/50' : local.isDirty ? 'border-yellow-500/50' : 'border-surface-50/30'
+                              className={`w-full min-w-[60px] px-1 py-0.5 bg-surface-300/50 border rounded text-white text-xs focus:border-primary-500 focus:outline-none placeholder:text-gray-500 ${
+                                isSaving ? 'border-primary-500/50' : local.isDirty ? 'border-warning-500/50' : 'border-surface-50/30'
                               }`}
                             />
                           </td>
 
                           {/* Watchlist Category #219 */}
-                          <td className="p-2 bg-indigo-500/5">
+                          <td className="p-2 bg-primary-500/5">
                             <select
                               value={player.preference?.watchlistCategory || ''}
                               onChange={(e) => { void setWatchlistCategory(player.playerId, e.target.value || null) }}
-                              className="w-full min-w-[80px] px-1 py-0.5 bg-surface-300/50 border border-surface-50/30 rounded text-xs focus:border-blue-500 focus:outline-none text-white"
+                              className="w-full min-w-[80px] px-1 py-0.5 bg-surface-300/50 border border-surface-50/30 rounded text-xs focus:border-primary-500 focus:outline-none text-white"
                             >
                               <option value="">-</option>
                               {(Object.entries(WATCHLIST_CATEGORIES) as [WatchlistCategoryId, typeof WATCHLIST_CATEGORIES[WatchlistCategoryId]][]).map(([catId, cat]) => (
@@ -1723,7 +1715,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
               <div className="p-3 border-t border-surface-50/20 bg-surface-300/20 text-[10px] text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
                 <span><b className="text-accent-400">Ing.</b> = Ingaggio</span>
                 <span><b>Dur.</b> = Durata contratto (semestri)</span>
-                <span><b className="text-orange-400">Cls</b> = Clausola rescissoria</span>
+                <span><b className="text-passion-400">Cls</b> = Clausola rescissoria</span>
                 <span><b>Rub.</b> = Prezzo rubata</span>
                 <span><b>Max</b> = Offerta massima</span>
                 <span><b>★</b> = Priorità (1-3)</span>
@@ -1741,7 +1733,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   {viewMode === 'all' && ` (${filteredPlayers.filter(p => p.type === 'myRoster').length} miei, ${filteredPlayers.filter(p => p.type === 'owned').length} altri, ${filteredPlayers.filter(p => p.type === 'svincolato').length} svinc.)`}
                 </span>
                 {viewMode !== 'myRoster' && (
-                  <span className="text-indigo-400">{myStrategiesCount} strategie impostate</span>
+                  <span className="text-primary-400">{myStrategiesCount} strategie impostate</span>
                 )}
               </div>
             </div>
@@ -1761,7 +1753,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-surface-200 rounded-xl border border-surface-50/20 max-w-4xl w-full max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
-            <div className="p-6 border-b border-surface-50/20 bg-gradient-to-r from-cyan-500/10 to-surface-200">
+            <div className="p-6 border-b border-surface-50/20 bg-gradient-to-r from-info-500/10 to-surface-200">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-white">Confronto Giocatori</h2>
                 <button
@@ -1841,8 +1833,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                   return (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                       {/* Goalkeeper Performance Radar */}
-                      <div className="bg-yellow-500/10 rounded-xl p-4 border border-yellow-500/20">
-                        <h3 className="text-center text-yellow-400 font-semibold mb-4">🧤 Performance Portiere</h3>
+                      <div className="bg-warning-500/10 rounded-xl p-4 border border-warning-500/20">
+                        <h3 className="text-center text-warning-400 font-semibold mb-4">Performance Portiere</h3>
                         <RadarChart
                           size={280}
                           players={playersToCompare.map((p, i) => ({
@@ -1861,8 +1853,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                       </div>
 
                       {/* Goalkeeper Goals Conceded Radar */}
-                      <div className="bg-yellow-500/10 rounded-xl p-4 border border-yellow-500/20">
-                        <h3 className="text-center text-yellow-400 font-semibold mb-4">🧤 Gol Subiti (meno è meglio)</h3>
+                      <div className="bg-warning-500/10 rounded-xl p-4 border border-warning-500/20">
+                        <h3 className="text-center text-warning-400 font-semibold mb-4">Gol Subiti (meno è meglio)</h3>
                         <RadarChart
                           size={280}
                           players={playersToCompare.map((p, i) => ({
@@ -1885,8 +1877,8 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                 return (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                     {hasGoalkeepers && (
-                      <div className="col-span-full text-center text-sm text-yellow-400 bg-yellow-500/10 rounded-lg p-2 mb-2">
-                        ⚠️ Confronto misto portieri/giocatori - alcune statistiche potrebbero non essere comparabili
+                      <div className="col-span-full text-center text-sm text-warning-400 bg-warning-500/10 rounded-lg p-2 mb-2">
+                        Confronto misto portieri/giocatori - alcune statistiche potrebbero non essere comparabili
                       </div>
                     )}
                     {/* Offensive Stats Radar */}
@@ -2008,7 +2000,7 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                           <tr className="hover:bg-surface-300/30">
                             <td className="px-4 py-3 text-sm text-gray-300">Clausola</td>
                             {playersToCompare.map(player => (
-                              <td key={player.playerId} className="px-4 py-3 text-center font-medium text-orange-400">
+                              <td key={player.playerId} className="px-4 py-3 text-center font-medium text-passion-400">
                                 {player.type !== 'svincolato' ? `${player.contractClause}M` : '-'}
                               </td>
                             ))}
@@ -2029,9 +2021,9 @@ export function StrategieRubata({ onNavigate }: { onNavigate: (page: string) => 
                         { label: 'Minuti', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.minutes },
                         { label: 'Rating', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.games?.rating, format: (v: number | null) => v != null ? v.toFixed(2) : '-' },
                         // Goalkeeper-specific stats
-                        { label: '🧤 Parate', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.goals?.saves : null, colorClass: 'text-yellow-400', goalkeeperOnly: true },
-                        { label: '🧤 Gol Subiti', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.goals?.conceded : null, colorClass: 'text-yellow-400', goalkeeperOnly: true, lowerIsBetter: true },
-                        { label: '🧤 Rigori Parati', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.penalty?.saved : null, colorClass: 'text-yellow-400', goalkeeperOnly: true },
+                        { label: 'Parate', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.goals?.saves : null, colorClass: 'text-warning-400', goalkeeperOnly: true },
+                        { label: 'Gol Subiti', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.goals?.conceded : null, colorClass: 'text-warning-400', goalkeeperOnly: true, lowerIsBetter: true },
+                        { label: 'Rigori Parati', getValue: (p: DisplayPlayer) => p.playerPosition === 'P' ? p.playerApiFootballStats?.penalty?.saved : null, colorClass: 'text-warning-400', goalkeeperOnly: true },
                         // Outfield stats
                         { label: 'Gol', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.goals?.total, colorClass: 'text-secondary-400' },
                         { label: 'Assist', getValue: (p: DisplayPlayer) => p.playerApiFootballStats?.goals?.assists, colorClass: 'text-primary-400' },

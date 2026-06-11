@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { Target, ShieldCheck, AlertTriangle, RefreshCw, CheckCircle2, Bell } from 'lucide-react'
 import { Modal, ModalBody } from '@/components/ui/Modal'
 import { Button } from '../ui/Button'
 import { TeamLogo } from './TeamLogo'
@@ -75,17 +76,19 @@ export function PendingAckModal({
   }
 
   return (
-    <Modal isOpen={true} onClose={() => {}} closeOnBackdrop={false} closeOnEscape={false} showCloseButton={false} size="lg" className="bg-gradient-to-br from-purple-900 to-purple-950 border-2 border-purple-400 rounded-3xl animate-bounce-in max-h-[90vh] overflow-y-auto">
+    <Modal isOpen={true} onClose={() => {}} closeOnBackdrop={false} closeOnEscape={false} showCloseButton={false} size="lg" className="bg-gradient-to-br from-primary-900 to-primary-950 border-2 border-primary-400 rounded-3xl animate-bounce-in max-h-[90vh] overflow-y-auto">
       <ModalBody>
         {/* Header */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 mb-3">
-            <span className="text-4xl">{pendingAck.winner ? '🎯' : '🛡️'}</span>
+            {pendingAck.winner
+              ? <Target size={32} className="text-accent-400" aria-hidden="true" />
+              : <ShieldCheck size={32} className="text-secondary-400" aria-hidden="true" />}
           </div>
-          <h2 className="text-2xl font-black text-white uppercase tracking-wide">
+          <h2 className="text-2xl font-display font-black text-white uppercase tracking-wide">
             {pendingAck.winner ? 'RUBATA COMPLETATA!' : 'NESSUNA RUBATA'}
           </h2>
-          <p className="text-purple-200 text-sm mt-1">Conferma la transazione per procedere</p>
+          <p className="text-primary-200 text-sm mt-1">Conferma la transazione per procedere</p>
         </div>
 
         {/* Player Card */}
@@ -113,11 +116,11 @@ export function PendingAckModal({
         {/* Transaction Details */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="bg-white/5 rounded-xl p-3 text-center">
-            <p className="text-xs text-purple-300 uppercase">Da</p>
+            <p className="text-xs text-primary-300 uppercase">Da</p>
             <p className="font-bold text-white">{pendingAck.seller.username}</p>
           </div>
           <div className="bg-white/5 rounded-xl p-3 text-center">
-            <p className="text-xs text-purple-300 uppercase">A</p>
+            <p className="text-xs text-primary-300 uppercase">A</p>
             <p className="font-bold text-secondary-400">{pendingAck.winner?.username || 'Nessuno'}</p>
           </div>
         </div>
@@ -125,7 +128,7 @@ export function PendingAckModal({
         {/* Price */}
         {pendingAck.winner && (
           <div className="bg-white/10 rounded-xl p-3 text-center mb-4">
-            <p className="text-xs text-purple-300 uppercase">Prezzo Finale</p>
+            <p className="text-xs text-primary-300 uppercase">Prezzo Finale</p>
             <p className="text-3xl font-black text-accent-400">{pendingAck.finalPrice}M</p>
           </div>
         )}
@@ -133,12 +136,12 @@ export function PendingAckModal({
         {/* Confirmation Status */}
         <div className="bg-white/5 rounded-xl p-4 mb-4">
           <div className="flex justify-between items-center mb-3">
-            <span className="text-purple-200 text-sm">Conferme</span>
+            <span className="text-primary-200 text-sm">Conferme</span>
             <span className="text-white font-bold">{pendingAck.totalAcknowledged} / {pendingAck.totalMembers}</span>
           </div>
           <div className="h-3 bg-white/10 rounded-full overflow-hidden mb-3">
             <div
-              className="h-full bg-gradient-to-r from-purple-500 to-secondary-500 transition-all duration-500"
+              className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 transition-all duration-500"
               style={{ width: `${(pendingAck.totalAcknowledged / pendingAck.totalMembers) * 100}%` }}
             />
           </div>
@@ -163,8 +166,8 @@ export function PendingAckModal({
         {/* Existing Prophecies */}
         {pendingAck.prophecies && pendingAck.prophecies.length > 0 && (
           <div className="bg-white/5 rounded-xl p-3 mb-4">
-            <p className="text-xs text-purple-300 uppercase font-bold mb-2 flex items-center gap-1">
-              <span>🔮</span> Profezie
+            <p className="text-xs text-primary-300 uppercase font-bold mb-2 flex items-center gap-1">
+              Profezie
             </p>
             <div className="space-y-2 max-h-24 overflow-y-auto">
               {pendingAck.prophecies.map((p, idx) => (
@@ -181,7 +184,7 @@ export function PendingAckModal({
         {isAppealMode && (
           <div className="mb-4">
             <label className="block text-xs text-danger-300 uppercase font-bold mb-2">
-              ⚠️ Motivo del ricorso
+              Motivo del ricorso
             </label>
             <textarea
               value={appealContent}
@@ -198,13 +201,13 @@ export function PendingAckModal({
         {/* Prophecy Input (only if not in appeal mode) */}
         {!isAppealMode && (
           <div className="mb-4">
-            <label className="block text-xs text-purple-300 uppercase font-bold mb-2">
-              🔮 La tua profezia (opzionale)
+            <label className="block text-xs text-primary-300 uppercase font-bold mb-2">
+              La tua profezia (opzionale)
             </label>
             <textarea
               value={prophecyContent}
               onChange={(e) => { setProphecyContent(e.target.value); }}
-              className="w-full bg-white/5 border border-purple-500/30 rounded-xl p-3 text-white placeholder-gray-500 text-sm resize-none focus:border-purple-400 focus:outline-none"
+              className="w-full bg-white/5 border border-primary-500/30 rounded-xl p-3 text-white placeholder-gray-500 text-sm resize-none focus:border-primary-400 focus:outline-none"
               rows={2}
               placeholder="Scrivi una previsione su questa transazione..."
               maxLength={200}
@@ -217,19 +220,19 @@ export function PendingAckModal({
         <div className="space-y-2">
           {pendingAck.userAcknowledged ? (
             <div className="w-full py-3 text-center rounded-xl bg-secondary-500/20 border border-secondary-500/30">
-              <p className="text-secondary-400 font-bold">✅ Hai confermato</p>
+              <p className="text-secondary-400 font-bold">✓ Hai confermato</p>
               <p className="text-xs text-gray-400 mt-1">In attesa degli altri manager ({pendingAck.totalAcknowledged}/{pendingAck.totalMembers})</p>
             </div>
           ) : !isAppealMode ? (
             <>
               <Button onClick={onAcknowledgeWithAppeal} disabled={isSubmitting} className="w-full py-3 text-lg">
-                {prophecyContent.trim() ? '🔮 CONFERMA CON PROFEZIA' : '✅ CONFERMA TRANSAZIONE'}
+                {prophecyContent.trim() ? 'CONFERMA CON PROFEZIA' : 'CONFERMA TRANSAZIONE'}
               </Button>
               <button
                 onClick={() => { setIsAppealMode(true); }}
                 className="w-full py-2 text-sm text-danger-400 hover:text-danger-300 underline"
               >
-                ⚠️ Voglio fare ricorso
+                Voglio fare ricorso
               </button>
             </>
           ) : (
@@ -239,7 +242,7 @@ export function PendingAckModal({
                 disabled={isSubmitting || !appealContent.trim()}
                 className="w-full py-3 text-lg bg-danger-500 hover:bg-danger-600"
               >
-                ⚠️ INVIA RICORSO E CONFERMA
+                INVIA RICORSO E CONFERMA
               </Button>
               <button
                 onClick={() => { setIsAppealMode(false); setAppealContent('') }}
@@ -255,15 +258,15 @@ export function PendingAckModal({
             <div className="pt-2 border-t border-white/10 space-y-2">
               <button
                 onClick={() => { onNavigate('admin', { leagueId, tab: 'appeals' }); }}
-                className="w-full py-2 text-xs text-purple-400 hover:text-purple-300"
+                className="w-full py-2 text-xs text-primary-400 hover:text-primary-300"
               >
-                📋 Vai al pannello ricorsi
+                Vai al pannello ricorsi
               </button>
               <Button onClick={onSimulateAppeal} disabled={isSubmitting} variant="outline" className="w-full text-xs border-danger-500/50 text-danger-400">
-                🤖 [TEST] Simula ricorso di un DG
+                [TEST] Simula ricorso di un DG
               </Button>
               <Button onClick={onForceAllAcknowledge} disabled={isSubmitting} variant="outline" className="w-full text-xs">
-                🤖 [TEST] Forza Tutte le Conferme
+                [TEST] Forza Tutte le Conferme
               </Button>
             </div>
           )}
@@ -289,7 +292,7 @@ export function AppealReviewModal({ appealStatus, isAdmin, onNavigate, leagueId 
       <ModalBody>
         <div className="text-center mb-6">
           <div className="w-16 h-16 rounded-full bg-danger-500/20 flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <span className="text-4xl">⚠️</span>
+            <AlertTriangle size={32} className="text-danger-400" aria-hidden="true" />
           </div>
           <h2 className="text-2xl font-black text-white uppercase">Ricorso in Corso</h2>
           <p className="text-danger-200 mt-1">La transazione è sospesa in attesa della decisione dell'admin</p>
@@ -371,7 +374,7 @@ export function AppealAckModal({
       <ModalBody>
         <div className="text-center mb-6">
           <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${appealStatus?.appeal?.status === 'ACCEPTED' ? 'bg-warning-500/20' : 'bg-secondary-500/20'}`}>
-            <span className="text-4xl">{appealStatus?.appeal?.status === 'ACCEPTED' ? '🔄' : '✅'}</span>
+            {appealStatus?.appeal?.status === 'ACCEPTED' ? <RefreshCw size={32} className="text-warning-400" aria-hidden="true" /> : <CheckCircle2 size={32} className="text-secondary-400" aria-hidden="true" />}
           </div>
           <h2 className="text-2xl font-black text-white uppercase">
             Ricorso {appealStatus?.appeal?.status === 'ACCEPTED' ? 'Accolto' : 'Respinto'}
@@ -415,7 +418,7 @@ export function AppealAckModal({
           </div>
           <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-secondary-500 to-purple-500 transition-all duration-500"
+              className="h-full bg-gradient-to-r from-secondary-500 to-primary-500 transition-all duration-500"
               style={{ width: `${((appealStatus?.appealDecisionAcks?.length || 0) / (appealStatus?.allMembers?.length || 1)) * 100}%` }}
             ></div>
           </div>
@@ -450,7 +453,7 @@ export function AppealAckModal({
             disabled={isSubmitting}
             className="w-full mt-3 border-accent-500/50 text-accent-400"
           >
-            🤖 [TEST] Forza Tutte Conferme Ricorso
+            [TEST] Forza Tutte Conferme Ricorso
           </Button>
         )}
       </ModalBody>
@@ -477,14 +480,14 @@ export function AwaitingResumeModal({
   onForceAllReadyResume,
 }: AwaitingResumeModalProps) {
   return (
-    <Modal isOpen={true} onClose={() => {}} closeOnBackdrop={false} closeOnEscape={false} showCloseButton={false} size="lg" className="bg-gradient-to-br from-accent-900 to-orange-950 border-4 border-accent-500 rounded-3xl animate-pulse-slow max-h-[90vh] overflow-y-auto">
+    <Modal isOpen={true} onClose={() => {}} closeOnBackdrop={false} closeOnEscape={false} showCloseButton={false} size="lg" className="bg-gradient-to-br from-accent-900 to-accent-950 border-4 border-accent-500 rounded-3xl animate-pulse-slow max-h-[90vh] overflow-y-auto">
       <ModalBody>
         <div className="text-center mb-6">
           <div className="w-16 h-16 rounded-full bg-accent-500/20 flex items-center justify-center mx-auto mb-4 animate-bounce">
-            <span className="text-4xl">🔔</span>
+            <Bell size={32} className="text-accent-400" aria-hidden="true" />
           </div>
           <h2 className="text-2xl font-black text-white uppercase">Pronto a Riprendere?</h2>
-          <p className="text-orange-200 mt-1">L'asta sta per riprendere, conferma la tua presenza</p>
+          <p className="text-accent-200 mt-1">L'asta sta per riprendere, conferma la tua presenza</p>
         </div>
 
         {/* Player info */}
@@ -517,7 +520,7 @@ export function AwaitingResumeModal({
           </div>
           <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-accent-500 to-orange-500 transition-all duration-500"
+              className="h-full bg-gradient-to-r from-accent-500 to-accent-500 transition-all duration-500"
               style={{ width: `${((appealStatus?.resumeReadyMembers?.length || 0) / (appealStatus?.allMembers?.length || 1)) * 100}%` }}
             ></div>
           </div>
@@ -552,7 +555,7 @@ export function AwaitingResumeModal({
             disabled={isSubmitting}
             className="w-full mt-3 border-accent-500/50 text-accent-400"
           >
-            🤖 [TEST] Forza Tutti Pronti
+            [TEST] Forza Tutti Pronti
           </Button>
         )}
       </ModalBody>
@@ -583,22 +586,22 @@ export function AuctionReadyCheckModal({
   if (!boardData.auctionReadyInfo) return null
 
   return (
-    <Modal isOpen={true} onClose={() => {}} closeOnBackdrop={false} closeOnEscape={false} showCloseButton={false} size="lg" className="bg-gradient-to-br from-orange-900 to-orange-950 border-4 border-orange-400 rounded-3xl animate-bounce-in">
+    <Modal isOpen={true} onClose={() => {}} closeOnBackdrop={false} closeOnEscape={false} showCloseButton={false} size="lg" className="bg-gradient-to-br from-accent-900 to-accent-950 border-4 border-accent-400 rounded-3xl animate-bounce-in">
       <ModalBody>
         {/* Header */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/20 mb-4 animate-pulse">
-            <span className="text-6xl">🎯</span>
+            <Target size={48} className="text-accent-400" aria-hidden="true" />
           </div>
           <h2 className="text-3xl font-black text-white uppercase tracking-wide">
             RUBATA!
           </h2>
-          <p className="text-orange-200 text-sm mt-2">Qualcuno vuole rubare questo giocatore!</p>
+          <p className="text-accent-200 text-sm mt-2">Qualcuno vuole rubare questo giocatore!</p>
         </div>
 
         {/* Bidder Info */}
         <div className="bg-white/10 rounded-2xl p-4 mb-4">
-          <p className="text-center text-orange-200 text-sm uppercase tracking-wider mb-2">
+          <p className="text-center text-accent-200 text-sm uppercase tracking-wider mb-2">
             Volontà di rubare di
           </p>
           <p className="text-center text-3xl font-black text-white">
@@ -627,14 +630,14 @@ export function AuctionReadyCheckModal({
           <p className="text-center text-2xl font-bold text-white">
             {boardData.auctionReadyInfo.playerName}
           </p>
-          <p className="text-center text-orange-200">
+          <p className="text-center text-accent-200">
             di <span className="font-semibold text-white">{boardData.auctionReadyInfo.ownerUsername}</span>
           </p>
         </div>
 
         {/* Price */}
         <div className="text-center mb-4">
-          <p className="text-orange-200 text-sm uppercase tracking-wider mb-1">
+          <p className="text-accent-200 text-sm uppercase tracking-wider mb-1">
             Prezzo rubata
           </p>
           <p className="text-4xl font-black text-white">
@@ -645,12 +648,12 @@ export function AuctionReadyCheckModal({
         {/* Ready Status */}
         <div className="bg-white/5 rounded-xl p-4 mb-4">
           <div className="flex justify-between items-center mb-3">
-            <span className="text-orange-200 text-sm font-bold uppercase">Manager Pronti</span>
+            <span className="text-accent-200 text-sm font-bold uppercase">Manager Pronti</span>
             <span className="text-white font-bold">{readyStatus.readyCount} / {readyStatus.totalMembers}</span>
           </div>
           <div className="h-3 bg-white/10 rounded-full overflow-hidden mb-3">
             <div
-              className="h-full bg-gradient-to-r from-orange-500 to-yellow-500 transition-all duration-500"
+              className="h-full bg-gradient-to-r from-accent-500 to-warning-500 transition-all duration-500"
               style={{ width: `${(readyStatus.readyCount / readyStatus.totalMembers) * 100}%` }}
             />
           </div>
@@ -663,7 +666,7 @@ export function AuctionReadyCheckModal({
                   <span className="text-secondary-400">✓</span>
                   <span
                     className={`absolute -bottom-1 -right-1 w-2 h-2 rounded-full border border-surface-200 ${
-                      member.isConnected === true ? 'bg-green-500' : member.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
+                      member.isConnected === true ? 'bg-secondary-500' : member.isConnected === false ? 'bg-danger-500' : 'bg-gray-500'
                     }`}
                     title={member.isConnected ? 'Online' : 'Offline'}
                   />
@@ -677,7 +680,7 @@ export function AuctionReadyCheckModal({
                   <span className="text-gray-500">○</span>
                   <span
                     className={`absolute -bottom-1 -right-1 w-2 h-2 rounded-full border border-surface-200 ${
-                      member.isConnected === true ? 'bg-green-500' : member.isConnected === false ? 'bg-red-500' : 'bg-gray-500'
+                      member.isConnected === true ? 'bg-secondary-500' : member.isConnected === false ? 'bg-danger-500' : 'bg-gray-500'
                     }`}
                     title={member.isConnected ? 'Online' : 'Offline'}
                   />
@@ -691,8 +694,8 @@ export function AuctionReadyCheckModal({
         {/* Action Buttons */}
         <div className="space-y-2">
           {!readyStatus.userIsReady ? (
-            <Button onClick={onSetReady} disabled={isSubmitting} className="w-full py-3 text-lg bg-orange-500 hover:bg-orange-600">
-              ✅ SONO PRONTO PER L'ASTA!
+            <Button onClick={onSetReady} disabled={isSubmitting} className="w-full py-3 text-lg bg-accent-500 hover:bg-accent-600">
+              SONO PRONTO PER L'ASTA!
             </Button>
           ) : (
             <div className="w-full py-3 bg-secondary-500/20 border border-secondary-500/40 rounded-xl text-secondary-400 font-bold text-center">
@@ -700,7 +703,7 @@ export function AuctionReadyCheckModal({
             </div>
           )}
           {isAdmin && (
-            <Button onClick={onForceAllReady} disabled={isSubmitting} variant="outline" className="w-full border-orange-500/50 text-orange-400">
+            <Button onClick={onForceAllReady} disabled={isSubmitting} variant="outline" className="w-full border-accent-500/50 text-accent-400">
               [TEST] Forza Tutti Pronti
             </Button>
           )}

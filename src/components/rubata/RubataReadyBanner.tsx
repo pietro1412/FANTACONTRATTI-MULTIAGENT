@@ -29,7 +29,6 @@ export function RubataReadyBanner({
 
   const isPaused = variant === 'paused'
   const borderColor = isPaused ? 'border-gray-500/50' : 'border-primary-500/50'
-  const icon = isPaused ? '⏸️' : '🔔'
   const title = isPaused ? 'IN PAUSA' : 'Pronti?'
   const titleColor = isPaused ? 'text-gray-300' : 'text-primary-400'
 
@@ -37,7 +36,6 @@ export function RubataReadyBanner({
     <div className={`mb-3 bg-surface-200 rounded-xl border ${borderColor} overflow-hidden`}>
       {/* Main row */}
       <div className="flex items-center gap-2 px-3 py-2 flex-wrap">
-        <span className="text-base">{icon}</span>
         <span className={`font-bold text-sm ${titleColor}`}>{title}</span>
         <span className="text-gray-400 text-xs">{readyStatus.readyCount}/{readyStatus.totalMembers}</span>
 
@@ -63,7 +61,7 @@ export function RubataReadyBanner({
         <div className="flex items-center gap-2">
           {!readyStatus.userIsReady ? (
             <Button onClick={onSetReady} disabled={isSubmitting} size="sm" className="text-xs py-1 px-3">
-              ✅ Sono Pronto
+              Sono Pronto
             </Button>
           ) : (
             <span className="px-2 py-0.5 bg-secondary-500/20 border border-secondary-500/40 rounded text-secondary-400 text-xs">
@@ -78,7 +76,7 @@ export function RubataReadyBanner({
               size="sm"
               className="border-warning-500/50 text-warning-400 hover:bg-warning-500/10 text-xs py-1 px-2"
             >
-              🤖 Forza Tutti
+              Forza Tutti
             </Button>
           )}
         </div>

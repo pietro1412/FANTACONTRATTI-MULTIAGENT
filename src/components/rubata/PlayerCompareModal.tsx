@@ -52,7 +52,7 @@ export function PlayerCompareModal({ isOpen, onClose, players }: PlayerCompareMo
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalHeader>
         <span className="text-lg font-bold flex items-center gap-2">
-          <span>⚖️</span> Confronto Giocatori
+          Confronto Giocatori
         </span>
       </ModalHeader>
       <ModalBody className="max-h-[70vh]">

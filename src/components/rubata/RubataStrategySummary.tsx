@@ -167,9 +167,8 @@ export function RubataStrategySummary({
         className="w-full p-3 md:p-4 flex items-center justify-between hover:bg-surface-300/30 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <span className="text-lg">🎯</span>
           <span className="text-sm font-bold text-white">Strategie</span>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 font-mono">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-400 font-mono">
             {configured}/{total}
           </span>
         </div>
@@ -183,16 +182,16 @@ export function RubataStrategySummary({
             <div className="flex gap-1 overflow-x-auto flex-1">
               {([
                 { key: 'all' as const, label: 'Tutti' },
-                { key: 'watchlist' as const, label: '👁️' },
-                { key: 'autopass' as const, label: '⏭️' },
-                { key: 'maxbid' as const, label: '💰' },
+                { key: 'watchlist' as const, label: 'Watchlist' },
+                { key: 'autopass' as const, label: 'Skip' },
+                { key: 'maxbid' as const, label: 'Max bid' },
               ]).map(tab => (
                 <button
                   key={tab.key}
                   onClick={() => { setFilterType(tab.key); }}
                   className={`px-2 py-1 rounded text-[11px] font-medium whitespace-nowrap transition-all ${
                     filterType === tab.key
-                      ? 'bg-indigo-500/20 text-indigo-400'
+                      ? 'bg-primary-500/20 text-primary-400'
                       : 'text-gray-500 hover:text-gray-300'
                   }`}
                 >
@@ -241,16 +240,16 @@ export function RubataStrategySummary({
                     <button
                       onClick={() => { void onBulkSetPreference(getPlayerIdsByPosition(bulkPosition), { isWatchlist: true, isAutoPass: false }); }}
                       disabled={isSubmitting}
-                      className="flex-1 px-2 py-1.5 rounded text-[11px] font-medium bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 disabled:opacity-30 transition-all"
+                      className="flex-1 px-2 py-1.5 rounded text-[11px] font-medium bg-primary-500/20 text-primary-400 hover:bg-primary-500/30 disabled:opacity-30 transition-all"
                     >
-                      👁️ Watchlist tutti {bulkPosition}
+                      Watchlist tutti {bulkPosition}
                     </button>
                     <button
                       onClick={() => { void onBulkSetPreference(getPlayerIdsByPosition(bulkPosition), { isAutoPass: true, isWatchlist: false }); }}
                       disabled={isSubmitting}
                       className="flex-1 px-2 py-1.5 rounded text-[11px] font-medium bg-gray-500/20 text-gray-400 hover:bg-gray-500/30 disabled:opacity-30 transition-all"
                     >
-                      ⏭️ Skip tutti {bulkPosition}
+                      Skip tutti {bulkPosition}
                     </button>
                   </div>
 
@@ -304,15 +303,15 @@ export function RubataStrategySummary({
                     {player.playerName}
                   </span>
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    {pref?.isWatchlist && <span title="Watchlist">👁️</span>}
-                    {pref?.isAutoPass && <span title="Auto-skip">⏭️</span>}
+                    {pref?.isWatchlist && <span className="text-[10px] font-mono font-bold text-primary-400" title="Watchlist">WL</span>}
+                    {pref?.isAutoPass && <span className="text-[10px] font-mono font-bold text-gray-500" title="Auto-skip">SKIP</span>}
                     {pref?.priority && (
-                      <span className="text-purple-400">{'★'.repeat(pref.priority)}</span>
+                      <span className="text-accent-400">{'★'.repeat(pref.priority)}</span>
                     )}
                     {pref?.maxBid && (
-                      <span className="text-blue-400 font-mono">{pref.maxBid}M</span>
+                      <span className="text-primary-400 font-mono">{pref.maxBid}M</span>
                     )}
-                    {pref?.notes && <span title={pref.notes}>📝</span>}
+                    {pref?.notes && <span className="text-[10px] text-gray-500" title={pref.notes}>Note</span>}
                   </div>
                 </button>
               ))}
@@ -327,7 +326,7 @@ export function RubataStrategySummary({
               className="flex-1 px-2 py-1.5 rounded text-[11px] font-medium bg-surface-300/50 text-gray-400 hover:text-white hover:bg-surface-300 disabled:opacity-30 transition-all"
               title="Esporta strategie negli appunti"
             >
-              📤 Esporta
+              Esporta
             </button>
             <button
               onClick={() => { void handleImport() }}
@@ -335,18 +334,18 @@ export function RubataStrategySummary({
               className="flex-1 px-2 py-1.5 rounded text-[11px] font-medium bg-surface-300/50 text-gray-400 hover:text-white hover:bg-surface-300 disabled:opacity-30 transition-all"
               title="Importa strategie dagli appunti"
             >
-              📥 Importa
+              Importa
             </button>
           </div>
           {ioMessage && (
-            <p className="mt-1.5 text-[11px] text-center text-indigo-400 animate-[fadeIn_0.2s_ease-out]">{ioMessage}</p>
+            <p className="mt-1.5 text-[11px] text-center text-primary-400 animate-[fadeIn_0.2s_ease-out]">{ioMessage}</p>
           )}
 
           {/* Progress bar */}
           <div className="mt-3 flex items-center gap-2">
             <div className="flex-1 h-1.5 bg-surface-300 rounded-full overflow-hidden">
               <div
-                className="h-full bg-indigo-500 transition-all"
+                className="h-full bg-primary-500 transition-all"
                 style={{ width: `${total > 0 ? (configured / total) * 100 : 0}%` }}
               />
             </div>

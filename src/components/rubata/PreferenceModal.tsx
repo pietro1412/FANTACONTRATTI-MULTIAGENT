@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Eye, SkipForward } from 'lucide-react'
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/Modal'
 import { Textarea } from '@/components/ui/Textarea'
 import { Button } from '../ui/Button'
@@ -63,7 +64,7 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
   }
 
   return (
-    <Modal isOpen={true} onClose={onClose} size="md" showCloseButton={false} className="border-indigo-500/50">
+    <Modal isOpen={true} onClose={onClose} size="md" showCloseButton={false} className="border-primary-500/50">
       <ModalHeader>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white rounded p-1">
@@ -86,11 +87,11 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
               onClick={() => { setFormData(p => ({ ...p, isWatchlist: !p.isWatchlist, isAutoPass: !p.isWatchlist ? false : p.isAutoPass })); }}
               className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 transition-all min-h-[44px] ${
                 formData.isWatchlist
-                  ? 'bg-indigo-500/20 border-indigo-500/60 text-indigo-400'
+                  ? 'bg-primary-500/20 border-primary-500/60 text-primary-400'
                   : 'bg-surface-300/50 border-surface-50/20 text-gray-500 hover:border-surface-50/40'
               }`}
             >
-              <span className="text-lg">{formData.isWatchlist ? '👁️' : '👁️‍🗨️'}</span>
+              <Eye size={16} aria-hidden="true" />
               <span className="text-sm font-medium">Watchlist</span>
             </button>
             <button
@@ -102,7 +103,7 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
                   : 'bg-surface-300/50 border-surface-50/20 text-gray-500 hover:border-surface-50/40'
               }`}
             >
-              <span className="text-lg">⏭️</span>
+              <SkipForward size={16} aria-hidden="true" />
               <span className="text-sm font-medium">Auto-skip</span>
             </button>
           </div>
@@ -174,7 +175,7 @@ export function PreferenceModal({ player, onClose, onSave, onDelete, isSubmittin
                       priority: p.priority === String(star) ? '' : String(star)
                     })); }}
                     className={`w-10 h-10 min-h-[44px] min-w-[44px] text-2xl transition-all transform hover:scale-110 ${
-                      isActive ? 'text-purple-400' : 'text-gray-500 hover:text-purple-400/50'
+                      isActive ? 'text-accent-400' : 'text-gray-500 hover:text-accent-400/50'
                     }`}
                     title={`Priorità ${star}`}
                   >

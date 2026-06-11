@@ -1,5 +1,8 @@
 import { memo } from 'react'
+import { Settings } from 'lucide-react'
+import { Monogram } from './Monogram'
 import { POSITION_COLORS } from '../../types/rubata.types'
+import { getWatchlistCategory } from '@/types/watchlist.types'
 import type { BoardPlayer, RubataPreference } from '../../types/rubata.types'
 import type { ComputedSeasonStats } from '../PlayerStatsModal'
 
@@ -30,9 +33,10 @@ export interface BoardRowProps {
   onToggleCompare?: () => void
   // Manager group separator
   isNewOwnerGroup?: boolean
-  // Expandable row (mobile density)
-  isExpanded?: boolean
-  onToggleExpand?: () => void
+}
+
+function semestriLabel(n: number): string {
+  return n === 1 ? '1 semestre' : `${n} semestri`
 }
 
 export const BoardRow = memo(function BoardRow({
@@ -49,38 +53,15 @@ export const BoardRow = memo(function BoardRow({
   compareMode,
   isCompareSelected,
   onToggleCompare,
-  isExpanded,
-  onToggleExpand,
 }: BoardRowProps) {
   const wasStolen = !!player.stolenByUsername
   const isMyPlayer = player.memberId === myMemberId
-  const isWatchlisted = !isMyPlayer && !isPassed && pref?.isWatchlist
-  const isAutoSkip = !isMyPlayer && !isPassed && pref?.isAutoPass
+  const isWatchlisted = !isMyPlayer && !isPassed && !!pref?.isWatchlist
+  const isAutoSkip = !isMyPlayer && !isPassed && !!pref?.isAutoPass
+  const wlCategory = getWatchlistCategory(pref?.watchlistCategory)
+  const ownerName = player.ownerTeamName ?? player.ownerUsername
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      onPlayerStatsClick({
-        name: player.playerName,
-        team: player.playerTeam,
-        position: player.playerPosition,
-        quotation: player.playerQuotation,
-        age: player.playerAge,
-        apiFootballId: player.playerApiFootballId,
-        computedStats: player.playerComputedStats,
-      })
-    } else if (e.key === ' ' && canEditPreferences && !isMyPlayer && !isPassed) {
-      e.preventDefault()
-      onOpenPrefsModal({ ...player, preference: pref || null })
-    }
-  }
-
-  const durationColor =
-    player.contractDuration === 1 ? 'text-danger-400' :
-    player.contractDuration === 2 ? 'text-warning-400' :
-    player.contractDuration === 3 ? 'text-primary-400' :
-    'text-secondary-400'
-
-  const handlePlayerClick = () => {
+  const handleStatsClick = () => {
     onPlayerStatsClick({
       name: player.playerName,
       team: player.playerTeam,
@@ -92,71 +73,27 @@ export const BoardRow = memo(function BoardRow({
     })
   }
 
-  // Row background/state styles
-  const rowStateClass =
-    isCurrent
-      ? 'border-l-4 border-l-primary-500 bg-primary-500/15'
-      : isPassed && wasStolen
-      ? 'bg-danger-500/10'
-      : isPassed && !wasStolen
-      ? 'opacity-40'
-      : isAutoSkip
-      ? 'opacity-30'
-      : isWatchlisted
-      ? 'bg-indigo-500/5'
-      : ''
-
-  // Strategy indicators
-  const hasStrategy = pref?.priority || pref?.maxBid || pref?.notes || pref?.isWatchlist || pref?.isAutoPass
-
-  // Contract info string (used on both layouts)
-  const contractInline = (passedStyle: boolean) => (
-    <span className="flex items-center gap-0.5 text-xs whitespace-nowrap">
-      <span className={passedStyle ? 'text-gray-500' : 'text-accent-400'}>Ing {player.contractSalary}M</span>
-      <span className="text-gray-600 mx-0.5" aria-hidden="true">&middot;</span>
-      <span className={passedStyle ? 'text-gray-500' : durationColor}>{player.contractDuration}s</span>
-      <span className="text-gray-600 mx-0.5" aria-hidden="true">&middot;</span>
-      <span className={passedStyle ? 'text-gray-500' : 'text-purple-400'}>Cl {player.contractClause}M</span>
-    </span>
-  )
-
-  // Strategy indicators inline
-  const strategyIndicators = () => {
-    if (isMyPlayer || isPassed) return null
-    return (
-      <span className="flex items-center gap-1 flex-shrink-0">
-        {pref?.isWatchlist && <span className="text-indigo-400 text-[10px]" title="In watchlist">&#128065;&#65039;</span>}
-        {pref?.isAutoPass && <span className="text-gray-400 text-[10px]" title="Auto-skip">&#9197;&#65039;</span>}
-        {pref?.priority && <span className="text-purple-400 text-[10px]" title={`Priorita ${pref.priority}`}>{'★'.repeat(pref.priority)}</span>}
-        {pref?.maxBid && <span className="text-blue-400 text-[10px]" title={`Max ${pref.maxBid}M`}>Max: {pref.maxBid}M</span>}
-        {pref?.notes && <span className="text-gray-400 text-[10px]" title={pref.notes} aria-label="Note strategia impostate">&#128221;</span>}
-      </span>
-    )
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleStatsClick()
+    } else if (e.key === ' ' && canEditPreferences && !isMyPlayer && !isPassed) {
+      e.preventDefault()
+      onOpenPrefsModal({ ...player, preference: pref || null })
+    }
   }
 
-  // Strategy gear button
-  const strategyButton = () => {
-    if (isMyPlayer || isPassed || isCurrent || !canEditPreferences) return null
-    return hasStrategy ? (
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); onOpenPrefsModal({ ...player, preference: pref }) }}
-        className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/30 text-indigo-400 flex-shrink-0"
-        title="Modifica strategia"
-      >
-        &#9881;&#65039;
-      </button>
-    ) : (
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); onOpenPrefsModal({ ...player, preference: pref || null }) }}
-        className="px-1.5 py-0.5 rounded text-[10px] bg-surface-50/20 text-indigo-400/70 hover:bg-indigo-500/20 hover:text-indigo-400 flex-shrink-0"
-        title="Imposta strategia"
-      >
-        &#9881;&#65039;
-      </button>
-    )
-  }
+  // Row state styles (mockup v2: sul piatto = filo oro, miei = filo blu, processati attenuati)
+  const rowStateClass = isCurrent
+    ? 'border-l-[3px] border-l-accent-500 bg-gradient-to-r from-accent-500/15 to-accent-500/[0.03]'
+    : isMyPlayer && !isPassed
+    ? 'border-l-[3px] border-l-primary-500 bg-primary-500/5'
+    : isPassed
+    ? 'opacity-40'
+    : isAutoSkip
+    ? 'opacity-30'
+    : isWatchlisted
+    ? 'bg-primary-500/5'
+    : ''
 
   return (
     <div
@@ -165,11 +102,10 @@ export const BoardRow = memo(function BoardRow({
       role="listitem"
       aria-label={`${player.playerName}, ${player.playerPosition}, ${player.playerTeam}${isCurrent ? ', sul piatto' : ''}${wasStolen ? `, rubato da ${player.stolenByUsername ?? ''}` : ''}`}
       onKeyDown={handleKeyDown}
-      className={`px-2 py-1 md:px-3 md:py-1.5 border-b border-surface-50/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/70 ${rowStateClass}`}
+      className={`px-2.5 py-2 md:px-3 border-b border-surface-50/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/70 ${rowStateClass}`}
     >
-      {/* DESKTOP: single flex row */}
-      <div className="hidden md:flex items-center gap-2 min-w-0">
-        {/* Compare checkbox */}
+      {/* Riga 1: identità */}
+      <div className="flex items-center gap-2 min-w-0">
         {compareMode && !isPassed && (
           <button
             type="button"
@@ -189,19 +125,16 @@ export const BoardRow = memo(function BoardRow({
           </button>
         )}
 
-        {/* Index */}
-        <span className="text-[11px] font-mono w-5 text-center text-gray-500 flex-shrink-0">#{globalIndex + 1}</span>
+        <span className="text-[10px] font-mono w-6 text-center text-gray-500 flex-shrink-0">#{globalIndex + 1}</span>
 
-        {/* Position badge */}
-        <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[9px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
+        <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
           {player.playerPosition}
         </span>
 
-        {/* Player name (clickable) */}
         <button
           type="button"
-          onClick={handlePlayerClick}
-          className={`font-semibold text-sm truncate text-left flex-shrink min-w-0 ${
+          onClick={handleStatsClick}
+          className={`font-display font-bold text-sm truncate text-left min-w-0 ${
             isPassed ? 'text-gray-500' : 'text-white hover:text-primary-300'
           }`}
           title="Clicca per statistiche"
@@ -209,145 +142,76 @@ export const BoardRow = memo(function BoardRow({
           {player.playerName}
         </button>
 
-        {/* Owner */}
-        <span className="text-[11px] text-gray-500 truncate flex-shrink-0 max-w-[120px]">
-          di <span className={isPassed && wasStolen ? 'line-through' : ''}>{player.ownerTeamName ?? player.ownerUsername}</span>
+        <span className="text-xs text-gray-500 truncate flex-shrink min-w-0 hidden sm:inline">{player.playerTeam}</span>
+
+        {isCurrent && (
+          <span className="text-[9px] font-mono font-bold text-dark-300 bg-accent-400 rounded px-1.5 py-px tracking-wider flex-shrink-0">
+            SUL PIATTO
+          </span>
+        )}
+
+        {wlCategory && !isMyPlayer && !isPassed && (
+          <span className={`text-[9px] font-mono font-bold rounded border px-1.5 py-px flex-shrink-0 ${wlCategory.color}`} title={`Watchlist: ${wlCategory.label}`}>
+            {wlCategory.label.toUpperCase()}
+          </span>
+        )}
+        {!wlCategory && isWatchlisted && (
+          <span className="text-[9px] font-mono font-bold rounded border px-1.5 py-px flex-shrink-0 bg-primary-500/15 text-primary-400 border-primary-500/40" title="In watchlist">
+            WATCH
+          </span>
+        )}
+
+        <span className="flex-1" />
+
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-500 flex-shrink-0 min-w-0">
+          <Monogram name={ownerName} size="xs" className={isMyPlayer ? 'border-primary-500/60 text-primary-400' : ''} />
+          <span className={`truncate max-w-[90px] ${isPassed && wasStolen ? 'line-through' : ''}`}>{ownerName}</span>
         </span>
 
-        {/* Stolen inline */}
-        {wasStolen && (
+        {!isMyPlayer && !isPassed && !isCurrent && canEditPreferences && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onOpenPrefsModal({ ...player, preference: pref || null }) }}
+            className="p-1 rounded text-primary-400/80 hover:text-primary-300 hover:bg-primary-500/15 flex-shrink-0 transition-colors"
+            title={pref ? 'Modifica strategia' : 'Imposta strategia'}
+          >
+            <Settings size={12} aria-hidden="true" />
+          </button>
+        )}
+      </div>
+
+      {/* Riga 2: economia / esito */}
+      <div className="flex items-center gap-2 mt-1 ml-8 md:ml-9 min-w-0 text-xs">
+        {wasStolen ? (
+          <span className="text-danger-400 font-semibold truncate">
+            Rubato da {player.stolenByUsername} per {player.stolenPrice ?? player.rubataPrice}M
+          </span>
+        ) : isPassed ? (
+          <span className="text-gray-500 truncate">Passato — resta a {ownerName}</span>
+        ) : (
           <>
-            <span className="text-danger-400 text-[11px] font-bold flex-shrink-0">
-              &#127919; {player.stolenByUsername}
+            <span className={`font-bold whitespace-nowrap ${isCurrent ? 'text-accent-300' : isMyPlayer ? 'text-gray-500' : 'text-warning-400'}`}>
+              Costo rubata <span className="stat-number text-sm">{player.rubataPrice}M</span>
             </span>
-            {player.stolenPrice != null && player.stolenPrice > player.rubataPrice && (
-              <span className="text-danger-500 text-[10px] font-medium flex-shrink-0">(+{player.stolenPrice - player.rubataPrice}M)</span>
+            <span className="text-gray-600 hidden sm:inline" aria-hidden="true">·</span>
+            <span className="text-gray-500 truncate hidden sm:inline">
+              ingaggio {player.contractSalary}M · {semestriLabel(player.contractDuration)}
+            </span>
+            {isMyPlayer && (
+              <span className="text-primary-400 font-medium whitespace-nowrap">tua rosa — non rubabile da te</span>
+            )}
+            {isAutoSkip && (
+              <span className="text-gray-500 whitespace-nowrap">auto-skip</span>
+            )}
+            {!isMyPlayer && (pref?.priority || pref?.maxBid != null || pref?.notes) && (
+              <span className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
+                {pref?.priority ? <span className="text-accent-400 text-[10px]" title={`Priorità ${pref.priority}`}>{'★'.repeat(pref.priority)}</span> : null}
+                {pref?.maxBid != null && <span className="text-primary-400 text-[10px] font-mono" title={`Max ${pref.maxBid}M`}>Max: {pref.maxBid}M</span>}
+                {pref?.notes && <span className="text-gray-500 text-[10px]" title={pref.notes} aria-label="Note strategia impostate">Note</span>}
+              </span>
             )}
           </>
         )}
-
-        {/* Passed check */}
-        {isPassed && !wasStolen && (
-          <span className="text-secondary-500 text-[11px] flex-shrink-0">&#10003;</span>
-        )}
-
-        {/* My player label */}
-        {isMyPlayer && !isPassed && (
-          <span className="text-gray-500 text-[10px] flex-shrink-0">Mio</span>
-        )}
-
-        {/* Separator */}
-        <span className="text-gray-700 flex-shrink-0">|</span>
-
-        {/* Contract data inline */}
-        {contractInline(isPassed)}
-
-        {/* Separator */}
-        <span className="text-gray-700 flex-shrink-0">|</span>
-
-        {/* Rubata price */}
-        <span className={`font-black text-sm flex-shrink-0 ${
-          isCurrent ? 'text-primary-400' : isPassed ? 'text-gray-500' : 'text-warning-400'
-        }`}>
-          {player.rubataPrice}M
-        </span>
-
-        {/* Separator before strategy */}
-        {!isPassed && !isMyPlayer && !isCurrent && <span className="text-gray-700 flex-shrink-0">|</span>}
-
-        {/* Strategy indicators + button */}
-        {strategyIndicators()}
-        {strategyButton()}
-      </div>
-
-      {/* MOBILE: 2-row layout */}
-      <div className="md:hidden">
-        {/* Row 1: index, position, name, rubata price */}
-        <div className="flex items-center gap-1 min-w-0">
-          {/* Compare checkbox */}
-          {compareMode && !isPassed && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onToggleCompare?.() }}
-              className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center ${
-                isCompareSelected
-                  ? 'bg-primary-500 border-primary-500 text-white'
-                  : 'border-gray-500'
-              }`}
-              aria-label={isCompareSelected ? 'Rimuovi dal confronto' : 'Aggiungi al confronto'}
-            >
-              {isCompareSelected && (
-                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </button>
-          )}
-
-          <span className="text-[10px] font-mono text-gray-500 flex-shrink-0 w-5 text-center">#{globalIndex + 1}</span>
-
-          <span className={`inline-flex items-center justify-center w-4 h-4 rounded text-[8px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
-            {player.playerPosition}
-          </span>
-
-          <button
-            type="button"
-            onClick={handlePlayerClick}
-            className={`font-semibold text-sm truncate text-left flex-1 min-w-0 ${
-              isPassed ? 'text-gray-500' : 'text-white'
-            }`}
-            title="Clicca per statistiche"
-          >
-            {player.playerName}
-          </button>
-
-          {/* Stolen inline on mobile */}
-          {wasStolen && (
-            <>
-              <span className="text-danger-400 text-[10px] font-bold flex-shrink-0">
-                &#127919; {player.stolenByUsername}
-              </span>
-              {player.stolenPrice != null && player.stolenPrice > player.rubataPrice && (
-                <span className="text-danger-500 text-[10px] font-medium flex-shrink-0">(+{player.stolenPrice - player.rubataPrice}M)</span>
-              )}
-            </>
-          )}
-
-          {/* Passed check on mobile */}
-          {isPassed && !wasStolen && (
-            <span className="text-secondary-500 text-[10px] flex-shrink-0">&#10003;</span>
-          )}
-
-          {/* Rubata price right-aligned */}
-          <span className={`ml-auto font-black text-sm flex-shrink-0 ${
-            isCurrent ? 'text-primary-400' : isPassed ? 'text-gray-500' : 'text-warning-400'
-          }`}>
-            {player.rubataPrice}M
-          </span>
-        </div>
-
-        {/* Row 2: owner, contract, strategy (click to expand on non-current) */}
-        <div
-          className="flex items-center gap-1 ml-5 mt-0.5 flex-wrap cursor-pointer"
-          onClick={onToggleExpand}
-          role="button"
-          tabIndex={0}
-        >
-          <span className="text-[10px] text-gray-500">
-            di <span className={isPassed && wasStolen ? 'line-through' : 'text-gray-400'}>{player.ownerUsername}</span>
-          </span>
-
-          {(isCurrent || isExpanded) ? (
-            <>
-              <span className="text-gray-600 text-[10px]" aria-hidden="true">&middot;</span>
-              {contractInline(isPassed)}
-              {strategyIndicators()}
-              {strategyButton()}
-            </>
-          ) : (
-            <span className="text-gray-600 text-[10px] ml-0.5" aria-hidden="true">&#8250;</span>
-          )}
-        </div>
       </div>
     </div>
   )

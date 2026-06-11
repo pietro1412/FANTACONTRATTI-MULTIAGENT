@@ -72,6 +72,8 @@ export interface RubataPreference {
   maxBid: number | null
   priority: number | null
   notes: string | null
+  /** Categoria watchlist (#219) — stessa tassonomia di StrategieRubata */
+  watchlistCategory?: string | null
 }
 
 export interface MemberBudgetInfo {

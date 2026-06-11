@@ -1,8 +1,9 @@
 import { memo } from 'react'
-import { Button } from '../ui/Button'
+import { Settings } from 'lucide-react'
 import { TeamLogo } from './TeamLogo'
-import { CircularTimer } from './CircularTimer'
+import { Monogram } from './Monogram'
 import { POSITION_COLORS } from '../../types/rubata.types'
+import { getWatchlistCategory } from '@/types/watchlist.types'
 import { getPlayerPhotoUrl } from '../../utils/player-images'
 import type {
   BoardPlayer,
@@ -26,11 +27,11 @@ interface PlayerStatsInfo {
 export interface HeroPlayerCardProps {
   player: BoardPlayer
   rubataState: RubataStateType
-  timerDisplay: number | null
-  timerTotal: number
   canMakeOffer: boolean
   isSubmitting: boolean
   myMemberId: string | undefined
+  /** Bilancio residuo del manager corrente (per affordability check) */
+  myResiduo?: number | null
   preference: RubataPreference | undefined
   activeAuction: ActiveAuction | null
   onMakeOffer: () => void
@@ -40,27 +41,17 @@ export interface HeroPlayerCardProps {
   heroRef?: React.RefObject<HTMLDivElement>
 }
 
-function AgeBadge({ age }: { age: number }) {
-  const colors =
-    age <= 23 ? 'bg-green-500/20 text-green-400' :
-    age <= 28 ? 'bg-surface-50/20 text-gray-300' :
-    age <= 31 ? 'bg-warning-500/20 text-warning-400' :
-    'bg-danger-500/20 text-danger-400'
-  return (
-    <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${colors}`}>
-      {age}a
-    </span>
-  )
+function semestriLabel(n: number): string {
+  return n === 1 ? '1 semestre' : `${n} semestri`
 }
 
 export const HeroPlayerCard = memo(function HeroPlayerCard({
   player,
   rubataState,
-  timerDisplay,
-  timerTotal,
   canMakeOffer,
   isSubmitting,
   myMemberId,
+  myResiduo,
   preference: pref,
   activeAuction,
   onMakeOffer,
@@ -70,50 +61,44 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
   heroRef,
 }: HeroPlayerCardProps) {
   const isMyPlayer = player.memberId === myMemberId
-  const ownerLabel = player.ownerTeamName
-    ? `${player.ownerTeamName} (${player.ownerUsername})`
-    : player.ownerUsername
+  const ownerName = player.ownerTeamName ?? player.ownerUsername
 
-  const hasStrategy = pref?.priority || pref?.maxBid || pref?.notes || pref?.isWatchlist
+  const wlCategory = getWatchlistCategory(pref?.watchlistCategory)
+  const showWatchlistChip = !isMyPlayer && !!(pref?.isWatchlist || wlCategory)
 
-  const durationColor =
-    player.contractDuration === 1 ? 'text-danger-400' :
-    player.contractDuration === 2 ? 'text-warning-400' :
-    player.contractDuration === 3 ? 'text-primary-400' :
-    'text-secondary-400'
+  const residuoAfter = myResiduo != null ? myResiduo - player.rubataPrice : null
+  const canAfford = residuoAfter !== null && residuoAfter >= 0
+
+  const winningBid = activeAuction && activeAuction.bids.length > 0
+    ? activeAuction.bids.find(b => b.isWinning) ?? activeAuction.bids[0]
+    : null
 
   return (
     <div
       ref={heroRef as React.RefObject<HTMLDivElement>}
-      className="mb-3 bg-gradient-to-r from-primary-500/20 via-surface-200 to-primary-500/20 border-2 border-primary-500 rounded-xl shadow-lg overflow-hidden"
+      className="mb-3 bg-surface-200 border border-accent-500/70 rounded-xl shadow-glow-gold overflow-hidden"
     >
-      {/* Header label */}
-      <div className="bg-primary-500/30 px-4 py-1.5 flex items-center justify-between">
-        <span className="text-xs font-bold text-primary-300 uppercase tracking-wider">SUL PIATTO</span>
-        {timerDisplay !== null && (
-          <CircularTimer seconds={timerDisplay} totalSeconds={timerTotal} size="sm" />
-        )}
-      </div>
-
-      {/* Card body */}
       <div className="p-4">
-        {/* Player info row */}
+        {/* Arena tag */}
+        <p className="text-[11px] font-mono font-bold uppercase tracking-[0.12em] text-accent-400 mb-3">
+          {rubataState === 'AUCTION' ? 'Asta al rilancio' : 'Sul piatto — vuoi rubarlo?'}
+        </p>
+
+        {/* Player head */}
         <div className="flex items-center gap-3">
-          {/* Photo / position fallback */}
           {player.playerApiFootballId ? (
             <img
               src={getPlayerPhotoUrl(player.playerApiFootballId)}
               alt={player.playerName}
-              className="w-14 h-14 rounded-full object-cover bg-surface-300 border-2 border-primary-500 flex-shrink-0"
+              className="w-12 h-12 rounded-full object-cover bg-surface-300 border-2 border-accent-500/60 flex-shrink-0"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
             />
           ) : (
-            <div className={`w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-display font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
               {player.playerPosition}
             </div>
           )}
 
-          {/* Name + team + owner */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <button
@@ -127,7 +112,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
                   apiFootballId: player.playerApiFootballId,
                   computedStats: player.playerComputedStats,
                 }); }}
-                className="text-lg font-bold text-white hover:text-primary-300 truncate"
+                className="text-xl sm:text-2xl font-display font-bold text-white hover:text-accent-300 truncate leading-tight"
                 title="Clicca per vedere statistiche"
               >
                 {player.playerName}
@@ -135,81 +120,128 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
               <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold flex-shrink-0 ${POSITION_COLORS[player.playerPosition] ?? ''}`}>
                 {player.playerPosition}
               </span>
-              {player.playerAge != null && <AgeBadge age={player.playerAge} />}
             </div>
-            <div className="flex items-center gap-2 mt-0.5">
-              <div className="w-5 h-5 bg-white rounded p-0.5 flex-shrink-0">
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap text-sm text-gray-400">
+              <span className="w-4 h-4 bg-white rounded p-px flex-shrink-0">
                 <TeamLogo team={player.playerTeam} />
-              </div>
-              <span className="text-sm text-gray-400">{player.playerTeam}</span>
-              <span className="text-gray-600" aria-hidden="true">·</span>
-              <span className="text-sm text-gray-500">di {ownerLabel}</span>
+              </span>
+              <span>{player.playerTeam}</span>
+              {player.playerAge != null && (
+                <>
+                  <span className="text-gray-600" aria-hidden="true">·</span>
+                  <span>{player.playerAge} anni</span>
+                </>
+              )}
+              <span className="inline-flex items-center gap-1.5 ml-1 pl-1 pr-2.5 py-0.5 rounded-full bg-surface-300 border border-surface-50/30 text-xs text-gray-400">
+                <Monogram name={ownerName} size="xs" />
+                dalla rosa di <b className="text-gray-200 font-semibold">{ownerName}</b>
+              </span>
             </div>
           </div>
-
-          {/* Rubata price - prominent */}
-          <div className="text-right flex-shrink-0">
-            <div className="text-2xl font-black text-primary-400">{player.rubataPrice}M</div>
-          </div>
         </div>
 
-        {/* Contract details strip */}
-        <div className="flex items-center gap-4 mt-3 text-sm">
-          <div>
-            <span className="text-gray-500 text-xs">Ingaggio </span>
-            <span className="font-bold text-accent-400">{player.contractSalary}M</span>
-          </div>
-          <div>
-            <span className="text-gray-500 text-xs">Durata </span>
-            <span className={`font-bold ${durationColor}`}>{player.contractDuration}s</span>
-          </div>
-          <div>
-            <span className="text-gray-500 text-xs">Clausola </span>
-            <span className="font-bold text-purple-400">{player.contractClause}M</span>
-          </div>
-        </div>
-
-        {/* Strategy row */}
-        {!isMyPlayer && (hasStrategy || canEditPreferences) && (
-          <div className="flex items-center gap-2 mt-2.5">
-            {pref?.isWatchlist && <span className="text-indigo-400 text-sm" title="In watchlist">👁️</span>}
-            {pref?.priority && <span className="text-purple-400 text-sm">{'★'.repeat(pref.priority)}</span>}
-            {pref?.maxBid && <span className="text-blue-400 text-sm">Max: {pref.maxBid}M</span>}
-            {pref?.notes && <span className="text-gray-400 text-sm" title={pref.notes}>📝</span>}
-            {canEditPreferences && (
-              <button
-                type="button"
-                onClick={() => { onOpenPrefsModal({ ...player, preference: pref || null }); }}
-                className="ml-auto px-2 py-1 rounded text-xs bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30"
-              >
-                {hasStrategy ? '⚙️ Modifica' : '+ Strategia'}
-              </button>
+        {/* Watchlist chip — stessa tassonomia di StrategieRubata */}
+        {showWatchlistChip && (
+          <div className="mt-3 inline-flex items-center gap-2 flex-wrap rounded-lg border border-primary-500/40 bg-primary-500/10 px-3 py-1.5 text-sm">
+            <span className="text-gray-300">Nella tua watchlist:</span>
+            {wlCategory ? (
+              <span className={`px-2 py-0.5 rounded-full border text-[11px] font-bold ${wlCategory.color}`}>
+                {wlCategory.label}
+              </span>
+            ) : (
+              <span className="text-primary-400 font-bold">senza categoria</span>
+            )}
+            {pref?.priority ? (
+              <span className="text-accent-400" title={`Priorità ${pref.priority}`}>{'★'.repeat(pref.priority)}</span>
+            ) : null}
+            {pref?.maxBid != null && (
+              <span className="text-gray-400">· tuo massimale <b className="text-primary-400 font-mono">{pref.maxBid}M</b></span>
             )}
           </div>
         )}
 
-        {/* VOGLIO RUBARE button - only during OFFERING */}
-        {rubataState === 'OFFERING' && canMakeOffer && !isMyPlayer && (
-          <Button
-            onClick={onMakeOffer}
-            disabled={isSubmitting}
-            variant="accent"
-            className="w-full text-lg py-3 mt-3"
-          >
-            🎯 VOGLIO RUBARE! ({player.rubataPrice}M)
-          </Button>
+        {/* Costo rubata — protagonista */}
+        <div className="mt-3 flex items-center gap-4 flex-wrap rounded-xl border border-accent-500/40 bg-surface-300 px-4 py-3">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-accent-400">Costo rubata</span>
+            <span className="stat-number text-[44px] sm:text-[54px] leading-none text-accent-300">{player.rubataPrice}M</span>
+          </div>
+          <span className="stat-number text-2xl text-gray-600" aria-hidden="true">=</span>
+          <div className="flex items-center gap-2.5">
+            <div className="rounded-lg bg-surface-200 border border-surface-50/30 px-3 py-1.5 text-center">
+              <div className="stat-number text-xl text-white leading-tight">{player.contractClause}M</div>
+              <div className="text-[10px] text-gray-500">clausola</div>
+            </div>
+            <span className="stat-number text-lg text-gray-600" aria-hidden="true">+</span>
+            <div className="rounded-lg bg-surface-200 border border-surface-50/30 px-3 py-1.5 text-center">
+              <div className="stat-number text-xl text-white leading-tight">{player.contractSalary}M</div>
+              <div className="text-[10px] text-gray-500">ingaggio · {semestriLabel(player.contractDuration)}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Affordability check */}
+        {!isMyPlayer && residuoAfter !== null && (
+          canAfford ? (
+            <div className="mt-3 flex items-center gap-2.5 rounded-lg border border-secondary-500/40 bg-secondary-500/10 px-3 py-2 text-sm">
+              <span className="w-5 h-5 rounded-full bg-secondary-500 text-dark-300 flex items-center justify-center text-xs font-bold flex-shrink-0" aria-hidden="true">✓</span>
+              <span className="text-gray-300">
+                <b className="text-secondary-400 font-bold">Te lo puoi permettere.</b>{' '}
+                Bilancio dopo la rubata: <b className="font-mono text-secondary-400">{residuoAfter}M</b> su {myResiduo}M
+              </span>
+            </div>
+          ) : (
+            <div className="mt-3 flex items-center gap-2.5 rounded-lg border border-danger-500/40 bg-danger-500/10 px-3 py-2 text-sm">
+              <span className="w-5 h-5 rounded-full bg-danger-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0" aria-hidden="true">!</span>
+              <span className="text-gray-300">
+                <b className="text-danger-400 font-bold">Non te lo puoi permettere.</b>{' '}
+                Ti mancano <b className="font-mono text-danger-400">{Math.abs(residuoAfter)}M</b> sul tuo bilancio di {myResiduo}M
+              </span>
+            </div>
+          )
         )}
 
-        {/* During AUCTION - show current auction info */}
+        {/* Strategy edit shortcut */}
+        {!isMyPlayer && canEditPreferences && (
+          <div className="mt-2.5 flex justify-end">
+            <button
+              type="button"
+              onClick={() => { onOpenPrefsModal({ ...player, preference: pref || null }); }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-primary-500/15 text-primary-400 hover:bg-primary-500/25 transition-colors"
+            >
+              <Settings size={12} aria-hidden="true" />
+              {showWatchlistChip || pref?.maxBid || pref?.priority ? 'Modifica strategia' : 'Imposta strategia'}
+            </button>
+          </div>
+        )}
+
+        {/* CTA — only during OFFERING */}
+        {rubataState === 'OFFERING' && canMakeOffer && !isMyPlayer && (
+          <button
+            type="button"
+            onClick={onMakeOffer}
+            disabled={isSubmitting}
+            className="mt-3 w-full py-3.5 rounded-xl font-display font-extrabold text-lg uppercase tracking-wide text-dark-300 bg-gradient-to-b from-secondary-400 to-secondary-500 hover:from-secondary-300 hover:to-secondary-400 shadow-glow-green transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Voglio rubare — {player.rubataPrice}M
+          </button>
+        )}
+
+        {/* During AUCTION — current bid big */}
         {rubataState === 'AUCTION' && activeAuction && (
-          <div className="mt-3 bg-danger-500/10 border border-danger-500/30 rounded-lg px-3 py-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-danger-300 font-medium">🔥 Asta in corso</span>
-              <span className="font-bold font-mono text-lg text-primary-400">{activeAuction.currentPrice}M</span>
-            </div>
-            {activeAuction.bids.length > 0 && (
-              <p className="text-xs text-gray-400 mt-1">
-                Ultima offerta: {activeAuction.bids[activeAuction.bids.length - 1]?.bidder}
+          <div className="mt-3 rounded-xl border border-danger-500/50 bg-surface-300 px-3 py-3 text-center">
+            <p className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-gray-500">Offerta attuale</p>
+            <p
+              className="stat-number text-[56px] md:text-[40px] leading-none text-accent-300 mt-1"
+              aria-live="polite"
+              aria-label={`Offerta attuale: ${activeAuction.currentPrice} milioni`}
+            >
+              {activeAuction.currentPrice}M
+            </p>
+            {winningBid && (
+              <p className="mt-1.5 inline-flex items-center gap-1.5 text-sm text-gray-400">
+                <Monogram name={winningBid.bidder} size="xs" />
+                offerta di <b className="text-white font-semibold">{winningBid.bidder}</b>
               </p>
             )}
           </div>

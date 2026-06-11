@@ -28,7 +28,6 @@ export const PendingAckBanner = memo(function PendingAckBanner({
     <div className="mb-3 bg-primary-500/10 border border-primary-500/30 rounded-xl px-4 py-3 space-y-2.5 animate-[fadeIn_0.3s_ease-out]">
       {/* Result headline */}
       <div className="flex items-start gap-3">
-        <span className="text-2xl flex-shrink-0">🎯</span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-white">
             {player.name}{' '}
@@ -71,7 +70,7 @@ export const PendingAckBanner = memo(function PendingAckBanner({
             disabled={isSubmitting}
             className="whitespace-nowrap"
           >
-            ✅ Conferma
+            Conferma
           </Button>
           {isAdmin && (
             <Button
@@ -80,7 +79,7 @@ export const PendingAckBanner = memo(function PendingAckBanner({
               variant="ghost"
               className="text-xs whitespace-nowrap"
             >
-              🤖 Forza tutti
+              Forza tutti
             </Button>
           )}
         </div>

@@ -55,8 +55,8 @@ export function RubataBidPanel({
     <div className="mb-6 bg-surface-200 rounded-2xl border-4 border-danger-500 overflow-hidden auction-highlight shadow-2xl animate-[fadeIn_0.3s_ease-out]">
       {/* Header with player card */}
       <div className="p-3 md:p-5 border-b border-surface-50/20 bg-gradient-to-r from-danger-600/30 via-danger-500/20 to-danger-600/30">
-        <h3 className="text-center text-lg md:text-xl font-black text-danger-400 uppercase tracking-wide mb-2 md:mb-3">
-          <span className="inline-block">🔥</span> ASTA IN CORSO <span className="inline-block">🔥</span>
+        <h3 className="text-center text-lg md:text-xl font-display font-black text-danger-400 uppercase tracking-wide mb-2 md:mb-3">
+          ASTA IN CORSO
         </h3>
 
         {/* Player card — pattern Svincolati */}
@@ -85,7 +85,7 @@ export function RubataBidPanel({
         {isUserWinning && (
           <div className="mt-3 flex justify-center animate-[fadeIn_0.3s_ease-out]">
             <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-secondary-500/20 border border-secondary-500/40 text-secondary-400 font-bold text-sm">
-              ✅ Stai vincendo!
+              ✓ Stai vincendo!
             </span>
           </div>
         )}
@@ -121,7 +121,7 @@ export function RubataBidPanel({
                   {/* Highest bidder label */}
                   {activeAuction.bids.length > 0 && (
                     <p className={`text-xs mt-1 ${isUserWinning ? 'text-secondary-400' : 'text-gray-500'}`}>
-                      {isUserWinning ? '👤 Tu' : `👤 ${activeAuction.bids[0]?.bidder ?? ''}`}
+                      {isUserWinning ? 'Tu' : activeAuction.bids[0]?.bidder ?? ''}
                     </p>
                   )}
                 </div>
@@ -191,9 +191,8 @@ export function RubataBidPanel({
                 {/* High bid warning */}
                 {isHighBid && (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warning-500/20 border border-warning-500/40 animate-[fadeIn_0.2s_ease-out]">
-                    <span className="text-warning-400 text-lg">⚠️</span>
                     <span className="text-warning-400 text-sm font-medium">
-                      Stai offrendo il {Math.round((bidAmount / budget) * 100)}% del tuo bilancio!
+                      Attenzione: stai offrendo il {Math.round((bidAmount / budget) * 100)}% del tuo bilancio!
                     </span>
                   </div>
                 )}
@@ -201,7 +200,6 @@ export function RubataBidPanel({
                 {/* maxBid strategy warning */}
                 {myMaxBid != null && activeAuction.currentPrice >= myMaxBid && (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-danger-500/20 border border-danger-500/40 animate-[fadeIn_0.2s_ease-out]">
-                    <span className="text-danger-400 text-lg">🚫</span>
                     <span className="text-danger-400 text-sm font-bold">
                       OLTRE IL LIMITE — la tua strategia era max {myMaxBid}M
                     </span>
@@ -209,7 +207,6 @@ export function RubataBidPanel({
                 )}
                 {myMaxBid != null && activeAuction.currentPrice < myMaxBid && activeAuction.currentPrice >= myMaxBid * 0.8 && (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warning-500/20 border border-warning-500/40 animate-[fadeIn_0.2s_ease-out]">
-                    <span className="text-warning-400 text-lg">⚡</span>
                     <span className="text-warning-400 text-sm font-medium">
                       Vicino al tuo limite strategia ({myMaxBid}M)
                     </span>
@@ -225,7 +222,7 @@ export function RubataBidPanel({
                   }`}
                   variant={highBidConfirmed ? 'danger' : undefined}
                 >
-                  {highBidConfirmed ? `⚠️ CONFERMA ${bidAmount}M` : `RILANCIA ${bidAmount}M`}
+                  {highBidConfirmed ? `CONFERMA ${bidAmount}M` : `RILANCIA ${bidAmount}M`}
                 </Button>
 
                 {/* Budget reminder */}
@@ -244,7 +241,7 @@ export function RubataBidPanel({
           {/* Bid history — enhanced styling */}
           <div>
             <h4 className="font-medium text-white mb-3 flex items-center gap-2">
-              <span>📜</span> Ultime offerte
+              Ultime offerte
               {activeAuction.bids.length > 0 && (
                 <span className="text-xs text-gray-500 font-normal">({activeAuction.bids.length})</span>
               )}

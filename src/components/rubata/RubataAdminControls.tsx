@@ -1,3 +1,4 @@
+import { Play, Pause, SkipBack, SkipForward, Check, Bell } from 'lucide-react'
 import { Button } from '../ui/Button'
 import type {
   LeagueMember,
@@ -17,10 +18,7 @@ export function BudgetPanel({ memberBudgets }: BudgetPanelProps) {
   return (
     <div className="bg-surface-200 rounded-2xl border border-primary-500/50 overflow-hidden sticky top-20">
       <div className="p-3 border-b border-surface-50/20 bg-primary-500/10">
-        <h3 className="font-bold text-primary-400 text-sm flex items-center gap-2">
-          <span>💰</span>
-          Bilancio
-        </h3>
+        <h3 className="font-bold text-primary-400 text-sm">Bilancio</h3>
       </div>
       <div className="p-2 space-y-1">
         {memberBudgets.map((mb, idx) => (
@@ -34,7 +32,7 @@ export function BudgetPanel({ memberBudgets }: BudgetPanelProps) {
             }`}
           >
             <span className="text-xs text-gray-400 truncate flex-1">{mb.teamName}</span>
-            <span className={`text-sm font-bold ml-2 ${
+            <span className={`text-sm font-bold budget-display ml-2 ${
               mb.residuo < 0 ? 'text-danger-400' :
               mb.residuo < 50 ? 'text-warning-400' :
               'text-accent-400'
@@ -71,10 +69,7 @@ export function TimerSettingsPanel({
   return (
     <div className="bg-surface-200 rounded-2xl border border-accent-500/50 overflow-hidden">
       <div className="p-3 border-b border-surface-50/20 bg-accent-500/10">
-        <h3 className="font-bold text-accent-400 flex items-center gap-2">
-          <span>⏱️</span>
-          Timer
-        </h3>
+        <h3 className="font-bold text-accent-400">Timer</h3>
       </div>
       <div className="p-3 space-y-3">
         <div>
@@ -121,7 +116,7 @@ export function TimerSettingsPanel({
           size="sm"
           className="w-full"
         >
-          💾 Salva
+          Salva
         </Button>
       </div>
     </div>
@@ -163,12 +158,9 @@ export function BotSimulationPanel({
   if (rubataState !== 'OFFERING' && rubataState !== 'AUCTION') return null
 
   return (
-    <div className="bg-surface-200 rounded-2xl border border-orange-500/50 overflow-hidden">
-      <div className="p-4 border-b border-surface-50/20 bg-orange-500/10">
-        <h3 className="font-bold text-orange-400 flex items-center gap-2">
-          <span>🤖</span>
-          Simula Bot
-        </h3>
+    <div className="bg-surface-200 rounded-2xl border border-passion-500/50 overflow-hidden">
+      <div className="p-4 border-b border-surface-50/20 bg-passion-500/10">
+        <h3 className="font-bold text-passion-400">Simula Bot</h3>
       </div>
       <div className="p-4 space-y-3">
         <div>
@@ -195,9 +187,9 @@ export function BotSimulationPanel({
             disabled={isSubmitting || !simulateMemberId}
             size="sm"
             variant="outline"
-            className="w-full border-orange-500/50 text-orange-400"
+            className="w-full border-passion-500/50 text-passion-400"
           >
-            🎯 Simula Offerta
+            Simula Offerta
           </Button>
         )}
 
@@ -227,9 +219,9 @@ export function BotSimulationPanel({
               disabled={isSubmitting || !simulateMemberId || simulateBidAmount <= activeAuction.currentPrice}
               size="sm"
               variant="outline"
-              className="w-full border-orange-500/50 text-orange-400"
+              className="w-full border-passion-500/50 text-passion-400"
             >
-              💰 Simula Rilancio
+              Simula Rilancio
             </Button>
           </>
         )}
@@ -273,38 +265,35 @@ export function GameFlowPanel({
   return (
     <div className="bg-surface-200 rounded-2xl border border-primary-500/50 overflow-hidden">
       <div className="p-3 border-b border-surface-50/20 bg-primary-500/10">
-        <h3 className="font-bold text-primary-400 text-sm flex items-center gap-2">
-          <span>🎮</span>
-          Controlli Flusso
-        </h3>
+        <h3 className="font-bold text-primary-400 text-sm">Conduzione</h3>
       </div>
       <div className="p-3 flex flex-wrap gap-2">
         {showStart && (
           <Button onClick={onStartRubata} disabled={isSubmitting} size="sm" className="flex-1">
-            ▶️ Avvia Rubata
+            <Play size={14} aria-hidden="true" className="mr-1.5" /> Avvia Rubata
           </Button>
         )}
         {showResume && (
           <Button onClick={onResume} disabled={isSubmitting} size="sm" className="flex-1">
-            🔔 Richiedi Pronti
+            <Bell size={14} aria-hidden="true" className="mr-1.5" /> Richiedi Pronti
           </Button>
         )}
         {showPlayControls && (
           <>
             <Button onClick={onPause} disabled={isSubmitting} variant="outline" size="sm">
-              ⏸️ Pausa
+              <Pause size={14} aria-hidden="true" className="mr-1.5" /> Pausa
             </Button>
             <Button onClick={onGoBack} disabled={isSubmitting || currentIndex === 0} variant="outline" size="sm">
-              ⏮️ Indietro
+              <SkipBack size={14} aria-hidden="true" className="mr-1.5" /> Indietro
             </Button>
             {rubataState === 'OFFERING' && (
               <Button onClick={onAdvance} disabled={isSubmitting} variant="outline" size="sm">
-                ⏭️ Avanti
+                <SkipForward size={14} aria-hidden="true" className="mr-1.5" /> Avanti
               </Button>
             )}
             {rubataState === 'AUCTION' && (
               <Button onClick={onCloseAuction} disabled={isSubmitting} size="sm">
-                ✅ Chiudi Asta
+                <Check size={14} aria-hidden="true" className="mr-1.5" /> Chiudi Asta
               </Button>
             )}
           </>
@@ -329,12 +318,9 @@ export function CompleteRubataPanel({
   onCompleteRubata,
 }: CompleteRubataPanelProps) {
   return (
-    <div className="bg-surface-200 rounded-2xl border border-danger-500/50 overflow-hidden">
-      <div className="p-3 border-b border-surface-50/20 bg-danger-500/10">
-        <h3 className="font-bold text-danger-400 flex items-center gap-2">
-          <span>⚡</span>
-          Test Rapido
-        </h3>
+    <div className="bg-surface-200 rounded-2xl border border-danger-500/40 overflow-hidden">
+      <div className="p-3 border-b border-surface-50/20 bg-danger-500/5">
+        <h3 className="font-bold text-danger-400">Completa fase</h3>
       </div>
       <div className="p-3">
         <p className="text-xs text-gray-400 mb-3">Completa la rubata con transazioni casuali (30% rubate)</p>
@@ -342,9 +328,10 @@ export function CompleteRubataPanel({
           onClick={onCompleteRubata}
           disabled={isSubmitting || rubataState === 'COMPLETED'}
           size="sm"
-          className="w-full bg-danger-500 hover:bg-danger-600"
+          variant="outline"
+          className="w-full border-danger-500/60 text-danger-400 hover:bg-danger-500/10"
         >
-          🚀 Completa Rubata
+          Completa Rubata
         </Button>
       </div>
     </div>
