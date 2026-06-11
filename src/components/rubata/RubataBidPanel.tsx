@@ -1,8 +1,5 @@
 import { useState } from 'react'
 import { Button } from '../ui/Button'
-import { TeamLogo } from './TeamLogo'
-import { POSITION_COLORS } from '../../types/rubata.types'
-import { getPlayerPhotoUrl } from '../../utils/player-images'
 import type { ActiveAuction } from '../../types/rubata.types'
 
 interface RubataBidPanelProps {
@@ -28,7 +25,6 @@ export function RubataBidPanel({
 }: RubataBidPanelProps) {
   const [highBidConfirmed, setHighBidConfirmed] = useState(false)
 
-  const isUserWinning = activeAuction.bids.length > 0 && activeAuction.bids[0]?.bidderId === myMemberId
   const isSeller = activeAuction.sellerId === myMemberId
   const minBid = activeAuction.currentPrice + 1
   const budget = myBudget ?? Infinity
@@ -51,83 +47,12 @@ export function RubataBidPanel({
     onBid()
   }
 
+  // Rendered INSIDE the HeroPlayerCard arena: no own frame, no duplicated
+  // player identity (the arena already shows player + current bid).
   return (
-    <div className="mb-6 bg-surface-200 rounded-2xl border-4 border-danger-500 overflow-hidden auction-highlight shadow-2xl animate-[fadeIn_0.3s_ease-out]">
-      {/* Header with player card */}
-      <div className="p-3 md:p-5 border-b border-surface-50/20 bg-gradient-to-r from-danger-600/30 via-danger-500/20 to-danger-600/30">
-        <h3 className="text-center text-lg md:text-xl font-display font-black text-danger-400 uppercase tracking-wide mb-2 md:mb-3">
-          ASTA IN CORSO
-        </h3>
-
-        {/* Player card — pattern Svincolati */}
-        <div className="text-center p-3 md:p-4 bg-surface-300/50 rounded-xl border border-surface-50/20">
-          <div className="flex items-center justify-center gap-2 md:gap-3 mb-2 md:mb-3">
-            {activeAuction.player.apiFootballId && (
-              <img
-                src={getPlayerPhotoUrl(activeAuction.player.apiFootballId)}
-                alt={activeAuction.player.name}
-                className="w-12 h-12 md:w-16 md:h-16 rounded-full object-cover bg-surface-300 border-2 border-surface-50/20"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-              />
-            )}
-            <span className={`px-2 py-0.5 md:px-3 md:py-1 rounded-full text-xs md:text-sm font-bold border ${POSITION_COLORS[activeAuction.player.position] ?? ''}`}>
-              {activeAuction.player.position}
-            </span>
-            <div className="w-8 h-8 md:w-10 md:h-10 bg-white rounded-lg p-0.5 md:p-1">
-              <TeamLogo team={activeAuction.player.team} />
-            </div>
-          </div>
-          <h2 className="text-xl md:text-2xl font-bold text-white mb-0.5 md:mb-1 truncate">{activeAuction.player.name}</h2>
-          <p className="text-sm md:text-base text-gray-400">{activeAuction.player.team}</p>
-        </div>
-
-        {/* Winning badge */}
-        {isUserWinning && (
-          <div className="mt-3 flex justify-center animate-[fadeIn_0.3s_ease-out]">
-            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-secondary-500/20 border border-secondary-500/40 text-secondary-400 font-bold text-sm">
-              ✓ Stai vincendo!
-            </span>
-          </div>
-        )}
-      </div>
-
-      <div className="p-3 md:p-5">
+    <div className="mt-3 pt-3 border-t border-surface-50/60">
         <div className="grid md:grid-cols-2 gap-4 md:gap-6">
           <div>
-            {/* Price display — gradient + urgency */}
-            <div className={`bg-surface-300 p-3 md:p-4 rounded-xl border mb-3 md:mb-4 transition-all ${
-              isUserWinning
-                ? 'border-secondary-500/40 bg-secondary-500/5'
-                : 'border-surface-50/20'
-            }`}>
-              <div className="grid grid-cols-2 gap-2 md:gap-4 text-center">
-                <div>
-                  <p className="text-xs md:text-sm text-gray-500">Base</p>
-                  <p className="font-bold text-white text-lg md:text-xl">{activeAuction.basePrice}M</p>
-                </div>
-                <div>
-                  <p className="text-xs md:text-sm text-gray-500">Offerta attuale</p>
-                  <p
-                    className={`font-black font-mono transition-all ${
-                      isUserWinning
-                        ? 'text-2xl md:text-3xl text-secondary-400'
-                        : 'text-2xl md:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-accent-400'
-                    }`}
-                    aria-live="polite"
-                    aria-label={`Offerta attuale: ${activeAuction.currentPrice} milioni`}
-                  >
-                    {activeAuction.currentPrice}M
-                  </p>
-                  {/* Highest bidder label */}
-                  {activeAuction.bids.length > 0 && (
-                    <p className={`text-xs mt-1 ${isUserWinning ? 'text-secondary-400' : 'text-gray-500'}`}>
-                      {isUserWinning ? 'Tu' : activeAuction.bids[0]?.bidder ?? ''}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
             {/* Bid Form - only if not the seller */}
             {!isSeller && (
               <div className="space-y-3">
@@ -240,10 +165,10 @@ export function RubataBidPanel({
 
           {/* Bid history — enhanced styling */}
           <div>
-            <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+            <h4 className="micro-label mb-3 flex items-center gap-2">
               Ultime offerte
               {activeAuction.bids.length > 0 && (
-                <span className="text-xs text-gray-500 font-normal">({activeAuction.bids.length})</span>
+                <span className="font-mono normal-case tracking-normal">({activeAuction.bids.length})</span>
               )}
             </h4>
             <div className="space-y-2 max-h-32 md:max-h-48 overflow-y-auto">
@@ -292,7 +217,6 @@ export function RubataBidPanel({
             </div>
           </div>
         </div>
-      </div>
     </div>
   )
 }

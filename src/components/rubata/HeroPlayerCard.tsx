@@ -39,6 +39,8 @@ export interface HeroPlayerCardProps {
   onOpenPrefsModal: (player: BoardPlayerWithPreference) => void
   canEditPreferences: boolean
   heroRef?: React.RefObject<HTMLDivElement>
+  /** Auction controls rendered inside the arena (AUCTION state) */
+  children?: React.ReactNode
 }
 
 function semestriLabel(n: number): string {
@@ -67,6 +69,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
   onOpenPrefsModal,
   canEditPreferences,
   heroRef,
+  children,
 }: HeroPlayerCardProps) {
   const isMyPlayer = player.memberId === myMemberId
   const ownerName = player.ownerTeamName ?? player.ownerUsername
@@ -236,24 +239,38 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
         )}
 
         {/* During AUCTION — current bid big */}
-        {rubataState === 'AUCTION' && activeAuction && (
-          <div className="mt-3 rounded-xl border border-danger-500/50 bg-surface-300 px-3 py-3 text-center">
-            <p className="micro-label">Offerta attuale</p>
-            <p
-              className="stat-number text-[56px] md:text-[40px] leading-none text-accent-300 mt-1"
-              aria-live="polite"
-              aria-label={`Offerta attuale: ${activeAuction.currentPrice} milioni`}
-            >
-              {activeAuction.currentPrice}M
-            </p>
-            {winningBid && (
-              <p className="mt-1.5 inline-flex items-center gap-1.5 text-sm text-gray-400">
-                <Monogram name={winningBid.bidder} size="xs" />
-                offerta di <b className="text-white font-semibold">{winningBid.bidder}</b>
+        {rubataState === 'AUCTION' && activeAuction && (() => {
+          const isUserWinning = winningBid?.bidderId === myMemberId
+          return (
+            <div className={`mt-3 rounded-xl border px-3 py-3 text-center ${
+              isUserWinning ? 'border-secondary-500/50 bg-secondary-500/5' : 'border-danger-500/50 bg-surface-300'
+            }`}>
+              <p className="micro-label">Offerta attuale</p>
+              <p
+                className={`stat-number text-[56px] md:text-[40px] leading-none mt-1 ${
+                  isUserWinning ? 'text-secondary-400' : 'text-accent-300'
+                }`}
+                aria-live="polite"
+                aria-label={`Offerta attuale: ${activeAuction.currentPrice} milioni`}
+              >
+                {activeAuction.currentPrice}M
               </p>
-            )}
-          </div>
-        )}
+              {winningBid && (
+                <p className="mt-1.5 inline-flex items-center gap-1.5 text-sm text-gray-400">
+                  <Monogram name={winningBid.bidder} size="xs" />
+                  {isUserWinning ? (
+                    <b className="text-secondary-400 font-semibold">la tua offerta — stai vincendo</b>
+                  ) : (
+                    <>offerta di <b className="text-white font-semibold">{winningBid.bidder}</b></>
+                  )}
+                </p>
+              )}
+            </div>
+          )
+        })()}
+
+        {/* Auction controls (bid form + history) live inside the arena */}
+        {children}
       </div>
     </div>
   )

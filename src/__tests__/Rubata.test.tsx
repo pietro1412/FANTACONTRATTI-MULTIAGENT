@@ -100,7 +100,9 @@ vi.mock('../components/rubata/RubataStateBar', () => ({
 }))
 
 vi.mock('../components/rubata/HeroPlayerCard', () => ({
-  HeroPlayerCard: () => <div data-testid="hero-player-card">HeroPlayerCard</div>,
+  HeroPlayerCard: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="hero-player-card">HeroPlayerCard{children}</div>
+  ),
 }))
 
 vi.mock('../components/rubata/BoardViewToggle', () => ({

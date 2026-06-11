@@ -641,21 +641,22 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     onOpenPrefsModal={openPrefsModal}
                     canEditPreferences={canEditPreferences}
                     heroRef={currentPlayerRef as React.RefObject<HTMLDivElement>}
-                  />
-                  {activeAuction && (
-                    <div className="hidden md:block">
-                      <RubataBidPanel
-                        activeAuction={activeAuction}
-                        myMemberId={myMemberId}
-                        bidAmount={bidAmount}
-                        setBidAmount={setBidAmount}
-                        isSubmitting={isSubmitting}
-                        onBid={() => void handleBid()}
-                        myBudget={myResiduo}
-                        myMaxBid={preferencesMap.get(activeAuction.player.id)?.maxBid}
-                      />
-                    </div>
-                  )}
+                  >
+                    {activeAuction && (
+                      <div className="hidden md:block">
+                        <RubataBidPanel
+                          activeAuction={activeAuction}
+                          myMemberId={myMemberId}
+                          bidAmount={bidAmount}
+                          setBidAmount={setBidAmount}
+                          isSubmitting={isSubmitting}
+                          onBid={() => void handleBid()}
+                          myBudget={myResiduo}
+                          myMaxBid={preferencesMap.get(activeAuction.player.id)?.maxBid}
+                        />
+                      </div>
+                    )}
+                  </HeroPlayerCard>
                   {activeAuction && boardData?.memberBudgets && boardData.memberBudgets.length > 0 && (
                     <RubataRivalsStrip
                       memberBudgets={boardData.memberBudgets}
