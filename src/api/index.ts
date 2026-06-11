@@ -66,6 +66,9 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Troppe richieste. Riprova tra qualche minuto.' },
+  // In locale (test multi-client con polling intenso) il limite globale si esaurisce
+  // e blocca tutte le API: lo si applica solo in produzione. (test-session #24)
+  skip: () => process.env.NODE_ENV !== 'production',
 })
 app.use('/api', apiLimiter)
 
@@ -76,6 +79,9 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Troppi tentativi di accesso. Riprova tra 15 minuti.' },
+  // In locale (test multi-utente con molti login/refresh) il rate limit sul login
+  // è solo d'intralcio: lo si applica solo in produzione (anti-brute-force).
+  skip: () => process.env.NODE_ENV !== 'production',
 })
 app.use('/api/auth/login', authLimiter)
 app.use('/api/auth/register', authLimiter)

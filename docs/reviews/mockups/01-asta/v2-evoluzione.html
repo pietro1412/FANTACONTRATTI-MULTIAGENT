@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asta Primo Mercato — v2 Evoluzione</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0f14; --bg2:#0f151c;
+    --card:#141b24; --card2:#1a232e; --card3:#202c39;
+    --line:rgba(148,163,184,.12); --line2:rgba(148,163,184,.2);
+    --blue:#38bdf8; --blue-d:#0ea5e9;
+    --green:#34d399; --green-d:#10b981;
+    --gold:#fbbf24; --gold-d:#f59e0b;
+    --red:#f87171; --red-d:#ef4444;
+    --txt:#e8edf2; --dim:#94a3b8; --faint:#5d6b7a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sora',system-ui,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#16202c,#0b0f14);color:var(--txt);-webkit-font-smoothing:antialiased;padding:24px}
+  .mono{font-family:'JetBrains Mono',monospace}
+  h1.page{font-size:13px;font-weight:700;color:var(--faint);letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px}
+  .frames{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start}
+  .frame-label{font-size:11px;font-weight:800;letter-spacing:.18em;color:var(--blue);text-transform:uppercase;margin-bottom:10px}
+
+  /* ===== COMMAND BAR ===== */
+  .cmd{display:flex;align-items:center;gap:14px;background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:18px;padding:12px 16px}
+  .crest{width:40px;height:40px;border-radius:13px;background:linear-gradient(135deg,var(--blue),#6366f1);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#04121c;flex-shrink:0}
+  .cmd .who{line-height:1.2}
+  .cmd .who .l{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.1em}
+  .cmd .who .n{font-size:14px;font-weight:700}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--green);background:rgba(52,211,153,.1);padding:4px 10px;border-radius:20px;border:1px solid rgba(52,211,153,.25)}
+  .live .pip{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(52,211,153,.2)}
+  .cmd .sp{margin-left:auto}
+  .stat-cluster{display:flex;gap:10px}
+  .stat-card{background:var(--card3);border:1px solid var(--line);border-radius:12px;padding:7px 14px;text-align:center;min-width:78px}
+  .stat-card .l{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em}
+  .stat-card .v{font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1.1}
+  .stat-card.budget .v{color:var(--gold)}
+  .stat-card.max{border-color:rgba(56,189,248,.35);background:rgba(56,189,248,.08)}
+  .stat-card.max .v{color:var(--blue)}
+  .ibtn{width:38px;height:38px;border-radius:11px;background:var(--card3);border:1px solid var(--line);color:var(--dim);display:flex;align-items:center;justify-content:center;cursor:pointer}
+
+  /* role rail */
+  .rail{display:flex;gap:8px;align-items:center;margin-top:10px;padding:0 4px}
+  .seg{flex:1;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:8px 12px;opacity:.55}
+  .seg.active{opacity:1;border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08)}
+  .seg.done{opacity:.8}
+  .seg .ic{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#04121c}
+  .seg.P .ic{background:var(--gold)} .seg.D .ic{background:var(--blue)} .seg.C .ic{background:var(--green)} .seg.A .ic{background:var(--red)}
+  .seg .t{font-size:11px;font-weight:700}
+  .seg .c{margin-left:auto;font-size:11px;font-family:'JetBrains Mono';color:var(--dim)}
+
+  /* ===== MAIN LAYOUT ===== */
+  .layout{display:grid;grid-template-columns:1fr 300px;gap:16px;margin-top:14px}
+
+  /* arena */
+  .arena{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:20px;overflow:hidden;position:relative}
+  .arena::before{content:"";position:absolute;inset:0;background:radial-gradient(600px 220px at 50% 0,rgba(248,113,113,.10),transparent);pointer-events:none}
+  .arena-grid{display:grid;grid-template-columns:300px 1fr;gap:0;position:relative}
+
+  /* player column */
+  .pcol{padding:22px;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;text-align:center}
+  .pphoto{width:96px;height:96px;border-radius:24px;background:linear-gradient(135deg,#243240,#141b24);border:2px solid rgba(52,211,153,.4);display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:800;color:#fff;margin-bottom:14px;box-shadow:0 12px 30px rgba(0,0,0,.4)}
+  .pname{font-size:24px;font-weight:800;line-height:1.05}
+  .pmeta{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:13px;color:var(--dim)}
+  .posb{font-size:10px;font-weight:800;padding:3px 9px;border-radius:7px}
+  .posb.C{background:rgba(52,211,153,.18);color:var(--green)}
+  .pstats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:16px;width:100%}
+  .ps{background:var(--card3);border-radius:11px;padding:8px}
+  .ps .n{font-size:18px;font-weight:800;font-family:'JetBrains Mono'}
+  .ps .l{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
+
+  /* bid column */
+  .bcol{padding:22px;display:flex;flex-direction:column;justify-content:center}
+  .timerwrap{display:flex;align-items:center;justify-content:center;gap:18px;margin-bottom:6px}
+  .ring{position:relative;width:104px;height:104px}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .t{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;font-family:'JetBrains Mono';color:#fff}
+  .priceblock{text-align:left}
+  .priceblock .l{font-size:10px;color:var(--red);text-transform:uppercase;letter-spacing:.14em;font-weight:700}
+  .priceblock .v{font-size:64px;font-weight:800;font-family:'JetBrains Mono';line-height:.95;background:linear-gradient(180deg,#fff,#fca5a5);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .priceblock .v small{font-size:22px;color:var(--dim);-webkit-text-fill-color:var(--dim)}
+  .holder{display:flex;align-items:center;gap:8px;justify-content:center;margin:6px 0 18px;font-size:13px}
+  .holder .badge{padding:5px 14px;border-radius:22px;font-weight:700}
+  .holder .badge.me{background:rgba(52,211,153,.16);color:var(--green);border:1px solid rgba(52,211,153,.35)}
+
+  .bidrow{display:flex;gap:10px}
+  .step{width:56px;height:62px;border-radius:14px;background:var(--card3);border:1px solid var(--line2);color:#fff;font-size:26px;font-weight:800;cursor:pointer}
+  .bidinput{flex:1;height:62px;border-radius:14px;background:var(--bg);border:1px solid var(--line2);color:#fff;font-size:30px;font-weight:800;text-align:center;font-family:'JetBrains Mono'}
+  .bidbtn{flex:1.5;height:62px;border-radius:14px;border:none;background:linear-gradient(180deg,#34d399,#059669);color:#03130c;font-size:18px;font-weight:800;cursor:pointer;box-shadow:0 10px 26px rgba(16,185,129,.3)}
+  .quickrow{display:flex;gap:8px;margin-top:10px}
+  .quick{flex:1;height:38px;border-radius:11px;background:var(--card3);border:1px solid var(--line);color:var(--blue);font-size:13px;font-weight:700;cursor:pointer;font-family:'JetBrains Mono'}
+  .reserve{margin-top:12px;font-size:11px;color:var(--faint);text-align:center}
+  .reserve b{color:var(--gold)}
+
+  /* threat panel (right) */
+  .threats{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:20px;overflow:hidden;display:flex;flex-direction:column}
+  .th-head{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  .th-head h3{font-size:12px;font-weight:800;letter-spacing:.06em}
+  .th-head p{font-size:11px;color:var(--faint);margin-top:2px}
+  .th-list{padding:10px;display:flex;flex-direction:column;gap:7px}
+  .threat{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:13px;background:var(--card3);border:1px solid var(--line)}
+  .threat.danger{border-color:rgba(248,113,113,.35);background:rgba(248,113,113,.07)}
+  .threat .av{width:30px;height:30px;border-radius:10px;background:linear-gradient(135deg,#334155,#1e293b);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+  .threat .info{flex:1;min-width:0}
+  .threat .nm{font-size:12px;font-weight:700}
+  .threat .meta{font-size:10px;color:var(--faint)}
+  .threat .mx{text-align:right}
+  .threat .mx .n{font-size:15px;font-weight:800;font-family:'JetBrains Mono'}
+  .threat .mx .l{font-size:8px;color:var(--faint);text-transform:uppercase}
+  .threat.out{opacity:.45}
+  .threat.out .nm{text-decoration:line-through}
+  .th-foot{margin-top:auto;padding:12px 16px;border-top:1px solid var(--line);font-size:11px;color:var(--dim)}
+  .th-foot b{color:var(--blue)}
+
+  /* ===== MOBILE ===== */
+  .phone{width:375px;border:1px solid #1e2935;border-radius:34px;background:#06090d;padding:11px;box-shadow:0 30px 70px rgba(0,0,0,.7)}
+  .pin{background:radial-gradient(500px 280px at 50% -8%,#16202c,#0b0f14);border-radius:25px;overflow:hidden;height:780px;position:relative;display:flex;flex-direction:column}
+  .m-cmd{display:flex;align-items:center;gap:10px;padding:12px 14px}
+  .m-cmd .who{flex:1;min-width:0;line-height:1.2}
+  .m-cmd .who .l{font-size:9px;color:var(--faint);text-transform:uppercase}
+  .m-cmd .who .n{font-size:12px;font-weight:700}
+  .m-stat{text-align:right;line-height:1.05}
+  .m-stat .l{font-size:8px;color:var(--faint);text-transform:uppercase}
+  .m-stat .v{font-size:18px;font-weight:800;font-family:'JetBrains Mono'}
+  .m-rail{display:flex;gap:6px;padding:0 14px 10px}
+  .m-seg{flex:1;text-align:center;padding:7px 0;border-radius:10px;font-size:11px;font-weight:700;background:var(--card);border:1px solid var(--line);opacity:.5}
+  .m-seg.active{opacity:1;background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.4);color:var(--gold)}
+  .m-seg.done{opacity:.8;color:var(--green)}
+  .m-body{flex:1;overflow-y:auto;padding:14px}
+  .m-arena{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;overflow:hidden}
+  .m-arena::before{content:"";position:absolute;inset:0;background:radial-gradient(300px 120px at 50% 0,rgba(248,113,113,.12),transparent)}
+  .m-threats{margin-top:14px}
+  .m-threats h3{font-size:11px;font-weight:800;color:var(--dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+  .m-dock{background:rgba(15,21,28,.97);border-top:1px solid var(--line);padding:13px 14px;backdrop-filter:blur(8px)}
+  .m-dockhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .m-ring{width:54px;height:54px;border-radius:50%;border:4px solid var(--red-d);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;font-family:'JetBrains Mono';color:#fff;box-shadow:0 0 22px rgba(239,68,68,.4)}
+  .m-bidrow{display:flex;gap:8px}
+  .m-step{width:50px;height:54px;border-radius:13px;background:var(--card3);border:1px solid var(--line2);color:#fff;font-size:22px;font-weight:800}
+  .m-input{flex:1;height:54px;border-radius:13px;background:var(--bg);border:1px solid var(--line2);color:#fff;font-size:26px;font-weight:800;text-align:center;font-family:'JetBrains Mono'}
+  .m-bid{flex:1.4;height:54px;border-radius:13px;border:none;background:linear-gradient(180deg,#34d399,#059669);color:#03130c;font-size:16px;font-weight:800}
+</style>
+</head>
+<body>
+<h1 class="page">FantaContratti — Asta / Primo Mercato &nbsp;·&nbsp; v2 EVOLUZIONE (dark ripensato · command bar + pannello minacce)</h1>
+
+<div class="frames">
+
+  <!-- ============ DESKTOP ============ -->
+  <div>
+    <div class="frame-label">Desktop</div>
+    <div style="width:840px">
+
+      <div class="cmd">
+        <div class="crest">PS</div>
+        <div class="who"><div class="l">Manager</div><div class="n">Pietro · FC Sordillo</div></div>
+        <span class="live"><span class="pip"></span>LIVE</span>
+        <span style="font-size:12px;color:var(--dim);margin-left:6px">Turno chiamata: <b style="color:var(--gold)">Mirko</b></span>
+        <div class="sp"></div>
+        <div class="stat-cluster">
+          <div class="stat-card budget"><div class="l">Budget</div><div class="v">312</div></div>
+          <div class="stat-card max"><div class="l">Offerta max</div><div class="v">147</div></div>
+        </div>
+        <button class="ibtn">⏸</button>
+        <button class="ibtn">⎋</button>
+      </div>
+
+      <div class="rail">
+        <div class="seg P done"><span class="ic">P</span><span class="t">Portieri</span><span class="c">3/3 ✓</span></div>
+        <div class="seg D done"><span class="ic">D</span><span class="t">Difensori</span><span class="c">8/8 ✓</span></div>
+        <div class="seg C active"><span class="ic">C</span><span class="t">Centrocampisti</span><span class="c">5/8</span></div>
+        <div class="seg A"><span class="ic">A</span><span class="t">Attaccanti</span><span class="c">0/6</span></div>
+      </div>
+
+      <div class="layout">
+
+        <!-- arena -->
+        <div class="arena">
+          <div class="arena-grid">
+            <!-- player -->
+            <div class="pcol">
+              <div class="pphoto">B</div>
+              <div class="pname">Nicolò Barella</div>
+              <div class="pmeta"><span class="posb C">CEN</span> Inter · 27 anni</div>
+              <div class="pstats">
+                <div class="ps"><div class="n">34</div><div class="l">Presenze</div></div>
+                <div class="ps"><div class="n">7.1</div><div class="l">Media voto</div></div>
+                <div class="ps"><div class="n">6</div><div class="l">Gol</div></div>
+                <div class="ps"><div class="n">9</div><div class="l">Assist</div></div>
+              </div>
+            </div>
+            <!-- bid -->
+            <div class="bcol">
+              <div class="timerwrap">
+                <div class="ring">
+                  <svg width="104" height="104"><circle cx="52" cy="52" r="46" stroke="#1e2935" stroke-width="8" fill="none"/><circle cx="52" cy="52" r="46" stroke="#ef4444" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="220"/></svg>
+                  <div class="t">0:07</div>
+                </div>
+                <div class="priceblock">
+                  <div class="l">Offerta corrente</div>
+                  <div class="v">86<small> M</small></div>
+                </div>
+              </div>
+              <div class="holder">detenuta da <span class="badge me">Tu · stai vincendo</span></div>
+
+              <div class="bidrow">
+                <button class="step">−</button>
+                <input class="bidinput" value="87">
+                <button class="step">+</button>
+                <button class="bidbtn">RILANCIA · 87</button>
+              </div>
+              <div class="quickrow">
+                <button class="quick">+1 → 87</button>
+                <button class="quick">+5 → 91</button>
+                <button class="quick">+10 → 96</button>
+              </div>
+              <div class="reserve">Riserva slot: trattenuti <b>14 M</b> per i 4 slot vuoti · ingaggio default ≈ 9 M</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- threat panel -->
+        <div class="threats">
+          <div class="th-head"><h3>Chi può superarti</h3><p>Solo manager con slot CEN liberi e budget</p></div>
+          <div class="th-list">
+            <div class="threat danger"><div class="av">MN</div><div class="info"><div class="nm">Marcolino</div><div class="meta">CEN 4/8 · libero</div></div><div class="mx"><div class="n" style="color:var(--red)">128</div><div class="l">max</div></div></div>
+            <div class="threat danger"><div class="av">MI</div><div class="info"><div class="nm">Mirko</div><div class="meta">CEN 4/8 · libero</div></div><div class="mx"><div class="n" style="color:var(--red)">132</div><div class="l">max</div></div></div>
+            <div class="threat"><div class="av">MH</div><div class="info"><div class="nm">Michele</div><div class="meta">CEN 5/8 · libero</div></div><div class="mx"><div class="n">100</div><div class="l">max</div></div></div>
+            <div class="threat"><div class="av">DI</div><div class="info"><div class="nm">Diego</div><div class="meta">CEN 5/8 · libero</div></div><div class="mx"><div class="n">110</div><div class="l">max</div></div></div>
+            <div class="threat out"><div class="av">EM</div><div class="info"><div class="nm">Emmanuele</div><div class="meta">CEN 6/8</div></div><div class="mx"><div class="n">90</div><div class="l">max</div></div></div>
+            <div class="threat out"><div class="av">MC</div><div class="info"><div class="nm">Marco</div><div class="meta">CEN 7/8</div></div><div class="mx"><div class="n">70</div><div class="l">max</div></div></div>
+          </div>
+          <div class="th-foot">La tua <b>offerta max 147</b> batte tutti i rivali ancora attivi su questo ruolo.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MOBILE ============ -->
+  <div>
+    <div class="frame-label">Mobile · 375px</div>
+    <div class="phone"><div class="pin">
+
+      <div class="m-cmd">
+        <div class="crest" style="width:34px;height:34px;border-radius:11px;font-size:12px">PS</div>
+        <div class="who"><div class="l">Turno chiamata: Mirko</div><div class="n">FC Sordillo</div></div>
+        <span class="live" style="font-size:10px;padding:3px 8px"><span class="pip"></span>LIVE</span>
+        <div class="m-stat"><div class="l">Budget</div><div class="v" style="color:var(--gold)">312</div></div>
+      </div>
+      <div class="m-rail">
+        <div class="m-seg done">P ✓</div>
+        <div class="m-seg done">D ✓</div>
+        <div class="m-seg active">C 5/8</div>
+        <div class="m-seg">A 0/6</div>
+      </div>
+
+      <div class="m-body">
+        <div class="m-arena">
+          <div class="pphoto" style="width:80px;height:80px;border-radius:20px;font-size:30px">B</div>
+          <div class="pname" style="font-size:21px">Nicolò Barella</div>
+          <div class="pmeta"><span class="posb C">CEN</span> Inter · 27 anni</div>
+          <div class="pstats" style="grid-template-columns:repeat(4,1fr);max-width:280px">
+            <div class="ps"><div class="n">34</div><div class="l">Pres</div></div>
+            <div class="ps"><div class="n">6</div><div class="l">Gol</div></div>
+            <div class="ps"><div class="n">9</div><div class="l">Ass</div></div>
+            <div class="ps"><div class="n">7.1</div><div class="l">MV</div></div>
+          </div>
+        </div>
+
+        <div class="m-threats">
+          <h3>Chi può superarti</h3>
+          <div class="threat danger" style="margin-bottom:7px"><div class="av">MI</div><div class="info"><div class="nm">Mirko</div><div class="meta">CEN 4/8 · libero</div></div><div class="mx"><div class="n" style="color:var(--red)">132</div><div class="l">max</div></div></div>
+          <div class="threat danger" style="margin-bottom:7px"><div class="av">MN</div><div class="info"><div class="nm">Marcolino</div><div class="meta">CEN 4/8 · libero</div></div><div class="mx"><div class="n" style="color:var(--red)">128</div><div class="l">max</div></div></div>
+          <div class="threat"><div class="av">DI</div><div class="info"><div class="nm">Diego</div><div class="meta">CEN 5/8 · libero</div></div><div class="mx"><div class="n">110</div><div class="l">max</div></div></div>
+        </div>
+      </div>
+
+      <!-- dock -->
+      <div class="m-dock">
+        <div class="m-dockhead">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="m-ring">0:07</div>
+            <div><div style="font-size:9px;color:var(--red);text-transform:uppercase;font-weight:700;letter-spacing:.1em">Offerta corrente</div><div style="font-size:32px;font-weight:800;font-family:JetBrains Mono;line-height:1;background:linear-gradient(180deg,#fff,#fca5a5);-webkit-background-clip:text;background-clip:text;color:transparent">86 M</div></div>
+          </div>
+          <span class="holder" style="margin:0"><span class="badge me" style="font-size:11px;padding:4px 10px">Vincendo</span></span>
+        </div>
+        <div class="m-bidrow">
+          <button class="m-step">−</button>
+          <input class="m-input" value="87">
+          <button class="m-step">+</button>
+          <button class="m-bid">RILANCIA</button>
+        </div>
+      </div>
+
+    </div></div>
+  </div>
+
+</div>
+</body>
+</html>

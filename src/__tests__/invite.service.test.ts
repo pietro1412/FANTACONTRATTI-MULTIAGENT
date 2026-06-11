@@ -18,7 +18,9 @@ const { mockPrisma, MockPrismaClient } = vi.hoisted(() => {
     },
     leagueMember: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
     },
     leagueInvite: {
       findFirst: vi.fn(),
@@ -48,6 +50,7 @@ vi.mock('@prisma/client', () => ({
     ACTIVE: 'ACTIVE',
     PENDING: 'PENDING',
     EXPELLED: 'EXPELLED',
+    LEFT: 'LEFT',
   },
   InviteStatus: {
     PENDING: 'PENDING',
@@ -396,7 +399,7 @@ describe('Invite Service', () => {
         league: { status: 'DRAFT', members: [{ id: 'm1' }], maxParticipants: 8, initialBudget: 200, name: 'Liga' },
       })
       mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1', email: 'test@email.com' })
-      mockPrisma.leagueMember.findFirst.mockResolvedValue({ id: 'existing-member' })
+      mockPrisma.leagueMember.findUnique.mockResolvedValue({ id: 'existing-member', status: 'ACTIVE' })
 
       const result = await inviteService.acceptInvite('token-1', 'user-1', 'My Team')
 
@@ -415,7 +418,7 @@ describe('Invite Service', () => {
         league: { status: 'DRAFT', members: fullMembers, maxParticipants: 8, initialBudget: 200, name: 'Liga' },
       })
       mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1', email: 'test@email.com' })
-      mockPrisma.leagueMember.findFirst.mockResolvedValueOnce(null) // not already member
+      mockPrisma.leagueMember.findUnique.mockResolvedValue(null) // not already member
 
       const result = await inviteService.acceptInvite('token-1', 'user-1', 'My Team')
 
@@ -433,9 +436,8 @@ describe('Invite Service', () => {
         league: { status: 'DRAFT', members: [{ id: 'm1' }], maxParticipants: 8, initialBudget: 200, name: 'Liga Test' },
       })
       mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1', email: 'test@email.com' })
-      mockPrisma.leagueMember.findFirst
-        .mockResolvedValueOnce(null) // not already member
-        .mockResolvedValueOnce({ user: { email: 'admin@email.com' } }) // admin member for notification
+      mockPrisma.leagueMember.findUnique.mockResolvedValue(null) // not already member
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ user: { email: 'admin@email.com' } }) // admin member for notification
       mockPrisma.leagueMember.create.mockResolvedValue({
         id: 'new-member-1',
         userId: 'user-1',
@@ -456,6 +458,43 @@ describe('Invite Service', () => {
             status: 'ACTIVE',
             joinType: 'INVITE',
             teamName: 'My Team',
+          }),
+        })
+      )
+    })
+
+    it('reactivates a previously-left member instead of creating (re-invite after kick)', async () => {
+      mockPrisma.leagueInvite.findUnique.mockResolvedValue({
+        id: 'invite-1',
+        status: 'PENDING',
+        expiresAt: new Date('2099-01-01'),
+        email: 'test@email.com',
+        leagueId: 'league-1',
+        league: { status: 'DRAFT', members: [{ id: 'm1' }], maxParticipants: 8, initialBudget: 200, name: 'Liga Test' },
+      })
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1', email: 'test@email.com' })
+      mockPrisma.leagueMember.findUnique.mockResolvedValue({ id: 'left-member-1', status: 'LEFT' })
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ user: { email: 'admin@email.com' } })
+      mockPrisma.leagueMember.update.mockResolvedValue({
+        id: 'left-member-1',
+        userId: 'user-1',
+        leagueId: 'league-1',
+      })
+      mockPrisma.leagueInvite.update.mockResolvedValue({})
+
+      const result = await inviteService.acceptInvite('token-1', 'user-1', 'New Team')
+
+      expect(result.success).toBe(true)
+      expect((result.data as Record<string, unknown>).memberId).toBe('left-member-1')
+      expect(mockPrisma.leagueMember.create).not.toHaveBeenCalled()
+      expect(mockPrisma.leagueMember.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'left-member-1' },
+          data: expect.objectContaining({
+            role: 'MANAGER',
+            status: 'ACTIVE',
+            joinType: 'INVITE',
+            teamName: 'New Team',
           }),
         })
       )

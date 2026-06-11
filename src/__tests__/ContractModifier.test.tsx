@@ -55,4 +55,57 @@ describe('ContractModifier — increaseOnly mode (post-rubata)', () => {
     // Should show valid preview
     expect(screen.getByText('Anteprima nuovo contratto')).toBeInTheDocument()
   })
+
+  it('should disable "Conferma modifica" when preview is invalid (increaseOnly)', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <ContractModifier
+        player={basePlayer}
+        contract={baseContract}
+        onConfirm={noopAsync}
+        onSkip={noop}
+        increaseOnly={true}
+      />
+    )
+
+    // Increase duration only -> invalid
+    const plusButtons = screen.getAllByText('+')
+    await user.click(plusButtons[1] as HTMLElement)
+
+    const confirmButton = screen.getByRole('button', { name: /Conferma modifica/ })
+    expect(confirmButton).toBeDisabled()
+  })
+
+  it('should stay usable after a backend error: show message, re-enable buttons, allow skip', async () => {
+    const user = userEvent.setup()
+    const onConfirm = vi.fn().mockRejectedValue(new Error('Errore dal server'))
+    const onSkip = vi.fn()
+
+    render(
+      <ContractModifier
+        player={basePlayer}
+        contract={baseContract}
+        onConfirm={onConfirm}
+        onSkip={onSkip}
+        increaseOnly={true}
+      />
+    )
+
+    // Make a valid modification (salary +1) so confirm is enabled
+    const plusButtons = screen.getAllByText('+')
+    await user.click(plusButtons[0] as HTMLElement)
+
+    const confirmButton = screen.getByRole('button', { name: /Conferma modifica/ })
+    await user.click(confirmButton)
+
+    // Error propagated and shown; buttons usable again
+    expect(await screen.findByText('Errore dal server')).toBeInTheDocument()
+    expect(confirmButton).not.toBeDisabled()
+
+    const skipButton = screen.getByRole('button', { name: /Mantieni contratto/ })
+    expect(skipButton).not.toBeDisabled()
+    await user.click(skipButton)
+    expect(onSkip).toHaveBeenCalledTimes(1)
+  })
 })

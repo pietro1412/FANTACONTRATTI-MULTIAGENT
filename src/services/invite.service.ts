@@ -211,16 +211,21 @@ export async function acceptInvite(
     return { success: false, message: 'Questo invito è per un altro indirizzo email' }
   }
 
-  // Verifica che non sia già membro
-  const existingMember = await prisma.leagueMember.findFirst({
+  // Verifica eventuale membership esistente (vincolo unique su userId+leagueId)
+  const existingMember = await prisma.leagueMember.findUnique({
     where: {
-      leagueId: invite.leagueId,
-      userId,
-      status: { in: [MemberStatus.ACTIVE, MemberStatus.PENDING] },
+      userId_leagueId: {
+        userId,
+        leagueId: invite.leagueId,
+      },
     },
   })
 
-  if (existingMember) {
+  if (
+    existingMember &&
+    (existingMember.status === MemberStatus.ACTIVE ||
+      existingMember.status === MemberStatus.PENDING)
+  ) {
     return { success: false, message: 'Sei già membro di questa lega' }
   }
 
@@ -239,18 +244,30 @@ export async function acceptInvite(
     include: { user: { select: { email: true } } },
   })
 
-  // Crea il membro (ACTIVE direttamente, senza approvazione)
-  const member = await prisma.leagueMember.create({
-    data: {
-      userId,
-      leagueId: invite.leagueId,
-      role: 'MANAGER',
-      status: MemberStatus.ACTIVE,
-      joinType: JoinType.INVITE,
-      currentBudget: invite.league.initialBudget,
-      teamName,
-    },
-  })
+  // Se l'utente era già stato membro (es. uscito o rimosso → status LEFT),
+  // riattiva il record esistente: un create violerebbe il vincolo unique.
+  const member = existingMember
+    ? await prisma.leagueMember.update({
+        where: { id: existingMember.id },
+        data: {
+          role: 'MANAGER',
+          status: MemberStatus.ACTIVE,
+          joinType: JoinType.INVITE,
+          currentBudget: invite.league.initialBudget,
+          teamName,
+        },
+      })
+    : await prisma.leagueMember.create({
+        data: {
+          userId,
+          leagueId: invite.leagueId,
+          role: 'MANAGER',
+          status: MemberStatus.ACTIVE,
+          joinType: JoinType.INVITE,
+          currentBudget: invite.league.initialBudget,
+          teamName,
+        },
+      })
 
   // Aggiorna l'invito
   await prisma.leagueInvite.update({

@@ -104,6 +104,10 @@ export interface ReadyStatus {
 export interface AppealStatus {
   auctionId: string
   auctionStatus: string
+  // Motivo della ripresa quando auctionStatus === 'AWAITING_RESUME':
+  // 'appeal-accepted' (ricorso accolto) | 'movement-reverted' (annullo movimento admin).
+  // Differenzia il messaggio della modale "Pronto a Riprendere?". (test-session #29)
+  resumeReason?: string | null
   hasActiveAppeal: boolean
   appeal: {
     id: string

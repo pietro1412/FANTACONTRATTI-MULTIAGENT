@@ -46,6 +46,9 @@ model Auction {
   appealDecisionAcks  Json?     // Array di memberId che hanno confermato la decisione
   // Per ripresa asta dopo ricorso ACCEPTED - chi e pronto
   resumeReadyMembers  Json?     // Array di memberId pronti a riprendere
+  // Motivo della ripresa (AWAITING_RESUME): 'appeal-accepted' | 'movement-reverted'
+  // Differenzia il messaggio della modale "Pronto a Riprendere?" (test-session #29)
+  resumeReason        String?
 
   // Relazioni
   bids            AuctionBid[]

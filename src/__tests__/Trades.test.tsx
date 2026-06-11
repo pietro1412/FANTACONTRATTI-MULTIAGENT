@@ -62,7 +62,7 @@ vi.mock('../components/trades/deal-room', () => ({
       Deal Table
       {onOpenMyRoster && <button data-testid="open-my-roster" onClick={onOpenMyRoster}>Open My Roster</button>}
       {onOpenPartnerRoster && <button data-testid="open-partner-roster" onClick={onOpenPartnerRoster}>Open Partner Roster</button>}
-      {onSubmit && <button data-testid="submit-offer" onClick={(e) => onSubmit(e as unknown as React.FormEvent)}>Submit</button>}
+      {onSubmit && <button data-testid="submit-offer" onClick={(e) => { onSubmit(e as unknown as React.FormEvent); }}>Submit</button>}
     </div>
   ),
   DealMobileFooter: () => <div data-testid="deal-mobile-footer">Mobile Footer</div>,

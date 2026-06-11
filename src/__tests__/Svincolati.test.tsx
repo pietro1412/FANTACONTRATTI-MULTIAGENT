@@ -88,7 +88,7 @@ vi.mock('../utils/teamLogos', () => ({
 
 // Mock types
 vi.mock('../types/svincolati.types', async () => {
-  const actual = await vi.importActual('../types/svincolati.types') as Record<string, unknown>
+  const actual = await vi.importActual('../types/svincolati.types')
   return {
     ...actual,
     POSITION_COLORS: { P: 'from-yellow to-yellow', D: 'from-green to-green', C: 'from-blue to-blue', A: 'from-red to-red' },

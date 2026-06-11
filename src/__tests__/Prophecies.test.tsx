@@ -48,9 +48,6 @@ class MockIntersectionObserver {
   observe = vi.fn()
   disconnect = vi.fn()
   unobserve = vi.fn()
-  constructor() {
-    // noop
-  }
 }
 vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
 

@@ -4,14 +4,28 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'coverage', 'playwright-report'] },
+  {
+    ignores: [
+      'dist',
+      'node_modules',
+      'coverage',
+      'playwright-report',
+      // Built serverless bundle (esbuild output), not source
+      'api/index.mjs',
+      // Node-side scripts/config not part of the app's TS project (were never
+      // type-lintable: not in tsconfig.json). Excluded to keep lint meaningful.
+      'playwright.config.ts',
+      'prisma/**',
+      'scripts/**',
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.strictTypeChecked],
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       ecmaVersion: 2020,
       parserOptions: {
-        project: ['./tsconfig.json', './tsconfig.node.json'],
+        project: ['./tsconfig.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },

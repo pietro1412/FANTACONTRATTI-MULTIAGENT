@@ -33,6 +33,7 @@ import type {
   FirstMarketStatus,
   ContractForModification,
 } from '../types/auctionroom.types'
+import type { Appeal } from '../components/admin/types'
 
 export function useAuctionRoomState(sessionId: string, leagueId: string) {
   const { confirm: confirmDialog } = useConfirmDialog()
@@ -65,6 +66,10 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
 
   const [pendingAck, setPendingAck] = useState<PendingAcknowledgment | null>(null)
   const pendingAckLockedRef = useRef<string | null>(null) // Holds auctionId when locally created
+  // Ultima asta riapribile (= annulla ultimo movimento), indip. da pendingAck. test-session #28
+  const [lastReopenableAuction, setLastReopenableAuction] = useState<
+    { id: string; playerName: string; winnerName: string } | null
+  >(null)
   const [prophecyContent, setProphecyContent] = useState('')
   const [ackSubmitting, setAckSubmitting] = useState(false)
   const [isAppealMode, setIsAppealMode] = useState(false)
@@ -87,6 +92,10 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
   // Pause request notification (shown to admin)
   const [pauseRequest, setPauseRequest] = useState<{ username: string; type: string } | null>(null)
 
+  // Admin actions panel: pending appeals of the league (admin only)
+  const [pendingAppeals, setPendingAppeals] = useState<Appeal[]>([])
+  const [resolvingAppealId, setResolvingAppealId] = useState<string | null>(null)
+
   // Keep auction ref in sync for polling phase-awareness (avoids useEffect dependency)
   useEffect(() => { auctionRef.current = auction }, [auction])
 
@@ -104,20 +113,30 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
           amount: data.amount,
           placedAt: data.timestamp,
           bidder: {
-            teamName: null,
+            teamName: data.teamName, // #25: from Pusher payload — consistent across clients in real-time
             user: { username: data.memberName }
           }
         }
 
+        // Dedup: sul client che ha piazzato/triggerato l'offerta, loadCurrentAuction
+        // può aver già inserito la stessa bid dal DB (con teamName) → evita il doppione
+        // nello storico quando arriva anche l'evento Pusher. (#23)
+        const alreadyPresent = prev.bids.some(
+          b => b.amount === data.amount && b.bidder?.user?.username === data.memberName
+        )
+
         return {
           ...prev,
           currentPrice: data.amount,
-          bids: [newBid, ...prev.bids],
+          bids: alreadyPresent ? prev.bids : [newBid, ...prev.bids],
           // Update timer immediately from Pusher data - NO DELAY!
           timerExpiresAt: data.timerExpiresAt,
           timerSeconds: data.timerSeconds
         }
       })
+      // Auto-fill the bid input to the new minimum (offer+1) in real-time, unless the
+      // user already typed a higher value (mirrors loadCurrentAuction). test-session #9
+      setBidAmount(prev => (parseInt(prev) || 0) <= data.amount ? String(data.amount + 1) : prev)
       // Note: loadManagersStatus() removed - polling handles budget updates
       // This eliminates API call delay after each bid
     },
@@ -141,9 +160,14 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     },
     onNominationConfirmed: (data) => {
       console.log('[Pusher] Nomination confirmed:', data)
-      // Nomination confirmed - load current auction to get full auction data
+      // Nomination confirmed: reload the FULL relevant state so non-nominator
+      // clients switch from the "waiting for nomination" view to the active
+      // auction in real-time. loadFirstMarketStatus drives that view switch —
+      // without it the others stayed on the waiting view until polling. (#19)
       void loadCurrentAuction()
       void loadReadyStatus()
+      void loadFirstMarketStatus()
+      void loadManagersStatus()
     },
     onMemberReady: (data) => {
       console.log('[Pusher] Member ready:', data)
@@ -157,8 +181,49 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     },
     onAuctionStarted: (data) => {
       console.log('[Pusher] Auction started:', data)
+      // Refresh first-market status so non-admin managers leave the waiting room
+      // immediately when the turn order is set, instead of on polling (test-session #6)
+      void loadFirstMarketStatus()
       void loadCurrentAuction()
       void loadReadyStatus()
+    },
+    onAuctionStateChanged: (data) => {
+      console.log('[Pusher] Auction state changed:', data)
+      // Generic phase-transition signal for transitions without a dedicated
+      // event (timer-expiry close, acknowledgment progress, appeal submit/
+      // resolve, appeal decision-ack progress, ready-to-resume progress).
+      // Reload the ENTIRE relevant state so every client realigns at once
+      // instead of waiting for polling. (test-session #15)
+      void loadCurrentAuction()
+      void loadPendingAcknowledgment()
+      void loadAppealStatus()
+      void loadFirstMarketStatus()
+      void loadManagersStatus()
+      void loadMyRosterSlots()
+      void loadPendingAppeals()
+      // If an award was rolled back (appeal accepted OR admin reverted the last
+      // movement) the auction reopens into AWAITING_RESUME and the ex-winner may
+      // be stuck on the "Modifica Contratto" modal for a player that is no longer
+      // theirs: close it so they fall back to the ready-check. Safe because both
+      // reasons are emitted ONLY when an award is annulled — never in the
+      // legitimate win-without-appeal flow. (test-session #20, #29)
+      if (data.reason === 'appeal-accepted' || data.reason === 'movement-reverted') {
+        setPendingContractModification(null)
+      }
+    },
+    onAuctionResumed: (data) => {
+      console.log('[Pusher] Auction resumed:', data)
+      // Resume completed (status back to ACTIVE): close the "Pronto a Riprendere?"
+      // modal on ALL clients immediately instead of waiting for polling. The modal
+      // is gated on appealStatus.auctionStatus === 'AWAITING_RESUME', so reload it
+      // along with the live auction state so bidding controls become operable for
+      // everyone, admin included. The modal is also gated on
+      // pendingAck?.status === 'AWAITING_RESUME', so refresh that too. (test-session #14)
+      void loadAppealStatus()
+      void loadPendingAcknowledgment()
+      void loadCurrentAuction()
+      void loadManagersStatus()
+      void loadMyRosterSlots()
     },
     onAuctionClosed: (data) => {
       console.log('[Pusher] Auction closed:', data)
@@ -173,6 +238,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
         }
       })
       void loadPendingAcknowledgment()
+      void loadAppealStatus()
       void loadFirstMarketStatus()
       void loadMyRosterSlots()
       void loadManagersStatus()
@@ -217,6 +283,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
         session: SessionInfo;
         marketProgress: MarketProgress | null;
         justCompleted?: { playerId: string; playerName: string; winnerId: string; winnerName: string; amount: number } | null
+        lastReopenableAuction?: { id: string; playerName: string; winnerName: string } | null
       }
       if (data.auction) {
         const newMinBid = data.auction.currentPrice + 1
@@ -228,6 +295,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
       setMembership(data.userMembership)
       setSessionInfo(data.session)
       setMarketProgress(data.marketProgress)
+      setLastReopenableAuction(data.lastReopenableAuction ?? null)
       if (data.session?.auctionTimerSeconds) setTimerSetting(data.session.auctionTimerSeconds)
       if (data.session?.type === 'PRIMO_MERCATO' && data.marketProgress?.currentRole) {
         setSelectedPosition(data.marketProgress.currentRole)
@@ -300,6 +368,15 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
       setAppealStatus(null)
     }
   }, [pendingAck])
+
+  // Load PENDING appeals for the admin actions panel (admin only)
+  const loadPendingAppeals = useCallback(async () => {
+    if (membership?.role !== 'ADMIN') return
+    const result = await auctionApi.getAppeals(leagueId, 'PENDING')
+    if (result.success && result.data) {
+      setPendingAppeals((result.data as { appeals: Appeal[] }).appeals || [])
+    }
+  }, [leagueId, membership?.role])
 
   const loadPlayers = useCallback(async () => {
     const filters: { available: boolean; leagueId: string; position?: string; search?: string; team?: string } = { available: true, leagueId }
@@ -386,6 +463,21 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     return () => { clearInterval(interval); }
   }, [auction?.timerExpiresAt, loadCurrentAuction, loadPendingAcknowledgment, getRemainingSeconds])
 
+  // Transitional/waiting phases where state advances via short-lived counters
+  // (acknowledgment "X/8", ready-check, appeal review/decision-ack/resume). In
+  // these phases Pusher carries the updates, but we keep a tighter polling
+  // safety net (~3s) so a missed event can't leave a client behind for up to
+  // 30s; outside these phases we keep the slow 30s safety net. (test-session #15)
+  const isWaitingPhase = Boolean(
+    pendingAck ||
+    appealStatus ||
+    readyStatus?.hasPendingNomination
+  )
+
+  // Adaptive polling interval: fast when disconnected (no real-time at all),
+  // medium during transitional phases (counters in flight), slow otherwise.
+  const pollingMs = !isConnected ? 5000 : isWaitingPhase ? 3000 : 30000
+
   useEffect(() => {
     void loadCurrentAuction()
     void loadFirstMarketStatus()
@@ -394,9 +486,9 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     void loadMyRosterSlots()
     void loadManagersStatus()
     void loadTeams()
-    // Polling as fallback - real-time updates come from Pusher
-    // When Pusher is connected, poll slowly (safety net only); otherwise poll faster
-    const pollingMs = isConnected ? 30000 : 5000
+    void loadPendingAppeals()
+    // Polling as fallback - real-time updates come from Pusher.
+    // Interval is adaptive (see pollingMs above).
     const interval = setInterval(() => {
       if (document.hidden) return // Skip polling when tab is hidden
       // Always poll current auction state (lightweight)
@@ -409,6 +501,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
         void loadFirstMarketStatus()
         void loadMyRosterSlots()
         void loadManagersStatus()
+        void loadPendingAppeals()
       }
     }, pollingMs)
 
@@ -421,6 +514,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
         void loadReadyStatus()
         void loadMyRosterSlots()
         void loadManagersStatus()
+        void loadPendingAppeals()
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -429,21 +523,42 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
       clearInterval(interval)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [loadCurrentAuction, loadFirstMarketStatus, loadPendingAcknowledgment, loadReadyStatus, loadMyRosterSlots, loadManagersStatus, loadTeams, isConnected])
+  }, [loadCurrentAuction, loadFirstMarketStatus, loadPendingAcknowledgment, loadReadyStatus, loadMyRosterSlots, loadManagersStatus, loadTeams, loadPendingAppeals, pollingMs])
 
   // Carica stato ricorso quando cambia pendingAck
   useEffect(() => {
     void loadAppealStatus()
-    // Polling as fallback - real-time updates come from Pusher
-    const appealPollingMs = isConnected ? 30000 : 5000
+    // Polling as fallback - real-time updates come from Pusher.
+    // Same adaptive cadence as the main loop (fast during waiting phases).
     const interval = setInterval(() => {
       if (document.hidden) return
       void loadAppealStatus()
-    }, appealPollingMs)
+    }, pollingMs)
     return () => {
       clearInterval(interval)
     }
-  }, [loadAppealStatus, isConnected])
+  }, [loadAppealStatus, pollingMs])
+
+  // Re-sync on Pusher reconnect: when the connection transitions back to
+  // 'connected' after a drop (disconnected/unavailable/connecting), a client
+  // may have missed events while offline. Do a full reload of the relevant
+  // state so it realigns immediately instead of waiting for the next poll.
+  // (test-session #15)
+  const wasConnectedRef = useRef(false)
+  useEffect(() => {
+    const nowConnected = connectionStatus === 'connected'
+    if (nowConnected && !wasConnectedRef.current) {
+      void loadCurrentAuction()
+      void loadFirstMarketStatus()
+      void loadPendingAcknowledgment()
+      void loadReadyStatus()
+      void loadAppealStatus()
+      void loadMyRosterSlots()
+      void loadManagersStatus()
+      void loadPendingAppeals()
+    }
+    wasConnectedRef.current = nowConnected
+  }, [connectionStatus, loadCurrentAuction, loadFirstMarketStatus, loadPendingAcknowledgment, loadReadyStatus, loadAppealStatus, loadMyRosterSlots, loadManagersStatus, loadPendingAppeals])
 
   useEffect(() => {
     // Wait until sessionInfo is loaded to know the session type
@@ -804,6 +919,68 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     }
   }
 
+  // Admin: reopen the last completed auction (= annulla ultimo movimento). Irreversible.
+  async function handleReopenAuction() {
+    const ok = await confirmDialog({
+      title: 'Annulla ultimo movimento',
+      message: 'Riaprire l\'ultima asta conclusa? Il giocatore verrà tolto dalla rosa, il budget restituito e l\'asta riprenderà dall\'ultima offerta. Operazione irreversibile.',
+      confirmLabel: 'Annulla movimento',
+      variant: 'danger',
+    })
+    if (!ok) return
+    // Riapribile sia durante la finestra di conferma (pendingAck) sia dopo, finché
+    // non parte la prossima asta (lastReopenableAuction dal server). test-session #28
+    const auctionToReopen = lastReopenableAuction?.id ?? pendingAck?.id
+    if (!auctionToReopen) {
+      setError('Nessuna asta da riaprire')
+      return
+    }
+    const result = await auctionApi.reopenAuction(leagueId, auctionToReopen)
+    if (result.success) {
+      setSuccessMessage(result.message || 'Asta riaperta')
+      // L'asta è ora in AWAITING_RESUME (come ricorso accettato), non ACTIVE: NON
+      // azzerare pendingAck — getPendingAcknowledgment la ritorna in stato
+      // AWAITING_RESUME e fa comparire la "Pronto a Riprendere?". Ricarico
+      // pendingAck (→ appealStatus via dipendenza) così il ready-check appare
+      // subito anche sull'admin che ha cliccato; gli altri client lo ricevono via
+      // Pusher 'movement-reverted'. (test-session #29)
+      pendingAckLockedRef.current = null
+      setLastReopenableAuction(null)
+      void loadPendingAcknowledgment()
+      void loadAppealStatus()
+      void loadCurrentAuction()
+      void loadFirstMarketStatus()
+      void loadMyRosterSlots()
+      void loadManagersStatus()
+      void loadPlayers()
+    } else {
+      // Il backend rifiuta se una nuova asta è già in corso → mostra il messaggio
+      setError(result.message || 'Errore nella riapertura')
+    }
+  }
+
+  // Admin: resolve a pending appeal (ACCEPTED annulla l'aggiudicazione, REJECTED conferma)
+  async function handleResolveAppeal(
+    appealId: string,
+    decision: 'ACCEPTED' | 'REJECTED',
+    resolutionNote?: string
+  ) {
+    setError('')
+    setResolvingAppealId(appealId)
+    const result = await auctionApi.resolveAppeal(appealId, decision, resolutionNote)
+    setResolvingAppealId(null)
+    if (result.success) {
+      setSuccessMessage(decision === 'ACCEPTED' ? 'Ricorso accolto: aggiudicazione annullata.' : 'Ricorso respinto: transazione confermata.')
+      void loadPendingAppeals()
+      void loadAppealStatus()
+      void loadPendingAcknowledgment()
+      void loadCurrentAuction()
+      void loadManagersStatus()
+    } else {
+      setError(result.message || 'Errore nella risoluzione del ricorso')
+    }
+  }
+
   async function handleUpdateTimer(seconds?: number) {
     const value = seconds ?? timerSetting
     const result = await auctionApi.updateSessionTimer(sessionId, value)
@@ -819,17 +996,28 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     setAckSubmitting(true)
 
     if (isAppeal && appealContent.trim()) {
-      // Invia ricorso tramite endpoint dedicato
+      // Invia ricorso tramite endpoint dedicato. submitAppeal porta l'asta in
+      // APPEAL_REVIEW: NON va seguito da acknowledgeAuction (che richiede stato
+      // COMPLETED/NO_BIDS e fallirebbe). Un solo click invia il ricorso e
+      // aggiorna subito lo stato per far comparire la AppealReviewModal. (#12)
       const appealResult = await auctionApi.submitAppeal(pendingAck.id, appealContent.trim())
+      setAckSubmitting(false)
       if (!appealResult.success) {
         setError(appealResult.message || 'Errore nell\'invio del ricorso')
-        setAckSubmitting(false)
         return
       }
+      setError('')
       setSuccessMessage('Ricorso inviato! L\'admin della lega valuterà la tua richiesta.')
+      setAppealContent('')
+      setIsAppealMode(false)
+      // Refresh immediato: nasconde la AcknowledgmentModal e mostra la review
+      void loadAppealStatus()
+      void loadPendingAcknowledgment()
+      void loadPendingAppeals()
+      return
     }
 
-    // Conferma comunque la visione dell'asta (anche con ricorso)
+    // Conferma normale della visione dell'asta (nessun ricorso)
     const prophecy = withProphecy ? prophecyContent.trim() : undefined
     const result = await auctionApi.acknowledgeAuction(pendingAck.id, prophecy)
     setAckSubmitting(false)
@@ -864,7 +1052,9 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
       void loadPlayers()
       void loadMyRosterSlots()
     } else {
-      setError(res.message || 'Errore durante la modifica del contratto')
+      // Propaga l'errore al componente: la modale resta usabile (mostra il
+      // messaggio, riabilita i bottoni) e l'utente può correggere o uscire.
+      throw new Error(res.message || 'Errore durante la modifica del contratto')
     }
   }
 
@@ -1008,6 +1198,7 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     readyStatus,
     markingReady,
     pendingAck,
+    lastReopenableAuction,
     prophecyContent, setProphecyContent,
     ackSubmitting,
     isAppealMode, setIsAppealMode,
@@ -1017,6 +1208,10 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     selectedManager, setSelectedManager,
     appealStatus,
     pendingContractModification,
+
+    // Admin actions panel
+    pendingAppeals,
+    resolvingAppealId,
 
     // Bid submission state (T-001)
     isBidding,
@@ -1068,6 +1263,8 @@ export function useAuctionRoomState(sessionId: string, leagueId: string) {
     handleCompleteAllSlots,
     handlePlaceBid,
     handleCloseAuction,
+    handleReopenAuction,
+    handleResolveAppeal,
     handleUpdateTimer,
     handleAcknowledge,
     handleContractModification,

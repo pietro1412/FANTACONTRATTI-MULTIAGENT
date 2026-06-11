@@ -4,6 +4,7 @@ import { createLeagueSchema, updateLeagueSchema } from '../../utils/validation'
 import {
   createLeague,
   getLeaguesByUser,
+  getDashboardSummary,
   getLeagueById,
   getLeagueByInviteCode,
   requestJoinLeague,
@@ -11,6 +12,9 @@ import {
   getPendingJoinRequests,
   updateMemberStatus,
   updateLeague,
+  updateLeagueImage,
+  removeLeagueImage,
+  getLeagueIdentity,
   startLeague,
   leaveLeague,
   cancelJoinRequest,
@@ -60,6 +64,18 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     res.json(result)
   } catch (error) {
     console.error('Get leagues error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/dashboard-summary - Per-league attention signals for the hub (requires auth)
+// IMPORTANT: must stay before any '/:id' route to avoid being captured by it.
+router.get('/dashboard-summary', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const result = await getDashboardSummary(req.user!.userId)
+    res.json(result)
+  } catch (error) {
+    console.error('Dashboard summary error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })
@@ -143,6 +159,65 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     res.json(result)
   } catch (error) {
     console.error('Update league error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// PUT /api/leagues/:id/image - Set league image (admin only)
+router.put('/:id/image', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const { imageData } = req.body as { imageData?: string }
+
+    if (!imageData) {
+      res.status(400).json({ success: false, message: 'Nessuna immagine fornita' })
+      return
+    }
+
+    const result = await updateLeagueImage(id, req.user!.userId, imageData)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Update league image error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// DELETE /api/leagues/:id/image - Remove league image (admin only)
+router.delete('/:id/image', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const result = await removeLeagueImage(id, req.user!.userId)
+
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 400).json(result)
+      return
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error('Remove league image error:', error)
+    res.status(500).json({ success: false, message: 'Errore interno del server' })
+  }
+})
+
+// GET /api/leagues/:id/identity - Lightweight league identity (name + image) for the header
+router.get('/:id/identity', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const result = await getLeagueIdentity(id, req.user!.userId)
+    if (!result.success) {
+      res.status(result.message === 'Non autorizzato' ? 403 : 404).json(result)
+      return
+    }
+    res.json(result)
+  } catch (error) {
+    console.error('Get league identity error:', error)
     res.status(500).json({ success: false, message: 'Errore interno del server' })
   }
 })

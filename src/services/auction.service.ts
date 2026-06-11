@@ -13,6 +13,8 @@ import {
   triggerNominationConfirmed,
   triggerMemberReady,
   triggerAuctionStarted,
+  triggerAuctionResumed,
+  triggerAuctionStateChanged,
   triggerAuctionClosed,
   triggerPauseRequested,
 } from './pusher.service'
@@ -648,11 +650,45 @@ export async function updateSessionTimer(
     return { success: false, message: 'Il timer deve essere tra 5 e 120 secondi' }
   }
 
-  // Update session timer
+  // Update session timer — used for future resets (e.g. next bid in placeBid). (test-session #27)
   await prisma.marketSession.update({
     where: { id: sessionId },
     data: { auctionTimerSeconds: timerSeconds },
   })
+
+  // If an auction is currently running with a live timer, reparametrize it
+  // immediately so the admin who extends/shortens the timer sees it applied
+  // to the in-progress auction (and not only at the next bid). (test-session #27)
+  const activeAuction = await prisma.auction.findFirst({
+    where: {
+      marketSessionId: sessionId,
+      status: AuctionStatus.ACTIVE,
+      timerExpiresAt: { not: null },
+    },
+    select: { id: true },
+  })
+
+  if (activeAuction) {
+    const newTimerExpires = new Date(Date.now() + timerSeconds * 1000)
+    await prisma.auction.update({
+      where: { id: activeAuction.id },
+      data: {
+        timerSeconds,
+        timerExpiresAt: newTimerExpires,
+      },
+    })
+
+    // Push a real-time signal so every client reloads the auction and realigns
+    // its countdown to the new timerExpiresAt at once, instead of waiting for
+    // the polling fallback. Reuses the generic state-changed channel (#15);
+    // onAuctionStateChanged → loadCurrentAuction() picks up the new timer.
+    void triggerAuctionStateChanged(sessionId, {
+      sessionId,
+      auctionId: activeAuction.id,
+      reason: 'timer-updated',
+      timestamp: new Date().toISOString(),
+    })
+  }
 
   return {
     success: true,
@@ -1104,6 +1140,22 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
         movementId,
       }
 
+      // Real-time: the timer-expiry close happens lazily inside getCurrentAuction
+      // (no admin action), so unlike closeAuction it had no Pusher emission. Only
+      // the first caller that still finds the auction ACTIVE reaches this block,
+      // so emit once here to push the acknowledgment phase to ALL clients
+      // instead of letting them discover the close via polling. (test-session #15)
+      void triggerAuctionClosed(sessionId, {
+        auctionId: auction.id,
+        playerId: auction.playerId,
+        playerName: auction.player.name,
+        winnerId: winningBid.bidderId,
+        winnerName: winningBid.bidder.user.username,
+        finalPrice: winningBid.amount,
+        wasUnsold: false,
+        timestamp: new Date().toISOString(),
+      })
+
       // Set auction to null since it's now closed
       auction = null
     } else {
@@ -1124,6 +1176,20 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
         amount: 0,
         movementId: null,
       }
+
+      // Real-time: same rationale as the winning-bid branch — push the
+      // (unsold) close to ALL clients so the acknowledgment phase appears
+      // simultaneously rather than via polling. (test-session #15)
+      void triggerAuctionClosed(sessionId, {
+        auctionId: auction.id,
+        playerId: auction.playerId,
+        playerName: auction.player.name,
+        winnerId: null,
+        winnerName: null,
+        finalPrice: null,
+        wasUnsold: true,
+        timestamp: new Date().toISOString(),
+      })
 
       auction = null
     }
@@ -1214,6 +1280,35 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
     ? { ...auction, player: enrichPlayerWithStats(auction.player as unknown as Record<string, unknown>) }
     : auction
 
+  // Ultima asta riapribile (= annulla ultimo movimento), indipendente da pendingAck.
+  // Disponibile finché la prossima asta NON è partita: se c'è già un'asta ACTIVE
+  // (l'asta corrente sopra) non è riapribile. Riapribile = ultima COMPLETED con
+  // vincitore della sessione. (test-session #28)
+  let lastReopenableAuction:
+    | { id: string; playerName: string; winnerName: string }
+    | null = null
+  if (!auction) {
+    const lastCompleted = await prisma.auction.findFirst({
+      where: {
+        marketSessionId: sessionId,
+        status: AuctionStatus.COMPLETED,
+        winnerId: { not: null },
+      },
+      orderBy: { endsAt: 'desc' },
+      include: {
+        player: { select: { name: true } },
+        winner: { include: { user: { select: { username: true } } } },
+      },
+    })
+    if (lastCompleted) {
+      lastReopenableAuction = {
+        id: lastCompleted.id,
+        playerName: lastCompleted.player.name,
+        winnerName: lastCompleted.winner?.teamName || lastCompleted.winner?.user.username || 'Manager',
+      }
+    }
+  }
+
   return {
     success: true,
     data: {
@@ -1230,6 +1325,7 @@ export async function getCurrentAuction(sessionId: string, userId: string): Prom
       marketProgress,
       justCompleted, // Info about just-completed auction for prophecy modal
       participants, // All members with budgets and current bids
+      lastReopenableAuction, // Ultima asta annullabile (indip. da pendingAck) — test-session #28
     },
   }
 }
@@ -1357,7 +1453,8 @@ export async function placeBid(
     },
     include: {
       bidder: {
-        include: {
+        select: {
+          teamName: true,
           user: {
             select: { username: true },
           },
@@ -1391,6 +1488,7 @@ export async function placeBid(
       auctionId: auction.id,
       memberId: member.id,
       memberName: bid.bidder.user.username,
+      teamName: bid.bidder.teamName, // #25: carry team name so the bid history is consistent in real-time
       amount: amount,
       playerId: auction.playerId,
       playerName: auction.player.name,
@@ -1810,6 +1908,25 @@ export async function setFirstMarketTurnOrder(
     })
   }
 
+  // Notify all clients in real-time that the first market started, so the
+  // non-admin managers leave the waiting room immediately instead of waiting
+  // for the polling fallback (test-session #6). The first member in the order
+  // is the first nominator.
+  const firstNominator = members.find(m => m.id === memberOrder[0])
+  if (firstNominator) {
+    const nominatorUser = await prisma.user.findUnique({
+      where: { id: firstNominator.userId },
+      select: { username: true },
+    })
+    void triggerAuctionStarted(sessionId, {
+      sessionId,
+      auctionType: session.type,
+      nominatorId: firstNominator.id,
+      nominatorName: nominatorUser?.username ?? '',
+      timestamp: new Date().toISOString(),
+    })
+  }
+
   return {
     success: true,
     message: 'Ordine turni impostato',
@@ -2202,6 +2319,15 @@ export async function resumeAuction(
     },
   })
 
+  // Notifica in real-time tutti i client: l'asta è ripartita. (test-session #14)
+  if (auction.marketSessionId) {
+    void triggerAuctionResumed(auction.marketSessionId, {
+      sessionId: auction.marketSessionId,
+      auctionId: auction.id,
+      timestamp: new Date().toISOString(),
+    })
+  }
+
   return {
     success: true,
     message: `Asta ripresa (${remainingSeconds} secondi)`,
@@ -2496,15 +2622,23 @@ export async function rectifyTransaction(
  * (riprende dall'ultima offerta valida).
  *
  * Differenza con rectifyTransaction: rectify annulla del tutto la transazione
- * (status -> NO_BIDS, niente riapertura), mentre reopen riporta l'asta ad ACTIVE
- * così i manager possono continuare a rilanciare da dove era rimasta.
+ * (status -> NO_BIDS, niente riapertura), mentre reopen riporta l'asta in
+ * AWAITING_RESUME (ready-check) così i manager confermano "sono pronto" e l'asta
+ * riprende dall'ultima offerta valida.
  *
  * Simmetria con closeAuction: closeAuction crea PlayerRoster, PlayerContract,
  * decrementa il budget del vincitore e registra un PlayerMovement (keyed by
- * auctionId). reopenAuction annulla esattamente queste operazioni, poi rimette
- * l'asta in ACTIVE con winnerId=null e timer fresco. Le AuctionBid NON vengono
- * toccate: l'ultima offerta vincente resta isWinning=true e currentPrice resta
- * pari al suo importo, così il prossimo rilancio dovrà superarla.
+ * auctionId). reopenAuction annulla esattamente queste operazioni, poi mette
+ * l'asta in AWAITING_RESUME con winnerId=null e timer fermo (parte al "tutti
+ * pronti"). Le AuctionBid NON vengono toccate: l'ultima offerta vincente resta
+ * isWinning=true e currentPrice resta pari al suo importo, così il prossimo
+ * rilancio dovrà superarla.
+ *
+ * Flusso identico a resolveAppeal(ACCEPTED): stessa transizione ad
+ * AWAITING_RESUME, stesso ready-check (markReadyToResume/forceAllReadyResume),
+ * stesso resume finale → ACTIVE con evento auction-resumed. L'unica differenza è
+ * il motivo (resumeReason='movement-reverted' vs 'appeal-accepted'), che
+ * differenzia il messaggio della modale "Pronto a Riprendere?". (test-session #29)
  */
 export async function reopenAuction(
   leagueId: string,
@@ -2554,15 +2688,54 @@ export async function reopenAuction(
     return { success: false, message: 'Nessuna offerta vincente trovata' }
   }
 
+  // Ammissibilità: si può riaprire SOLO finché la prossima asta non è partita.
+  // Se esiste già un'asta ACTIVE nella sessione (la successiva è in corso), la
+  // riapertura aprirebbe due aste contemporanee → rifiuta. Una nomination pending
+  // (senza asta attiva) è invece annullabile e verrà ripulita più sotto. (test-session #28)
+  if (auction.marketSessionId) {
+    const activeAuction = await prisma.auction.findFirst({
+      where: {
+        marketSessionId: auction.marketSessionId,
+        status: AuctionStatus.ACTIVE,
+      },
+      select: { id: true },
+    })
+    if (activeAuction) {
+      return {
+        success: false,
+        message: 'Impossibile annullare: una nuova asta è già in corso',
+      }
+    }
+  }
+
   const winnerId = auction.winnerId
   const refundedAmount = winningBid.amount
 
-  // Timer fresco per la ripresa (stessa logica di placeBid / resolveAppeal)
+  // Ripristino turno (solo PRIMO_MERCATO): riporta currentTurnIndex/currentRole
+  // alla nomina dell'asta riaperta. La chiusura asta avanza il turno in
+  // acknowledgeAuction/forceAcknowledgeAll; qui lo riportiamo indietro all'indice
+  // del nominatore di QUESTA asta e al ruolo del giocatore. (test-session #28)
+  const session = auction.marketSession
+  const isPrimoMercato = session?.type === 'PRIMO_MERCATO'
+  let restoredTurnIndex: number | null = null
+  let restoredRole: Position | null = null
+  if (isPrimoMercato && session) {
+    const turnOrder = session.turnOrder as string[] | null
+    if (turnOrder && auction.nominatorId) {
+      const idx = turnOrder.indexOf(auction.nominatorId)
+      if (idx >= 0) {
+        restoredTurnIndex = idx
+        restoredRole = auction.player.position
+      }
+    }
+  }
+
+  // Timer NON parte ancora: l'asta entra in AWAITING_RESUME (ready-check) e il
+  // timer partirà al "tutti pronti", esattamente come resolveAppeal(ACCEPTED).
   const timerSeconds =
     auction.marketSession?.svincolatiTimerSeconds ??
     auction.marketSession?.auctionTimerSeconds ??
     30
-  const newTimerExpires = new Date(Date.now() + timerSeconds * 1000)
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -2589,19 +2762,64 @@ export async function reopenAuction(
       // 3. Pulisci il movimento di assegnazione creato alla chiusura
       await tx.playerMovement.deleteMany({ where: { auctionId } })
 
-      // 4. Riporta l'asta ad ACTIVE: niente vincitore, timer fresco, currentPrice
-      //    = ultima offerta valida. Le bids restano intatte (isWinning invariato).
+      // 3b. Cancella gli acknowledgment della chiusura precedente (come resolveAppeal):
+      //     riaprendo la STESSA asta, alla ri-conclusione tutti devono poter
+      //     riconfermare da capo, altrimenti il backend risponde "Hai già
+      //     confermato questa transazione" col contatore a 0/8. (test-session #30)
+      await tx.auctionAcknowledgment.deleteMany({ where: { auctionId } })
+
+      // 4. Metti l'asta in AWAITING_RESUME (ready-check): niente vincitore, timer
+      //    fermo, currentPrice = ultima offerta valida, ack/ready resettati.
+      //    Stessa impostazione di campi di resolveAppeal(ACCEPTED). Le bids
+      //    restano intatte (isWinning invariato). (test-session #29)
       await tx.auction.update({
         where: { id: auctionId },
         data: {
-          status: AuctionStatus.ACTIVE,
+          status: AuctionStatus.AWAITING_RESUME,
           winnerId: null,
           currentPrice: winningBid.amount,
-          timerExpiresAt: newTimerExpires,
+          timerExpiresAt: null, // Timer non parte ancora
           timerSeconds,
           endsAt: null,
+          appealDecisionAcks: [],
+          resumeReadyMembers: [], // Tutti devono confermare
+          resumeReason: 'movement-reverted',
         },
       })
+
+      // 4a. Se è un'asta svincolati, allinea lo stato della sessione come fa
+      //     resolveAppeal(ACCEPTED).
+      if (auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI' && auction.marketSessionId) {
+        await tx.marketSession.update({
+          where: { id: auction.marketSessionId },
+          data: {
+            svincolatiState: 'AWAITING_RESUME',
+            svincolatiTimerStartedAt: null,
+            svincolatiPendingAck: Prisma.DbNull,
+          },
+        })
+      }
+
+      // 4b. Ripristina il turno alla nomina dell'asta riaperta e annulla una
+      //     eventuale nomination pending della successiva (PRIMO_MERCATO).
+      if (isPrimoMercato && auction.marketSessionId) {
+        const sessionData: Prisma.MarketSessionUncheckedUpdateInput = {
+          pendingNominationPlayerId: null,
+          pendingNominatorId: null,
+          nominatorConfirmed: false,
+          readyMembers: Prisma.JsonNull,
+        }
+        if (restoredTurnIndex !== null) {
+          sessionData.currentTurnIndex = restoredTurnIndex
+        }
+        if (restoredRole !== null) {
+          sessionData.currentRole = restoredRole
+        }
+        await tx.marketSession.update({
+          where: { id: auction.marketSessionId },
+          data: sessionData,
+        })
+      }
 
       // 5. Audit log (stesso pattern di cancelActiveAuction / rectifyTransaction)
       await tx.auditLog.create({
@@ -2618,7 +2836,7 @@ export async function reopenAuction(
             playerName: auction.player.name,
           } as never,
           newValues: {
-            status: AuctionStatus.ACTIVE,
+            status: AuctionStatus.AWAITING_RESUME,
             winnerId: null,
             currentPrice: winningBid.amount,
           } as never,
@@ -2639,28 +2857,32 @@ export async function reopenAuction(
     }
   }
 
-  // Pusher fire-and-forget: notifica che l'asta è di nuovo aperta. Riusa
-  // AUCTION_STARTED come fa la ripresa post-ricorso lato client.
+  // Pusher fire-and-forget: l'asta è ora in AWAITING_RESUME (ready-check). Riusa
+  // lo stesso evento del ricorso accettato con reason dedicato 'movement-reverted'
+  // → su tutti i client compare la AwaitingResumeModal (gate su
+  // appealStatus.auctionStatus==='AWAITING_RESUME', popolato da loadAppealStatus)
+  // con il messaggio differenziato. L'handler reload-completo riallinea anche le
+  // viste "attesa nomina"/"X pronti" dopo il rollback del turno. (test-session #29,
+  // stessa radice di #15/#28)
   if (auction.marketSessionId) {
-    void triggerAuctionStarted(auction.marketSessionId, {
+    void triggerAuctionStateChanged(auction.marketSessionId, {
       sessionId: auction.marketSessionId,
-      auctionType: auction.type,
-      nominatorId: admin.id,
-      nominatorName: 'Admin',
+      auctionId: auction.id,
+      reason: 'movement-reverted',
       timestamp: new Date().toISOString(),
     })
   }
 
   return {
     success: true,
-    message: `Asta per ${auction.player.name} riaperta. Budget restituito (${refundedAmount}). Riprende dall'ultima offerta (${winningBid.amount}).`,
+    message: `Asta per ${auction.player.name} riaperta. Budget restituito (${refundedAmount}). Tutti i manager devono confermare di essere pronti prima della ripresa.`,
     data: {
       auctionId,
       leagueId,
       playerName: auction.player.name,
       refundedAmount,
       currentPrice: winningBid.amount,
-      timerExpiresAt: newTimerExpires,
+      timerExpiresAt: null, // L'asta è in AWAITING_RESUME: il timer parte al "tutti pronti"
     },
   }
 }
@@ -3024,6 +3246,19 @@ export async function acknowledgeAuction(
     }
   }
 
+  // Real-time: push the acknowledgment-counter advance (X/8) to ALL clients so
+  // the "Conferma pronti" progress and the transition to the next nomination on
+  // completion are reflected simultaneously, not only on the polling fallback.
+  // (test-session #15)
+  if (auction.marketSessionId) {
+    void triggerAuctionStateChanged(auction.marketSessionId, {
+      sessionId: auction.marketSessionId,
+      auctionId: auction.id,
+      reason: allAcknowledged ? 'acknowledgment-complete' : 'acknowledgment-progress',
+      timestamp: new Date().toISOString(),
+    })
+  }
+
   return {
     success: true,
     message: 'Conferma registrata',
@@ -3266,6 +3501,16 @@ export async function forceAcknowledgeAll(
       })
     }
   }
+
+  // Real-time: force-ack completes the acknowledgment phase for everyone at
+  // once; push it so all clients advance to the next nomination immediately.
+  // (test-session #15)
+  void triggerAuctionStateChanged(sessionId, {
+    sessionId,
+    auctionId: pendingAuction.id,
+    reason: 'acknowledgment-complete',
+    timestamp: new Date().toISOString(),
+  })
 
   return {
     success: true,
@@ -4356,6 +4601,19 @@ export async function submitAppeal(
     },
   })
 
+  // Real-time: the COMPLETED -> APPEAL_REVIEW transition had no Pusher emission,
+  // so other clients (admin included) saw the AppealReviewModal only on polling.
+  // Push it so the appeal-review state appears on ALL clients at once.
+  // (test-session #15)
+  if (auction.marketSessionId) {
+    void triggerAuctionStateChanged(auction.marketSessionId, {
+      sessionId: auction.marketSessionId,
+      auctionId,
+      reason: 'appeal-submitted',
+      timestamp: new Date().toISOString(),
+    })
+  }
+
   return {
     success: true,
     message: 'Ricorso inviato. L\'asta è bloccata fino alla risoluzione.',
@@ -4473,107 +4731,126 @@ export async function resolveAppeal(
 
   if (decision === 'ACCEPTED') {
     try {
-      // Annulla la transazione
-      // 1. Remove the player from winner's roster (only if there was a winner)
-      if (appeal.auction.winnerId) {
-        // Check if roster entry exists before trying to delete
-        const existingRoster = await prisma.playerRoster.findFirst({
-          where: {
-            leagueMemberId: appeal.auction.winnerId,
-            playerId: appeal.auction.playerId,
-            status: 'ACTIVE',
-          },
-        })
-
-        if (existingRoster) {
-          // 2. Delete any contract for this roster first (foreign key constraint)
-          await prisma.playerContract.deleteMany({
-            where: { rosterId: existingRoster.id },
+      // Atomic rollback: all writes must succeed together. A partial failure
+      // would leave the appeal marked ACCEPTED without the auction rollback
+      // applied (or vice versa). Wrap the whole rollback in a transaction so
+      // either everything commits or nothing does. (test-session #21)
+      await prisma.$transaction(async (tx) => {
+        // Annulla la transazione
+        // 1. Remove the player from winner's roster (only if there was a winner)
+        if (appeal.auction.winnerId) {
+          // Check if roster entry exists before trying to delete
+          const existingRoster = await tx.playerRoster.findFirst({
+            where: {
+              leagueMemberId: appeal.auction.winnerId,
+              playerId: appeal.auction.playerId,
+              status: 'ACTIVE',
+            },
           })
 
-          // Delete the roster entry (instead of updating to RELEASED to avoid unique constraint)
-          await prisma.playerRoster.delete({
-            where: { id: existingRoster.id },
+          if (existingRoster) {
+            // 2. Delete any contract for this roster first (foreign key constraint)
+            await tx.playerContract.deleteMany({
+              where: { rosterId: existingRoster.id },
+            })
+
+            // Delete the roster entry (instead of updating to RELEASED to avoid unique constraint)
+            await tx.playerRoster.delete({
+              where: { id: existingRoster.id },
+            })
+          }
+
+          // 3. Restore winner's budget
+          await tx.leagueMember.update({
+            where: { id: appeal.auction.winnerId },
+            data: {
+              currentBudget: { increment: appeal.auction.currentPrice },
+            },
           })
         }
 
-        // 3. Restore winner's budget
-        await prisma.leagueMember.update({
-          where: { id: appeal.auction.winnerId },
+        // 4. Delete related movement
+        await tx.playerMovement.deleteMany({
+          where: { auctionId: appeal.auction.id },
+        })
+
+        // 5. Delete acknowledgments
+        await tx.auctionAcknowledgment.deleteMany({
+          where: { auctionId: appeal.auction.id },
+        })
+
+        // 6. Metti l'asta in AWAITING_RESUME - tutti devono confermare di essere pronti
+        // Il timer NON parte ancora - partirà quando tutti saranno pronti
+        const timerSeconds = appeal.auction.marketSession?.svincolatiTimerSeconds ??
+                             appeal.auction.marketSession?.auctionTimerSeconds ?? 30
+
+        await tx.auction.update({
+          where: { id: appeal.auctionId },
           data: {
-            currentBudget: { increment: appeal.auction.currentPrice },
+            status: AuctionStatus.AWAITING_RESUME,
+            winnerId: null,
+            // currentPrice rimane invariato - l'asta riprenderà dall'ultima offerta
+            timerExpiresAt: null, // Timer non parte ancora
+            timerSeconds,
+            endsAt: null,
+            appealDecisionAcks: [],
+            resumeReadyMembers: [], // Tutti devono confermare
+            resumeReason: 'appeal-accepted',
           },
         })
-      }
 
-      // 4. Delete related movement
-      await prisma.playerMovement.deleteMany({
-        where: { auctionId: appeal.auction.id },
+        // 7. Se è un'asta svincolati, aggiorna lo stato della sessione
+        if (appeal.auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI') {
+          await tx.marketSession.update({
+            where: { id: appeal.auction.marketSessionId! },
+            data: {
+              svincolatiState: 'AWAITING_RESUME',
+              svincolatiTimerStartedAt: null,
+              svincolatiPendingAck: Prisma.DbNull, // Pulisci il pending ack precedente
+            },
+          })
+        }
+
+        // 8. Le offerte NON vengono cancellate - l'asta riprende da dove era
+
+        // 9. Mark appeal as accepted
+        await tx.auctionAppeal.update({
+          where: { id: appealId },
+          data: {
+            status: 'ACCEPTED',
+            resolvedById: admin.id,
+            resolutionNote,
+            resolvedAt: new Date(),
+          },
+        })
+
+        // Also reject all other pending appeals for this auction
+        await tx.auctionAppeal.updateMany({
+          where: {
+            auctionId: appeal.auctionId,
+            id: { not: appealId },
+            status: 'PENDING',
+          },
+          data: {
+            status: 'REJECTED',
+            resolvedById: admin.id,
+            resolutionNote: 'Asta riaperta per altro ricorso accettato',
+            resolvedAt: new Date(),
+          },
+        })
       })
 
-      // 5. Delete acknowledgments
-      await prisma.auctionAcknowledgment.deleteMany({
-        where: { auctionId: appeal.auction.id },
-      })
-
-    // 6. Metti l'asta in AWAITING_RESUME - tutti devono confermare di essere pronti
-    // Il timer NON parte ancora - partirà quando tutti saranno pronti
-    const timerSeconds = appeal.auction.marketSession?.svincolatiTimerSeconds ??
-                         appeal.auction.marketSession?.auctionTimerSeconds ?? 30
-
-    await prisma.auction.update({
-      where: { id: appeal.auctionId },
-      data: {
-        status: AuctionStatus.AWAITING_RESUME,
-        winnerId: null,
-        // currentPrice rimane invariato - l'asta riprenderà dall'ultima offerta
-        timerExpiresAt: null, // Timer non parte ancora
-        timerSeconds,
-        endsAt: null,
-        appealDecisionAcks: [],
-        resumeReadyMembers: [], // Tutti devono confermare
-      },
-    })
-
-    // 7. Se è un'asta svincolati, aggiorna lo stato della sessione
-    if (appeal.auction.marketSession?.currentPhase === 'ASTA_SVINCOLATI') {
-      await prisma.marketSession.update({
-        where: { id: appeal.auction.marketSessionId! },
-        data: {
-          svincolatiState: 'AWAITING_RESUME',
-          svincolatiTimerStartedAt: null,
-          svincolatiPendingAck: Prisma.DbNull, // Pulisci il pending ack precedente
-        },
+    // Real-time: the appeal resolution moves the auction to AWAITING_RESUME
+    // (ready-check) with no dedicated event; push it so every client shows the
+    // ready-check phase at once instead of via polling. (test-session #15)
+    if (appeal.auction.marketSessionId) {
+      void triggerAuctionStateChanged(appeal.auction.marketSessionId, {
+        sessionId: appeal.auction.marketSessionId,
+        auctionId: appeal.auctionId,
+        reason: 'appeal-accepted',
+        timestamp: new Date().toISOString(),
       })
     }
-
-    // 8. Le offerte NON vengono cancellate - l'asta riprende da dove era
-
-    // 9. Mark appeal as accepted
-    await prisma.auctionAppeal.update({
-      where: { id: appealId },
-      data: {
-        status: 'ACCEPTED',
-        resolvedById: admin.id,
-        resolutionNote,
-        resolvedAt: new Date(),
-      },
-    })
-
-    // Also reject all other pending appeals for this auction
-    await prisma.auctionAppeal.updateMany({
-      where: {
-        auctionId: appeal.auctionId,
-        id: { not: appealId },
-        status: 'PENDING',
-      },
-      data: {
-        status: 'REJECTED',
-        resolvedById: admin.id,
-        resolutionNote: 'Asta riaperta per altro ricorso accettato',
-        resolvedAt: new Date(),
-      },
-    })
 
     return {
       success: true,
@@ -4592,25 +4869,42 @@ export async function resolveAppeal(
       }
     }
   } else {
-    // REJECTED - conferma l'esito, ma tutti devono prendere visione
-    await prisma.auctionAppeal.update({
-      where: { id: appealId },
-      data: {
-        status: 'REJECTED',
-        resolvedById: admin.id,
-        resolutionNote,
-        resolvedAt: new Date(),
-      },
+    // REJECTED - conferma l'esito, ma tutti devono prendere visione.
+    // Two correlated writes (mark appeal REJECTED + move auction to
+    // AWAITING_APPEAL_ACK): wrap them atomically so the auction cannot be left
+    // out of the ack phase while the appeal is already marked. (test-session #21)
+    await prisma.$transaction(async (tx) => {
+      await tx.auctionAppeal.update({
+        where: { id: appealId },
+        data: {
+          status: 'REJECTED',
+          resolvedById: admin.id,
+          resolutionNote,
+          resolvedAt: new Date(),
+        },
+      })
+
+      // Metti l'asta in attesa che tutti confermino la decisione
+      await tx.auction.update({
+        where: { id: appeal.auctionId },
+        data: {
+          status: AuctionStatus.AWAITING_APPEAL_ACK,
+          appealDecisionAcks: [], // Reset - tutti devono confermare
+        },
+      })
     })
 
-    // Metti l'asta in attesa che tutti confermino la decisione
-    await prisma.auction.update({
-      where: { id: appeal.auctionId },
-      data: {
-        status: AuctionStatus.AWAITING_APPEAL_ACK,
-        appealDecisionAcks: [], // Reset - tutti devono confermare
-      },
-    })
+    // Real-time: the rejection moves the auction to AWAITING_APPEAL_ACK; push it
+    // so every client shows the decision-acknowledgment phase at once.
+    // (test-session #15)
+    if (appeal.auction.marketSessionId) {
+      void triggerAuctionStateChanged(appeal.auction.marketSessionId, {
+        sessionId: appeal.auction.marketSessionId,
+        auctionId: appeal.auctionId,
+        reason: 'appeal-rejected',
+        timestamp: new Date().toISOString(),
+      })
+    }
 
     return {
       success: true,
@@ -4670,6 +4964,20 @@ export async function acknowledgeAppealDecision(
   const resolvedAppeal = auction.appeals[0]
   const wasAccepted = resolvedAppeal?.status === 'ACCEPTED'
 
+  // Real-time helper: push a state-changed signal so every client realigns the
+  // appeal decision-ack counter and any phase transition on completion, instead
+  // of relying on the polling fallback. (test-session #15)
+  const emitDecisionAckChange = (reason: string) => {
+    if (auction.marketSessionId) {
+      void triggerAuctionStateChanged(auction.marketSessionId, {
+        sessionId: auction.marketSessionId,
+        auctionId,
+        reason,
+        timestamp: new Date().toISOString(),
+      })
+    }
+  }
+
   if (allConfirmed) {
     if (wasAccepted) {
       // Ricorso accettato - passa a AWAITING_RESUME per ready check
@@ -4681,6 +4989,7 @@ export async function acknowledgeAppealDecision(
           resumeReadyMembers: [], // Reset ready members
         },
       })
+      emitDecisionAckChange('appeal-decision-ack-complete')
       return {
         success: true,
         message: 'Tutti hanno confermato. Ora tutti devono dichiararsi pronti per riprendere l\'asta.',
@@ -4750,6 +5059,7 @@ export async function acknowledgeAppealDecision(
         }
       }
 
+      emitDecisionAckChange('appeal-decision-ack-complete')
       return {
         success: true,
         message: 'Tutti hanno confermato. L\'esito dell\'asta è confermato, si prosegue.',
@@ -4761,6 +5071,7 @@ export async function acknowledgeAppealDecision(
       where: { id: auctionId },
       data: { appealDecisionAcks: newAcks },
     })
+    emitDecisionAckChange('appeal-decision-ack-progress')
     return {
       success: true,
       message: 'Conferma registrata. In attesa degli altri manager.',
@@ -4835,6 +5146,16 @@ export async function markReadyToResume(
       })
     }
 
+    // Notifica in real-time tutti i client: l'asta è ripartita, chiudi la
+    // modale "Pronto a Riprendere?" senza aspettare il polling. (test-session #14)
+    if (auction.marketSessionId) {
+      void triggerAuctionResumed(auction.marketSessionId, {
+        sessionId: auction.marketSessionId,
+        auctionId: auction.id,
+        timestamp: new Date().toISOString(),
+      })
+    }
+
     return {
       success: true,
       message: 'Tutti pronti! L\'asta riprende.',
@@ -4845,6 +5166,16 @@ export async function markReadyToResume(
       where: { id: auctionId },
       data: { resumeReadyMembers: newReady },
     })
+    // Real-time: advance the ready-to-resume counter on all clients; the final
+    // transition to ACTIVE already emits auction-resumed. (test-session #15)
+    if (auction.marketSessionId) {
+      void triggerAuctionStateChanged(auction.marketSessionId, {
+        sessionId: auction.marketSessionId,
+        auctionId,
+        reason: 'resume-ready-progress',
+        timestamp: new Date().toISOString(),
+      })
+    }
     return {
       success: true,
       message: 'Pronto registrato. In attesa degli altri manager.',
@@ -4914,6 +5245,15 @@ export async function forceAllReadyToResume(
     })
   }
 
+  // Notifica in real-time tutti i client: l'asta è ripartita. (test-session #14)
+  if (auction.marketSessionId) {
+    void triggerAuctionResumed(auction.marketSessionId, {
+      sessionId: auction.marketSessionId,
+      auctionId: auction.id,
+      timestamp: new Date().toISOString(),
+    })
+  }
+
   return {
     success: true,
     message: 'Tutti i manager sono stati segnati come pronti. L\'asta riprende.',
@@ -4975,6 +5315,16 @@ export async function forceAllAppealDecisionAcks(
         resumeReadyMembers: [],
       },
     })
+    // Real-time: force-completing the decision-ack moves all clients to the
+    // ready-check phase at once. (test-session #15)
+    if (auction.marketSessionId) {
+      void triggerAuctionStateChanged(auction.marketSessionId, {
+        sessionId: auction.marketSessionId,
+        auctionId,
+        reason: 'appeal-decision-ack-complete',
+        timestamp: new Date().toISOString(),
+      })
+    }
     return {
       success: true,
       message: 'Tutti confermati. Ora in attesa che tutti siano pronti per riprendere.',
@@ -5042,6 +5392,17 @@ export async function forceAllAppealDecisionAcks(
       }
     }
 
+    // Real-time: force-completing a rejected decision-ack confirms the result
+    // and advances the flow on all clients. (test-session #15)
+    if (auction.marketSessionId) {
+      void triggerAuctionStateChanged(auction.marketSessionId, {
+        sessionId: auction.marketSessionId,
+        auctionId,
+        reason: 'appeal-decision-ack-complete',
+        timestamp: new Date().toISOString(),
+      })
+    }
+
     return {
       success: true,
       message: 'Tutti confermati. L\'esito è confermato, si prosegue.',
@@ -5105,6 +5466,7 @@ export async function getAppealStatus(
     data: {
       auctionId: auction.id,
       auctionStatus: auction.status,
+      resumeReason: auction.resumeReason, // 'appeal-accepted' | 'movement-reverted' | null
       hasActiveAppeal,
       appeal: latestAppeal ? {
         id: latestAppeal.id,

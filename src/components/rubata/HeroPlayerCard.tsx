@@ -118,7 +118,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
-                onClick={() => onPlayerStatsClick({
+                onClick={() => { onPlayerStatsClick({
                   name: player.playerName,
                   team: player.playerTeam,
                   position: player.playerPosition,
@@ -126,7 +126,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
                   age: player.playerAge,
                   apiFootballId: player.playerApiFootballId,
                   computedStats: player.playerComputedStats,
-                })}
+                }); }}
                 className="text-lg font-bold text-white hover:text-primary-300 truncate"
                 title="Clicca per vedere statistiche"
               >
@@ -179,7 +179,7 @@ export const HeroPlayerCard = memo(function HeroPlayerCard({
             {canEditPreferences && (
               <button
                 type="button"
-                onClick={() => onOpenPrefsModal({ ...player, preference: pref || null })}
+                onClick={() => { onOpenPrefsModal({ ...player, preference: pref || null }); }}
                 className="ml-auto px-2 py-1 rounded text-xs bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30"
               >
                 {hasStrategy ? '⚙️ Modifica' : '+ Strategia'}

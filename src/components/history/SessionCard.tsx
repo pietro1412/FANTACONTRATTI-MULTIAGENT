@@ -288,6 +288,11 @@ const movementTypeLabels: Record<string, string> = {
   SVINCOLATI: 'Svincolati',
   RELEASE: 'Cessioni',
   CONTRACT_RENEW: 'Rinnovi Contratto',
+  RETIREMENT: 'Svincoli Ritirati',
+  RELEGATION_RELEASE: 'Svincoli Retrocessi',
+  RELEGATION_KEEP: 'Retrocessi Mantenuti',
+  ABROAD_COMPENSATION: 'Svincoli Esteri (indennizzo)',
+  ABROAD_KEEP: 'Esteri Mantenuti',
 }
 
 function OverviewTab({ data }: { data: unknown }) {

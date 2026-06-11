@@ -2,19 +2,18 @@
  * AdminControlsPanel.tsx - Pannello controlli admin per test asta
  *
  * Box riutilizzabile per tutti i layout contenente:
- * - Selezione timer
  * - Pulsanti di test (simula scelta, conferma, offerta bot, etc.)
  *
- * NOTA: Questo componente non sarà visibile nella versione finale
+ * NOTA: Questo componente non sarà visibile nella versione finale.
+ * Il selettore del timer asta è stato spostato nel pannello ufficiale
+ * "Azioni Admin" (AdminActionsPanel). (test-session #27)
  */
 
 import { Button } from '../ui/Button'
 
 interface AdminControlsPanelProps {
   isAdmin: boolean
-  timerSetting: number
   hasAuction: boolean
-  onUpdateTimer?: (seconds: number) => void
   onBotNominate?: () => void
   onBotConfirmNomination?: () => void
   onBotBid?: () => void
@@ -26,9 +25,7 @@ interface AdminControlsPanelProps {
 
 export function AdminControlsPanel({
   isAdmin,
-  timerSetting,
   hasAuction,
-  onUpdateTimer,
   onBotNominate,
   onBotConfirmNomination,
   onBotBid,
@@ -48,30 +45,8 @@ export function AdminControlsPanel({
         </h3>
       </div>
       <div className="p-3 space-y-3">
-        {/* Timer Setting */}
-        {onUpdateTimer && (
-          <div>
-            <p className="text-xs text-gray-400 mb-2">Timer Asta</p>
-            <div className="flex flex-wrap gap-1">
-              {[5, 10, 15, 20, 25, 30, 45, 60].map(sec => (
-                <button
-                  key={sec}
-                  onClick={() => { onUpdateTimer(sec); }}
-                  className={`px-2 py-1 rounded text-xs font-medium transition-all ${
-                    timerSetting === sec
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-surface-300 text-gray-400 hover:bg-surface-50/20 hover:text-white'
-                  }`}
-                >
-                  {sec}s
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Test Buttons */}
-        <div className="pt-2 border-t border-surface-50/20 space-y-2">
+        <div className="space-y-2">
           <p className="text-xs text-warning-500 font-bold uppercase">Test Mode</p>
 
           {onBotNominate && (

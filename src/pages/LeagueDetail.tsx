@@ -12,6 +12,8 @@ import {
   RecentMovements,
   ManagersSidebar,
   AuctionConfirmModal,
+  MarketOpeningSummaryModal,
+  type MarketOpeningSummary,
   PreMarketOverview,
 } from '../components/league-detail'
 
@@ -81,12 +83,14 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
   const [userMembership, setUserMembership] = useState<{ id: string; currentBudget: number } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [authExpired, setAuthExpired] = useState(false)
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null)
 
   // Action state
   const [isLeaving, setIsLeaving] = useState(false)
   const [showAuctionConfirm, setShowAuctionConfirm] = useState(false)
   const [isCreatingSession, setIsCreatingSession] = useState(false)
+  const [marketOpeningSummary, setMarketOpeningSummary] = useState<MarketOpeningSummary | null>(null)
 
   // Lazy-loaded data
   const [leagueTotals, setLeagueTotals] = useState<LeagueTotals | null>(null)
@@ -124,6 +128,9 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
       setLeague(data.league)
       setIsAdmin(data.isAdmin)
       setUserMembership(data.userMembership)
+    } else if (leagueResult.authExpired) {
+      // 401 non recuperabile: la sessione è scaduta, non è una lega mancante
+      setAuthExpired(true)
     }
 
     if (sessionsResult.success && sessionsResult.data) {
@@ -186,6 +193,20 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
     const result = await auctionApi.createSession(leagueId, isRegularMarket)
     setShowAuctionConfirm(false)
     if (result.success) {
+      // Mercato ricorrente: il backend restituisce il riepilogo degli eventi di apertura
+      // (decremento durata, svincoli per scadenza, svincoli ritirati). Mostralo all'admin.
+      if (isRegularMarket && result.data) {
+        const data = result.data as {
+          contractsDecremented?: number
+          playersReleased?: string[]
+          ritiratiAutoReleased?: { released: number; players: string[] }
+        }
+        setMarketOpeningSummary({
+          contractsDecremented: data.contractsDecremented ?? 0,
+          playersReleased: data.playersReleased ?? [],
+          ritiratiAutoReleased: data.ritiratiAutoReleased,
+        })
+      }
       const sessionsResult = await auctionApi.getSessions(leagueId)
       if (sessionsResult.success && sessionsResult.data) {
         setSessions(sessionsResult.data as Session[])
@@ -248,6 +269,19 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (authExpired) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-xl text-danger-400 mb-4">Sessione scaduta, effettua di nuovo il login</p>
+          <Button variant="primary" onClick={() => { onNavigate('login'); }}>
+            Vai al login
+          </Button>
         </div>
       </div>
     )
@@ -381,6 +415,14 @@ export function LeagueDetail({ leagueId, onNavigate }: LeagueDetailProps) {
           isCreating={isCreatingSession}
           onConfirm={() => void handleConfirmCreateSession()}
           onCancel={() => { setShowAuctionConfirm(false); }}
+        />
+      )}
+
+      {/* Market opening events summary (recurrent market) */}
+      {marketOpeningSummary && (
+        <MarketOpeningSummaryModal
+          summary={marketOpeningSummary}
+          onClose={() => { setMarketOpeningSummary(null); }}
         />
       )}
     </div>

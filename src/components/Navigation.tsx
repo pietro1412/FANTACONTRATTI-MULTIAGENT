@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { superadminApi } from '../services/api'
+import { superadminApi, leagueApi } from '../services/api'
 import { Button } from './ui/Button'
 import { Notifications } from './Notifications'
 import { PendingInvites } from './PendingInvites'
@@ -87,9 +87,35 @@ function getPageDisplayName(page: string): string {
   return pageNames[page] || page
 }
 
+// Lightweight per-session cache of league identity (name + logo) so the header
+// renders instantly across sections without refetching on every navigation.
+interface LeagueIdentity { id: string; name: string; imageUrl: string | null }
+const leagueIdentityCache = new Map<string, LeagueIdentity>()
+
+// Small league crest: shows the uploaded logo, or a monogram fallback.
+function LeagueCrest({ imageUrl, name }: { imageUrl?: string | null; name?: string }) {
+  if (imageUrl) {
+    return (
+      <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-surface-50/30">
+        <img src={imageUrl} alt={name ? `Logo ${name}` : 'Logo lega'} className="w-full h-full object-cover" />
+      </div>
+    )
+  }
+  const initials = (name || '?').trim().slice(0, 2).toUpperCase()
+  return (
+    <div className="w-8 h-8 rounded-lg flex-shrink-0 bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center text-[11px] font-bold text-white">
+      {initials}
+    </div>
+  )
+}
+
 export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeagueAdmin, activeTab, isInAuction, onNavigate }: NavigationProps) {
   const { user, logout } = useAuth()
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  // League identity (name + logo) for the header, shown in every league section
+  const [leagueIdentity, setLeagueIdentity] = useState<LeagueIdentity | null>(
+    leagueId ? leagueIdentityCache.get(leagueId) ?? null : null
+  )
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const [pusherConnected, setPusherConnected] = useState(false)
@@ -99,6 +125,45 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
   useEffect(() => {
     void loadSuperAdminStatus()
   }, [])
+
+  // Fetch the league identity (name + logo) when inside a league; refresh on admin edits.
+  useEffect(() => {
+    if (!leagueId) {
+      setLeagueIdentity(null)
+      return
+    }
+    // Instant render from cache, then refresh in background
+    setLeagueIdentity(leagueIdentityCache.get(leagueId) ?? null)
+
+    let cancelled = false
+    async function loadIdentity(id: string) {
+      try {
+        const res = await leagueApi.getIdentity(id)
+        if (!cancelled && res.success && res.data) {
+          const identity = res.data as LeagueIdentity
+          leagueIdentityCache.set(id, identity)
+          setLeagueIdentity(identity)
+        }
+      } catch {
+        // Non-fatal: the header falls back to the leagueName prop
+      }
+    }
+    void loadIdentity(leagueId)
+
+    // Admin can change the logo elsewhere — refresh the header when notified
+    const onIdentityUpdated = (e: Event) => {
+      const detail = (e as CustomEvent<{ leagueId?: string }>).detail
+      if (!detail?.leagueId || detail.leagueId === leagueId) {
+        leagueIdentityCache.delete(leagueId)
+        void loadIdentity(leagueId)
+      }
+    }
+    window.addEventListener('league-identity-updated', onIdentityUpdated)
+    return () => {
+      cancelled = true
+      window.removeEventListener('league-identity-updated', onIdentityUpdated)
+    }
+  }, [leagueId])
 
   // Monitor Pusher connection status
   useEffect(() => {
@@ -242,6 +307,21 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
                 </div>
               </div>
             </button>
+
+            {/* League identity (logo + name) — visible in every league section */}
+            {leagueId && (
+              <button
+                onClick={() => { onNavigate('leagueDetail', { leagueId }); }}
+                className="hidden sm:flex items-center gap-2 pl-3 ml-1 border-l border-surface-50/20 group/league"
+                title={leagueIdentity?.name || leagueName || 'Vai alla lega'}
+                data-testid="league-identity"
+              >
+                <LeagueCrest imageUrl={leagueIdentity?.imageUrl} name={leagueIdentity?.name || leagueName} />
+                <span className="hidden md:block text-sm font-semibold text-white max-w-[160px] truncate group-hover/league:text-primary-300 transition-colors">
+                  {leagueIdentity?.name || leagueName || 'Lega'}
+                </span>
+              </button>
+            )}
 
             {/* Real-time status indicators */}
             <div className="hidden sm:flex items-center gap-2">
@@ -614,10 +694,13 @@ export function Navigation({ currentPage, leagueId, leagueName, teamName, isLeag
             </div>
 
             {/* League Context Banner */}
-            {leagueId && leagueName && (
-              <div className="px-4 py-3 rounded-xl border bg-primary-500/10 border-primary-500/30">
-                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Lega corrente</p>
-                <p className="text-sm font-semibold truncate text-primary-300">{leagueName}</p>
+            {leagueId && (leagueIdentity?.name || leagueName) && (
+              <div className="px-4 py-3 rounded-xl border bg-primary-500/10 border-primary-500/30 flex items-center gap-3">
+                <LeagueCrest imageUrl={leagueIdentity?.imageUrl} name={leagueIdentity?.name || leagueName} />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Lega corrente</p>
+                  <p className="text-sm font-semibold truncate text-primary-300">{leagueIdentity?.name || leagueName}</p>
+                </div>
               </div>
             )}
 

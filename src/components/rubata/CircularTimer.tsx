@@ -64,7 +64,7 @@ export const CircularTimer = memo(function CircularTimer({
         />
       </svg>
       {/* Center text */}
-      <span className={`absolute font-mono font-bold tabular-nums ${fontSize} ${color.split(' ')[0]}`}>
+      <span className={`absolute font-mono font-bold tabular-nums ${fontSize} ${color.split(' ')[0] ?? ''}`}>
         {seconds}
       </span>
     </div>

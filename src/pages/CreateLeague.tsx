@@ -1,5 +1,5 @@
-import { useState, useEffect, type FormEvent } from 'react'
-import { leagueApi, superadminApi } from '../services/api'
+import { useState, useEffect, useRef, type FormEvent } from 'react'
+import { leagueApi, superadminApi, inviteApi } from '../services/api'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
@@ -57,6 +57,15 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
   const [success, setSuccess] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  // Logo lega (opzionale) scelto in fase di creazione
+  const [logo, setLogo] = useState('')
+  const logoInputRef = useRef<HTMLInputElement>(null)
+  // Invita manager (step di successo): riusa inviteApi.create sulla lega appena creata (DRAFT)
+  const [createdLeagueId, setCreatedLeagueId] = useState('')
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteError, setInviteError] = useState('')
+  const [isInviting, setIsInviting] = useState(false)
+  const [sentInvites, setSentInvites] = useState<string[]>([])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -76,12 +85,14 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
       forwardSlots,
       teamName,
       isPublic,
+      imageUrl: logo || undefined,
     })
 
     if (response.success && response.data) {
-      const data = response.data as { inviteCode?: string }
+      const data = response.data as { id?: string; inviteCode?: string }
       setSuccess('Lega creata con successo!')
       setInviteCode(data.inviteCode || '')
+      setCreatedLeagueId(data.id || '')
     } else {
       // Parse validation errors from API response
       if (response.errors && response.errors.length > 0) {
@@ -104,6 +115,44 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
     }
 
     setIsLoading(false)
+  }
+
+  async function handleInvite() {
+    const value = inviteEmail.trim()
+    if (!value || !createdLeagueId) return
+
+    setInviteError('')
+    setIsInviting(true)
+
+    const res = await inviteApi.create(createdLeagueId, value)
+    if (res.success) {
+      setSentInvites(prev => [...prev, value])
+      setInviteEmail('')
+    } else {
+      setInviteError(res.message || 'Errore nell\'invio dell\'invito')
+    }
+
+    setIsInviting(false)
+  }
+
+  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setError('Il file deve essere un\'immagine')
+      return
+    }
+    if (file.size > 500 * 1024) {
+      setError('Il logo deve essere inferiore a 500KB')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      setError('')
+      setLogo(event.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
   }
 
   const totalSlots = goalkeeperSlots + defenderSlots + midfielderSlots + forwardSlots
@@ -145,14 +194,75 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                   <span className="text-5xl">🎉</span>
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2">Lega Creata!</h2>
-                <p className="text-secondary-400 text-lg mb-6">{success}</p>
-                {inviteCode && (
-                  <div className="bg-surface-300 p-6 rounded-xl mb-8 max-w-sm mx-auto border border-surface-50/20">
-                    <p className="text-sm text-gray-400 mb-2 uppercase tracking-wide">Codice Invito</p>
-                    <p className="font-mono text-2xl font-bold text-primary-400">{inviteCode}</p>
-                    <p className="text-xs text-gray-500 mt-2">Condividi questo codice con i tuoi amici</p>
+                <p className="text-secondary-400 text-lg mb-8">{success}</p>
+
+                {/* Invita manager (primario): invia un invito via email/username */}
+                {createdLeagueId && (
+                  <div className="bg-surface-300 p-6 rounded-xl mb-6 max-w-md mx-auto border border-surface-50/20 text-left">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">✉️</span>
+                      <h3 className="font-bold text-white">Invita manager</h3>
+                    </div>
+                    <p className="text-sm text-gray-400 mb-4">
+                      Inserisci l&apos;email o lo username di un manager: riceverà un invito a unirsi alla lega.
+                    </p>
+
+                    {inviteError && (
+                      <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg text-sm mb-3">
+                        {inviteError}
+                      </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+                      <div className="flex-1">
+                        <Input
+                          label="Email o username"
+                          type="text"
+                          value={inviteEmail}
+                          onChange={e => { setInviteEmail(e.target.value); }}
+                          placeholder="manager@email.it"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              void handleInvite()
+                            }
+                          }}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={() => { void handleInvite() }}
+                        isLoading={isInviting}
+                        disabled={!inviteEmail.trim()}
+                      >
+                        Invia invito
+                      </Button>
+                    </div>
+
+                    {sentInvites.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Inviti inviati</p>
+                        <ul className="space-y-1">
+                          {sentInvites.map((inv, i) => (
+                            <li key={`${inv}-${i}`} className="text-sm text-secondary-400 flex items-center gap-2">
+                              <span aria-hidden="true">✅</span> {inv}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
+
+                {/* Codice invito (secondario): condivisione manuale */}
+                {inviteCode && (
+                  <div className="bg-surface-300 p-5 rounded-xl mb-8 max-w-md mx-auto border border-surface-50/20">
+                    <p className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Oppure condividi il codice invito</p>
+                    <p className="font-mono text-xl font-bold text-primary-400">{inviteCode}</p>
+                    <p className="text-xs text-gray-500 mt-2">Chi ha il codice può unirsi dalla pagina di partecipazione.</p>
+                  </div>
+                )}
+
                 <Button size="xl" onClick={() => { onNavigate('dashboard'); }}>
                   Vai alla Dashboard
                 </Button>
@@ -170,6 +280,51 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                   <div className="flex items-center gap-3 mb-4">
                     <span className="text-xl">📋</span>
                     <h3 className="text-xl font-bold text-white">Informazioni Lega</h3>
+                  </div>
+
+                  {/* Logo lega (opzionale) */}
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => logoInputRef.current?.click()}
+                      title={logo ? 'Cambia logo' : 'Carica logo della lega'}
+                      className="group relative w-16 h-16 rounded-xl overflow-hidden bg-surface-300 border-2 border-dashed border-surface-50/40 flex items-center justify-center flex-shrink-0 hover:border-primary-500/60 transition-colors"
+                    >
+                      {logo ? (
+                        <img src={logo} alt="Logo lega" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-2xl opacity-70">🏆</span>
+                      )}
+                    </button>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-300">Logo della lega <span className="text-gray-500 font-normal">(opzionale)</span></p>
+                      <div className="flex items-center gap-3 mt-1">
+                        <button
+                          type="button"
+                          onClick={() => logoInputRef.current?.click()}
+                          className="text-xs font-medium text-primary-400 hover:text-primary-300"
+                        >
+                          📷 {logo ? 'Cambia logo' : 'Carica logo'}
+                        </button>
+                        {logo && (
+                          <button
+                            type="button"
+                            onClick={() => { setLogo('') }}
+                            className="text-xs text-danger-400 hover:text-danger-300"
+                          >
+                            Rimuovi
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-gray-500 mt-1">PNG/JPG, max 500KB. Potrai cambiarlo anche dopo dal Pannello Admin.</p>
+                    </div>
+                    <input
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleLogoChange}
+                    />
                   </div>
 
                   <Input
@@ -223,7 +378,7 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                         label="Max Partecipanti"
                         value={maxParticipants}
                         onChange={setMaxParticipants}
-                        min={2}
+                        min={6}
                         max={20}
                         error={fieldErrors.maxParticipants}
                       />
@@ -312,9 +467,10 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                       <NumberStepper
                         value={goalkeeperSlots}
                         onChange={setGoalkeeperSlots}
-                        min={1}
+                        min={3}
                         max={5}
                         size="sm"
+                        error={fieldErrors.goalkeeperSlots}
                       />
                       <p className="text-xs text-amber-400 mt-2">Portieri</p>
                     </div>
@@ -326,9 +482,10 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                       <NumberStepper
                         value={defenderSlots}
                         onChange={setDefenderSlots}
-                        min={3}
+                        min={8}
                         max={12}
                         size="sm"
+                        error={fieldErrors.defenderSlots}
                       />
                       <p className="text-xs text-blue-400 mt-2">Difensori</p>
                     </div>
@@ -340,9 +497,10 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                       <NumberStepper
                         value={midfielderSlots}
                         onChange={setMidfielderSlots}
-                        min={3}
+                        min={8}
                         max={12}
                         size="sm"
+                        error={fieldErrors.midfielderSlots}
                       />
                       <p className="text-xs text-emerald-400 mt-2">Centrocampisti</p>
                     </div>
@@ -354,9 +512,10 @@ export function CreateLeague({ onNavigate }: CreateLeagueProps) {
                       <NumberStepper
                         value={forwardSlots}
                         onChange={setForwardSlots}
-                        min={2}
+                        min={6}
                         max={8}
                         size="sm"
+                        error={fieldErrors.forwardSlots}
                       />
                       <p className="text-xs text-red-400 mt-2">Attaccanti</p>
                     </div>

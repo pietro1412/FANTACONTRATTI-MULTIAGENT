@@ -86,6 +86,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     firstMarketStatus, turnOrderDraft,
     readyStatus, markingReady,
     pendingAck,
+    lastReopenableAuction,
     prophecyContent, setProphecyContent,
     ackSubmitting,
     isAppealMode, setIsAppealMode,
@@ -94,6 +95,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     selectedManager, setSelectedManager,
     appealStatus,
     pendingContractModification,
+    pendingAppeals, resolvingAppealId,
     isAdmin, isPrimoMercato, hasTurnOrder,
     isMyTurn, currentTurnManager,
     isUserWinning, isTimerExpired, currentUsername,
@@ -109,6 +111,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     handleResetFirstMarket, handleRequestPause, handlePauseAuction, handleResumeAuction,
     pauseRequest, dismissPauseRequest,
     handleCompleteAllSlots, handlePlaceBid, handleCloseAuction, isBidding,
+    handleReopenAuction, handleResolveAppeal,
     handleUpdateTimer, handleAcknowledge,
     handleContractModification, handleSkipContractModification,
   } = useAuctionRoomState(sessionId, leagueId)
@@ -239,6 +242,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           onCancelNomination={() => void handleCancelNomination()}
           markingReady={markingReady}
           pendingAck={pendingAck}
+          lastReopenableAuction={lastReopenableAuction}
           onAcknowledge={() => { void handleAcknowledge(false) }}
           ackSubmitting={ackSubmitting}
           players={players}
@@ -252,7 +256,11 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
           onNominatePlayer={(playerId: string) => void handleNominatePlayer(playerId)}
           onSelectManager={setSelectedManager}
           onCloseAuction={() => void handleCloseAuction()}
-          onUpdateTimer={() => void handleUpdateTimer()}
+          onReopenAuction={() => void handleReopenAuction()}
+          pendingAppeals={pendingAppeals}
+          resolvingAppealId={resolvingAppealId}
+          onResolveAppeal={(appealId, decision, note) => void handleResolveAppeal(appealId, decision, note)}
+          onUpdateTimer={(seconds: number) => void handleUpdateTimer(seconds)}
           onBotNominate={() => void handleBotNominate()}
           onBotConfirmNomination={() => void handleBotConfirmNomination()}
           onBotBid={() => void handleBotBid()}
@@ -289,10 +297,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
         ackSubmitting={ackSubmitting}
         isAdmin={isAdmin}
         error={error}
-        onAcknowledge={() => void handleAcknowledge(false)}
-     onSimulateAppeal={() => void handleSimulateAppeal()}
-        onNavigate={onNavigate}
-        leagueId={leagueId}
+        onAcknowledge={(hasProphecy, isAppeal) => void handleAcknowledge(hasProphecy, isAppeal)}
+        onSimulateAppeal={() => void handleSimulateAppeal()}
       />
 
       <WaitingModal
@@ -306,8 +312,8 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
         appealStatus={appealStatus}
         pendingAck={pendingAck}
         isAdmin={isAdmin}
-        onNavigate={onNavigate}
-        leagueId={leagueId}
+        resolvingAppealId={resolvingAppealId}
+        onResolveAppeal={(appealId, decision, note) => void handleResolveAppeal(appealId, decision, note)}
       />
 
       <AppealAckModal
@@ -346,6 +352,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
             rescissionClause: pendingContractModification.rescissionClause,
           }}
           onConfirm={handleContractModification}
+          increaseOnly={true}
           title="Modifica Contratto"
           description="Hai appena acquistato questo giocatore. Puoi modificare il suo contratto seguendo le regole del rinnovo."
         />

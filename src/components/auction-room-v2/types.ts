@@ -3,6 +3,7 @@ import type {
   PendingAcknowledgment, MyRosterSlots, ManagersStatusData,
   ManagerData, FirstMarketStatus, Player,
 } from '../../types/auctionroom.types'
+import type { Appeal } from '../admin/types'
 
 export interface AuctionViewProps {
   // Auction state
@@ -51,6 +52,9 @@ export interface AuctionViewProps {
   onAcknowledge: () => void
   ackSubmitting: boolean
 
+  // Ultima asta riapribile (= annulla ultimo movimento), indip. da pendingAck. test-session #28
+  lastReopenableAuction?: { id: string; playerName: string; winnerName: string } | null
+
   // Nomination
   players: Player[]
   searchQuery: string
@@ -80,6 +84,12 @@ export interface AuctionViewProps {
   onRequestPause?: () => void
   pauseRequest?: { username: string; type: string } | null
   dismissPauseRequest?: () => void
+
+  // Admin actions panel
+  onReopenAuction?: () => void
+  pendingAppeals?: Appeal[]
+  resolvingAppealId?: string | null
+  onResolveAppeal?: (appealId: string, decision: 'ACCEPTED' | 'REJECTED', resolutionNote?: string) => void
 
   // Session info
   isPrimoMercato: boolean

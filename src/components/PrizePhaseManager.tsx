@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Button } from './ui/Button'
 import { prizePhaseApi } from '../services/api'
@@ -90,6 +90,10 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
   const { confirm: confirmDialog } = useConfirmDialog()
   const [data, setData] = useState<PrizePhaseData | null>(null)
   const [loading, setLoading] = useState(true)
+  // Init condivisa: garantisce UNA sola initializePrizePhase anche se l'effect viene
+  // invocato due volte (React StrictMode in dev) → evita due init concorrenti che
+  // violerebbero il vincolo unique sulla config (P2002 → 500). Vedi oss. #34.
+  const initPromiseRef = useRef<Promise<unknown> | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -130,18 +134,21 @@ export function PrizePhaseManager({ sessionId, isAdmin, onUpdate }: PrizePhaseMa
           // Custom indemnities are optional, ignore errors
         }
       } else if (result.message === 'Fase premi non inizializzata') {
-        // Need to initialize
+        // Need to initialize (admin only)
         if (isAdmin) {
-          const initResult = await prizePhaseApi.initialize(sessionId)
-          if (initResult.success) {
-            // Fetch again
-            const refreshResult = await prizePhaseApi.getData(sessionId)
-            if (refreshResult.success && refreshResult.data) {
-              setData(refreshResult.data as PrizePhaseData)
-              setBaseReincrementValue((refreshResult.data as PrizePhaseData).config.baseReincrement)
-            }
+          // Una sola init condivisa tra invocazioni concorrenti dell'effect (StrictMode):
+          // entrambe attendono la STESSA promise, quindi initialize parte una volta sola.
+          if (!initPromiseRef.current) {
+            initPromiseRef.current = prizePhaseApi.initialize(sessionId)
+          }
+          await initPromiseRef.current
+          // Ricarica: con la config ormai creata, la pagina si popola senza errori spuri.
+          const refreshResult = await prizePhaseApi.getData(sessionId)
+          if (refreshResult.success && refreshResult.data) {
+            setData(refreshResult.data as PrizePhaseData)
+            setBaseReincrementValue((refreshResult.data as PrizePhaseData).config.baseReincrement)
           } else {
-            setError(initResult.message || 'Errore inizializzazione')
+            setError(refreshResult.message || 'Errore inizializzazione')
           }
         } else {
           setError('Fase premi non ancora inizializzata dall\'admin')

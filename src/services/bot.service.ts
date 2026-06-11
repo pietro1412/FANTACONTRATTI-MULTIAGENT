@@ -2,6 +2,11 @@ import type { Position } from '@prisma/client';
 import { MemberStatus, AuctionStatus, AuctionType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { placeBid } from './auction.service'
+import {
+  triggerNominationPending,
+  triggerNominationConfirmed,
+  triggerAuctionStarted,
+} from './pusher.service'
 import type { ServiceResult } from '@/shared/types/service-result'
 
 // ==================== BOT NOMINATION FOR FIRST MARKET ====================
@@ -59,7 +64,7 @@ export async function botNominate(
   }
 
   // Find current nominator
-  let currentNominator: { id: string; userId: string } | null = null
+  let currentNominator: { id: string; userId: string; username: string } | null = null
   for (let i = 0; i < turnOrder.length; i++) {
     const idx = (currentTurnIndex + i) % turnOrder.length
     const memberId = turnOrder[idx]
@@ -71,13 +76,14 @@ export async function botNominate(
           where: { status: 'ACTIVE' },
           include: { player: true },
         },
+        user: { select: { username: true } },
       },
     })
 
     if (member) {
       const roleCount = member.roster.filter(r => r.player.position === currentRole).length
       if (roleCount < (slotLimits[currentRole] ?? 0)) {
-        currentNominator = { id: member.id, userId: member.userId }
+        currentNominator = { id: member.id, userId: member.userId, username: member.user.username }
         break
       }
     }
@@ -133,6 +139,18 @@ export async function botNominate(
     },
   })
 
+  // Trigger Pusher event for nomination pending (same payload as human path, fire and forget)
+  void triggerNominationPending(sessionId, {
+    auctionId: '', // no auction yet
+    nominatorId: currentNominator.id,
+    nominatorName: currentNominator.username,
+    playerId: selectedPlayer.id,
+    playerName: selectedPlayer.name,
+    playerRole: selectedPlayer.position,
+    startingPrice: 1,
+    timestamp: new Date().toISOString(),
+  })
+
   return {
     success: true,
     message: `Bot ha nominato ${selectedPlayer.name}`,
@@ -184,6 +202,25 @@ export async function botConfirmNomination(
       readyMembers,
     },
   })
+
+  // Trigger Pusher event for nomination confirmed (same payload as human path, fire and forget)
+  if (session.pendingNominationPlayer) {
+    const nominator = await prisma.leagueMember.findUnique({
+      where: { id: nominatorId },
+      include: { user: { select: { username: true } } },
+    })
+    void triggerNominationConfirmed(sessionId, {
+      auctionId: '',
+      playerId: session.pendingNominationPlayer.id,
+      playerName: session.pendingNominationPlayer.name,
+      playerRole: session.pendingNominationPlayer.position,
+      startingPrice: 1,
+      nominatorId,
+      nominatorName: nominator?.user.username ?? 'Bot',
+      timerDuration: session.auctionTimerSeconds,
+      timestamp: new Date().toISOString(),
+    })
+  }
 
   return {
     success: true,
@@ -249,6 +286,7 @@ export async function botMarkAllReady(
     const nominatorId = session.pendingNominatorId!
     const nominator = await prisma.leagueMember.findUnique({
       where: { id: nominatorId },
+      include: { user: { select: { username: true } } },
     })
 
     const timerSeconds = session.auctionTimerSeconds
@@ -289,6 +327,15 @@ export async function botMarkAllReady(
         pendingNominatorId: null,
         readyMembers: [],
       },
+    })
+
+    // Trigger Pusher event for auction started (same payload as human startPendingAuction, fire and forget)
+    void triggerAuctionStarted(sessionId, {
+      sessionId,
+      auctionType: session.type,
+      nominatorId,
+      nominatorName: nominator!.user.username,
+      timestamp: new Date().toISOString(),
     })
 
     return {

@@ -27,6 +27,7 @@ vi.mock('react-router-dom', () => ({
 vi.mock('../components/ui/Turnstile', () => ({
   Turnstile: ({ onVerify }: { onVerify: (token: string) => void }) => {
     // Use useEffect to avoid setState during render warning
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { useEffect } = require('react')
     useEffect(() => { onVerify('mock-turnstile-token') }, [onVerify])
     return null

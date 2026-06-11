@@ -4,6 +4,7 @@ import { FinancialDashboard } from './FinancialDashboard'
 import { MyPortfolio } from './MyPortfolio'
 import { MobileSidePanel } from './MobileSidePanel'
 import { MobileBottomBar } from './MobileBottomBar'
+import { AdminActionsPanel } from './AdminActionsPanel'
 import type { AuctionViewProps } from './types'
 
 export function AuctionRoomLayout(props: AuctionViewProps) {
@@ -58,7 +59,21 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
         </div>
 
         {/* Center: Main Stage */}
-        <div className="lg:col-span-6">
+        <div className="lg:col-span-6 space-y-3">
+          {/* Admin actions panel — visible only to league admin */}
+          {props.isAdmin && (
+            <AdminActionsPanel
+              canCloseAuction={props.auction?.status === 'ACTIVE'}
+              onCloseAuction={props.onCloseAuction}
+              canReopenAuction={!!props.lastReopenableAuction || !!props.pendingAck?.winner}
+              onReopenAuction={props.onReopenAuction}
+              pendingAppeals={props.pendingAppeals ?? []}
+              resolvingAppealId={props.resolvingAppealId ?? null}
+              onResolveAppeal={props.onResolveAppeal ?? (() => {})}
+              timerSetting={props.timerSetting}
+              onUpdateTimer={props.onUpdateTimer}
+            />
+          )}
           <CenterStage {...props} />
         </div>
 

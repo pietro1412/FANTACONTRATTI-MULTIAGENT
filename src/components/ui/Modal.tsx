@@ -129,27 +129,39 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
       setDragOffset(0)
     }
 
-    // Add/remove event listeners, manage body scroll, and set initial focus
+    // Keyboard listener + body scroll lock.
+    // Depends on handleKeyDown (which changes when onClose changes), so it may
+    // re-run across renders — but it only re-attaches the listener, never refocuses.
     useEffect(() => {
-      if (isOpen) {
-        document.addEventListener('keydown', handleKeyDown)
-        document.body.style.overflow = 'hidden'
-        // Focus first focusable element after render
-        setTimeout(() => {
-          const container = containerRef.current
-          if (!container) return
-          const firstFocusable = container.querySelector<HTMLElement>(
-            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-          )
-          firstFocusable?.focus()
-        }, 50)
-      }
+      if (!isOpen) return
+
+      document.addEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = 'hidden'
 
       return () => {
         document.removeEventListener('keydown', handleKeyDown)
         document.body.style.overflow = ''
       }
     }, [isOpen, handleKeyDown])
+
+    // Initial focus — depends ONLY on isOpen so it runs once per open, not on
+    // every keystroke. Prevents stealing focus from the first input field.
+    useEffect(() => {
+      if (!isOpen) return
+
+      const timeoutId = setTimeout(() => {
+        const container = containerRef.current
+        if (!container) return
+        const firstFocusable = container.querySelector<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+        firstFocusable?.focus()
+      }, 50)
+
+      return () => {
+        clearTimeout(timeoutId)
+      }
+    }, [isOpen])
 
     // Size styles for the modal container
     const sizeStyles: Record<ModalSize, string> = {

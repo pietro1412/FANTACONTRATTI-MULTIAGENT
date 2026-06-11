@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 
 interface BidControlsProps {
@@ -9,8 +8,6 @@ interface BidControlsProps {
   currentPrice: number
   isTimerExpired: boolean
   budget: number
-  isAdmin?: boolean
-  onCloseAuction?: () => void
   compact?: boolean
   isBidding?: boolean
   isConnected?: boolean
@@ -23,8 +20,6 @@ export function BidControls({
   currentPrice,
   isTimerExpired,
   budget,
-  isAdmin,
-  onCloseAuction,
   compact,
   isBidding = false,
   isConnected = true,
@@ -213,12 +208,7 @@ export function BidControls({
         </div>
       )}
 
-      {/* Admin close auction */}
-      {isAdmin && onCloseAuction && !compact && (
-        <Button variant="secondary" onClick={onCloseAuction} className="w-full mt-2">
-          Chiudi Asta Manualmente
-        </Button>
-      )}
+      {/* Admin close auction moved to AdminActionsPanel (test-session admin actions feature) */}
     </div>
   )
 }

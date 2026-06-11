@@ -62,7 +62,7 @@ export const PendingAckBanner = memo(function PendingAckBanner({
           <input
             type="text"
             value={prophecyContent}
-            onChange={(e) => setProphecyContent(e.target.value)}
+            onChange={(e) => { setProphecyContent(e.target.value); }}
             placeholder="Profezia (opzionale)..."
             className="flex-1 min-w-[140px] px-3 py-2 bg-surface-300 border border-surface-50/20 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50"
           />

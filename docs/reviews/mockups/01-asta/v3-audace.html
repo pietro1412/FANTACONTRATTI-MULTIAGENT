@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asta Primo Mercato — v3 Redesign Audace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Archivo+Expanded:wght@700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0e1116; --paper:#f4f1ea; --paper2:#ebe7dd; --card:#ffffff;
+    --line:#1c1f26; --hair:rgba(14,17,22,.1);
+    --pitch:#16a34a; --pitch-d:#15803d;
+    --flame:#ff5a1f; --flame-d:#e23e00;
+    --gold:#caa24a;
+    --dim:#5b6470; --faint:#8a929d;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Archivo',system-ui,sans-serif;background:#22252b;color:var(--ink);-webkit-font-smoothing:antialiased;padding:24px}
+  .mono{font-family:'Space Mono',monospace}
+  .exp{font-family:'Archivo Expanded','Archivo',sans-serif}
+  h1.page{font-size:13px;font-weight:700;color:#8a929d;letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px}
+  .frames{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start}
+  .frame-label{font-size:11px;font-weight:900;letter-spacing:.2em;color:var(--flame);text-transform:uppercase;margin-bottom:10px}
+
+  .app{background:var(--paper);border-radius:24px;overflow:hidden;border:3px solid var(--ink)}
+
+  /* ===== HEADER STRIP ===== */
+  .hdr{display:flex;align-items:stretch;background:var(--ink);color:var(--paper)}
+  .hdr .brand{display:flex;align-items:center;gap:11px;padding:14px 18px;border-right:1px solid rgba(255,255,255,.12)}
+  .crest{width:36px;height:36px;border-radius:9px;background:var(--flame);display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:13px}
+  .brand .nm{line-height:1.1}
+  .brand .nm .a{font-size:13px;font-weight:900;letter-spacing:.02em}
+  .brand .nm .b{font-size:9px;color:#8a929d;text-transform:uppercase;letter-spacing:.16em}
+  .hdr .turn{display:flex;align-items:center;gap:9px;padding:14px 18px;font-size:12px;border-right:1px solid rgba(255,255,255,.12)}
+  .hdr .turn .pip{width:7px;height:7px;border-radius:50%;background:var(--pitch);box-shadow:0 0 0 4px rgba(22,163,74,.25)}
+  .hdr .turn b{color:var(--gold)}
+  .hdr .sp{margin-left:auto}
+  .hdr .money{display:flex}
+  .money .cell{padding:10px 20px;text-align:center;border-left:1px solid rgba(255,255,255,.12)}
+  .money .cell .l{font-size:9px;color:#8a929d;text-transform:uppercase;letter-spacing:.1em}
+  .money .cell .v{font-size:24px;font-weight:900;font-family:'Space Mono';line-height:1}
+  .money .cell.max .v{color:var(--gold)}
+  .hdr .exit{display:flex;align-items:center;padding:0 16px;border-left:1px solid rgba(255,255,255,.12);color:#8a929d;cursor:pointer}
+
+  /* role ribbon */
+  .ribbon{display:flex;background:var(--paper2);border-bottom:2px solid var(--ink)}
+  .rib{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px;font-size:12px;font-weight:800;color:var(--faint);border-right:1px solid var(--hair)}
+  .rib:last-child{border-right:none}
+  .rib.done{color:var(--pitch-d)}
+  .rib.now{background:var(--ink);color:#fff}
+  .rib .tag{font-family:'Space Mono';font-size:11px;font-weight:700}
+
+  /* ===== BODY ===== */
+  .body{display:grid;grid-template-columns:1.55fr 1fr;gap:0}
+
+  /* LEFT: the decision */
+  .left{padding:26px;border-right:2px solid var(--ink)}
+  .nowbid{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:var(--flame);margin-bottom:14px}
+  .nowbid .l{flex:1;height:2px;background:var(--flame);opacity:.4}
+
+  .lot{display:flex;gap:20px;align-items:center}
+  .ph{width:108px;height:108px;border-radius:18px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:46px;font-weight:900;flex-shrink:0;position:relative}
+  .ph .pos{position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);background:var(--pitch);color:#fff;font-size:10px;font-weight:900;padding:3px 10px;border-radius:20px;letter-spacing:.05em;border:2px solid var(--paper)}
+  .lot .meta{flex:1}
+  .lot .nm{font-size:34px;font-weight:900;line-height:.95;letter-spacing:-.02em}
+  .lot .sub{font-size:14px;color:var(--dim);font-weight:600;margin-top:6px}
+  .lot .stats{display:flex;gap:18px;margin-top:14px}
+  .lot .st{text-align:left}
+  .lot .st .n{font-size:20px;font-weight:900;font-family:'Space Mono'}
+  .lot .st .l{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em}
+
+  /* price + timer block */
+  .pricebar{margin-top:22px;background:var(--ink);border-radius:18px;padding:20px 22px;display:flex;align-items:center;gap:20px;color:#fff}
+  .clock{width:96px;height:96px;border-radius:50%;border:6px solid var(--flame);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 0 6px rgba(255,90,31,.15)}
+  .clock .num{font-size:30px;font-weight:900;font-family:'Space Mono';line-height:1}
+  .clock .lab{font-size:8px;letter-spacing:.15em;color:#8a929d;text-transform:uppercase}
+  .pb-mid{flex:1}
+  .pb-mid .l{font-size:10px;color:#8a929d;text-transform:uppercase;letter-spacing:.16em;font-weight:700}
+  .pb-mid .v{font-size:72px;font-weight:900;font-family:'Space Mono';line-height:.9;letter-spacing:-.03em}
+  .pb-mid .v small{font-size:26px;color:var(--gold)}
+  .pb-mid .holder{display:inline-flex;align-items:center;gap:7px;margin-top:6px;background:rgba(22,163,74,.2);border:1.5px solid var(--pitch);color:#7ee2a0;padding:4px 12px;border-radius:22px;font-size:12px;font-weight:700}
+
+  /* bid action */
+  .action{margin-top:18px;display:flex;gap:12px}
+  .stepper{display:flex;border:2px solid var(--ink);border-radius:16px;overflow:hidden;background:var(--card)}
+  .stepper button{width:52px;height:66px;border:none;background:var(--card);font-size:26px;font-weight:900;cursor:pointer;color:var(--ink)}
+  .stepper button:first-child{border-right:2px solid var(--ink)}
+  .stepper button:last-child{border-left:2px solid var(--ink)}
+  .stepper .amt{width:88px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;font-family:'Space Mono'}
+  .rilancia{flex:1;border:none;border-radius:16px;background:var(--flame);color:#fff;font-size:20px;font-weight:900;cursor:pointer;letter-spacing:.02em;box-shadow:0 6px 0 var(--flame-d);text-transform:uppercase}
+  .quick{display:flex;gap:9px;margin-top:12px}
+  .quick button{flex:1;border:2px solid var(--ink);background:transparent;border-radius:12px;padding:9px;font-weight:800;font-size:13px;font-family:'Space Mono';cursor:pointer}
+  .footnote{margin-top:14px;font-size:11px;color:var(--dim);display:flex;justify-content:space-between}
+  .footnote b{color:var(--ink)}
+
+  /* RIGHT: board */
+  .right{padding:20px;background:var(--paper2)}
+  .rh{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+  .rh h3{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
+  .rh span{font-size:11px;color:var(--dim)}
+  .board{display:flex;flex-direction:column;gap:6px}
+  .row{display:flex;align-items:center;gap:11px;background:var(--card);border:2px solid var(--ink);border-radius:13px;padding:9px 12px}
+  .row.me{background:var(--ink);color:#fff}
+  .row.now{box-shadow:4px 4px 0 var(--gold)}
+  .row.dim{opacity:.4;border-style:dashed}
+  .row .rk{font-size:12px;font-weight:900;font-family:'Space Mono';width:18px;color:var(--faint)}
+  .row.me .rk{color:#8a929d}
+  .row .av{width:30px;height:30px;border-radius:9px;background:var(--paper2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:var(--ink);flex-shrink:0}
+  .row .info{flex:1;min-width:0}
+  .row .nm{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .slot{font-size:10px;color:var(--dim)}
+  .row.me .slot{color:#9aa3ae}
+  .row .bd{text-align:right;font-family:'Space Mono'}
+  .row .bd .b{font-size:15px;font-weight:700}
+  .row .bd .m{font-size:9px;color:var(--faint);text-transform:uppercase}
+  .row.me .bd .m{color:#8a929d}
+  .row .live-bid{font-size:11px;font-weight:900;font-family:'Space Mono';background:var(--pitch);color:#fff;padding:2px 8px;border-radius:7px}
+
+  .myslots{margin-top:18px;background:var(--card);border:2px solid var(--ink);border-radius:14px;padding:13px}
+  .myslots h4{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;justify-content:space-between}
+  .myslots h4 .c{font-family:'Space Mono';color:var(--dim)}
+  .srow{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+  .srow .rl{width:20px;font-size:11px;font-weight:900;font-family:'Space Mono'}
+  .pix{flex:1;display:flex;gap:3px}
+  .px{flex:1;height:14px;border-radius:4px}
+  .px.f{background:var(--ink)} .px.e{background:transparent;border:1.5px dashed var(--hair)}
+  .srow.P .rl{color:var(--gold)} .srow.D .rl{color:#2563eb} .srow.C .rl{color:var(--pitch-d)} .srow.A .rl{color:var(--flame)}
+  .srow.P .px.f{background:var(--gold)} .srow.D .px.f{background:#2563eb} .srow.C .px.f{background:var(--pitch-d)} .srow.A .px.f{background:var(--flame)}
+
+  /* ===== MOBILE ===== */
+  .phone{width:375px;border:3px solid var(--ink);border-radius:34px;background:var(--ink);padding:9px;box-shadow:0 30px 70px rgba(0,0,0,.6)}
+  .pin{background:var(--paper);border-radius:26px;overflow:hidden;height:780px;position:relative;display:flex;flex-direction:column}
+  .m-hdr{background:var(--ink);color:#fff;display:flex;align-items:center;gap:10px;padding:11px 14px}
+  .m-hdr .who{flex:1;min-width:0;line-height:1.15}
+  .m-hdr .who .a{font-size:12px;font-weight:900}
+  .m-hdr .who .b{font-size:9px;color:#8a929d}
+  .m-money{text-align:right;line-height:1}
+  .m-money .l{font-size:8px;color:#8a929d;text-transform:uppercase}
+  .m-money .v{font-size:19px;font-weight:900;font-family:'Space Mono'}
+  .m-rib{display:flex;background:var(--paper2);border-bottom:2px solid var(--ink)}
+  .m-rib div{flex:1;text-align:center;padding:8px 0;font-size:11px;font-weight:900;color:var(--faint);border-right:1px solid var(--hair)}
+  .m-rib div.done{color:var(--pitch-d)} .m-rib div.now{background:var(--ink);color:#fff}
+  .m-body{flex:1;overflow-y:auto;padding:16px}
+  .m-lot{display:flex;gap:14px;align-items:center;margin-bottom:8px}
+  .m-ph{width:74px;height:74px;border-radius:15px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;flex-shrink:0;position:relative}
+  .m-ph .pos{position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);background:var(--pitch);color:#fff;font-size:9px;font-weight:900;padding:2px 8px;border-radius:14px;border:2px solid var(--paper)}
+  .m-nm{font-size:25px;font-weight:900;line-height:.95;letter-spacing:-.02em}
+  .m-sub{font-size:12px;color:var(--dim);font-weight:600;margin-top:4px}
+  .m-board{margin-top:14px}
+  .m-board h3{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+  .m-dock{background:var(--ink);color:#fff;padding:14px}
+  .m-pr{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+  .m-clock{width:58px;height:58px;border-radius:50%;border:5px solid var(--flame);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;font-family:'Space Mono';flex-shrink:0;box-shadow:0 0 0 5px rgba(255,90,31,.18)}
+  .m-pr .pp{flex:1}
+  .m-pr .pp .l{font-size:9px;color:#8a929d;text-transform:uppercase;letter-spacing:.14em;font-weight:700}
+  .m-pr .pp .v{font-size:42px;font-weight:900;font-family:'Space Mono';line-height:.9}
+  .m-pr .pp .v small{font-size:18px;color:var(--gold)}
+  .m-hold{font-size:10px;font-weight:700;background:rgba(22,163,74,.25);border:1.5px solid var(--pitch);color:#7ee2a0;padding:4px 9px;border-radius:16px}
+  .m-act{display:flex;gap:9px}
+  .m-stepper{display:flex;border:2px solid var(--paper);border-radius:13px;overflow:hidden;background:var(--paper)}
+  .m-stepper button{width:42px;height:56px;border:none;background:var(--paper);color:var(--ink);font-size:22px;font-weight:900}
+  .m-stepper .amt{width:58px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;font-family:'Space Mono';color:var(--ink);background:#fff}
+  .m-ril{flex:1;border:none;border-radius:13px;background:var(--flame);color:#fff;font-size:17px;font-weight:900;text-transform:uppercase}
+</style>
+</head>
+<body>
+<h1 class="page">FantaContratti — Asta / Primo Mercato &nbsp;·&nbsp; v3 REDESIGN AUDACE (broadcast editoriale · una sola zona decisione)</h1>
+
+<div class="frames">
+
+  <!-- ============ DESKTOP ============ -->
+  <div>
+    <div class="frame-label">Desktop</div>
+    <div style="width:880px">
+      <div class="app">
+
+        <div class="hdr">
+          <div class="brand"><div class="crest">FC</div><div class="nm"><div class="a">FC SORDILLO</div><div class="b">Lega Fantacontratti</div></div></div>
+          <div class="turn"><span class="pip"></span>Chiama <b>&nbsp;Mirko</b></div>
+          <div class="sp"></div>
+          <div class="money">
+            <div class="cell"><div class="l">Budget</div><div class="v">312</div></div>
+            <div class="cell max"><div class="l">Offerta max</div><div class="v">147</div></div>
+          </div>
+          <div class="exit">⎋</div>
+        </div>
+
+        <div class="ribbon">
+          <div class="rib done">Portieri <span class="tag">3/3 ✓</span></div>
+          <div class="rib done">Difensori <span class="tag">8/8 ✓</span></div>
+          <div class="rib now">Centrocampisti <span class="tag">5/8</span></div>
+          <div class="rib">Attaccanti <span class="tag">0/6</span></div>
+        </div>
+
+        <div class="body">
+          <!-- LEFT decision -->
+          <div class="left">
+            <div class="nowbid">All'asta ora<span class="l"></span></div>
+            <div class="lot">
+              <div class="ph">B<div class="pos">CEN</div></div>
+              <div class="meta">
+                <div class="nm">Nicolò<br>Barella</div>
+                <div class="sub">Inter · 27 anni · quotazione 28 M</div>
+                <div class="stats">
+                  <div class="st"><div class="n">34</div><div class="l">Presenze</div></div>
+                  <div class="st"><div class="n">6</div><div class="l">Gol</div></div>
+                  <div class="st"><div class="n">9</div><div class="l">Assist</div></div>
+                  <div class="st"><div class="n">7.1</div><div class="l">Media voto</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="pricebar">
+              <div class="clock"><div class="num">07</div><div class="lab">sec</div></div>
+              <div class="pb-mid">
+                <div class="l">Offerta corrente</div>
+                <div class="v">86<small> M</small></div>
+                <div class="holder">● Tu — stai vincendo</div>
+              </div>
+            </div>
+
+            <div class="action">
+              <div class="stepper"><button>−</button><div class="amt">87</div><button>+</button></div>
+              <button class="rilancia">Rilancia 87 M</button>
+            </div>
+            <div class="quick">
+              <button>+1 → 87</button>
+              <button>+5 → 91</button>
+              <button>+10 → 96</button>
+            </div>
+            <div class="footnote"><span>Ingaggio default ≈ <b>9 M</b> (durata 3)</span><span>Riserva 4 slot vuoti: <b>14 M</b></span></div>
+          </div>
+
+          <!-- RIGHT board -->
+          <div class="right">
+            <div class="rh"><h3>Sala · 8 manager</h3><span>ordinati per minaccia</span></div>
+            <div class="board">
+              <div class="row now"><span class="rk">1</span><div class="av">MN</div><div class="info"><div class="nm">Marcolino</div><div class="slot">CEN 4/8 · può rilanciare</div></div><div class="bd"><div class="b" style="color:var(--flame)">128</div><div class="m">max</div></div></div>
+              <div class="row now"><span class="rk">2</span><div class="av">MI</div><div class="info"><div class="nm">Mirko</div><div class="slot">CEN 4/8 · sta chiamando</div></div><div class="bd"><div class="b" style="color:var(--flame)">132</div><div class="m">max</div></div></div>
+              <div class="row me"><span class="rk">→</span><div class="av">PS</div><div class="info"><div class="nm">Tu (Pietro)</div><div class="slot">CEN 5/8</div></div><span class="live-bid">86</span></div>
+              <div class="row"><span class="rk">3</span><div class="av">DI</div><div class="info"><div class="nm">Diego</div><div class="slot">CEN 5/8</div></div><div class="bd"><div class="b">110</div><div class="m">max</div></div></div>
+              <div class="row"><span class="rk">4</span><div class="av">MH</div><div class="info"><div class="nm">Michele</div><div class="slot">CEN 5/8</div></div><div class="bd"><div class="b">100</div><div class="m">max</div></div></div>
+              <div class="row dim"><span class="rk">—</span><div class="av">EM</div><div class="info"><div class="nm">Emmanuele</div><div class="slot">CEN 6/8 · fuori</div></div><div class="bd"><div class="b">90</div><div class="m">max</div></div></div>
+              <div class="row dim"><span class="rk">—</span><div class="av">MC</div><div class="info"><div class="nm">Marco</div><div class="slot">CEN 7/8 · fuori</div></div><div class="bd"><div class="b">70</div><div class="m">max</div></div></div>
+            </div>
+
+            <div class="myslots">
+              <h4>La mia rosa <span class="c">19/25</span></h4>
+              <div class="srow P"><span class="rl">P</span><div class="pix"><span class="px f"></span><span class="px f"></span><span class="px f"></span></div></div>
+              <div class="srow D"><span class="rl">D</span><div class="pix"><span class="px f"></span><span class="px f"></span><span class="px f"></span><span class="px f"></span><span class="px f"></span><span class="px f"></span><span class="px f"></span><span class="px f"></span></div></div>
+              <div class="srow C"><span class="rl">C</span><div class="pix"><span class="px f"></span><span class="px f"></span><span class="px f"></span><span class="px f"></span><span class="px f"></span><span class="px e"></span><span class="px e"></span><span class="px e"></span></div></div>
+              <div class="srow A"><span class="rl">A</span><div class="pix"><span class="px e"></span><span class="px e"></span><span class="px e"></span><span class="px e"></span><span class="px e"></span><span class="px e"></span></div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MOBILE ============ -->
+  <div>
+    <div class="frame-label">Mobile · 375px</div>
+    <div class="phone"><div class="pin">
+
+      <div class="m-hdr">
+        <div class="crest" style="width:32px;height:32px;font-size:11px">FC</div>
+        <div class="who"><div class="a">FC SORDILLO</div><div class="b">Chiama Mirko</div></div>
+        <div class="m-money"><div class="l">Budget</div><div class="v">312</div></div>
+        <div class="m-money" style="border-left:1px solid rgba(255,255,255,.15);padding-left:12px;margin-left:4px"><div class="l">Max</div><div class="v" style="color:var(--gold)">147</div></div>
+      </div>
+      <div class="m-rib">
+        <div class="done">P ✓</div><div class="done">D ✓</div><div class="now">C 5/8</div><div>A 0/6</div>
+      </div>
+
+      <div class="m-body">
+        <div class="nowbid" style="margin-bottom:12px">All'asta ora<span class="l"></span></div>
+        <div class="m-lot">
+          <div class="m-ph">B<div class="pos">CEN</div></div>
+          <div><div class="m-nm">Nicolò<br>Barella</div><div class="m-sub">Inter · 27 anni</div></div>
+        </div>
+        <div class="lot" style="display:block">
+          <div class="stats" style="display:flex;gap:16px;margin-top:8px">
+            <div class="st"><div class="n" style="font-size:18px;font-weight:900;font-family:Space Mono">34</div><div class="l" style="font-size:9px;color:var(--faint);text-transform:uppercase">Pres</div></div>
+            <div class="st"><div class="n" style="font-size:18px;font-weight:900;font-family:Space Mono">6</div><div class="l" style="font-size:9px;color:var(--faint);text-transform:uppercase">Gol</div></div>
+            <div class="st"><div class="n" style="font-size:18px;font-weight:900;font-family:Space Mono">9</div><div class="l" style="font-size:9px;color:var(--faint);text-transform:uppercase">Ass</div></div>
+            <div class="st"><div class="n" style="font-size:18px;font-weight:900;font-family:Space Mono">7.1</div><div class="l" style="font-size:9px;color:var(--faint);text-transform:uppercase">MV</div></div>
+          </div>
+        </div>
+
+        <div class="m-board">
+          <h3>Chi può superarti</h3>
+          <div class="row now" style="margin-bottom:6px"><span class="rk">1</span><div class="av">MI</div><div class="info"><div class="nm">Mirko</div><div class="slot">CEN 4/8 · libero</div></div><div class="bd"><div class="b" style="color:var(--flame)">132</div><div class="m">max</div></div></div>
+          <div class="row now" style="margin-bottom:6px"><span class="rk">2</span><div class="av">MN</div><div class="info"><div class="nm">Marcolino</div><div class="slot">CEN 4/8 · libero</div></div><div class="bd"><div class="b" style="color:var(--flame)">128</div><div class="m">max</div></div></div>
+          <div class="row"><span class="rk">3</span><div class="av">DI</div><div class="info"><div class="nm">Diego</div><div class="slot">CEN 5/8</div></div><div class="bd"><div class="b">110</div><div class="m">max</div></div></div>
+        </div>
+      </div>
+
+      <div class="m-dock">
+        <div class="m-pr">
+          <div class="m-clock">07</div>
+          <div class="pp"><div class="l">Offerta corrente</div><div class="v">86<small> M</small></div></div>
+          <span class="m-hold">● Vincendo</span>
+        </div>
+        <div class="m-act">
+          <div class="m-stepper"><button>−</button><div class="amt">87</div><button>+</button></div>
+          <button class="m-ril">Rilancia</button>
+        </div>
+      </div>
+
+    </div></div>
+  </div>
+
+</div>
+</body>
+</html>

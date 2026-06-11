@@ -35,15 +35,35 @@ export async function createLeague(userId: string, input: CreateLeagueInput & { 
     return { success: false, message: 'Il numero minimo non può essere maggiore del massimo' }
   }
 
+  // Validazione slot ruolo: i default sono i minimi (si possono aumentare, non diminuire)
+  if (input.goalkeeperSlots < 3) {
+    return { success: false, message: 'Gli slot portiere devono essere almeno 3' }
+  }
+  if (input.defenderSlots < 8) {
+    return { success: false, message: 'Gli slot difensore devono essere almeno 8' }
+  }
+  if (input.midfielderSlots < 8) {
+    return { success: false, message: 'Gli slot centrocampo devono essere almeno 8' }
+  }
+  if (input.forwardSlots < 6) {
+    return { success: false, message: 'Gli slot attacco devono essere almeno 6' }
+  }
+
   // Validate team name for creator
   if (!input.teamName || input.teamName.trim().length < 2) {
     return { success: false, message: 'Il nome della squadra è obbligatorio (minimo 2 caratteri)' }
+  }
+
+  // Optional league logo: if provided, must be a base64 image data URL
+  if (input.imageUrl && !input.imageUrl.startsWith('data:image/')) {
+    return { success: false, message: 'Formato immagine non valido' }
   }
 
   const league = await prisma.league.create({
     data: {
       name: input.name,
       description: input.description,
+      imageUrl: input.imageUrl || null,
       minParticipants,
       maxParticipants,
       initialBudget: input.initialBudget,
@@ -127,6 +147,179 @@ export async function getLeaguesByUser(userId: string): Promise<ServiceResult> {
       league: m.league,
     })),
   }
+}
+
+/**
+ * Aggregated per-league signals for the dashboard hub ("Hub Leghe").
+ * Read-only counts only (no heavy enrichment): current phase + attention signals.
+ * Keyed by leagueId; the frontend merges this with getLeaguesByUser.
+ */
+export interface DashboardLeagueSummary {
+  phase: { type: string; currentPhase: string | null } | null
+  tradeOffersReceived: number
+  isAdmin: boolean
+  pendingJoinRequests: number
+  pendingAppeals: number
+  needsConsolidation: boolean
+  // "Tocca a te": it is the user's turn to act in an auction phase.
+  // Computed conservatively — true ONLY when the turn-holder is unambiguous.
+  isYourTurn: boolean
+  // Where to send the user when it is their turn (sessionId needed for 'auction' route).
+  turnTarget: { kind: 'auction' | 'rubata' | 'svincolati'; sessionId: string } | null
+}
+
+/**
+ * Conservative "tocca a te" detection for the dashboard hub.
+ *
+ * Returns a turn target ONLY when we are confident it is the user's turn to ACT.
+ * Any ambiguity (unparseable JSON, out-of-range index, non-clear state) → null.
+ *
+ * Engine coverage:
+ * - PRIMO_MERCATO / ASTA_LIBERA: it is the user's turn to NOMINATE when
+ *   turnOrder[currentTurnIndex] === memberId AND there is no ACTIVE Auction for
+ *   the session (an active auction means the bidding round is underway, not a
+ *   nomination moment). This is a strict subset of the real nominator logic in
+ *   auction.service.ts (which may skip members with full roles / low budget),
+ *   so it never produces a false positive.
+ * - ASTA_SVINCOLATI: it is the user's turn to NOMINATE when svincolatiState is
+ *   READY_CHECK and svincolatiTurnOrder[svincolatiCurrentTurnIndex] === memberId.
+ * - RUBATA: NOT reconstructible as a single turn-holder (the board entry's
+ *   memberId is the player OWNER, who does not act; the steal is forced and any
+ *   other manager may bid). Always null — intentionally conservative.
+ */
+function detectYourTurn(
+  session: {
+    id: string
+    type: string
+    currentPhase: string | null
+    turnOrder: unknown
+    currentTurnIndex: number | null
+    svincolatiTurnOrder: unknown
+    svincolatiCurrentTurnIndex: number | null
+    svincolatiState: string | null
+  },
+  memberId: string,
+  hasActiveAuction: boolean
+): { kind: 'auction' | 'rubata' | 'svincolati'; sessionId: string } | null {
+  const turnHolderAt = (order: unknown, index: number | null): string | null => {
+    if (!Array.isArray(order)) return null
+    if (typeof index !== 'number' || index < 0 || index >= order.length) return null
+    const holder = order[index]
+    return typeof holder === 'string' ? holder : null
+  }
+
+  // PRIMO MERCATO — nomination moment for the turn-holder
+  if (session.type === 'PRIMO_MERCATO' || session.currentPhase === 'ASTA_LIBERA') {
+    if (hasActiveAuction) return null // bidding round underway, not a nomination
+    if (turnHolderAt(session.turnOrder, session.currentTurnIndex) === memberId) {
+      return { kind: 'auction', sessionId: session.id }
+    }
+    return null
+  }
+
+  // ASTA SVINCOLATI — nomination moment for the turn-holder
+  if (session.currentPhase === 'ASTA_SVINCOLATI') {
+    if (session.svincolatiState !== 'READY_CHECK') return null
+    if (turnHolderAt(session.svincolatiTurnOrder, session.svincolatiCurrentTurnIndex) === memberId) {
+      return { kind: 'svincolati', sessionId: session.id }
+    }
+    return null
+  }
+
+  // RUBATA and everything else → not reconstructible with certainty
+  return null
+}
+
+export async function getDashboardSummary(userId: string): Promise<ServiceResult> {
+  const memberships = await prisma.leagueMember.findMany({
+    where: { userId, status: MemberStatus.ACTIVE },
+    select: { id: true, leagueId: true, role: true },
+  })
+
+  const now = new Date()
+  const summaries: Record<string, DashboardLeagueSummary> = {}
+
+  await Promise.all(
+    memberships.map(async (m) => {
+      const activeSession = await prisma.marketSession.findFirst({
+        where: { leagueId: m.leagueId, status: 'ACTIVE' },
+        select: {
+          id: true,
+          type: true,
+          currentPhase: true,
+          turnOrder: true,
+          currentTurnIndex: true,
+          svincolatiTurnOrder: true,
+          svincolatiCurrentTurnIndex: true,
+          svincolatiState: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      const isAdmin = m.role === MemberRole.ADMIN
+
+      // Active auction is only relevant for the PRIMO_MERCATO nomination check.
+      const needsAuctionCheck =
+        !!activeSession &&
+        (activeSession.type === 'PRIMO_MERCATO' || activeSession.currentPhase === 'ASTA_LIBERA')
+
+      const [tradeOffersReceived, pendingJoinRequests, pendingAppeals, consolidation, activeAuctionCount] = await Promise.all([
+        activeSession
+          ? prisma.tradeOffer.count({
+              where: {
+                receiverId: userId,
+                status: TradeStatus.PENDING,
+                marketSessionId: activeSession.id,
+                expiresAt: { gte: now },
+              },
+            })
+          : Promise.resolve(0),
+        isAdmin
+          ? prisma.leagueMember.count({
+              where: { leagueId: m.leagueId, status: MemberStatus.PENDING },
+            })
+          : Promise.resolve(0),
+        isAdmin
+          ? prisma.auctionAppeal.count({
+              where: { auction: { leagueId: m.leagueId }, status: 'PENDING' },
+            })
+          : Promise.resolve(0),
+        activeSession && activeSession.currentPhase === 'CONTRATTI'
+          ? prisma.contractConsolidation.findUnique({
+              where: { sessionId_memberId: { sessionId: activeSession.id, memberId: m.id } },
+              select: { id: true },
+            })
+          : Promise.resolve(null),
+        needsAuctionCheck
+          ? prisma.auction.count({
+              where: { marketSessionId: activeSession.id, status: 'ACTIVE' },
+            })
+          : Promise.resolve(0),
+      ])
+
+      const needsConsolidation =
+        !!activeSession && activeSession.currentPhase === 'CONTRATTI' && !consolidation
+
+      const turnTarget = activeSession
+        ? detectYourTurn(activeSession, m.id, activeAuctionCount > 0)
+        : null
+
+      summaries[m.leagueId] = {
+        phase: activeSession
+          ? { type: activeSession.type, currentPhase: activeSession.currentPhase }
+          : null,
+        tradeOffersReceived,
+        isAdmin,
+        pendingJoinRequests,
+        pendingAppeals,
+        needsConsolidation,
+        isYourTurn: turnTarget !== null,
+        turnTarget,
+      }
+    })
+  )
+
+  return { success: true, data: { summaries } }
 }
 
 export async function getLeagueById(leagueId: string, userId: string): Promise<ServiceResult> {
@@ -760,6 +953,84 @@ export async function updateLeague(
     message: 'Lega aggiornata',
     data: league,
   }
+}
+
+/**
+ * Admin-only: set the league image (base64 data URL). Mirrors updateProfilePhoto.
+ */
+export async function updateLeagueImage(
+  leagueId: string,
+  userId: string,
+  imageData: string
+): Promise<ServiceResult> {
+  const admin = await prisma.leagueMember.findFirst({
+    where: { leagueId, userId, role: MemberRole.ADMIN, status: MemberStatus.ACTIVE },
+  })
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  if (!imageData) {
+    return { success: false, message: 'Nessuna immagine fornita' }
+  }
+  if (!imageData.startsWith('data:image/')) {
+    return { success: false, message: 'Formato immagine non valido' }
+  }
+  // Max ~500KB once base64-encoded (same threshold as profile photo)
+  if (imageData.length > 700000) {
+    return { success: false, message: 'Immagine troppo grande (max 500KB)' }
+  }
+
+  const league = await prisma.league.update({
+    where: { id: leagueId },
+    data: { imageUrl: imageData },
+    select: { id: true, name: true, imageUrl: true },
+  })
+
+  return { success: true, message: 'Immagine della lega aggiornata', data: league }
+}
+
+/**
+ * Admin-only: remove the league image.
+ */
+export async function removeLeagueImage(leagueId: string, userId: string): Promise<ServiceResult> {
+  const admin = await prisma.leagueMember.findFirst({
+    where: { leagueId, userId, role: MemberRole.ADMIN, status: MemberStatus.ACTIVE },
+  })
+  if (!admin) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  await prisma.league.update({
+    where: { id: leagueId },
+    data: { imageUrl: null },
+  })
+
+  return { success: true, message: 'Immagine della lega rimossa' }
+}
+
+/**
+ * Lightweight league identity (name + image) for the navigation header.
+ * Member-only; returns just what the header needs (no heavy includes).
+ */
+export async function getLeagueIdentity(leagueId: string, userId: string): Promise<ServiceResult> {
+  const membership = await prisma.leagueMember.findFirst({
+    where: { leagueId, userId, status: MemberStatus.ACTIVE },
+    select: { id: true },
+  })
+  if (!membership) {
+    return { success: false, message: 'Non autorizzato' }
+  }
+
+  const league = await prisma.league.findUnique({
+    where: { id: leagueId },
+    select: { id: true, name: true, imageUrl: true },
+  })
+  if (!league) {
+    return { success: false, message: 'Lega non trovata' }
+  }
+
+  return { success: true, data: league }
 }
 
 export async function getAllRosters(leagueId: string, userId: string): Promise<ServiceResult> {

@@ -124,6 +124,13 @@ describe('pusher.client', () => {
 
       expect(channel).toBe(mockChannel)
     })
+
+    it('should bind the auction-state-changed handler (test-session #15)', () => {
+      const onAuctionStateChanged = vi.fn()
+      subscribeToAuction('session-state', { onAuctionStateChanged })
+
+      expect(mockBind).toHaveBeenCalledWith('auction-state-changed', onAuctionStateChanged)
+    })
   })
 
   describe('unsubscribeFromAuction', () => {

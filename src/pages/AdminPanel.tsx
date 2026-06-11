@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import * as XLSX from 'xlsx'
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@/components/ui/Modal'
@@ -13,6 +13,7 @@ import type { League, Member, MarketSession, Invite, ConsolidationStatus, Appeal
 const AdminPhasesTab = lazy(() => import('../components/admin/AdminPhasesTab').then(m => ({ default: m.AdminPhasesTab })))
 const AdminMembersTab = lazy(() => import('../components/admin/AdminMembersTab').then(m => ({ default: m.AdminMembersTab })))
 const AdminRequestsTab = lazy(() => import('../components/admin/AdminRequestsTab').then(m => ({ default: m.AdminRequestsTab })))
+const AdminAppealsTab = lazy(() => import('../components/admin/AdminAppealsTab').then(m => ({ default: m.AdminAppealsTab })))
 const AdminExportTab = lazy(() => import('../components/admin/AdminExportTab').then(m => ({ default: m.AdminExportTab })))
 
 interface AdminPanelProps {
@@ -24,7 +25,7 @@ interface AdminPanelProps {
 const TABS = [
   { id: 'phases', label: 'Fasi & Stato', icon: '🎯' },
   { id: 'members', label: 'Gestione Membri', icon: '👥' },
-  { id: 'requests', label: 'Richieste', icon: '📨' },
+  { id: 'appeals', label: 'Ricorsi', icon: '⚖️' },
   { id: 'export', label: 'Export Dati', icon: '📤' },
 ] as const
 
@@ -52,15 +53,16 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
       case 'overview':
       case 'sessions':
         return 'phases'
+      // Gestione Membri ora include le richieste di adesione e gli inviti
       case 'members':
-      case 'appeals':
-        return 'members'
+      case 'requests':
       case 'invites':
-        return 'requests'
+        return 'members'
+      case 'appeals':
+        return 'appeals'
       case 'export':
         return 'export'
       case 'phases':
-      case 'requests':
         return tab
       default:
         return 'phases'
@@ -113,12 +115,15 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   const [showRosterIncompleteModal, setShowRosterIncompleteModal] = useState(false)
   const [rosterIncompleteDetails, setRosterIncompleteDetails] = useState<string>('')
 
+  // League image upload
+  const leagueImageInputRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     void loadData()
   }, [leagueId])
 
   useEffect(() => {
-    if (activeTab === 'members') {
+    if (activeTab === 'appeals') {
       void loadAppeals()
     }
   }, [activeTab, leagueId, appealFilter])
@@ -370,6 +375,55 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
     setIsSubmitting(false)
   }
 
+  function handleLeagueImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setError('Il file deve essere un\'immagine')
+      return
+    }
+    // Max 500KB (same threshold as profile photo)
+    if (file.size > 500 * 1024) {
+      setError('L\'immagine deve essere inferiore a 500KB')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      const base64 = event.target?.result as string
+      setError('')
+      setSuccess('')
+      setIsSubmitting(true)
+      const res = await leagueApi.updateImage(leagueId, base64)
+      if (res.success) {
+        setSuccess('Immagine della lega aggiornata!')
+        window.dispatchEvent(new CustomEvent('league-identity-updated', { detail: { leagueId } }))
+        void loadData()
+      } else {
+        setError(res.message || 'Errore nel caricamento dell\'immagine')
+      }
+      setIsSubmitting(false)
+    }
+    reader.readAsDataURL(file)
+    // allow re-selecting the same file later
+    e.target.value = ''
+  }
+
+  async function handleRemoveLeagueImage() {
+    setError('')
+    setSuccess('')
+    setIsSubmitting(true)
+    const res = await leagueApi.removeImage(leagueId)
+    if (res.success) {
+      setSuccess('Immagine della lega rimossa')
+      window.dispatchEvent(new CustomEvent('league-identity-updated', { detail: { leagueId } }))
+      void loadData()
+    } else {
+      setError(res.message || 'Errore nella rimozione dell\'immagine')
+    }
+    setIsSubmitting(false)
+  }
+
   function exportToExcel() {
     const headers = ['Username', 'Team', 'Ruolo', 'Stato', 'Budget']
     const rows = members.map(m => [
@@ -469,7 +523,9 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
   const activeSession = sessions.find(s => s.status === 'ACTIVE')
   const pendingMembers = members.filter(m => m.status === 'PENDING')
   const activeMembers = members.filter(m => m.status === 'ACTIVE')
+  // Badge "Gestione Membri": richieste di adesione pendenti + inviti in attesa
   const requestsBadge = pendingMembers.length + invites.length
+  const pendingAppealsBadge = appeals.filter(a => a.status === 'PENDING').length
 
   return (
     <div className="min-h-screen">
@@ -480,12 +536,59 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
         <div className="max-w-[1600px] mx-auto px-6 py-6">
           <div className="flex justify-between items-end">
             <div className="flex items-center gap-5">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-glow-gold">
-                <span className="text-3xl">⚙️</span>
+              <div className="relative flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => leagueImageInputRef.current?.click()}
+                  disabled={isSubmitting}
+                  title={league?.imageUrl ? 'Cambia il logo della lega' : 'Carica il logo della lega'}
+                  className="group relative w-16 h-16 rounded-xl overflow-hidden bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center shadow-glow-gold focus:outline-none focus:ring-2 focus:ring-accent-400"
+                >
+                  {league?.imageUrl ? (
+                    <img src={league.imageUrl} alt={`Logo ${league.name}`} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-3xl">🏆</span>
+                  )}
+                  <span className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] font-semibold text-white">
+                    {league?.imageUrl ? 'Cambia' : 'Carica'}
+                  </span>
+                </button>
+                {/* Always-visible edit affordance */}
+                <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary-500 border-2 border-surface-200 flex items-center justify-center shadow-md text-[11px] pointer-events-none">
+                  📷
+                </span>
+                <input
+                  ref={leagueImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleLeagueImageChange}
+                />
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Pannello Amministratore</h1>
                 <p className="text-gray-400 mt-1">{league?.name}</p>
+                {/* Explicit, discoverable logo controls */}
+                <div className="flex items-center gap-3 mt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => leagueImageInputRef.current?.click()}
+                    disabled={isSubmitting}
+                    className="text-xs font-medium text-primary-400 hover:text-primary-300 disabled:opacity-50 flex items-center gap-1"
+                  >
+                    📷 {league?.imageUrl ? 'Cambia logo' : 'Carica logo lega'}
+                  </button>
+                  {league?.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => { void handleRemoveLeagueImage() }}
+                      disabled={isSubmitting}
+                      className="text-xs text-danger-400 hover:text-danger-300 disabled:opacity-50"
+                    >
+                      Rimuovi
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
             <div className="px-4 py-2 bg-accent-500/20 text-accent-400 rounded-full text-sm font-bold border border-accent-500/40">
@@ -519,9 +622,14 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
               <span>{tab.icon}</span>
               <span>{tab.label}</span>
               {tab.id === 'members' && <span className="bg-surface-300 px-1.5 py-0.5 rounded-full text-xs">{activeMembers.length}</span>}
-              {tab.id === 'requests' && requestsBadge > 0 && (
+              {tab.id === 'members' && requestsBadge > 0 && (
                 <span className="bg-accent-500/20 text-accent-400 px-1.5 py-0.5 rounded-full text-xs font-bold border border-accent-500/40">
                   {requestsBadge}
+                </span>
+              )}
+              {tab.id === 'appeals' && pendingAppealsBadge > 0 && (
+                <span className="bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full text-xs font-bold border border-amber-500/40">
+                  {pendingAppealsBadge}
                 </span>
               )}
             </button>
@@ -551,11 +659,31 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
             )}
 
             {activeTab === 'members' && (
-              <AdminMembersTab
-                activeMembers={activeMembers}
+              <div className="space-y-6">
+                <AdminMembersTab
+                  activeMembers={activeMembers}
+                  isSubmitting={isSubmitting}
+                  confirmKick={(memberId, username) => void confirmKick(memberId, username)}
+                  handleCompleteWithTestUsers={() => void handleCompleteWithTestUsers()}
+                />
+                <AdminRequestsTab
+                  pendingMembers={pendingMembers}
+                  invites={invites}
+                  newInviteEmail={newInviteEmail}
+                  setNewInviteEmail={setNewInviteEmail}
+                  inviteDuration={inviteDuration}
+                  setInviteDuration={setInviteDuration}
+                  isSubmitting={isSubmitting}
+                  handleMemberAction={(memberId, action) => void handleMemberAction(memberId, action)}
+                  handleCreateInvite={() => void handleCreateInvite()}
+                  handleCancelInvite={(inviteId) => void handleCancelInvite(inviteId)}
+                />
+              </div>
+            )}
+
+            {activeTab === 'appeals' && (
+              <AdminAppealsTab
                 isSubmitting={isSubmitting}
-                confirmKick={(memberId, username) => void confirmKick(memberId, username)}
-                handleCompleteWithTestUsers={() => void handleCompleteWithTestUsers()}
                 appeals={appeals}
                 isLoadingAppeals={isLoadingAppeals}
                 appealFilter={appealFilter}
@@ -566,21 +694,6 @@ export function AdminPanel({ leagueId, initialTab, onNavigate }: AdminPanelProps
                 setSelectedAppealId={setSelectedAppealId}
                 handleResolveAppeal={(appealId, decision) => void handleResolveAppeal(appealId, decision)}
                 handleSimulateAppeal={() => void handleSimulateAppeal()}
-              />
-            )}
-
-            {activeTab === 'requests' && (
-              <AdminRequestsTab
-                pendingMembers={pendingMembers}
-                invites={invites}
-                newInviteEmail={newInviteEmail}
-                setNewInviteEmail={setNewInviteEmail}
-                inviteDuration={inviteDuration}
-                setInviteDuration={setInviteDuration}
-                isSubmitting={isSubmitting}
-                handleMemberAction={(memberId, action) => void handleMemberAction(memberId, action)}
-                handleCreateInvite={() => void handleCreateInvite()}
-                handleCancelInvite={(inviteId) => void handleCancelInvite(inviteId)}
               />
             )}
 

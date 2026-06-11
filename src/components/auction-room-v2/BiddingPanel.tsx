@@ -32,8 +32,8 @@ export function BiddingPanel({
   bidAmount,
   setBidAmount,
   onPlaceBid,
-  isAdmin,
-  onCloseAuction,
+  isAdmin: _isAdmin,
+  onCloseAuction: _onCloseAuction,
   myRosterSlots,
   isBidding = false,
   isConnected = true,
@@ -143,8 +143,6 @@ export function BiddingPanel({
             currentPrice={auction.currentPrice}
             isTimerExpired={isTimerExpired}
             budget={membership?.currentBudget || 0}
-            isAdmin={isAdmin}
-            onCloseAuction={onCloseAuction}
             isBidding={isBidding}
             isConnected={isConnected}
           />

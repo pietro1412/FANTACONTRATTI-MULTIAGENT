@@ -25,6 +25,7 @@ const { mockPrisma, MockPrismaClient } = vi.hoisted(() => {
       create: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
+      count: vi.fn(),
     },
     user: {
       findUnique: vi.fn(),
@@ -39,12 +40,20 @@ const { mockPrisma, MockPrismaClient } = vi.hoisted(() => {
     },
     contractConsolidation: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
     },
     contractHistory: {
       findMany: vi.fn(),
     },
     tradeOffer: {
       findMany: vi.fn(),
+      count: vi.fn(),
+    },
+    auctionAppeal: {
+      count: vi.fn(),
+    },
+    auction: {
+      count: vi.fn(),
     },
     rubataPreference: {
       groupBy: vi.fn(),
@@ -72,7 +81,7 @@ vi.mock('@prisma/client', () => ({
     SUSPENDED: 'SUSPENDED',
   },
   JoinType: { CREATOR: 'CREATOR', INVITE: 'INVITE', REQUEST: 'REQUEST' },
-  TradeStatus: { ACCEPTED: 'ACCEPTED' },
+  TradeStatus: { ACCEPTED: 'ACCEPTED', PENDING: 'PENDING' },
 }))
 
 // Mock player-stats.service to avoid real DB calls
@@ -799,6 +808,341 @@ describe('League Service', () => {
 
       expect(result.success).toBe(false)
       expect(result.message).toBe('Non autorizzato')
+    })
+  })
+
+  // ==================== getDashboardSummary ====================
+
+  describe('getDashboardSummary', () => {
+    it('returns phase + admin signals for an admin in an active league', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-1', leagueId: 'league-1', role: 'ADMIN' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue({
+        id: 'sess-1', type: 'MERCATO_RICORRENTE', currentPhase: 'OFFERTE_PRE_RINNOVO',
+      })
+      mockPrisma.tradeOffer.count.mockResolvedValue(2)
+      mockPrisma.leagueMember.count.mockResolvedValue(1) // pending join requests
+      mockPrisma.auctionAppeal.count.mockResolvedValue(0)
+
+      const result = await leagueService.getDashboardSummary('user-1')
+
+      expect(result.success).toBe(true)
+      const summaries = (result.data as { summaries: Record<string, unknown> }).summaries
+      expect(summaries['league-1']).toEqual({
+        phase: { type: 'MERCATO_RICORRENTE', currentPhase: 'OFFERTE_PRE_RINNOVO' },
+        tradeOffersReceived: 2,
+        isAdmin: true,
+        pendingJoinRequests: 1,
+        pendingAppeals: 0,
+        needsConsolidation: false,
+        isYourTurn: false,
+        turnTarget: null,
+      })
+    })
+
+    it('does not count admin-only signals for a non-admin member', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-2', leagueId: 'league-2', role: 'MANAGER' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue({
+        id: 'sess-2', type: 'MERCATO_RICORRENTE', currentPhase: 'OFFERTE_PRE_RINNOVO',
+      })
+      mockPrisma.tradeOffer.count.mockResolvedValue(0)
+
+      const result = await leagueService.getDashboardSummary('user-2')
+
+      const summaries = (result.data as { summaries: Record<string, { isAdmin: boolean; pendingJoinRequests: number; pendingAppeals: number }> }).summaries
+      expect(summaries['league-2']?.isAdmin).toBe(false)
+      expect(summaries['league-2']?.pendingJoinRequests).toBe(0)
+      expect(summaries['league-2']?.pendingAppeals).toBe(0)
+      // admin-only counts must not be queried for a non-admin
+      expect(mockPrisma.leagueMember.count).not.toHaveBeenCalled()
+      expect(mockPrisma.auctionAppeal.count).not.toHaveBeenCalled()
+    })
+
+    it('flags needsConsolidation in CONTRATTI phase when member has not consolidated', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-3', leagueId: 'league-3', role: 'MANAGER' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue({
+        id: 'sess-3', type: 'MERCATO_RICORRENTE', currentPhase: 'CONTRATTI',
+      })
+      mockPrisma.tradeOffer.count.mockResolvedValue(0)
+      mockPrisma.contractConsolidation.findUnique.mockResolvedValue(null) // not consolidated
+
+      const result = await leagueService.getDashboardSummary('user-3')
+
+      const summaries = (result.data as { summaries: Record<string, { needsConsolidation: boolean }> }).summaries
+      expect(summaries['league-3']?.needsConsolidation).toBe(true)
+    })
+
+    it('returns null phase and zero signals when there is no active session', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-4', leagueId: 'league-4', role: 'MANAGER' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue(null)
+
+      const result = await leagueService.getDashboardSummary('user-4')
+
+      const summaries = (result.data as { summaries: Record<string, { phase: unknown; tradeOffersReceived: number; needsConsolidation: boolean }> }).summaries
+      expect(summaries['league-4']?.phase).toBeNull()
+      expect(summaries['league-4']?.tradeOffersReceived).toBe(0)
+      expect(summaries['league-4']?.needsConsolidation).toBe(false)
+      expect(mockPrisma.tradeOffer.count).not.toHaveBeenCalled()
+    })
+
+    // ---- "Tocca a te" (turn detection) ----
+
+    it('flags isYourTurn in PRIMO_MERCATO when it is the member turn and no active auction', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-5', leagueId: 'league-5', role: 'MANAGER' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue({
+        id: 'sess-5',
+        type: 'PRIMO_MERCATO',
+        currentPhase: 'ASTA_LIBERA',
+        turnOrder: ['mem-other', 'mem-5', 'mem-third'],
+        currentTurnIndex: 1,
+        svincolatiTurnOrder: null,
+        svincolatiCurrentTurnIndex: null,
+        svincolatiState: null,
+      })
+      mockPrisma.tradeOffer.count.mockResolvedValue(0)
+      mockPrisma.auction.count.mockResolvedValue(0) // no active auction
+
+      const result = await leagueService.getDashboardSummary('user-5')
+
+      const summaries = (result.data as { summaries: Record<string, { isYourTurn: boolean; turnTarget: unknown }> }).summaries
+      expect(summaries['league-5']?.isYourTurn).toBe(true)
+      expect(summaries['league-5']?.turnTarget).toEqual({ kind: 'auction', sessionId: 'sess-5' })
+    })
+
+    it('does not flag isYourTurn in PRIMO_MERCATO when it is another member turn', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-6', leagueId: 'league-6', role: 'MANAGER' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue({
+        id: 'sess-6',
+        type: 'PRIMO_MERCATO',
+        currentPhase: 'ASTA_LIBERA',
+        turnOrder: ['mem-other', 'mem-6'],
+        currentTurnIndex: 0, // points to mem-other, not mem-6
+        svincolatiTurnOrder: null,
+        svincolatiCurrentTurnIndex: null,
+        svincolatiState: null,
+      })
+      mockPrisma.tradeOffer.count.mockResolvedValue(0)
+      mockPrisma.auction.count.mockResolvedValue(0)
+
+      const result = await leagueService.getDashboardSummary('user-6')
+
+      const summaries = (result.data as { summaries: Record<string, { isYourTurn: boolean; turnTarget: unknown }> }).summaries
+      expect(summaries['league-6']?.isYourTurn).toBe(false)
+      expect(summaries['league-6']?.turnTarget).toBeNull()
+    })
+
+    it('does not flag isYourTurn in PRIMO_MERCATO when an auction is already ACTIVE', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-7', leagueId: 'league-7', role: 'MANAGER' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue({
+        id: 'sess-7',
+        type: 'PRIMO_MERCATO',
+        currentPhase: 'ASTA_LIBERA',
+        turnOrder: ['mem-7'],
+        currentTurnIndex: 0, // would be mem-7's turn...
+        svincolatiTurnOrder: null,
+        svincolatiCurrentTurnIndex: null,
+        svincolatiState: null,
+      })
+      mockPrisma.tradeOffer.count.mockResolvedValue(0)
+      mockPrisma.auction.count.mockResolvedValue(1) // ...but bidding is underway
+
+      const result = await leagueService.getDashboardSummary('user-7')
+
+      const summaries = (result.data as { summaries: Record<string, { isYourTurn: boolean }> }).summaries
+      expect(summaries['league-7']?.isYourTurn).toBe(false)
+    })
+
+    it('flags isYourTurn in ASTA_SVINCOLATI when state is READY_CHECK and it is the member turn', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-8', leagueId: 'league-8', role: 'MANAGER' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue({
+        id: 'sess-8',
+        type: 'MERCATO_RICORRENTE',
+        currentPhase: 'ASTA_SVINCOLATI',
+        turnOrder: null,
+        currentTurnIndex: null,
+        svincolatiTurnOrder: ['mem-other', 'mem-8'],
+        svincolatiCurrentTurnIndex: 1,
+        svincolatiState: 'READY_CHECK',
+      })
+      mockPrisma.tradeOffer.count.mockResolvedValue(0)
+
+      const result = await leagueService.getDashboardSummary('user-8')
+
+      const summaries = (result.data as { summaries: Record<string, { isYourTurn: boolean; turnTarget: unknown }> }).summaries
+      expect(summaries['league-8']?.isYourTurn).toBe(true)
+      expect(summaries['league-8']?.turnTarget).toEqual({ kind: 'svincolati', sessionId: 'sess-8' })
+      // svincolati does not need the active-auction query
+      expect(mockPrisma.auction.count).not.toHaveBeenCalled()
+    })
+
+    it('does not flag isYourTurn in RUBATA (not reconstructible as a single turn-holder)', async () => {
+      mockPrisma.leagueMember.findMany.mockResolvedValue([
+        { id: 'mem-9', leagueId: 'league-9', role: 'MANAGER' },
+      ])
+      mockPrisma.marketSession.findFirst.mockResolvedValue({
+        id: 'sess-9',
+        type: 'MERCATO_RICORRENTE',
+        currentPhase: 'RUBATA',
+        turnOrder: null,
+        currentTurnIndex: null,
+        svincolatiTurnOrder: null,
+        svincolatiCurrentTurnIndex: null,
+        svincolatiState: null,
+      })
+      mockPrisma.tradeOffer.count.mockResolvedValue(0)
+
+      const result = await leagueService.getDashboardSummary('user-9')
+
+      const summaries = (result.data as { summaries: Record<string, { isYourTurn: boolean; turnTarget: unknown }> }).summaries
+      expect(summaries['league-9']?.isYourTurn).toBe(false)
+      expect(summaries['league-9']?.turnTarget).toBeNull()
+    })
+  })
+
+  // ==================== updateLeagueImage / removeLeagueImage ====================
+
+  describe('updateLeagueImage', () => {
+    const validImage = 'data:image/png;base64,iVBORw0KGgo='
+
+    it('updates the image when caller is admin and data is valid', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ id: 'mem-1', role: 'ADMIN' })
+      mockPrisma.league.update.mockResolvedValue({ id: 'league-1', name: 'Lega', imageUrl: validImage })
+
+      const result = await leagueService.updateLeagueImage('league-1', 'admin-1', validImage)
+
+      expect(result.success).toBe(true)
+      expect(mockPrisma.league.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'league-1' }, data: { imageUrl: validImage } })
+      )
+    })
+
+    it('rejects when caller is not admin', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue(null)
+
+      const result = await leagueService.updateLeagueImage('league-1', 'not-admin', validImage)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Non autorizzato')
+      expect(mockPrisma.league.update).not.toHaveBeenCalled()
+    })
+
+    it('rejects an invalid image format', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ id: 'mem-1', role: 'ADMIN' })
+
+      const result = await leagueService.updateLeagueImage('league-1', 'admin-1', 'not-an-image')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Formato immagine non valido')
+      expect(mockPrisma.league.update).not.toHaveBeenCalled()
+    })
+
+    it('rejects an image over the size limit', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ id: 'mem-1', role: 'ADMIN' })
+      const huge = 'data:image/png;base64,' + 'A'.repeat(700001)
+
+      const result = await leagueService.updateLeagueImage('league-1', 'admin-1', huge)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toContain('troppo grande')
+      expect(mockPrisma.league.update).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('removeLeagueImage', () => {
+    it('removes the image when caller is admin', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ id: 'mem-1', role: 'ADMIN' })
+      mockPrisma.league.update.mockResolvedValue({ id: 'league-1' })
+
+      const result = await leagueService.removeLeagueImage('league-1', 'admin-1')
+
+      expect(result.success).toBe(true)
+      expect(mockPrisma.league.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'league-1' }, data: { imageUrl: null } })
+      )
+    })
+
+    it('rejects when caller is not admin', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue(null)
+
+      const result = await leagueService.removeLeagueImage('league-1', 'not-admin')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Non autorizzato')
+      expect(mockPrisma.league.update).not.toHaveBeenCalled()
+    })
+  })
+
+  // ==================== getLeagueIdentity ====================
+
+  describe('getLeagueIdentity', () => {
+    it('returns id/name/imageUrl for a member', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue({ id: 'mem-1' })
+      mockPrisma.league.findUnique.mockResolvedValue({ id: 'league-1', name: 'Lega', imageUrl: 'data:image/png;base64,x' })
+
+      const result = await leagueService.getLeagueIdentity('league-1', 'user-1')
+
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual({ id: 'league-1', name: 'Lega', imageUrl: 'data:image/png;base64,x' })
+    })
+
+    it('rejects a non-member', async () => {
+      mockPrisma.leagueMember.findFirst.mockResolvedValue(null)
+
+      const result = await leagueService.getLeagueIdentity('league-1', 'stranger')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Non autorizzato')
+      expect(mockPrisma.league.findUnique).not.toHaveBeenCalled()
+    })
+  })
+
+  // ==================== createLeague with optional logo ====================
+
+  describe('createLeague (logo)', () => {
+    const baseInput = {
+      name: 'Lega Logo',
+      maxParticipants: 8,
+      initialBudget: 200,
+      goalkeeperSlots: 3,
+      defenderSlots: 8,
+      midfielderSlots: 8,
+      forwardSlots: 6,
+      teamName: 'My Team',
+      isPublic: false,
+    }
+
+    it('persists a valid image data URL', async () => {
+      mockPrisma.league.create.mockResolvedValue({ id: 'l1', name: 'Lega Logo', inviteCode: 'l1', members: [] })
+
+      const result = await leagueService.createLeague('user-1', { ...baseInput, imageUrl: 'data:image/png;base64,abc' })
+
+      expect(result.success).toBe(true)
+      expect(mockPrisma.league.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ imageUrl: 'data:image/png;base64,abc' }) })
+      )
+    })
+
+    it('rejects an invalid image format', async () => {
+      const result = await leagueService.createLeague('user-1', { ...baseInput, imageUrl: 'http://example.com/x.png' })
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Formato immagine non valido')
+      expect(mockPrisma.league.create).not.toHaveBeenCalled()
     })
   })
 })
