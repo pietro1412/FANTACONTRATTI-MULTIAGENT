@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { useToast } from '../components/ui/Toast'
 import { Textarea } from '@/components/ui/Textarea'
 import { Navigation } from '../components/Navigation'
 import { getTeamLogo } from '../utils/teamLogos'
@@ -67,7 +69,7 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     turnOrderDraft,
     bidAmount, setBidAmount,
     timerRemaining,
-    error, success, isSubmitting,
+    error, success, setSuccess, isSubmitting,
     timerInput, setTimerInput,
     isAppealMode, setIsAppealMode,
     appealContent, setAppealContent,
@@ -99,6 +101,16 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
+
+  // Transient success feedback goes through toasts; blocking errors keep the
+  // inline banner with the Riprova action
+  const { toast } = useToast()
+  useEffect(() => {
+    if (success) {
+      toast.success(success)
+      setSuccess('')
+    }
+  }, [success, toast, setSuccess])
 
   if (isLoading) {
     return (
@@ -140,8 +152,6 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               </button>
             </div>
           )}
-          {success && <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-4 rounded-lg mb-6">{success}</div>}
-
           {/* Timer Setting */}
           <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4 mb-6">
             <h3 className="font-bold text-white mb-3">Timer Asta</h3>
@@ -443,7 +453,6 @@ export function Svincolati({ leagueId, onNavigate }: SvincolatiProps) {
               </button>
             </div>
           )}
-          {success && <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-3 rounded-lg text-sm">{success}</div>}
         </div>
 
         {/* 3-column layout */}

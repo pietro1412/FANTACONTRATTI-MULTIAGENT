@@ -134,6 +134,7 @@ Il codice gira tutto sul layer **`src/services/` + `src/pages/` + `src/component
 - **Commenti**: Inglese preferito, Italiano accettabile
 
 ### Error Handling
+- **Feedback utente (frontend)**: esiti di azioni (successo o errore transiente) → **toast** via `useToast()` (`src/components/ui/Toast.tsx`, auto-dismiss); banner inline persistente SOLO per errori bloccanti con azione di recovery (es. "Riprova") o validazione form vicino al campo. NO banner `{success && ...}` che restano appesi (bonifica avviata 2026-06-11: AuctionRoom e Svincolati fatti, altre pagine da convertire sezione per sezione col rework grafico)
 - Route handlers: try/catch con `res.status(xxx).json({ success: false, message: '...' })`
 - ServiceResult: **USARE il tipo condiviso** — NON ridichiararlo localmente
 - `console.log` / `console.error`: **VIETATO nei service** — usare solo in dev/debug e rimuovere prima del commit

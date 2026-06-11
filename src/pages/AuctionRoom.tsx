@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { Button } from '../components/ui/Button'
 import { Navigation } from '../components/Navigation'
+import { useToast } from '../components/ui/Toast'
 import { ContractModifierModal } from '../components/ContractModifier'
 import { AuctionRoomLayout } from '../components/auction-room-v2'
 import {
@@ -81,7 +83,7 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     selectedTeam, setSelectedTeam,
     availableTeams,
     teamDropdownOpen, setTeamDropdownOpen,
-    isLoading, error, successMessage,
+    isLoading, error, setError, successMessage, setSuccessMessage,
     marketProgress, timeLeft, timerSetting,
     firstMarketStatus, turnOrderDraft,
     readyStatus, markingReady,
@@ -116,6 +118,21 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
     handleContractModification, handleSkipContractModification,
   } = useAuctionRoomState(sessionId, leagueId)
 
+  // Transient feedback goes through toasts (auto-dismiss), not persistent banners
+  const { toast } = useToast()
+  useEffect(() => {
+    if (error) {
+      toast.error(error)
+      setError('')
+    }
+  }, [error, toast, setError])
+  useEffect(() => {
+    if (successMessage) {
+      toast.success(successMessage)
+      setSuccessMessage('')
+    }
+  }, [successMessage, toast, setSuccessMessage])
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -142,9 +159,6 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
         </header>
 
         <main className="max-w-2xl mx-auto px-4 py-8">
-          {error && <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-4 rounded-lg mb-6">{error}</div>}
-          {successMessage && <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-4 rounded-lg mb-6">{successMessage}</div>}
-
           <div className="bg-surface-200 rounded-xl border border-surface-50/20 overflow-hidden">
             <div className="p-4 border-b border-surface-50/20 flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center">
@@ -198,22 +212,6 @@ export function AuctionRoom({ sessionId, leagueId, onNavigate }: AuctionRoomProp
       <Navigation currentPage="auction" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
 
       <main className={`max-w-full mx-auto px-3 py-3 lg:px-4 lg:py-4 ${auction ? 'pb-40 lg:pb-4' : ''}`}>
-        {/* Error/Success Messages */}
-        {(error || successMessage) && (
-          <div className="space-y-2 mb-3">
-            {error && (
-              <div className="bg-danger-500/20 border border-danger-500/50 text-danger-400 p-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
-            {successMessage && (
-              <div className="bg-secondary-500/20 border border-secondary-500/50 text-secondary-400 p-3 rounded-lg text-sm">
-                {successMessage}
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Unified Layout */}
         <AuctionRoomLayout
           auction={auction}

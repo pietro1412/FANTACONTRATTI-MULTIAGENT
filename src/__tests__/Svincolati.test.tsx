@@ -16,11 +16,12 @@ vi.mock('../hooks/useAuth', () => ({
   }),
 }))
 
-// Mock Toast
+// Mock Toast (hoisted spies so tests can assert on toast calls)
+const { mockToast } = vi.hoisted(() => ({
+  mockToast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+}))
 vi.mock('../components/ui/Toast', () => ({
-  useToast: () => ({
-    toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
-  }),
+  useToast: () => ({ toast: mockToast }),
 }))
 
 // Mock ConfirmDialog
@@ -152,6 +153,7 @@ const defaultHookReturn = {
   timerRemaining: null as number | null,
   error: '',
   success: '',
+  setSuccess: vi.fn(),
   isSubmitting: false,
   timerInput: 30,
   setTimerInput: vi.fn(),
@@ -1317,15 +1319,18 @@ describe('Svincolati', () => {
   })
 
   // ---- Success message display in auction room ----
-  it('displays success message in auction room', () => {
+  it('routes success message to a success toast and clears it', () => {
+    const setSuccess = vi.fn()
     hookOverrides = {
       board: makeAuctionBoard() as never,
       success: 'Operazione riuscita!',
+      setSuccess,
     }
 
     render(<Svincolati leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    expect(screen.getByText('Operazione riuscita!')).toBeInTheDocument()
+    expect(mockToast.success).toHaveBeenCalledWith('Operazione riuscita!')
+    expect(setSuccess).toHaveBeenCalledWith('')
   })
 
   // ---- Pusher disconnected indicator ----

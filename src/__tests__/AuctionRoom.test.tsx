@@ -13,11 +13,12 @@ vi.mock('../hooks/useAuth', () => ({
   }),
 }))
 
-// Mock Toast
+// Mock Toast (hoisted spies so tests can assert on toast calls)
+const { mockToast } = vi.hoisted(() => ({
+  mockToast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+}))
 vi.mock('../components/ui/Toast', () => ({
-  useToast: () => ({
-    toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
-  }),
+  useToast: () => ({ toast: mockToast }),
 }))
 
 // Mock ConfirmDialog
@@ -132,7 +133,9 @@ function createDefaultHookState(overrides: Record<string, unknown> = {}) {
     setTeamDropdownOpen: vi.fn(),
     isLoading: false,
     error: '',
+    setError: vi.fn(),
     successMessage: '',
+    setSuccessMessage: vi.fn(),
     marketProgress: { completed: 5, total: 20, percentage: 25 },
     timeLeft: 30,
     timerSetting: 60,
@@ -228,20 +231,26 @@ describe('AuctionRoom', () => {
     expect(screen.getByTestId('navigation')).toHaveAttribute('data-page', 'auction')
   })
 
-  it('shows error message when error state is set', () => {
+  it('routes error state to an error toast and clears it', () => {
+    const setError = vi.fn()
     mockUseAuctionRoomState.mockReturnValue(createDefaultHookState({
       error: 'Errore di connessione',
+      setError,
     }))
     render(<AuctionRoom {...defaultProps} />)
-    expect(screen.getByText('Errore di connessione')).toBeInTheDocument()
+    expect(mockToast.error).toHaveBeenCalledWith('Errore di connessione')
+    expect(setError).toHaveBeenCalledWith('')
   })
 
-  it('shows success message when successMessage state is set', () => {
+  it('routes successMessage state to a success toast and clears it', () => {
+    const setSuccessMessage = vi.fn()
     mockUseAuctionRoomState.mockReturnValue(createDefaultHookState({
       successMessage: 'Offerta piazzata con successo!',
+      setSuccessMessage,
     }))
     render(<AuctionRoom {...defaultProps} />)
-    expect(screen.getByText('Offerta piazzata con successo!')).toBeInTheDocument()
+    expect(mockToast.success).toHaveBeenCalledWith('Offerta piazzata con successo!')
+    expect(setSuccessMessage).toHaveBeenCalledWith('')
   })
 
   it('shows turn order setup for admin in primo mercato without turn order', () => {
