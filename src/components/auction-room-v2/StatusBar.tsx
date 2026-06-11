@@ -1,5 +1,4 @@
-import type { MarketProgress, Membership, MyRosterSlots } from '../../types/auctionroom.types'
-import { POSITION_FILTER_COLORS, POSITION_NAMES } from '../ui/PositionBadge'
+import type { Membership, MyRosterSlots } from '../../types/auctionroom.types'
 import type { AuctionPhase } from './types'
 
 interface StatusBarProps {
@@ -7,8 +6,6 @@ interface StatusBarProps {
   connectionStatus: string
   currentTurnManager: { username: string } | null
   isMyTurn: boolean
-  marketProgress: MarketProgress | null
-  isPrimoMercato: boolean
   membership: Membership | null
   currentPhase: AuctionPhase
   myRosterSlots?: MyRosterSlots | null
@@ -39,8 +36,6 @@ export function StatusBar({
   connectionStatus,
   currentTurnManager,
   isMyTurn,
-  marketProgress,
-  isPrimoMercato,
   membership,
   currentPhase: _currentPhase,
   myRosterSlots,
@@ -64,7 +59,7 @@ export function StatusBar({
         </div>
         <div className="flex flex-col">
           <h1 className="text-sm sm:text-base font-black text-white tracking-wide leading-tight">
-            ASTA LIVE <span className="hidden sm:inline">PROFESSIONAL</span>
+            ASTA LIVE
           </h1>
           <div className="flex items-center gap-2 mt-0.5">
             {/* Connection dot */}
@@ -76,34 +71,13 @@ export function StatusBar({
                 {isMyTurn ? (
                   <span className="text-accent-400 font-bold">IL TUO TURNO</span>
                 ) : (
-                  <>Turno di: <strong className="text-smrimary-400">{currentTurnManager.username}</strong></>
+                  <>Chiamata di: <strong className="text-primary-400">{currentTurnManager.username}</strong></>
                 )}
               </span>
             )}
           </div>
         </div>
       </div>
-
-      {/* Position progress pills (desktop) */}
-      {isPrimoMercato && marketProgress && (
-        <div className="hidden sm:flex items-center gap-1 ml-2">
-          {marketProgress.roleSequence.map(role => (
-            <span
-              key={role}
-              className={`px-1.5 py-0.5 rounded text-sm font-bold border ${
-                role === marketProgress.currentRole
-                  ? POSITION_FILTER_COLORS[role] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'
-                  : 'bg-slate-800/50 text-gray-500 border-white/5'
-              }`}
-            >
-              {(POSITION_NAMES[role] || role).slice(0, 3)}
-            </span>
-          ))}
-          <span className="text-sm text-gray-400 ml-1 font-mono">
-            {marketProgress.filledSlots}/{marketProgress.totalSlots}
-          </span>
-        </div>
-      )}
 
       {/* Budget + Max Bid + Actions — pushed right */}
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
@@ -113,14 +87,14 @@ export function StatusBar({
           <span className="text-sml sm:text-2xl font-mono font-black gradient-text-gold leading-tight">{budget}</span>
         </div>
 
-        {/* Max Bid Box */}
+        {/* Max Bid Box — the one number that decides a raise, highlighted gold */}
         {maxBid !== null && (
           <>
             <div className="w-px h-8 bg-white/10 hidden sm:block" />
-            <div className="border border-sky-500/40 bg-sky-500/10 rounded-lg px-2.5 py-1.5 flex flex-col items-center">
-              <span className="text-sm text-sky-300 uppercase font-semibold leading-none">Offerta Max</span>
+            <div className="border border-accent-500/50 bg-accent-500/10 rounded-lg px-2.5 py-1.5 flex flex-col items-center shadow-glow-gold">
+              <span className="text-sm text-accent-300 uppercase font-semibold leading-none">Offerta Max</span>
               <span className={`text-lg font-mono font-bold leading-tight ${
-                maxBid <= 10 ? 'text-red-400' : maxBid <= 50 ? 'text-amber-400' : 'text-sky-400'
+                maxBid <= 10 ? 'text-red-400' : maxBid <= 50 ? 'text-amber-400' : 'text-accent-400'
               }`}>{maxBid}</span>
             </div>
           </>

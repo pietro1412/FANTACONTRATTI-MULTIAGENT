@@ -1,4 +1,5 @@
 import { StatusBar } from './StatusBar'
+import { RoleProgressRail } from './RoleProgressRail'
 import { CenterStage, getAuctionPhase } from './CenterStage'
 import { FinancialDashboard } from './FinancialDashboard'
 import { MyPortfolio } from './MyPortfolio'
@@ -22,8 +23,6 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
         connectionStatus={props.connectionStatus}
         currentTurnManager={props.currentTurnManager}
         isMyTurn={props.isMyTurn}
-        marketProgress={props.marketProgress}
-        isPrimoMercato={props.isPrimoMercato}
         membership={props.membership}
         currentPhase={phase}
         myRosterSlots={props.myRosterSlots}
@@ -36,6 +35,12 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
         dismissPauseRequest={props.dismissPauseRequest}
       />
 
+      {/* Role progress rail — where the market is, on its own row */}
+      <RoleProgressRail
+        marketProgress={props.marketProgress}
+        isPrimoMercato={props.isPrimoMercato}
+      />
+
       {/* Mobile: side panel triggers */}
       <MobileSidePanel
         managersStatus={props.managersStatus}
@@ -43,23 +48,25 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
         onSelectManager={props.onSelectManager}
         myRosterSlots={props.myRosterSlots}
         budget={props.membership?.currentBudget || 0}
+        currentBidderUsername={props.auction?.bids[0]?.bidder.user.username ?? null}
       />
 
-      {/* Desktop: 3-column grid / Mobile: single column */}
-      <div className="lg:grid lg:grid-cols-12 lg:gap-4">
-        {/* Left: Financial Dashboard (desktop only) */}
-        <div className="hidden lg:block lg:col-span-3">
+      {/* Desktop: narrow side columns, dominant center stage / Mobile: single column */}
+      <div className="lg:grid lg:grid-cols-[260px_minmax(0,1fr)_280px] lg:gap-4">
+        {/* Left: Managers (desktop only) */}
+        <div className="hidden lg:block">
           <div className="sticky top-4">
             <FinancialDashboard
               managersStatus={props.managersStatus}
               firstMarketStatus={props.firstMarketStatus}
               onSelectManager={props.onSelectManager}
+              currentBidderUsername={props.auction?.bids[0]?.bidder.user.username ?? null}
             />
           </div>
         </div>
 
         {/* Center: Main Stage */}
-        <div className="lg:col-span-6 space-y-3">
+        <div className="space-y-3 min-w-0">
           {/* Admin actions panel — visible only to league admin */}
           {props.isAdmin && (
             <AdminActionsPanel
@@ -78,7 +85,7 @@ export function AuctionRoomLayout(props: AuctionViewProps) {
         </div>
 
         {/* Right: My Portfolio (desktop only) */}
-        <div className="hidden lg:block lg:col-span-3">
+        <div className="hidden lg:block">
           <div className="sticky top-4">
             <MyPortfolio
               myRosterSlots={props.myRosterSlots}

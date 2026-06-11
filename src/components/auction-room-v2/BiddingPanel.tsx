@@ -44,6 +44,20 @@ export function BiddingPanel({
   const auctionRole = auction.player.position as 'P' | 'D' | 'C' | 'A'
   const roleSlot = myRosterSlots?.slots[auctionRole]
   const isRoleFull = roleSlot ? roleSlot.filled >= roleSlot.total : false
+  const roleSlotsLeft = roleSlot ? roleSlot.total - roleSlot.filled : null
+
+  // My max bid (same rule as the StatusBar box: balance minus 2M reserved per empty slot)
+  const myMaxBid = (() => {
+    if (!myRosterSlots || !membership) return null
+    const slots = myRosterSlots.slots
+    const emptySlots = (['P', 'D', 'C', 'A'] as const).reduce(
+      (sum, pos) => sum + (slots[pos].total - slots[pos].filled), 0
+    )
+    const monteIngaggi = (['P', 'D', 'C', 'A'] as const).reduce(
+      (sum, pos) => sum + slots[pos].players.reduce((s, p) => s + (p.contract?.salary || 0), 0), 0
+    )
+    return Math.max(0, membership.currentBudget - monteIngaggi - (emptySlots * 2))
+  })()
 
   return (
     <div className="space-y-4">
@@ -86,7 +100,7 @@ export function BiddingPanel({
             <div className="flex-1 text-center">
               <p className="text-sm text-sky-400 uppercase tracking-wider font-bold mb-1">Offerta Corrente</p>
 
-              <p className={`text-5xl lg:text-6xl font-mono font-black text-transparent bg-clip-text bg-gradient-to-r mb-2 ${
+              <p className={`stat-number text-6xl lg:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r mb-2 ${
                 isTimerCritical
                   ? 'from-red-400 via-white to-red-400 animate-pulse'
                   : 'from-sky-400 via-white to-sky-400'
@@ -136,16 +150,24 @@ export function BiddingPanel({
             </p>
           </div>
         ) : (
-          <BidControls
-            bidAmount={bidAmount}
-            setBidAmount={setBidAmount}
-            onPlaceBid={onPlaceBid}
-            currentPrice={auction.currentPrice}
-            isTimerExpired={isTimerExpired}
-            budget={membership?.currentBudget || 0}
-            isBidding={isBidding}
-            isConnected={isConnected}
-          />
+          <>
+            <BidControls
+              bidAmount={bidAmount}
+              setBidAmount={setBidAmount}
+              onPlaceBid={onPlaceBid}
+              currentPrice={auction.currentPrice}
+              isTimerExpired={isTimerExpired}
+              budget={membership?.currentBudget || 0}
+              isBidding={isBidding}
+              isConnected={isConnected}
+            />
+            {myMaxBid !== null && roleSlotsLeft !== null && (
+              <p className="mt-1.5 text-sm text-gray-400 text-center">
+                La tua offerta max: <span className="font-mono font-bold text-accent-400">{myMaxBid}M</span>
+                {' '}· ti restano <span className="font-bold text-gray-300">{roleSlotsLeft}</span> slot {auctionRole}
+              </p>
+            )}
+          </>
         )}
       </div>
 

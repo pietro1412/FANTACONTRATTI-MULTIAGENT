@@ -10,6 +10,7 @@ interface MobileSidePanelProps {
   onSelectManager: (m: ManagerData) => void
   myRosterSlots: MyRosterSlots | null
   budget: number
+  currentBidderUsername?: string | null
 }
 
 export function MobileSidePanel({
@@ -18,6 +19,7 @@ export function MobileSidePanel({
   onSelectManager,
   myRosterSlots,
   budget,
+  currentBidderUsername,
 }: MobileSidePanelProps) {
   const [sheet, setSheet] = useState<'managers' | 'roster' | null>(null)
 
@@ -33,7 +35,7 @@ export function MobileSidePanel({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
           </svg>
-          <span>Spy</span>
+          <span>Manager</span>
           {managersStatus && (
             <span className="text-sm text-gray-500">({managersStatus.managers.length})</span>
           )}
@@ -59,7 +61,7 @@ export function MobileSidePanel({
       <BottomSheet
         isOpen={sheet === 'managers'}
         onClose={() => { setSheet(null); }}
-        title="Spy Financials"
+        title="Manager"
         maxHeight="80vh"
       >
         <div className="p-2">
@@ -67,6 +69,7 @@ export function MobileSidePanel({
             managersStatus={managersStatus}
             firstMarketStatus={firstMarketStatus}
             onSelectManager={(m) => { onSelectManager(m); setSheet(null) }}
+            currentBidderUsername={currentBidderUsername}
           />
         </div>
       </BottomSheet>

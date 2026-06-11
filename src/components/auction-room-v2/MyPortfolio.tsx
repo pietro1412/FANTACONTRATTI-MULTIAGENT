@@ -36,13 +36,13 @@ function SlotPlayerPhoto({ apiFootballId, playerName, position, posGradient }: {
       <img
         src={photoUrl}
         alt={playerName}
-        className="w-5 h-5 rounded-full object-cover bg-slate-700 flex-shrink-0"
+        className="w-6 h-6 rounded-full object-cover bg-slate-700 flex-shrink-0"
         onError={() => { setImgError(true); }}
       />
     )
   }
   return (
-    <span className={`w-5 h-5 rounded-full bg-gradient-to-br ${posGradient} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>
+    <span className={`w-6 h-6 rounded-full bg-gradient-to-br ${posGradient} flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>
       {position}
     </span>
   )
@@ -55,7 +55,7 @@ const POS_COLORS: Record<string, { bg: string; border: string; text: string; bad
   A: { bg: 'bg-red-500/15', border: 'border-red-500/40', text: 'text-red-400', badge: 'from-red-500 to-red-600' },
 }
 
-export function MyPortfolio({ myRosterSlots, budget }: MyPortfolioProps) {
+export function MyPortfolio({ myRosterSlots, budget: _budget }: MyPortfolioProps) {
   const [statsModalOpen, setStatsModalOpen] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState<{ player: RosterSlot; position: string } | null>(null)
 
@@ -78,21 +78,6 @@ export function MyPortfolio({ myRosterSlots, budget }: MyPortfolioProps) {
     sum + myRosterSlots.slots[p].players.reduce((s, pl) => s + pl.acquisitionPrice, 0), 0
   )
 
-  // Analysis calculations
-  const avgCostPerSlot = totalFilled > 0 ? Math.round(totalSpent / totalFilled) : 0
-
-  // Liquidity for remaining slots: budget minus reserve for empty slots at min price
-  const emptySlots = totalSlots - totalFilled
-  const liquidityForAttack = emptySlots > 0 ? Math.max(0, budget - (emptySlots * 2)) : budget
-
-  // Savings percentage vs avg quotation
-  const totalQuotSpent = POSITIONS.reduce((sum, p) =>
-    sum + myRosterSlots.slots[p].players.reduce((s, pl) => s + (pl.contract?.salary || pl.acquisitionPrice), 0), 0
-  )
-  const savingsPercent = totalSpent > 0 && totalQuotSpent > 0
-    ? Math.round(((totalQuotSpent - totalSpent) / totalQuotSpent) * 100)
-    : 0
-
   return (
     <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden h-full flex flex-col">
       {/* Header */}
@@ -103,21 +88,13 @@ export function MyPortfolio({ myRosterSlots, budget }: MyPortfolioProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
           </div>
-          <h3 className="font-black text-white text-sm uppercase tracking-wide">Board Strategica</h3>
+          <h3 className="font-black text-white text-sm uppercase tracking-wide">La mia rosa</h3>
         </div>
         <span className="text-sms font-mono font-bold text-sky-400">{totalFilled}/{totalSlots} SLOT</span>
       </div>
 
-      {/* Budget spent summary */}
-      <div className="px-3 pt-2 pb-1 flex-shrink-0">
-        <div className="flex items-center justify-between text-sm mb-1">
-          <span className="text-gray-400">Budget Speso:</span>
-          <span className="font-bold font-mono text-accent-400">{totalSpent}M</span>
-        </div>
-      </div>
-
-      {/* Slot Grid per position */}
-      <div className="flex-1 overflow-y-auto px-3 py-1.5 space-y-3">
+      {/* Roster as compact rows per position */}
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3">
         {POSITIONS.map(pos => {
           const slot = myRosterSlots.slots[pos]
           if (slot.total === 0) return null
@@ -142,8 +119,8 @@ export function MyPortfolio({ myRosterSlots, budget }: MyPortfolioProps) {
                 </span>
               </div>
 
-              {/* Slot rectangles — larger */}
-              <div className="flex flex-wrap gap-1.5">
+              {/* Player rows + empty slots */}
+              <div className="space-y-1">
                 {Array.from({ length: slot.total }).map((_, i) => {
                   const player = slot.players[i]
                   if (player) {
@@ -151,43 +128,44 @@ export function MyPortfolio({ myRosterSlots, budget }: MyPortfolioProps) {
                       <button
                         key={i}
                         onClick={() => { handleSlotClick(player, pos); }}
-                        className={`${colors.bg} border ${colors.border} rounded-lg px-2 py-1.5 min-w-[4.5rem] hover:brightness-125 transition-all cursor-pointer`}
+                        className={`w-full flex items-center gap-2 ${colors.bg} border ${colors.border} rounded-lg px-2 py-1.5 hover:brightness-125 transition-all cursor-pointer text-left`}
                         title={`${player.playerName} - ${player.playerTeam} - ${player.acquisitionPrice}M${player.age ? ` - ${player.age} anni` : ''}`}
                       >
-                        {/* Top row: photo + team logo */}
-                        <div className="flex items-center justify-center gap-1 mb-0.5">
-                          <SlotPlayerPhoto
-                            apiFootballId={player.apiFootballId}
-                            playerName={player.playerName}
-                            position={pos}
-                            posGradient={colors.badge}
-                          />
-                          <div className="w-4 h-4 bg-white/80 rounded flex items-center justify-center flex-shrink-0">
-                            <img src={getTeamLogo(player.playerTeam)} alt={player.playerTeam} className="w-3 h-3 object-contain" />
-                          </div>
-                        </div>
-                        {/* Name */}
-                        <p className="text-sm text-gray-200 font-semibold truncate text-center">
-                          {player.playerName.length > 8 ? player.playerName.slice(0, 7) + '.' : player.playerName}
-                        </p>
-                        {/* Price + age color */}
-                        <div className="flex items-center justify-center gap-1">
-                          <span className={`text-sms font-mono font-bold ${colors.text}`}>
-                            {player.acquisitionPrice}M
-                          </span>
-                          {player.age != null && (
-                            <span className={`text-sm font-bold ${getAgeColor(player.age)}`}>{player.age}a</span>
-                          )}
-                        </div>
+                        <SlotPlayerPhoto
+                          apiFootballId={player.apiFootballId}
+                          playerName={player.playerName}
+                          position={pos}
+                          posGradient={colors.badge}
+                        />
+                        <span className="flex-1 min-w-0 text-sm text-gray-200 font-semibold truncate">
+                          {player.playerName}
+                        </span>
+                        <span className="w-4 h-4 bg-white/80 rounded flex items-center justify-center flex-shrink-0">
+                          <img src={getTeamLogo(player.playerTeam)} alt={player.playerTeam} className="w-3 h-3 object-contain" />
+                        </span>
+                        {player.age != null && (
+                          <span className={`text-sm font-bold flex-shrink-0 ${getAgeColor(player.age)}`}>{player.age}a</span>
+                        )}
+                        <span className={`text-sms font-mono font-bold flex-shrink-0 ${colors.text}`}>
+                          {player.acquisitionPrice}M
+                        </span>
                       </button>
                     )
                   }
+                  // First empty slot of the active role is the one at stake right now
+                  const isNextAtStake = isCurrent && i === slot.filled
                   return (
                     <div
                       key={i}
-                      className={`border border-dashed ${colors.border} rounded-lg px-2 py-1.5 min-w-[4.5rem] text-center opacity-40 flex items-center justify-center`}
+                      className={`flex items-center justify-center rounded-lg px-2 py-1.5 border border-dashed ${
+                        isNextAtStake
+                          ? 'border-secondary-500/60 bg-secondary-500/10'
+                          : `${colors.border} opacity-40`
+                      }`}
                     >
-                      <span className="text-gray-400 text-lg leading-none">+</span>
+                      <span className={`text-sm ${isNextAtStake ? 'text-secondary-400 font-semibold' : 'text-gray-400'}`}>
+                        {isNextAtStake ? 'Slot libero — in asta ora' : 'Slot libero'}
+                      </span>
                     </div>
                   )
                 })}
@@ -197,32 +175,11 @@ export function MyPortfolio({ myRosterSlots, budget }: MyPortfolioProps) {
         })}
       </div>
 
-      {/* ANALISI OBIETTIVI */}
-      {totalFilled > 0 && (
-        <div className="p-3 border-t border-white/10 flex-shrink-0 space-y-2">
-          <h4 className="text-sm font-bold text-white uppercase tracking-wider">Analisi Obiettivi</h4>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-slate-800/50 rounded-lg px-2 py-1.5">
-              <p className="text-sm text-gray-500 uppercase font-semibold">Costo Medio</p>
-              <p className="text-sm font-mono font-bold text-white">{avgCostPerSlot}M</p>
-            </div>
-            <div className="bg-slate-800/50 rounded-lg px-2 py-1.5">
-              <p className="text-sm text-gray-500 uppercase font-semibold">Liquidita</p>
-              <p className="text-sm font-mono font-bold text-sky-400">{liquidityForAttack}M</p>
-            </div>
-          </div>
-
-          {savingsPercent !== 0 && (
-            <p className={`text-sm leading-relaxed ${savingsPercent > 0 ? 'text-green-400' : 'text-amber-400'}`}>
-              {savingsPercent > 0
-                ? `Stai risparmiando il ${savingsPercent}% del budget previsto.`
-                : `Stai spendendo il ${Math.abs(savingsPercent)}% in piu del previsto.`
-              }
-            </p>
-          )}
-        </div>
-      )}
+      {/* Footer: budget spent */}
+      <div className="px-3 py-2 border-t border-white/10 flex-shrink-0 flex items-center justify-between">
+        <span className="text-sm text-gray-400">Budget speso</span>
+        <span className="text-sms font-mono font-bold text-accent-400">{totalSpent}M</span>
+      </div>
 
       {/* Player Stats Modal */}
       <PlayerStatsModal

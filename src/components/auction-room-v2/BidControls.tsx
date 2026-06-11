@@ -186,17 +186,19 @@ export function BidControls({
         <button
           onClick={handleBidClick}
           disabled={isDisabled || budget < bidNum}
-          className={`px-6 py-2 rounded-lg font-bold font-mono transition-all min-h-[44px] ${
+          className={`px-4 sm:px-6 py-2 rounded-lg font-bold transition-all min-h-[44px] whitespace-nowrap ${
             isDisabled || budget < bidNum
               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              : 'bg-sky-500 hover:bg-sky-400 text-white active:scale-95 shadow-lg shadow-sky-500/20'
+              : 'bg-secondary-500 hover:bg-secondary-400 text-white active:scale-95 shadow-glow-green'
           }`}
         >
           {isBidding ? (
             <span className="flex items-center gap-1.5">
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
             </span>
-          ) : isTimerExpired ? 'Scaduto' : `${bidNum}`}
+          ) : isTimerExpired ? 'Scaduto' : (
+            <>RILANCIA <span className="font-mono">{bidNum}</span></>
+          )}
         </button>
       </div>
 

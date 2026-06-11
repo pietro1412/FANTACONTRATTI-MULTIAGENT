@@ -6,7 +6,8 @@ interface ManagerRowProps {
   isCurrent: boolean
   isMe: boolean
   onClick: () => void
-  avgBudget: number // average budget across all managers, for PAR
+  currentRole: string
+  isHolding: boolean // holds the current highest bid
 }
 
 const POS_BAR_COLORS: Record<string, { filled: string; empty: string; label: string }> = {
@@ -16,15 +17,25 @@ const POS_BAR_COLORS: Record<string, { filled: string; empty: string; label: str
   A: { filled: 'bg-red-400', empty: 'bg-red-400/20', label: 'text-red-400' },
 }
 
-export function ManagerRow({ manager: m, turnIndex, isCurrent, isMe, onClick, avgBudget }: ManagerRowProps) {
+export function computeManagerMaxBid(m: ManagerData): number {
   const monteIngaggi = m.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
   const bilancio = m.currentBudget - monteIngaggi
   const emptySlots = (['P', 'D', 'C', 'A'] as const).reduce(
     (sum, pos) => sum + (m.slotsByPosition[pos].total - m.slotsByPosition[pos].filled), 0
   )
-  const maxBid = Math.max(0, bilancio - Math.max(0, emptySlots - 1))
-  const cms = emptySlots > 0 ? Math.round(bilancio / emptySlots) : 0
-  const par = avgBudget > 0 ? Math.round((bilancio / avgBudget) * 100) : 100
+  return Math.max(0, bilancio - Math.max(0, emptySlots - 1))
+}
+
+export function ManagerRow({ manager: m, turnIndex, isCurrent, isMe, onClick, currentRole, isHolding }: ManagerRowProps) {
+  const monteIngaggi = m.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
+  const bilancio = m.currentBudget - monteIngaggi
+  const emptySlots = (['P', 'D', 'C', 'A'] as const).reduce(
+    (sum, pos) => sum + (m.slotsByPosition[pos].total - m.slotsByPosition[pos].filled), 0
+  )
+  const maxBid = computeManagerMaxBid(m)
+
+  const roleSlot = m.slotsByPosition[currentRole as 'P' | 'D' | 'C' | 'A']
+  const isRoleFull = roleSlot ? roleSlot.filled >= roleSlot.total : false
 
   // Phase/turn label
   const phaseLabel = isCurrent ? 'NOMINA' : turnIndex >= 0 ? `TURNO ${turnIndex + 1}` : 'SCOUTING'
@@ -33,12 +44,14 @@ export function ManagerRow({ manager: m, turnIndex, isCurrent, isMe, onClick, av
     <div
       onClick={onClick}
       className={`cursor-pointer rounded-xl p-2.5 transition-all border ${
-        isCurrent
-          ? 'bg-accent-500/10 border-accent-500/40 ring-1 ring-accent-500/20'
-          : isMe
-            ? 'bg-sky-500/5 border-sky-500/30 ring-1 ring-sky-500/15'
-            : 'bg-slate-800/40 border-white/5 hover:border-white/15'
-      }`}
+        isHolding
+          ? 'bg-primary-500/10 border-primary-500/50 ring-1 ring-primary-500/25'
+          : isCurrent
+            ? 'bg-accent-500/10 border-accent-500/40 ring-1 ring-accent-500/20'
+            : isMe
+              ? 'bg-sky-500/5 border-sky-500/30 ring-1 ring-sky-500/15'
+              : 'bg-slate-800/40 border-white/5 hover:border-white/15'
+      } ${isRoleFull && !isMe ? 'opacity-40' : ''}`}
     >
       {/* Top row: avatar + name + phase */}
       <div className="flex items-center gap-2.5 mb-2">
@@ -58,16 +71,24 @@ export function ManagerRow({ manager: m, turnIndex, isCurrent, isMe, onClick, av
           }`} />
         </div>
 
-        {/* Name + Phase */}
+        {/* Name + Phase / status chips */}
         <div className="min-w-0 flex-1">
           <p className={`text-sms font-bold truncate ${
             isMe ? 'text-sky-400' : isCurrent ? 'text-accent-400' : 'text-gray-200'
           }`}>
             {m.teamName || m.username}
           </p>
-          <p className="text-sm text-gray-500 font-semibold uppercase tracking-wide">
-            {phaseLabel}
-          </p>
+          <div className="flex items-center gap-1.5">
+            {isHolding && (
+              <span className="text-sm font-bold text-primary-400 uppercase tracking-wide">Offerta</span>
+            )}
+            {isRoleFull && (
+              <span className="text-sm font-semibold text-amber-400/80 uppercase tracking-wide">Slot pieni</span>
+            )}
+            {!isHolding && !isRoleFull && (
+              <span className="text-sm text-gray-500 font-semibold uppercase tracking-wide">{phaseLabel}</span>
+            )}
+          </div>
         </div>
 
         {/* Department heatmap bars */}
@@ -91,34 +112,15 @@ export function ManagerRow({ manager: m, turnIndex, isCurrent, isMe, onClick, av
         </div>
       </div>
 
-      {/* Bottom row: MAX BID + CMS + PAR */}
-      <div className="grid grid-cols-3 gap-1">
-        {/* Max Bid */}
-        <div className="bg-slate-800/60 rounded-lg px-1.5 py-1" title={`Max Bid: offerta massima possibile.\nBudget (${bilancio}M) - Slot vuoti rimanenti (${Math.max(0, emptySlots - 1)}) = ${maxBid}M`}>
-          <p className="text-sm text-gray-500 uppercase font-semibold">Max Bid</p>
-          <p className="text-sms font-mono font-bold text-amber-400">
-            {maxBid}M
-          </p>
+      {/* Bottom row: the two actionable numbers — max bid (big) + budget (small) */}
+      <div className="flex items-end justify-between gap-2">
+        <div title={`Offerta max possibile.\nBudget (${bilancio}M) - Slot vuoti rimanenti (${Math.max(0, emptySlots - 1)}) = ${maxBid}M`}>
+          <p className="text-sm text-gray-500 uppercase font-semibold leading-none mb-0.5">Offerta max</p>
+          <p className="text-base font-mono font-bold text-amber-400 leading-none">{maxBid}M</p>
         </div>
-
-        {/* CMS */}
-        <div className="bg-slate-800/60 rounded-lg px-1.5 py-1" title={`C.M.S. (Costo Medio Slot): budget medio per ogni acquisto rimanente.\nBudget (${bilancio}M) / Slot vuoti (${emptySlots}) = ${cms}M`}>
-          <p className="text-sm text-gray-500 uppercase font-semibold">C.M.S.</p>
-          <p className={`text-sms font-mono font-bold ${
-            cms <= 5 ? 'text-red-400' : cms <= 15 ? 'text-amber-400' : 'text-green-400'
-          }`}>
-            {cms}M
-          </p>
-        </div>
-
-        {/* PAR */}
-        <div className="bg-slate-800/60 rounded-lg px-1.5 py-1" title={`P.A.R. (Potere d'Acquisto Relativo): forza del budget rispetto alla media.\nBudget (${bilancio}M) / Media lega (${avgBudget}M) = ${par}%`}>
-          <p className="text-sm text-gray-500 uppercase font-semibold">P.A.R.</p>
-          <p className={`text-sms font-mono font-bold ${
-            par < 80 ? 'text-red-400' : par < 100 ? 'text-amber-400' : par < 120 ? 'text-sky-400' : 'text-emerald-400'
-          }`}>
-            {par}%
-          </p>
+        <div className="text-right">
+          <p className="text-sm text-gray-500 uppercase font-semibold leading-none mb-0.5">Budget</p>
+          <p className="text-sms font-mono font-semibold text-gray-300 leading-none">{bilancio}M</p>
         </div>
       </div>
     </div>
