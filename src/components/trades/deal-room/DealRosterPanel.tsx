@@ -59,7 +59,7 @@ export function DealRosterPanel(props: DealRosterPanelProps) {
   const selectedCount = isMine ? selectedOfferedPlayers.length : selectedRequestedPlayers.length
 
   return (
-    <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden h-[calc(100vh-180px)] flex flex-col">
+    <div className="bg-surface-200 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden h-[calc(100vh-180px)] flex flex-col">
       {/* Header */}
       <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
         <div className="flex items-center gap-2">

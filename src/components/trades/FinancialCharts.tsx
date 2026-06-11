@@ -74,7 +74,7 @@ export function BilancioGauge({ bilancio, budget, size = 200 }: BilancioGaugePro
 
       {/* Text below SVG */}
       <div className="flex flex-col items-center -mt-2">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Bilancio</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Bilancio</span>
         <span
           className={`text-2xl font-bold font-mono ${valueTwColor}`}
           style={{ color: valueColor }}
@@ -106,13 +106,13 @@ export function CompactBudgetBar({ budget, ingaggi }: CompactBudgetBarProps) {
   return (
     <div className="space-y-1 w-full">
       {/* Labels */}
-      <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest text-slate-500">
+      <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest text-gray-500">
         <span>Budget (<span className="text-emerald-400">{budget}</span>)</span>
         <span>Ingaggi (<span className="text-rose-400">{ingaggi}</span>)</span>
       </div>
 
       {/* Budget bar */}
-      <div className="relative h-2 w-full bg-slate-800 rounded-full overflow-hidden flex">
+      <div className="relative h-2 w-full bg-surface-300 rounded-full overflow-hidden flex">
         <div
           className="h-full bg-emerald-500 rounded-full transition-all duration-500"
           style={{ width: `${budgetPct}%` }}
@@ -120,7 +120,7 @@ export function CompactBudgetBar({ budget, ingaggi }: CompactBudgetBarProps) {
       </div>
 
       {/* Ingaggi bar */}
-      <div className="relative h-2 w-full bg-slate-800 rounded-full overflow-hidden flex">
+      <div className="relative h-2 w-full bg-surface-300 rounded-full overflow-hidden flex">
         <div
           className="h-full bg-rose-500 rounded-full transition-all duration-500"
           style={{ width: `${ingaggiPct}%` }}
@@ -151,10 +151,10 @@ export function DeltaBar({ before, after, label }: DeltaBarProps) {
   const improves = delta >= 0
 
   return (
-    <div className="bg-slate-900/50 p-3 rounded-xl border border-white/5">
+    <div className="bg-surface-200 p-3 rounded-xl border border-white/5">
       {/* Header */}
       <div className="flex justify-between items-center mb-2">
-        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
           {label || 'Impatto Bilancio'}
         </span>
         <span className={`font-mono text-xs font-bold ${improves ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -163,7 +163,7 @@ export function DeltaBar({ before, after, label }: DeltaBarProps) {
       </div>
 
       {/* Bar */}
-      <div className="relative h-3 w-full bg-slate-800 rounded-full overflow-hidden">
+      <div className="relative h-3 w-full bg-surface-300 rounded-full overflow-hidden">
         {/* After bar (current level) */}
         <div
           className={`absolute top-0 left-0 h-full transition-all duration-500 ${improves ? 'bg-emerald-500/80' : 'bg-rose-500/80'}`}

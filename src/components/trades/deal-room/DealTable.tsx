@@ -299,7 +299,7 @@ export function DealTable(props: DealTableProps) {
   const requestSummary = requestParts.length > 0 ? requestParts.join(' + ') : null
 
   return (
-    <form onSubmit={onSubmit} className="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
+    <form onSubmit={onSubmit} className="bg-surface-200 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
       {/* Header: DG Target + Budget */}
       <div className="px-4 py-4 border-b border-white/5">
         <div className="flex items-center gap-3">

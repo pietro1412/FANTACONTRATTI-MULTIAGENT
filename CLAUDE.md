@@ -110,8 +110,9 @@ Il codice gira tutto sul layer **`src/services/` + `src/pages/` + `src/component
 - TailwindCSS inline (mobile-first: sm → md → lg)
 - **NO** CSS modules, SCSS, styled-components
 - `style={}` inline solo per valori dinamici (animazioni, chart, percentuali)
-- Tema "Stadium Nights" definito in `src/index.css` con CSS Custom Properties
-- ⚠️ Nota: le CSS vars e la palette Tailwind non sono ancora integrate — usare le classi Tailwind standard per nuovo codice
+- Tema "Stadium Nights": palette in `tailwind.config.js` + classi font in `src/index.css` (`.stat-number`, `.timer-sport`, `.budget-display` = Oswald)
+- **Superfici: SOLO token del tema** — `surface-*`/`dark-*` per sfondi e bordi (body `surface-400`, card `surface-200`, elevated `surface-300`, hover `surface-100`, bordi `surface-50`). **VIETATO `slate-*`** (grigio bluastro fuori palette, bonificato 2026-06-11) e niente glassmorphism (`/80 + backdrop-blur`) sulle card
+- Accenti semantici: `primary` blu, `secondary` verde campo, `accent` oro (= Presidente), `danger` rosso, `warning` ambra
 
 ### Naming
 | Dove | Convenzione | Esempio |

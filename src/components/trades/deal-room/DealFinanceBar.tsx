@@ -32,7 +32,7 @@ export function DealFinanceBar({
   const hasImpact = postTradeImpact && (postTradeImpact.budgetDelta !== 0 || postTradeImpact.rosterDelta !== 0)
 
   return (
-    <div className={`bg-slate-900/80 backdrop-blur-xl rounded-xl px-4 py-3 mb-3 transition-all ${
+    <div className={`bg-surface-200 backdrop-blur-xl rounded-xl px-4 py-3 mb-3 transition-all ${
       hasImpact
         ? 'border border-primary-500/30 ring-1 ring-primary-500/10'
         : 'border border-white/10'
