@@ -3,7 +3,6 @@ import { ReadyCheckPanel } from './ReadyCheckPanel'
 import { BiddingPanel } from './BiddingPanel'
 import { AcknowledgmentPanel } from './AcknowledgmentPanel'
 import { WaitingPanel } from './WaitingPanel'
-import { AdminControlsPanel } from '../auction/AdminControlsPanel'
 import type { AuctionViewProps, AuctionPhase } from './types'
 import { PHASE_COLORS } from './types'
 
@@ -138,22 +137,7 @@ export function CenterStage(props: CenterStageProps) {
         )}
       </div>
 
-      {/* Admin Controls - collapsible at bottom */}
-      {props.isAdmin && (
-        <div className="border-t border-surface-50 lg:flex-shrink-0">
-          <AdminControlsPanel
-            isAdmin={props.isAdmin}
-            hasAuction={!!props.auction}
-            onBotNominate={props.onBotNominate}
-            onBotConfirmNomination={props.onBotConfirmNomination}
-            onBotBid={props.onBotBid}
-            onForceAllReady={props.onForceAllReady}
-            onForceAcknowledgeAll={props.onForceAcknowledgeAll}
-            onCompleteAllSlots={props.onCompleteAllSlots}
-            onResetFirstMarket={props.onResetFirstMarket}
-          />
-        </div>
-      )}
+      {/* Controlli admin di TEST: ora nel floating button AdminTestFab (AuctionRoomLayout) */}
     </div>
   )
 }
