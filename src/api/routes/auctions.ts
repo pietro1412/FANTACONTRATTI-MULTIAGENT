@@ -980,7 +980,7 @@ router.post('/auctions/sessions/:sessionId/request-pause', authMiddleware, async
 
 // ==================== ADMIN: PAUSE / RESUME ====================
 
-router.post('/:leagueId/auctions/pause', authMiddleware, async (req: Request, res: Response) => {
+router.post('/leagues/:leagueId/auctions/pause', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { leagueId } = req.params
     const result = await pauseAuction(leagueId!, req.user!.userId)
@@ -997,7 +997,7 @@ router.post('/:leagueId/auctions/pause', authMiddleware, async (req: Request, re
   }
 })
 
-router.post('/:leagueId/auctions/resume', authMiddleware, async (req: Request, res: Response) => {
+router.post('/leagues/:leagueId/auctions/resume', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { leagueId } = req.params
     const result = await resumeAuction(leagueId!, req.user!.userId)
@@ -1016,7 +1016,7 @@ router.post('/:leagueId/auctions/resume', authMiddleware, async (req: Request, r
 
 // ==================== ADMIN: CANCEL / RECTIFY ====================
 
-router.post('/:leagueId/auctions/cancel', authMiddleware, async (req: Request, res: Response) => {
+router.post('/leagues/:leagueId/auctions/cancel', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { auctionId } = req.body as { auctionId: string }
     const result = await cancelActiveAuction(auctionId, req.user!.userId, 'Admin cancellation')
@@ -1033,7 +1033,7 @@ router.post('/:leagueId/auctions/cancel', authMiddleware, async (req: Request, r
   }
 })
 
-router.post('/:leagueId/auctions/rectify', authMiddleware, async (req: Request, res: Response) => {
+router.post('/leagues/:leagueId/auctions/rectify', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { auctionId } = req.body as {
       auctionId: string
