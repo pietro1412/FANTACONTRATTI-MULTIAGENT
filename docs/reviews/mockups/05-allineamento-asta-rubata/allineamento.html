@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Allineamento Asta Primo Mercato · Fase Rubata</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ==========================================================================
+     UN SOLO FOGLIO DI STILE — le classi condivise sono la prova dell'allineamento.
+     Sezione 1: CONDIVISO (usato in ENTRAMBI i frame)
+     Sezione 2: PECULIARITÀ ASTA
+     Sezione 3: PECULIARITÀ RUBATA
+     ========================================================================== */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  button{font:inherit;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin-bottom:36px;}
+  .frames{display:flex;flex-direction:column;align-items:center;gap:56px;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;}
+  .frame{width:1340px;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+
+  /* ----- CONDIVISO · micro-label & monogrammi ----- */
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--t3);}
+  .micro.gold{color:var(--gold2);}
+  .mono{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;background:var(--hover);color:var(--t1);border:1px solid var(--border);flex-shrink:0;}
+
+  /* ----- CONDIVISO · P1 timer: stessa veste, posti diversi ----- */
+  .timer-ring{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;border:2px solid rgba(245,158,11,.45);background:rgba(245,158,11,.05);box-shadow:0 0 0 4px rgba(245,158,11,.07);flex-shrink:0;}
+  .timer-ring.t44{width:96px;height:96px;}
+  .timer-ring.t40{width:86px;height:86px;}
+  .timer-ring.crit{border-color:rgba(239,68,68,.6);background:rgba(239,68,68,.06);box-shadow:0 0 0 4px rgba(239,68,68,.09),0 0 18px rgba(239,68,68,.25);}
+  .timer-display{font-family:'Oswald',sans-serif;font-weight:600;line-height:1;color:var(--gold2);letter-spacing:.02em;font-variant-numeric:tabular-nums;}
+  .t44 .timer-display{font-size:44px;}
+  .t40 .timer-display{font-size:40px;}
+  .timer-ring.crit .timer-display{color:var(--danger);}
+
+  /* ----- CONDIVISO · P7 admin-bar sempre visibile, compatta ----- */
+  .admin-bar{display:flex;align-items:center;gap:10px;padding:9px 24px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .admin-bar .micro{margin-right:8px;}
+  .abtn{font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--t1);background:var(--card);border:1px solid var(--border);border-radius:7px;padding:6px 13px;cursor:pointer;}
+  .abtn.gold-o{color:var(--gold2);border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.07);}
+  .abtn.danger-o{color:var(--danger);border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.06);}
+  .abtn-sep{width:1px;height:18px;background:var(--border);margin:0 4px;}
+  .preset{display:inline-flex;align-items:center;gap:5px;}
+  .preset .abtn{padding:6px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;}
+  .preset .abtn.on{color:#0a0a0b;background:var(--gold2);border-color:var(--gold2);font-weight:700;}
+
+  /* ----- CONDIVISO · P2 anatomia dell'arena ----- */
+  .arena{background:var(--card);border:1px solid var(--gold);border-radius:14px;padding:22px 24px;box-shadow:0 0 0 1px rgba(245,158,11,.15),0 12px 40px rgba(245,158,11,.06);}
+  .arena-tag{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--gold2);text-transform:uppercase;margin-bottom:14px;}
+  .player-head{display:flex;align-items:center;gap:16px;margin-bottom:16px;}
+  .role-badge{width:46px;height:46px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:20px;flex-shrink:0;}
+  .role-P{background:rgba(245,158,11,.14);color:var(--gold2);border:1px solid rgba(245,158,11,.4);}
+  .role-D{background:rgba(59,130,246,.15);color:var(--primary);border:1px solid rgba(59,130,246,.4);}
+  .role-C{background:rgba(34,197,94,.14);color:var(--secondary);border:1px solid rgba(34,197,94,.4);}
+  .role-A{background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.4);}
+  .player-name{font-family:'Outfit',sans-serif;font-size:27px;font-weight:700;line-height:1.1;}
+  .player-meta{font-size:13.5px;color:var(--t2);margin-top:4px;}
+  .player-meta b{color:var(--t1);font-weight:600;}
+  .owner-chip{display:inline-flex;align-items:center;gap:7px;margin-left:12px;background:var(--elev);border:1px solid var(--border);border-radius:999px;padding:3px 12px 3px 4px;font-size:12.5px;color:var(--t2);vertical-align:2px;}
+  .owner-chip b{color:var(--t1);}
+
+  /* ----- CONDIVISO · box prezzo/offerta attuale (ospita il timer nell'asta) ----- */
+  .price-box{display:flex;align-items:center;gap:24px;background:var(--elev);border:1px solid rgba(245,158,11,.4);border-radius:12px;padding:16px 22px;margin-bottom:16px;}
+  .pb-main{display:flex;flex-direction:column;}
+  .pb-label{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.14em;color:var(--gold2);text-transform:uppercase;margin-bottom:4px;}
+  .pb-val{font-family:'Oswald',sans-serif;font-size:52px;font-weight:700;line-height:1;color:var(--gold2);}
+  .pb-who{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--t2);margin-top:8px;}
+  .pb-who b{color:var(--t1);}
+
+  /* ----- CONDIVISO · P3 controlli di rilancio identici ----- */
+  .bid-controls{display:flex;flex-direction:column;gap:12px;}
+  .quick-row{display:flex;gap:10px;}
+  .qb{flex:1;font-family:'Oswald',sans-serif;font-size:17px;font-weight:600;color:var(--primary);background:rgba(59,130,246,.10);border:1px solid rgba(59,130,246,.45);border-radius:9px;padding:10px 0;cursor:pointer;letter-spacing:.03em;}
+  .qb.qb-passion{color:#fb923c;background:rgba(234,88,12,.12);border-color:rgba(234,88,12,.5);}
+  .qb.qb-max{color:var(--gold2);background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.5);font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.09em;}
+  .bid-line{display:flex;gap:12px;align-items:stretch;}
+  .stepper{display:flex;align-items:stretch;border:1px solid var(--border);border-radius:11px;overflow:hidden;background:var(--elev);}
+  .step-btn{width:52px;border:none;background:var(--card);color:var(--t1);font-family:'Oswald',sans-serif;font-size:22px;cursor:pointer;}
+  .step-btn:first-child{border-right:1px solid var(--border);}
+  .step-btn:last-child{border-left:1px solid var(--border);}
+  .step-val{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:96px;padding:6px 14px;}
+  .step-val .v{font-family:'Oswald',sans-serif;font-size:26px;font-weight:700;color:var(--gold2);line-height:1;}
+  .step-val .l{font-size:9.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.09em;margin-top:2px;}
+  .btn-raise{flex:1;font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;letter-spacing:.05em;color:#06200f;background:linear-gradient(180deg,#34d97b,var(--secondary));border:none;border-radius:11px;padding:14px 0;cursor:pointer;box-shadow:0 6px 22px rgba(34,197,94,.30);text-transform:uppercase;}
+  .bid-warning{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--t2);background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.3);border-radius:9px;padding:8px 13px;}
+  .bid-warning .wdot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 7px var(--gold);flex-shrink:0;}
+  .bid-warning b{color:var(--gold2);font-weight:600;}
+
+  /* ----- CONDIVISO · P4 ultimi rilanci a chip orizzontali ----- */
+  .bid-chips{display:flex;align-items:center;gap:8px;overflow-x:hidden;margin-top:14px;}
+  .bid-chips .micro{flex-shrink:0;margin-right:4px;}
+  .bchip{display:inline-flex;align-items:center;gap:7px;background:var(--elev);border:1px solid var(--border);border-radius:999px;padding:5px 13px 5px 5px;flex-shrink:0;font-size:12.5px;color:var(--t2);}
+  .bchip b{color:var(--t1);font-weight:600;}
+  .bchip .amt{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--gold2);}
+  .bchip.lead{border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.10);}
+  .bchip.lead .amt{color:var(--gold2);}
+  .bchip.lead .mono{border-color:rgba(245,158,11,.6);color:var(--gold2);}
+
+  /* ----- CONDIVISO · P5 lista manager unificata ----- */
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+  .panel-h{display:flex;align-items:baseline;gap:8px;padding:13px 16px 10px;border-bottom:1px solid var(--border);}
+  .manager-row{display:flex;align-items:center;gap:11px;padding:10px 16px;border-bottom:1px solid var(--border);}
+  .manager-row:last-child{border-bottom:none;}
+  .manager-row .mono{width:32px;height:32px;font-size:12.5px;}
+  .mr-info{flex:1;min-width:0;}
+  .mr-name{font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;display:flex;align-items:center;gap:7px;}
+  .mr-sub{font-size:11.5px;color:var(--t3);margin-top:2px;}
+  .mr-sub b{color:var(--t2);font-weight:600;}
+  .mr-num{text-align:right;flex-shrink:0;}
+  .mr-num .big{font-family:'Oswald',sans-serif;font-size:22px;font-weight:600;color:var(--t1);line-height:1;}
+  .mr-num .big .unit{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:var(--t3);margin-left:3px;}
+  .mr-num .small{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--t3);margin-top:2px;}
+  .mr-name.lead .mr-lead-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 7px var(--gold);display:inline-block;}
+  .manager-row.me{border-left:3px solid var(--gold);background:rgba(245,158,11,.06);}
+  .manager-row.me .mr-num .big{color:var(--gold2);}
+  .manager-row.me .mono{border-color:rgba(245,158,11,.6);color:var(--gold2);}
+  .manager-row.dim{opacity:.42;}
+  .lead-tag{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:#0a0a0b;background:var(--gold2);border-radius:4px;padding:1px 6px;letter-spacing:.06em;}
+  .you-tag{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:var(--gold2);border:1px solid rgba(245,158,11,.5);border-radius:4px;padding:1px 6px;letter-spacing:.06em;}
+
+  /* ----- CONDIVISO · P6 ready check con chip avatar ----- */
+  .member-chips{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:9px 16px;margin-top:14px;}
+  .member-chips .micro{margin-right:6px;flex-shrink:0;}
+  .mchip{position:relative;display:inline-flex;}
+  .mchip .mono{width:30px;height:30px;font-size:12px;}
+  .mchip .ok{position:absolute;right:-3px;bottom:-3px;width:14px;height:14px;border-radius:50%;background:var(--secondary);color:#0a0a0b;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--card);}
+  .mchip .wait{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:50%;background:var(--gold);border:2px solid var(--card);animation:pulse 1.4s ease-in-out infinite;}
+  .mchip.off .mono{opacity:.45;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+  /* ==========================================================================
+     SEZIONE 2 — PECULIARITÀ ASTA PRIMO MERCATO
+     ========================================================================== */
+  .head{display:flex;align-items:center;gap:14px;padding:14px 24px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .crest{width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:15px;color:#fff;border:1px solid rgba(59,130,246,.6);flex-shrink:0;}
+  .head-id .nm{font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;}
+  .head-id .sb{font-size:12px;color:var(--t3);margin-top:1px;}
+  .pill-live{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--secondary);background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.45);border-radius:999px;padding:4px 12px;}
+  .pill-live .d{width:7px;height:7px;border-radius:50%;background:var(--secondary);box-shadow:0 0 7px var(--secondary);}
+  .call-chip{display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.07em;color:var(--gold2);background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.5);border-radius:999px;padding:5px 13px 5px 5px;}
+  .head-stats{display:flex;gap:22px;margin-left:auto;}
+  .hstat{text-align:right;}
+  .hstat .l{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.12em;color:var(--t3);text-transform:uppercase;}
+  .hstat .v{font-family:'Oswald',sans-serif;font-size:22px;font-weight:600;color:var(--t1);line-height:1.1;}
+  .hstat.gold .v{color:var(--gold2);}
+
+  .rail{display:flex;align-items:center;gap:10px;padding:10px 24px;background:var(--bg);border-bottom:1px solid var(--border);}
+  .rail-step{display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--t3);border:1px solid var(--border);border-radius:999px;padding:5px 13px;}
+  .rail-step.done{color:var(--secondary);border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.07);}
+  .rail-step.cur{color:var(--gold2);border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.10);}
+  .rail-arrow{color:var(--t3);font-size:12px;}
+  .rail-progress{display:flex;align-items:center;gap:10px;margin-left:auto;}
+  .rail-track{width:170px;height:4px;border-radius:2px;background:var(--border);overflow:hidden;}
+  .rail-fill{height:100%;width:44.5%;background:linear-gradient(90deg,var(--primary),var(--gold));}
+
+  .main-asta{display:grid;grid-template-columns:300px minmax(0,1fr) 280px;gap:18px;padding:18px 24px 24px;align-items:start;}
+  .main-asta>*{min-width:0;}
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+  .sg-cell{background:var(--elev);border:1px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center;}
+  .sg-cell .v{font-family:'Oswald',sans-serif;font-size:22px;font-weight:600;color:var(--t1);line-height:1.1;}
+  .sg-cell .l{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--t3);text-transform:uppercase;margin-top:3px;}
+  .quot-chip{display:inline-flex;align-items:baseline;gap:6px;font-size:12.5px;color:var(--t2);background:var(--elev);border:1px solid var(--border);border-radius:8px;padding:5px 12px;margin-bottom:16px;}
+  .quot-chip b{font-family:'Oswald',sans-serif;font-size:17px;color:var(--t1);}
+
+  .roster-sum{display:flex;gap:5px;padding:11px 14px;border-bottom:1px solid var(--border);}
+  .slot-chip{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.03em;border-radius:5px;padding:3px 6px;border:1px solid var(--border);color:var(--t3);white-space:nowrap;}
+  .slot-chip.full{color:var(--secondary);border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.07);}
+  .slot-chip.cur{color:var(--gold2);border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.09);}
+  .r-group{padding:8px 14px 4px;}
+  .r-row{display:flex;align-items:center;gap:9px;padding:5px 0;}
+  .r-row .role-badge{width:24px;height:24px;font-size:11px;border-radius:6px;}
+  .r-row .nm{font-size:12.5px;font-weight:600;color:var(--t1);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .r-row .pr{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--t2);font-weight:600;}
+  .r-row.empty .nm{color:var(--t3);font-weight:500;font-style:italic;}
+  .r-foot{display:flex;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--border);font-size:11.5px;color:var(--t3);}
+  .r-foot b{color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:11.5px;}
+
+  /* ==========================================================================
+     SEZIONE 3 — PECULIARITÀ FASE RUBATA
+     ========================================================================== */
+  .statusbar{display:flex;align-items:center;gap:24px;padding:12px 24px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .phase-block{display:flex;flex-direction:column;gap:3px;min-width:280px;}
+  .phase-name{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;letter-spacing:.04em;}
+  .phase-name .dot-live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-right:7px;box-shadow:0 0 8px var(--gold);}
+  .phase-sub{font-size:12px;color:var(--t2);}
+  .phase-sub b{color:var(--t1);font-weight:600;}
+  .timer-center{display:flex;align-items:center;gap:12px;margin-left:auto;margin-right:auto;}
+  .timer-side-label{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;max-width:70px;line-height:1.5;}
+  .progress-block{display:flex;flex-direction:column;align-items:flex-end;gap:7px;min-width:280px;}
+  .progress-num{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:var(--t1);}
+  .progress-num span{color:var(--t3);font-weight:500;}
+  .progress-track{width:240px;height:4px;border-radius:2px;background:var(--border);overflow:hidden;}
+  .progress-fill{height:100%;width:36%;background:linear-gradient(90deg,var(--primary),var(--gold));border-radius:2px;}
+
+  .main-rubata{display:grid;grid-template-columns:520px minmax(0,1fr);gap:18px;padding:18px 24px 24px;align-items:start;}
+  .main-rubata>*{min-width:0;}
+
+  .cost-block{display:flex;align-items:center;gap:20px;background:var(--elev);border:1px solid rgba(245,158,11,.4);border-radius:12px;padding:14px 20px;margin-bottom:12px;}
+  .cost-main{display:flex;flex-direction:column;}
+  .cost-label{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.14em;color:var(--gold2);text-transform:uppercase;margin-bottom:4px;}
+  .cost-value{font-family:'Oswald',sans-serif;font-size:42px;font-weight:700;line-height:1;color:var(--gold2);}
+  .cost-eq{font-family:'Oswald',sans-serif;font-size:26px;color:var(--t3);font-weight:500;}
+  .cost-parts{display:flex;gap:10px;align-items:center;}
+  .cost-part{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 14px;text-align:center;}
+  .cost-part .val{font-family:'Oswald',sans-serif;font-size:21px;font-weight:600;color:var(--t1);line-height:1.1;}
+  .cost-part .lbl{font-size:10px;color:var(--t3);margin-top:2px;}
+  .cost-plus{font-family:'Oswald',sans-serif;font-size:20px;color:var(--t3);}
+
+  .intel-ok{display:flex;align-items:center;gap:10px;background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.45);border-radius:10px;padding:9px 14px;font-size:13px;margin-bottom:12px;}
+  .intel-ok .check{width:20px;height:20px;border-radius:50%;background:var(--secondary);color:#0a0a0b;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0;}
+  .intel-ok b{color:var(--secondary);font-weight:700;}
+  .intel-ok span{color:var(--t2);}
+  .intel-ok .num{font-family:'JetBrains Mono',monospace;color:var(--t1);font-weight:600;}
+
+  .wl-chip{display:inline-flex;align-items:center;gap:8px;background:rgba(59,130,246,.10);border:1px solid rgba(59,130,246,.45);color:var(--t1);border-radius:8px;padding:6px 12px;font-size:12.5px;margin-bottom:14px;}
+  .wl-chip .wl-ico{font-family:'JetBrains Mono',monospace;color:var(--primary);font-weight:700;}
+  .wl-chip b{color:var(--primary);font-weight:700;}
+  .wl-chip span{color:var(--t2);}
+
+  .board{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+  .board-head{display:flex;align-items:baseline;gap:10px;padding:14px 20px 11px;border-bottom:1px solid var(--border);}
+  .board-head h2{font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;}
+  .board-head .count{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);margin-left:auto;}
+  .brow{display:flex;align-items:center;gap:13px;padding:12px 20px;border-bottom:1px solid var(--border);}
+  .brow:last-child{border-bottom:none;}
+  .brow .idx{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3);width:30px;flex-shrink:0;}
+  .brow .role-badge{width:36px;height:36px;font-size:15px;border-radius:8px;}
+  .brow-info{flex:1;min-width:0;}
+  .brow-name{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .brow-sub{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--t2);margin-top:3px;}
+  .brow-sub .mono{width:20px;height:20px;font-size:9.5px;}
+  .brow-cost{text-align:right;flex-shrink:0;}
+  .brow-cost .v{font-family:'Oswald',sans-serif;font-size:22px;font-weight:600;color:var(--gold2);line-height:1;}
+  .brow-cost .l{font-size:10px;color:var(--t3);margin-top:2px;}
+  .wl-badge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;border-radius:5px;padding:2px 7px;letter-spacing:.04em;color:var(--primary);background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.45);}
+  .brow.onplate{background:linear-gradient(90deg,rgba(245,158,11,.13),rgba(245,158,11,.04));border-left:3px solid var(--gold);}
+  .plate-tag{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:#0a0a0b;background:var(--gold2);border-radius:4px;padding:2px 7px;letter-spacing:.07em;}
+  .brow.mine{border-left:3px solid var(--primary);background:rgba(59,130,246,.05);}
+  .brow.mine .brow-cost .v{color:var(--t3);font-size:14px;font-family:'Inter',sans-serif;font-weight:500;}
+  .mine-tag{font-size:11px;color:var(--primary);font-weight:600;}
+  .brow.dim{opacity:.45;}
+  .brow.dim .brow-cost .v{color:var(--t2);font-size:16px;}
+
+  .feed{padding:6px 20px 12px;}
+  .feed-item{display:flex;gap:10px;font-size:12.5px;color:var(--t2);padding:5px 0;}
+  .feed-item .tm{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3);flex-shrink:0;width:42px;}
+  .feed-item b{color:var(--t1);font-weight:600;}
+  .feed-item .amber{color:var(--gold2);font-weight:600;}
+</style>
+</head>
+<body>
+
+<h1 class="page">Allineamento grafico — Asta Primo Mercato · Fase Rubata</h1>
+<p class="sub">Un solo &lt;style&gt; · i componenti comuni (timer, arena, controlli, chip rilanci, manager, ready check, admin bar) usano le stesse classi CSS in entrambi i frame</p>
+
+<div class="frames">
+
+<!-- ================================================================
+     FRAME 1 — ASTA PRIMO MERCATO (allineata)
+     ================================================================ -->
+<div>
+  <div class="frame-label">Frame 1 · Asta Primo Mercato — allineata</div>
+  <div class="frame">
+
+    <!-- Testata identità (peculiarità asta) -->
+    <div class="head">
+      <div class="crest">DF</div>
+      <div class="head-id">
+        <div class="nm">Diego FC · Asta Primo Mercato</div>
+        <div class="sb">Lega Fantacontratti · 8 squadre</div>
+      </div>
+      <span class="pill-live"><span class="d"></span>Connesso</span>
+      <span class="call-chip"><span class="mono">MI</span>CHIAMATA DI MIRKO</span>
+      <div class="head-stats">
+        <div class="hstat"><div class="l">Budget</div><div class="v">187M</div></div>
+        <div class="hstat gold"><div class="l">Offerta max</div><div class="v">121M</div></div>
+      </div>
+    </div>
+
+    <!-- Rotaia ruoli + progresso slot lega (peculiarità asta) -->
+    <div class="rail">
+      <span class="rail-step done">P ✓</span>
+      <span class="rail-arrow">→</span>
+      <span class="rail-step done">D ✓</span>
+      <span class="rail-arrow">→</span>
+      <span class="rail-step cur">C · IN CORSO 2/6</span>
+      <span class="rail-arrow">→</span>
+      <span class="rail-step">A</span>
+      <div class="rail-progress">
+        <span class="micro">Slot lega 89/200</span>
+        <div class="rail-track"><div class="rail-fill"></div></div>
+      </div>
+    </div>
+
+    <!-- P7 · admin-bar CONDIVISA -->
+    <div class="admin-bar">
+      <span class="micro">Azioni admin</span>
+      <span class="preset">
+        <span class="micro" style="letter-spacing:.08em;">Timer</span>
+        <button class="abtn">15s</button>
+        <button class="abtn on">30s</button>
+        <button class="abtn">60s</button>
+      </span>
+      <span class="abtn-sep"></span>
+      <button class="abtn gold-o">Concludi asta</button>
+      <button class="abtn">Annulla ultimo movimento</button>
+    </div>
+
+    <div class="main-asta">
+
+      <!-- P5 · lista manager CONDIVISA (.manager-row) -->
+      <div class="panel">
+        <div class="panel-h"><span class="micro">Manager · offerte max</span></div>
+        <div class="manager-row">
+          <span class="mono">MC</span>
+          <div class="mr-info">
+            <div class="mr-name lead"><span class="mr-lead-dot"></span>Michele</div>
+            <div class="mr-sub"><b style="color:var(--gold2);">Miglior offerta</b> · C <b>4/6</b></div>
+          </div>
+          <div class="mr-num"><div class="big" style="color:var(--gold2);">98<span class="unit">max</span></div><div class="small">budget 154</div></div>
+        </div>
+        <div class="manager-row">
+          <span class="mono">MI</span>
+          <div class="mr-info">
+            <div class="mr-name">Mirko</div>
+            <div class="mr-sub">In gara · Slot C <b>3/6</b></div>
+          </div>
+          <div class="mr-num"><div class="big">144<span class="unit">max</span></div><div class="small">budget 201</div></div>
+        </div>
+        <div class="manager-row">
+          <span class="mono">MA</span>
+          <div class="mr-info">
+            <div class="mr-name">Marco</div>
+            <div class="mr-sub">In gara · Slot C <b>2/6</b></div>
+          </div>
+          <div class="mr-num"><div class="big">120<span class="unit">max</span></div><div class="small">budget 176</div></div>
+        </div>
+        <div class="manager-row me">
+          <span class="mono">DI</span>
+          <div class="mr-info">
+            <div class="mr-name">Diego <span class="you-tag">TU</span></div>
+            <div class="mr-sub">In gara · Slot C <b>2/6</b></div>
+          </div>
+          <div class="mr-num"><div class="big">121<span class="unit">max</span></div><div class="small">budget 187</div></div>
+        </div>
+        <div class="manager-row">
+          <span class="mono">ML</span>
+          <div class="mr-info">
+            <div class="mr-name">Marcolino</div>
+            <div class="mr-sub">In gara · Slot C <b>3/6</b></div>
+          </div>
+          <div class="mr-num"><div class="big">132<span class="unit">max</span></div><div class="small">budget 188</div></div>
+        </div>
+        <div class="manager-row">
+          <span class="mono">PI</span>
+          <div class="mr-info">
+            <div class="mr-name">Pietro</div>
+            <div class="mr-sub">In gara · Slot C <b>4/6</b></div>
+          </div>
+          <div class="mr-num"><div class="big">110<span class="unit">max</span></div><div class="small">budget 162</div></div>
+        </div>
+        <div class="manager-row">
+          <span class="mono">EL</span>
+          <div class="mr-info">
+            <div class="mr-name">Emiliano</div>
+            <div class="mr-sub">In gara · Slot C <b>2/6</b></div>
+          </div>
+          <div class="mr-num"><div class="big">87<span class="unit">max</span></div><div class="small">budget 140</div></div>
+        </div>
+        <div class="manager-row dim">
+          <span class="mono">EM</span>
+          <div class="mr-info">
+            <div class="mr-name">Emmanuele</div>
+            <div class="mr-sub">Max insufficiente</div>
+          </div>
+          <div class="mr-num"><div class="big">41<span class="unit">max</span></div><div class="small">budget 64</div></div>
+        </div>
+      </div>
+
+      <!-- P2 · ARENA CONDIVISA (.arena) — peculiarità asta: stats + quotazione -->
+      <div>
+        <div class="arena">
+          <div class="arena-tag">All'asta · Centrocampisti</div>
+
+          <div class="player-head">
+            <div class="role-badge role-C">C</div>
+            <div>
+              <div class="player-name">Nicolò Barella</div>
+              <div class="player-meta">
+                Centrocampista · <b>Inter</b> · 27 anni
+                <span class="owner-chip"><span class="mono">MI</span>chiamato da <b>Mirko</b></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Peculiarità asta: griglia statistiche + quotazione -->
+          <div class="stats-grid">
+            <div class="sg-cell"><div class="v">34</div><div class="l">Presenze</div></div>
+            <div class="sg-cell"><div class="v">6</div><div class="l">Gol</div></div>
+            <div class="sg-cell"><div class="v">8</div><div class="l">Assist</div></div>
+            <div class="sg-cell"><div class="v">7.2</div><div class="l">Fantamedia</div></div>
+          </div>
+          <span class="quot-chip">Quotazione <b>36</b></span>
+
+          <!-- P1 · timer accanto al prezzo: stessa .timer-display, anello rosso sotto i 10s -->
+          <div class="price-box">
+            <div class="pb-main">
+              <div class="pb-label">Offerta attuale</div>
+              <div class="pb-val">42M</div>
+              <div class="pb-who"><span class="mono">MC</span>di <b>Michele</b></div>
+            </div>
+            <div class="timer-ring t40 crit" style="margin-left:auto;"><span class="timer-display">0:08</span></div>
+          </div>
+
+          <!-- P3 · controlli di rilancio CONDIVISI (.bid-controls) -->
+          <div class="bid-controls">
+            <div class="quick-row">
+              <button class="qb">+1</button>
+              <button class="qb">+5</button>
+              <button class="qb">+10</button>
+              <button class="qb qb-passion">+20</button>
+              <button class="qb qb-max">MAX</button>
+            </div>
+            <div class="bid-line">
+              <div class="stepper">
+                <button class="step-btn">−</button>
+                <div class="step-val"><span class="v">43M</span><span class="l">tua offerta</span></div>
+                <button class="step-btn">+</button>
+              </div>
+              <button class="btn-raise">Rilancia 43M</button>
+            </div>
+            <div class="bid-warning"><span class="wdot"></span>Attenzione: con 43M impegni il <b>75% del budget</b> residuo di fase.</div>
+          </div>
+
+          <!-- P4 · ultimi rilanci a chip CONDIVISI (.bid-chips) -->
+          <div class="bid-chips">
+            <span class="micro">Ultimi rilanci</span>
+            <span class="bchip lead"><span class="mono">MC</span><b>Michele</b><span class="amt">42M</span></span>
+            <span class="bchip"><span class="mono">MI</span><b>Mirko</b><span class="amt">41M</span></span>
+            <span class="bchip"><span class="mono">DI</span><b>Diego</b><span class="amt">39M</span></span>
+            <span class="bchip"><span class="mono">MC</span><b>Michele</b><span class="amt">38M</span></span>
+            <span class="bchip"><span class="mono">MA</span><b>Marco</b><span class="amt">37M</span></span>
+          </div>
+        </div>
+
+        <!-- P6 · ready check CONDIVISO (.member-chips) -->
+        <div class="member-chips">
+          <span class="micro">Pronti 7/8</span>
+          <span class="mchip"><span class="mono">MC</span><span class="ok">✓</span></span>
+          <span class="mchip"><span class="mono">MI</span><span class="ok">✓</span></span>
+          <span class="mchip"><span class="mono">MA</span><span class="ok">✓</span></span>
+          <span class="mchip"><span class="mono">DI</span><span class="ok">✓</span></span>
+          <span class="mchip"><span class="mono">ML</span><span class="ok">✓</span></span>
+          <span class="mchip"><span class="mono">PI</span><span class="ok">✓</span></span>
+          <span class="mchip"><span class="mono">EL</span><span class="ok">✓</span></span>
+          <span class="mchip off"><span class="mono">EM</span><span class="wait"></span></span>
+        </div>
+      </div>
+
+      <!-- La mia rosa (peculiarità asta) -->
+      <div class="panel">
+        <div class="panel-h"><span class="micro">La mia rosa · Diego FC</span></div>
+        <div class="roster-sum">
+          <span class="slot-chip full">P 3/3 ✓</span>
+          <span class="slot-chip full">D 8/8 ✓</span>
+          <span class="slot-chip cur">C 2/6</span>
+          <span class="slot-chip">A 0/6</span>
+        </div>
+        <div class="r-group">
+          <div class="r-row"><span class="role-badge role-P">P</span><span class="nm">Sommer</span><span class="pr">24M</span></div>
+          <div class="r-row"><span class="role-badge role-P">P</span><span class="nm">Di Gregorio</span><span class="pr">12M</span></div>
+          <div class="r-row"><span class="role-badge role-P">P</span><span class="nm">Carnesecchi</span><span class="pr">8M</span></div>
+        </div>
+        <div class="r-group" style="border-top:1px solid var(--border);">
+          <div class="r-row"><span class="role-badge role-D">D</span><span class="nm">Bastoni</span><span class="pr">22M</span></div>
+          <div class="r-row"><span class="role-badge role-D">D</span><span class="nm">Bremer</span><span class="pr">18M</span></div>
+          <div class="r-row"><span class="role-badge role-D">D</span><span class="nm">Dimarco</span><span class="pr">17M</span></div>
+          <div class="r-row"><span class="role-badge role-D">D</span><span class="nm" style="color:var(--t3);font-weight:500;">+ 5 altri difensori</span><span class="pr">54M</span></div>
+        </div>
+        <div class="r-group" style="border-top:1px solid var(--border);">
+          <div class="r-row"><span class="role-badge role-C">C</span><span class="nm">Çalhanoğlu</span><span class="pr">26M</span></div>
+          <div class="r-row"><span class="role-badge role-C">C</span><span class="nm">Pellegrini</span><span class="pr">14M</span></div>
+          <div class="r-row empty"><span class="role-badge role-C">C</span><span class="nm">4 slot liberi</span><span class="pr">—</span></div>
+        </div>
+        <div class="r-group" style="border-top:1px solid var(--border);">
+          <div class="r-row empty"><span class="role-badge role-A">A</span><span class="nm">6 slot liberi</span><span class="pr">—</span></div>
+        </div>
+        <div class="r-foot"><span>Spesi <b>195M</b></span><span>Residuo <b>187M</b></span></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     FRAME 2 — FASE RUBATA (allineata)
+     ================================================================ -->
+<div>
+  <div class="frame-label">Frame 2 · Fase Rubata — allineata</div>
+  <div class="frame">
+
+    <!-- Barra di stato (peculiarità rubata) — P1: timer di fase, stessa .timer-display -->
+    <div class="statusbar">
+      <div class="phase-block">
+        <div class="phase-name"><span class="dot-live"></span>FASE RUBATA · ASTA AL RILANCIO</div>
+        <div class="phase-sub">Turno di <b>Mirko</b> · giro 5 di 8</div>
+      </div>
+      <div class="timer-center">
+        <div class="timer-ring t44"><span class="timer-display">0:42</span></div>
+        <span class="timer-side-label">timer di fase</span>
+      </div>
+      <div class="progress-block">
+        <div class="progress-num">Giocatore 23 <span>/ 64</span></div>
+        <div class="progress-track"><div class="progress-fill"></div></div>
+      </div>
+    </div>
+
+    <!-- P7 · admin-bar CONDIVISA -->
+    <div class="admin-bar">
+      <span class="micro">Azioni admin</span>
+      <button class="abtn">Pausa</button>
+      <button class="abtn">Avanza</button>
+      <button class="abtn">Indietro</button>
+      <button class="abtn gold-o">Chiudi asta</button>
+      <span class="abtn-sep"></span>
+      <span class="preset">
+        <span class="micro" style="letter-spacing:.08em;">Timer</span>
+        <button class="abtn">30s</button>
+        <button class="abtn on">45s</button>
+        <button class="abtn">60s</button>
+      </span>
+      <span class="abtn-sep"></span>
+      <button class="abtn danger-o">Completa fase</button>
+    </div>
+
+    <div class="main-rubata">
+
+      <!-- ===== Zona azione (40%) ===== -->
+      <div>
+        <!-- P2 · ARENA CONDIVISA (.arena) — peculiarità rubata: costo scomposto + affordability + watchlist -->
+        <div class="arena">
+          <div class="arena-tag">Asta al rilancio</div>
+
+          <div class="player-head">
+            <div class="role-badge role-A">A</div>
+            <div>
+              <div class="player-name">Lautaro Martínez</div>
+              <div class="player-meta">
+                Attaccante · <b>Inter</b>
+                <span class="owner-chip"><span class="mono">MA</span>dalla rosa di <b>Marco</b></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Peculiarità rubata: costo scomposto -->
+          <div class="cost-block">
+            <div class="cost-main">
+              <div class="cost-label">Costo rubata</div>
+              <div class="cost-value">48M</div>
+            </div>
+            <div class="cost-eq">=</div>
+            <div class="cost-parts">
+              <div class="cost-part"><div class="val">36M</div><div class="lbl">clausola</div></div>
+              <div class="cost-plus">+</div>
+              <div class="cost-part"><div class="val">12M</div><div class="lbl">ingaggio · 2 semestri</div></div>
+            </div>
+          </div>
+
+          <div class="intel-ok">
+            <span class="check">✓</span>
+            <div><b>Te lo puoi permettere.</b> <span>Bilancio dopo il rilancio a 53M: <span class="num">563M</span> su 611M.</span></div>
+          </div>
+
+          <span class="wl-chip"><span class="wl-ico">↑</span>Nella tua watchlist: <b>priorità ALTA</b> <span>· massimale 55M</span></span>
+
+          <!-- Offerta attuale (stesso .price-box dell'asta — qui senza timer: P1, il timer di fase sta in alto) -->
+          <div class="price-box">
+            <div class="pb-main">
+              <div class="pb-label">Offerta attuale</div>
+              <div class="pb-val">52M</div>
+              <div class="pb-who"><span class="mono">MI</span>di <b>Mirko</b></div>
+            </div>
+          </div>
+
+          <!-- P3 · controlli di rilancio CONDIVISI (.bid-controls) -->
+          <div class="bid-controls">
+            <div class="quick-row">
+              <button class="qb">+1</button>
+              <button class="qb">+5</button>
+              <button class="qb">+10</button>
+              <button class="qb qb-passion">+20</button>
+              <button class="qb qb-max">MAX</button>
+            </div>
+            <div class="bid-line">
+              <div class="stepper">
+                <button class="step-btn">−</button>
+                <div class="step-val"><span class="v">53M</span><span class="l">tua offerta</span></div>
+                <button class="step-btn">+</button>
+              </div>
+              <button class="btn-raise">Rilancia 53M</button>
+            </div>
+            <div class="bid-warning"><span class="wdot"></span>Vicino al tuo <b>limite strategia (55M)</b> — margine residuo 2M.</div>
+          </div>
+
+          <!-- P4 · ultimi rilanci a chip CONDIVISI (.bid-chips) -->
+          <div class="bid-chips">
+            <span class="micro">Ultimi rilanci</span>
+            <span class="bchip lead"><span class="mono">MI</span><b>Mirko</b><span class="amt">52M</span></span>
+            <span class="bchip"><span class="mono">MC</span><b>Michele</b><span class="amt">50M</span></span>
+            <span class="bchip"><span class="mono">DI</span><b>Diego</b><span class="amt">49M</span></span>
+            <span class="bchip"><span class="mono">MI</span><b>Mirko</b><span class="amt">48M</span></span>
+          </div>
+        </div>
+
+        <!-- P6 · ready check CONDIVISO (.member-chips) -->
+        <div class="member-chips">
+          <span class="micro">Pronti 6/8</span>
+          <span class="mchip"><span class="mono">MC</span><span class="ok">✓</span></span>
+          <span class="mchip"><span class="mono">MI</span><span class="ok">✓</span></span>
+          <span class="mchip"><span class="mono">MA</span><span class="ok">✓</span></span>
+          <span class="mchip"><span class="mono">DI</span><span class="ok">✓</span></span>
+          <span class="mchip"><span class="mono">ML</span><span class="ok">✓</span></span>
+          <span class="mchip"><span class="mono">PI</span><span class="ok">✓</span></span>
+          <span class="mchip off"><span class="mono">EL</span><span class="wait"></span></span>
+          <span class="mchip off"><span class="mono">EM</span><span class="wait"></span></span>
+        </div>
+
+        <!-- P5 · lista manager CONDIVISA (.manager-row) — variante BudgetPanel: bilancio grande + budget piccolo -->
+        <div class="panel" style="margin-top:14px;">
+          <div class="panel-h"><span class="micro">Manager · bilanci</span></div>
+          <div class="manager-row me">
+            <span class="mono">DI</span>
+            <div class="mr-info">
+              <div class="mr-name">Diego <span class="you-tag">TU</span></div>
+              <div class="mr-sub">Dopo il rilancio a <b>53M</b></div>
+            </div>
+            <div class="mr-num"><div class="big">563M</div><div class="small">budget 611M</div></div>
+          </div>
+          <div class="manager-row">
+            <span class="mono">MI</span>
+            <div class="mr-info">
+              <div class="mr-name">Mirko <span class="lead-tag">MIGLIOR OFFERTA</span></div>
+              <div class="mr-sub">In gara · offre <b>52M</b></div>
+            </div>
+            <div class="mr-num"><div class="big">826M</div><div class="small">bilancio</div></div>
+          </div>
+          <div class="manager-row">
+            <span class="mono">PI</span>
+            <div class="mr-info">
+              <div class="mr-name">Pietro</div>
+              <div class="mr-sub">Può rilanciare</div>
+            </div>
+            <div class="mr-num"><div class="big">955M</div><div class="small">bilancio</div></div>
+          </div>
+          <div class="manager-row">
+            <span class="mono">ML</span>
+            <div class="mr-info">
+              <div class="mr-name">Marcolino</div>
+              <div class="mr-sub">Può rilanciare</div>
+            </div>
+            <div class="mr-num"><div class="big">930M</div><div class="small">bilancio</div></div>
+          </div>
+          <div class="manager-row">
+            <span class="mono">MC</span>
+            <div class="mr-info">
+              <div class="mr-name">Michele</div>
+              <div class="mr-sub">Può rilanciare</div>
+            </div>
+            <div class="mr-num"><div class="big">898M</div><div class="small">bilancio</div></div>
+          </div>
+          <div class="manager-row dim">
+            <span class="mono">MA</span>
+            <div class="mr-info">
+              <div class="mr-name">Marco</div>
+              <div class="mr-sub">Proprietario · non rilancia</div>
+            </div>
+            <div class="mr-num"><div class="big">—</div><div class="small">proprietario</div></div>
+          </div>
+          <div class="manager-row dim">
+            <span class="mono">EM</span>
+            <div class="mr-info">
+              <div class="mr-name">Emmanuele</div>
+              <div class="mr-sub">Fuori · bilancio insufficiente</div>
+            </div>
+            <div class="mr-num"><div class="big">41M</div><div class="small">bilancio</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Tabellone (60%) — peculiarità rubata ===== -->
+      <div class="board">
+        <div class="board-head">
+          <h2>Tabellone rubata</h2>
+          <span class="count">23 / 64 processati</span>
+        </div>
+
+        <div class="brow dim">
+          <span class="idx">#22</span>
+          <div class="role-badge role-A">A</div>
+          <div class="brow-info">
+            <div class="brow-name">Marcus Thuram</div>
+            <div class="brow-sub"><span class="mono">MC</span> rubato da <b style="color:var(--t1);">Michele</b> · Inter</div>
+          </div>
+          <div class="brow-cost"><div class="v">67M</div><div class="l">rubato</div></div>
+        </div>
+
+        <div class="brow onplate">
+          <span class="idx">#23</span>
+          <div class="role-badge role-A">A</div>
+          <div class="brow-info">
+            <div class="brow-name">Lautaro Martínez <span class="plate-tag">SUL PIATTO</span></div>
+            <div class="brow-sub"><span class="mono">MA</span> di Marco · Inter <span class="wl-badge">↑ ALTA</span></div>
+          </div>
+          <div class="brow-cost"><div class="v">52M</div><div class="l">asta in corso</div></div>
+        </div>
+
+        <div class="brow mine">
+          <span class="idx">#24</span>
+          <div class="role-badge role-C">C</div>
+          <div class="brow-info">
+            <div class="brow-name">Nicolò Barella</div>
+            <div class="brow-sub"><span class="mono" style="border-color:rgba(59,130,246,.6);color:var(--primary);">DI</span> <span class="mine-tag">tua rosa — non rubabile da te</span> · Inter</div>
+          </div>
+          <div class="brow-cost"><div class="v">—</div><div class="l">prossimo</div></div>
+        </div>
+
+        <div class="brow">
+          <span class="idx">#25</span>
+          <div class="role-badge role-A">A</div>
+          <div class="brow-info">
+            <div class="brow-name">Rafael Leão</div>
+            <div class="brow-sub"><span class="mono">MC</span> di Michele · Milan <span class="wl-badge">↑ ALTA</span></div>
+          </div>
+          <div class="brow-cost"><div class="v">41M</div><div class="l">costo rubata</div></div>
+        </div>
+
+        <div class="brow">
+          <span class="idx">#26</span>
+          <div class="role-badge role-P">P</div>
+          <div class="brow-info">
+            <div class="brow-name">Mike Maignan</div>
+            <div class="brow-sub"><span class="mono">PI</span> di Pietro · Milan</div>
+          </div>
+          <div class="brow-cost"><div class="v">38M</div><div class="l">costo rubata</div></div>
+        </div>
+
+        <div class="brow">
+          <span class="idx">#27</span>
+          <div class="role-badge role-C">C</div>
+          <div class="brow-info">
+            <div class="brow-name">Teun Koopmeiners</div>
+            <div class="brow-sub"><span class="mono">EL</span> di Emiliano · Atalanta</div>
+          </div>
+          <div class="brow-cost"><div class="v">35M</div><div class="l">costo rubata</div></div>
+        </div>
+
+        <div class="brow">
+          <span class="idx">#28</span>
+          <div class="role-badge role-A">A</div>
+          <div class="brow-info">
+            <div class="brow-name">Moise Kean</div>
+            <div class="brow-sub"><span class="mono">ML</span> di Marcolino · Fiorentina</div>
+          </div>
+          <div class="brow-cost"><div class="v">22M</div><div class="l">costo rubata</div></div>
+        </div>
+
+        <div class="panel-h" style="border-top:1px solid var(--border);"><span class="micro">Ultime mosse</span></div>
+        <div class="feed">
+          <div class="feed-item"><span class="tm">14:32</span><div><b>Michele</b> ha rubato <b>Thuram</b> a Pietro per <span class="amber">67M</span></div></div>
+          <div class="feed-item"><span class="tm">14:28</span><div>Nessuna offerta per <b>Cristante</b> — resta a Emiliano</div></div>
+          <div class="feed-item"><span class="tm">14:24</span><div><b>Marcolino</b> ha vinto l'asta su <b>Dimarco</b> a <span class="amber">44M</span></div></div>
+          <div class="feed-item"><span class="tm">14:19</span><div><b>Pietro</b> ha rubato <b>Pulisic</b> a Marco per <span class="amber">51M</span></div></div>
+          <div class="feed-item"><span class="tm">14:15</span><div>Nessuna offerta per <b>Locatelli</b> — resta a Mirko</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>
