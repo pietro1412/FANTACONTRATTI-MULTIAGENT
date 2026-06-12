@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { TimerDisplay } from '@/components/ui/TimerDisplay'
 import type { RubataStateType, ProgressStats } from '../../types/rubata.types'
 
 export interface RubataStateBarProps {
@@ -29,12 +30,6 @@ function getStateConfig(state: RubataStateType): StateConfig {
   }
 }
 
-function formatTimer(seconds: number): string {
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
-
 /**
  * Barra di stato unificata (mockup v2): fase + turno a sinistra,
  * timer grande al centro, progresso board a destra.
@@ -47,7 +42,6 @@ export const RubataStateBar = memo(function RubataStateBar({
   progressStats,
 }: RubataStateBarProps) {
   const config = getStateConfig(rubataState)
-  const isUrgent = timerDisplay !== null && timerDisplay < 10
   const timerLabel = rubataState === 'AUCTION' ? 'per rilanciare' : 'per decidere'
   const isLive = rubataState === 'OFFERING' || rubataState === 'AUCTION'
 
@@ -79,20 +73,11 @@ export const RubataStateBar = memo(function RubataStateBar({
         )}
       </div>
 
-      {/* Big timer */}
+      {/* Timer di fase — pillola piatta condivisa (P1, 40px) */}
       {timerDisplay !== null && (
-        <div className="flex items-baseline gap-1.5 flex-shrink-0">
-          <span
-            role="timer"
-            aria-live={isUrgent ? 'assertive' : 'off'}
-            aria-label={`${timerDisplay} secondi rimanenti`}
-            className={`timer-sport text-[36px] sm:text-[44px] leading-none tabular-nums ${
-              isUrgent ? 'text-danger-400 animate-pulse' : 'text-accent-400'
-            }`}
-          >
-            {formatTimer(timerDisplay)}
-          </span>
-          <span className="hidden sm:block text-[10px] text-gray-500 uppercase tracking-wider">{timerLabel}</span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <TimerDisplay seconds={timerDisplay} size={40} variant="flat" />
+          <span className="hidden sm:block text-[10px] text-gray-500 uppercase tracking-wider max-w-[64px] leading-snug">{timerLabel}</span>
         </div>
       )}
 

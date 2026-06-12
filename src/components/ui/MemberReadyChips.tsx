@@ -6,8 +6,9 @@ interface Member {
 }
 
 export interface MemberReadyChipsProps {
-  done: Member[]
-  pending: Member[]
+  /** Possono mancare nei payload parziali (es. ready check non ancora avviato) */
+  done?: Member[]
+  pending?: Member[]
   /** Label shown in the done chip tooltip, e.g. "pronto" / "confermato" */
   doneLabel?: string
   /**
@@ -24,8 +25,8 @@ export interface MemberReadyChipsProps {
  * con punto ambra pulsante.
  */
 export function MemberReadyChips({
-  done,
-  pending,
+  done = [],
+  pending = [],
   doneLabel = 'pronto',
   variant = 'card',
   className = '',

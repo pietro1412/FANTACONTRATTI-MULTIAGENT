@@ -9,6 +9,8 @@ export interface RubataRivalsStripProps {
   ownerMemberId: string
   myMemberId: string | undefined
   title: string
+  /** card = chip a capo in card (mobile) · strip = striscia sottile a 1 riga (cockpit) */
+  variant?: 'card' | 'strip'
 }
 
 /**
@@ -21,9 +23,43 @@ export const RubataRivalsStrip = memo(function RubataRivalsStrip({
   ownerMemberId,
   myMemberId,
   title,
+  variant = 'card',
 }: RubataRivalsStripProps) {
   const rivals = memberBudgets.filter(mb => mb.memberId !== myMemberId)
   if (rivals.length === 0) return null
+
+  if (variant === 'strip') {
+    return (
+      <div className="flex items-center gap-2.5 bg-surface-200 border border-surface-50 rounded-[10px] px-3.5 py-1.5 min-h-[40px]">
+        <span className="micro-label flex-shrink-0 mr-1">{title} · ≥ {cost}M</span>
+        <div className="flex items-center gap-2 overflow-x-auto min-w-0">
+          {rivals.map((mb, i) => {
+            const isOwner = mb.memberId === ownerMemberId
+            const canPay = !isOwner && mb.residuo >= cost
+            return (
+              <span key={mb.memberId} className="flex items-center gap-2 flex-shrink-0">
+                {i > 0 && <span className="w-px h-4 bg-surface-50" aria-hidden="true" />}
+                <span className={`inline-flex items-center gap-1.5 text-xs text-gray-400 ${canPay ? '' : 'opacity-40'}`}>
+                  <Monogram
+                    name={mb.teamName || mb.username}
+                    size="sm"
+                    className={canPay ? 'border-secondary-500/60 text-secondary-400' : ''}
+                  />
+                  {isOwner ? (
+                    <span className="text-[10px] text-gray-500">proprietario</span>
+                  ) : (
+                    <span className={`font-mono text-[11px] font-bold ${canPay ? 'text-accent-400' : 'text-danger-400'}`}>
+                      {mb.residuo}M{canPay ? '' : ' — fuori'}
+                    </span>
+                  )}
+                </span>
+              </span>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-surface-200 rounded-xl border border-surface-50/20 px-3 py-2.5">

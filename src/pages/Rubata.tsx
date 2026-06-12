@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { Settings, Search, X, Swords, ChevronDown, ChevronUp } from 'lucide-react'
+import { Settings, Search, X, Swords } from 'lucide-react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useRubataState } from '../hooks/useRubataState'
 import { Button } from '../components/ui/Button'
@@ -23,6 +23,13 @@ import {
   GameFlowPanel,
   CompleteRubataPanel,
 } from '../components/rubata/RubataAdminControls'
+import { RubataCockpitAdminBar } from '../components/rubata/RubataCockpitAdminBar'
+import { CockpitShell } from '@/components/cockpit/CockpitShell'
+import { PanelTabs } from '@/components/ui/PanelTabs'
+import { ManagerListRow } from '@/components/ui/ManagerListRow'
+import { MemberReadyChips } from '@/components/ui/MemberReadyChips'
+import { BidControlsShared } from '@/components/ui/BidControlsShared'
+import { BidChips } from '@/components/ui/BidChips'
 import { RubataReadyBanner } from '../components/rubata/RubataReadyBanner'
 import { RubataStateBar } from '../components/rubata/RubataStateBar'
 import { HeroPlayerCard } from '../components/rubata/HeroPlayerCard'
@@ -174,8 +181,6 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
 
   const [adminSheetOpen, setAdminSheetOpen] = useState(false)
   const [bidSheetOpen, setBidSheetOpen] = useState(false)
-  // Official admin panels collapsed to one row (mockup v2)
-  const [adminPanelsExpanded, setAdminPanelsExpanded] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [positionFilter, setPositionFilter] = useState<string | null>(null)
   const [chipFilter, setChipFilter] = useState<'miei' | 'watchlist' | 'sul_piatto' | null>(null)
@@ -323,13 +328,16 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
     )
   }
 
+  // Cockpit a viewport bloccata (desktop) solo quando il tabellone è attivo
+  const isCockpit = isRubataPhase && isOrderSet
+
   return (
-    <div className="min-h-screen">
+    <div className={`min-h-screen ${isCockpit ? 'lg:h-dvh lg:flex lg:flex-col lg:overflow-hidden' : ''}`}>
       <Navigation currentPage="rubata" leagueId={leagueId} isLeagueAdmin={isAdmin} onNavigate={onNavigate} />
 
-      {/* Header — pattern Svincolati (hidden on mobile, ActionBar shows same info) */}
+      {/* Header — pattern Svincolati (hidden on mobile; nel cockpit la testata è la RubataStateBar) */}
       {isRubataPhase && (
-        <div className="hidden md:block bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20">
+        <div className={`hidden md:block ${isCockpit ? 'lg:hidden' : ''} bg-gradient-to-r from-dark-200 via-surface-200 to-dark-200 border-b border-surface-50/20`}>
           <div className="max-w-full mx-auto px-4 py-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2.5 md:gap-5">
@@ -416,7 +424,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
       )}
 
 
-      <main className="max-w-[1600px] mx-auto px-4 py-3 md:py-8">
+      <main className={`max-w-[1600px] mx-auto px-4 py-3 md:py-8 ${isCockpit ? 'lg:w-full lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden lg:py-3' : ''}`}>
         {error && (
           <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-3 rounded-lg mb-4">
             <p>{error}</p>
@@ -532,66 +540,52 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
           />
         )}
 
-        {/* Tabellone e controlli - Board generato — 2-Zone Layout */}
+        {/* Tabellone e controlli - Board generato — cockpit a viewport bloccata (desktop) */}
         {isRubataPhase && isOrderSet && (
-          <div className="lg:grid lg:grid-cols-5 lg:gap-4">
-            {/* === ZONA AZIONE (left on desktop, top on mobile) === */}
-            <div className="lg:col-span-2 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto mb-4 lg:mb-0 space-y-3">
-              {/* State Bar — unified (fase + turno + timer + progresso) */}
+          <CockpitShell
+            header={
               <RubataStateBar
                 rubataState={rubataState ?? 'WAITING'}
                 timerDisplay={timerDisplay}
                 isPusherConnected={isPusherConnected}
                 progressStats={progressStats}
               />
-
-              {/* Official admin controls — collapsed to one row, expand on demand */}
-              {isAdmin && (
-                <div className="hidden lg:block bg-surface-300 rounded-xl border border-surface-50/20 overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => { setAdminPanelsExpanded(prev => !prev); }}
-                    aria-expanded={adminPanelsExpanded}
-                    aria-label={adminPanelsExpanded ? 'Comprimi controlli admin' : 'Espandi controlli admin'}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-surface-100/40 transition-colors"
-                  >
-                    <span className="text-[10px] font-mono font-bold text-primary-400 border border-primary-500/40 rounded px-1.5 py-px tracking-wider">ADMIN</span>
-                    <span className="text-xs text-gray-400 truncate">Conduzione · Timer · Completa fase</span>
-                    <span className="ml-auto text-gray-500">
-                      {adminPanelsExpanded ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
-                    </span>
-                  </button>
-                  {adminPanelsExpanded && (
-                    <div className="p-2 space-y-3 border-t border-surface-50/20">
-                      <GameFlowPanel
-                        rubataState={rubataState ?? null}
-                        isSubmitting={isSubmitting}
-                        currentIndex={boardData?.currentIndex ?? null}
-                        onStartRubata={() => void handleStartRubata()}
-                        onPause={() => void handlePause()}
-                        onResume={() => void handleResume()}
-                        onAdvance={() => void handleAdvance()}
-                        onGoBack={() => void handleGoBack()}
-                        onCloseAuction={() => void handleCloseAuction()}
-                      />
-                      <TimerSettingsPanel
-                        offerTimer={offerTimer}
-                        setOfferTimer={setOfferTimer}
-                        auctionTimer={auctionTimer}
-                        setAuctionTimer={setAuctionTimer}
-                        isSubmitting={isSubmitting}
-                        onUpdateTimers={() => void handleUpdateTimers()}
-                      />
-                      <CompleteRubataPanel
-                        rubataState={rubataState ?? null}
-                        isSubmitting={isSubmitting}
-                        onCompleteRubata={() => void handleCompleteRubata()}
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-
+            }
+            adminBar={isAdmin ? (
+              <div className="hidden lg:block mt-2">
+                <RubataCockpitAdminBar
+                  rubataState={rubataState ?? null}
+                  isSubmitting={isSubmitting}
+                  currentIndex={boardData?.currentIndex ?? null}
+                  onStartRubata={() => void handleStartRubata()}
+                  onPause={() => void handlePause()}
+                  onResume={() => void handleResume()}
+                  onAdvance={() => void handleAdvance()}
+                  onGoBack={() => void handleGoBack()}
+                  onCloseAuction={() => void handleCloseAuction()}
+                  onCompleteRubata={() => void handleCompleteRubata()}
+                  offerTimer={offerTimer}
+                  setOfferTimer={setOfferTimer}
+                  auctionTimer={auctionTimer}
+                  setAuctionTimer={setAuctionTimer}
+                  onUpdateTimers={() => void handleUpdateTimers()}
+                  activeAuction={activeAuction ?? null}
+                  members={members}
+                  myMemberId={myMemberId}
+                  currentPlayerMemberId={currentPlayer?.memberId}
+                  simulateMemberId={simulateMemberId}
+                  setSimulateMemberId={setSimulateMemberId}
+                  simulateBidAmount={simulateBidAmount}
+                  setSimulateBidAmount={setSimulateBidAmount}
+                  onSimulateOffer={() => void handleSimulateOffer()}
+                  onSimulateBid={() => void handleSimulateBid()}
+                />
+              </div>
+            ) : undefined}
+          >
+          <div className="mt-3 lg:mt-0 lg:pt-2 lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-3">
+            {/* === ZONA AZIONE (left on desktop, top on mobile) === */}
+            <div className="mb-4 lg:mb-0 space-y-3 lg:space-y-0 lg:flex lg:flex-col lg:gap-2 lg:min-h-0 lg:overflow-hidden">
               {/* Dynamic content based on rubataState */}
 
               {/* OFFERING: HeroPlayerCard (arena di decisione) + rivali */}
@@ -613,13 +607,27 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     heroRef={currentPlayerRef as React.RefObject<HTMLDivElement>}
                   />
                   {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && (
-                    <RubataRivalsStrip
-                      memberBudgets={boardData.memberBudgets}
-                      cost={currentPlayer.rubataPrice}
-                      ownerMemberId={currentPlayer.memberId}
-                      myMemberId={myMemberId}
-                      title="Chi altro può rubarlo"
-                    />
+                    <>
+                      <div className="lg:hidden">
+                        <RubataRivalsStrip
+                          memberBudgets={boardData.memberBudgets}
+                          cost={currentPlayer.rubataPrice}
+                          ownerMemberId={currentPlayer.memberId}
+                          myMemberId={myMemberId}
+                          title="Chi altro può rubarlo"
+                        />
+                      </div>
+                      <div className="hidden lg:block">
+                        <RubataRivalsStrip
+                          memberBudgets={boardData.memberBudgets}
+                          cost={currentPlayer.rubataPrice}
+                          ownerMemberId={currentPlayer.memberId}
+                          myMemberId={myMemberId}
+                          title="Chi altro può rubarlo"
+                          variant="strip"
+                        />
+                      </div>
+                    </>
                   )}
                 </>
               )}
@@ -643,28 +651,74 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                     heroRef={currentPlayerRef as React.RefObject<HTMLDivElement>}
                   >
                     {activeAuction && (
-                      <div className="hidden md:block">
-                        <RubataBidPanel
-                          activeAuction={activeAuction}
-                          myMemberId={myMemberId}
-                          bidAmount={bidAmount}
-                          setBidAmount={setBidAmount}
-                          isSubmitting={isSubmitting}
-                          onBid={() => void handleBid()}
-                          myBudget={myResiduo}
-                          myMaxBid={preferencesMap.get(activeAuction.player.id)?.maxBid}
-                        />
-                      </div>
+                      <>
+                        {/* Desktop cockpit: controlli condivisi (P3) + chip rilanci (P4) */}
+                        <div className="hidden lg:flex lg:flex-col lg:gap-2.5">
+                          {activeAuction.sellerId === myMemberId ? (
+                            <p className="text-center text-xs text-gray-400 py-2">
+                              Sei il proprietario — non puoi rilanciare
+                            </p>
+                          ) : (
+                            <BidControlsShared
+                              bidAmount={bidAmount}
+                              setBidAmount={setBidAmount}
+                              onPlaceBid={() => void handleBid()}
+                              currentPrice={activeAuction.currentPrice}
+                              budget={myResiduo ?? Infinity}
+                              budgetLabel="bilancio"
+                              strategyMaxBid={preferencesMap.get(activeAuction.player.id)?.maxBid ?? null}
+                              isSubmitting={isSubmitting}
+                              isConnected={isPusherConnected}
+                            />
+                          )}
+                          <BidChips
+                            label="Rilanci"
+                            bids={activeAuction.bids.slice(0, 10).map((bid, i) => ({
+                              id: `${bid.bidderId}-${bid.amount}-${i}`,
+                              name: bid.bidder,
+                              amount: bid.amount,
+                              isMine: bid.bidderId === myMemberId,
+                            }))}
+                          />
+                        </div>
+                        {/* Tablet (md): pannello esistente, invariato */}
+                        <div className="hidden md:block lg:hidden">
+                          <RubataBidPanel
+                            activeAuction={activeAuction}
+                            myMemberId={myMemberId}
+                            bidAmount={bidAmount}
+                            setBidAmount={setBidAmount}
+                            isSubmitting={isSubmitting}
+                            onBid={() => void handleBid()}
+                            myBudget={myResiduo}
+                            myMaxBid={preferencesMap.get(activeAuction.player.id)?.maxBid}
+                          />
+                        </div>
+                      </>
                     )}
                   </HeroPlayerCard>
                   {activeAuction && boardData?.memberBudgets && boardData.memberBudgets.length > 0 && (
-                    <RubataRivalsStrip
-                      memberBudgets={boardData.memberBudgets}
-                      cost={activeAuction.currentPrice + 1}
-                      ownerMemberId={activeAuction.sellerId}
-                      myMemberId={myMemberId}
-                      title="Chi può ancora rilanciare"
-                    />
+                    <>
+                      <div className="lg:hidden">
+                        <RubataRivalsStrip
+                          memberBudgets={boardData.memberBudgets}
+                          cost={activeAuction.currentPrice + 1}
+                          ownerMemberId={activeAuction.sellerId}
+                          myMemberId={myMemberId}
+                          title="Chi può ancora rilanciare"
+                        />
+                      </div>
+                      <div className="hidden lg:block">
+                        <RubataRivalsStrip
+                          memberBudgets={boardData.memberBudgets}
+                          cost={activeAuction.currentPrice + 1}
+                          ownerMemberId={activeAuction.sellerId}
+                          myMemberId={myMemberId}
+                          title="Chi può ancora rilanciare"
+                          variant="strip"
+                        />
+                      </div>
+                    </>
                   )}
                 </>
               )}
@@ -797,56 +851,82 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 return null
               })()}
 
-              {/* Budget Panel — desktop in action zone */}
-              {boardData?.memberBudgets && boardData.memberBudgets.length > 0 && (
+              {/* Striscia PRONTI sottile — desktop (P6) */}
+              {readyStatus && readyStatus.totalMembers > 0 && (
                 <div className="hidden lg:block">
-                  <BudgetPanel memberBudgets={boardData.memberBudgets} />
-                </div>
-              )}
-
-              {/* Activity Feed — desktop in action zone */}
-              <div className="hidden lg:block">
-                <RubataActivityFeed board={board ?? null} />
-              </div>
-
-              {/* Strategy Summary — desktop in action zone */}
-              <div className="hidden lg:block">
-                <RubataStrategySummary
-                  board={board ?? null}
-                  preferencesMap={preferencesMap}
-                  myMemberId={myMemberId}
-                  currentIndex={boardData?.currentIndex ?? null}
-                  onOpenPrefsModal={openPrefsModal}
-                  canEditPreferences={canEditPreferences}
-                  onBulkSetPreference={handleBulkSetPreference}
-                  onImportPreferences={handleImportPreferences}
-                  isSubmitting={isSubmitting}
-                />
-              </div>
-
-              {/* Admin test/simulation panels — desktop, bottom of action zone */}
-              {isAdmin && (
-                <div className="hidden lg:block space-y-4">
-                  <BotSimulationPanel
-                    rubataState={rubataState ?? null}
-                    activeAuction={activeAuction ?? null}
-                    members={members}
-                    myMemberId={myMemberId}
-                    currentPlayerMemberId={currentPlayer?.memberId}
-                    simulateMemberId={simulateMemberId}
-                    setSimulateMemberId={setSimulateMemberId}
-                    simulateBidAmount={simulateBidAmount}
-                    setSimulateBidAmount={setSimulateBidAmount}
-                    isSubmitting={isSubmitting}
-                    onSimulateOffer={() => void handleSimulateOffer()}
-                    onSimulateBid={() => void handleSimulateBid()}
+                  <MemberReadyChips
+                    done={readyStatus.readyMembers}
+                    pending={readyStatus.pendingMembers}
+                    doneLabel="pronto"
+                    variant="strip"
                   />
                 </div>
               )}
+
+              {/* Desktop: pannello a tab Bilanci | Attività | Strategie (scroll interno) */}
+              <div className="hidden lg:flex lg:flex-col lg:flex-1 lg:min-h-0">
+                <PanelTabs
+                  className="flex-1 min-h-0"
+                  scrollContent
+                  rightSlot={boardData?.memberBudgets ? `${boardData.memberBudgets.length} manager` : undefined}
+                  tabs={[
+                    {
+                      key: 'bilanci',
+                      label: 'Bilanci',
+                      content: boardData?.memberBudgets && boardData.memberBudgets.length > 0 ? (
+                        <div>
+                          {boardData.memberBudgets.map(mb => (
+                            <ManagerListRow
+                              key={mb.memberId}
+                              name={mb.teamName || mb.username}
+                              isMe={mb.memberId === myMemberId}
+                              statusLine={`monte ingaggi ${mb.totalSalaries}M`}
+                              bigValue={mb.residuo < 0
+                                ? <span className="text-danger-400">{mb.residuo}M</span>
+                                : `${mb.residuo}M`}
+                              smallValue={`budget ${mb.currentBudget}M`}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="p-4 text-sm text-gray-500">Nessun dato bilanci disponibile</p>
+                      ),
+                    },
+                    {
+                      key: 'attivita',
+                      label: 'Attività',
+                      content: (
+                        <div className="p-2">
+                          <RubataActivityFeed board={board ?? null} />
+                        </div>
+                      ),
+                    },
+                    {
+                      key: 'strategie',
+                      label: 'Strategie',
+                      content: (
+                        <div className="p-2">
+                          <RubataStrategySummary
+                            board={board ?? null}
+                            preferencesMap={preferencesMap}
+                            myMemberId={myMemberId}
+                            currentIndex={boardData?.currentIndex ?? null}
+                            onOpenPrefsModal={openPrefsModal}
+                            canEditPreferences={canEditPreferences}
+                            onBulkSetPreference={handleBulkSetPreference}
+                            onImportPreferences={handleImportPreferences}
+                            isSubmitting={isSubmitting}
+                          />
+                        </div>
+                      ),
+                    },
+                  ]}
+                />
+              </div>
             </div>
 
             {/* === TABELLONE (right on desktop, below on mobile) === */}
-            <div className="lg:col-span-3">
+            <div className="lg:min-h-0 lg:flex lg:flex-col">
               {/* Preference Edit Modal */}
               {selectedPlayerForPrefs && (
                 <PreferenceModal
@@ -858,23 +938,25 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                 />
               )}
 
-              {/* Tabellone completo */}
-              <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden flex flex-col" style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '250px' }}>
-                {/* Board header with search + filters */}
-                <div className="p-3 md:p-4 border-b border-surface-50/20 shrink-0 space-y-2 md:space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="micro-label">
+              {/* Tabellone completo — nel cockpit riempie la colonna con scroll interno */}
+              <div className="bg-surface-200 rounded-2xl border border-surface-50/20 overflow-hidden flex flex-col max-h-[calc(100vh-280px)] min-h-[250px] lg:max-h-none lg:min-h-0 lg:flex-1">
+                {/* Board header with search + filters — su desktop tutto su una riga */}
+                <div className="p-3 md:p-4 lg:py-2.5 border-b border-surface-50/20 shrink-0 space-y-2 md:space-y-3 lg:space-y-0 lg:flex lg:flex-wrap lg:items-center lg:gap-2">
+                  <div className="flex items-center justify-between gap-2 lg:contents">
+                    <h3 className="micro-label lg:order-1">
                       <span className="hidden sm:inline">Tabellone Rubata</span>
                       <span className="sm:hidden">Tabellone</span>
                     </h3>
-                    <div className="flex items-center gap-1.5 md:gap-2">
+                    <div className="flex items-center gap-1.5 md:gap-2 lg:contents">
                       {/* Board view toggle — upcoming/all */}
-                      <BoardViewToggle
-                        mode={boardViewMode}
-                        upcomingCount={Math.min(10, Math.max(0, (boardData?.totalPlayers ?? 0) - (boardData?.currentIndex ?? 0)))}
-                        totalCount={boardData?.totalPlayers ?? 0}
-                        onToggle={setBoardViewMode}
-                      />
+                      <span className="lg:order-4">
+                        <BoardViewToggle
+                          mode={boardViewMode}
+                          upcomingCount={Math.min(10, Math.max(0, (boardData?.totalPlayers ?? 0) - (boardData?.currentIndex ?? 0)))}
+                          totalCount={boardData?.totalPlayers ?? 0}
+                          onToggle={setBoardViewMode}
+                        />
+                      </span>
                       {/* Mobile search/filter toggle */}
                       <button
                         onClick={() => { setMobileFiltersOpen(prev => !prev); }}
@@ -889,7 +971,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                       </button>
                       <button
                         onClick={() => { setCompareMode(prev => !prev); if (compareMode) setComparePlayerIds([]); }}
-                        className={`px-1.5 md:px-2 py-1 rounded text-xs font-medium transition-all ${
+                        className={`px-1.5 md:px-2 py-1 rounded text-xs font-medium transition-all lg:order-5 ${
                           compareMode
                             ? 'bg-primary-500/20 text-primary-400 border border-primary-500/40'
                             : 'text-gray-500 hover:text-gray-300'
@@ -899,15 +981,15 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                         <span className="hidden sm:inline">Confronta</span>
                         <span className="sm:hidden">VS</span>
                       </button>
-                      <span className="text-xs font-mono text-gray-500 whitespace-nowrap">
+                      <span className="text-xs font-mono text-gray-500 whitespace-nowrap lg:order-6 lg:ml-auto">
                         {isFiltered ? `${filteredBoard?.length ?? 0}/` : ''}{boardData?.totalPlayers}
                       </span>
                     </div>
                   </div>
 
                   {/* Search bar + filters — always visible on desktop, toggled on mobile */}
-                  <div className={`${mobileFiltersOpen ? 'block' : 'hidden'} md:block space-y-2 md:space-y-3`}>
-                  <div className="relative">
+                  <div className={`${mobileFiltersOpen ? 'block' : 'hidden'} md:block space-y-2 md:space-y-3 lg:contents`}>
+                  <div className="relative lg:order-2 lg:w-44 lg:flex-shrink-0">
                     <Search size={16} className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                     <input
                       type="text"
@@ -927,13 +1009,13 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   </div>
 
                   {/* Filter row: position pills + quick chips */}
-                  <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 md:gap-2 flex-wrap lg:order-3">
                     {/* Position filters */}
                     {(['P', 'D', 'C', 'A'] as const).map(pos => (
                       <button
                         key={pos}
                         onClick={() => { setPositionFilter(prev => prev === pos ? null : pos); }}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all min-h-[44px] ${
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all min-h-[44px] lg:min-h-0 ${
                           positionFilter === pos
                             ? POSITION_COLORS[pos] ?? ''
                             : 'bg-surface-300 text-gray-400 hover:text-white border border-surface-50/20'
@@ -954,7 +1036,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                       <button
                         key={chip.key}
                         onClick={() => { setChipFilter(prev => prev === chip.key ? null : chip.key); }}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all min-h-[44px] flex items-center gap-1 ${
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all min-h-[44px] lg:min-h-0 flex items-center gap-1 ${
                           chipFilter === chip.key
                             ? 'bg-primary-500/20 border border-primary-500/40 text-primary-400'
                             : 'bg-surface-300 text-gray-400 hover:text-white border border-surface-50/20'
@@ -977,8 +1059,8 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
                   </div>
                 </div>
 
-                {/* Board rows */}
-                <div ref={boardScrollRef} className="p-2 md:p-4 pb-16 md:pb-4 overflow-y-auto flex-1" role="list" aria-label="Tabellone rubata">
+                {/* Board rows — scroll interno con fade (cockpit) */}
+                <div ref={boardScrollRef} className="p-2 md:p-4 pb-16 md:pb-4 panel-scroll flex-1 min-h-0" role="list" aria-label="Tabellone rubata">
                   {filteredBoard?.length === 0 && isFiltered && (
                     <p className="text-center text-gray-500 py-8 text-sm">Nessun giocatore corrisponde ai filtri</p>
                   )}
@@ -1079,6 +1161,7 @@ export function Rubata({ leagueId, onNavigate }: RubataProps) {
               </div>
             </div>
           </div>
+          </CockpitShell>
         )}
 
 

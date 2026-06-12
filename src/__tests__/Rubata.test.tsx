@@ -99,6 +99,10 @@ vi.mock('../components/rubata/RubataStateBar', () => ({
   RubataStateBar: () => <div data-testid="rubata-state-bar">StateBar</div>,
 }))
 
+vi.mock('../components/rubata/RubataCockpitAdminBar', () => ({
+  RubataCockpitAdminBar: () => <div data-testid="rubata-cockpit-admin-bar">CockpitAdminBar</div>,
+}))
+
 vi.mock('../components/rubata/HeroPlayerCard', () => ({
   HeroPlayerCard: ({ children }: { children?: React.ReactNode }) => (
     <div data-testid="hero-player-card">HeroPlayerCard{children}</div>
@@ -678,16 +682,21 @@ describe('Rubata', () => {
 
     render(<Rubata leagueId={leagueId} onNavigate={mockOnNavigate} />)
 
-    // Always-visible panels
-    expect(screen.getAllByTestId('budget-panel').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByTestId('bot-simulation-panel').length).toBeGreaterThanOrEqual(1)
+    // P7: barra admin del cockpit sempre visibile su desktop
+    expect(screen.getByTestId('rubata-cockpit-admin-bar')).toBeInTheDocument()
 
-    // Official panels are collapsed to one row - expand on demand
+    // Bilanci nel pannello a tab del cockpit (desktop)
+    expect(screen.getByText('Bilanci')).toBeInTheDocument()
+    expect(screen.getByText('Team1')).toBeInTheDocument()
+
+    // I pannelli admin completi vivono nel BottomSheet mobile
     expect(screen.queryByTestId('game-flow-panel')).not.toBeInTheDocument()
-    await user.click(screen.getByLabelText('Espandi controlli admin'))
+    await user.click(screen.getByText('Admin'))
     expect(screen.getAllByTestId('game-flow-panel').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByTestId('timer-settings-panel').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByTestId('complete-rubata-panel').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByTestId('budget-panel').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByTestId('bot-simulation-panel').length).toBeGreaterThanOrEqual(1)
   })
 
   // ---- Navigation rendered with correct page ----
@@ -1593,13 +1602,13 @@ describe('Rubata', () => {
     expect(sheet).toBeInTheDocument()
 
     // Inside the BottomSheet, admin panels should be rendered
-    // (desktop official panels are collapsed by default, so at least the sheet copy exists)
+    // (sul desktop i pannelli sono sostituiti dalla barra cockpit + tab Bilanci)
     const budgetPanels = screen.getAllByTestId('budget-panel')
-    expect(budgetPanels.length).toBeGreaterThanOrEqual(2) // desktop + bottom sheet
+    expect(budgetPanels.length).toBeGreaterThanOrEqual(1) // bottom sheet
     const timerPanels = screen.getAllByTestId('timer-settings-panel')
     expect(timerPanels.length).toBeGreaterThanOrEqual(1)
     const botPanels = screen.getAllByTestId('bot-simulation-panel')
-    expect(botPanels.length).toBeGreaterThanOrEqual(2)
+    expect(botPanels.length).toBeGreaterThanOrEqual(1)
     const completePanels = screen.getAllByTestId('complete-rubata-panel')
     expect(completePanels.length).toBeGreaterThanOrEqual(1)
   })
