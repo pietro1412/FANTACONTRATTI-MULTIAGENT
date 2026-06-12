@@ -79,22 +79,15 @@ export function MyPortfolio({ myRosterSlots, budget: _budget }: MyPortfolioProps
   )
 
   return (
-    <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden h-full flex flex-col">
+    <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden h-full flex flex-col min-h-0">
       {/* Header */}
-      <div className="p-3 border-b border-surface-50 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-          </div>
-          <h3 className="micro-label">La mia rosa</h3>
-        </div>
-        <span className="text-sms font-mono font-bold text-sky-400">{totalFilled}/{totalSlots} SLOT</span>
+      <div className="px-3.5 py-2.5 border-b border-surface-50 flex items-baseline gap-2 flex-shrink-0">
+        <h3 className="micro-label">La mia rosa</h3>
+        <span className="ml-auto font-mono text-[10.5px] font-bold text-sky-400">{totalFilled}/{totalSlots} SLOT</span>
       </div>
 
-      {/* Roster as compact rows per position */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3">
+      {/* Roster as compact rows per position — scroll interno (cockpit) */}
+      <div className="flex-1 min-h-0 panel-scroll px-3 py-2 space-y-3">
         {POSITIONS.map(pos => {
           const slot = myRosterSlots.slots[pos]
           if (slot.total === 0) return null

@@ -133,13 +133,14 @@ export function ReadyCheckPanel({
         </div>
       </div>
 
-      {/* Members lobby below */}
+      {/* Members lobby below — striscia sottile (P6) */}
       {readyStatus.nominatorConfirmed && (
         <div className="mt-3">
           <MemberReadyChips
             done={readyStatus.readyMembers}
             pending={readyStatus.pendingMembers}
             doneLabel="pronto"
+            variant="strip"
           />
         </div>
       )}

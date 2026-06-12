@@ -22,10 +22,16 @@ export function CenterStage(props: CenterStageProps) {
   const colors = PHASE_COLORS[phase]
 
   return (
-    <div className={`bg-surface-200 border-2 ${colors.border} rounded-xl border-surface-50 overflow-hidden`}>
-      {/* Phase header strip */}
-      <div className={`px-4 py-2 ${colors.bg} border-b ${colors.border} flex items-center justify-between gap-2`}>
-        <span className={`text-sms font-bold uppercase tracking-wider ${colors.text}`}>
+    <div className={`bg-surface-200 rounded-xl overflow-hidden lg:h-full lg:min-h-0 lg:flex lg:flex-col ${
+      phase === 'bidding' ? 'arena-gold' : `border-2 ${colors.border} border-surface-50`
+    }`}>
+      {/* Phase header strip — in bidding è il tag fase dell'arena (P2: micro-label oro) */}
+      <div className={`px-4 py-2 ${colors.bg} border-b ${colors.border} flex items-center justify-between gap-2 lg:flex-shrink-0`}>
+        <span className={
+          phase === 'bidding'
+            ? 'font-mono text-[11px] font-bold tracking-[0.12em] uppercase text-accent-400'
+            : `text-sms font-bold uppercase tracking-wider ${colors.text}`
+        }>
           {phase === 'bidding' && props.marketProgress?.currentRoleName
             ? `All'asta · ${props.marketProgress.currentRoleName}`
             : colors.label}
@@ -41,14 +47,14 @@ export function CenterStage(props: CenterStageProps) {
           )}
           {phase === 'bidding' && props.auction && (
             <span className="text-sm text-gray-400 hidden sm:inline">
-              {props.currentTurnManager ? `Chiamato da ${props.currentTurnManager.username} · ` : ''}base {props.auction.basePrice}M
+              base {props.auction.basePrice}M
             </span>
           )}
         </span>
       </div>
 
-      {/* Content with fadeIn transition */}
-      <div className="p-4 lg:p-5 animate-fade-in">
+      {/* Content with fadeIn transition — su desktop scroll interno (cockpit) */}
+      <div className="p-4 lg:p-5 animate-fade-in lg:flex-1 lg:min-h-0 panel-scroll">
         {phase === 'acknowledgment' && props.pendingAck && (
           <AcknowledgmentPanel
             pendingAck={props.pendingAck}
@@ -88,6 +94,7 @@ export function CenterStage(props: CenterStageProps) {
             myRosterSlots={props.myRosterSlots}
             isBidding={props.isBidding}
             isConnected={props.isConnected}
+            nominatorUsername={props.currentTurnManager?.username ?? null}
           />
         )}
 
@@ -133,7 +140,7 @@ export function CenterStage(props: CenterStageProps) {
 
       {/* Admin Controls - collapsible at bottom */}
       {props.isAdmin && (
-        <div className="border-t border-surface-50">
+        <div className="border-t border-surface-50 lg:flex-shrink-0">
           <AdminControlsPanel
             isAdmin={props.isAdmin}
             hasAuction={!!props.auction}

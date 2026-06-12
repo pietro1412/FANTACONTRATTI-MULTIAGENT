@@ -22,6 +22,68 @@ interface AdminActionsPanelProps {
 
 const TIMER_PRESETS = [5, 10, 15, 20, 25, 30, 45, 60]
 
+interface AppealCardProps {
+  appeal: Appeal
+  isResolving: boolean
+  note: string
+  onNoteChange: (value: string) => void
+  onResolve: (decision: 'ACCEPTED' | 'REJECTED') => void
+}
+
+/** Card di risoluzione di un singolo ricorso (riusata dal pannello mobile e dalla barra admin del cockpit). */
+export function AppealCard({ appeal, isResolving, note, onNoteChange, onResolve }: AppealCardProps) {
+  return (
+    <div className="bg-surface-300 rounded-lg p-3 border border-danger-500/30">
+      <div className="flex items-center justify-between mb-2">
+        <p className="font-bold text-white text-sm">
+          {appeal.auction.player.name}
+          <span className="text-gray-400 font-normal"> ({appeal.auction.player.team})</span>
+        </p>
+        {appeal.auction.winner && (
+          <span className="text-xs text-accent-400 font-mono">
+            {appeal.auction.currentPrice}M → {appeal.auction.winner.user.username}
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-gray-400 mb-1">
+        Presentato da <span className="text-white">{appeal.member.user.username}</span>
+      </p>
+      <p className="text-sm text-gray-300 bg-surface-400/40 rounded p-2 mb-2">
+        {appeal.content}
+      </p>
+      <Textarea
+        value={note}
+        onChange={e => { onNoteChange(e.target.value); }}
+        rows={2}
+        placeholder="Nota (opzionale)..."
+        maxLength={500}
+        className="mb-2"
+      />
+      <div className="flex gap-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          fullWidth
+          disabled={isResolving}
+          onClick={() => { onResolve('ACCEPTED'); }}
+          className="bg-secondary-500 hover:bg-secondary-600 text-white"
+        >
+          {isResolving ? 'Attendi...' : 'Accetta'}
+        </Button>
+        <Button
+          variant="danger"
+          size="sm"
+          fullWidth
+          disabled={isResolving}
+          onClick={() => { onResolve('REJECTED'); }}
+        >
+          {isResolving ? 'Attendi...' : 'Rifiuta'}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export function AdminActionsPanel({
   canCloseAuction,
   onCloseAuction,
@@ -123,62 +185,16 @@ export function AdminActionsPanel({
       {/* Appeals detail cards — full width below the grid */}
       {appealsCount > 0 && (
         <div className="px-3 pb-3 space-y-3">
-          {pendingAppeals.map(appeal => {
-            const isResolving = resolvingAppealId === appeal.id
-            return (
-              <div
-                key={appeal.id}
-                className="bg-surface-300 rounded-lg p-3 border border-danger-500/30"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-bold text-white text-sm">
-                    {appeal.auction.player.name}
-                    <span className="text-gray-400 font-normal"> ({appeal.auction.player.team})</span>
-                  </p>
-                  {appeal.auction.winner && (
-                    <span className="text-xs text-accent-400 font-mono">
-                      {appeal.auction.currentPrice}M → {appeal.auction.winner.user.username}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-gray-400 mb-1">
-                  Presentato da <span className="text-white">{appeal.member.user.username}</span>
-                </p>
-                <p className="text-sm text-gray-300 bg-surface-400/40 rounded p-2 mb-2">
-                  {appeal.content}
-                </p>
-                <Textarea
-                  value={notes[appeal.id] ?? ''}
-                  onChange={e => { setNote(appeal.id, e.target.value); }}
-                  rows={2}
-                  placeholder="Nota (opzionale)..."
-                  maxLength={500}
-                  className="mb-2"
-                />
-                <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    fullWidth
-                    disabled={isResolving}
-                    onClick={() => { onResolveAppeal(appeal.id, 'ACCEPTED', notes[appeal.id]?.trim() || undefined); }}
-                    className="bg-secondary-500 hover:bg-secondary-600 text-white"
-                  >
-                    {isResolving ? 'Attendi...' : 'Accetta'}
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    fullWidth
-                    disabled={isResolving}
-                    onClick={() => { onResolveAppeal(appeal.id, 'REJECTED', notes[appeal.id]?.trim() || undefined); }}
-                  >
-                    {isResolving ? 'Attendi...' : 'Rifiuta'}
-                  </Button>
-                </div>
-              </div>
-            )
-          })}
+          {pendingAppeals.map(appeal => (
+            <AppealCard
+              key={appeal.id}
+              appeal={appeal}
+              isResolving={resolvingAppealId === appeal.id}
+              note={notes[appeal.id] ?? ''}
+              onNoteChange={value => { setNote(appeal.id, value); }}
+              onResolve={decision => { onResolveAppeal(appeal.id, decision, notes[appeal.id]?.trim() || undefined); }}
+            />
+          ))}
         </div>
       )}
     </div>

@@ -352,14 +352,20 @@
   }
 
   /* Cockpit: scroll interno ai pannelli lunghi — scrollbar sottile 6px +
-     fade in basso (via mask). Il contenitore deve avere altezza vincolata. */
+     fade in basso (via mask, solo desktop: su mobile i pannelli sono in
+     flusso normale). Il contenitore deve avere altezza vincolata. */
   .panel-scroll {
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: #3a3f49 transparent;
-    -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent);
-    mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent);
+  }
+
+  @media (min-width: 1024px) {
+    .panel-scroll {
+      -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent);
+      mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent);
+    }
   }
 
   .panel-scroll::-webkit-scrollbar {

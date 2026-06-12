@@ -1,5 +1,5 @@
+import { ManagerListRow } from '@/components/ui/ManagerListRow'
 import type { ManagersStatusData, ManagerData } from '../../types/auctionroom.types'
-import { ManagerRow, computeManagerMaxBid } from './ManagerRow'
 
 interface FinancialDashboardProps {
   managersStatus: ManagersStatusData | null
@@ -7,11 +7,25 @@ interface FinancialDashboardProps {
   currentBidderUsername?: string | null
 }
 
+export function computeManagerMaxBid(m: ManagerData): number {
+  const monteIngaggi = m.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
+  const bilancio = m.currentBudget - monteIngaggi
+  const emptySlots = (['P', 'D', 'C', 'A'] as const).reduce(
+    (sum, pos) => sum + (m.slotsByPosition[pos].total - m.slotsByPosition[pos].filled), 0
+  )
+  return Math.max(0, bilancio - Math.max(0, emptySlots - 1))
+}
+
 function isRoleFull(m: ManagerData, currentRole: string): boolean {
   const slot = m.slotsByPosition[currentRole as 'P' | 'D' | 'C' | 'A']
   return slot ? slot.filled >= slot.total : false
 }
 
+/**
+ * Colonna Manager del cockpit (P5): righe unificate ManagerListRow —
+ * monogramma, stato in gara, offerta max grande + budget piccolo.
+ * Scroll interno (.panel-scroll), testata fissa.
+ */
 export function FinancialDashboard({ managersStatus, onSelectManager, currentBidderUsername }: FinancialDashboardProps) {
   if (!managersStatus) {
     return (
@@ -36,41 +50,62 @@ export function FinancialDashboard({ managersStatus, onSelectManager, currentBid
     return computeManagerMaxBid(b) - computeManagerMaxBid(a)
   })
 
-  const leagueSize = managersStatus.managers.length
-
   return (
-    <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden h-full flex flex-col">
+    <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden h-full flex flex-col min-h-0">
       {/* Header */}
-      <div className="p-3 border-b border-surface-50 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </div>
-          <h3 className="micro-label">Manager</h3>
-        </div>
-        <span className="text-sm text-gray-400 font-semibold bg-surface-300/60 px-2 py-0.5 rounded-full">
-          Lega a {leagueSize}
+      <div className="px-3.5 py-2.5 border-b border-surface-50 flex items-baseline gap-2 flex-shrink-0">
+        <h3 className="micro-label">Manager · offerte max</h3>
+        <span className="ml-auto font-mono text-[10.5px] text-gray-500">
+          Lega a {managersStatus.managers.length}
         </span>
       </div>
 
-      {/* Manager Cards */}
-      <div className="overflow-y-auto flex-1 p-2 space-y-1.5">
-        {sortedManagers.map(m => (
-          <ManagerRow
-            key={m.id}
-            manager={m}
-            isMe={m.id === managersStatus.myId}
-            onClick={() => { onSelectManager(m); }}
-            currentRole={currentRole}
-            isHolding={m.username === currentBidderUsername}
-          />
-        ))}
+      {/* Manager rows — scroll interno */}
+      <div className="panel-scroll flex-1 min-h-0">
+        {sortedManagers.map(m => {
+          const monteIngaggi = m.roster.reduce((sum, r) => sum + (r.contract?.salary || 0), 0)
+          const bilancio = m.currentBudget - monteIngaggi
+          const emptySlots = (['P', 'D', 'C', 'A'] as const).reduce(
+            (sum, pos) => sum + (m.slotsByPosition[pos].total - m.slotsByPosition[pos].filled), 0
+          )
+          const maxBid = computeManagerMaxBid(m)
+          const roleSlot = m.slotsByPosition[currentRole as 'P' | 'D' | 'C' | 'A']
+          const roleFull = roleSlot ? roleSlot.filled >= roleSlot.total : false
+          const isMe = m.id === managersStatus.myId
+          const isHolding = m.username === currentBidderUsername
+
+          return (
+            <ManagerListRow
+              key={m.id}
+              name={m.teamName || m.username}
+              isMe={isMe}
+              isHolding={isHolding}
+              dim={roleFull && !isMe}
+              leadDot={isHolding}
+              statusLine={
+                <>
+                  {isHolding && <b className="text-accent-400 font-semibold">Miglior offerta · </b>}
+                  {roleSlot && (
+                    roleFull
+                      ? `Slot ${currentRole} ${roleSlot.filled}/${roleSlot.total} — non può rilanciare`
+                      : `In gara · Slot ${currentRole} ${roleSlot.filled}/${roleSlot.total}`
+                  )}
+                </>
+              }
+              bigValue={roleFull ? '—' : maxBid}
+              bigUnit={roleFull ? undefined : 'max'}
+              bigValueGold={isHolding}
+              smallValue={`budget ${bilancio}`}
+              connectedDot={m.isConnected ?? null}
+              onClick={() => { onSelectManager(m); }}
+              title={`Offerta max possibile.\nBudget (${bilancio}M) - Slot vuoti rimanenti (${Math.max(0, emptySlots - 1)}) = ${maxBid}M`}
+            />
+          )
+        })}
       </div>
 
       {/* Sorting note */}
-      <div className="px-3 py-2 border-t border-surface-50 flex-shrink-0">
+      <div className="px-3.5 py-2 border-t border-surface-50 flex-shrink-0">
         <p className="text-sm text-gray-500 leading-snug">
           Ordinati per offerta max · chi detiene l&apos;offerta è in cima
         </p>
