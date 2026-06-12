@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { Settings } from 'lucide-react'
-import { Monogram } from './Monogram'
+import { Monogram } from '@/components/ui/Monogram'
 import { POSITION_COLORS } from '../../types/rubata.types'
 import { getWatchlistCategory } from '@/types/watchlist.types'
 import type { BoardPlayer, RubataPreference } from '../../types/rubata.types'

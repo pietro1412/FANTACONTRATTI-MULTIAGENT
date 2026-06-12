@@ -1,6 +1,5 @@
 export { PreferenceModal } from './PreferenceModal'
 export { TeamLogo } from './TeamLogo'
-export { Monogram } from './Monogram'
 export { PendingAckModal, AppealReviewModal, AppealAckModal, AwaitingResumeModal, AuctionReadyCheckModal } from './RubataModals'
 export { BudgetPanel, TimerSettingsPanel, BotSimulationPanel, CompleteRubataPanel } from './RubataAdminControls'
 export { RubataBidPanel } from './RubataBidPanel'

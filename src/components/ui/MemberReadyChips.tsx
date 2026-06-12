@@ -1,29 +1,71 @@
+import { Monogram } from './Monogram'
+
 interface Member {
   id: string
   username: string
 }
 
-interface MemberReadyChipsProps {
+export interface MemberReadyChipsProps {
   done: Member[]
   pending: Member[]
   /** Label shown in the done chip tooltip, e.g. "pronto" / "confermato" */
   doneLabel?: string
+  /**
+   * card = chip con nome dentro una card (lobby) ·
+   * strip = striscia sottile a 1 riga con micro-label "PRONTI x/y" (cockpit)
+   */
+  variant?: 'card' | 'strip'
+  className?: string
 }
 
 /**
- * Lobby-style member status: one chip per manager with monogram avatar.
- * Done members light up green with a check badge; pending ones are dimmed
- * with a pulsing amber dot.
+ * P6 — Ready check a chip avatar: un chip per manager con monogramma;
+ * chi è pronto si accende in verde con badge check, chi manca è sbiadito
+ * con punto ambra pulsante.
  */
-export function MemberReadyChips({ done, pending, doneLabel = 'pronto' }: MemberReadyChipsProps) {
+export function MemberReadyChips({
+  done,
+  pending,
+  doneLabel = 'pronto',
+  variant = 'card',
+  className = '',
+}: MemberReadyChipsProps) {
   const members = [
     ...done.map(m => ({ ...m, done: true })),
     ...pending.map(m => ({ ...m, done: false })),
   ]
   if (members.length === 0) return null
 
+  if (variant === 'strip') {
+    return (
+      <div className={`flex items-center gap-2.5 bg-surface-200 border border-surface-50 rounded-[10px] px-3.5 py-1.5 min-h-[40px] ${className}`}>
+        <span className="micro-label flex-shrink-0 mr-1">
+          Pronti {done.length}/{members.length}
+        </span>
+        <div className="flex items-center gap-2 overflow-x-auto min-w-0">
+          {members.map(m => (
+            <span
+              key={m.id}
+              title={m.done ? `${m.username}: ${doneLabel}` : `${m.username}: in attesa`}
+              className="relative inline-flex flex-shrink-0"
+            >
+              <Monogram name={m.username} size="sm" className={m.done ? '' : 'opacity-45'} />
+              {m.done ? (
+                <span className="absolute -bottom-[3px] -right-[3px] w-[13px] h-[13px] rounded-full bg-secondary-500 text-dark-300 text-[8px] font-extrabold flex items-center justify-center border-2 border-surface-200" aria-hidden="true">
+                  ✓
+                </span>
+              ) : (
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-accent-500 border-2 border-surface-200 animate-pulse" aria-hidden="true" />
+              )}
+            </span>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="bg-surface-200 border border-surface-50 rounded-xl p-3">
+    <div className={`bg-surface-200 border border-surface-50 rounded-xl p-3 ${className}`}>
       <div className="flex flex-wrap gap-2 justify-center">
         {members.map(m => (
           <span

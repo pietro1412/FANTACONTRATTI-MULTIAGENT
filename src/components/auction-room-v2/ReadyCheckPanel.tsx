@@ -1,6 +1,6 @@
 import { Button } from '../ui/Button'
 import { PlayerCard } from './PlayerCard'
-import { MemberReadyChips } from './MemberReadyChips'
+import { MemberReadyChips } from '@/components/ui/MemberReadyChips'
 import type { ReadyStatus } from '../../types/auctionroom.types'
 
 interface ReadyCheckPanelProps {

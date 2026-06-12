@@ -1,4 +1,4 @@
-import { MemberReadyChips } from './MemberReadyChips'
+import { MemberReadyChips } from '@/components/ui/MemberReadyChips'
 import type { PendingAcknowledgment } from '../../types/auctionroom.types'
 
 interface AcknowledgmentPanelProps {

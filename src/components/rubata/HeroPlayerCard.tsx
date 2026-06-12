@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import { Settings } from 'lucide-react'
 import { TeamLogo } from './TeamLogo'
-import { Monogram } from './Monogram'
+import { Monogram } from '@/components/ui/Monogram'
 import { POSITION_COLORS } from '../../types/rubata.types'
 import { getWatchlistCategory } from '@/types/watchlist.types'
 import { getPlayerPhotoUrl } from '../../utils/player-images'

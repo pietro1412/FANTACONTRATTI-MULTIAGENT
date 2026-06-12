@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { Monogram } from './Monogram'
+import { Monogram } from '@/components/ui/Monogram'
 import type { MemberBudgetInfo } from '../../types/rubata.types'
 
 export interface RubataRivalsStripProps {

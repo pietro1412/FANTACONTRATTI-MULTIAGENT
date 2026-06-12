@@ -350,6 +350,30 @@
   .progress-gradient {
     background: linear-gradient(90deg, #3b82f6, #f59e0b);
   }
+
+  /* Cockpit: scroll interno ai pannelli lunghi — scrollbar sottile 6px +
+     fade in basso (via mask). Il contenitore deve avere altezza vincolata. */
+  .panel-scroll {
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #3a3f49 transparent;
+    -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent);
+  }
+
+  .panel-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .panel-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .panel-scroll::-webkit-scrollbar-thumb {
+    background: #3a3f49;
+    border-radius: 3px;
+  }
 }
 
 /* Custom utility styles */
