@@ -62,7 +62,6 @@ export function CommandPalette() {
         { id: 'movements', label: 'Movimenti', category: 'Lega', icon: '📜', action: () => { void navigate(`/leagues/${leagueId}/movements`) }, keywords: 'storico operazioni' },
         { id: 'stats', label: 'Statistiche Giocatori', category: 'Lega', icon: '📊', action: () => { void navigate(`/leagues/${leagueId}/stats`) }, keywords: 'stats gol assist rating' },
         { id: 'players', label: 'Tutti i Giocatori', category: 'Lega', icon: '⚽', action: () => { void navigate(`/leagues/${leagueId}/players`) }, keywords: 'calciatori ricerca' },
-        { id: 'manager', label: 'Dashboard Manager', category: 'Lega', icon: '📈', action: () => { void navigate(`/leagues/${leagueId}/manager`) }, keywords: 'manager panoramica' },
         { id: 'history', label: 'Storico', category: 'Lega', icon: '📚', action: () => { void navigate(`/leagues/${leagueId}/history`) }, keywords: 'cronologia passato' },
         { id: 'prizes', label: 'Premi', category: 'Lega', icon: '🏅', action: () => { void navigate(`/leagues/${leagueId}/prizes`) }, keywords: 'premio classifica' },
         { id: 'prophecies', label: 'Profezie', category: 'Lega', icon: '🔮', action: () => { void navigate(`/leagues/${leagueId}/prophecies`) }, keywords: 'profezia previsione' },

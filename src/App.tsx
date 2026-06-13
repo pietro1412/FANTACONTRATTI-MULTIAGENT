@@ -26,7 +26,6 @@ const Rubata = lazy(() => import('./pages/Rubata').then(m => ({ default: m.Rubat
 const StrategieRubata = lazy(() => import('./pages/StrategieRubata').then(m => ({ default: m.StrategieRubata })))
 const Svincolati = lazy(() => import('./pages/Svincolati').then(m => ({ default: m.Svincolati })))
 const Players = lazy(() => import('./pages/Players').then(m => ({ default: m.Players })))
-const ManagerDashboard = lazy(() => import('./pages/ManagerDashboard').then(m => ({ default: m.ManagerDashboard })))
 const AdminPanel = lazy(() => import('./pages/AdminPanel').then(m => ({ default: m.AdminPanel })))
 const Movements = lazy(() => import('./pages/Movements').then(m => ({ default: m.Movements })))
 const History = lazy(() => import('./pages/History').then(m => ({ default: m.History })))
@@ -201,7 +200,6 @@ function createLeagueNavigator(navigate: ReturnType<typeof useNavigate>, leagueI
         if (params?.team) void navigate(`/leagues/${lid}/players?team=${encodeURIComponent(params.team)}`)
         else void navigate(`/leagues/${lid}/players`)
         break
-      case 'manager-dashboard': void navigate(`/leagues/${lid}/manager`); break
       case 'admin':
       case 'adminPanel':
         if (params?.tab) void navigate(`/leagues/${lid}/admin?tab=${params.tab}`)
@@ -311,15 +309,6 @@ function PlayersListWrapper() {
 
   if (!leagueId) return <Navigate to="/dashboard" replace />
   return <Players leagueId={leagueId} onNavigate={onNavigate} initialView="list" initialTeamFilter={teamFilter} />
-}
-
-function ManagerDashboardWrapper() {
-  const navigate = useNavigate()
-  const { leagueId } = useParams<{ leagueId: string }>()
-  const onNavigate = useCallback(createLeagueNavigator(navigate, leagueId), [navigate, leagueId])
-
-  if (!leagueId) return <Navigate to="/dashboard" replace />
-  return <ManagerDashboard leagueId={leagueId} onNavigate={onNavigate} />
 }
 
 function AdminPanelWrapper() {
@@ -553,13 +542,6 @@ function AppRoutes() {
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
             <PlayersListWrapper />
-          </Suspense>
-        </ProtectedRoute>
-      } />
-      <Route path="/leagues/:leagueId/manager" element={
-        <ProtectedRoute>
-          <Suspense fallback={<PageLoader />}>
-            <ManagerDashboardWrapper />
           </Suspense>
         </ProtectedRoute>
       } />
