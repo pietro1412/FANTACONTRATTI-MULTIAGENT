@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mockup — Cockpit Contratti 1440×900</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Derivato da 07-scambi/cockpit.html — stesso CSS condiviso, adattato a Contratti:
+     CockpitShell di pagina, testata con Slot/Budget/Ingaggi/Residuo sempre visibili,
+     adminBar = gate di consolidamento (motivo blocco SEMPRE visibile) + Salva/Consolida,
+     main = tabella contratti (.panel-scroll) + sidebar stats fissa.
+     Scope: solo grafico + UI cleanup (niente estrazione logica dominio). */
+  :root{
+    --bg:#0a0a0b; --card:#1a1c20; --elev:#111214; --hover:#252830;
+    --border:#2d3139; --primary:#3b82f6; --secondary:#22c55e;
+    --gold:#f59e0b; --gold2:#fbbf24; --danger:#ef4444; --passion:#ea580c;
+    --t1:#f9fafb; --t2:#9ca3af; --t3:#8b919d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding:40px 0 80px;}
+  button{font:inherit;}
+  h1.page{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+  p.sub{text-align:center;color:var(--t3);font-size:13px;margin-bottom:36px;max-width:1100px;margin-left:auto;margin-right:auto;}
+  .frames{display:flex;flex-direction:column;align-items:center;gap:56px;}
+  .frame-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;}
+
+  .frame{width:1440px;height:900px;border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);display:grid;grid-template-rows:64px 46px minmax(0,1fr);}
+  .frame>*{min-width:0;min-height:0;}
+
+  .scrollwrap{position:relative;flex:1;min-height:0;}
+  .scrollbody{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#3a3f49 transparent;}
+  .scrollbody::-webkit-scrollbar{width:6px;}
+  .scrollbody::-webkit-scrollbar-thumb{background:#3a3f49;border-radius:3px;}
+  .fadeb{position:absolute;left:1px;right:7px;bottom:0;height:34px;background:linear-gradient(180deg,rgba(26,28,32,0),var(--card) 88%);pointer-events:none;}
+
+  .micro{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);}
+  .micro.gold{color:var(--gold2);}
+
+  /* ===== testata ===== */
+  .head{display:flex;align-items:center;gap:14px;padding:0 20px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .crest{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#b45309,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:18px;border:1px solid rgba(245,158,11,.6);flex-shrink:0;}
+  .head-id .nm{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;line-height:1.2;}
+  .head-id .sb{font-size:11px;color:var(--t3);margin-top:1px;}
+  .pill-phase{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--gold2);background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.5);border-radius:999px;padding:4px 11px;}
+  .pill-phase .d{width:7px;height:7px;border-radius:50%;background:var(--gold2);box-shadow:0 0 7px var(--gold2);}
+  .head-stats{display:flex;gap:16px;margin-left:auto;align-items:center;}
+  .hstat{text-align:right;}
+  .hstat .l{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.11em;color:var(--t3);text-transform:uppercase;}
+  .hstat .v{font-family:'Oswald',sans-serif;font-size:22px;font-weight:600;color:var(--t1);line-height:1.1;font-variant-numeric:tabular-nums;}
+  .hstat.gold .v{color:var(--gold2);}
+  .hstat.good .v{color:var(--secondary);}
+  .hstat.warn .v{color:var(--danger);}
+  .hsep{width:1px;height:30px;background:var(--border);}
+
+  /* ===== barra tab + filtri ===== */
+  .tabbar{display:flex;align-items:center;gap:2px;padding:0 18px;background:var(--elev);border-bottom:1px solid var(--border);}
+  .tab{display:inline-flex;align-items:center;gap:7px;height:100%;padding:0 15px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:var(--t2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;}
+  .tab .badge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;min-width:17px;height:17px;padding:0 5px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:var(--hover);color:var(--t2);}
+  .tab.on{color:var(--gold2);border-bottom-color:var(--gold);}
+  .tab.on .badge{background:var(--gold2);color:#0a0a0b;}
+  .tab .badge.alert{background:var(--danger);color:#fff;}
+  .tabbar .right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+  .search{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:5px 11px;color:var(--t3);font-size:12px;min-width:170px;}
+  .rolefilters{display:flex;gap:5px;}
+  .fchip{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;border:1px solid var(--border);border-radius:999px;padding:4px 10px;color:var(--t3);cursor:pointer;}
+  .fchip.on{color:#0a0a0b;background:var(--gold2);border-color:var(--gold2);}
+
+  /* ===== gate consolidamento (adminBar) — è la riga main, sotto i tab quando serve ===== */
+  /* nel layout reale è una riga dedicata; qui la fondiamo nella testata-azioni in cima al main */
+
+  .main{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;padding:12px 20px 16px;min-height:0;}
+  .main>*{min-width:0;min-height:0;}
+  .col-work{display:flex;flex-direction:column;gap:12px;min-height:0;}
+
+  /* barra gate sopra la tabella */
+  .gate{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:9px 14px;flex-shrink:0;}
+  .gate.block{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.06);}
+  .gate.ready{border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.06);}
+  .gate-ico{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;}
+  .gate.block .gate-ico{background:rgba(239,68,68,.18);color:var(--danger);}
+  .gate.ready .gate-ico{background:rgba(34,197,94,.18);color:var(--secondary);}
+  .gate-msg{font-size:13px;font-weight:600;}
+  .gate.block .gate-msg{color:#fca5a5;}
+  .gate.ready .gate-msg{color:#86efac;}
+  .gate-sub{font-size:11px;color:var(--t3);margin-top:1px;}
+  .gate-actions{margin-left:auto;display:flex;gap:9px;align-items:center;}
+  .btn-draft{font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;color:var(--t1);background:var(--elev);border:1px solid var(--border);border-radius:9px;padding:8px 16px;cursor:pointer;}
+  .btn-consolidate{font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:800;letter-spacing:.03em;border:none;border-radius:9px;padding:8px 20px;cursor:pointer;text-transform:uppercase;}
+  .btn-consolidate.off{color:var(--t3);background:var(--hover);cursor:not-allowed;}
+  .btn-consolidate.on{color:#06200f;background:linear-gradient(180deg,#34d97b,var(--secondary));box-shadow:0 6px 22px rgba(34,197,94,.30);}
+  .draft-flag{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--gold2);}
+
+  /* ===== pannello + tabella contratti ===== */
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-height:0;}
+  .panel-h{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .panel-h .count{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--t3);}
+
+  .thead{display:grid;grid-template-columns:1fr 116px 132px 118px 96px 96px;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--elev);}
+  .thead .micro{font-size:9px;}
+  .thead .r{text-align:right;}
+  .thead .c{text-align:center;}
+
+  .crow{display:grid;grid-template-columns:1fr 116px 132px 118px 96px 96px;gap:10px;align-items:center;padding:9px 16px;border-bottom:1px solid var(--border);}
+  .crow:hover{background:var(--hover);}
+  .crow.cut{opacity:.55;}
+  .crow.cut .player-nm{text-decoration:line-through;}
+
+  .role-badge{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:13px;flex-shrink:0;}
+  .role-P{background:rgba(245,158,11,.14);color:var(--gold2);border:1px solid rgba(245,158,11,.4);}
+  .role-D{background:rgba(59,130,246,.15);color:var(--primary);border:1px solid rgba(59,130,246,.4);}
+  .role-C{background:rgba(34,197,94,.14);color:var(--secondary);border:1px solid rgba(34,197,94,.4);}
+  .role-A{background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.4);}
+  .player{display:flex;align-items:center;gap:10px;min-width:0;}
+  .player-nm{font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .player-sub{font-size:10.5px;color:var(--t3);margin-top:1px;display:flex;align-items:center;gap:7px;}
+  .tag{font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;border-radius:4px;padding:1px 5px;letter-spacing:.04em;}
+  .tag-spalm{color:var(--primary);border:1px solid rgba(59,130,246,.45);}
+  .tag-rialzo{color:var(--gold2);border:1px solid rgba(245,158,11,.45);}
+  .tag-new{color:var(--secondary);background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);}
+
+  .cur{text-align:right;}
+  .cur .cv{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;color:var(--t2);font-variant-numeric:tabular-nums;}
+  .cur .cs{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--t3);margin-top:1px;}
+
+  /* stepper compatto */
+  .stepper{display:inline-flex;align-items:stretch;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:var(--elev);}
+  .step-btn{width:30px;border:none;background:var(--card);color:var(--t1);font-family:'Oswald',sans-serif;font-size:16px;cursor:pointer;}
+  .step-btn:disabled{opacity:.3;cursor:not-allowed;}
+  .step-val{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:58px;padding:3px 6px;}
+  .step-val .v{font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;color:var(--gold2);line-height:1;font-variant-numeric:tabular-nums;}
+  .step-val .u{font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-top:1px;}
+  .step-val.dur .v{color:var(--primary);}
+
+  .clause{text-align:right;}
+  .clause .v{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;color:var(--t1);font-variant-numeric:tabular-nums;}
+  .clause .d{font-family:'JetBrains Mono',monospace;font-size:9px;margin-top:1px;}
+  .clause .d.up{color:var(--gold2);}
+  .clause .d.same{color:var(--t3);}
+
+  .cut-cell{display:flex;justify-content:center;}
+  .btn-cut{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:var(--danger);border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.06);border-radius:7px;padding:5px 11px;cursor:pointer;letter-spacing:.04em;}
+  .btn-cut.active{color:#fff;background:var(--danger);border-color:var(--danger);}
+  .btn-restore{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:var(--t2);border:1px solid var(--border);background:var(--card);border-radius:7px;padding:5px 11px;cursor:pointer;}
+
+  /* ===== sidebar stats ===== */
+  .side{display:flex;flex-direction:column;gap:12px;min-height:0;}
+  .scard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:13px 15px;}
+  .scard h4{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:11px;}
+  .compo{display:flex;flex-direction:column;gap:9px;}
+  .compo-row{display:flex;align-items:center;gap:9px;}
+  .compo-row .rl{width:18px;font-family:'Outfit',sans-serif;font-weight:800;font-size:12px;}
+  .compo-row.P .rl{color:var(--gold2);} .compo-row.D .rl{color:var(--primary);}
+  .compo-row.C .rl{color:var(--secondary);} .compo-row.A .rl{color:var(--danger);}
+  .ctrack{flex:1;height:6px;border-radius:3px;background:var(--border);overflow:hidden;}
+  .cfill{height:100%;border-radius:3px;}
+  .compo-row.P .cfill{background:var(--gold);} .compo-row.D .cfill{background:var(--primary);}
+  .compo-row.C .cfill{background:var(--secondary);} .compo-row.A .cfill{background:var(--danger);}
+  .compo-row .cn{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--t2);min-width:34px;text-align:right;}
+  .ing-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .ing{padding:8px 10px;background:var(--elev);border:1px solid var(--border);border-radius:9px;}
+  .ing .l{font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);}
+  .ing .v{font-family:'Oswald',sans-serif;font-size:18px;font-weight:600;color:var(--t1);margin-top:2px;}
+  .residuo{background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(34,197,94,.03));border:1px solid rgba(34,197,94,.35);}
+  .residuo .calc{font-size:11px;color:var(--t2);line-height:1.7;}
+  .residuo .calc b{color:var(--t1);font-family:'JetBrains Mono',monospace;}
+  .residuo .tot{display:flex;align-items:baseline;justify-content:space-between;margin-top:9px;padding-top:9px;border-top:1px solid rgba(34,197,94,.25);}
+  .residuo .tot .l{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--secondary);}
+  .residuo .tot .v{font-family:'Oswald',sans-serif;font-size:26px;font-weight:700;color:var(--secondary);}
+
+  /* ===== card Usciti (KEEP/RELEASE) ===== */
+  .usc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:14px 16px;}
+  .usc{background:var(--elev);border:1px solid var(--border);border-radius:12px;padding:13px 15px;}
+  .usc.decided-keep{border-color:rgba(34,197,94,.45);}
+  .usc.decided-rel{border-color:rgba(239,68,68,.45);opacity:.85;}
+  .usc-top{display:flex;align-items:center;gap:11px;margin-bottom:11px;}
+  .usc-reason{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.05em;border-radius:5px;padding:2px 7px;color:var(--gold2);border:1px solid rgba(245,158,11,.4);}
+  .usc-reason.retro{color:var(--primary);border-color:rgba(59,130,246,.4);}
+  .usc-econ{display:flex;gap:18px;margin-bottom:12px;}
+  .usc-econ .e .l{font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);}
+  .usc-econ .e .v{font-family:'Oswald',sans-serif;font-size:17px;font-weight:600;color:var(--t1);}
+  .usc-econ .e .v.dng{color:var(--danger);}
+  .usc-actions{display:flex;gap:8px;}
+  .ua{flex:1;font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:700;border-radius:9px;padding:8px 0;cursor:pointer;border:1px solid var(--border);}
+  .ua.keep{color:var(--secondary);border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.08);}
+  .ua.keep.sel{color:#06200f;background:linear-gradient(180deg,#34d97b,var(--secondary));border:none;}
+  .ua.rel{color:var(--danger);border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.06);}
+  .ua.rel.sel{color:#fff;background:var(--danger);border-color:var(--danger);}
+  .usc-done{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.05em;}
+  .usc-done.keep{color:var(--secondary);} .usc-done.rel{color:var(--danger);}
+</style>
+</head>
+<body>
+
+<h1 class="page">Cockpit — Rinnovi & Consolidamento 1440×900</h1>
+<p class="sub">CockpitShell di pagina · testata con Slot/Budget/Ingaggi/<b>Residuo</b> sempre visibili (Oswald) · barra tab Rinnovi/Nuovi/Usciti con badge alert · gate di consolidamento (motivo del blocco SEMPRE visibile, non più in un tooltip) sopra la tabella · scroll solo dentro la tabella. Due frame: tab Rinnovi (in lavorazione, gate bloccato) e tab Usciti (KEEP/RELEASE).</p>
+
+<div class="frames">
+
+<!-- ============ FRAME 1: RINNOVI ============ -->
+<div>
+  <div class="frame-label">Contratti — Rinnovi (tabella editabile, gate bloccato)</div>
+  <div class="frame">
+
+    <!-- Testata -->
+    <div class="head">
+      <div class="crest">📋</div>
+      <div class="head-id">
+        <div class="nm">Diego FC · Gestione Contratti</div>
+        <div class="sb">Lega Fantacontratti · fase rinnovi</div>
+      </div>
+      <span class="pill-phase"><span class="d"></span>Fase Contratti</span>
+      <div class="head-stats">
+        <div class="hstat warn"><div class="l">Slot</div><div class="v">31/29</div></div>
+        <div class="hsep"></div>
+        <div class="hstat gold"><div class="l">Budget</div><div class="v">412M</div></div>
+        <div class="hsep"></div>
+        <div class="hstat"><div class="l">Ingaggi</div><div class="v">88M</div></div>
+        <div class="hsep"></div>
+        <div class="hstat good"><div class="l">Residuo</div><div class="v">+312M</div></div>
+      </div>
+    </div>
+
+    <!-- Barra tab + filtri -->
+    <div class="tabbar">
+      <button class="tab on">Rinnovi <span class="badge">25</span></button>
+      <button class="tab">Nuovi <span class="badge alert">3</span></button>
+      <button class="tab">Usciti <span class="badge alert">2</span></button>
+      <div class="right">
+        <span class="search">🔍 Cerca giocatore…</span>
+        <span class="rolefilters"><span class="fchip on">Tutti</span><span class="fchip">P</span><span class="fchip">D</span><span class="fchip">C</span><span class="fchip">A</span></span>
+      </div>
+    </div>
+
+    <div class="main">
+      <!-- colonna lavoro -->
+      <div class="col-work">
+
+        <!-- gate consolidamento BLOCCATO -->
+        <div class="gate block">
+          <span class="gate-ico">✕</span>
+          <div>
+            <div class="gate-msg">Non puoi ancora consolidare: 31 giocatori, max 29</div>
+            <div class="gate-sub">Taglia almeno 2 giocatori per rientrare nel limite rosa.</div>
+          </div>
+          <div class="gate-actions">
+            <span class="draft-flag">● bozza salvata 12:04</span>
+            <button class="btn-draft">Salva bozza</button>
+            <button class="btn-consolidate off">Consolida</button>
+          </div>
+        </div>
+
+        <!-- tabella contratti -->
+        <div class="panel">
+          <div class="thead">
+            <span class="micro">Giocatore</span>
+            <span class="micro r">Contratto attuale</span>
+            <span class="micro c">Nuovo ingaggio</span>
+            <span class="micro c">Durata</span>
+            <span class="micro r">Clausola</span>
+            <span class="micro c">Azione</span>
+          </div>
+          <div class="scrollwrap">
+            <div class="scrollbody">
+
+              <div class="crow">
+                <div class="player"><div class="role-badge role-A">A</div><div style="min-width:0;"><div class="player-nm">Mateo Retegui</div><div class="player-sub">Atalanta · 26 · <b>7.2</b><span class="tag tag-rialzo">RIALZO</span></div></div></div>
+                <div class="cur"><div class="cv">24×3</div><div class="cs">claus. 216</div></div>
+                <div style="display:flex;justify-content:center;"><div class="stepper"><button class="step-btn">−</button><div class="step-val"><span class="v">28</span><span class="u">ing.</span></div><button class="step-btn">+</button></div></div>
+                <div style="display:flex;justify-content:center;"><div class="stepper"><button class="step-btn">−</button><div class="step-val dur"><span class="v">3</span><span class="u">sem</span></div><button class="step-btn">+</button></div></div>
+                <div class="clause"><div class="v">252</div><div class="d up">↑ +36</div></div>
+                <div class="cut-cell"><button class="btn-cut">Taglia</button></div>
+              </div>
+
+              <div class="crow">
+                <div class="player"><div class="role-badge role-C">C</div><div style="min-width:0;"><div class="player-nm">Nicolò Barella</div><div class="player-sub">Inter · 28 · <b>7.0</b><span class="tag tag-spalm">SPALMABILE</span></div></div></div>
+                <div class="cur"><div class="cv">30×4</div><div class="cs">claus. 330</div></div>
+                <div style="display:flex;justify-content:center;"><div class="stepper"><button class="step-btn">−</button><div class="step-val"><span class="v">30</span><span class="u">ing.</span></div><button class="step-btn">+</button></div></div>
+                <div style="display:flex;justify-content:center;"><div class="stepper"><button class="step-btn">−</button><div class="step-val dur"><span class="v">4</span><span class="u">sem</span></div><button class="step-btn" disabled>+</button></div></div>
+                <div class="clause"><div class="v">330</div><div class="d same">= invariata</div></div>
+                <div class="cut-cell"><button class="btn-cut">Taglia</button></div>
+              </div>
+
+              <div class="crow cut">
+                <div class="player"><div class="role-badge role-D">D</div><div style="min-width:0;"><div class="player-nm">Sead Kolašinac</div><div class="player-sub">Atalanta · 31 · <b>6.1</b></div></div></div>
+                <div class="cur"><div class="cv">10×2</div><div class="cs">claus. 70</div></div>
+                <div style="text-align:center;font-size:11px;color:var(--danger);font-family:'JetBrains Mono',monospace;font-weight:700;">costo taglio</div>
+                <div style="text-align:center;font-family:'Oswald',sans-serif;font-size:18px;color:var(--danger);">−5M</div>
+                <div class="clause"><div class="d same">—</div></div>
+                <div class="cut-cell"><button class="btn-restore">Annulla</button></div>
+              </div>
+
+              <div class="crow">
+                <div class="player"><div class="role-badge role-D">D</div><div style="min-width:0;"><div class="player-nm">Alessandro Bastoni</div><div class="player-sub">Inter · 25 · <b>6.8</b></div></div></div>
+                <div class="cur"><div class="cv">26×4</div><div class="cs">claus. 286</div></div>
+                <div style="display:flex;justify-content:center;"><div class="stepper"><button class="step-btn">−</button><div class="step-val"><span class="v">26</span><span class="u">ing.</span></div><button class="step-btn">+</button></div></div>
+                <div style="display:flex;justify-content:center;"><div class="stepper"><button class="step-btn">−</button><div class="step-val dur"><span class="v">4</span><span class="u">sem</span></div><button class="step-btn" disabled>+</button></div></div>
+                <div class="clause"><div class="v">286</div><div class="d same">= invariata</div></div>
+                <div class="cut-cell"><button class="btn-cut">Taglia</button></div>
+              </div>
+
+              <div class="crow">
+                <div class="player"><div class="role-badge role-P">P</div><div style="min-width:0;"><div class="player-nm">Michele Di Gregorio</div><div class="player-sub">Juventus · 28 · <b>6.5</b><span class="tag tag-spalm">SPALMABILE</span></div></div></div>
+                <div class="cur"><div class="cv">14×2</div><div class="cs">claus. 98</div></div>
+                <div style="display:flex;justify-content:center;"><div class="stepper"><button class="step-btn">−</button><div class="step-val"><span class="v">12</span><span class="u">ing.</span></div><button class="step-btn">+</button></div></div>
+                <div style="display:flex;justify-content:center;"><div class="stepper"><button class="step-btn">−</button><div class="step-val dur"><span class="v">3</span><span class="u">sem</span></div><button class="step-btn">+</button></div></div>
+                <div class="clause"><div class="v">108</div><div class="d up">↑ +10</div></div>
+                <div class="cut-cell"><button class="btn-cut">Taglia</button></div>
+              </div>
+
+              <div class="crow">
+                <div class="player"><div class="role-badge role-C">C</div><div style="min-width:0;"><div class="player-nm">Hakan Çalhanoğlu</div><div class="player-sub">Inter · 31 · <b>6.9</b></div></div></div>
+                <div class="cur"><div class="cv">21×2</div><div class="cs">claus. 147</div></div>
+                <div style="display:flex;justify-content:center;"><div class="stepper"><button class="step-btn">−</button><div class="step-val"><span class="v">21</span><span class="u">ing.</span></div><button class="step-btn">+</button></div></div>
+                <div style="display:flex;justify-content:center;"><div class="stepper"><button class="step-btn">−</button><div class="step-val dur"><span class="v">2</span><span class="u">sem</span></div><button class="step-btn">+</button></div></div>
+                <div class="clause"><div class="v">147</div><div class="d same">= invariata</div></div>
+                <div class="cut-cell"><button class="btn-cut">Taglia</button></div>
+              </div>
+
+              <div class="crow">
+                <div class="player"><div class="role-badge role-A">A</div><div style="min-width:0;"><div class="player-nm">Ademola Lookman</div><div class="player-sub">Atalanta · 27 · <b>7.4</b></div></div></div>
+                <div class="cur"><div class="cv">23×3</div><div class="cs">claus. 207</div></div>
+                <div style="display:flex;justify-content:center;"><div class="stepper"><button class="step-btn">−</button><div class="step-val"><span class="v">23</span><span class="u">ing.</span></div><button class="step-btn">+</button></div></div>
+                <div style="display:flex;justify-content:center;"><div class="stepper"><button class="step-btn">−</button><div class="step-val dur"><span class="v">3</span><span class="u">sem</span></div><button class="step-btn">+</button></div></div>
+                <div class="clause"><div class="v">207</div><div class="d same">= invariata</div></div>
+                <div class="cut-cell"><button class="btn-cut">Taglia</button></div>
+              </div>
+
+            </div>
+            <div class="fadeb"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- sidebar stats -->
+      <div class="side">
+        <div class="scard residuo">
+          <h4>Residuo dopo consolidamento</h4>
+          <div class="calc">
+            Budget <b>412M</b><br>
+            − Ingaggi annui <b>88M</b><br>
+            + Recupero tagli <b>5M</b><br>
+            − Indennizzi <b>17M</b>
+          </div>
+          <div class="tot"><span class="l">Residuo</span><span class="v">+312M</span></div>
+        </div>
+
+        <div class="scard">
+          <h4>Composizione rosa · 31/29</h4>
+          <div class="compo">
+            <div class="compo-row P"><span class="rl">P</span><div class="ctrack"><div class="cfill" style="width:100%"></div></div><span class="cn">3/3</span></div>
+            <div class="compo-row D"><span class="rl">D</span><div class="ctrack"><div class="cfill" style="width:100%"></div></div><span class="cn">9/8</span></div>
+            <div class="compo-row C"><span class="rl">C</span><div class="ctrack"><div class="cfill" style="width:100%"></div></div><span class="cn">9/8</span></div>
+            <div class="compo-row A"><span class="rl">A</span><div class="ctrack"><div class="cfill" style="width:100%"></div></div><span class="cn">10/6</span></div>
+          </div>
+        </div>
+
+        <div class="scard">
+          <h4>Ingaggi rosa</h4>
+          <div class="ing-grid">
+            <div class="ing"><div class="l">Minimo</div><div class="v">8M</div></div>
+            <div class="ing"><div class="l">Massimo</div><div class="v">30M</div></div>
+            <div class="ing"><div class="l">Media</div><div class="v">17M</div></div>
+            <div class="ing"><div class="l">Totale</div><div class="v">88M</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FRAME 2: USCITI (KEEP/RELEASE) ============ -->
+<div>
+  <div class="frame-label">Contratti — Usciti (KEEP / RELEASE esteri e retrocessi)</div>
+  <div class="frame">
+
+    <!-- Testata -->
+    <div class="head">
+      <div class="crest">📋</div>
+      <div class="head-id">
+        <div class="nm">Diego FC · Gestione Contratti</div>
+        <div class="sb">Lega Fantacontratti · fase rinnovi</div>
+      </div>
+      <span class="pill-phase"><span class="d"></span>Fase Contratti</span>
+      <div class="head-stats">
+        <div class="hstat warn"><div class="l">Slot</div><div class="v">31/29</div></div>
+        <div class="hsep"></div>
+        <div class="hstat gold"><div class="l">Budget</div><div class="v">412M</div></div>
+        <div class="hsep"></div>
+        <div class="hstat"><div class="l">Ingaggi</div><div class="v">88M</div></div>
+        <div class="hsep"></div>
+        <div class="hstat good"><div class="l">Residuo</div><div class="v">+312M</div></div>
+      </div>
+    </div>
+
+    <!-- Barra tab + filtri -->
+    <div class="tabbar">
+      <button class="tab">Rinnovi <span class="badge">25</span></button>
+      <button class="tab">Nuovi <span class="badge alert">3</span></button>
+      <button class="tab on">Usciti <span class="badge alert">2</span></button>
+      <div class="right">
+        <span class="search">🔍 Cerca giocatore…</span>
+        <span class="rolefilters"><span class="fchip on">Tutti</span><span class="fchip">P</span><span class="fchip">D</span><span class="fchip">C</span><span class="fchip">A</span></span>
+      </div>
+    </div>
+
+    <div class="main" style="grid-template-columns:minmax(0,1fr) 320px;">
+      <div class="col-work">
+
+        <!-- gate: usciti ancora indecisi -->
+        <div class="gate block">
+          <span class="gate-ico">!</span>
+          <div>
+            <div class="gate-msg">2 giocatori usciti in attesa di decisione</div>
+            <div class="gate-sub">Per ognuno scegli Tieni (paghi l'indennizzo) o Rilascia, poi potrai consolidare.</div>
+          </div>
+          <div class="gate-actions">
+            <span class="draft-flag">● bozza salvata 12:04</span>
+            <button class="btn-draft">Salva bozza</button>
+            <button class="btn-consolidate off">Consolida</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h"><span class="micro">Giocatori usciti · estero e retrocessione</span><span class="count">2 da decidere · 1 deciso</span></div>
+          <div class="scrollwrap">
+            <div class="scrollbody">
+              <div class="usc-grid">
+
+                <div class="usc">
+                  <div class="usc-top"><div class="role-badge role-A">A</div><div style="flex:1;min-width:0;"><div class="player-nm">Gianluca Scamacca</div><div class="player-sub">→ West Ham</div></div><span class="usc-reason">ESTERO</span></div>
+                  <div class="usc-econ">
+                    <div class="e"><div class="l">Contratto</div><div class="v">22×3</div></div>
+                    <div class="e"><div class="l">Indennizzo se tieni</div><div class="v dng">17M</div></div>
+                  </div>
+                  <div class="usc-actions"><button class="ua keep">Tieni</button><button class="ua rel">Rilascia</button></div>
+                </div>
+
+                <div class="usc">
+                  <div class="usc-top"><div class="role-badge role-D">D</div><div style="flex:1;min-width:0;"><div class="player-nm">Caleb Okoli</div><div class="player-sub">→ Leicester (Championship)</div></div><span class="usc-reason retro">RETROCESSO</span></div>
+                  <div class="usc-econ">
+                    <div class="e"><div class="l">Contratto</div><div class="v">9×2</div></div>
+                    <div class="e"><div class="l">Indennizzo se tieni</div><div class="v dng">6M</div></div>
+                  </div>
+                  <div class="usc-actions"><button class="ua keep">Tieni</button><button class="ua rel">Rilascia</button></div>
+                </div>
+
+                <div class="usc decided-keep">
+                  <div class="usc-top"><div class="role-badge role-C">C</div><div style="flex:1;min-width:0;"><div class="player-nm">Teun Koopmeiners</div><div class="player-sub">→ rientrato in Serie A</div></div><span class="usc-done keep">✓ TENUTO</span></div>
+                  <div class="usc-econ">
+                    <div class="e"><div class="l">Contratto</div><div class="v">25×3</div></div>
+                    <div class="e"><div class="l">Indennizzo pagato</div><div class="v">12M</div></div>
+                  </div>
+                  <div class="usc-actions"><button class="ua keep sel">Tenuto</button><button class="ua rel">Cambia</button></div>
+                </div>
+
+              </div>
+            </div>
+            <div class="fadeb"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- sidebar: cosa manca per consolidare -->
+      <div class="side">
+        <div class="scard">
+          <h4>Per consolidare</h4>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#fca5a5;"><span style="width:18px;height:18px;border-radius:5px;background:rgba(239,68,68,.18);color:var(--danger);display:flex;align-items:center;justify-content:center;font-size:11px;">✕</span>Rientra in 29 slot <b style="margin-left:auto;font-family:'JetBrains Mono',monospace;">31/29</b></div>
+            <div style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#fca5a5;"><span style="width:18px;height:18px;border-radius:5px;background:rgba(239,68,68,.18);color:var(--danger);display:flex;align-items:center;justify-content:center;font-size:11px;">✕</span>Decidi gli usciti <b style="margin-left:auto;font-family:'JetBrains Mono',monospace;">2 da fare</b></div>
+            <div style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#86efac;"><span style="width:18px;height:18px;border-radius:5px;background:rgba(34,197,94,.18);color:var(--secondary);display:flex;align-items:center;justify-content:center;font-size:11px;">✓</span>Budget non negativo <b style="margin-left:auto;font-family:'JetBrains Mono',monospace;">+312M</b></div>
+          </div>
+        </div>
+
+        <div class="scard residuo">
+          <h4>Residuo dopo consolidamento</h4>
+          <div class="calc">
+            Budget <b>412M</b><br>
+            − Ingaggi annui <b>88M</b><br>
+            + Recupero tagli <b>5M</b><br>
+            − Indennizzi <b>17M</b>
+          </div>
+          <div class="tot"><span class="l">Residuo</span><span class="v">+312M</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

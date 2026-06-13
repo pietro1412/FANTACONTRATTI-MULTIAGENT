@@ -1,44 +1,25 @@
 import { useState, useEffect, useMemo } from 'react'
-import { contractApi, leagueApi } from '../services/api'
-import { Button } from '../components/ui/Button'
-import { Tooltip } from '../components/ui/Tooltip'
-import { StickyActionBar } from '../components/ui/StickyActionBar'
-import { Navigation } from '../components/Navigation'
-import { getTeamLogo } from '../utils/teamLogos'
-import { POSITION_COLORS } from '../components/ui/PositionBadge'
-import { PlayerStatsModal, type PlayerInfo, type PlayerStats } from '../components/PlayerStatsModal'
-import { getPlayerPhotoUrl } from '../utils/player-images'
-import haptic from '../utils/haptics'
+import { contractApi, leagueApi } from '@/services/api'
+import { Navigation } from '@/components/Navigation'
+import { CockpitShell } from '@/components/cockpit/CockpitShell'
+import { Tabs } from '@/components/ui/Tabs'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { SkeletonPlayerRow } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { PlayerStatsModal, type PlayerInfo } from '@/components/PlayerStatsModal'
+import { RenewalItem } from '@/components/contracts/RenewalItem'
+import { PendingItem } from '@/components/contracts/PendingItem'
+import { ExitedCard } from '@/components/contracts/ExitedCard'
+import { RoleBadge, TeamLogo, getRoleStyle, getRoleAccentText, MAX_ROSTER_SIZE, type ContractPlayer } from '@/components/contracts/shared'
+import haptic from '@/utils/haptics'
 
 interface ContractsProps {
   leagueId: string
   onNavigate: (page: string, params?: Record<string, string>) => void
 }
 
-// Computed stats from PlayerMatchRating (accurate data source)
-interface ComputedSeasonStats {
-  season: string
-  appearances: number
-  totalMinutes: number
-  avgRating: number | null
-  totalGoals: number
-  totalAssists: number
-  startingXI: number
-  matchesInSquad: number
-}
-
-interface Player {
-  id: string
-  name: string
-  team: string
-  position: string
-  listStatus?: string
-  exitReason?: string
-  age?: number | null
-  apiFootballId?: number | null
-  apiFootballStats?: PlayerStats | null
-  computedStats?: ComputedSeasonStats | null
-}
+type Player = ContractPlayer
 
 interface Contract {
   id: string
@@ -52,13 +33,12 @@ interface Contract {
   // Draft values (saved but not consolidated)
   draftSalary: number | null
   draftDuration: number | null
-  draftReleased: boolean  // Marcato per taglio
+  draftReleased: boolean
   draftExitDecision?: string | null  // null=INDECISO, "KEEP", "RELEASE"
   // Exited player info
   isExitedPlayer?: boolean
   exitReason?: string | null
   indemnityCompensation?: number
-  // Flag to indicate if contract was modified during consolidation
   wasModified?: boolean
   roster: {
     id: string
@@ -74,7 +54,6 @@ interface PendingContract {
   acquisitionPrice: number
   acquisitionType: string
   minSalary: number
-  // Draft values (saved but not consolidated)
   draftSalary: number | null
   draftDuration: number | null
 }
@@ -91,7 +70,7 @@ interface ReleasedPlayer {
   indemnityAmount?: number
 }
 
-// Stato locale per modifiche in corso
+// Local edit state for an in-progress contract change
 interface LocalEdit {
   newSalary: string
   newDuration: string
@@ -106,60 +85,10 @@ interface LocalEdit {
   isSaving: boolean
 }
 
-// Stile per ruolo (usa costanti centralizzate)
-function getRoleStyle(position: string) {
-  const colors = POSITION_COLORS[position]
-  return colors || { bg: 'bg-gradient-to-r from-gray-500 to-gray-600', text: 'text-white', border: '' }
-}
-
-// Colore per durata contratto (issue #202)
-// 1s = danger (scade presto), 2s = warning, 3s = primary, 4s = green (lungo termine)
-function getDurationColor(duration: number): string {
-  switch(duration) {
-    case 1: return 'text-danger-400'
-    case 2: return 'text-warning-400'
-    case 3: return 'text-primary-400'
-    case 4: return 'text-green-400'
-    default: return 'text-gray-400'
-  }
-}
-
-// Age color function - younger is better (issue #206)
-function getAgeColor(age: number | null | undefined): string {
-  if (age === null || age === undefined) return 'text-gray-500'
-  if (age < 20) return 'text-emerald-400 font-bold'
-  if (age < 25) return 'text-green-400'
-  if (age < 30) return 'text-yellow-400'
-  if (age < 35) return 'text-orange-400'
-  return 'text-red-400'
-}
-
-// Componente logo squadra
-function TeamLogo({ team }: { team: string }) {
-  return (
-    <img
-      src={getTeamLogo(team)}
-      alt={team}
-      className="w-6 h-6 object-contain"
-      onError={(e) => {
-        (e.target as HTMLImageElement).style.display = 'none'
-      }}
-    />
-  )
-}
-
-// Moltiplicatori clausola
-const DURATION_MULTIPLIERS: Record<number, number> = {
-  4: 11,
-  3: 9,
-  2: 7,
-  1: 3,
-}
-
-// Massimo numero di giocatori in rosa dopo consolidamento
-const MAX_ROSTER_SIZE = 29
-
 export function Contracts({ leagueId, onNavigate }: ContractsProps) {
+  const { toast } = useToast()
+  const { confirm } = useConfirmDialog()
+
   const [contracts, setContracts] = useState<Contract[]>([])
   const [pendingContracts, setPendingContracts] = useState<PendingContract[]>([])
   const [memberBudget, setMemberBudget] = useState(0)
@@ -168,34 +97,27 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   const [isConsolidated, setIsConsolidated] = useState(false)
   const [releasedPlayers, setReleasedPlayers] = useState<ReleasedPlayer[]>([])
   const [, setConsolidatedAt] = useState<string | null>(null)
-  const [_apiRenewalCost, setApiRenewalCost] = useState(0)  // Costo rinnovi dalla API (post-consolidamento)
+  const [_apiRenewalCost, setApiRenewalCost] = useState(0)
   const [isConsolidating, setIsConsolidating] = useState(false)
   const [isSavingDrafts, setIsSavingDrafts] = useState(false)
+  const [leagueName, setLeagueName] = useState('')
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null)
 
-  // Stato per modifiche locali di ogni contratto
   const [localEdits, setLocalEdits] = useState<Record<string, LocalEdit>>({})
-  // Stato per nuovi contratti (pending)
   const [pendingEdits, setPendingEdits] = useState<Record<string, LocalEdit>>({})
-  // Stato per tagli locali (contract IDs marcati per release)
   const [localReleases, setLocalReleases] = useState<Set<string>>(new Set())
-  // Stato per decisioni giocatori usciti (KEEP o RELEASE)
   const [exitDecisions, setExitDecisions] = useState<Map<string, 'KEEP' | 'RELEASE'>>(new Map())
 
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
 
-  // Filtri
   const [filterRole, setFilterRole] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Tab contratti (T-006)
   const [contractTab, setContractTab] = useState<'rinnovi' | 'nuovi' | 'usciti'>('rinnovi')
 
-  // State for player stats modal
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerInfo | null>(null)
-  // Auto-select initial tab based on data (T-006)
   const [tabInitialized, setTabInitialized] = useState(false)
+  const [showRules, setShowRules] = useState(false)
 
   useEffect(() => {
     void loadData()
@@ -204,8 +126,9 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   async function loadData() {
     const leagueResponse = await leagueApi.getById(leagueId)
     if (leagueResponse.success && leagueResponse.data) {
-      const data = leagueResponse.data as { userMembership?: { role: string } }
+      const data = leagueResponse.data as { name?: string; userMembership?: { role: string } }
       setIsLeagueAdmin(data.userMembership?.role === 'ADMIN')
+      if (data.name) setLeagueName(data.name)
     }
     await loadContracts()
     await loadConsolidationStatus()
@@ -246,22 +169,19 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         setIsConsolidated(data.isConsolidated)
       }
 
-      // Inizializza localEdits per ogni contratto (usa draft se presente)
       const edits: Record<string, LocalEdit> = {}
       data.contracts.forEach(c => {
-        // Se c'è un draft salvato, usalo, altrimenti valori correnti
         const hasDraft = c.draftSalary !== null && c.draftDuration !== null
         edits[c.id] = {
           newSalary: hasDraft ? String(c.draftSalary) : String(c.salary),
-          newDuration: hasDraft ? String(c.draftDuration) : String(c.duration), // Default = durata attuale
-          isModified: hasDraft, // Se c'è un draft, è già "modificato"
+          newDuration: hasDraft ? String(c.draftDuration) : String(c.duration),
+          isModified: hasDraft,
           previewData: null,
           isSaving: false,
         }
       })
       setLocalEdits(edits)
 
-      // Inizializza pendingEdits per nuovi contratti (usa draft se presente)
       const pEdits: Record<string, LocalEdit> = {}
       data.pendingContracts.forEach(p => {
         const hasDraft = p.draftSalary !== null && p.draftDuration !== null
@@ -275,7 +195,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       })
       setPendingEdits(pEdits)
 
-      // Inizializza exitDecisions da dati caricati
       const exitDec = new Map<string, 'KEEP' | 'RELEASE'>()
       data.contracts.forEach(c => {
         if (c.isExitedPlayer && c.draftExitDecision) {
@@ -284,7 +203,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       })
       setExitDecisions(exitDec)
 
-      // Inizializza tagli da draft salvati (solo contratti NON usciti)
       const releases = new Set<string>()
       data.contracts.forEach(c => {
         if (c.draftReleased && !c.isExitedPlayer) {
@@ -293,17 +211,12 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       })
       setLocalReleases(releases)
 
-      // T-006: Auto-select initial tab
       if (!tabInitialized) {
         if (data.pendingContracts.length > 0) {
           setContractTab('nuovi')
         } else {
           const hasUndecidedExited = data.contracts.some(c => c.isExitedPlayer && !c.draftExitDecision)
-          if (hasUndecidedExited) {
-            setContractTab('usciti')
-          } else {
-            setContractTab('rinnovi')
-          }
+          setContractTab(hasUndecidedExited ? 'usciti' : 'rinnovi')
         }
         setTabInitialized(true)
       }
@@ -311,87 +224,52 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     setIsLoading(false)
   }
 
-  // Aggiorna valori locali per un contratto
   function updateLocalEdit(contractId: string, field: 'newSalary' | 'newDuration', value: string) {
     setLocalEdits(prev => {
       const existing = prev[contractId] ?? { newSalary: '', newDuration: '', isModified: false, previewData: null, isSaving: false }
-      return {
-        ...prev,
-        [contractId]: {
-          ...existing,
-          [field]: value,
-          isModified: true,
-        }
-      }
+      return { ...prev, [contractId]: { ...existing, [field]: value, isModified: true } }
     })
   }
 
-  // Aggiorna valori locali per un pending contract
   function updatePendingEdit(rosterId: string, field: 'newSalary' | 'newDuration', value: string) {
     setPendingEdits(prev => {
       const existing = prev[rosterId] ?? { newSalary: '', newDuration: '', isModified: false, previewData: null, isSaving: false }
-      return {
-        ...prev,
-        [rosterId]: {
-          ...existing,
-          [field]: value,
-          isModified: true,
-        }
-      }
+      return { ...prev, [rosterId]: { ...existing, [field]: value, isModified: true } }
     })
   }
 
-  // Calcola preview per contratto esistente
   async function calculatePreview(contractId: string) {
     const edit = localEdits[contractId]
     if (!edit) return
-
     const salary = parseInt(edit.newSalary)
     const duration = parseInt(edit.newDuration)
     if (isNaN(salary) || isNaN(duration)) return
-
     const result = await contractApi.preview(contractId, salary, duration)
     if (result.success && result.data) {
       setLocalEdits(prev => {
         const existing = prev[contractId]
         if (!existing) return prev
-        return {
-          ...prev,
-          [contractId]: {
-            ...existing,
-            previewData: result.data as LocalEdit['previewData'],
-          }
-        }
+        return { ...prev, [contractId]: { ...existing, previewData: result.data as LocalEdit['previewData'] } }
       })
     }
   }
 
-  // Calcola preview per pending contract
   async function calculatePendingPreview(rosterId: string) {
     const edit = pendingEdits[rosterId]
     if (!edit) return
-
     const salary = parseInt(edit.newSalary)
     const duration = parseInt(edit.newDuration)
     if (isNaN(salary) || isNaN(duration)) return
-
     const result = await contractApi.previewCreate(rosterId, salary, duration)
     if (result.success && result.data) {
       setPendingEdits(prev => {
         const existing = prev[rosterId]
         if (!existing) return prev
-        return {
-          ...prev,
-          [rosterId]: {
-            ...existing,
-            previewData: result.data as LocalEdit['previewData'],
-          }
-        }
+        return { ...prev, [rosterId]: { ...existing, previewData: result.data as LocalEdit['previewData'] } }
       })
     }
   }
 
-  // Auto-calcola preview quando cambiano i valori
   useEffect(() => {
     const timeouts: NodeJS.Timeout[] = []
     Object.entries(localEdits).forEach(([contractId, edit]) => {
@@ -406,7 +284,6 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   useEffect(() => {
     const timeouts: NodeJS.Timeout[] = []
     Object.entries(pendingEdits).forEach(([rosterId, edit]) => {
-      // Calcola preview sempre (anche per valori di default), non solo quando modificato
       if (!edit.previewData || edit.isModified) {
         const timeout = setTimeout(() => { void calculatePendingPreview(rosterId) }, 300)
         timeouts.push(timeout)
@@ -415,48 +292,32 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     return () => { timeouts.forEach(t => { clearTimeout(t); }); }
   }, [pendingEdits])
 
-
-  // Toggle taglio giocatore (locale, salvato con "Salva")
   function toggleRelease(contractId: string) {
     setLocalReleases(prev => {
       const newSet = new Set(prev)
-      if (newSet.has(contractId)) {
-        newSet.delete(contractId)
-      } else {
-        newSet.add(contractId)
-      }
+      if (newSet.has(contractId)) newSet.delete(contractId)
+      else newSet.add(contractId)
       return newSet
     })
   }
 
-  // Salva bozze - salva i valori come draft (può tornare e modificare)
   async function handleSaveDrafts() {
     setIsSavingDrafts(true)
-    setError('')
 
-    // Raccogli tutti i rinnovi con modifiche
     const renewals: { contractId: string; salary: number; duration: number }[] = []
     Object.entries(localEdits).forEach(([contractId, edit]) => {
       const contract = contracts.find(c => c.id === contractId)
       if (!contract || !contract.canRenew) return
-
       const newSalary = parseInt(edit.newSalary)
       const newDuration = parseInt(edit.newDuration)
-
-      // Skip if values are invalid
       if (isNaN(newSalary) || isNaN(newDuration) || newSalary <= 0 || newDuration <= 0) return
-
-      // Confronta con i valori salvati (draft se esiste, altrimenti base)
       const savedSalary = contract.draftSalary ?? contract.salary
       const savedDuration = contract.draftDuration ?? contract.duration
-
-      // Salva se i valori sono diversi da quelli salvati
       if (newSalary !== savedSalary || newDuration !== savedDuration) {
         renewals.push({ contractId, salary: newSalary, duration: newDuration })
       }
     })
 
-    // Raccogli tutti i nuovi contratti
     const newContracts: { rosterId: string; salary: number; duration: number }[] = []
     Object.entries(pendingEdits).forEach(([rosterId, edit]) => {
       const salary = parseInt(edit.newSalary)
@@ -466,37 +327,37 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       }
     })
 
-    const exitDecisionsArray = Array.from(exitDecisions.entries()).map(([contractId, decision]) => ({
-      contractId,
-      decision,
-    }))
+    const exitDecisionsArray = Array.from(exitDecisions.entries()).map(([contractId, decision]) => ({ contractId, decision }))
     const result = await contractApi.saveDrafts(leagueId, renewals, newContracts, Array.from(localReleases), exitDecisionsArray)
     if (result.success) {
       haptic.save()
-      setSuccess('Bozze salvate! Puoi tornare a modificarle in qualsiasi momento.')
-      await loadContracts() // Ricarica per aggiornare i draft
+      setDraftSavedAt(new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }))
+      toast.success('Bozze salvate! Puoi tornare a modificarle in qualsiasi momento.')
+      await loadContracts()
     } else {
-      setError(result.message || 'Errore nel salvataggio')
+      toast.error(result.message || 'Errore nel salvataggio')
     }
     setIsSavingDrafts(false)
-    setTimeout(() => { setSuccess(''); setError('') }, 4000)
   }
 
-  // Consolida - applica tutte le modifiche insieme (DEFINITIVO)
   async function handleConsolidate() {
-    setIsConsolidating(true)
-    setError('')
+    const confirmed = await confirm({
+      title: 'Consolidare i contratti?',
+      message: 'Il consolidamento è definitivo: rinnovi, tagli e decisioni sugli usciti verranno applicati e non saranno più modificabili.',
+      confirmLabel: 'Consolida',
+      cancelLabel: 'Annulla',
+      variant: 'warning',
+    })
+    if (!confirmed) return
 
-    // Raccogli tutti i rinnovi modificati
+    setIsConsolidating(true)
+
     const renewals: { contractId: string; salary: number; duration: number }[] = []
     Object.entries(localEdits).forEach(([contractId, edit]) => {
       const contract = contracts.find(c => c.id === contractId)
       if (!contract || !contract.canRenew) return
-
       const newSalary = parseInt(edit.newSalary)
       const newDuration = parseInt(edit.newDuration)
-
-      // Solo se i valori sono diversi da quelli attuali
       if (newSalary !== contract.salary || newDuration !== contract.duration) {
         if (edit.previewData?.isValid && edit.previewData?.canAfford) {
           renewals.push({ contractId, salary: newSalary, duration: newDuration })
@@ -504,49 +365,38 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       }
     })
 
-    // Raccogli tutti i nuovi contratti da creare
     const newContracts: { rosterId: string; salary: number; duration: number }[] = []
     Object.entries(pendingEdits).forEach(([rosterId, edit]) => {
       if (edit.previewData?.isValid) {
-        newContracts.push({
-          rosterId,
-          salary: parseInt(edit.newSalary),
-          duration: parseInt(edit.newDuration)
-        })
+        newContracts.push({ rosterId, salary: parseInt(edit.newSalary), duration: parseInt(edit.newDuration) })
       }
     })
 
-    // Invia al backend
     const result = await contractApi.consolidateAll(leagueId, renewals, newContracts)
     if (result.success) {
       haptic.success()
-      setSuccess(result.message || 'Contratti consolidati!')
+      toast.success(result.message || 'Contratti consolidati!')
       setIsConsolidated(true)
       const data = result.data as { consolidatedAt?: string }
-      if (data?.consolidatedAt) {
-        setConsolidatedAt(data.consolidatedAt)
-      }
+      if (data?.consolidatedAt) setConsolidatedAt(data.consolidatedAt)
       await loadContracts()
     } else {
-      setError(result.message || 'Errore nel consolidamento')
+      toast.error(result.message || 'Errore nel consolidamento')
     }
     setIsConsolidating(false)
   }
 
-  // Calcola ingaggi proiettati (con modifiche applicate)
+  // ===== Derived values (unchanged business logic) =====
+
   const projectedSalaries = useMemo(() => {
     let total = 0
-
-    // Contratti esistenti (escludi quelli marcati per taglio e usciti non KEEP)
     contracts.forEach(contract => {
-      if (localReleases.has(contract.id)) return // Skip released normal
-      if (contract.isExitedPlayer && exitDecisions.get(contract.id) !== 'KEEP') return // Skip exited unless KEEP
+      if (localReleases.has(contract.id)) return
+      if (contract.isExitedPlayer && exitDecisions.get(contract.id) !== 'KEEP') return
       const edit = localEdits[contract.id]
       const salary = parseInt(edit?.newSalary || '') || contract.salary
       total += salary
     })
-
-    // Nuovi contratti (pending)
     pendingContracts.forEach(pending => {
       const edit = pendingEdits[pending.rosterId]
       const salaryStr = edit?.newSalary && edit.newSalary.length > 0
@@ -554,63 +404,41 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
         : String(pending.draftSalary ?? pending.minSalary)
       total += parseInt(salaryStr) || pending.minSalary
     })
-
     return total
   }, [contracts, pendingContracts, localEdits, pendingEdits, localReleases, exitDecisions])
 
-  // Calcola costo totale tagli (esclusi giocatori usciti dalla lista - costo 0)
   const totalReleaseCost = useMemo(() => {
-    // After consolidation, use the releasedPlayers data from ContractHistory
     if (isConsolidated && releasedPlayers.length > 0) {
       return releasedPlayers.reduce((sum, rp) => sum + rp.releaseCost, 0)
     }
-
-    // Before consolidation, use local state
     let total = 0
     contracts.forEach(contract => {
-      if (localReleases.has(contract.id)) {
-        if (contract.isExitedPlayer) {
-          // Giocatori usciti: nessun costo taglio
-        } else {
-          // Costo taglio = (ingaggio × durata) / 2
-          total += Math.ceil((contract.salary * contract.duration) / 2)
-        }
+      if (localReleases.has(contract.id) && !contract.isExitedPlayer) {
+        total += Math.ceil((contract.salary * contract.duration) / 2)
       }
     })
-
     return total
   }, [contracts, localReleases, isConsolidated, releasedPlayers])
 
-  // Calcola totale indennizzi per giocatori ESTERO con decisione RELEASE
   const totalIndemnities = useMemo(() => {
-    // After consolidation, use the releasedPlayers data from ContractHistory
     if (isConsolidated && releasedPlayers.length > 0) {
       return releasedPlayers
         .filter(rp => rp.releaseType === 'RELEASE_ESTERO' && rp.indemnityAmount)
         .reduce((sum, rp) => sum + (rp.indemnityAmount || 0), 0)
     }
-
-    // Before consolidation, use local state
     let total = 0
     contracts.forEach(contract => {
-      if (contract.isExitedPlayer &&
-          contract.exitReason === 'ESTERO' &&
-          exitDecisions.get(contract.id) === 'RELEASE') {
+      if (contract.isExitedPlayer && contract.exitReason === 'ESTERO' && exitDecisions.get(contract.id) === 'RELEASE') {
         total += contract.indemnityCompensation || 0
       }
     })
     return total
   }, [contracts, exitDecisions, isConsolidated, releasedPlayers])
 
-  // Residuo = Budget - Ingaggi - Tagli + Indennizzi
-  // I rinnovi/spalmature sono riflessi negli Ingaggi (che variano automaticamente)
-  // Il costo del rinnovo viene scalato dal budget solo al momento del consolidamento
   const residuoContratti = useMemo(() => {
-    // Forza ricalcolo quando cambiano i tagli locali o le decisioni usciti
     return memberBudget - projectedSalaries - totalReleaseCost + totalIndemnities
   }, [memberBudget, projectedSalaries, totalReleaseCost, totalIndemnities, localReleases, exitDecisions])
 
-  // Calcola numero giocatori effettivo dopo i tagli e le decisioni usciti
   const effectivePlayerCount = useMemo(() => {
     const totalPlayers = contracts.length + pendingContracts.length
     const releasedCount = localReleases.size
@@ -618,49 +446,30 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     return totalPlayers - releasedCount - exitReleasedCount
   }, [contracts.length, pendingContracts.length, localReleases.size, exitDecisions])
 
-  // Quanti tagli sono necessari per rispettare il limite
   const requiredReleases = useMemo(() => {
     return Math.max(0, effectivePlayerCount - MAX_ROSTER_SIZE)
   }, [effectivePlayerCount])
 
-  // Verifica se si può consolidare:
-  // - Tutti i pending contracts devono avere valori validi
-  // - Il numero di giocatori deve essere <= MAX_ROSTER_SIZE
-  // - Nessun contratto esistente deve avere errori di validazione (es. spalma errato)
   const canConsolidate = useMemo(() => {
-    // Check: all exited players must have a decision
     const undecidedExited = contracts.filter(c => c.isExitedPlayer && !exitDecisions.has(c.id))
     if (undecidedExited.length > 0) return false
-    // Check roster limit
-    if (effectivePlayerCount > MAX_ROSTER_SIZE) {
-      return false
-    }
-    // Ogni pending contract deve avere un preview valido
+    if (effectivePlayerCount > MAX_ROSTER_SIZE) return false
     for (const pending of pendingContracts) {
       const edit = pendingEdits[pending.rosterId]
-      if (!edit || !edit.previewData?.isValid) {
-        return false
-      }
+      if (!edit || !edit.previewData?.isValid) return false
     }
-    // Verifica che i contratti esistenti con modifiche non abbiano errori di validazione
     for (const contract of contracts) {
       if (!contract.canRenew) continue
       const edit = localEdits[contract.id]
       if (!edit) continue
-
       const newSalary = parseInt(edit.newSalary) || contract.salary
       const newDuration = parseInt(edit.newDuration) || contract.duration
       const hasChanges = newSalary !== contract.salary || newDuration !== contract.duration
-
-      // Se ci sono modifiche e c'è un errore di validazione, blocca
-      if (hasChanges && edit.previewData?.validationError) {
-        return false
-      }
+      if (hasChanges && edit.previewData?.validationError) return false
     }
     return true
   }, [pendingContracts, pendingEdits, effectivePlayerCount, contracts, localEdits, exitDecisions])
 
-  // Messaggio per blocco consolidamento
   const consolidateBlockReason = useMemo(() => {
     const undecidedExitedCount = contracts.filter(c => c.isExitedPlayer && !exitDecisions.has(c.id)).length
     if (undecidedExitedCount > 0) {
@@ -671,9 +480,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     }
     for (const pending of pendingContracts) {
       const edit = pendingEdits[pending.rosterId]
-      if (!edit || !edit.previewData?.isValid) {
-        return 'Imposta tutti i nuovi contratti'
-      }
+      if (!edit || !edit.previewData?.isValid) return 'Imposta tutti i nuovi contratti'
     }
     for (const contract of contracts) {
       if (!contract.canRenew) continue
@@ -689,19 +496,14 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     return 'Conferma definitiva dei rinnovi'
   }, [pendingContracts, pendingEdits, effectivePlayerCount, requiredReleases, contracts, localEdits, exitDecisions])
 
-  // Filtra e ordina contratti
-  // Separate exited players from normal contracts
   const exitedContracts = useMemo(() =>
     contracts.filter(c => c.isExitedPlayer && !exitDecisions.has(c.id)),
   [contracts, exitDecisions])
 
   const filteredContracts = useMemo(() => {
-    // Include normal contracts + exited players with KEEP decision
     let items = contracts.filter(c => !c.isExitedPlayer || exitDecisions.get(c.id) === 'KEEP')
     if (filterRole) items = items.filter(c => c.roster.player.position === filterRole)
-    if (searchQuery) items = items.filter(c =>
-      c.roster.player.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    if (searchQuery) items = items.filter(c => c.roster.player.name.toLowerCase().includes(searchQuery.toLowerCase()))
     return items.sort((a, b) => {
       const roleOrder = { P: 0, D: 1, C: 2, A: 3 }
       const ra = roleOrder[a.roster.player.position as keyof typeof roleOrder] ?? 4
@@ -714,9 +516,7 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
   const filteredPending = useMemo(() => {
     let items = [...pendingContracts]
     if (filterRole) items = items.filter(p => p.player.position === filterRole)
-    if (searchQuery) items = items.filter(p =>
-      p.player.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    if (searchQuery) items = items.filter(p => p.player.name.toLowerCase().includes(searchQuery.toLowerCase()))
     return items.sort((a, b) => {
       const roleOrder = { P: 0, D: 1, C: 2, A: 3 }
       const ra = roleOrder[a.player.position as keyof typeof roleOrder] ?? 4
@@ -726,9 +526,13 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     })
   }, [pendingContracts, filterRole, searchQuery])
 
-  // ============ STATISTICHE ROSA ============
+  const filteredExited = useMemo(() => {
+    let items = [...exitedContracts]
+    if (filterRole) items = items.filter(c => c.roster.player.position === filterRole)
+    if (searchQuery) items = items.filter(c => c.roster.player.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    return items
+  }, [exitedContracts, filterRole, searchQuery])
 
-  // Distribuzione per ruolo (include pending e esclude tagli)
   const roleDistribution = useMemo(() => {
     const dist = { P: 0, D: 0, C: 0, A: 0 }
     contracts.forEach(c => {
@@ -744,95 +548,46 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
     return dist
   }, [contracts, pendingContracts, localReleases, exitDecisions])
 
-  // Distribuzione per durata contratto
-  // Usa sempre la "nuova durata" (che di default = durata attuale)
-  const durationDistribution = useMemo(() => {
-    const dist = { 1: 0, 2: 0, 3: 0, 4: 0 }
-    contracts.forEach(c => {
-      if (localReleases.has(c.id)) return
-      if (c.isExitedPlayer && exitDecisions.get(c.id) !== 'KEEP') return
-      const edit = localEdits[c.id]
-      // Usa newDuration da localEdits (default = c.duration)
-      const dur = parseInt(edit?.newDuration || '') || c.duration
-      if (dur >= 1 && dur <= 4) dist[dur as keyof typeof dist]++
-    })
-    pendingContracts.forEach(p => {
-      const edit = pendingEdits[p.rosterId]
-      // Usa newDuration da pendingEdits (default = draftDuration o 2)
-      const dur = parseInt(edit?.newDuration || '') || p.draftDuration || 2
-      if (dur >= 1 && dur <= 4) dist[dur as keyof typeof dist]++
-    })
-    return dist
-  }, [contracts, pendingContracts, localEdits, pendingEdits, localReleases, exitDecisions])
-
-  // Verifica se ci sono modifiche non salvate
   const hasUnsavedChanges = useMemo(() => {
-    // Controlla se localEdits differiscono dai draft salvati
     for (const contract of contracts) {
       const edit = localEdits[contract.id]
       if (!edit) continue
-
       const savedSalary = contract.draftSalary ?? contract.salary
       const savedDuration = contract.draftDuration ?? contract.duration
       const currentSalary = parseInt(edit.newSalary) || contract.salary
       const currentDuration = parseInt(edit.newDuration) || contract.duration
-
-      if (currentSalary !== savedSalary || currentDuration !== savedDuration) {
-        return true
-      }
+      if (currentSalary !== savedSalary || currentDuration !== savedDuration) return true
     }
-
-    // Controlla se pendingEdits differiscono dai draft salvati
     for (const pending of pendingContracts) {
       const edit = pendingEdits[pending.rosterId]
       if (!edit) continue
-
       const savedSalary = pending.draftSalary ?? pending.minSalary
       const savedDuration = pending.draftDuration ?? 2
       const currentSalary = parseInt(edit.newSalary) || pending.minSalary
       const currentDuration = parseInt(edit.newDuration) || 2
-
-      if (currentSalary !== savedSalary || currentDuration !== savedDuration) {
-        return true
-      }
+      if (currentSalary !== savedSalary || currentDuration !== savedDuration) return true
     }
-
-    // Controlla se localReleases differiscono dai draftReleased salvati (solo non-usciti)
     for (const contract of contracts) {
       if (contract.isExitedPlayer) continue
-      const isLocallyReleased = localReleases.has(contract.id)
-      const wasDraftReleased = contract.draftReleased
-      if (isLocallyReleased !== wasDraftReleased) {
-        return true
-      }
+      if (localReleases.has(contract.id) !== contract.draftReleased) return true
     }
-
-    // Controlla se exitDecisions differiscono dai draftExitDecision salvati
     for (const contract of contracts) {
       if (!contract.isExitedPlayer) continue
       const currentDecision = exitDecisions.get(contract.id) || null
       const savedDecision = contract.draftExitDecision || null
-      if (currentDecision !== savedDecision) {
-        return true
-      }
+      if (currentDecision !== savedDecision) return true
     }
-
     return false
   }, [contracts, pendingContracts, localEdits, pendingEdits, localReleases, exitDecisions])
 
-  // Warning prima di chiudere la pagina se ci sono modifiche non salvate
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges && inContrattiPhase && !isConsolidated) {
-        e.preventDefault()
-      }
+      if (hasUnsavedChanges && inContrattiPhase && !isConsolidated) e.preventDefault()
     }
-
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => { window.removeEventListener('beforeunload', handleBeforeUnload); }
   }, [hasUnsavedChanges, inContrattiPhase, isConsolidated])
 
-  // Statistiche salari
   const salaryStats = useMemo(() => {
     const salaries: number[] = []
     contracts.forEach(c => {
@@ -851,1648 +606,527 @@ export function Contracts({ leagueId, onNavigate }: ContractsProps) {
       min: Math.min(...salaries),
       max: Math.max(...salaries),
       avg: Math.round(total / salaries.length * 10) / 10,
-      total
+      total,
     }
   }, [contracts, pendingContracts, localEdits, pendingEdits, localReleases, exitDecisions])
 
+  // ===== Loading =====
   if (isLoading) {
     return (
       <div className="min-h-screen">
         <Navigation currentPage="contracts" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
-        <div className="flex items-center justify-center h-[80vh]">
-          <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
+        <div className="max-w-[1100px] mx-auto px-4 py-6 space-y-2">
+          {Array.from({ length: 8 }).map((_, i) => <SkeletonPlayerRow key={i} />)}
         </div>
       </div>
     )
   }
 
-  return (
-    <div className="min-h-screen pb-20">
-      <Navigation currentPage="contracts" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
+  const slotWarn = requiredReleases > 0
+  const gateReady = canConsolidate
 
-      {/* Header compatto - sticky sotto la Navigation su desktop */}
-      <div className="bg-surface-200 border-b border-surface-50/20 sticky top-0 md:top-[60px] z-30">
-        <div className="max-w-[1600px] mx-auto px-4 py-3">
-          {/* Mobile: stato consolidato (pulsanti azione sono nel footer sticky) */}
-          {isConsolidated && (
-            <div className="md:hidden flex items-center justify-center mb-3 pb-3 border-b border-surface-50/20">
-              <span className="text-secondary-400 text-sm">✓ Consolidato</span>
-            </div>
-          )}
+  // ===== Cockpit testata =====
+  const header = (
+    <div className="bg-surface-200 border border-surface-50 rounded-xl px-4 py-3 flex items-center gap-3 flex-wrap min-h-[56px]">
+      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center flex-shrink-0">
+        <svg className="w-5 h-5 text-dark-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+      </div>
+      <div className="flex flex-col min-w-0">
+        <h1 className="font-display font-bold text-sm sm:text-base text-white leading-tight truncate">Gestione Contratti</h1>
+        <span className="text-sm text-gray-500 leading-tight truncate">
+          {inContrattiPhase
+            ? <span className="text-secondary-400">Fase CONTRATTI attiva</span>
+            : <span className="text-warning-400">Fase non attiva</span>
+          }
+          {leagueName ? ` · ${leagueName}` : ''}
+        </span>
+      </div>
 
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">📝</span>
-              <div>
-                <h1 className="text-lg font-bold text-white">Gestione Contratti</h1>
-                <p className="text-xs text-gray-400">
-                  {inContrattiPhase
-                    ? <span className="text-secondary-400">Fase CONTRATTI attiva</span>
-                    : <span className="text-warning-400">Fase non attiva</span>
-                  }
-                </p>
-              </div>
-              {/* Slot counter */}
-              <div className={`ml-4 px-3 py-1.5 rounded-lg border ${
-                requiredReleases > 0
-                  ? 'bg-danger-500/20 border-danger-500/50'
-                  : 'bg-surface-300 border-surface-50/30'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <span className={`text-lg font-bold ${
-                    requiredReleases > 0 ? 'text-danger-400' : 'text-white'
-                  }`}>
-                    {effectivePlayerCount}/{MAX_ROSTER_SIZE}
-                  </span>
-                  <span className="text-xs text-gray-400">slot</span>
-                </div>
-                {requiredReleases > 0 && (
-                  <p className="text-xs text-danger-400 font-medium">
-                    Taglia {requiredReleases} giocator{requiredReleases === 1 ? 'e' : 'i'}!
-                  </p>
-                )}
-              </div>
-            </div>
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono text-[10.5px] font-bold tracking-[0.06em] border text-accent-400 bg-accent-500/10 border-accent-500/50">
+        <span className="dot-live bg-accent-400" /> Fase Contratti
+      </span>
 
-            {/* Filtri inline */}
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => { setSearchQuery(e.target.value); }}
-                placeholder="Cerca..."
-                inputMode="search"
-                enterKeyHint="search"
-                className="w-32 px-2 py-1 bg-surface-300 border border-surface-50/30 rounded text-white text-sm"
-              />
-              <select
-                value={filterRole}
-                onChange={e => { setFilterRole(e.target.value); }}
-                className="px-2 py-1 bg-surface-300 border border-surface-50/30 rounded text-white text-sm"
-              >
-                <option value="">Tutti</option>
-                <option value="P">P</option>
-                <option value="D">D</option>
-                <option value="C">C</option>
-                <option value="A">A</option>
-              </select>
-            </div>
-
-            {/* Duration color legend */}
-            <div className="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
-              <span>Durata:</span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-gradient-to-r from-red-500 to-red-600" />
-                1 sem
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-gradient-to-r from-yellow-500 to-yellow-600" />
-                2 sem
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-gradient-to-r from-green-500 to-green-600" />
-                3 sem
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-gradient-to-r from-blue-500 to-blue-600" />
-                4+ sem
-              </span>
-            </div>
-
-            {/* Azioni - Desktop only */}
-            {inContrattiPhase && !isConsolidated && (
-              <div className="hidden md:flex items-center gap-2">
-                {/* Indicatore modifiche non salvate */}
-                {hasUnsavedChanges && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-warning-500/20 border border-warning-500/40 rounded-lg animate-pulse">
-                    <span className="w-2 h-2 bg-warning-400 rounded-full"></span>
-                    <span className="text-warning-400 text-xs font-medium whitespace-nowrap">Modifiche da salvare</span>
-                  </div>
-                )}
-                {/* Salva bozze */}
-                <Button
-                  size="sm"
-                  variant={hasUnsavedChanges ? "accent" : "secondary"}
-                  onClick={() => void handleSaveDrafts()}
-                  disabled={isSavingDrafts}
-                >
-                  {isSavingDrafts ? 'Salvando...' : 'Salva'}
-                </Button>
-                {/* Consolida (definitivo) */}
-                <Button
-                  size="sm"
-                  onClick={() => void handleConsolidate()}
-                  disabled={isConsolidating || !canConsolidate}
-                  title={consolidateBlockReason}
-                >
-                  {isConsolidating ? 'Consolidando...' : 'Consolida'}
-                </Button>
-              </div>
-            )}
-            {isConsolidated && (
-              <span className="hidden md:inline text-secondary-400 text-sm">✓ Consolidato</span>
-            )}
+      <div className="ml-auto flex items-center gap-3 sm:gap-4">
+        <div className="text-right">
+          <div className="micro-label text-[9px]">Slot</div>
+          <div className={`budget-display text-lg sm:text-xl leading-tight ${slotWarn ? 'text-danger-400' : 'text-white'}`}>
+            {effectivePlayerCount}<span className="text-xs text-gray-500">/{MAX_ROSTER_SIZE}</span>
+          </div>
+        </div>
+        <div className="w-px h-7 bg-surface-50" />
+        <div className="text-right">
+          <div className="micro-label text-[9px]">Budget</div>
+          <div className="budget-display text-lg sm:text-xl text-accent-400 leading-tight">{memberBudget}<span className="text-xs text-gray-500">M</span></div>
+        </div>
+        <div className="hidden sm:block w-px h-7 bg-surface-50" />
+        <div className="hidden sm:block text-right">
+          <div className="micro-label text-[9px]">Ingaggi</div>
+          <div className="budget-display text-lg sm:text-xl text-white leading-tight">{projectedSalaries}<span className="text-xs text-gray-500">M</span></div>
+        </div>
+        <div className="hidden md:block w-px h-7 bg-surface-50" />
+        <div className="hidden md:block text-right">
+          <div className="micro-label text-[9px]">Residuo</div>
+          <div className={`budget-display text-lg sm:text-xl leading-tight ${residuoContratti < 0 ? 'text-danger-400' : 'text-secondary-400'}`}>
+            {residuoContratti >= 0 ? '+' : ''}{residuoContratti}<span className="text-xs text-gray-500">M</span>
           </div>
         </div>
       </div>
+    </div>
+  )
 
-      {/* Messaggi */}
-      {(error || success) && (
-        <div className="max-w-[1600px] mx-auto px-4 py-2">
-          {error && (
-            <div className="bg-danger-500/20 border border-danger-500/30 text-danger-400 p-2 rounded text-sm">
-              <p>{error}</p>
-              <button
-                onClick={() => { setError(''); void loadContracts(); }}
-                className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white rounded-lg transition-colors min-h-[44px]"
-              >
-                Riprova
-              </button>
-            </div>
-          )}
-          {success && <div className="bg-secondary-500/20 border border-secondary-500/30 text-secondary-400 p-2 rounded text-sm">{success}</div>}
+  // ===== Cockpit barra tab + filtri =====
+  const tabItems = [
+    { id: 'rinnovi' as const, label: 'Rinnovi', accent: 'accent' as const, badge: filteredContracts.length },
+    ...(filteredPending.length > 0 || isConsolidated ? [{ id: 'nuovi' as const, label: 'Nuovi', accent: 'secondary' as const, badge: filteredPending.length }] : []),
+    ...(exitedContracts.length > 0 ? [{ id: 'usciti' as const, label: 'Usciti', accent: 'gray' as const, badge: exitedContracts.length }] : []),
+  ]
+
+  const adminBar = (
+    <div className="mt-2 flex items-center gap-3 flex-wrap">
+      <Tabs
+        className="flex-1 min-w-0"
+        ariaLabel="Sezioni contratti"
+        value={contractTab}
+        onChange={(id) => { setContractTab(id as typeof contractTab); }}
+        tabs={tabItems}
+      />
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => { setSearchQuery(e.target.value); }}
+          placeholder="Cerca..."
+          inputMode="search"
+          enterKeyHint="search"
+          className="w-28 sm:w-36 px-3 py-1.5 bg-surface-300 border border-surface-50 rounded-lg text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-accent-500/50"
+        />
+        <select
+          value={filterRole}
+          onChange={e => { setFilterRole(e.target.value); }}
+          aria-label="Filtra per ruolo"
+          className="px-2 py-1.5 bg-surface-300 border border-surface-50 rounded-lg text-white text-sm focus:outline-none focus:border-accent-500/50"
+        >
+          <option value="">Tutti</option>
+          <option value="P">P</option>
+          <option value="D">D</option>
+          <option value="C">C</option>
+          <option value="A">A</option>
+        </select>
+      </div>
+    </div>
+  )
+
+  // ===== Gate row (sopra il main) =====
+  const gate = inContrattiPhase && !isConsolidated ? (
+    <div
+      className={`mt-2.5 flex items-center gap-3 rounded-xl border px-3.5 py-2.5 flex-wrap ${
+        gateReady ? 'border-secondary-500/45 bg-secondary-500/[0.06]' : 'border-danger-500/45 bg-danger-500/[0.06]'
+      }`}
+    >
+      <span className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-bold ${
+        gateReady ? 'bg-secondary-500/20 text-secondary-400' : 'bg-danger-500/20 text-danger-400'
+      }`}>
+        {gateReady ? '✓' : '✕'}
+      </span>
+      <div className="min-w-0">
+        <div className={`text-sm font-semibold ${gateReady ? 'text-secondary-400' : 'text-danger-400'}`}>
+          {gateReady ? 'Tutto pronto per consolidare' : `Non puoi ancora consolidare: ${consolidateBlockReason.toLowerCase()}`}
+        </div>
+        <div className="text-[11px] text-gray-500 mt-0.5">
+          {gateReady
+            ? 'Il consolidamento è definitivo. Puoi ancora salvare la bozza.'
+            : 'Risolvi il blocco per sbloccare il consolidamento.'}
+        </div>
+      </div>
+      <div className="ml-auto flex items-center gap-2.5">
+        {draftSavedAt && !hasUnsavedChanges && (
+          <span className="hidden sm:inline-flex items-center gap-1.5 font-mono text-[10px] font-bold text-secondary-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-secondary-400" /> bozza salvata {draftSavedAt}
+          </span>
+        )}
+        {hasUnsavedChanges && (
+          <span className="hidden sm:inline-flex items-center gap-1.5 font-mono text-[10px] font-bold text-warning-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-warning-400 animate-pulse" /> da salvare
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={() => void handleSaveDrafts()}
+          disabled={isSavingDrafts}
+          className="text-sm font-semibold text-white bg-surface-300 border border-surface-50 rounded-lg px-4 py-2 hover:bg-surface-100 disabled:opacity-50 transition-colors"
+        >
+          {isSavingDrafts ? 'Salvando...' : 'Salva bozza'}
+        </button>
+        <button
+          type="button"
+          onClick={() => void handleConsolidate()}
+          disabled={isConsolidating || !canConsolidate}
+          title={!canConsolidate ? consolidateBlockReason : undefined}
+          className={`font-display font-extrabold text-sm tracking-[0.03em] uppercase rounded-lg px-5 py-2 transition-all ${
+            canConsolidate && !isConsolidating
+              ? 'text-dark-300 bg-gradient-to-b from-secondary-400 to-secondary-500 shadow-[0_6px_22px_rgba(34,197,94,0.30)] hover:brightness-110'
+              : 'text-gray-500 bg-surface-100 cursor-not-allowed'
+          }`}
+        >
+          {isConsolidating ? 'Consolidando...' : 'Consolida'}
+        </button>
+      </div>
+    </div>
+  ) : isConsolidated ? (
+    <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-secondary-500/45 bg-secondary-500/[0.06] px-3.5 py-2.5">
+      <span className="w-6 h-6 rounded-lg bg-secondary-500/20 text-secondary-400 flex items-center justify-center text-sm font-bold">✓</span>
+      <span className="text-sm font-semibold text-secondary-400">Contratti consolidati</span>
+    </div>
+  ) : null
+
+  // ===== Sidebar stats =====
+  const sidebar = (
+    <div className="flex flex-col gap-3 lg:overflow-y-auto lg:min-h-0">
+      {/* Residuo */}
+      <div className="bg-gradient-to-br from-secondary-500/10 to-secondary-500/[0.03] border border-secondary-500/35 rounded-2xl p-4">
+        <div className="micro-label mb-2.5">Residuo dopo consolidamento</div>
+        <div className="text-[11px] text-gray-400 leading-relaxed space-y-0.5">
+          <div className="flex justify-between">Budget <span className="font-mono text-white">{memberBudget}M</span></div>
+          <div className="flex justify-between">− Ingaggi annui <span className="font-mono text-white">{projectedSalaries}M</span></div>
+          <div className="flex justify-between">+ Recupero tagli <span className="font-mono text-white">{totalReleaseCost}M</span></div>
+          {totalIndemnities > 0 && <div className="flex justify-between">− Indennizzi <span className="font-mono text-white">{totalIndemnities}M</span></div>}
+        </div>
+        <div className="flex items-baseline justify-between mt-3 pt-3 border-t border-secondary-500/25">
+          <span className="micro-label text-secondary-400">Residuo</span>
+          <span className={`stat-number text-2xl ${residuoContratti < 0 ? 'text-danger-400' : 'text-secondary-400'}`}>
+            {residuoContratti >= 0 ? '+' : ''}{residuoContratti}M
+          </span>
+        </div>
+      </div>
+
+      {/* Per consolidare (checklist) */}
+      {inContrattiPhase && !isConsolidated && (
+        <div className="bg-surface-200 border border-surface-50 rounded-2xl p-4">
+          <div className="micro-label mb-3">Per consolidare</div>
+          <div className="flex flex-col gap-2.5">
+            <ChecklistRow ok={effectivePlayerCount <= MAX_ROSTER_SIZE} label="Rientra negli slot" value={`${effectivePlayerCount}/${MAX_ROSTER_SIZE}`} />
+            <ChecklistRow ok={exitedContracts.length === 0} label="Decidi gli usciti" value={exitedContracts.length === 0 ? 'fatto' : `${exitedContracts.length} da fare`} />
+            <ChecklistRow ok={residuoContratti >= 0} label="Budget non negativo" value={`${residuoContratti >= 0 ? '+' : ''}${residuoContratti}M`} />
+          </div>
         </div>
       )}
 
-      {/* T-006: Tab bar */}
-      {inContrattiPhase && !isConsolidated && (
-        <div className="max-w-[1600px] mx-auto px-4 pt-3">
-          <div className="flex gap-1 bg-surface-300/30 p-1 rounded-xl border border-surface-50/20">
-            {([
-              { key: 'rinnovi' as const, label: 'Rinnovi', count: filteredContracts.length, icon: '📝', alwaysShow: true },
-              { key: 'nuovi' as const, label: 'Nuovi', count: filteredPending.length, icon: '⚡', alert: filteredPending.length > 0, alwaysShow: false },
-              { key: 'usciti' as const, label: 'Usciti', count: exitedContracts.length, icon: '⚖️', alert: exitedContracts.length > 0, alwaysShow: false },
-            ]).filter(tab => tab.alwaysShow || tab.count > 0).map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => { setContractTab(tab.key); }}
-                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  contractTab === tab.key
-                    ? 'bg-surface-200 text-white shadow-md border border-surface-50/20'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-surface-300/30'
-                }`}
-              >
-                <span className="hidden sm:inline">{tab.icon}</span>
-                <span>{tab.label}</span>
-                {tab.count > 0 && (
-                  <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                    tab.alert && contractTab !== tab.key
-                      ? 'bg-warning-500/30 text-warning-400'
-                      : contractTab === tab.key
-                        ? 'bg-primary-500/30 text-primary-400'
-                        : 'bg-surface-50/20 text-gray-500'
-                  }`}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
+      {/* Composizione rosa */}
+      <div className="bg-surface-200 border border-surface-50 rounded-2xl p-4">
+        <div className="micro-label mb-3">Composizione rosa · {effectivePlayerCount}/{MAX_ROSTER_SIZE}</div>
+        <div className="flex flex-col gap-2.5">
+          {(['P', 'D', 'C', 'A'] as const).map(role => {
+            const count = roleDistribution[role]
+            const maxCount = Math.max(...Object.values(roleDistribution), 1)
+            const style = getRoleStyle(role)
+            return (
+              <div key={role} className="flex items-center gap-2.5">
+                <span className={`w-5 font-display font-extrabold text-xs ${getRoleAccentText(role)}`}>{role}</span>
+                <div className="flex-1 h-1.5 rounded-full bg-surface-300 overflow-hidden">
+                  <div className={`h-full rounded-full ${style.bg}`} style={{ width: `${(count / maxCount) * 100}%` }} />
+                </div>
+                <span className="font-mono text-[11px] font-bold text-gray-400 w-7 text-right">{count}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Ingaggi */}
+      <div className="bg-surface-200 border border-surface-50 rounded-2xl p-4">
+        <div className="micro-label mb-3">Ingaggi rosa</div>
+        <div className="grid grid-cols-2 gap-2.5">
+          <IngStat label="Minimo" value={`${salaryStats.min}M`} />
+          <IngStat label="Massimo" value={`${salaryStats.max}M`} />
+          <IngStat label="Media" value={`${salaryStats.avg}M`} />
+          <IngStat label="Totale" value={`${salaryStats.total}M`} />
+        </div>
+      </div>
+    </div>
+  )
+
+  // ===== Tab content =====
+  const tableHeader = (
+    <div className="hidden lg:grid grid-cols-[minmax(0,1fr)_112px_132px_118px_96px_92px] gap-2.5 px-4 py-2 border-b border-surface-50 bg-surface-300 flex-shrink-0">
+      <span className="micro-label">Giocatore</span>
+      <span className="micro-label text-right">Contratto attuale</span>
+      <span className="micro-label text-center">Nuovo ingaggio</span>
+      <span className="micro-label text-center">Durata</span>
+      <span className="micro-label text-right">Clausola</span>
+      <span className="micro-label text-center">Azione</span>
+    </div>
+  )
+
+  const activeIsRinnovi = contractTab === 'rinnovi' || isConsolidated || !inContrattiPhase
+  const activeIsNuovi = contractTab === 'nuovi'
+  const activeIsUsciti = contractTab === 'usciti'
+
+  let panel: React.ReactNode
+  if (activeIsUsciti) {
+    panel = (
+      <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col lg:h-full lg:min-h-0">
+        <div className="px-4 py-2.5 border-b border-surface-50 flex items-baseline gap-2 flex-shrink-0">
+          <span className="micro-label">Giocatori usciti · estero e retrocessione</span>
+          <span className="ml-auto font-mono text-[10.5px] text-gray-500">{filteredExited.length} da decidere</span>
+        </div>
+        {filteredExited.length === 0 ? (
+          <div className="py-8"><EmptyState icon="✅" title="Nessun giocatore uscito da decidere" description="Le decisioni KEEP/RELEASE compaiono qui" /></div>
+        ) : (
+          <div className="panel-scroll flex-1 min-h-0 p-3 grid grid-cols-1 xl:grid-cols-2 gap-3 content-start">
+            {filteredExited.map(c => (
+              <ExitedCard
+                key={c.id}
+                player={c.roster.player}
+                exitReason={c.exitReason}
+                salary={c.salary}
+                duration={c.duration}
+                indemnityCompensation={c.indemnityCompensation || 0}
+                decision={exitDecisions.get(c.id)}
+                inContrattiPhase={inContrattiPhase}
+                isConsolidated={isConsolidated}
+                onKeep={() => { setExitDecisions(prev => { const next = new Map(prev); next.set(c.id, 'KEEP'); return next }) }}
+                onRelease={() => { setExitDecisions(prev => { const next = new Map(prev); next.set(c.id, 'RELEASE'); return next }) }}
+                onViewStats={() => { setSelectedPlayer(playerInfo(c.roster.player)) }}
+              />
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Box Regole Rinnovi */}
-      {inContrattiPhase && !isConsolidated && (
-        <div className="max-w-[1600px] mx-auto px-4 py-3">
-          <details className="bg-surface-200 border border-primary-500/30 rounded-lg">
-            <summary className="px-4 py-3 cursor-pointer text-primary-400 font-medium hover:bg-surface-300/30 rounded-lg flex items-center gap-2">
-              <span>📋</span> Regole Rinnovi Contratti
-            </summary>
-            <div className="px-4 pb-4 space-y-4 text-sm">
-              {/* Rinnovo Standard */}
-              <div className="bg-surface-300/30 rounded-lg p-3 border-l-4 border-secondary-500">
-                <h4 className="text-secondary-400 font-bold mb-1">Rinnovo Standard</h4>
-                <ul className="text-gray-300 space-y-1 ml-4 list-disc">
-                  <li>Puoi aumentare o mantenere l'ingaggio</li>
-                  <li>Puoi aumentare o mantenere la durata</li>
-                  <li>La clausola = Ingaggio × Moltiplicatore (4s=×11, 3s=×9, 2s=×7, 1s=×4)</li>
-                </ul>
-              </div>
-
-              {/* Spalma */}
-              <div className="bg-surface-300/30 rounded-lg p-3 border-l-4 border-warning-500">
-                <h4 className="text-warning-400 font-bold mb-1">Spalma (solo contratti 1 semestre)</h4>
-                <ul className="text-gray-300 space-y-1 ml-4 list-disc">
-                  <li>Permette di diminuire l'ingaggio allungando la durata</li>
-                  <li><span className="text-white font-medium">Regola:</span> Nuovo Ingaggio × Nuova Durata <span className="text-warning-400">≥</span> Ingaggio Iniziale</li>
-                  <li>Esempio: Contratto 10M×1s → puoi spalmarlo a 5M×2s (5×2=10 ≥ 10)</li>
-                  <li className="text-danger-400">Se la regola non è rispettata, il consolidamento sarà bloccato</li>
-                </ul>
-              </div>
-
-              {/* Taglia */}
-              <div className="bg-surface-300/30 rounded-lg p-3 border-l-4 border-danger-500">
-                <h4 className="text-danger-400 font-bold mb-1">Taglia (Rilascio Giocatore)</h4>
-                <ul className="text-gray-300 space-y-1 ml-4 list-disc">
-                  <li>Puoi liberare un giocatore pagando una penale</li>
-                  <li><span className="text-white font-medium">Costo taglio:</span> (Ingaggio × Durata residua) / 2</li>
-                  <li>Esempio: Contratto 8M×2s → costo taglio = (8×2)/2 = <span className="text-danger-400">8M</span></li>
-                  <li>Il giocatore va agli svincolati e sarà battuto all'asta</li>
-                </ul>
-              </div>
-
-              {/* Nuovi Contratti */}
-              <div className="bg-surface-300/30 rounded-lg p-3 border-l-4 border-accent-500">
-                <h4 className="text-accent-400 font-bold mb-1">Nuovi Contratti (Da Impostare)</h4>
-                <ul className="text-gray-300 space-y-1 ml-4 list-disc">
-                  <li>Giocatori acquisiti nella sessione devono avere un contratto</li>
-                  <li>Ingaggio minimo = prezzo d'acquisto</li>
-                  <li>Durata: da 1 a 4 semestri</li>
-                </ul>
-              </div>
-            </div>
-          </details>
-        </div>
-      )}
-
-      <main className="max-w-[1600px] mx-auto px-4 py-4">
-        <div className="flex flex-col xl:flex-row gap-4">
-          {/* Colonna principale - Contratti */}
-          <div className="flex-1 min-w-0">
-        {/* Pending Contracts - Da impostare (T-006: tab 'nuovi' or always when consolidated) */}
-        {filteredPending.length > 0 && (contractTab === 'nuovi' || isConsolidated || !inContrattiPhase) && (
-          <div className="mb-6">
-            <h2 className="text-sm font-bold text-warning-400 uppercase tracking-wide mb-2">
-              Da Impostare ({filteredPending.length})
-            </h2>
-
-            {/* Mobile: Card View */}
-            <div className="md:hidden space-y-3">
-              {filteredPending.map(pending => {
-                const edit = pendingEdits[pending.rosterId]
-                const roleStyle = getRoleStyle(pending.player.position)
-                const salaryStr = edit?.newSalary && edit.newSalary.length > 0
-                  ? edit.newSalary
-                  : String(pending.draftSalary ?? pending.minSalary)
-                const durationStr = edit?.newDuration && edit.newDuration.length > 0
-                  ? edit.newDuration
-                  : String(pending.draftDuration ?? 2)
-                const currentSalary = parseInt(salaryStr) || pending.minSalary
-                const currentDuration = parseInt(durationStr) || 2
-                const multiplier = DURATION_MULTIPLIERS[currentDuration] || 7
-                const newClausola = currentSalary * multiplier
-                const newRubata = newClausola + currentSalary
-
-                return (
-                  <div key={pending.rosterId} className="bg-surface-200 rounded-lg border border-warning-500/30 p-3">
-                    {/* Header: Player info */}
-                    <div className="flex items-center gap-2 mb-3">
-                      {pending.player.apiFootballId ? (
-                        <img
-                          src={getPlayerPhotoUrl(pending.player.apiFootballId)}
-                          alt={pending.player.name}
-                          className="w-8 h-8 rounded-full object-cover bg-surface-300 flex-shrink-0"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                        />
-                      ) : null}
-                      <div className="w-8 h-8 bg-white rounded p-0.5 flex-shrink-0">
-                        <TeamLogo team={pending.player.team} />
-                      </div>
-                      <div className={`w-6 h-6 flex items-center justify-center rounded ${roleStyle.bg}`}>
-                        <span className={`text-xs font-bold ${roleStyle.text}`}>{pending.player.position}</span>
-                      </div>
-                      <button
-                        onClick={() => { setSelectedPlayer({
-                          name: pending.player.name,
-                          team: pending.player.team,
-                          position: pending.player.position,
-                          age: pending.player.age,
-                          apiFootballId: pending.player.apiFootballId,
-                          computedStats: pending.player.computedStats,
-                        }); }}
-                        className="text-primary-400 hover:text-primary-300 font-medium flex-1 text-sm sm:text-base leading-tight text-left cursor-pointer transition-colors"
-                      >
-                        {pending.player.name}
-                      </button>
-                    </div>
-
-                    {/* Info row */}
-                    <div className="flex justify-between text-xs text-gray-400 mb-3 px-1">
-                      <span>Acquisto: <span className="text-white">{pending.acquisitionPrice}M</span></span>
-                      <span>Min Ing.: <span className="text-warning-400">{pending.minSalary}M</span></span>
-                    </div>
-
-                    {/* Inputs row */}
-                    <div className="flex gap-3 mb-3">
-                      <div className="flex-1">
-                        <label className="text-[10px] text-gray-500 uppercase block mb-1">Ingaggio</label>
-                        <div className="flex items-center">
-                          <button
-                            onClick={() => { updatePendingEdit(pending.rosterId, 'newSalary', String(Math.max(pending.minSalary, currentSalary - 1))); }}
-                            disabled={!inContrattiPhase || isConsolidated || currentSalary <= pending.minSalary}
-                            className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
-                          >−</button>
-                          <div className="flex-1 px-2 py-2 min-h-[44px] flex items-center justify-center bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
-                            {currentSalary}M
-                          </div>
-                          <button
-                            onClick={() => { updatePendingEdit(pending.rosterId, 'newSalary', String(currentSalary + 1)); }}
-                            disabled={!inContrattiPhase || isConsolidated}
-                            className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold disabled:opacity-30"
-                          >+</button>
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <label className="text-[10px] text-gray-500 uppercase block mb-1">Durata</label>
-                        <div className="flex items-center">
-                          <button
-                            onClick={() => { updatePendingEdit(pending.rosterId, 'newDuration', String(Math.max(1, currentDuration - 1))); }}
-                            disabled={!inContrattiPhase || isConsolidated || currentDuration <= 1}
-                            className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
-                          >−</button>
-                          <div className={`flex-1 px-2 py-2 min-h-[44px] flex items-center justify-center bg-surface-300 border-y border-primary-500/30 text-center font-medium ${getDurationColor(currentDuration)}`}>
-                            {currentDuration}s
-                          </div>
-                          <button
-                            onClick={() => { updatePendingEdit(pending.rosterId, 'newDuration', String(Math.min(4, currentDuration + 1))); }}
-                            disabled={!inContrattiPhase || isConsolidated || currentDuration >= 4}
-                            className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold disabled:opacity-30"
-                          >+</button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Results row */}
-                    <div className="flex justify-around bg-surface-300/50 rounded p-2">
-                      <div className="text-center">
-                        <div className="text-[10px] text-gray-500 uppercase">Clausola</div>
-                        <div className="text-accent-400 font-bold">{newClausola}M</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-[10px] text-gray-500 uppercase">Rubata</div>
-                        <div className="text-warning-400 font-bold">{newRubata}M</div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Desktop: Table View */}
-            <div className="hidden md:block bg-surface-200 rounded-lg border border-warning-500/30 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-warning-500/10 text-xs text-gray-400 uppercase">
-                      <th scope="col" className="text-left p-2">Giocatore</th>
-                      <th scope="col" className="text-center p-2">Acquisto</th>
-                      <th scope="col" className="text-center p-2">Min Ing.</th>
-                      <th scope="col" className="text-center p-2 border-l border-surface-50/20">Ingaggio</th>
-                      <th scope="col" className="text-center p-2">Durata</th>
-                      <th scope="col" className="text-center p-2">Clausola</th>
-                      <th scope="col" className="text-center p-2">Nuova Rubata</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPending.map(pending => {
-                      const edit = pendingEdits[pending.rosterId]
-                      const roleStyle = getRoleStyle(pending.player.position)
-                      const salaryStr = edit?.newSalary && edit.newSalary.length > 0
-                        ? edit.newSalary
-                        : String(pending.draftSalary ?? pending.minSalary)
-                      const durationStr = edit?.newDuration && edit.newDuration.length > 0
-                        ? edit.newDuration
-                        : String(pending.draftDuration ?? 2)
-                      const currentSalary = parseInt(salaryStr) || pending.minSalary
-                      const currentDuration = parseInt(durationStr) || 2
-                      const multiplier = DURATION_MULTIPLIERS[currentDuration] || 7
-                      const newClausola = currentSalary * multiplier
-                      const newRubata = newClausola + currentSalary
-
-                      return (
-                        <tr key={pending.rosterId} className="border-t border-surface-50/10 hover:bg-surface-300/30">
-                          <td className="p-2">
-                            <div className="flex items-center gap-2">
-                              {pending.player.apiFootballId ? (
-                                <img
-                                  src={getPlayerPhotoUrl(pending.player.apiFootballId)}
-                                  alt={pending.player.name}
-                                  className="w-6 h-6 rounded-full object-cover bg-surface-300 flex-shrink-0"
-                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                                />
-                              ) : null}
-                              <div className="w-6 h-6 bg-white rounded p-0.5 flex-shrink-0">
-                                <TeamLogo team={pending.player.team} />
-                              </div>
-                              <div className={`w-5 h-5 flex items-center justify-center rounded ${roleStyle.bg}`}>
-                                <span className={`text-[10px] font-bold ${roleStyle.text}`}>{pending.player.position}</span>
-                              </div>
-                              <button
-                                onClick={() => { setSelectedPlayer({
-                                  name: pending.player.name,
-                                  team: pending.player.team,
-                                  position: pending.player.position,
-                                  age: pending.player.age,
-                                  apiFootballId: pending.player.apiFootballId,
-                                  computedStats: pending.player.computedStats,
-                                }); }}
-                                className="text-primary-400 hover:text-primary-300 font-medium text-sm sm:text-base leading-tight cursor-pointer transition-colors"
-                              >
-                                {pending.player.name}
-                              </button>
-                            </div>
-                          </td>
-                          <td className="text-center p-2 text-gray-400">{pending.acquisitionPrice}M</td>
-                          <td className="text-center p-2 text-warning-400">{pending.minSalary}M</td>
-                          <td className="text-center p-2 border-l border-surface-50/20">
-                            <div className="flex items-center justify-center gap-1">
-                              <button
-                                onClick={() => { updatePendingEdit(pending.rosterId, 'newSalary', String(Math.max(pending.minSalary, currentSalary - 1))); }}
-                                disabled={!inContrattiPhase || isConsolidated || currentSalary <= pending.minSalary}
-                                className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm disabled:opacity-30"
-                              >−</button>
-                              <span className="w-10 text-white text-center font-medium">{currentSalary}M</span>
-                              <button
-                                onClick={() => { updatePendingEdit(pending.rosterId, 'newSalary', String(currentSalary + 1)); }}
-                                disabled={!inContrattiPhase || isConsolidated}
-                                className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm disabled:opacity-30"
-                              >+</button>
-                            </div>
-                          </td>
-                          <td className="text-center p-2">
-                            <div className="flex items-center justify-center gap-1">
-                              <button
-                                onClick={() => { updatePendingEdit(pending.rosterId, 'newDuration', String(Math.max(1, currentDuration - 1))); }}
-                                disabled={!inContrattiPhase || isConsolidated || currentDuration <= 1}
-                                className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm disabled:opacity-30"
-                              >−</button>
-                              <span className={`w-8 text-center font-medium ${getDurationColor(currentDuration)}`}>{currentDuration}s</span>
-                              <button
-                                onClick={() => { updatePendingEdit(pending.rosterId, 'newDuration', String(Math.min(4, currentDuration + 1))); }}
-                                disabled={!inContrattiPhase || isConsolidated || currentDuration >= 4}
-                                className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm disabled:opacity-30"
-                              >+</button>
-                            </div>
-                          </td>
-                          <td className="text-center p-2">
-                            <span className="text-accent-400 font-medium">{newClausola}M</span>
-                          </td>
-                          <td className="text-center p-2">
-                            <span className="text-warning-400 font-bold">{newRubata}M</span>
-                            {edit?.previewData?.validationError && (
-                              <span className="text-danger-400 text-xs ml-1" title={edit.previewData.validationError}>!</span>
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
         )}
-
-        {/* Giocatori Usciti dalla Serie A - Solo INDECISI (T-006: tab 'usciti' or always when consolidated) */}
-        {exitedContracts.length > 0 && (contractTab === 'usciti' || isConsolidated || !inContrattiPhase) && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">⚖️</span>
-              <h2 className="text-sm font-bold text-cyan-400 uppercase tracking-wide">
-                Giocatori Usciti dalla Serie A ({exitedContracts.length} da decidere)
-              </h2>
-            </div>
-            <p className="text-xs text-gray-400 mb-3">
-              Decidi per ogni giocatore: <span className="text-green-400 font-medium">Tieni</span> (entra nei rinnovi) o <span className="text-danger-400 font-medium">Rilascia</span> (scompare). Il consolidamento è bloccato fino a quando non decidi per tutti.
-            </p>
-            <div className="space-y-3">
-              {exitedContracts.map(contract => {
-                const roleStyle = getRoleStyle(contract.roster.player.position)
-                const exitConfig: Record<string, { bg: string; text: string; label: string }> = {
-                  RETROCESSO: { bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'Retrocesso' },
-                  ESTERO: { bg: 'bg-cyan-500/20', text: 'text-cyan-400', label: 'Estero' },
-                }
-                const defaultConfig = { bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'Retrocesso' }
-                const config = exitConfig[contract.exitReason || ''] ?? defaultConfig
-
-                return (
-                  <div key={contract.id} className="rounded-xl border p-4 bg-surface-200 border-cyan-500/30">
-                    <div className="flex items-center justify-between gap-4">
-                      {/* Player info */}
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {contract.roster.player.apiFootballId ? (
-                          <img
-                            src={getPlayerPhotoUrl(contract.roster.player.apiFootballId)}
-                            alt={contract.roster.player.name}
-                            className="w-8 h-8 rounded-full object-cover bg-surface-300 flex-shrink-0"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                          />
-                        ) : null}
-                        <div className={`w-8 h-8 rounded-lg ${roleStyle.bg} flex items-center justify-center text-white text-xs font-bold`}>
-                          {contract.roster.player.position}
-                        </div>
-                        <TeamLogo team={contract.roster.player.team} />
-                        <div className="min-w-0">
-                          <button
-                            onClick={() => { setSelectedPlayer({
-                              name: contract.roster.player.name,
-                              team: contract.roster.player.team,
-                              position: contract.roster.player.position,
-                              age: contract.roster.player.age,
-                              apiFootballId: contract.roster.player.apiFootballId,
-                              computedStats: contract.roster.player.computedStats,
-                            }); }}
-                            className="text-primary-400 hover:text-primary-300 font-medium truncate cursor-pointer transition-colors"
-                          >
-                            {contract.roster.player.name}
-                          </button>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${config.bg} ${config.text}`}>
-                              {config.label}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {contract.salary}M / {contract.duration}sem
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Indemnity info */}
-                      <div className="text-right shrink-0">
-                        {contract.exitReason === 'ESTERO' && (
-                          <p className="text-sm text-cyan-400 font-medium">
-                            Indennizzo: {contract.indemnityCompensation}M
-                          </p>
-                        )}
-                        {contract.exitReason === 'RETROCESSO' && (
-                          <p className="text-sm text-gray-400">Rilascio gratuito</p>
-                        )}
-                        <p className="text-xs text-gray-500">Costo se tieni: {contract.salary}M/sem</p>
-                      </div>
-
-                      {/* Two separate buttons: Tieni / Rilascia */}
-                      {inContrattiPhase && !isConsolidated && (
-                        <div className="flex gap-2 shrink-0">
-                          <button
-                            onClick={() => {
-                              setExitDecisions(prev => {
-                                const next = new Map(prev)
-                                next.set(contract.id, 'KEEP')
-                                return next
-                              })
-                            }}
-                            className="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-green-500/20 text-green-400 border border-green-500/40 hover:bg-green-500/30"
-                          >
-                            Tieni
-                          </button>
-                          <button
-                            onClick={() => {
-                              setExitDecisions(prev => {
-                                const next = new Map(prev)
-                                next.set(contract.id, 'RELEASE')
-                                return next
-                              })
-                            }}
-                            className="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-danger-500/20 text-danger-400 border border-danger-500/40 hover:bg-danger-500/30"
-                          >
-                            Rilascia
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Contratti Esistenti (T-006: tab 'rinnovi' or always when consolidated) */}
-        {(contractTab === 'rinnovi' || isConsolidated || !inContrattiPhase) && <div>
-          <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-2">
-            Contratti ({filteredContracts.length})
-          </h2>
-
-          {/* Mobile: Card View */}
-          <div className="md:hidden space-y-3">
-            {filteredContracts.map(contract => {
-              const edit = localEdits[contract.id]
-              const roleStyle = getRoleStyle(contract.roster.player.position)
-              const currentRubata = contract.rescissionClause + contract.salary
-              const newSalary = parseInt(edit?.newSalary || '') || contract.salary
-              const newDuration = parseInt(edit?.newDuration || '') || contract.duration
-              const newMultiplier = DURATION_MULTIPLIERS[newDuration] || 7
-              const newRescissionClause = newSalary * newMultiplier
-              const newRubata = newRescissionClause + newSalary
-              const hasChanges = newSalary !== contract.salary || newDuration !== contract.duration
-              const isMarkedForRelease = localReleases.has(contract.id)
-              const releaseCost = Math.ceil((contract.salary * contract.duration) / 2)
-              const isKeptExited = contract.isExitedPlayer && exitDecisions.get(contract.id) === 'KEEP'
-
-              // Calcola il minimo ingaggio consentito
-              // - Se spalma e durata aumentata: min = ceil(initialSalary / newDuration)
-              // - Altrimenti: non può diminuire sotto il salary attuale
-              const minSalaryAllowed = contract.canSpalmare && newDuration > 1
-                ? Math.ceil(contract.initialSalary / newDuration)
-                : contract.salary
-
-              // Issue #207: Cannot increase duration unless salary is also increased
-              // Exception: canSpalmare=true cases (spalma allows duration extension without salary increase)
-              const hasSalaryIncrease = newSalary > contract.salary
-              const canIncreaseDuration = contract.canSpalmare || hasSalaryIncrease
-
-              // Issue #221/#222: Cannot decrease salary if it would invalidate the duration increase
-              // For normal contracts: can only decrease if we're above original AND (duration not increased OR there's room)
-              // For spalma: can decrease as long as above minSalaryAllowed
-              const canDecreaseSalary = contract.canSpalmare
-                ? newSalary > minSalaryAllowed  // Spalma: can decrease as long as above minSalaryAllowed
-                : newSalary > contract.salary && (newDuration <= contract.duration || newSalary > contract.salary + 1)  // Normal: must be above original AND have room if duration increased
-
-              // For spalma: minimum duration allowed based on current salary
-              // minDuration = ceil(initialSalary / newSalary)
-              // This ensures newSalary * newDuration >= initialSalary
-              const minDurationAllowed = contract.canSpalmare
-                ? Math.max(1, Math.ceil(contract.initialSalary / newSalary))
-                : contract.duration  // For non-spalma, cannot go below current duration
-
-              // Can decrease duration if above minimum allowed
-              const canDecreaseDuration = newDuration > 1 && newDuration > minDurationAllowed
-
+      </div>
+    )
+  } else if (activeIsNuovi) {
+    panel = (
+      <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col lg:h-full lg:min-h-0">
+        <div className="px-4 py-2.5 border-b border-surface-50 flex items-baseline gap-2 flex-shrink-0">
+          <span className="micro-label">Da Impostare · nuovi contratti</span>
+          <span className="ml-auto font-mono text-[10.5px] text-gray-500">{filteredPending.length} giocatori</span>
+        </div>
+        {tableHeader}
+        {filteredPending.length === 0 ? (
+          <div className="py-8"><EmptyState icon="⚡" title="Nessun nuovo contratto da impostare" /></div>
+        ) : (
+          <div className="panel-scroll flex-1 min-h-0">
+            {filteredPending.map(p => {
+              const edit = pendingEdits[p.rosterId]
+              const salary = parseInt(edit?.newSalary && edit.newSalary.length > 0 ? edit.newSalary : String(p.draftSalary ?? p.minSalary)) || p.minSalary
+              const duration = parseInt(edit?.newDuration && edit.newDuration.length > 0 ? edit.newDuration : String(p.draftDuration ?? 2)) || 2
               return (
-                <div key={contract.id} className={`bg-surface-200 rounded-lg border p-3 ${
-                  isMarkedForRelease ? 'border-danger-500/50 bg-danger-500/10'
-                    : hasChanges && newSalary > contract.salary ? 'border-primary-500/50 bg-primary-500/10 shadow-[0_0_8px_rgba(var(--color-primary-500),0.15)]'
-                    : hasChanges ? 'border-accent-500/30 bg-accent-500/5'
-                    : isConsolidated && contract.wasModified ? 'border-secondary-500/30'
-                    : 'border-surface-50/20'
-                }`}>
-                  {/* Header: Player info */}
-                  <div className="flex items-center gap-2 mb-3">
-                    {contract.roster.player.apiFootballId ? (
-                      <img
-                        src={getPlayerPhotoUrl(contract.roster.player.apiFootballId)}
-                        alt={contract.roster.player.name}
-                        className="w-8 h-8 rounded-full object-cover bg-surface-300 flex-shrink-0"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                      />
-                    ) : null}
-                    <div className="w-8 h-8 bg-white rounded p-0.5 flex-shrink-0">
-                      <TeamLogo team={contract.roster.player.team} />
-                    </div>
-                    <div className={`w-6 h-6 flex items-center justify-center rounded ${roleStyle.bg}`}>
-                      <span className={`text-xs font-bold ${roleStyle.text}`}>{contract.roster.player.position}</span>
-                    </div>
-                    <button
-                      onClick={() => { setSelectedPlayer({
-                        name: contract.roster.player.name,
-                        team: contract.roster.player.team,
-                        position: contract.roster.player.position,
-                        age: contract.roster.player.age,
-                        apiFootballId: contract.roster.player.apiFootballId,
-                        computedStats: contract.roster.player.computedStats,
-                      }); }}
-                      className={`font-medium flex-1 text-sm sm:text-base leading-tight cursor-pointer transition-colors text-left ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-primary-400 hover:text-primary-300'}`}
-                    >
-                      {contract.roster.player.name}
-                    </button>
-                    {contract.canSpalmare && !isMarkedForRelease && (
-                      newSalary < contract.salary ? (
-                        <Tooltip content={`Spalma applicato: ingaggio ridotto a ${newSalary}M allungando la durata a ${newDuration}s. Il costo totale (${newSalary * newDuration}M) resta ≥ ${contract.initialSalary}M.`}>
-                          <span className="px-1.5 py-0.5 bg-secondary-500/20 border border-secondary-500/40 rounded text-secondary-400 text-[10px] font-bold cursor-help">
-                            SPALMATO
-                          </span>
-                        </Tooltip>
-                      ) : (
-                        <Tooltip content={`Puoi ridurre l'ingaggio allungando la durata. Regola: Nuovo Ing. × Nuova Dur. ≥ ${contract.initialSalary}M.`}>
-                          <span className="px-1.5 py-0.5 bg-warning-500/20 border border-warning-500/40 rounded text-warning-400 text-[10px] font-bold cursor-help">
-                            SPALMABILE
-                          </span>
-                        </Tooltip>
-                      )
-                    )}
-                    {isMarkedForRelease && (
-                      <Tooltip content="Questo giocatore verrà tagliato al consolidamento. Il costo del taglio è (Ingaggio × Durata) / 2.">
-                        <span className="text-danger-400 text-[10px] font-bold cursor-help">DA TAGLIARE</span>
-                      </Tooltip>
-                    )}
-                    {isKeptExited && (
-                      <Tooltip content="Contratto scaduto ma hai scelto di mantenere il giocatore. Rinnova ingaggio e durata.">
-                        <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 rounded text-green-400 text-[10px] font-bold cursor-help">
-                          MANTENUTO
-                        </span>
-                      </Tooltip>
-                    )}
-                    {hasChanges && newSalary > contract.salary && !isMarkedForRelease && (
-                      <span className="px-1.5 py-0.5 bg-primary-500/20 border border-primary-500/40 rounded text-primary-400 text-[10px] font-bold">
-                        RIALZO
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Player info: Age & Rating */}
-                  <div className="flex items-center gap-4 mb-2 text-xs">
-                    <div className="flex items-center gap-1">
-                      <span className="text-gray-500">Eta:</span>
-                      <span className={getAgeColor(contract.roster.player.age)}>
-                        {contract.roster.player.age != null ? contract.roster.player.age : '-'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-gray-500">Voto:</span>
-                      {contract.roster.player.computedStats?.avgRating != null ? (
-                        <span className="text-primary-400">{contract.roster.player.computedStats.avgRating.toFixed(2)}</span>
-                      ) : (
-                        <span className="text-gray-500">-</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Trade info badge */}
-                  {contract.roster.acquisitionType === 'TRADE' && (
-                    <Tooltip content="Giocatore acquisito tramite scambio. Il contratto originale viene mantenuto." position="bottom">
-                      <div className="bg-purple-500/20 border border-purple-500/50 rounded px-2 py-1 mb-2 text-center cursor-help">
-                        <span className="text-purple-400 text-xs font-bold">↔️ SCAMBIO</span>
-                      </div>
-                    </Tooltip>
-                  )}
-
-                  {/* Current contract info */}
-                  <div className="bg-surface-300/30 rounded p-2 mb-3">
-                    <div className="text-[10px] text-gray-500 uppercase mb-1">Contratto Attuale</div>
-                    <div className="flex justify-around text-sm">
-                      <div className="text-center">
-                        <span className="text-gray-500 text-[10px]">Ing.</span>
-                        <div className="text-accent-400 font-bold">{contract.salary}M</div>
-                      </div>
-                      <div className="text-center">
-                        <span className="text-gray-500 text-[10px]">Dur.</span>
-                        <div className={getDurationColor(contract.duration)}>{contract.duration}s</div>
-                      </div>
-                      <div className="text-center">
-                        <span className="text-gray-500 text-[10px]">Rubata</span>
-                        <div className="text-warning-400 font-bold">{currentRubata}M</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Spalma info box (mobile) */}
-                  {contract.canSpalmare && contract.canRenew && inContrattiPhase && !isConsolidated && !isMarkedForRelease && (
-                    <div className="bg-warning-500/10 border border-warning-500/30 rounded-lg p-2 mb-3">
-                      <div className="flex items-center gap-2 text-warning-400 text-xs font-medium mb-1">
-                        <span>💡</span>
-                        <span>Spalma disponibile</span>
-                      </div>
-                      <p className="text-gray-400 text-[11px]">
-                        {newDuration <= 1 ? (
-                          <>Aumenta la durata per sbloccare la riduzione ingaggio.</>
-                        ) : (
-                          <>
-                            Min. ingaggio con {newDuration}s: <span className="text-secondary-400 font-bold">{minSalaryAllowed}M</span>
-                            <span className="text-gray-500"> ({contract.initialSalary} ÷ {newDuration} = {minSalaryAllowed})</span>
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Renewal inputs (only if can renew and not marked for release) */}
-                  {contract.canRenew && inContrattiPhase && !isConsolidated && !isMarkedForRelease && (
-                    <>
-                      <div className="flex gap-3 mb-3">
-                        <div className="flex-1">
-                          <label className="text-[10px] text-gray-500 uppercase block mb-1">Nuovo Ing.</label>
-                          <div className="flex items-center">
-                            <button
-                              onClick={() => { updateLocalEdit(contract.id, 'newSalary', String(Math.max(minSalaryAllowed, newSalary - 1))); }}
-                              disabled={!canDecreaseSalary}
-                              className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
-                              title={!canDecreaseSalary ? (contract.canSpalmare ? 'Ingaggio minimo raggiunto' : 'Riduci prima la durata per diminuire l\'ingaggio') : undefined}
-                            >−</button>
-                            <div className="flex-1 px-2 py-2 min-h-[44px] flex items-center justify-center bg-surface-300 border-y border-primary-500/30 text-white text-center font-medium">
-                              {newSalary}M
-                            </div>
-                            <button
-                              onClick={() => { updateLocalEdit(contract.id, 'newSalary', String(newSalary + 1)); }}
-                              className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold"
-                            >+</button>
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <label className="text-[10px] text-gray-500 uppercase block mb-1">Nuova Dur.</label>
-                          <div className="flex items-center">
-                            <button
-                              onClick={() => { updateLocalEdit(contract.id, 'newDuration', String(newDuration - 1)); }}
-                              disabled={!canDecreaseDuration}
-                              className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-l text-white font-bold disabled:opacity-30"
-                              title={!canDecreaseDuration && contract.canSpalmare ? 'Aumenta l\'ingaggio per ridurre la durata' : undefined}
-                            >−</button>
-                            <div className={`flex-1 px-2 py-2 min-h-[44px] flex items-center justify-center bg-surface-300 border-y border-primary-500/30 text-center font-medium ${getDurationColor(newDuration)}`}>
-                              {newDuration}s
-                            </div>
-                            <button
-                              onClick={() => { updateLocalEdit(contract.id, 'newDuration', String(newDuration + 1)); }}
-                              disabled={newDuration >= 4 || !canIncreaseDuration}
-                              className="px-3 py-2 min-h-[44px] min-w-[44px] bg-surface-300 border border-primary-500/30 rounded-r text-white font-bold disabled:opacity-30"
-                              title={!canIncreaseDuration ? 'Aumenta prima l\'ingaggio per estendere la durata' : undefined}
-                            >+</button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Results row - Clausola e Rubata con enfasi */}
-                      <div className="flex gap-2 mb-3">
-                        <div className={`flex-1 text-center py-2 px-3 rounded-lg border ${
-                          hasChanges
-                            ? 'bg-accent-500/15 border-accent-500/40'
-                            : 'bg-surface-300/50 border-surface-50/20'
-                        }`}>
-                          <div className="text-[10px] text-gray-500 uppercase mb-0.5">Clausola</div>
-                          <div className={`text-lg font-black ${hasChanges ? 'text-accent-400' : 'text-gray-500'}`}>
-                            {newRescissionClause}M
-                          </div>
-                        </div>
-                        <div className={`flex-1 text-center py-2 px-3 rounded-lg border ${
-                          hasChanges
-                            ? 'bg-warning-500/15 border-warning-500/40'
-                            : 'bg-surface-300/50 border-surface-50/20'
-                        }`}>
-                          <div className="text-[10px] text-gray-500 uppercase mb-0.5">Rubata</div>
-                          <div className={`text-lg font-black ${hasChanges ? 'text-warning-400' : 'text-gray-500'}`}>
-                            {newRubata}M
-                          </div>
-                        </div>
-                      </div>
-
-                    </>
-                  )}
-
-                  {/* Message when marked for release: inputs hidden */}
-                  {contract.canRenew && inContrattiPhase && !isConsolidated && isMarkedForRelease && (
-                    <div className="flex items-center justify-center gap-2 py-3 mb-3 rounded-lg bg-danger-500/10 border border-danger-500/30">
-                      <span className="text-danger-400 text-sm font-bold">DA TAGLIARE</span>
-                      <span className="text-gray-500 text-xs">— deseleziona il taglio per modificare</span>
-                    </div>
-                  )}
-
-                  {/* Post-consolidation display: show NUOVO values for all contracts */}
-                  {isConsolidated && contract.draftSalary != null && contract.draftDuration != null && (
-                    <div className={`rounded-lg p-3 mb-3 border ${
-                      contract.wasModified
-                        ? 'bg-secondary-500/10 border-secondary-500/30'
-                        : 'bg-surface-300/30 border-surface-50/20'
-                    }`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] text-gray-500 uppercase">Contratto Consolidato</span>
-                        {contract.wasModified && (
-                          <span className="px-1.5 py-0.5 bg-secondary-500/20 border border-secondary-500/40 rounded text-secondary-400 text-[10px] font-bold">
-                            RINNOVATO
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex justify-around text-sm">
-                        <div className="text-center">
-                          <span className="text-gray-500 text-[10px]">Nuovo Ing.</span>
-                          <div className="font-bold text-accent-400">
-                            {contract.draftSalary}M
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <span className="text-gray-500 text-[10px]">Nuova Dur.</span>
-                          <div className={`font-bold ${getDurationColor(contract.draftDuration)}`}>
-                            {contract.draftDuration}s
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <span className="text-gray-500 text-[10px]">Nuova Rubata</span>
-                          <div className="font-bold text-warning-400">
-                            {contract.draftSalary * (DURATION_MULTIPLIERS[contract.draftDuration] || 7) + contract.draftSalary}M
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Release toggle with cost */}
-                  {inContrattiPhase && !isConsolidated && (
-                    isKeptExited ? (
-                      <button
-                        onClick={() => {
-                          setExitDecisions(prev => {
-                            const next = new Map(prev)
-                            next.delete(contract.id)
-                            return next
-                          })
-                        }}
-                        className="w-full py-2 rounded text-sm font-medium transition-colors bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
-                      >
-                        Rimetti tra Usciti
-                      </button>
-                    ) : (
-                      <div className="flex items-center justify-between gap-3 p-2 rounded-lg bg-surface-300/50">
-                        <div className="flex flex-col">
-                          <span className="text-xs text-gray-500 uppercase">Costo Taglio</span>
-                          <span className={`font-bold ${isMarkedForRelease ? 'text-danger-400' : 'text-gray-400'}`}>
-                            {isMarkedForRelease ? `-${releaseCost}M` : `${releaseCost}M`}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => { toggleRelease(contract.id); }}
-                          className={`relative w-14 h-7 rounded-full transition-all duration-200 ${
-                            isMarkedForRelease
-                              ? 'bg-danger-500'
-                              : 'bg-surface-400 hover:bg-surface-500'
-                          }`}
-                          title={isMarkedForRelease ? 'Annulla taglio' : 'Taglia giocatore'}
-                        >
-                          <span
-                            className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all duration-200 ${
-                              isMarkedForRelease ? 'left-8' : 'left-1'
-                            }`}
-                          />
-                          <span className={`absolute inset-0 flex items-center justify-center text-[9px] font-bold ${
-                            isMarkedForRelease ? 'text-white pr-5' : 'text-gray-400 pl-5'
-                          }`}>
-                            {isMarkedForRelease ? 'ON' : 'OFF'}
-                          </span>
-                        </button>
-                      </div>
-                    )
-                  )}
-                </div>
+                <PendingItem
+                  key={p.rosterId}
+                  player={p.player}
+                  acquisitionPrice={p.acquisitionPrice}
+                  minSalary={p.minSalary}
+                  salary={salary}
+                  duration={duration}
+                  validationError={edit?.previewData?.validationError}
+                  inContrattiPhase={inContrattiPhase}
+                  isConsolidated={isConsolidated}
+                  onSalaryChange={(v) => { updatePendingEdit(p.rosterId, 'newSalary', String(v)) }}
+                  onDurationChange={(v) => { updatePendingEdit(p.rosterId, 'newDuration', String(v)) }}
+                  onViewStats={() => { setSelectedPlayer(playerInfo(p.player)) }}
+                />
               )
             })}
           </div>
+        )}
+      </div>
+    )
+  } else if (activeIsRinnovi) {
+    panel = (
+      <div className="bg-surface-200 border border-surface-50 rounded-xl overflow-hidden flex flex-col lg:h-full lg:min-h-0">
+        <div className="px-4 py-2.5 border-b border-surface-50 flex items-baseline gap-2 flex-shrink-0">
+          <span className="micro-label">Contratti · rinnovi e tagli</span>
+          <span className="ml-auto font-mono text-[10.5px] text-gray-500">{filteredContracts.length} giocatori</span>
+        </div>
+        {tableHeader}
+        {filteredContracts.length === 0 ? (
+          <div className="py-8"><EmptyState icon="📝" title="Nessun contratto" description={searchQuery || filterRole ? 'Nessun risultato per i filtri attivi' : undefined} /></div>
+        ) : (
+          <div className="panel-scroll flex-1 min-h-0">
+            {filteredContracts.map(c => {
+              const edit = localEdits[c.id]
+              const newSalary = parseInt(edit?.newSalary || '') || c.salary
+              const newDuration = parseInt(edit?.newDuration || '') || c.duration
+              const isMarkedForRelease = localReleases.has(c.id)
+              const isKeptExited = !!c.isExitedPlayer && exitDecisions.get(c.id) === 'KEEP'
+              return (
+                <RenewalItem
+                  key={c.id}
+                  contract={{
+                    id: c.id,
+                    salary: c.salary,
+                    duration: c.duration,
+                    initialSalary: c.initialSalary,
+                    rescissionClause: c.rescissionClause,
+                    canRenew: c.canRenew,
+                    canSpalmare: c.canSpalmare,
+                    draftSalary: c.draftSalary,
+                    draftDuration: c.draftDuration,
+                    wasModified: c.wasModified,
+                    isExitedPlayer: c.isExitedPlayer,
+                    player: c.roster.player,
+                    acquisitionType: c.roster.acquisitionType,
+                  }}
+                  newSalary={newSalary}
+                  newDuration={newDuration}
+                  validationError={edit?.previewData?.validationError}
+                  isMarkedForRelease={isMarkedForRelease}
+                  isKeptExited={isKeptExited}
+                  inContrattiPhase={inContrattiPhase}
+                  isConsolidated={isConsolidated}
+                  onSalaryChange={(v) => { updateLocalEdit(c.id, 'newSalary', String(v)) }}
+                  onDurationChange={(v) => { updateLocalEdit(c.id, 'newDuration', String(v)) }}
+                  onToggleRelease={() => { toggleRelease(c.id) }}
+                  onRemoveKept={() => { setExitDecisions(prev => { const next = new Map(prev); next.delete(c.id); return next }) }}
+                  onViewStats={() => { setSelectedPlayer(playerInfo(c.roster.player)) }}
+                />
+              )
+            })}
 
-          {/* Desktop: Table View */}
-          <div className="hidden md:block bg-surface-200 rounded-lg border border-surface-50/20 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-surface-300/50 text-xs text-gray-400 uppercase">
-                    <th className="text-left p-2">Giocatore</th>
-                    <th className="text-center p-2" colSpan={2}>Info</th>
-                    <th className="text-center p-2 bg-surface-300/30" colSpan={3}>Contratto Attuale</th>
-                    <th className="text-center p-2 bg-primary-500/10 border-l border-surface-50/20" colSpan={4}>Rinnovo</th>
-                    <th className="text-center p-2 w-28 bg-danger-500/10">Taglio</th>
-                  </tr>
-                  <tr className="bg-surface-300/30 text-[10px] text-gray-500 uppercase">
-                    <th className="p-1"></th>
-                    <th className="text-center p-1">Eta</th>
-                    <th className="text-center p-1">Voto</th>
-                    <th className="text-center p-1">Ing.</th>
-                    <th className="text-center p-1">Dur.</th>
-                    <th className="text-center p-1">Rubata</th>
-                    <th className="text-center p-1 border-l border-surface-50/20">Nuovo Ing.</th>
-                    <th className="text-center p-1">Nuova Dur.</th>
-                    <th className="text-center p-1">Clausola</th>
-                    <th className="text-center p-1">Nuova Rub.</th>
-                    <th className="text-center p-1 bg-danger-500/10">Costo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredContracts.map(contract => {
-                    const edit = localEdits[contract.id]
-                    const roleStyle = getRoleStyle(contract.roster.player.position)
-                    const currentRubata = contract.rescissionClause + contract.salary
-                    const newSalary = parseInt(edit?.newSalary || '') || contract.salary
-                    const newDuration = parseInt(edit?.newDuration || '') || contract.duration
-                    const newMultiplier = DURATION_MULTIPLIERS[newDuration] || 7
-                    const newRescissionClause = newSalary * newMultiplier
-                    const newRubata = newRescissionClause + newSalary
-                    const hasChanges = newSalary !== contract.salary || newDuration !== contract.duration
-                    const isMarkedForRelease = localReleases.has(contract.id)
-                    const releaseCost = Math.ceil((contract.salary * contract.duration) / 2)
-                    const isKeptExited = contract.isExitedPlayer && exitDecisions.get(contract.id) === 'KEEP'
-
-                    // Calcola il minimo ingaggio consentito (spalma logic)
-                    const minSalaryAllowed = contract.canSpalmare && newDuration > 1
-                      ? Math.ceil(contract.initialSalary / newDuration)
-                      : contract.salary
-
-                    // Issue #207: Cannot increase duration unless salary is also increased
-                    // Exception: canSpalmare=true cases (spalma allows duration extension without salary increase)
-                    const hasSalaryIncrease = newSalary > contract.salary
-                    const canIncreaseDuration = contract.canSpalmare || hasSalaryIncrease
-
-                    // Cannot decrease salary if it would invalidate the duration increase
-                    // For normal contracts: must be above original AND have room if duration increased
-                    const canDecreaseSalary = contract.canSpalmare
-                      ? newSalary > minSalaryAllowed
-                      : newSalary > contract.salary && (newDuration <= contract.duration || newSalary > contract.salary + 1)
-
-                    // For spalma: minimum duration allowed based on current salary
-                    // minDuration = ceil(initialSalary / newSalary)
-                    // This ensures newSalary * newDuration >= initialSalary
-                    const minDurationAllowed = contract.canSpalmare
-                      ? Math.max(1, Math.ceil(contract.initialSalary / newSalary))
-                      : contract.duration  // For non-spalma, cannot go below current duration
-
-                    // Can decrease duration if above minimum allowed
-                    const canDecreaseDuration = newDuration > 1 && newDuration > minDurationAllowed
-
-                    return (
-                      <tr key={contract.id} className={`border-t border-surface-50/10 hover:bg-surface-300/30 ${
-                        isKeptExited ? 'bg-green-500/5'
-                          : isMarkedForRelease ? 'bg-danger-500/20 opacity-70'
-                          : hasChanges && newSalary > contract.salary ? 'bg-primary-500/10'
-                          : hasChanges ? 'bg-accent-500/5'
-                          : isConsolidated && contract.wasModified ? 'bg-secondary-500/5'
-                          : ''
-                      }`}>
-                        <td className="p-2">
-                          <div className="flex items-center gap-2">
-                            {contract.roster.player.apiFootballId ? (
-                              <img
-                                src={getPlayerPhotoUrl(contract.roster.player.apiFootballId)}
-                                alt={contract.roster.player.name}
-                                className="w-6 h-6 rounded-full object-cover bg-surface-300 flex-shrink-0"
-                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                              />
-                            ) : null}
-                            <div className="w-6 h-6 bg-white rounded p-0.5 flex-shrink-0">
-                              <TeamLogo team={contract.roster.player.team} />
-                            </div>
-                            <div className={`w-5 h-5 flex items-center justify-center rounded ${roleStyle.bg}`}>
-                              <span className={`text-[10px] font-bold ${roleStyle.text}`}>{contract.roster.player.position}</span>
-                            </div>
-                            <button
-                              onClick={() => { setSelectedPlayer({
-                                name: contract.roster.player.name,
-                                team: contract.roster.player.team,
-                                position: contract.roster.player.position,
-                                age: contract.roster.player.age,
-                                apiFootballId: contract.roster.player.apiFootballId,
-                                computedStats: contract.roster.player.computedStats,
-                              }); }}
-                              className={`font-medium text-sm leading-tight cursor-pointer transition-colors ${isMarkedForRelease ? 'text-gray-400 line-through' : 'text-primary-400 hover:text-primary-300'}`}
-                            >
-                              {contract.roster.player.name}
-                            </button>
-                            {contract.canSpalmare && !isMarkedForRelease && (
-                              newSalary < contract.salary ? (
-                                <Tooltip content={`Spalma applicato: ingaggio ridotto a ${newSalary}M allungando la durata a ${newDuration}s. Costo totale (${newSalary * newDuration}M) ≥ ${contract.initialSalary}M.`}>
-                                  <span className="px-1.5 py-0.5 bg-secondary-500/20 border border-secondary-500/40 rounded text-secondary-400 text-[10px] font-bold cursor-help">
-                                    SPALMATO
-                                  </span>
-                                </Tooltip>
-                              ) : (
-                                <Tooltip content={`Puoi ridurre l'ingaggio allungando la durata. Regola: Nuovo Ing. × Nuova Dur. ≥ ${contract.initialSalary}M.`}>
-                                  <span className="px-1.5 py-0.5 bg-warning-500/20 border border-warning-500/40 rounded text-warning-400 text-[10px] font-bold cursor-help">
-                                    SPALMABILE
-                                  </span>
-                                </Tooltip>
-                              )
-                            )}
-                            {contract.roster.acquisitionType === 'TRADE' && (
-                              <Tooltip content="Acquisito tramite scambio. Il contratto originale viene mantenuto.">
-                                <span className="text-purple-400 text-[10px] font-bold px-1 py-0.5 bg-purple-500/20 rounded cursor-help">↔️ SCAMBIO</span>
-                              </Tooltip>
-                            )}
-                            {isMarkedForRelease && (
-                              <Tooltip content="Verrà tagliato al consolidamento. Costo: (Ingaggio × Durata) / 2.">
-                                <span className="text-danger-400 text-xs font-medium cursor-help">DA TAGLIARE</span>
-                              </Tooltip>
-                            )}
-                            {isKeptExited && (
-                              <Tooltip content="Contratto scaduto ma mantenuto in rosa. Rinnova ingaggio e durata.">
-                                <span className="px-1.5 py-0.5 bg-green-500/20 border border-green-500/40 rounded text-green-400 text-[10px] font-bold cursor-help">
-                                  MANTENUTO
-                                </span>
-                              </Tooltip>
-                            )}
-                            {hasChanges && newSalary > contract.salary && !isMarkedForRelease && (
-                              <span className="px-1.5 py-0.5 bg-primary-500/20 border border-primary-500/40 rounded text-primary-400 text-[10px] font-bold">
-                                RIALZO
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className={`text-center p-2 ${getAgeColor(contract.roster.player.age)}`}>
-                          {contract.roster.player.age != null ? contract.roster.player.age : '-'}
-                        </td>
-                        <td className="text-center p-2">
-                          {contract.roster.player.computedStats?.avgRating != null ? (
-                            <span className="text-primary-400">{contract.roster.player.computedStats.avgRating.toFixed(2)}</span>
-                          ) : (
-                            <span className="text-gray-500">-</span>
-                          )}
-                        </td>
-                        <td className="text-center p-2 text-accent-400 font-medium">{contract.salary}M</td>
-                        <td className={`text-center p-2 ${getDurationColor(contract.duration)}`}>{contract.duration}s</td>
-                        <td className="text-center p-2 text-warning-400 font-medium">{currentRubata}M</td>
-                        <td className="text-center p-2 border-l border-surface-50/20">
-                          {contract.canRenew && inContrattiPhase && !isConsolidated && !isMarkedForRelease ? (
-                            <div className="flex items-center justify-center gap-1">
-                              <button
-                                onClick={() => { updateLocalEdit(contract.id, 'newSalary', String(Math.max(minSalaryAllowed, newSalary - 1))); }}
-                                disabled={!canDecreaseSalary}
-                                className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm disabled:opacity-30"
-                                title={!canDecreaseSalary ? (contract.canSpalmare ? 'Min raggiunto' : 'Riduci durata') : undefined}
-                              >−</button>
-                              <span className={`w-10 text-center font-medium ${newSalary > contract.salary ? 'text-primary-400' : 'text-white'}`}>{newSalary}M</span>
-                              <button
-                                onClick={() => { updateLocalEdit(contract.id, 'newSalary', String(newSalary + 1)); }}
-                                className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm"
-                              >+</button>
-                            </div>
-                          ) : isMarkedForRelease && inContrattiPhase && !isConsolidated ? (
-                            <span className="text-danger-400 text-xs font-bold">DA TAGLIARE</span>
-                          ) : isConsolidated && contract.draftSalary != null ? (
-                            <span className="text-accent-400 font-medium">
-                              {contract.draftSalary}M
-                            </span>
-                          ) : (
-                            <span className="text-gray-500">-</span>
-                          )}
-                        </td>
-                        <td className="text-center p-2">
-                          {contract.canRenew && inContrattiPhase && !isConsolidated && !isMarkedForRelease ? (
-                            <div className="flex items-center justify-center gap-1">
-                              <button
-                                onClick={() => { updateLocalEdit(contract.id, 'newDuration', String(newDuration - 1)); }}
-                                disabled={!canDecreaseDuration}
-                                className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm disabled:opacity-30"
-                                title={!canDecreaseDuration && contract.canSpalmare ? 'Aumenta l\'ingaggio per ridurre la durata' : undefined}
-                              >−</button>
-                              <span className={`w-8 text-center font-medium ${getDurationColor(newDuration)}`}>{newDuration}s</span>
-                              <button
-                                onClick={() => { updateLocalEdit(contract.id, 'newDuration', String(newDuration + 1)); }}
-                                disabled={newDuration >= 4 || !canIncreaseDuration}
-                                className="w-6 h-6 bg-surface-300 border border-primary-500/30 rounded text-white text-sm disabled:opacity-30"
-                                title={!canIncreaseDuration ? 'Aumenta prima l\'ingaggio per estendere la durata' : undefined}
-                              >+</button>
-                            </div>
-                          ) : isMarkedForRelease && inContrattiPhase && !isConsolidated ? (
-                            <span className="text-danger-400 text-xs font-bold">-</span>
-                          ) : isConsolidated && contract.draftDuration != null ? (
-                            <span className={`font-medium ${getDurationColor(contract.draftDuration)}`}>
-                              {contract.draftDuration}s
-                            </span>
-                          ) : (
-                            <span className="text-gray-500">-</span>
-                          )}
-                        </td>
-                        <td className={`text-center p-2 ${hasChanges ? 'bg-accent-500/10' : isConsolidated && contract.wasModified ? 'bg-secondary-500/10' : ''}`}>
-                          {isConsolidated && contract.draftSalary != null && contract.draftDuration != null ? (
-                            <span className="text-accent-400 text-base font-black">
-                              {contract.draftSalary * (DURATION_MULTIPLIERS[contract.draftDuration] || 7)}M
-                            </span>
-                          ) : (
-                            <>
-                              <span className={`text-base font-black ${hasChanges ? 'text-accent-400' : 'text-gray-500'}`}>
-                                {newRescissionClause}M
-                              </span>
-                              {edit?.previewData?.validationError && (
-                                <span className="text-danger-400 text-xs ml-1" title={edit.previewData.validationError}>!</span>
-                              )}
-                            </>
-                          )}
-                        </td>
-                        <td className={`text-center p-2 ${hasChanges ? 'bg-warning-500/10' : isConsolidated && contract.wasModified ? 'bg-secondary-500/10' : ''}`}>
-                          {isConsolidated && contract.draftSalary != null && contract.draftDuration != null ? (
-                            <span className="text-warning-400 text-base font-black">
-                              {contract.draftSalary * (DURATION_MULTIPLIERS[contract.draftDuration] || 7) + contract.draftSalary}M
-                            </span>
-                          ) : (
-                            <span className={`text-base font-black ${hasChanges ? 'text-warning-400' : 'text-gray-500'}`}>
-                              {newRubata}M
-                            </span>
-                          )}
-                        </td>
-                        <td className="text-center p-2">
-                          <div className="flex items-center justify-center gap-1">
-                            {inContrattiPhase && !isConsolidated && (
-                              isKeptExited ? (
-                                <button
-                                  onClick={() => {
-                                    setExitDecisions(prev => {
-                                      const next = new Map(prev)
-                                      next.delete(contract.id)
-                                      return next
-                                    })
-                                  }}
-                                  className="text-xs px-2 py-1 rounded transition-colors bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30"
-                                  title="Rimetti nella sezione giocatori usciti"
-                                >
-                                  Rimetti
-                                </button>
-                              ) : (
-                                <div className="flex items-center gap-2">
-                                  <span className={`text-xs font-bold min-w-[45px] text-right ${
-                                    isMarkedForRelease ? 'text-danger-400' : 'text-gray-500'
-                                  }`}>
-                                    {isMarkedForRelease ? `-${releaseCost}M` : `${releaseCost}M`}
-                                  </span>
-                                  <button
-                                    onClick={() => { toggleRelease(contract.id); }}
-                                    className={`relative w-10 h-5 rounded-full transition-all duration-200 flex-shrink-0 ${
-                                      isMarkedForRelease
-                                        ? 'bg-danger-500'
-                                        : 'bg-surface-400 hover:bg-surface-500'
-                                    }`}
-                                    title={isMarkedForRelease ? 'Annulla taglio' : `Taglia giocatore (${releaseCost}M)`}
-                                  >
-                                    <span
-                                      className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-200 ${
-                                        isMarkedForRelease ? 'left-5' : 'left-0.5'
-                                      }`}
-                                    />
-                                  </button>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>}
-        {/* Fine sezione contratti esistenti */}
-
-        {/* Sezione Giocatori Rilasciati (solo dopo consolidamento) */}
-        {isConsolidated && releasedPlayers.length > 0 && (
-          <div className="mt-4">
-            <h3 className="text-sm font-medium text-danger-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-              <span>✂️</span> Giocatori Tagliati ({releasedPlayers.length})
-            </h3>
-
-            {/* Mobile: Card View */}
-            <div className="md:hidden space-y-2">
-              {releasedPlayers.map(player => {
-                const roleStyle = getRoleStyle(player.playerPosition)
-                return (
-                  <div key={player.id} className="bg-danger-500/10 border border-danger-500/30 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 bg-white rounded p-0.5 flex-shrink-0">
-                        <TeamLogo team={player.playerTeam} />
-                      </div>
-                      <div className={`w-6 h-6 flex items-center justify-center rounded ${roleStyle.bg}`}>
-                        <span className={`text-xs font-bold ${roleStyle.text}`}>{player.playerPosition}</span>
-                      </div>
-                      <span className="font-medium text-gray-400 line-through flex-1">{player.playerName}</span>
-                      <span className="text-danger-400 text-xs font-bold">TAGLIATO</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Contratto: {player.salary}M × {player.duration}s</span>
-                      <span className="text-danger-400 font-bold">Costo: -{player.releaseCost}M</span>
-                    </div>
-                    {player.releaseType === 'RELEASE_ESTERO' && player.indemnityAmount && (
-                      <div className="mt-1 text-xs text-secondary-400">
-                        Indennizzo ricevuto: +{player.indemnityAmount}M
-                      </div>
-                    )}
-                    {player.releaseType === 'RELEASE_RETROCESSO' && (
-                      <div className="mt-1 text-xs text-cyan-400">
-                        Rilascio gratuito (retrocesso)
-                      </div>
-                    )}
+            {/* Giocatori tagliati (post-consolidamento) */}
+            {isConsolidated && releasedPlayers.length > 0 && (
+              <div className="border-t border-surface-50">
+                <div className="px-4 py-2.5 bg-surface-300/40">
+                  <span className="micro-label text-danger-400">Giocatori tagliati · {releasedPlayers.length}</span>
+                </div>
+                {releasedPlayers.map(player => (
+                  <div key={player.id} className="flex items-center gap-2.5 px-4 py-2.5 border-b border-surface-50/60 bg-danger-500/[0.04]">
+                    <RoleBadge position={player.playerPosition} size="sm" />
+                    <div className="w-6 h-6 bg-white rounded p-0.5 flex-shrink-0"><TeamLogo team={player.playerTeam} /></div>
+                    <span className="font-display font-bold text-sm text-gray-400 line-through flex-1 truncate">{player.playerName}</span>
+                    <span className="stat-number text-sm text-gray-500">{player.salary}×{player.duration}</span>
+                    <span className="stat-number text-sm text-danger-400 w-16 text-right">−{player.releaseCost}M</span>
+                    <span className="font-mono text-[9.5px] w-24 text-right">
+                      {player.releaseType === 'RELEASE_ESTERO' && player.indemnityAmount
+                        ? <span className="text-secondary-400">+{player.indemnityAmount}M ind.</span>
+                        : player.releaseType === 'RELEASE_RETROCESSO'
+                          ? <span className="text-primary-400">gratuito</span>
+                          : <span className="text-danger-400">taglio</span>}
+                    </span>
                   </div>
-                )
-              })}
-            </div>
-
-            {/* Desktop: Table View */}
-            <div className="hidden md:block bg-surface-200 rounded-lg border border-danger-500/30 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-danger-500/10 text-xs text-danger-400 uppercase">
-                    <th scope="col" className="text-left p-2">Giocatore</th>
-                    <th scope="col" className="text-center p-2">Ing.</th>
-                    <th scope="col" className="text-center p-2">Dur.</th>
-                    <th scope="col" className="text-center p-2">Costo Taglio</th>
-                    <th scope="col" className="text-center p-2">Note</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {releasedPlayers.map(player => {
-                    const roleStyle = getRoleStyle(player.playerPosition)
-                    return (
-                      <tr key={player.id} className="border-t border-surface-50/10 bg-danger-500/5">
-                        <td className="p-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-white rounded p-0.5">
-                              <TeamLogo team={player.playerTeam} />
-                            </div>
-                            <div className={`w-5 h-5 flex items-center justify-center rounded ${roleStyle.bg}`}>
-                              <span className={`text-[10px] font-bold ${roleStyle.text}`}>{player.playerPosition}</span>
-                            </div>
-                            <span className="text-gray-400 line-through">{player.playerName}</span>
-                          </div>
-                        </td>
-                        <td className="text-center p-2 text-gray-500">{player.salary}M</td>
-                        <td className="text-center p-2 text-gray-500">{player.duration}s</td>
-                        <td className="text-center p-2 text-danger-400 font-bold">-{player.releaseCost}M</td>
-                        <td className="text-center p-2 text-xs">
-                          {player.releaseType === 'RELEASE_ESTERO' && player.indemnityAmount && (
-                            <span className="text-secondary-400">+{player.indemnityAmount}M indennizzo</span>
-                          )}
-                          {player.releaseType === 'RELEASE_RETROCESSO' && (
-                            <span className="text-cyan-400">Gratuito</span>
-                          )}
-                          {player.releaseType === 'RELEASE_NORMAL' && (
-                            <span className="text-danger-400">Taglio volontario</span>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
+      </div>
+    )
+  }
 
-        </div>
-        {/* Fine colonna principale */}
+  return (
+    <div className="min-h-screen lg:h-dvh lg:flex lg:flex-col lg:overflow-hidden">
+      <Navigation currentPage="contracts" leagueId={leagueId} isLeagueAdmin={isLeagueAdmin} onNavigate={onNavigate} />
 
-          {/* Sidebar - Statistiche Rosa */}
-          <div className="xl:w-80 flex-shrink-0">
-            {/* Separatore mobile */}
-            <div className="xl:hidden mb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary-500/50 to-transparent"></div>
-                <span className="text-primary-400 text-sm font-medium uppercase tracking-wider">Statistiche Rosa</span>
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary-500/50 to-transparent"></div>
-              </div>
+      <main className="w-full max-w-[1400px] mx-auto px-3 lg:px-4 py-3 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden">
+        <CockpitShell header={header} adminBar={<>{adminBar}{gate}</>}>
+          <div className="mt-3 lg:h-full lg:min-h-0 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-3.5">
+            {/* Colonna lavoro */}
+            <div className="lg:min-h-0 lg:h-full">
+              {panel}
             </div>
-            <div className="sticky top-20 space-y-4">
-
-              {/* Card Slot Disponibili */}
-              <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4">
-                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                  <span>👥</span> Slot Rosa
-                </h3>
-                <div className="relative h-4 bg-surface-300 rounded-full overflow-hidden mb-2">
-                  <div
-                    className={`absolute inset-y-0 left-0 rounded-full transition-all ${
-                      effectivePlayerCount > MAX_ROSTER_SIZE
-                        ? 'bg-gradient-to-r from-danger-500 to-danger-400'
-                        : effectivePlayerCount > MAX_ROSTER_SIZE - 3
-                          ? 'bg-gradient-to-r from-warning-500 to-warning-400'
-                          : 'bg-gradient-to-r from-secondary-500 to-secondary-400'
-                    }`}
-                    style={{ width: `${Math.min(100, (effectivePlayerCount / MAX_ROSTER_SIZE) * 100)}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className={`font-bold ${
-                    effectivePlayerCount > MAX_ROSTER_SIZE ? 'text-danger-400' : 'text-white'
-                  }`}>
-                    {effectivePlayerCount} giocatori
-                  </span>
-                  <span className="text-gray-500">max {MAX_ROSTER_SIZE}</span>
-                </div>
-                {requiredReleases > 0 && (
-                  <div className="mt-2 p-2 bg-danger-500/20 rounded-lg border border-danger-500/30">
-                    <p className="text-danger-400 text-xs font-medium text-center">
-                      ⚠️ Taglia {requiredReleases} giocator{requiredReleases === 1 ? 'e' : 'i'}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Card Composizione Rosa */}
-              <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4">
-                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                  <span>⚽</span> Composizione
-                </h3>
-                {/* Mini grafico a barre orizzontali */}
-                <div className="space-y-2">
-                  {(['P', 'D', 'C', 'A'] as const).map(role => {
-                    const count = roleDistribution[role]
-                    const maxCount = Math.max(...Object.values(roleDistribution), 1)
-                    const style = getRoleStyle(role)
-                    return (
-                      <div key={role} className="flex items-center gap-2">
-                        <div className={`w-6 h-6 flex items-center justify-center rounded ${style.bg}`}>
-                          <span className={`text-xs font-bold ${style.text}`}>{role}</span>
-                        </div>
-                        <div className="flex-1 h-5 bg-surface-300 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${style.bg} transition-all`}
-                            style={{ width: `${(count / maxCount) * 100}%` }}
-                          />
-                        </div>
-                        <span className="w-6 text-right text-sm font-bold text-white">{count}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-                <div className="mt-3 pt-3 border-t border-surface-50/20 flex justify-between text-xs text-gray-500">
-                  <span>Totale</span>
-                  <span className="text-white font-medium">{Object.values(roleDistribution).reduce((a, b) => a + b, 0)}</span>
-                </div>
-              </div>
-
-              {/* Card Durata Contratti */}
-              <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4">
-                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                  <span>📅</span> Scadenze Contratti
-                </h3>
-                <div className="space-y-2">
-                  {([1, 2, 3, 4] as const).map(dur => {
-                    const count = durationDistribution[dur]
-                    const maxCount = Math.max(...Object.values(durationDistribution), 1)
-                    const width = maxCount > 0 ? (count / maxCount) * 100 : 0
-                    // Colori inline per evitare problemi con Tailwind purge
-                    const colors: Record<number, { bg: string; bar: string; text: string }> = {
-                      1: { bg: 'rgba(239, 68, 68, 0.2)', bar: '#ef4444', text: '#f87171' },   // danger/red
-                      2: { bg: 'rgba(245, 158, 11, 0.2)', bar: '#f59e0b', text: '#fbbf24' }, // warning/amber
-                      3: { bg: 'rgba(99, 102, 241, 0.2)', bar: '#6366f1', text: '#818cf8' }, // primary/indigo
-                      4: { bg: 'rgba(34, 197, 94, 0.2)', bar: '#22c55e', text: '#4ade80' },  // secondary/green
-                    }
-                    const c = colors[dur] ?? { bg: 'rgba(107,114,128,0.2)', bar: '#6b7280', text: '#9ca3af' }
-                    return (
-                      <div key={dur} className="flex items-center gap-2">
-                        <div
-                          className="w-8 h-6 flex items-center justify-center rounded"
-                          style={{ backgroundColor: c.bg }}
-                        >
-                          <span className="text-xs font-bold" style={{ color: c.text }}>{dur}s</span>
-                        </div>
-                        <div className="flex-1 h-5 bg-surface-300 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{
-                              backgroundColor: c.bar,
-                              width: `${Math.max(width, count > 0 ? 10 : 0)}%`
-                            }}
-                          />
-                        </div>
-                        <span className="w-6 text-right text-sm font-bold text-white">{count}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-                <div className="mt-3 pt-3 border-t border-surface-50/20 text-[10px] text-gray-500">
-                  <div className="flex justify-between">
-                    <span style={{ color: '#f87171' }}>● Urgente</span>
-                    <span style={{ color: '#4ade80' }}>● Lungo termine</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card Statistiche Ingaggi */}
-              <div className="bg-surface-200 rounded-xl border border-surface-50/20 p-4">
-                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                  <span>💰</span> Ingaggi
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-surface-300/50 rounded-lg p-3 text-center">
-                    <div className="text-[10px] text-gray-500 uppercase">Min</div>
-                    <div className="text-lg font-bold text-secondary-400">{salaryStats.min}M</div>
-                  </div>
-                  <div className="bg-surface-300/50 rounded-lg p-3 text-center">
-                    <div className="text-[10px] text-gray-500 uppercase">Max</div>
-                    <div className="text-lg font-bold text-danger-400">{salaryStats.max}M</div>
-                  </div>
-                  <div className="bg-surface-300/50 rounded-lg p-3 text-center">
-                    <div className="text-[10px] text-gray-500 uppercase">Media</div>
-                    <div className="text-lg font-bold text-primary-400">{salaryStats.avg}M</div>
-                  </div>
-                  <div className="bg-surface-300/50 rounded-lg p-3 text-center">
-                    <div className="text-[10px] text-gray-500 uppercase">Totale</div>
-                    <div className="text-lg font-bold text-warning-400">{salaryStats.total}M</div>
-                  </div>
-                </div>
-              </div>
-
+            {/* Sidebar */}
+            <div className="mt-3 lg:mt-0 lg:min-h-0 lg:h-full">
+              {sidebar}
             </div>
           </div>
-        </div>
+        </CockpitShell>
+
+        {/* Box regole (collassabile, fuori dal viewport bloccato su mobile) */}
+        {inContrattiPhase && !isConsolidated && (
+          <div className="lg:hidden mt-3">
+            <button
+              type="button"
+              onClick={() => { setShowRules(s => !s); }}
+              className="w-full flex items-center gap-2 px-4 py-3 bg-surface-200 border border-accent-500/30 rounded-xl text-accent-400 text-sm font-semibold"
+            >
+              <span>Regole rinnovi contratti</span>
+              <span className="ml-auto">{showRules ? '−' : '+'}</span>
+            </button>
+            {showRules && <RulesBox />}
+          </div>
+        )}
       </main>
 
-      {/* Sticky Budget Bar - Prominente */}
-      <StickyActionBar>
-        <div className="max-w-[1600px] mx-auto px-4 py-3">
-          {/* Mobile: layout con pulsanti azione fissi */}
-          <div className="md:hidden">
-            {/* Riga pulsanti Salva/Consolida - sempre visibili su mobile */}
-            {inContrattiPhase && !isConsolidated && (
-              <div className="flex items-center justify-between gap-2 mb-2">
-                {/* Indicatore stato */}
-                {hasUnsavedChanges ? (
-                  <div className="flex items-center gap-1.5 px-2 py-1 bg-warning-500/20 border border-warning-500/40 rounded-lg">
-                    <span className="w-2 h-2 bg-warning-400 rounded-full animate-pulse"></span>
-                    <span className="text-warning-400 text-[10px] font-medium">Da salvare</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 px-2 py-1 bg-secondary-500/20 border border-secondary-500/40 rounded-lg">
-                    <span className="text-secondary-400 text-[10px] font-medium">✓ Salvato</span>
-                  </div>
-                )}
-                {/* Pulsanti azione */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant={hasUnsavedChanges ? "accent" : "secondary"}
-                    onClick={() => void handleSaveDrafts()}
-                    disabled={isSavingDrafts}
-                  >
-                    {isSavingDrafts ? 'Salvando...' : 'Salva'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => void handleConsolidate()}
-                    disabled={isConsolidating || !canConsolidate}
-                    title={consolidateBlockReason}
-                  >
-                    {isConsolidating ? '...' : 'Consolida'}
-                  </Button>
-                </div>
-              </div>
-            )}
-            {isConsolidated && (
-              <div className="flex items-center justify-center mb-2 px-3 py-1.5 bg-secondary-500/20 border border-secondary-500/40 rounded-lg">
-                <span className="text-secondary-400 text-xs font-medium">✓ Consolidato</span>
-              </div>
-            )}
-            {/* Griglia budget compatta */}
-            <div className={`grid gap-1.5 text-center`} style={{ gridTemplateColumns: `repeat(${4 + (totalIndemnities > 0 ? 1 : 0)}, 1fr)` }}>
-              <div className="bg-surface-300/50 rounded p-1.5">
-                <div className="text-[8px] text-gray-500 uppercase">Budget</div>
-                <div className="text-accent-400 font-bold text-sm">{memberBudget}M</div>
-              </div>
-              <div className="bg-surface-300/50 rounded p-1.5">
-                <div className="text-[8px] text-gray-500 uppercase">Ingaggi</div>
-                <div className="text-warning-400 font-bold text-sm">{projectedSalaries}M</div>
-              </div>
-              <div className="bg-surface-300/50 rounded p-1.5">
-                <div className="text-[8px] text-gray-500 uppercase">Tagli</div>
-                <div className="text-danger-400 font-bold text-sm">{totalReleaseCost}M</div>
-              </div>
-              {totalIndemnities > 0 && (
-                <div className="bg-surface-300/50 rounded p-1.5">
-                  <div className="text-[8px] text-gray-500 uppercase">Indennizzi</div>
-                  <div className="text-green-400 font-bold text-sm">+{totalIndemnities}M</div>
-                </div>
-              )}
-              <div className={`rounded p-1.5 ${residuoContratti < 0 ? 'bg-danger-500/30' : 'bg-secondary-500/30'}`}>
-                <div className="text-[8px] text-white uppercase font-medium">Residuo</div>
-                <div className={`font-bold text-sm ${residuoContratti < 0 ? 'text-danger-300' : 'text-secondary-300'}`}>
-                  {residuoContratti}M
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Desktop: layout orizzontale prominente */}
-          <div className="hidden md:flex items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3 bg-surface-300/50 px-4 py-2 rounded-lg">
-                <span className="text-sm text-gray-400">Budget</span>
-                <span className="text-accent-400 font-bold text-xl">{memberBudget}M</span>
-              </div>
-              <span className="text-gray-500 text-xl">−</span>
-              <div className="flex items-center gap-3 bg-surface-300/50 px-4 py-2 rounded-lg">
-                <span className="text-sm text-gray-400">Ingaggi</span>
-                <span className="text-warning-400 font-bold text-xl">{projectedSalaries}M</span>
-              </div>
-              <span className="text-gray-500 text-xl">−</span>
-              <div className="flex items-center gap-3 bg-surface-300/50 px-4 py-2 rounded-lg">
-                <span className="text-sm text-gray-400">Tagli</span>
-                <span className="text-danger-400 font-bold text-xl">{totalReleaseCost}M</span>
-              </div>
-              {totalIndemnities > 0 && (
-                <>
-                  <span className="text-gray-500 text-xl">+</span>
-                  <div className="flex items-center gap-3 bg-surface-300/50 px-4 py-2 rounded-lg">
-                    <span className="text-sm text-gray-400">Indennizzi</span>
-                    <span className="text-green-400 font-bold text-xl">+{totalIndemnities}M</span>
-                  </div>
-                </>
-              )}
-              <span className="text-gray-500 text-xl">=</span>
-              <div className={`flex items-center gap-3 px-5 py-2 rounded-lg ${
-                residuoContratti < 0 ? 'bg-danger-500/30 border border-danger-500/50' : 'bg-secondary-500/30 border border-secondary-500/50'
-              }`}>
-                <span className="text-sm text-white font-medium">Residuo</span>
-                <span className={`font-bold text-2xl ${
-                  residuoContratti < 0 ? 'text-danger-300' : 'text-secondary-300'
-                }`}>
-                  {residuoContratti}M
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* Indicatore modifiche non salvate - Desktop */}
-              {hasUnsavedChanges && inContrattiPhase && !isConsolidated && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-warning-500/20 border border-warning-500/40 rounded-lg">
-                  <span className="w-2 h-2 bg-warning-400 rounded-full animate-pulse"></span>
-                  <span className="text-warning-400 text-sm font-medium">Modifiche da salvare</span>
-                </div>
-              )}
-              {pendingContracts.length > 0 && (
-                <div className="bg-warning-500/20 border border-warning-500/30 px-3 py-2 rounded-lg">
-                  <span className="text-warning-400 text-sm font-medium">{pendingContracts.length} da impostare</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </StickyActionBar>
-
-      {/* Player Stats Modal */}
       <PlayerStatsModal
         isOpen={!!selectedPlayer}
         onClose={() => { setSelectedPlayer(null); }}
         player={selectedPlayer}
       />
+    </div>
+  )
+}
 
+// ===== Small local presentational helpers =====
+
+function playerInfo(p: Player): PlayerInfo {
+  return {
+    name: p.name,
+    team: p.team,
+    position: p.position,
+    age: p.age,
+    apiFootballId: p.apiFootballId,
+    computedStats: p.computedStats,
+  }
+}
+
+function ChecklistRow({ ok, label, value }: { ok: boolean; label: string; value: string }) {
+  return (
+    <div className={`flex items-center gap-2.5 text-[12.5px] ${ok ? 'text-secondary-400' : 'text-danger-400'}`}>
+      <span className={`w-[18px] h-[18px] rounded-[5px] flex items-center justify-center text-[11px] flex-shrink-0 ${
+        ok ? 'bg-secondary-500/18 text-secondary-400' : 'bg-danger-500/18 text-danger-400'
+      }`}>
+        {ok ? '✓' : '✕'}
+      </span>
+      {label}
+      <span className="ml-auto font-mono font-bold">{value}</span>
+    </div>
+  )
+}
+
+function IngStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-surface-300 border border-surface-50 rounded-lg px-2.5 py-2">
+      <div className="micro-label text-[8.5px]">{label}</div>
+      <div className="stat-number text-lg text-white mt-0.5">{value}</div>
+    </div>
+  )
+}
+
+function RulesBox() {
+  return (
+    <div className="mt-2 bg-surface-200 border border-surface-50 rounded-xl p-4 space-y-3 text-sm">
+      <RuleBlock tone="border-secondary-500" title="Rinnovo standard" titleColor="text-secondary-400" items={[
+        'Puoi aumentare o mantenere l\'ingaggio',
+        'Puoi aumentare o mantenere la durata',
+        'Clausola = Ingaggio × Moltiplicatore (4s=×11, 3s=×9, 2s=×7, 1s=×3)',
+      ]} />
+      <RuleBlock tone="border-warning-500" title="Spalma (solo contratti 1 semestre)" titleColor="text-warning-400" items={[
+        'Riduci l\'ingaggio allungando la durata',
+        'Regola: Nuovo Ingaggio × Nuova Durata ≥ Ingaggio Iniziale',
+        'Esempio: 10M×1s → 5M×2s (5×2=10 ≥ 10)',
+      ]} />
+      <RuleBlock tone="border-danger-500" title="Taglia (rilascio)" titleColor="text-danger-400" items={[
+        'Liberi un giocatore pagando una penale',
+        'Costo taglio: (Ingaggio × Durata) / 2',
+        'Il giocatore va agli svincolati',
+      ]} />
+      <RuleBlock tone="border-accent-500" title="Nuovi contratti" titleColor="text-accent-400" items={[
+        'Giocatori acquisiti nella sessione devono avere un contratto',
+        'Ingaggio minimo = prezzo d\'acquisto',
+        'Durata: da 1 a 4 semestri',
+      ]} />
+    </div>
+  )
+}
+
+function RuleBlock({ tone, title, titleColor, items }: { tone: string; title: string; titleColor: string; items: string[] }) {
+  return (
+    <div className={`bg-surface-300/40 rounded-lg p-3 border-l-4 ${tone}`}>
+      <h4 className={`font-bold mb-1 ${titleColor}`}>{title}</h4>
+      <ul className="text-gray-300 space-y-1 ml-4 list-disc text-[13px]">
+        {items.map((it, i) => <li key={i}>{it}</li>)}
+      </ul>
     </div>
   )
 }

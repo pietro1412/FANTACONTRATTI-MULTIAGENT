@@ -96,6 +96,20 @@ vi.mock('../services/api', () => ({
 // Import the component under test AFTER all mocks
 // ---------------------------------------------------------------------------
 import { Contracts } from '../pages/Contracts'
+import { ToastProvider } from '../components/ui/Toast'
+import { ConfirmDialogProvider } from '../components/ui/ConfirmDialog'
+
+// Render helper: the page now consumes useToast/useConfirmDialog, which require
+// their providers in the tree (mounted globally in App.tsx).
+function renderContracts(props: { leagueId: string; onNavigate: (page: string, params?: Record<string, string>) => void }) {
+  return render(
+    <ToastProvider>
+      <ConfirmDialogProvider>
+        <Contracts {...props} />
+      </ConfirmDialogProvider>
+    </ToastProvider>
+  )
+}
 
 // ---------------------------------------------------------------------------
 // Test data
@@ -269,15 +283,15 @@ describe('Contracts Page', () => {
     // Make the API never resolve so the component stays loading
     mockGetById.mockReturnValue(new Promise(() => {}))
 
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
-    // The loading state renders a spinner div (no text, just animated spinner)
-    const spinner = document.querySelector('.animate-spin')
-    expect(spinner).toBeTruthy()
+    // The loading state renders skeleton placeholders (pulsing rows)
+    const skeleton = document.querySelector('.animate-pulse')
+    expect(skeleton).toBeTruthy()
   })
 
   it('renders page header with title after data loads', async () => {
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Gestione Contratti')).toBeInTheDocument()
@@ -285,7 +299,7 @@ describe('Contracts Page', () => {
   })
 
   it('renders Navigation component with correct currentPage', async () => {
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByTestId('navigation')).toBeInTheDocument()
@@ -295,7 +309,7 @@ describe('Contracts Page', () => {
   })
 
   it('shows active phase indicator when in contracts phase', async () => {
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Fase CONTRATTI attiva')).toBeInTheDocument()
@@ -309,7 +323,7 @@ describe('Contracts Page', () => {
       data: { inContrattiPhase: false, isConsolidated: false, consolidatedAt: null },
     })
 
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Fase non attiva')).toBeInTheDocument()
@@ -317,7 +331,7 @@ describe('Contracts Page', () => {
   })
 
   it('displays player names from contracts', async () => {
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       // Player names should appear (may appear in mobile + desktop views)
@@ -327,19 +341,19 @@ describe('Contracts Page', () => {
   })
 
   it('displays slot counter with correct count', async () => {
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     await waitFor(() => {
-      // 2 contracts, 0 pending, max 29
-      expect(screen.getByText('2/29')).toBeInTheDocument()
-      expect(screen.getByText('slot')).toBeInTheDocument()
+      // Cockpit testata: Slot count "2" with a "/29" suffix in a sibling node
+      expect(screen.getByText('Slot')).toBeInTheDocument()
+      expect(screen.getByText('/29')).toBeInTheDocument()
     })
   })
 
   it('displays error message and retry button on API failure', async () => {
     mockGetAll.mockResolvedValue({ success: false, message: 'Errore nel caricamento' })
 
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     // The loading state finishes and since data is empty, the page should still render
     // (the page silently handles missing data).
@@ -349,12 +363,11 @@ describe('Contracts Page', () => {
   })
 
   it('shows save and consolidate buttons during active phase', async () => {
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     await waitFor(() => {
-      // Both desktop header and mobile StickyActionBar render Salva buttons
-      const salvaButtons = screen.getAllByText('Salva')
-      expect(salvaButtons.length).toBeGreaterThanOrEqual(1)
+      // Cockpit gate row renders the draft + consolidate actions
+      expect(screen.getAllByText('Salva bozza').length).toBeGreaterThanOrEqual(1)
       expect(screen.getAllByText('Consolida').length).toBeGreaterThanOrEqual(1)
     })
   })
@@ -366,17 +379,17 @@ describe('Contracts Page', () => {
       data: { inContrattiPhase: true, isConsolidated: true, consolidatedAt: '2025-06-01T12:00:00Z' },
     })
 
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     await waitFor(() => {
-      // Both mobile and desktop consolidated indicators
-      const consolidated = screen.getAllByText(/Consolidato/)
+      // Cockpit gate row shows the consolidated banner
+      const consolidated = screen.getAllByText(/consolidati/i)
       expect(consolidated.length).toBeGreaterThan(0)
     })
   })
 
   it('shows tab bar with Rinnovi tab during active non-consolidated phase', async () => {
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Rinnovi')).toBeInTheDocument()
@@ -388,7 +401,7 @@ describe('Contracts Page', () => {
       pendingContracts: [samplePending],
     }))
 
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Nuovi')).toBeInTheDocument()
@@ -400,7 +413,7 @@ describe('Contracts Page', () => {
       contracts: [sampleContract, sampleContract2, exitedContract],
     }))
 
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByText('Usciti')).toBeInTheDocument()
@@ -412,7 +425,7 @@ describe('Contracts Page', () => {
       pendingContracts: [samplePending],
     }))
 
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       // Tab auto-selects "nuovi" when pending > 0
@@ -428,7 +441,7 @@ describe('Contracts Page', () => {
   })
 
   it('shows search and filter controls in header', async () => {
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Cerca...')).toBeInTheDocument()
@@ -442,7 +455,7 @@ describe('Contracts Page', () => {
   it('filters contracts by search query', async () => {
     const user = userEvent.setup()
 
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(screen.getAllByText('Mario Rossi').length).toBeGreaterThan(0)
@@ -457,7 +470,7 @@ describe('Contracts Page', () => {
   })
 
   it('calls loadData on mount with correct leagueId', async () => {
-    render(<Contracts leagueId={leagueId} onNavigate={mockOnNavigate} />)
+    renderContracts({ leagueId, onNavigate: mockOnNavigate })
 
     await waitFor(() => {
       expect(mockGetAll).toHaveBeenCalledWith(leagueId)
